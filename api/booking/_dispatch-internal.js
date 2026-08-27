@@ -133,7 +133,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   // ── Easer eligibility query ───────────────────────────────────────────────
   const { data: easers } = await sb
     .from('profiles')
-    .select('id, full_name, email, phone, city, zip, status, application_status, tier, rating, completed_jobs, has_membership, is_available, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
+    .select('id, full_name, email, phone, sms_consent_at, sms_opted_out_at, city, zip, status, application_status, tier, rating, completed_jobs, has_membership, is_available, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
     .eq('role', 'assembler')
     .eq('status', 'active')
     .eq('identity_verified', true)
@@ -389,6 +389,8 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
           maximumFractionDigits: 2,
         }).format(estPayCents / 100) + ' estimated earnings · '
       : '';
+    // Same number as the push, formatted for a 160-char budget.
+    const smsPay = estPayCents > 0 ? `$${(estPayCents / 100).toFixed(2)} est. ` : '';
     const pushResult = await sendPushToUser(easer.id, {
       title: 'New Job Available',
       body:  `${booking.service || 'Service'} · ${pushPay}${booking.date || ''}${booking.time ? ' at ' + booking.time : ''} · Tap to review`,
@@ -419,9 +421,29 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
       emailResult = { ok: false, error: err.message };
     }
 
+    // Third channel, same rule as the other two: it OPENS the offer, it never
+    // accepts it. Refuses itself when consent was not recorded, so this call is
+    // always safe to make. Awaited rather than fired-and-forgotten because a
+    // serverless function can be frozen the moment it responds.
+    //
+    // Deliberately carries the Easer's estimated earnings and NOT the customer
+    // total (Rule 3) and no address — a job's location is not disclosed until it
+    // is accepted in the app.
+    const smsResult = await sendSms({
+      recipient: easer,
+      body: `New AssembleAtEase job: ${booking.service || 'Service'}${booking.date ? ' ' + booking.date : ''}${booking.time ? ' at ' + booking.time : ''}. ${smsPay}Open the app to accept. Ref ${booking.ref}`,
+      meta: {
+        bookingId,
+        notificationType: 'dispatch_offer',
+        recipientType: 'easer',
+        recipientUserId: easer.id,
+      },
+    });
+
     const delivered = Boolean(
       (emailResult?.ok && !emailResult?.suppressed)
       || pushResult?.ok
+      || smsResult?.ok
     );
     if (emailResult?.logged === false || pushResult?.logged === false) {
       await logActivity(sb, {
@@ -447,6 +469,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
         email: easer.email || null,
         emailError: emailResult?.error || emailResult?.reason || null,
         pushError: pushResult?.error || pushResult?.reason || null,
+        smsError: smsResult?.error || smsResult?.skipped || null,
       });
       await logActivity(sb, {
         bookingId,
