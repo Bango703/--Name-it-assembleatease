@@ -225,10 +225,30 @@ check('the alert age rolls over to days', () => {
 const dispatchAll = await readFile(new URL('../api/owner/dispatch-all.js', import.meta.url), 'utf8');
 
 check('Dispatch All only considers confirmed, payment-ready bookings', () => {
+  // Asserts the EXCLUSIONS, not where they happen. The filters moved out of SQL
+  // and into code so the sweep can report why each booking was skipped —
+  // filtering in the query made "skipped" and "does not exist" indistinguishable,
+  // and the owner got "Nothing to dispatch" while holding real work. The
+  // guarantee is unchanged: these four categories never reach dispatchBooking.
   assert.ok(dispatchAll.includes("eq('status', 'confirmed')"), 'confirmed only');
-  assert.ok(dispatchAll.includes("in('payment_status', DISPATCH_PAYMENT_STATUSES)"), 'payment-ready only');
-  assert.ok(dispatchAll.includes("eq('needs_manual_dispatch', false)"), 'skips manual-assignment bookings');
+  assert.ok(dispatchAll.includes("is('assembler_id', null)"), 'unassigned only');
+  assert.ok(/needs_manual_dispatch/.test(dispatchAll), 'manual-assignment bookings are separated out');
+  assert.ok(
+    /!b\.needs_manual_dispatch/.test(dispatchAll),
+    'candidates must exclude needs_manual_dispatch bookings',
+  );
+  assert.ok(
+    /dispatch_paused !== true/.test(dispatchAll),
+    'candidates must exclude dispatch-paused bookings',
+  );
+  assert.ok(
+    /DISPATCH_PAYMENT_STATUSES\.includes\(b\.payment_status\)/.test(dispatchAll),
+    'candidates must be in a dispatchable payment state',
+  );
   assert.ok(dispatchAll.includes('isBookingPaymentReadyForDispatch'), 'second payment-truth filter');
+  // Whatever is excluded must be COUNTED, so the owner is told what was skipped
+  // and why rather than being shown a bare zero.
+  assert.ok(/skipped/.test(dispatchAll), 'skipped bookings must be reported back to the owner');
 });
 
 const sourceOfTruth = await readFile(new URL('../api/_source-of-truth.js', import.meta.url), 'utf8');

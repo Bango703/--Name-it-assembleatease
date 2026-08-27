@@ -25,10 +25,99 @@ export default async function handler(req, res) {
   if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
   const { bookingId, token, reason } = req.body;
-  if (!bookingId || !token) return res.status(400).json({ error: 'bookingId and token are required' });
+  if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
 
   const sb = getSupabase();
   const now = new Date().toISOString();
+
+  // ── Owner-assigned job with no dispatch offer ───────────────────────────────
+  // A token exists so an UNAUTHENTICATED email link can act. In the app the Easer
+  // is already authenticated above, and a manually assigned job has no
+  // dispatch_offers row at all — api/booking/assign.js stores its token on
+  // bookings.assignment_token and explicitly sets dispatch_token to null.
+  //
+  // The result was a Decline button that did nothing: the app had no token to
+  // send, and this endpoint only ever looked in dispatch_offers. An Easer given a
+  // job by hand could not refuse it, which strands the job on someone who is not
+  // going to do it.
+  //
+  // Identity here is stronger than a token, not weaker: the JWT proves who they
+  // are and assembler_id proves the job is theirs.
+  if (!token) {
+    const { data: assigned, error: assignedErr } = await sb
+      .from('bookings')
+      .select('id, ref, status, assembler_id, assembler_name, assembler_accepted_at, financial_operation_key')
+      .eq('id', bookingId)
+      .eq('assembler_id', user.id)
+      .maybeSingle();
+    if (assignedErr) {
+      return res.status(500).json({ error: 'Could not verify this job. Please try again.' });
+    }
+    if (!assigned) {
+      return res.status(404).json({ error: 'This job is not assigned to you.' });
+    }
+    if (assigned.assembler_accepted_at) {
+      return res.status(409).json({
+        error: 'You already accepted this job. Use Drop Job if you can no longer do it, so the owner is told.',
+        code: 'ALREADY_ACCEPTED',
+      });
+    }
+    if (assigned.financial_operation_key) {
+      return res.status(409).json({ error: 'This job is briefly locked while a payment action finishes. Try again in a moment.' });
+    }
+    // Hand it straight back. Same end state as declining an offer: unassigned and
+    // dispatchable, with nothing owed by or to the Easer who never accepted.
+    const { data: releasedRows, error: releaseErr } = await sb
+      .from('bookings')
+      .update({
+        assembler_id: null,
+        assembler_name: null,
+        assigned_at: null,
+        assembler_accepted_at: null,
+        assignment_token: null,
+        dispatch_status: null,
+        needs_manual_dispatch: true,
+      })
+      .eq('id', assigned.id)
+      .eq('assembler_id', user.id)
+      .is('assembler_accepted_at', null)
+      .select('id');
+    if (releaseErr) {
+      console.error('decline assigned-job release error:', releaseErr);
+      return res.status(500).json({ error: 'Could not decline this job. Nothing was changed.' });
+    }
+    if (!releasedRows?.length) {
+      return res.status(409).json({ error: 'This job changed while you were declining it. Refresh and check.' });
+    }
+
+    await logActivity(sb, {
+      bookingId: assigned.id,
+      eventType: 'assignment_declined',
+      actor: 'easer',
+      description: `${assigned.assembler_name || 'Easer'} declined an owner-assigned job`
+        + (reason ? ` — ${String(reason).slice(0, 300)}` : ''),
+    }).catch(() => {});
+
+    // The owner assigned this by hand, so the owner must be told by hand — there
+    // is no dispatch retry behind it to pick the job back up.
+    await sendEmail({
+      to: ownerEmail(),
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `Easer declined an assigned job — ${assigned.ref}`,
+      html: `<p><strong>${esc(assigned.assembler_name || 'The assigned Easer')}</strong> declined <strong>${esc(assigned.ref)}</strong>.</p>
+             ${reason ? `<p>Reason: ${esc(String(reason).slice(0, 300))}</p>` : ''}
+             <p>The booking is unassigned and flagged for manual assignment. Nothing was charged or paid.</p>`,
+      replyTo: ownerEmail(),
+      meta: { bookingId: assigned.id, notificationType: 'easer_declined_assignment', recipientType: 'owner', disableDedupe: true },
+    }).catch(() => {});
+
+    return res.status(200).json({
+      ok: true,
+      declined: true,
+      assignedJob: true,
+      message: 'Job declined. It has been handed back to the owner.',
+    });
+  }
 
   // ── Find open offer ────────────────────────────────────────────────────────
   const { data: offer, error: offerLookupError } = await sb
@@ -150,7 +239,7 @@ export default async function handler(req, res) {
   let dispatchOutcome = { ...declineResolution, warning: null };
 
   if (bookingLookupError || !booking) {
-    dispatchOutcome.warning = 'Offer declined, but booking dispatch state could not be loaded. Owner review is required.';
+    dispatchOutcome.warning = 'Offer declined. It may take a moment for this job to leave your offers.';
     console.error('decline-dispatch booking lookup error:', bookingLookupError);
   } else {
     try {
@@ -196,7 +285,7 @@ export default async function handler(req, res) {
       }
     } catch (dispatchError) {
       console.error('decline-dispatch finalization error:', dispatchError);
-      dispatchOutcome.warning = 'Offer declined, but automatic redispatch could not be finalized. Owner review is required.';
+      dispatchOutcome.warning = 'Offer declined. It may take a moment for this job to leave your offers.';
       await logActivity(sb, {
         bookingId,
         eventType: 'dispatch_finalization_failed',

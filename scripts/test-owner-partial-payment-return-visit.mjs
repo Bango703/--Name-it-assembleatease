@@ -89,9 +89,40 @@ assert.match(
   sourceOfTruth,
   /Trampoline relocation \(disassembly, transport & reassembly\) — custom quote'.*customQuote: true/,
 );
-assert.match(sourceOfTruth, /Trampoline assembly \(up to 10 ft\)'.*price: 229/);
-assert.match(sourceOfTruth, /Trampoline assembly \(11–14 ft\)'.*price: 279/);
-assert.match(sourceOfTruth, /Trampoline assembly \(15 ft\+\)'.*price: 329/);
+// Assert the SHAPE, not the numbers. This block hardcoded 229/279/329 and had
+// been failing since commit c908b32a legitimately raised those prices — a test
+// that copies catalog values breaks the build on every real price change, which
+// is the same duplicate-truth problem it is supposed to guard against.
+//
+// What actually matters: the three tiers exist, each carries a price, and the
+// prices ASCEND with size. A typo that made the 15 ft tier cheaper than the
+// 10 ft tier is a real defect; 279 becoming 289 is not.
+// Parsed by string search, not a built regex — the labels contain parentheses,
+// a plus sign and an en dash, and escaping those into a dynamic pattern is how
+// this kind of check quietly stops matching anything.
+const trampolineTiers = ['up to 10 ft', '11–14 ft', '15 ft+'].map((label) => {
+  const needle = `Trampoline assembly (${label})'`;
+  const at = sourceOfTruth.indexOf(needle);
+  assert.ok(at !== -1, `Trampoline assembly (${label}) must exist in the catalog.`);
+  const priced = sourceOfTruth.slice(at, at + needle.length + 40).match(/price:\s*(\d+)/);
+  assert.ok(priced, `Trampoline assembly (${label}) must carry a price.`);
+  return { label, price: Number(priced[1]) };
+});
+assert.ok(
+  trampolineTiers.every((tier, i) => i === 0 || tier.price > trampolineTiers[i - 1].price),
+  `Trampoline prices must rise with size — got ${trampolineTiers.map(t => `${t.label}=$${t.price}`).join(', ')}.`,
+);
+
+// The customer-facing page must quote the catalog's entry price. This is the
+// drift that would actually cost trust: the site advertising a number the
+// booking engine no longer charges.
+const trampolineFrom = pricingPage.match(/Trampoline assembly<\/span><strong>From \$(\d+)</);
+assert.ok(trampolineFrom, 'pricing.html must advertise a "From $X" trampoline price.');
+assert.equal(
+  Number(trampolineFrom[1]),
+  trampolineTiers[0].price,
+  `pricing.html advertises $${trampolineFrom && trampolineFrom[1]} but the catalog's entry tier is $${trampolineTiers[0].price}.`,
+);
 assert.match(sourceOfTruth, /Disassembly only \(customer handles transport\)/);
 assert.match(pricingPage, /Trampoline relocation \(disassembly, transport &amp; reassembly\).*Custom quote/);
 
