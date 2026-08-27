@@ -1166,6 +1166,18 @@
           </div>
           <span class="field-error" id="fee-consent-error"></span>
 
+          <!-- SMS consent. OPTIONAL and unchecked by default: TCPA requires prior
+               express consent, it must be a deliberate act, and it must never be a
+               condition of applying. A phone number on file is not permission to
+               text it — api/_sms.js refuses to send without the timestamp this
+               checkbox records. -->
+          <div class="conduct-check" style="margin-bottom:0.75rem">
+            <input type="checkbox" id="sms-consent" />
+            <div class="conduct-check-text">
+              Text me job offers and updates at the number above. Message and data rates may apply; message frequency varies. Reply STOP to opt out at any time, HELP for help. Optional &mdash; you can still work without it.
+            </div>
+          </div>
+
           <div class="form-group" id="card-section" style="display:none">
             <label id="card-label">Card details for the $30.00 application fee *</label>
             <div id="card-element" class="card-element-wrap"></div>
@@ -1710,6 +1722,9 @@
         hasTools: data.toolsVal === 'yes',
         hasTransport: data.transportVal === 'yes',
         yearsExperience: Number(data.years),
+        // The checkbox state at the moment of submission. The server records the
+        // timestamp; the browser never supplies one.
+        smsConsent: !!(document.getElementById('sms-consent') || {}).checked,
         bio: ([
           (data.competingVal === 'yes'
             ? ('⚠ Competing home-services business disclosed: ' + (data.competingDetails || 'not specified'))

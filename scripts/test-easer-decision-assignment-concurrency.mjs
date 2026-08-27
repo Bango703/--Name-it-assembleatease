@@ -282,7 +282,17 @@ for (const routeSource of [assignSource, acceptSource]) {
   assert.match(routeSource, /is\('financial_operation_started_at', null\)/);
 }
 assert.match(assignSource, /EASER_ASSIGNMENT_READINESS_CHANGED/);
-assert.match(assignSource, /full_name, email, phone, status/);
+// Assert the FIELDS, not their order in one string. This matched the literal
+// projection and broke the moment SMS consent columns were added between
+// `phone` and `status` — a column addition is not a regression, and a test
+// that fails on one is noise that trains people to ignore it.
+for (const column of ['full_name', 'email', 'phone', 'status', 'application_status', 'identity_verified']) {
+  assert.match(
+    assignSource,
+    new RegExp(`\\b${column}\\b`),
+    `assign.js must load ${column} to verify the Easer before assigning.`,
+  );
+}
 assert.match(acceptSource, /EASER_ACCEPTANCE_READINESS_CHANGED/);
 assert.match(acceptSource, /rpc\('accept_dispatch_offer'/);
 

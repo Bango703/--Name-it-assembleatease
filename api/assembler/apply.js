@@ -218,6 +218,13 @@ export default async function handler(req, res) {
     tier: 'pending',
     is_available: false,
     identity_verified: false,
+    // TCPA: consent is a SERVER-recorded timestamp, taken only when the
+    // applicant actually ticked the optional box. The browser never supplies a
+    // timestamp, and a phone number alone is never treated as permission —
+    // api/_sms.js refuses to send without this value.
+    ...(req.body?.smsConsent === true
+      ? { sms_consent_at: new Date().toISOString(), sms_consent_source: 'easer_application' }
+      : {}),
   };
 
   const { error: profileError } = await sb.from('profiles').insert(coreProfile);
