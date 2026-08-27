@@ -2112,8 +2112,12 @@
 
     // Decline offer button
     const declineBtn = document.getElementById('decline-job-btn');
-    if (declineBtn && (b._offer_token || b.dispatch_token)) {
-      if (!b._offer_token) b._offer_token = b.dispatch_token; // normalize
+    // A token is only needed by the UNAUTHENTICATED email link. In the app the
+    // request is authenticated, and an owner-assigned job has no dispatch offer,
+    // so gating on a token left the Decline button with no click handler at all.
+    // Attach whenever the job can actually be refused.
+    if (declineBtn && (b._offer_token || b.dispatch_token || b._can_decline)) {
+      if (!b._offer_token && b.dispatch_token) b._offer_token = b.dispatch_token; // normalize
       const declineSheet   = document.getElementById('decline-sheet');
       const declineCancel  = document.getElementById('decline-sheet-cancel');
       const declineReasons = document.getElementById('decline-reason-list');
@@ -2133,7 +2137,12 @@
           const r = await fetch('/api/booking/decline-dispatch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-            body: JSON.stringify({ bookingId: b.id, token: b._offer_token, reason: reasonCode || null }),
+            // Omit the token entirely when there is none — the server then
+            // verifies ownership from the JWT and the booking's assembler_id.
+            body: JSON.stringify(Object.assign(
+              { bookingId: b.id, reason: reasonCode || null },
+              b._offer_token ? { token: b._offer_token } : {},
+            )),
           });
           const d = await r.json();
           if (!r.ok || d.error) {
@@ -2142,7 +2151,7 @@
           }
           // Close modal, refresh list
           closeAssignmentModal(false);
-          APP.showAlert('page-alert', 'Offer declined.', 'info');
+          APP.showAlert('page-alert', d.message || 'Offer declined.', 'info');
           const resp = await fetchAssignments();
           if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
         } catch { APP.showAlert('page-alert', 'Connection error', 'error'); declineBtn.disabled = false; declineBtn.textContent = 'Decline'; }

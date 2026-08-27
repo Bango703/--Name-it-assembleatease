@@ -244,6 +244,16 @@ export default async function handler(req, res) {
     }
   });
 
+  // Can this Easer refuse the job? An owner-assigned job has NO dispatch_offers
+  // row (assign.js stores its token on the booking and nulls dispatch_token), so
+  // _offer_token is undefined and the app used to leave the Decline button with
+  // no click handler at all — a dead control on a job the Easer could not refuse.
+  // Declinable is about the JOB's state, never about whether a token happens to
+  // exist; the in-app request is authenticated, which is stronger than a token.
+  (assignedBookings || []).forEach(b => {
+    b._can_decline = !b.assembler_accepted_at && !b.financial_operation_key;
+  });
+
   // Customer operational contact data is available only while an accepted job
   // is active. Pending/unaccepted assignments and terminal history are always
   // server-redacted so UI mistakes cannot expose retained customer PII.
