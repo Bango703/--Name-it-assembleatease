@@ -74,6 +74,13 @@ export default async function handler(req, res) {
       assigned_at: null,
       assembler_accepted_at: null,
       dispatch_status: null,
+      // MUST clear the pause. api/booking/assign.js sets dispatch_paused = true
+      // when an Easer is assigned, so auto-dispatch does not compete for a job
+      // that already has someone. Clearing assembler_id without clearing this
+      // left the booking unassigned AND paused: Smart Dispatch then refused with
+      // "Dispatch is paused on this booking" — a pause the owner never set and
+      // could not see. Releasing a job means it is dispatchable again.
+      dispatch_paused: false,
       needs_manual_dispatch: false,
     })
     .eq('id', booking.id)
