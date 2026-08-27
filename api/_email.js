@@ -10,6 +10,14 @@ const DEDUPE_WINDOWS_MIN = {
   bulk: 24 * 60,
 };
 const BULK_DAILY_CAP = 2;
+const EMAIL_DEDUPE_STATUSES = [
+  'queued',
+  'provider_accepted',
+  'sent',
+  'delivered',
+  'delivery_delayed',
+  'suppressed',
+];
 
 const CRITICAL_NOTIFICATION_TYPES = new Set([
   'booking_confirmed',
@@ -83,20 +91,42 @@ function normalizeEmail(addr) {
 
 async function insertNotificationLog(sb, payload) {
   try {
-    let { error } = await sb.from('notification_log').insert(payload);
+    let { data, error } = await sb.from('notification_log').insert(payload).select('id').maybeSingle();
     // Migration 053 adds operation_case_id. Preserve logging for every older
     // notification during a safe code-before-schema deployment window.
     if (error && Object.prototype.hasOwnProperty.call(payload, 'operation_case_id')
         && (error.code === '42703' || error.code === 'PGRST204' || /operation_case_id/i.test(error.message || ''))) {
       const legacyPayload = { ...payload };
       delete legacyPayload.operation_case_id;
-      ({ error } = await sb.from('notification_log').insert(legacyPayload));
+      ({ data, error } = await sb.from('notification_log').insert(legacyPayload).select('id').maybeSingle());
     }
     if (error) throw error;
-    return { ok: true, error: null };
+    return { ok: true, id: data?.id || null, error: null };
   } catch (err) {
     console.error('notification_log insert failed:', err?.message || err);
-    return { ok: false, error: err?.message || String(err) };
+    return { ok: false, id: null, error: err?.message || String(err) };
+  }
+}
+
+async function finalizeNotificationLog(sb, queuedLog, payload) {
+  if (queuedLog?.id) {
+    try {
+      const { error } = await sb.from('notification_log').update(payload).eq('id', queuedLog.id);
+      if (error) throw error;
+      return { ok: true, id: queuedLog.id, error: null };
+    } catch (error) {
+      console.error('notification_log finalize failed:', error?.message || error);
+      return { ok: false, id: queuedLog.id, error: error?.message || String(error) };
+    }
+  }
+  return insertNotificationLog(sb, payload);
+}
+
+async function reconcileEarlyProviderEvent(sb, providerId) {
+  if (!providerId) return;
+  const { error } = await sb.rpc('reconcile_resend_delivery_events_v1', { p_provider_id: providerId });
+  if (error && !['42883', 'PGRST202'].includes(error.code)) {
+    console.error('email provider event reconciliation failed:', error.message || error);
   }
 }
 
@@ -115,7 +145,7 @@ async function getSuppressionReason(sb, { recipientEmail, subject, notificationT
     .eq('recipient_email', recipientEmail)
     .eq('notification_type', notificationType)
     .eq('subject', subject)
-    .in('status', ['sent', 'suppressed'])
+    .in('status', EMAIL_DEDUPE_STATUSES)
     .gte('sent_at', dedupeSince)
     .limit(1);
 
@@ -134,7 +164,7 @@ async function getSuppressionReason(sb, { recipientEmail, subject, notificationT
       .eq('channel', 'email')
       .eq('recipient_email', recipientEmail)
       .eq('notification_type', notificationType)
-      .eq('status', 'sent')
+      .in('status', ['provider_accepted', 'sent', 'delivered', 'delivery_delayed'])
       .gte('sent_at', dayStart.toISOString());
 
     if ((count || 0) >= dayCap) {
@@ -162,7 +192,14 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
   const recipientEmail = normalizeEmail(recipient);
   const notificationType = inferNotificationType(subject, meta.notificationType);
   const priority = meta.priority || inferPriority(notificationType);
-  const recipientType = meta.recipientType || null;
+  const explicitRecipientType = String(meta.recipientType || '').trim().toLowerCase();
+  const recipientType = ['customer', 'easer', 'owner'].includes(explicitRecipientType)
+    ? explicitRecipientType
+    : (recipientEmail === normalizeEmail(ownerEmail()) ? 'owner' : 'unknown');
+
+  if (recipientType === 'unknown') {
+    console.warn(`[email] Missing recipientType for ${notificationType} to ${recipientEmail}`);
+  }
 
   if (!recipientEmail) return { ok: false, error: 'Missing recipient email' };
 
@@ -194,24 +231,38 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
 
   const body = { from, to: Array.isArray(to) ? to : [to], subject, html };
   if (replyTo) body.reply_to = replyTo;
-  // List-Unsubscribe improves sender trust and satisfies Gmail/Yahoo bulk-sender
-  // rules — mailboxes rank senders who make opting out easy, which helps inbox
-  // placement. Points at the email-preferences path already shown in the footer.
-  // A broadcast (marketing/announcement) send passes a per-recipient tokenized
-  // unsubscribe URL so the one-click header actually opts THAT recipient out —
-  // required for CAN-SPAM and Gmail/Yahoo bulk-sender compliance. Transactional
-  // sends fall back to the generic preferences link.
-  const listUnsub = typeof meta.listUnsubscribe === 'string' && /^https:\/\//.test(meta.listUnsubscribe)
-    ? `<${meta.listUnsubscribe}>, <mailto:service@assembleatease.com?subject=unsubscribe>`
-    : '<mailto:service@assembleatease.com?subject=unsubscribe>, <https://www.assembleatease.com/contact?subject=Email%20Preferences>';
-  body.headers = {
-    'List-Unsubscribe': listUnsub,
-    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-  };
+  // One-click unsubscribe is used only when a caller supplies a tokenized HTTPS
+  // endpoint that can honor the POST. Non-essential bulk mail may expose the
+  // existing preferences links without falsely claiming one-click support.
+  const oneClickUnsubscribe = typeof meta.listUnsubscribe === 'string'
+    && /^https:\/\//.test(meta.listUnsubscribe);
+  if (oneClickUnsubscribe) {
+    body.headers = {
+      'List-Unsubscribe': `<${meta.listUnsubscribe}>, <mailto:service@assembleatease.com?subject=unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    };
+  } else if (priority === 'bulk') {
+    body.headers = {
+      'List-Unsubscribe': '<mailto:service@assembleatease.com?subject=unsubscribe>, <https://www.assembleatease.com/contact?subject=Email%20Preferences>',
+    };
+  }
 
   let providerId = null;
-  let status = 'sent';
+  let status = 'provider_accepted';
   let errorText = null;
+  const queuedLog = await insertNotificationLog(sb, {
+    channel: 'email',
+    booking_id: meta.bookingId || null,
+    operation_case_id: meta.operationCaseId || null,
+    notification_type: notificationType,
+    recipient_type: recipientType,
+    recipient_email: recipientEmail,
+    recipient_user_id: meta.recipientUserId || null,
+    subject,
+    status: 'queued',
+    provider_id: null,
+    error_text: null,
+  });
 
   try {
     const resp = await fetch('https://api.resend.com/emails', {
@@ -233,23 +284,43 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
     console.error('Resend fetch error:', fetchErr.message);
   }
 
-  // Non-blocking log — never let logging failure break the caller
-  const logResult = await insertNotificationLog(sb, {
-    channel: 'email',
-    booking_id: meta.bookingId || null,
-    operation_case_id: meta.operationCaseId || null,
-    notification_type: notificationType,
-    recipient_type: recipientType,
-    recipient_email: recipientEmail,
-    recipient_user_id: meta.recipientUserId || null,
-    subject,
+  // Non-blocking log — never let logging failure break the caller. "Accepted"
+  // is deliberately distinct from a later provider-confirmed delivery event.
+  const finalPayload = {
     status,
     provider_id: providerId,
     error_text: errorText,
-  });
+    provider_accepted_at: status === 'provider_accepted' ? new Date().toISOString() : null,
+  };
+  const logResult = await finalizeNotificationLog(sb, queuedLog, queuedLog?.id
+    ? finalPayload
+    : {
+        channel: 'email',
+        booking_id: meta.bookingId || null,
+        operation_case_id: meta.operationCaseId || null,
+        notification_type: notificationType,
+        recipient_type: recipientType,
+        recipient_email: recipientEmail,
+        recipient_user_id: meta.recipientUserId || null,
+        subject,
+        ...finalPayload,
+      });
+
+  if (status === 'provider_accepted' && providerId) {
+    await reconcileEarlyProviderEvent(sb, providerId);
+  }
 
   if (status === 'failed') return { ok: false, error: errorText, logged: logResult.ok, logError: logResult.error };
-  return { ok: true, providerId, notificationType, priority, logged: logResult.ok, logError: logResult.error };
+  return {
+    ok: true,
+    providerAccepted: true,
+    deliveryStatus: 'provider_accepted',
+    providerId,
+    notificationType,
+    priority,
+    logged: logResult.ok,
+    logError: logResult.error,
+  };
 }
 
 export function ownerEmail() {

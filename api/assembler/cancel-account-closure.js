@@ -82,13 +82,22 @@ export default async function handler(req, res) {
     });
   }
 
-  const notice = await sendEmail({
-    to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
-    subject: `Easer closure request cancelled - ${cancelledProfile.full_name || cancelledProfile.email}`,
-    html: `<p><strong>${esc(cancelledProfile.full_name || 'Easer')}</strong> (${esc(cancelledProfile.email)}) cancelled their account closure request.</p><p>Their availability remains Offline until they toggle Online again.</p>`,
-    meta: { notificationType: 'easer_account_closure_cancelled', recipientType: 'owner', recipientUserId: user.id, disableDedupe: true },
-  }).catch(error => ({ ok: false, error: error?.message || String(error) }));
+  await Promise.all([
+    sendEmail({
+      to: ownerEmail(),
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `Easer closure request cancelled - ${cancelledProfile.full_name || cancelledProfile.email}`,
+      html: `<p><strong>${esc(cancelledProfile.full_name || 'Easer')}</strong> (${esc(cancelledProfile.email)}) cancelled their account closure request.</p><p>Their availability remains Offline until they toggle Online again.</p>`,
+      meta: { notificationType: 'easer_account_closure_cancelled', recipientType: 'owner', recipientUserId: user.id, disableDedupe: true },
+    }).catch(error => ({ ok: false, error: error?.message || String(error) })),
+    sendEmail({
+      to: cancelledProfile.email || user.email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: 'Your account closure request was cancelled',
+      html: `<p>Hi ${esc(String(cancelledProfile.full_name || 'there').trim().split(/\s+/)[0])},</p><p>Your account closure request has been cancelled. Your account will remain open.</p><p>Your availability remains Offline until you choose to go Online again.</p>`,
+      meta: { notificationType: 'easer_account_closure_cancelled_confirmation', recipientType: 'easer', recipientUserId: user.id, disableDedupe: true },
+    }).catch(error => ({ ok: false, error: error?.message || String(error) })),
+  ]);
 
   return res.status(200).json({
     ok: true,

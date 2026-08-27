@@ -898,3 +898,62 @@ body:has(.sheet-overlay.open) { overflow: hidden; }
 
   button[aria-label="Change photo"] svg { position: relative; z-index: 1; }
 }
+.easer-notification-list {
+  max-height: min(420px, calc(100vh - 88px));
+  overflow-y: auto;
+  margin: 0 -0.35rem -0.25rem;
+}
+
+.easer-notification-item {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  min-height: 56px;
+  padding: 0.8rem 0.35rem;
+  color: var(--e-text, #0f172a);
+  text-decoration: none;
+  border-top: 1px solid var(--e-border, #e2e8f0);
+}
+
+.easer-notification-item:first-child { border-top: 0; }
+.easer-notification-item:active { background: #f8fafc; }
+
+.easer-notification-marker {
+  width: 7px;
+  height: 7px;
+  margin-top: 0.42rem;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.easer-notification-item.is-unread .easer-notification-marker {
+  background: var(--e-blue, #08b7ee);
+}
+
+.easer-notification-content {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.easer-notification-content strong { font-size: 0.9rem; line-height: 1.25; }
+.easer-notification-content span { color: var(--e-muted, #64748b); font-size: 0.8rem; line-height: 1.35; }
+.easer-notification-content time { color: var(--e-muted, #64748b); font-size: 0.72rem; }
+
+.easer-notification-empty {
+  padding: 1.5rem 0;
+  color: var(--e-muted, #64748b);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.easer-notification-retry {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--e-muted, #64748b);
+  font: inherit;
+  cursor: pointer;
+}

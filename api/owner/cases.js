@@ -57,8 +57,11 @@ async function loadCaseList({ sb, res, query }) {
   if (error) return caseLoadError(res, error);
 
   const allCases = data || [];
-  const bookingMap = await loadBookingMap(sb, allCases);
-  const notificationMap = await loadNotificationMap(sb, allCases);
+  const [bookingMap, easerMap, notificationMap] = await Promise.all([
+    loadBookingMap(sb, allCases),
+    loadEaserMap(sb, allCases),
+    loadNotificationMap(sb, allCases),
+  ]);
   const filtered = allCases.filter((row) => {
     if (statusFilter === 'active' && !ACTIVE_STATUSES.has(row.status)) return false;
     if (statusFilter && statusFilter !== 'active' && statusFilter !== 'all' && row.status !== statusFilter) return false;
@@ -72,6 +75,7 @@ async function loadCaseList({ sb, res, query }) {
     filters: { status: statusFilter || 'active', caseType: typeFilter || 'all', severity: severityFilter || 'all' },
     cases: filtered.map((row) => formatOperationCase(row, {
       booking: bookingMap.get(row.booking_id) || null,
+      easer: easerMap.get(row.easer_id) || null,
       notifications: notificationMap.get(row.id) || emptyNotificationSummary(),
     })),
   });
@@ -87,13 +91,14 @@ async function loadCaseDetail({ sb, res, caseId }) {
   if (error) return caseLoadError(res, error);
   if (!row) return res.status(404).json({ error: 'Case not found' });
 
-  const [eventsResult, bookingMap, notificationMap] = await Promise.all([
+  const [eventsResult, bookingMap, easerMap, notificationMap] = await Promise.all([
     sb.from('operations_case_events')
       .select('id, event_type, actor_type, actor_name, from_status, to_status, note, public_message, metadata, created_at')
       .eq('case_id', caseId)
       .order('created_at', { ascending: true })
       .limit(500),
     loadBookingMap(sb, [row]),
+    loadEaserMap(sb, [row]),
     loadNotificationMap(sb, [row]),
   ]);
 
@@ -102,6 +107,7 @@ async function loadCaseDetail({ sb, res, caseId }) {
   return res.status(200).json({
     case: formatOperationCase(row, {
       booking: bookingMap.get(row.booking_id) || null,
+      easer: easerMap.get(row.easer_id) || null,
       notifications: notificationMap.get(row.id) || emptyNotificationSummary(),
     }),
     events: (eventsResult.data || []).map(formatCaseEvent),
@@ -130,6 +136,26 @@ async function loadBookingMap(sb, cases) {
   }]));
 }
 
+async function loadEaserMap(sb, cases) {
+  const ids = [...new Set(cases.map((row) => row.easer_id).filter(Boolean))];
+  if (!ids.length) return new Map();
+  const { data, error } = await sb
+    .from('profiles')
+    .select('id, full_name, email, phone')
+    .eq('role', 'assembler')
+    .in('id', ids);
+  if (error) {
+    console.error('Operations case Easer linkage load failed:', error);
+    return new Map();
+  }
+  return new Map((data || []).map((row) => [row.id, {
+    id: row.id,
+    name: row.full_name || null,
+    email: row.email || null,
+    phone: row.phone || null,
+  }]));
+}
+
 async function loadNotificationMap(sb, cases) {
   const ids = cases.map((row) => row.id).filter(Boolean);
   if (!ids.length) return new Map();
@@ -148,7 +174,7 @@ async function loadNotificationMap(sb, cases) {
   for (const row of data || []) {
     const summary = map.get(row.operation_case_id) || emptyNotificationSummary();
     summary.attempts += 1;
-    if (row.status === 'failed') summary.failed += 1;
+    if (['failed', 'bounced', 'complained', 'delivery_delayed'].includes(row.status)) summary.failed += 1;
     if (!summary.latest) summary.latest = {
       type: row.notification_type,
       recipientType: row.recipient_type,
@@ -203,6 +229,7 @@ export function formatOperationCase(row, context = {}) {
       phone: row.customer_phone || null,
     },
     easerId: row.easer_id || null,
+    easer: context.easer || null,
     assignedTo: row.assigned_to || null,
     createdBy: { type: row.created_by_type, name: row.created_by_name || null },
     acknowledgedAt: row.acknowledged_at || null,

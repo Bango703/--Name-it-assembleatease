@@ -43,7 +43,7 @@
 }
 
 .cases-filter select {
-  min-height: 38px;
+  min-height: 44px;
   padding: 0.45rem 2rem 0.45rem 0.65rem;
   border: 1px solid var(--border-md);
   border-radius: 8px;
@@ -102,6 +102,7 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  min-height: 44px;
 }
 
 .cases-list-item:last-child {
@@ -305,7 +306,7 @@
 }
 
 .cases-update-form select {
-  min-height: 42px;
+  min-height: 44px;
   padding: 0.55rem 0.65rem;
   margin-bottom: 0.75rem;
 }
@@ -377,6 +378,19 @@
   color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.cases-event-public {
+  margin-top: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #bae6fd;
+  border-radius: 7px;
+  background: #f0f9ff;
+  color: #075985;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 

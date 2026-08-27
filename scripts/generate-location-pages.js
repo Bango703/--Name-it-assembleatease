@@ -758,7 +758,7 @@ function generatePage(city, service) {
 <script type="application/ld+json">${schema}</script>
 <script type="application/ld+json">${breadcrumbSchema}</script>
 <script type="application/ld+json">${faqSchema}</script>
-<link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/>
+<link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/png" sizes="96x96" href="/images/favicon-96.png"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/>
 <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -877,7 +877,7 @@ ${buildPublicNavBlock({ variant: 'service', includeSkipNav: true })}<main id="ma
       <p class="city-hero-lead">${esc(service.tagline)}</p>
       <p class="city-hero-body">${esc(service.heroSummary)} Online booking is available for valid Texas ZIP codes in ${esc(city.name)} and nearby communities. Assignment is confirmed after an eligible Easer accepts the appointment.</p>
       <div class="city-hero-rating">
-        <strong>Screened Easers</strong>
+        <strong>Trusted local pros</strong>
         <span style="color:var(--muted)">&bull; Clear pricing before confirmation</span>
         <span style="color:var(--muted)">&bull; Statewide Texas online booking</span>
       </div>
@@ -986,7 +986,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Why Choose Us</div>
       <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">A clearer way to book ${esc(serviceDisplayName)} in ${esc(city.name)}.</h2>
-      <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">Clear scope, screened Easers, and status updates from booking through completion.</p>
+      <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">Clear scope, trusted local pros, and status updates from booking through completion.</p>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem">
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Screened Easers</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Each Easer completes required onboarding before becoming eligible for job assignments.</p></div>

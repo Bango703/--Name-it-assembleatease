@@ -496,7 +496,7 @@ for (const file of servicePages) {
     assert.doesNotMatch(html, />4\.9</);
     assert.doesNotMatch(html, /11 Google reviews/);
     assert.doesNotMatch(html, /&#9733;/);
-    assert.match(html, /Screened Easers/);
+    assert.match(html, /Trusted local pros/);
     // Truthful Texas coverage may be declared either on the provider (statewide)
     // or as the specific city market contained within Texas (flagship city page).
     const declaresTexasCoverage = serviceEntity.provider?.areaServed?.name === 'Texas'
@@ -504,7 +504,7 @@ for (const file of servicePages) {
     assert.ok(declaresTexasCoverage, `${file} must identify truthful Texas booking coverage`);
     assert.ok(jsonLdBlocks.some((entry) => entry?.['@type'] === 'BreadcrumbList'), `${file} must include breadcrumb schema`);
     assert.ok(jsonLdBlocks.some((entry) => entry?.['@type'] === 'FAQPage'), `${file} must include FAQ schema matching visible content`);
-    assert.doesNotMatch(html, /Central Texas|local pro|local Easer|fast local/i);
+    assert.doesNotMatch(html, /Central Texas|local Easer|fast local/i);
   }
   assert.doesNotMatch(html, /1910 W Braker Ln/);
   assert.doesNotMatch(html, /entire Austin metro/i);

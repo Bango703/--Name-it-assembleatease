@@ -94,6 +94,13 @@
     }
     .apply-logo-mark img { width: 100%; height: 100%; object-fit: cover; }
     .apply-logo span { color: var(--apply-cyan); }
+    .apply-login-link {
+      color: var(--apply-cyan);
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+    }
     .nav-link {
       color: rgba(255,255,255,0.82);
       text-decoration: none;
@@ -802,7 +809,19 @@
     }
 
     @media (max-width: 640px) {
+      .apply-nav {
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.75rem;
+      }
       .apply-logo { font-size: 1.25rem; }
+      .apply-login-link {
+        display: inline-flex;
+        min-height: 44px;
+        padding: 0.65rem 1rem;
+        align-items: center;
+        justify-content: center;
+      }
       .nav-link { display: none; }
       .hero-title { font-size: clamp(1.95rem, 8.6vw, 2.35rem); line-height: 1.05; max-width: min(100%, 330px); overflow-wrap: break-word; }
       .hero-copy { font-size: 0.95rem; max-width: min(100%, 340px); }
@@ -856,7 +875,7 @@
       <span class="apply-logo-mark"><img src="../images/logo.jpg" alt="" /></span>
       AssembleAtEase
     </a>
-    <a href="/auth/login" style="color:var(--apply-cyan);font-weight:700;font-size:0.9rem;text-decoration:none;white-space:nowrap">Already an Easer? Log in &rarr;</a>
+    <a href="/auth/login" class="apply-login-link">Already an Easer? Log in &rarr;</a>
   </nav>
 
   <div class="hero-grid">
