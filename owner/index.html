@@ -7418,8 +7418,11 @@ window.intelQuick = intelQuick;
         return '<div class="ops-easer-row" style="display:flex;align-items:center;gap:10px;padding:0.55rem 0;border-bottom:1px solid var(--border)">'
           + '<span class="' + dotClass + '"></span>'
           + '<span class="ops-easer-name" style="font-size:0.85rem;font-weight:500;color:var(--text);flex:1">' + esc(e.full_name) + '</span>'
-          + easerTierBadge(e.tier)
-          + '<span style="font-size:0.7rem;color:' + labelColor + ';font-weight:600">' + label + '</span>'
+          // Fixed-width columns. Both cells were shrink-to-fit, so STARTER vs
+          // ELITE (different widths) pushed the status text to a different x
+          // position on every row and the list read as ragged.
+          + '<span style="flex:0 0 62px;display:flex;justify-content:flex-end">' + easerTierBadge(e.tier) + '</span>'
+          + '<span style="flex:0 0 96px;text-align:right;font-size:0.7rem;color:' + labelColor + ';font-weight:600;white-space:nowrap">' + label + '</span>'
           + '</div>';
       }).join('');
       if (d.offlineCount > 0) {
@@ -9346,7 +9349,11 @@ window.intelQuick = intelQuick;
       // server action never had a status restriction — it guards on active jobs
       // and unpaid earnings, which is the right gate — so this was purely a
       // missing button.
-      if (a.status === 'rejected' || a.status === 'deactivated') {
+      // Every non-working account needs a way off the roster. 'suspended' was
+      // missing, so a suspended Easer sat in the list forever looking like supply
+      // with no action available. The server gate is unchanged — it still refuses
+      // while there are active jobs or unpaid earnings, which is the real check.
+      if (['rejected', 'deactivated', 'suspended'].includes(a.status)) {
         quickActions += '<button class="btn btn-red" data-delete-asm="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Archive</button> ';
       }
       quickActions += '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">View</button>';

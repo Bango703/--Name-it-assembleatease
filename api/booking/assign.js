@@ -25,18 +25,13 @@ const SITE = 'https://www.assembleatease.com';
 // 10-second budget a slow provider timed out the whole function AFTER the
 // assignment had already committed — Vercel returned an HTML 504, the owner saw
 // "the service had an unexpected response", and the Easer was assigned anyway.
-// Headroom plus the per-notification deadline below means the owner is never
-// told an action failed when it actually succeeded.
+// The fix is HEADROOM, not racing the notification. A previous attempt resolved
+// early on a deadline and responded while the send was still in flight — but a
+// serverless function can be frozen the moment it responds, so the email could
+// be killed before it ever left. That trades a visible error for a silent
+// non-delivery, which is strictly worse: the Easer never hears about the job.
+// Await the send properly; 30 seconds is ample for Resend and web-push.
 export const config = { maxDuration: 30 };
-
-// A notification must never hold the response hostage. Resolves to whatever the
-// send returns, or to a null-delivery result once the deadline passes.
-function withDeadline(promise, ms, onTimeout) {
-  return Promise.race([
-    Promise.resolve(promise).catch(err => ({ ok: false, error: err?.message || String(err) })),
-    new Promise(resolve => setTimeout(() => resolve(onTimeout), ms)),
-  ]);
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -358,7 +353,7 @@ export default async function handler(req, res) {
 
   let emailResult = { ok: false, error: 'Missing Easer email' };
   try {
-    emailResult = await withDeadline(sendEmail({
+    emailResult = await sendEmail({
       to: assembler.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: ownerEmail(),
@@ -382,21 +377,21 @@ export default async function handler(req, res) {
       // must always be told about a job they have been given (Rule 10), so this
       // one is never collapsed into an earlier send.
       meta: { bookingId: booking.id, notificationType: 'assignment_confirmation', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
-    }), 6000, { ok: null, pending: true, error: 'Still sending — not confirmed before the response.' });
+    });
   } catch (e) {
     console.error('Assignment email error:', e);
     emailResult = { ok: false, error: e?.message || String(e) };
   }
 
   // Push notification — delivery failure never rolls back the assignment.
-  const pushResult = await withDeadline(sendPushToUser(assemblerId, {
+  const pushResult = await sendPushToUser(assemblerId, {
     title: 'New Job Assigned',
     body:  (booking.service || 'Service') + ' · ' + (booking.date || '') + (booking.time ? ' · ' + booking.time : ''),
     url:   '/assembler/my-assignments',
     jobId: booking.id,
     urgent: true,
   }, { bookingId: booking.id, notificationType: 'assignment_confirmation', recipientType: 'easer' })
-    .catch(e => ({ ok: false, error: e?.message || String(e) })), 4000, { ok: null, pending: true });
+    .catch(e => ({ ok: false, error: e?.message || String(e) }));
 
   const didReassign = Boolean(reassign && prevEaserId && prevEaserId !== assemblerId);
   await logActivity(sb, {

@@ -137,8 +137,13 @@ export default async function handler(req, res) {
       .gte('created_at', twentyFourHoursAgo)
       .order('created_at', { ascending: false })
       .limit(8),
+    // last_provider_event_at ships with migration 068. Selecting a column the
+    // database does not have fails the WHOLE query, which is why Live Ops showed
+    // "could not load notification failures — do not treat zero as confirmed" on
+    // a platform whose notifications were fine. Ask only for columns that have
+    // always existed; the delivery-event detail is additive and read elsewhere.
     sb.from('notification_log')
-      .select('id, booking_id, channel, notification_type, recipient_type, recipient_email, recipient_user_id, subject, status, error_text, sent_at, last_provider_event_at')
+      .select('id, booking_id, channel, notification_type, recipient_type, recipient_email, recipient_user_id, subject, status, error_text, sent_at')
       .in('status', ['failed', 'bounced', 'complained', 'delivery_delayed'])
       .gte('sent_at', twentyFourHoursAgo)
       .order('sent_at', { ascending: false })
@@ -206,6 +211,7 @@ export default async function handler(req, res) {
     title: notificationFailureTitle(row),
     detail: row.error_text || row.subject || 'Notification needs attention',
     meta: [row.notification_type, row.recipient_type, row.status].filter(Boolean).join(' • '),
+    // Falls back cleanly: the column is simply absent until migration 068 runs.
     when: row.last_provider_event_at || row.sent_at,
     severity: ['failed', 'bounced', 'complained'].includes(row.status) ? 'high' : 'medium',
     bookingId: row.booking_id || null,
