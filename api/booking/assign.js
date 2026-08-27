@@ -158,10 +158,17 @@ export default async function handler(req, res) {
     assigned_at: assignedAt,
     ...feeSnapshot.updates,
   };
+  // Declared at function scope. It was a block-scoped `const` inside this
+  // branch while the Accept/Decline links below are built OUTSIDE the branch —
+  // so every normal assignment threw ReferenceError: token is not defined, AFTER
+  // the assignment had already committed and BEFORE the email was sent. That is
+  // exactly the reported behaviour: the Easer gets assigned, no email arrives,
+  // and the owner sees "the service had an unexpected response".
+  let assignmentToken = null;
   if (!recordOnlyOwnerManualCompleted) {
-    const token = crypto.randomUUID();
+    assignmentToken = crypto.randomUUID();
     Object.assign(baseUpdates, {
-      assignment_token: token,
+      assignment_token: assignmentToken,
       assembler_accepted_at: null,
       dispatch_token: null,
       dispatch_status: 'assigned_pending_acceptance',
@@ -347,8 +354,8 @@ export default async function handler(req, res) {
 
   // Send assembler notification email with Accept/Decline links
   const firstName = (assembler.full_name || 'Easer').split(' ')[0];
-  const acceptUrl = `${SITE}/assembler/my-assignments?accept=${bookingId}&token=${token}`;
-  const declineUrl = `${SITE}/assembler/my-assignments?decline=${bookingId}&token=${token}`;
+  const acceptUrl = `${SITE}/assembler/my-assignments?accept=${bookingId}&token=${assignmentToken}`;
+  const declineUrl = `${SITE}/assembler/my-assignments?decline=${bookingId}&token=${assignmentToken}`;
   const estimatedPayCents = feeSnapshot.estimatedDueCents;
 
   let emailResult = { ok: false, error: 'Missing Easer email' };
