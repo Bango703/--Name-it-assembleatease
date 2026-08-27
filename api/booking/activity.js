@@ -17,7 +17,7 @@ export default async function handler(req, res) {
         .eq('booking_id', bookingId)
         .order('created_at', { ascending: true }),
       sb.from('notification_log')
-        .select('id, channel, notification_type, recipient_type, recipient_email, subject, status, error_text, sent_at')
+        .select('id, channel, notification_type, recipient_type, recipient_email, subject, status, error_text, sent_at, last_provider_event_at')
         .eq('booking_id', bookingId)
         .order('sent_at', { ascending: true }),
     ]);
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     const notifEvents = (notifRes.data || []).map(n => ({
       id:          n.id,
       booking_id:  bookingId,
-      event_type:  n.status === 'failed' ? 'notification_failed' : (n.status === 'suppressed' ? 'notification_suppressed' : 'notification_sent'),
+      event_type:  notificationEventType(n.status),
       actor_type:  n.channel,           // 'email' | 'push'
       actor_name:  n.channel === 'email' ? 'Email' : 'Push',
       description: formatNotifDescription(n),
@@ -38,11 +38,11 @@ export default async function handler(req, res) {
         notificationType: n.notification_type,
         recipientType: n.recipient_type,
         recipientEmail: n.recipient_email,
-        ownerAction: n.status === 'failed' ? 'Confirm the booking state, then contact the intended recipient using the booking record.' : null,
+        ownerAction: notificationNeedsAttention(n.status) ? 'Confirm the booking state, then contact the intended recipient using the booking record.' : null,
       },
-      created_at:  n.sent_at,
+      created_at:  n.last_provider_event_at || n.sent_at,
       _source:     'notification',
-      _status:     n.status,            // 'sent' | 'failed' — used for dot color in UI
+      _status:     n.status,
     }));
 
     // Merge and sort by timestamp
@@ -122,12 +122,26 @@ function formatNotifDescription(n) {
   const to    = recipientLabels[n.recipient_type] || n.recipient_type || '';
   const via   = n.channel === 'push' ? 'push notification' : 'email';
 
-  if (n.status === 'failed') {
-    return `${label} ${via} to ${to} FAILED — ${n.error_text || 'unknown error'}`;
+  if (notificationNeedsAttention(n.status)) {
+    return `${label} ${via} to ${to} ${String(n.status || 'failed').toUpperCase()} — ${n.error_text || 'follow-up required'}`;
   }
   if (n.status === 'suppressed') {
     return `${label} ${via} to ${to} suppressed — ${n.error_text || 'duplicate or delivery cap'}`;
   }
   const recipient = n.recipient_email || to;
+  if (n.status === 'delivered') return `${label} delivered via ${via} to ${recipient}`;
+  if (n.status === 'queued') return `${label} queued for ${recipient}`;
+  if (n.status === 'provider_accepted') return `${label} accepted by the email provider for ${recipient}`;
   return `${label} sent via ${via} to ${recipient}`;
+}
+
+function notificationNeedsAttention(status) {
+  return ['failed', 'bounced', 'complained', 'delivery_delayed'].includes(String(status || ''));
+}
+
+function notificationEventType(status) {
+  if (notificationNeedsAttention(status)) return 'notification_failed';
+  if (status === 'suppressed') return 'notification_suppressed';
+  if (status === 'delivered') return 'notification_delivered';
+  return 'notification_sent';
 }

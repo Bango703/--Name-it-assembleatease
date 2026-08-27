@@ -200,7 +200,7 @@ export default async function handler(req, res) {
             await sendEmail({
               to: profile.email,
               from: 'AssembleAtEase <booking@assembleatease.com>',
-              subject: 'Identity Verified — Application Review Pending',
+              subject: 'Identity verified — next steps',
               html: buildApplicantVerifiedEmail(profile.full_name.split(' ')[0]),
               replyTo: ownerEmail(),
               meta: { notificationType: 'identity_verified_applicant', recipientType: 'easer', recipientUserId: userId },
@@ -1796,8 +1796,8 @@ async function syncEaserApplicationFeeDispute({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: ownerEmail(),
-      subject: 'Application Fee Payment Review - AssembleAtEase',
-      html: '<p>Stripe reported a payment dispute related to your application fee. Your account is offline for new job offers while AssembleAtEase reviews it.</p><p>Any job you already accepted remains available to complete. Reply to this email if you need help.</p>',
+      subject: 'Your application payment needs attention',
+      html: '<p>A payment dispute was reported for your application fee. New job offers are temporarily unavailable.</p><p>Any job you already accepted remains available to complete. Reply to this email if you believe this is an error or need help.</p>',
       meta: {
         notificationType: 'easer_application_fee_dispute_easer',
         recipientType: 'easer',
@@ -1893,10 +1893,10 @@ async function recordEaserApplicationFeeRefundNotice({
     to: profile.email,
     from: 'AssembleAtEase <booking@assembleatease.com>',
     replyTo: ownerEmail(),
-    subject: 'Application Fee Refund Review - AssembleAtEase',
+    subject: 'Your application fee status was updated',
     html: validationError
-      ? `<p>Stripe reported refund activity on your ${EASER_APPLICATION_FEE_DISPLAY} application fee. Your account is temporarily offline for new job offers while AssembleAtEase reviews the payment.</p><p>Any job you already accepted remains available to complete. Reply to this email if you need help.</p>`
-      : `<p>Stripe now reports ${amount(refundedCents)} in completed refunds and ${amount(pendingCents)} pending on your ${EASER_APPLICATION_FEE_DISPLAY} application fee.</p><p>Your account is offline for new job offers while AssembleAtEase reviews this change. Any job you already accepted remains available to complete. Reply to this email if you need help.</p>`,
+      ? `<p>Refund activity was reported on your ${EASER_APPLICATION_FEE_DISPLAY} application fee. New job offers are temporarily unavailable.</p><p>Any job you already accepted remains available to complete. We will notify you when your status changes. Reply to this email if you need help.</p>`
+      : `<p>Your application fee now shows ${amount(refundedCents)} refunded and ${amount(pendingCents)} processing.</p><p>New job offers are temporarily unavailable. Any job you already accepted remains available to complete. We will notify you when your status changes.</p>`,
     meta: {
       notificationType: 'easer_application_fee_refund_easer',
       recipientType: 'easer',
@@ -2559,7 +2559,7 @@ function buildApplicantVerifiedEmail(firstName) {
 <div style="max-width:520px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
     <p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#166534">Identity verified, ${esc(firstName)}.</p>
-    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Stripe identity verification has been submitted successfully. AssembleAtEase will now review your application and email you with the next decision.</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Your identity verification is complete. We will email you when your application status changes.</p>
     <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">No further action is needed from you right now.</p>
   </td></tr></table>
 </div></body></html>`;

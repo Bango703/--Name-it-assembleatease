@@ -77,7 +77,7 @@ export default async function handler(req, res) {
     <p style="margin:0 0 12px;font-size:22px;font-weight:700;color:#1a1a1a">Hope it's all still holding up, ${firstName}!</p>
     <p style="margin:0 0 18px;font-size:15px;color:#52525b;line-height:1.7">It's been a few weeks since we handled your <strong>${esc(b.service)}</strong>. If anything's not perfect, just reply — we'll make it right.</p>
     <p style="margin:0 0 18px;font-size:15px;color:#52525b;line-height:1.7">And if you've got another project — more furniture, a TV to mount, smart-home gear, a playset — we'd love to help again. Same flat pricing, same pay-after-completion.</p>
-    <table cellpadding="0" cellspacing="0" style="margin:0 0 22px"><tr><td style="background:#00BFFF;border-radius:8px"><a href="${bookUrl}" style="display:inline-block;padding:13px 34px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px">Book Another Service</a></td></tr></table>
+    <table align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 22px"><tr><td style="background:#00BFFF;border-radius:8px"><a href="${bookUrl}" style="display:inline-block;padding:13px 34px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px">Book Another Service</a></td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px"><tr><td style="padding:16px 18px">
       <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#0c4a6e">Know someone moving or setting up a home?</p>
       <p style="margin:0;font-size:13px;color:#0369a1;line-height:1.6">Forward them this email — a referral from a happy customer means the world to a small local business like ours.</p>

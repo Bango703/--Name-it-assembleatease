@@ -92,13 +92,22 @@ export default async function handler(req, res) {
 
   const requestedAt = closure.requested_at || new Date().toISOString();
 
-  const notice = await sendEmail({
-    to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
-    subject: `Easer account closure request - ${profile.full_name || profile.email}`,
-    html: `<p><strong>${esc(profile.full_name || 'Easer')}</strong> (${esc(profile.email)}) requested account closure.</p><p>They were switched offline. Review retention, payouts, tax records, and access before completing the request.</p>${reason ? `<p><strong>Reason:</strong> ${esc(reason)}</p>` : ''}`,
-    meta: { notificationType: 'easer_account_closure', recipientType: 'owner', recipientUserId: user.id, disableDedupe: true },
-  }).catch(error => ({ ok: false, error: error?.message || String(error) }));
+  await Promise.all([
+    sendEmail({
+      to: ownerEmail(),
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `Easer account closure request - ${profile.full_name || profile.email}`,
+      html: `<p><strong>${esc(profile.full_name || 'Easer')}</strong> (${esc(profile.email)}) requested account closure.</p><p>They were switched offline. Review retention, payouts, tax records, and access before completing the request.</p>${reason ? `<p><strong>Reason:</strong> ${esc(reason)}</p>` : ''}`,
+      meta: { notificationType: 'easer_account_closure', recipientType: 'owner', recipientUserId: user.id, disableDedupe: true },
+    }).catch(error => ({ ok: false, error: error?.message || String(error) })),
+    sendEmail({
+      to: profile.email || user.email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: 'Your account closure request was received',
+      html: `<p>Hi ${esc(String(profile.full_name || 'there').trim().split(/\s+/)[0])},</p><p>We received your request to close your Easer account. Your availability is now Offline, and you will not receive new job offers while the request is being completed.</p><p>You can cancel this request from your Profile before the account is closed.</p>`,
+      meta: { notificationType: 'easer_account_closure_requested', recipientType: 'easer', recipientUserId: user.id, disableDedupe: true },
+    }).catch(error => ({ ok: false, error: error?.message || String(error) })),
+  ]);
 
   return res.status(200).json({
     ok: true,

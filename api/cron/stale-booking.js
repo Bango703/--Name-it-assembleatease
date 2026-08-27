@@ -119,7 +119,7 @@ export default async function handler(req, res) {
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
     <p style="margin:0 0 8px;font-size:18px;font-weight:700">Hi ${esc((b.customer_name||'').split(' ')[0])},</p>
-    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">We're making a quick adjustment to your upcoming booking (<strong>${esc(b.ref)}</strong>) and are assigning you a new assembler. Your appointment date and time remain unchanged.</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">We're making a quick adjustment to your upcoming booking (<strong>${esc(b.ref)}</strong>) and are assigning a new Easer. Your appointment date and time remain unchanged.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#166534;line-height:1.6">
       Your booking remains secure and confirmed.<br/>You will receive an updated Easer confirmation after reassignment.<br/>Your existing payment authorization has not changed; capture occurs only after completion.
     </td></tr></table>

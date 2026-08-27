@@ -44,18 +44,25 @@ export default async function handler(req, res) {
     bySubject[subject] = (bySubject[subject] || 0) + 1;
   }
 
+  const acceptedCount = byStatus.provider_accepted || 0;
   const sentCount = byStatus.sent || 0;
-  const failedCount = byStatus.failed || 0;
+  const deliveredCount = byStatus.delivered || 0;
+  const failedCount = (byStatus.failed || 0) + (byStatus.bounced || 0) + (byStatus.complained || 0);
+  const attentionCount = failedCount + (byStatus.delivery_delayed || 0);
   const suppressedCount = byStatus.suppressed || 0;
-  const dailyAvg = Number((sentCount / days).toFixed(2));
+  const outboundCount = acceptedCount + sentCount + deliveredCount + (byStatus.delivery_delayed || 0);
+  const dailyAvg = Number((outboundCount / days).toFixed(2));
 
   return res.status(200).json({
     windowDays: days,
     from: since,
     totals: {
       all: rows.length,
+      providerAccepted: acceptedCount,
       sent: sentCount,
+      delivered: deliveredCount,
       failed: failedCount,
+      needsAttention: attentionCount,
       suppressed: suppressedCount,
       estimatedSentPerDay: dailyAvg,
       estimatedSentPerMonth: Math.round(dailyAvg * 30),

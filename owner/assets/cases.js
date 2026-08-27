@@ -136,6 +136,7 @@
     var detail = document.getElementById('cases-detail');
     if (!detail) return;
     var customer = item.customer || {};
+    var easer = item.easer || {};
     var notification = item.notifications || { attempts: 0, failed: 0, latest: null };
     var actions = item.availableActions || [];
     var actionOptions = actions.map(function(action) {
@@ -148,8 +149,29 @@
       ? '<a href="mailto:' + attr(customer.email) + '">' + esc(customer.email) + '</a>'
       : 'Not provided';
     var phoneHtml = customer.phone
-      ? '<a href="tel:' + attr(customer.phone) + '">' + esc(customer.phone) + '</a>'
+      ? '<a href="tel:' + attr(dialablePhone(customer.phone)) + '">' + esc(displayPhone(customer.phone)) + '</a>'
       : 'Not provided';
+    var easerHtml = easer.email
+      ? esc(easer.name || 'Easer') + '<br><a href="mailto:' + attr(easer.email) + '">' + esc(easer.email) + '</a>'
+      : 'Not linked';
+    var recipientOptions = '';
+    if (customer.email) recipientOptions += '<option value="customer">Customer - ' + esc(customer.email) + '</option>';
+    if (easer.email) recipientOptions += '<option value="easer">Easer - ' + esc(easer.email) + '</option>';
+    var communicationHtml = recipientOptions
+      ? '<div class="cases-detail-section">' +
+          '<div class="cases-section-label">Send an update</div>' +
+          '<form id="cases-contact-form" class="cases-update-form" data-case-id="' + attr(item.id) + '" data-status="' + attr(item.status) + '">' +
+            '<label for="cases-contact-recipient">Recipient</label>' +
+            '<select id="cases-contact-recipient" name="recipientType">' + recipientOptions + '</select>' +
+            '<label for="cases-contact-message">Message they will receive</label>' +
+            '<textarea id="cases-contact-message" maxlength="2000" placeholder="Write only what this person needs to know and what happens next."></textarea>' +
+            '<div class="cases-form-actions">' +
+              '<div class="cases-form-status" id="cases-contact-status">This sends an email and records the exact message in the case timeline.</div>' +
+              '<button type="submit" class="btn btn-teal" id="cases-contact-btn">Send Update</button>' +
+            '</div>' +
+          '</form>' +
+        '</div>'
+      : '<div class="cases-detail-section"><div class="cases-section-label">Send an update</div><div class="cases-resolution">Add or link a verified customer or Easer email before sending an update.</div></div>';
     var latestNotification = notification.latest
       ? notification.latest.status.charAt(0).toUpperCase() + notification.latest.status.slice(1)
       : 'No attempt logged';
@@ -189,6 +211,7 @@
           metaItem('Customer-visible status', item.customerStatus && item.customerStatus.label || 'In Progress') +
           metaItemHtml('Customer', esc(customer.name || 'Not provided') + '<br>' + contactHtml) +
           metaItemHtml('Phone', phoneHtml) +
+          metaItemHtml('Easer', easerHtml) +
           bookingHtml +
           metaItem('Updated', formatDate(item.updatedAt)) +
           metaItemHtml('Notifications', '<span class="cases-badge' + (notification.failed ? ' notification-failed' : '') + '">' + esc(latestNotification) + '</span><br>' + notification.attempts + ' attempt' + (notification.attempts === 1 ? '' : 's')) +
@@ -196,6 +219,7 @@
         '</div>' +
       '</div>' +
       bookingWorkflow +
+      communicationHtml +
       (item.resolutionSummary ? '<div class="cases-detail-section"><div class="cases-section-label">Resolution</div><div class="cases-resolution">' + esc(item.resolutionSummary) + '</div></div>' : '') +
       '<div class="cases-detail-section">' +
         '<div class="cases-section-label">Update case</div>' +
@@ -204,6 +228,11 @@
           '<select id="cases-action-select" name="action">' + actionOptions + '</select>' +
           '<label for="cases-action-note">Internal note</label>' +
           '<textarea id="cases-action-note" name="note" maxlength="4000" placeholder="Record what happened, what is needed, or how the case was resolved."></textarea>' +
+          '<div id="cases-wait-message-wrap" style="display:none;margin-top:0.75rem">' +
+            '<label for="cases-wait-message" id="cases-wait-message-label">Message to recipient</label>' +
+            '<textarea id="cases-wait-message" maxlength="2000" placeholder="Explain what is needed and what the recipient should do next."></textarea>' +
+            '<div class="cases-form-status" style="margin-top:0.35rem">The status changes only after this email is accepted for delivery.</div>' +
+          '</div>' +
           '<label class="cases-confirm" id="cases-confirm-wrap"><input type="checkbox" id="cases-confirm-check"/> <span>I confirm this case status should be changed. This does not send money, issue a refund, change a booking, or release an Easer payout.</span></label>' +
           '<div class="cases-form-actions">' +
             '<div class="cases-form-status" id="cases-form-status">Updates are saved to the internal case timeline.</div>' +
@@ -224,10 +253,12 @@
     return events.map(function(event) {
       var title = eventTitle(event);
       var note = event.note ? '<div class="cases-event-note">' + esc(event.note) + '</div>' : '';
+      var publicMessage = event.publicMessage ? '<div class="cases-event-public"><strong>Message sent:</strong> ' + esc(event.publicMessage) + '</div>' : '';
       return '<div class="cases-event">' +
         '<div class="cases-event-title">' + esc(title) + '</div>' +
         '<div class="cases-event-meta">' + esc(event.actor && event.actor.name || event.actor && event.actor.type || 'System') + ' &middot; ' + esc(formatDate(event.createdAt)) + '</div>' +
         note +
+        publicMessage +
       '</div>';
     }).join('');
   }
@@ -260,11 +291,20 @@
     var select = document.getElementById('cases-action-select');
     var wrap = document.getElementById('cases-confirm-wrap');
     var checkbox = document.getElementById('cases-confirm-check');
+    var waitMessageWrap = document.getElementById('cases-wait-message-wrap');
+    var waitMessageLabel = document.getElementById('cases-wait-message-label');
+    var waitMessage = document.getElementById('cases-wait-message');
     if (!select || !wrap || !checkbox) return;
     var selected = select.options[select.selectedIndex];
     var required = selected && selected.dataset.confirm === 'true';
     wrap.classList.toggle('visible', required);
     if (!required) checkbox.checked = false;
+    var waitAction = selected && ['wait_customer', 'wait_easer'].includes(selected.value);
+    if (waitMessageWrap) waitMessageWrap.style.display = waitAction ? '' : 'none';
+    if (waitMessage) waitMessage.required = Boolean(waitAction);
+    if (waitMessageLabel && waitAction) {
+      waitMessageLabel.textContent = selected.value === 'wait_customer' ? 'Message to customer' : 'Message to Easer';
+    }
   }
 
   async function submitUpdate(form) {
@@ -273,6 +313,7 @@
     var select = document.getElementById('cases-action-select');
     var note = document.getElementById('cases-action-note');
     var confirmBox = document.getElementById('cases-confirm-check');
+    var publicMessage = document.getElementById('cases-wait-message');
     if (!button || !status || !select || !note) return;
     var selected = select.options[select.selectedIndex];
     var confirmationRequired = selected && selected.dataset.confirm === 'true';
@@ -294,6 +335,7 @@
           expectedStatus: form.dataset.status,
           action: select.value,
           note: note.value.trim(),
+          publicMessage: publicMessage ? publicMessage.value.trim() : '',
           confirmed: confirmationRequired && confirmBox.checked,
         }),
       });
@@ -306,6 +348,46 @@
     } finally {
       button.disabled = false;
       button.textContent = 'Save Update';
+    }
+  }
+
+  async function submitContactUpdate(form) {
+    var button = document.getElementById('cases-contact-btn');
+    var status = document.getElementById('cases-contact-status');
+    var recipient = document.getElementById('cases-contact-recipient');
+    var message = document.getElementById('cases-contact-message');
+    if (!button || !status || !recipient || !message) return;
+    if (message.value.trim().length < 5) {
+      status.textContent = 'Enter the update this person needs.';
+      status.style.color = '#991b1b';
+      return;
+    }
+    button.disabled = true;
+    button.textContent = 'Sending...';
+    status.textContent = 'Sending and recording the update...';
+    status.style.color = '';
+    try {
+      var result = await request('/api/owner/case-action', {
+        method: 'POST',
+        body: JSON.stringify({
+          caseId: form.dataset.caseId,
+          expectedStatus: form.dataset.status,
+          action: 'send_update',
+          recipientType: recipient.value,
+          publicMessage: message.value.trim(),
+        }),
+      });
+      status.textContent = result.notification && result.notification.providerAccepted
+        ? 'Update accepted for delivery and recorded.'
+        : 'Update recorded.';
+      status.style.color = '#047857';
+      await load();
+    } catch (error) {
+      status.textContent = error.message || 'The update could not be sent. The case was not changed.';
+      status.style.color = '#991b1b';
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Send Update';
     }
   }
 
@@ -328,6 +410,20 @@
       system: 'System event',
     };
     return labels[source] || 'Operational record';
+  }
+
+  function dialablePhone(value) {
+    var digits = String(value || '').replace(/\D/g, '');
+    if (digits.length === 10) return '+1' + digits;
+    if (digits.length === 11 && digits.charAt(0) === '1') return '+' + digits;
+    return String(value || '').trim();
+  }
+
+  function displayPhone(value) {
+    var digits = String(value || '').replace(/\D/g, '');
+    if (digits.length === 11 && digits.charAt(0) === '1') digits = digits.slice(1);
+    if (digits.length === 10) return '(' + digits.slice(0, 3) + ') ' + digits.slice(3, 6) + '-' + digits.slice(6);
+    return String(value || '').trim();
   }
 
   function formatDate(value) {
@@ -395,9 +491,13 @@
   });
 
   document.addEventListener('submit', function(event) {
-    if (event.target.id !== 'cases-update-form') return;
-    event.preventDefault();
-    submitUpdate(event.target);
+    if (event.target.id === 'cases-update-form') {
+      event.preventDefault();
+      submitUpdate(event.target);
+    } else if (event.target.id === 'cases-contact-form') {
+      event.preventDefault();
+      submitContactUpdate(event.target);
+    }
   });
 
   window.OwnerCases = {
