@@ -2,7 +2,6 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc, buildStatusEmail } from '../_email.js';
 import { guestManageUrl } from '../_payment-security.js';
-import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';

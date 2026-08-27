@@ -355,6 +355,59 @@ function linesMatching(file, re) {
     offenders.length ? offenders : unassigners);
 }
 
+// ── 4f. A notification channel that is imported but never sent ───────────
+//
+// api/booking/_dispatch-internal.js imported sendSms and never called it. Auto-
+// dispatch — the path that offers almost every job — sent email and push but no
+// text, while manual assignment did. Nothing failed: the import parsed, the file
+// linted, every test passed. The feature was simply absent, silently, for every
+// offer.
+//
+// Two halves must both be present, and each is useless alone:
+//   1. the channel is actually CALLED, not merely imported
+//   2. the recipient projection SELECTS the consent columns — without them
+//      smsEligibility() reads an undefined sms_consent_at and suppresses every
+//      send as "no_consent_recorded", which looks exactly like a compliance
+//      refusal rather than a missing column.
+{
+  const senders = [
+    { fn: 'sendSms',        module: '_sms.js',  needs: ['sms_consent_at', 'sms_opted_out_at'] },
+    { fn: 'sendPushToUser', module: '_push.js', needs: [] },
+  ];
+  const offenders = [];
+  const checked = [];
+  for (const file of walk(join(ROOT, 'api'), ['.js'])) {
+    const src = readFileSync(file, 'utf8');
+    for (const { fn, needs } of senders) {
+      // Deliberately string matching, not regex: a backslash inside a JS template
+      // literal is an escape, so `\s` silently becomes `s` and the pattern matches
+      // nothing while still "passing". That exact trap produced a green check here
+      // on the first attempt.
+      const importsFn = src.split(/\r?\n/).some(line => {
+        const t = line.trimStart();
+        return t.startsWith('import') && t.includes(fn) && t.includes('from');
+      });
+      if (!importsFn) continue;
+      checked.push(`${rel(file)} -> ${fn}`);
+      // A call, not just the import line.
+      if (!src.includes(`${fn}(`)) {
+        offenders.push(`${rel(file)}: imports ${fn} but never calls it`);
+        continue;
+      }
+      // Consent columns must be in a projection somewhere in the file.
+      const missing = needs.filter(col => !src.includes(col));
+      if (missing.length) {
+        offenders.push(`${rel(file)}: calls ${fn} but never selects ${missing.join(', ')} — every send suppresses as no_consent_recorded`);
+      }
+    }
+  }
+  report(offenders.length ? 'FAIL' : 'PASS', 'Notification channels',
+    offenders.length
+      ? `a channel is wired up but cannot deliver: ${offenders.join('; ')}`
+      : `every file importing a send function calls it and selects the columns that send needs (${checked.length} import sites)`,
+    offenders.length ? offenders : checked);
+}
+
 // ── 5. Server error/reason text discarded by the UI ──────────────────────────
 {
   const ownerSrc = readFileSync(join(ROOT, 'owner/index.html'), 'utf8');
