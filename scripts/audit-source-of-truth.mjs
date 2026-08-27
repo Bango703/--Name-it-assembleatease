@@ -332,6 +332,29 @@ function linesMatching(file, re) {
   }
 }
 
+// ── 4e. Un-assigning must always un-pause ───────────────────────────────────
+// api/booking/assign.js sets dispatch_paused = true when an Easer is assigned,
+// so auto-dispatch does not compete for a job that already has someone. Any path
+// that clears assembler_id therefore OWNS clearing that pause too. Release and
+// Decline both forgot, which left bookings unassigned AND paused: Smart Dispatch
+// refused with "Dispatch is paused on this booking" — a pause the owner never
+// set, on a job with nobody on it. Stranded, with a misleading reason.
+{
+  const unassigners = ['api/booking/release-assignment.js', 'api/booking/decline-dispatch.js'];
+  const offenders = [];
+  for (const path of unassigners) {
+    const src = readFileSync(join(ROOT, path), 'utf8');
+    // Does it clear the assignment at all?
+    if (!/assembler_id:\s*null/.test(src)) continue;
+    if (!/dispatch_paused:\s*false/.test(src)) offenders.push(path);
+  }
+  report(offenders.length ? 'FAIL' : 'PASS', 'Dispatch pause',
+    offenders.length
+      ? `clears assembler_id without clearing dispatch_paused — the booking is left unassigned AND paused, and Smart Dispatch refuses on a pause nobody set: ${offenders.join(', ')}`
+      : 'every path that un-assigns a booking also clears dispatch_paused, so a freed job is immediately dispatchable',
+    offenders.length ? offenders : unassigners);
+}
+
 // ── 5. Server error/reason text discarded by the UI ──────────────────────────
 {
   const ownerSrc = readFileSync(join(ROOT, 'owner/index.html'), 'utf8');

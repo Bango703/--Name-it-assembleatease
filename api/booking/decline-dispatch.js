@@ -76,6 +76,10 @@ export default async function handler(req, res) {
         assembler_accepted_at: null,
         assignment_token: null,
         dispatch_status: null,
+        // Same reason as release: assign.js paused dispatch for this booking, so
+        // declining must un-pause it or the job is stranded — nobody assigned and
+        // dispatch refusing to run.
+        dispatch_paused: false,
         needs_manual_dispatch: true,
       })
       .eq('id', assigned.id)

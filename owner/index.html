@@ -3849,7 +3849,7 @@ window.intelQuick = intelQuick;
       // the UI must never invent a cause it did not receive.
       var reasonHelp = {
         'Flagged for manual dispatch': 'This address is outside the automatic-dispatch ZIPs, so Smart Dispatch will never send offers for it. Use Easer Assignment on the booking to assign someone directly — any ready Easer can take it, whatever city they are in.',
-        'Dispatch paused by owner': 'Dispatch is paused on this booking. Resume it before dispatching.',
+        'Dispatch paused by owner': 'Dispatch is paused on this booking. Use Resume Auto-Dispatch on the booking, or assign an Easer directly. (A pause is also set automatically while a job is assigned or awaiting card authorization.)',
         'Already assigned': 'This booking already has an Easer. Use Reassign instead.',
         'Booking assigned while dispatching — offers cancelled': 'An Easer accepted while this was dispatching, so the remaining offers were withdrawn. The booking is assigned — no action needed.',
         'No eligible Easers in system': 'No Easer currently passes every readiness gate. Open the Easers tab and check Job Readiness — the panel lists the exact missing items.',
@@ -4920,6 +4920,12 @@ window.intelQuick = intelQuick;
       } else if (!b.assembler_id) {
         btns.push('<button class="btn btn-teal" data-action="dispatch" data-id="' + b.id + '">Smart Dispatch</button>');
       }
+      // Unassigned AND paused = stranded. Auto-dispatch refuses, and until now
+      // the only way to find out was to press Dispatch and read the refusal.
+      if (!b.assembler_id && b.dispatch_paused) {
+        notices.push('<div style="flex-basis:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.8rem;color:#92400e;font-size:0.78rem;line-height:1.5"><strong>Dispatch is paused and nobody is assigned:</strong> this job cannot reach an Easer until dispatch resumes. Resume it, or assign someone directly below.</div>');
+        btns.push('<button class="btn btn-amber" data-action="resume-dispatch" data-id="' + b.id + '">Resume Auto-Dispatch</button>');
+      }
       addChangeOrderAction(b, btns, notices);
       btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
@@ -5428,6 +5434,8 @@ window.intelQuick = intelQuick;
         $payoutMethod.value = bPayout.assembler_payout_method_preference;
       }
       $reasonModal.classList.add('open');
+    } else if (action === 'resume-dispatch') {
+      dispatchControl(id, 'unpause');
     } else if (action === 'change-order') {
       openChangeOrderModal(id);
     } else if (action === 'decline') {
