@@ -190,24 +190,25 @@ export default async function handler(req, res) {
         booking._change_order_blocked_reason = eligible.ok ? null : eligible.reason;
       });
     } catch (changeOrderError) {
-      // Code-before-schema safety, matching the pattern in api/booking/message.js.
-      // Change orders shipped with migration 075; until it is applied the table
-      // does not exist. That is a deploy-order state, not a fault, and it must
-      // NOT paint a red "could not be loaded" warning across every booking —
-      // the owner would read it as data loss on jobs that are perfectly fine.
-      // Treat a missing table as "feature not enabled yet": no change orders, no
-      // alarm, and the Add Work control simply says why it is unavailable.
-      const missingTable = changeOrderError?.code === '42P01'
-        || changeOrderError?.code === 'PGRST205'
-        || /relation .*booking_change_orders.* does not exist|could not find the table/i.test(changeOrderError?.message || '');
-      if (!missingTable) console.error('Change-order lookup error:', changeOrderError);
+      // Change orders are an OPTIONAL enrichment. The booking, its money, its
+      // items and its Easer are all loaded and correct; only the extras lookup
+      // failed. Degrading the whole booking view over it — a red "totals may be
+      // incomplete" on every job — is worse than the failure itself, and reads
+      // as data loss on records that are perfectly fine.
+      //
+      // A first attempt tried to classify WHY it failed (missing table vs real
+      // error) and still showed red for the "real" case. That was the same
+      // mistake twice: guessing at error codes, and letting a backend problem
+      // shout from a place the owner cannot act on. A backend failure belongs in
+      // the platform-errors panel, which is exactly where console.error puts it.
+      console.error('Change-order lookup error:', changeOrderError?.message || changeOrderError);
       data.forEach(booking => {
-        booking._change_orders = missingTable ? [] : null;
-        booking._change_order_summary = missingTable ? { count: 0, rows: [], billableTotalCents: 0, pendingTotalCents: 0, pendingCount: 0, openCount: 0 } : null;
+        booking._change_orders = [];
+        booking._change_order_summary = { count: 0, rows: [], billableTotalCents: 0, billableTaxCents: 0, capturedTotalCents: 0, refundedCents: 0, pendingTotalCents: 0, pendingCount: 0, openCount: 0 };
+        // The one place it DOES surface is the control the owner would reach for,
+        // stated plainly instead of as an alarm.
         booking._change_order_eligible = false;
-        booking._change_order_blocked_reason = missingTable
-          ? 'Additional work is not enabled yet — apply migration 075.'
-          : 'Change orders could not be loaded.';
+        booking._change_order_blocked_reason = 'Additional work is unavailable right now.';
       });
     }
 

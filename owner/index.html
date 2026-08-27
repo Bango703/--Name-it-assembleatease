@@ -3668,7 +3668,7 @@ window.intelQuick = intelQuick;
       b.return_visit_required ? field('Work Remaining', esc(b.return_visit_remaining_scope || '—')) : '',
       field('Address', esc(b.address || '—')),
       wideField('Items &amp; Add-ons', bookingScopeHtml(b, { showPrices: true })),
-      ((b._change_order_summary && b._change_order_summary.count > 0) || b._change_orders === null)
+      (b._change_order_summary && b._change_order_summary.count > 0)
         ? wideField('Additional Work (Change Orders)', changeOrdersHtml(b)) : '',
       (b._change_order_summary && b._change_order_summary.billableTotalCents > 0)
         ? field('Total With Approved Extras', '<strong>' + fmt$(Number(b.total_price || 0) + b._change_order_summary.billableTotalCents) + '</strong> <span style="font-size:0.7rem;color:var(--muted)">(' + fmt$(b.total_price) + ' original + ' + fmt$(b._change_order_summary.billableTotalCents) + ' approved)</span>') : '',
@@ -6471,11 +6471,10 @@ window.intelQuick = intelQuick;
   // so the customer's real obligation is base + approved change orders.
   function changeOrdersHtml(b) {
     var sum = b && b._change_order_summary;
-    // Only a REAL failure is red. A not-yet-applied migration sends an empty
-    // list, not null, so the section simply does not render.
-    if (b && b._change_orders === null) {
-      return '<div style="font-size:0.78rem;color:var(--red)">Change orders could not be loaded &mdash; the totals below may be incomplete.</div>';
-    }
+    // No failure state is rendered here at all. A change-order lookup failure is
+    // a backend problem the owner cannot act on from a booking row; it belongs in
+    // the platform-errors panel. Showing "totals may be incomplete" on every
+    // booking made healthy records look broken.
     if (!sum || !sum.count) return '';
     var statusStyle = {
       pending_customer_approval: ['#92400e', '#fffbeb', '#fde68a', 'Awaiting customer'],
