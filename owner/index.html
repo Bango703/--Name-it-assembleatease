@@ -533,6 +533,22 @@
             <div id="ops-unassigned">—</div>
           </div>
 
+          <!-- Lost quote requests: card saved in Stripe, booking never created.
+               api/owner/quote-orphans.js has existed and worked the whole time,
+               but nothing in this dashboard called it — so these customers were
+               invisible here while plainly visible in Stripe. Each one asked for
+               a quote and was never contacted. -->
+          <div class="ops-panel" id="ops-orphan-panel" style="grid-column:span 1;display:none">
+            <div class="ops-panel-header">
+              <div class="ops-panel-title">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                Quote Requests Never Received
+              </div>
+              <button id="ops-orphan-refresh" class="btn" style="font-size:0.73rem;padding:3px 10px">Recheck</button>
+            </div>
+            <div id="ops-orphans">—</div>
+          </div>
+
           <!-- Active jobs -->
           <div class="ops-panel" style="grid-column:span 1">
             <div class="ops-panel-header">
@@ -7207,6 +7223,10 @@ window.intelQuick = intelQuick;
       var d = await r.json().catch(function(){ return {}; });
       if (!r.ok || d.error) throw new Error(d.error || 'Live Ops could not verify current state');
       renderLiveOps(d);
+      // Checked on every Live Ops load. Reads Stripe, so it runs alongside
+      // rather than blocking the panel — a slow or failed check hides the panel
+      // instead of degrading the rest of the page.
+      loadQuoteOrphans();
       loadBookings();
     } catch(e) {
       console.error('Live ops error:', e);
@@ -7523,6 +7543,42 @@ window.intelQuick = intelQuick;
     } catch (e) { toast((e && e.message) || 'Dispatch failed', 'error'); }
     finally { btn.disabled = false; btn.textContent = 'Dispatch All'; loadLiveOps(); }
   };
+
+  // Customers who saved a card for a custom quote but whose booking never got
+  // created. Their card is valid and they are waiting to hear back — they simply
+  // never reached the queue. Read-only: nothing is charged or changed.
+  async function loadQuoteOrphans() {
+    var panel = document.getElementById('ops-orphan-panel');
+    var body = document.getElementById('ops-orphans');
+    if (!panel || !body) return;
+    try {
+      var r = await fetch('/api/owner/quote-orphans', { headers: headers() });
+      if (!r.ok) { panel.style.display = 'none'; return; }
+      var d = await r.json();
+      var list = d.orphans || [];
+      if (!list.length) { panel.style.display = 'none'; return; }
+      panel.style.display = '';
+      body.innerHTML = '<div style="font-size:0.78rem;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.6rem 0.75rem;margin-bottom:0.6rem">'
+        + '<strong>' + list.length + ' customer' + (list.length === 1 ? '' : 's') + '</strong> saved a card to request a quote, but no booking was created &mdash; so they never appeared in your queue and were never contacted. Their cards are valid. Reach out and quote them.</div>'
+        + list.map(function(o) {
+          var when = o.savedAt ? new Date(o.savedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'unknown date';
+          return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:0.45rem 0;border-bottom:1px solid var(--border)">'
+            + '<div style="min-width:0"><div style="font-size:0.85rem;font-weight:600;color:var(--text)">' + esc(o.name || 'Name not on file') + '</div>'
+            + '<div style="font-size:0.75rem;color:var(--muted)">' + esc(when) + (o.cardOnFile ? ' &bull; card on file' : ' &bull; no card') + '</div></div>'
+            + (o.email
+              ? '<a href="mailto:' + esc(o.email) + '?subject=' + encodeURIComponent('Your AssembleAtEase quote request') + '" class="btn btn-teal" style="font-size:0.72rem;padding:3px 10px;text-decoration:none;white-space:nowrap">Email</a>'
+              : '<span style="font-size:0.72rem;color:var(--red);white-space:nowrap">No email</span>')
+          + '</div>';
+        }).join('');
+    } catch (e) {
+      panel.style.display = 'none';
+    }
+  }
+  window.loadQuoteOrphans = loadQuoteOrphans;
+
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'ops-orphan-refresh') loadQuoteOrphans();
+  });
 
   window.loadLiveOps = loadLiveOps;
 
