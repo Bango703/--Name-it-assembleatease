@@ -972,7 +972,7 @@ async function configureContext(context) {
     } else if (pathname === '/api/owner/live-ops') {
       payload = mockOwnerLiveOps;
     } else if (pathname === '/api/owner/cases') {
-      payload = url.searchParams.get('caseId') ? mockOwnerCaseDetail : mockOwnerCases;
+      payload = requestUrl.searchParams.get('caseId') ? mockOwnerCaseDetail : mockOwnerCases;
     } else if (pathname === '/api/owner/reviews') {
       payload = mockOwnerReviews;
     } else if (pathname === '/api/owner/promo') {

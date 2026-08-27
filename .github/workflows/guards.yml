@@ -36,6 +36,14 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
+      # ── Scope analysis. The rule that would have caught the assignment-token
+      #    ReferenceError: declared inside an if-block, used outside it, thrown at
+      #    runtime AFTER the assignment committed and BEFORE the email sent. The
+      #    file parses perfectly, so every check below this one passed it for 240
+      #    commits. Parsing is not enough; this resolves scopes.
+      - name: Lint — undefined references and scope
+        run: npm run lint
+
       # ── Article 3/9: every API module must parse. Catches the broken string
       #    literal and stray-token class before it reaches a serverless function.
       - name: Syntax — API modules
