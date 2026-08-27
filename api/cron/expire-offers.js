@@ -21,7 +21,24 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const now = new Date().toISOString();
-  const results = { expired: 0, retried: [], paymentHeld: [], flagged: [], errors: [] };
+  const results = { expired: 0, retried: [], renewed: [], paymentHeld: [], flagged: [], errors: [] };
+
+  // KEEP OFFERS OPEN WHEN THERE IS NOBODY ELSE TO ASK.
+  //
+  // The retry ladder is right when there are more Easers: an unanswered offer
+  // expires and the job widens to the next batch. But once every eligible Easer
+  // already has it, expiring achieves nothing — the job leaves their queue,
+  // lands back on the owner as "needs manual dispatch", and the only people who
+  // could ever take it can no longer see it. On a small roster that is the
+  // normal case, not the edge case.
+  //
+  // When enabled, the offer is RENEWED instead: it stays live in the Easer's app
+  // until someone accepts, declines, or the owner intervenes. Declined offers
+  // are never renewed — a no is a no. The owner still sees the booking as
+  // awaiting acceptance through the existing Live Ops alerts, so nothing goes
+  // quiet; it simply stops being handed back with nowhere to go.
+  const KEEP_OFFERS_OPEN = String(process.env.DISPATCH_KEEP_OFFERS_OPEN || 'true').toLowerCase() !== 'false';
+  const RENEW_MINUTES = parseInt(process.env.DISPATCH_OFFER_TTL_MINUTES || '20', 10);
 
   // ── Step 1: Expire stale offers ────────────────────────────────────────────
   const { data: expiredOffers, error: expireErr } = await sb
@@ -108,11 +125,43 @@ export default async function handler(req, res) {
         // No candidates, an insert conflict, or another safe dispatch failure
         // must produce explicit owner action rather than an idle booking.
         if (!retry?.dispatched && retry?.code !== 'DISPATCH_PAYMENT_NOT_VERIFIED') {
-          finalization = await finalizeDispatchRound(sb, {
-            bookingId,
-            maxAttempts: MAX_ATTEMPTS,
-            forceManual: true,
-          });
+          // Exhausted the roster rather than hit a fault: everyone eligible already
+          // has this job. Hand it back to nobody — keep it live with the Easers who
+          // can actually take it.
+          const rosterExhausted = /already received offers|No available Easers|No eligible Easers/i
+            .test(retry?.message || '');
+          let renewed = 0;
+          if (KEEP_OFFERS_OPEN && rosterExhausted) {
+            const renewedUntil = new Date(Date.now() + RENEW_MINUTES * 60 * 1000).toISOString();
+            const { data: renewedRows, error: renewErr } = await sb
+              .from('dispatch_offers')
+              .update({ offer_status: 'sent', expires_at: renewedUntil, timed_out_at: null })
+              .eq('booking_id', bookingId)
+              // Only offers this sweep just expired. A DECLINED offer is never
+              // revived, and an accepted/superseded one must never be reopened.
+              .eq('offer_status', 'expired')
+              .select('id');
+            if (renewErr) {
+              console.error('expire-offers: renew failed', bookingId, renewErr.message);
+            } else {
+              renewed = (renewedRows || []).length;
+            }
+          }
+
+          if (renewed > 0) {
+            results.renewed.push({ bookingId, ref: booking.ref, offers: renewed, reason: retry?.message });
+            console.log(`expire-offers: kept ${renewed} offer(s) open on ${booking.ref} — no other Easer to try`);
+            // Deliberately NOT re-notified. This cron runs every 10 minutes; a
+            // fresh email each pass would be harassment, and the job is already
+            // sitting in their app. Renewal keeps it visible, it does not re-ping.
+            finalization = { action: 'kept_open', ref: booking.ref, attempt: finalization.attempt };
+          } else {
+            finalization = await finalizeDispatchRound(sb, {
+              bookingId,
+              maxAttempts: MAX_ATTEMPTS,
+              forceManual: true,
+            });
+          }
         }
       }
 
