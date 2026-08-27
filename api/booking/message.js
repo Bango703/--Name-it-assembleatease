@@ -118,10 +118,16 @@ export default async function handler(req, res) {
     let markedRead = 0;
     let readError = null;
     if (unreadIds.length) {
+      // Mark by BOOKING + recipient, not by an id list built from the fetched
+      // rows. The id-list version could mark nothing while the badge still
+      // counted rows — any row the fetch did not return, or returned in a shape
+      // the filter missed, stayed unread forever and the owner was told the badge
+      // "will stay until this clears" with no way to clear it. This query and
+      // api/booking/list.js's badge query now select the exact same set.
       let readQuery = sb
         .from('messages')
         .update({ read_at: new Date().toISOString() })
-        .in('id', unreadIds)
+        .eq('booking_id', bk.id)
         .eq('recipient_type', readRecipient);
       if (!ownerRequest) {
         readQuery = readQuery.eq('recipient_user_id', easerAccess.user.id);

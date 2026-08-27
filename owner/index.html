@@ -6414,9 +6414,17 @@ window.intelQuick = intelQuick;
       }).join('');
       return '<div style="margin-bottom:0.5rem"><div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:2px">' + esc(group.label) + '</div>' + rows + '</div>';
     }).join('');
-    if (addOns > 0) {
+    // "Price them in" is an instruction, so it only belongs where pricing is still
+    // possible — a quote awaiting an amount. On an already-authorized booking the
+    // price is settled and the owner cannot act on it, so nagging about add-ons
+    // they can no longer change is noise. The items themselves always show; only
+    // the call to action is conditional.
+    if (addOns > 0 && opts.pricing) {
       html = '<div style="font-size:0.74rem;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:5px 8px;margin-bottom:0.5rem">'
         + '<strong>' + addOns + ' add-on' + (addOns === 1 ? '' : 's') + '</strong> selected by the customer &mdash; price them in.</div>' + html;
+    } else if (addOns > 0) {
+      html = '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.4rem">'
+        + addOns + ' add-on' + (addOns === 1 ? '' : 's') + ' included in this booking.</div>' + html;
     }
     return html;
   }
@@ -6464,7 +6472,7 @@ window.intelQuick = intelQuick;
     }
     return rows
       + '<details style="margin-top:6px"><summary style="font-size:0.74rem;color:var(--teal);cursor:pointer">See the ' + (t.addOns + t.unpriced > 0 ? 'items and add-ons' : 'items') + '</summary>'
-      + '<div style="margin-top:5px">' + bookingScopeHtml(b, { showPrices: true }) + '</div></details>';
+      + '<div style="margin-top:5px">' + bookingScopeHtml(b, { showPrices: true, pricing: true }) + '</div></details>';
   }
 
   // Live split so the typed total is never a mystery: the server derives subtotal
@@ -6621,7 +6629,7 @@ window.intelQuick = intelQuick;
     out.push(field('Preferred Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')));
     out.push(field('Requested', formatDateTime(b.created_at)));
     out.push(wideField('Address', esc(b.address || '—')));
-    out.push(wideField('Items &amp; Add-ons the Customer Selected', bookingScopeHtml(b)));
+    out.push(wideField('Items &amp; Add-ons the Customer Selected', bookingScopeHtml(b, { pricing: true })));
     if (b.details) out.push(wideField('Job Details', esc(b.details)));
     if (amountCents > 0) {
       var breakdown = Number(b.quote_tax_cents || 0) > 0
