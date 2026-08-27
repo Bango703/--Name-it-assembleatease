@@ -114,13 +114,36 @@ async function handleInbound(sb, payload) {
     error_text: text.slice(0, 500),
   }).then(() => {}, (e) => console.error('[telnyx-webhook] inbound log failed:', e?.message || e));
 
-  if (isOptOut && from) {
-    // Mirror the opt-out onto every profile using this number so the owner sees
-    // WHY that Easer stopped receiving texts, instead of silent non-delivery.
+  // Mirror the carrier's decision into our own data. Telnyx already blocks the
+  // number; without this the platform would keep queueing messages into a void
+  // and reporting them as sent. Matched on the raw and E.164 forms because
+  // profiles store whatever the applicant typed.
+  const phoneVariants = [from, from?.replace(/^\+1/, ''), from?.replace(/^\+/, '')].filter(Boolean);
+  if (isOptOut && phoneVariants.length) {
+    const stamp = new Date().toISOString();
     await sb.from('profiles')
-      .update({ sms_opted_out_at: new Date().toISOString() })
-      .eq('phone', from)
-      .then(() => {}, () => { /* column ships with the SMS migration; ignore until then */ });
+      .update({ sms_opted_out_at: stamp, sms_opt_out_keyword: upper })
+      .in('phone', phoneVariants)
+      .then(() => {}, (e) => console.error('[telnyx-webhook] opt-out write failed:', e?.message || e));
+    await sb.from('bookings')
+      .update({ sms_opted_out_at: stamp })
+      .in('customer_phone', phoneVariants)
+      .is('sms_opted_out_at', null)
+      .then(() => {}, () => { /* best effort */ });
+  }
+
+  // START / YES is re-consent. It lifts the opt-out, because that is exactly
+  // what opting back in means.
+  if (isOptIn && phoneVariants.length) {
+    await sb.from('profiles')
+      .update({
+        sms_opted_out_at: null,
+        sms_opt_out_keyword: null,
+        sms_consent_at: new Date().toISOString(),
+        sms_consent_source: 'sms_reply_start',
+      })
+      .in('phone', phoneVariants)
+      .then(() => {}, (e) => console.error('[telnyx-webhook] opt-in write failed:', e?.message || e));
   }
 }
 

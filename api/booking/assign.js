@@ -1,6 +1,7 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
+import { sendSms } from '../_sms.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
@@ -101,7 +102,7 @@ export default async function handler(req, res) {
   // Verify assembler exists and is eligible
   const { data: assembler, error: aErr } = await sb
     .from('profiles')
-    .select('id, role, full_name, email, phone, status, application_status, tier, has_membership, identity_verified, is_owner, is_available, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
+    .select('id, role, full_name, email, phone, sms_consent_at, sms_opted_out_at, status, application_status, tier, has_membership, identity_verified, is_owner, is_available, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .maybeSingle();
@@ -390,6 +391,21 @@ export default async function handler(req, res) {
     emailResult = { ok: false, error: e?.message || String(e) };
   }
 
+  // SMS — the fastest channel to reach someone who is not looking at the app.
+  // Awaited like the email: a serverless function can be frozen the moment it
+  // responds, so firing and forgetting would silently drop the send. Refuses
+  // itself when there is no recorded consent, so this call is always safe.
+  const smsResult = await sendSms({
+    recipient: assembler,
+    body: `New AssembleAtEase job: ${booking.service} on ${booking.date}${booking.time ? ' ' + booking.time : ''}. Open your dashboard to accept. Ref ${booking.ref}`,
+    meta: {
+      bookingId: booking.id,
+      notificationType: 'assignment_confirmation',
+      recipientType: 'easer',
+      recipientUserId: assemblerId,
+    },
+  }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+
   // Push notification — delivery failure never rolls back the assignment.
   const pushResult = await sendPushToUser(assemblerId, {
     title: 'New Job Assigned',
@@ -457,6 +473,10 @@ export default async function handler(req, res) {
       delivered: notificationDelivered,
       email: emailResult,
       push: pushResult,
+      // `skipped` distinguishes "we chose not to text" (no consent on file, or
+      // they opted out) from "we tried and it failed". Only the second is a
+      // problem the owner should chase.
+      sms: smsResult,
     },
     warning: [
       notificationDelivered ? null : 'Assigned, but the Easer notification needs owner follow-up.',
