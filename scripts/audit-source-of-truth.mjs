@@ -279,6 +279,59 @@ function linesMatching(file, re) {
     inline.length ? inline : ['owner/index.html', 'api/owner/live-ops.js']);
 }
 
+// ── 4d. Booking items / add-ons read through the one loader ──────────────────
+// The owner priced a quote without the customer's floor levelling, placement
+// support and safety anchoring because api/booking/my-assignments.js queried
+// booking_items (2026-06-17) and api/booking/list.js never did. Two roles, two
+// answers, ~2.5 months and 318 commits before anyone noticed — and it surfaced
+// as money quoted below the real scope.
+//
+// api/booking/_booking-items.js is now the only place that READS the table for
+// display. This fails the build if a new consumer queries it directly, which is
+// exactly how the gap opened the first time.
+{
+  const LOADER = 'api/booking/_booking-items.js';
+  // Writers and destructive maintenance are not display consumers.
+  // The boundary: the loader owns PER-BOOKING DISPLAY SCOPE — what the owner and
+  // the Easer each see on a job. Those two must never disagree, which is what
+  // this guard protects. Everything below reads the table for a different
+  // purpose and is allowlisted deliberately, not by omission.
+  const ALLOWED_DIRECT = new Set([
+    LOADER,                              // the loader itself
+    'api/booking.js',                    // INSERTs the rows at booking time
+    // Aggregate revenue analytics: attach rate, add-on revenue, service
+    // profitability. Selects add_on_revenue / base_service_revenue, which the
+    // display loader deliberately does not expose, and shows nobody a job's
+    // scope — so it cannot cause an owner/Easer mismatch. Routing an aggregate
+    // through a per-booking display loader would be worse coupling, not better.
+    'api/owner/financial-dashboard.js',
+  ]);
+  const offenders = [];
+  for (const file of walk(join(ROOT, 'api'), ['.js'])) {
+    const path = rel(file);
+    if (ALLOWED_DIRECT.has(path)) continue;
+    const src = readFileSync(file, 'utf8');
+    // A real query, not a table name in a cleanup list.
+    if (/\.from\(\s*['"]booking_items['"]\s*\)\s*\.\s*(select|update|upsert)/.test(src)) {
+      offenders.push(path);
+    }
+  }
+  const consumers = ['api/booking/list.js', 'api/booking/my-assignments.js']
+    .filter(p => /loadBookingItems\(/.test(readFileSync(join(ROOT, p), 'utf8')));
+
+  report(offenders.length ? 'FAIL' : 'PASS', 'Booking items',
+    offenders.length
+      ? `read booking_items directly instead of through ${LOADER} — the owner and the Easer can drift apart again: ${offenders.join(', ')}`
+      : `every display consumer reads through ${LOADER} (${consumers.length}/2 wired: ${consumers.join(', ')})`,
+    offenders.length ? offenders : [LOADER]);
+
+  if (consumers.length !== 2) {
+    report('FAIL', 'Booking items',
+      'the owner list and the Easer assignments API must BOTH use loadBookingItems — if only one does, they show different scope',
+      ['api/booking/list.js', 'api/booking/my-assignments.js']);
+  }
+}
+
 // ── 5. Server error/reason text discarded by the UI ──────────────────────────
 {
   const ownerSrc = readFileSync(join(ROOT, 'owner/index.html'), 'utf8');
