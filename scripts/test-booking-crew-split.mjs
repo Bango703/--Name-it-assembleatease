@@ -23,6 +23,8 @@ import {
   crewEligibility,
   summarizeCrew,
 } from '../api/booking/_crew.js';
+import { getEaserReadiness } from '../api/_easer-readiness.js';
+import { CONTRACTOR_AGREEMENT_VERSION } from '../api/_assembler-onboarding.js';
 
 const LEAD = '11111111-1111-4111-8111-111111111111';
 const HELPER = '22222222-2222-4222-8222-222222222222';
@@ -50,7 +52,28 @@ const leadRow = {
   removed_at: null,
 };
 
-const ready = { ready: true };
+// A profile that satisfies every readiness gate, so the readiness object below is
+// the REAL one rather than a hand-written stand-in. Writing `{ ready: true }` here
+// is what let _crew.js read a field name that does not exist: the module checked
+// `readiness.ready` while getEaserReadiness() returns `isReady`, which would have
+// rejected every genuinely ready Easer. The fixture must come from the real
+// function or the test just re-states the bug.
+const readyProfile = {
+  id: HELPER,
+  role: 'assembler',
+  status: 'active',
+  application_status: 'approved',
+  tier: 'professional',
+  identity_verified: true,
+  contractor_agreement_signed_at: '2026-08-20T00:00:00Z',
+  contractor_agreement_version: CONTRACTOR_AGREEMENT_VERSION,
+  code_of_conduct_agreed_at: '2026-08-20T00:00:00Z',
+  application_fee_paid: true,
+  payment_confirmed: true,
+  phone: '5125550147',
+  is_available: true,
+};
+const ready = await getEaserReadiness(readyProfile, { connectRequired: false });
 
 // ── Pool ────────────────────────────────────────────────────────────────────
 {
@@ -129,9 +152,26 @@ const ready = { ready: true };
 
 // ── Eligibility ─────────────────────────────────────────────────────────────
 {
+  // The contract test. If getEaserReadiness ever renames isReady, or crewEligibility
+  // drifts back to a field that does not exist, this fails instead of silently
+  // refusing every Easer on the platform.
+  assert.equal(ready.isReady, true, 'the fixture profile must actually be ready');
+  assert.equal(
+    crewEligibility({ booking, crew: [leadRow], easerId: HELPER, readiness: ready }).ok,
+    true,
+    'a genuinely READY Easer must be addable — this is the check that catches a readiness field rename',
+  );
+
   assert.equal(crewEligibility({ booking, crew: [leadRow], easerId: LEAD, readiness: ready }).reason, 'already_on_job');
-  assert.equal(crewEligibility({ booking, crew: [leadRow], easerId: HELPER, readiness: { ready: false, blockingReason: 'Identity not verified' } }).message, 'Identity not verified',
-    'the server reason must pass through, never be reinvented');
+
+  // An unready Easer is refused with the SERVER's own wording, not an invented one.
+  const unready = await getEaserReadiness({ ...readyProfile, identity_verified: false }, { connectRequired: false });
+  const refusal = crewEligibility({ booking, crew: [leadRow], easerId: HELPER, readiness: unready });
+  assert.equal(refusal.ok, false);
+  assert.match(refusal.message, /Identity verified/,
+    'the refusal must name the actual missing gate, from the canonical readiness message');
+  assert.equal(crewEligibility({ booking, crew: [leadRow], easerId: HELPER, readiness: undefined }).ok, false,
+    'missing readiness must fail closed, never open');
   assert.equal(crewEligibility({ booking: { ...booking, assembler_id: null }, crew: [], easerId: HELPER, readiness: ready }).reason, 'no_lead');
   assert.equal(crewEligibility({ booking: { ...booking, status: 'cancelled' }, crew: [leadRow], easerId: HELPER, readiness: ready }).reason, 'terminal_booking');
 
@@ -174,6 +214,55 @@ const ready = { ready: true };
   assert.ok(sql.includes('FROM public.bookings b') && sql.includes("'migration_077'"),
     'existing assigned bookings must be backfilled with a lead row');
   console.log('PASS migration 077 enforces every enum and constraint the module relies on');
+}
+
+// ── The owner endpoint cannot be talked around ──────────────────────────────
+{
+  const src = await fs.readFile(new URL('../api/owner/crew.js', import.meta.url), 'utf8');
+
+  assert.ok(src.includes('verifyOwner(req)'), 'the crew endpoint must require owner auth');
+  assert.ok(/getEaserReadiness\(/.test(src),
+    'adding crew must run the SAME readiness gate as dispatch — otherwise it is a back door around identity verification');
+  assert.ok(src.includes("rpc('add_booking_crew_member'"),
+    'the crew write must go through the atomic RPC, never separate updates');
+  assert.ok(src.includes("rpc('remove_booking_crew_member'"),
+    'removal must go through the RPC so the freed amount and payout status stay coherent');
+
+  // The split must never be applied from a single click.
+  assert.ok(src.includes('ALLOCATIONS_REQUIRED'),
+    'add must refuse without a confirmed allocation, so a pay cut is a decision and not a side effect');
+  assert.ok(src.includes('EXCEEDS_POOL'),
+    'the handler must reject an over-allocation before it reaches the database');
+
+  // No crew table writes outside the RPC.
+  assert.ok(!/from\('booking_crew'\)[\s\S]{0,120}\.(insert|update|upsert|delete)\(/.test(src),
+    'the endpoint must not write booking_crew directly — the RPC owns that transaction');
+
+  // Rule 9: the customer must not be surprised by who enters their home.
+  assert.ok(/recipientType: 'customer'/.test(src),
+    'the customer must be told a second person is coming');
+  assert.ok(src.includes("Your price hasn't changed"),
+    'the customer notice must say the price did not change, or it reads as an upcharge');
+  console.log('PASS the owner endpoint keeps auth, readiness, atomicity, and confirmation');
+}
+
+// ── Migration 078 enforces the money invariants server-side ─────────────────
+{
+  const sql = await fs.readFile(new URL('../api/migrations/078_add_crew_member_rpc.sql', import.meta.url), 'utf8');
+
+  assert.ok(sql.includes('FOR UPDATE'),
+    'the booking must be locked so two concurrent adds cannot both spend the same pool');
+  assert.ok(/alloc_total > COALESCE\(p_pool_cents, 0\)/.test(sql),
+    'the pool ceiling must be re-checked inside the transaction — a caller must not be able to over-allocate by posting different numbers');
+  assert.ok(/alloc_count <> active_count \+ 1/.test(sql),
+    'a partial allocation set must be rejected, not merged, or someone is left on a stale amount');
+  assert.ok(/payout_status = 'owed'/.test(sql),
+    'an already-paid crew member must not be silently rewritten — that would desync the ledger');
+  assert.ok(/role = 'lead'[\s\S]{0,200}RAISE EXCEPTION/.test(sql),
+    'the lead must not be removable through the crew path');
+  assert.ok(/p_reason IS NULL OR btrim\(p_reason\) = ''/.test(sql),
+    'removal must require a reason — a person vanishing from a job they worked is how a payout gets lost');
+  console.log('PASS migration 078 re-validates the pool, locks the booking, and protects settled money');
 }
 
 console.log('\nBooking crew split tests passed.');
