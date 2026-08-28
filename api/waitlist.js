@@ -3,122 +3,21 @@ import { rateLimit } from './_ratelimit.js';
 import { getSupabase } from './_supabase.js';
 
 import { sendEmail, ownerEmail, esc } from './_email.js';
-import { formatUsPhone, normalizeUsPhone } from './_phone.js';
+import { formatUsPhone } from './_phone.js';
+import { validateWaitlistInput, saveWaitlistRecord, WAITLIST_SOURCE } from './_waitlist-core.js';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const US_STATE_CODES = new Set([
-  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
-]);
-
-// ── Disposable / spam email domain blocklist ──────────────────────────────────
-const BLOCKED_DOMAINS = new Set([
-  'mailinator.com','guerrillamail.com','guerrillamail.net','guerrillamail.org',
-  'guerrillamail.biz','guerrillamail.de','guerrillamail.info','sharklasers.com',
-  'guerrillamailblock.com','grr.la','guerrillamail.de','spam4.me','trashmail.at',
-  'trashmail.com','trashmail.io','trashmail.me','trashmail.net','trashmail.org',
-  'trashmail.xyz','yopmail.com','yopmail.fr','yopmail.net','cool.fr.nf',
-  'jetable.fr.nf','nospam.ze.tc','nomail.xl.cx','mega.zik.dj','speed.1s.fr',
-  'courriel.fr.nf','moncourrier.fr.nf','monemail.fr.nf','monmail.fr.nf',
-  'tempmail.com','tempmail.net','tempmail.org','tempr.email','temp-mail.org',
-  'temp-mail.com','throwam.com','throwam.net','mailnull.com','mailnull.net',
-  'spamgourmet.com','spamgourmet.net','spamgourmet.org','spamgourmet.me',
-  'dispostable.com','dispostable.net','mailnesia.com','mailnull.com',
-  'maildrop.cc','mailsac.com','spaml.com','spaml.de','spamto.de',
-  'fakeinbox.com','mailboxy.fun','burnermail.io','throwAwayMail.com',
-  'cock.li','airmail.cc','420blaze.it','nwldx.com','ytnef.com',
-  'getairmail.com','filzmail.com','throwam.com','incognitomail.com',
-  'incognitomail.net','eonjump.com','mailforspam.com','crazymailing.com',
-  'binkmail.com','bobmail.info','dayrep.com','einrot.com','fleckens.hu',
-  'hochsitze.com','hulapla.de','kingsq.ga','lacedmail.com','lazyinbox.us',
-  'letthemeatspam.com','lookugly.com','rppkn.com','sogetthis.com',
-  'stuffitnow.com','sweetxxx.de','thisisnotmyrealemail.com','thinktank.us',
-  'willhackforfood.biz','teleworm.us','dingbone.com','fudgedrinking.com',
-  'onewaymail.com','dontreg.com','dontsendmespam.de','drdrb.com',
-  'dump-email.info','email60.com','emailna.com','emailproxsy.com',
-  'explodemail.com','fast-email.com','fivemail.de','gowikibooks.com',
-  'gowikicampus.com','gowikicars.com','gowikifilms.com','gowikigames.com',
-  'gowikimusic.com','gowikinetwork.com','gowikitravel.com','gowikitv.com',
-  'hasanmail.ml','hissfame.com','hz.ml','ieatspam.eu','ieatspam.info',
-  'inboxalias.com','jnxjn.com','klzlk.com','kyois.com','llogin.com',
-  'mail4trash.com','mailbidon.com','mailimate.com','mailmetrash.com',
-  'mailmoat.com','mailnew.com','mailscrap.com','mailsiphon.com','notmailinator.com',
-  'no-spam.ws','nospam.ze.tc',
-]);
-
-function isDisposableEmail(email) {
-  const domain = email.split('@')[1]?.toLowerCase() || '';
-  if (BLOCKED_DOMAINS.has(domain)) return true;
-  // Catch patterns like "xxxxx@mailinator.net", "xxxxx@yopmail.net" subdomains
-  return [...BLOCKED_DOMAINS].some(d => domain.endsWith('.' + d));
-}
-
-// ── Location gibberish detection ─────────────────────────────────────────────
-function cleanText(value, maxLength) {
-  return String(value || '')
-    .replace(/[\u0000-\u001f\u007f]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, maxLength);
-}
-
-function isInvalidHumanText(value) {
-  return value.length < 2 || !/[a-z]/i.test(value) || /(.)\1{3,}/i.test(value);
-}
-
-async function saveWaitlistRecord(sb, record) {
-  const { data: existing, error: lookupError } = await sb
-    .from('assembler_waitlist')
-    .select('id, status')
-    .eq('email', record.email)
-    .maybeSingle();
-  if (lookupError) throw lookupError;
-
-  if (existing) {
-    const { error: updateError } = await sb
-      .from('assembler_waitlist')
-      .update(record)
-      .eq('id', existing.id);
-    if (updateError) throw updateError;
-    return { id: existing.id, status: existing.status, created: false };
-  }
-
-  const { data: inserted, error: insertError } = await sb
-    .from('assembler_waitlist')
-    .insert({ ...record, status: 'pending' })
-    .select('id, status')
-    .single();
-  if (insertError) throw insertError;
-  return { id: inserted.id, status: inserted.status, created: true };
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!await rateLimit(ip, 'default')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
   const body = req.body && typeof req.body === 'object' ? req.body : {};
-  const name = cleanText(body.name, 120);
-  const email = cleanText(body.email, 180).toLowerCase();
-  const phone = normalizeUsPhone(cleanText(body.phone, 40));
-  const city = cleanText(body.city, 80);
-  const state = cleanText(body.state, 2).toUpperCase();
   const TO = ownerEmail();
 
-  if (!name || !EMAIL_RE.test(email) || !phone || !city || !US_STATE_CODES.has(state)) {
-    return res.status(400).json({ error: 'Enter a valid name, email, 10-digit U.S. phone number, city, and 2-letter state.' });
-  }
-
-  // ── Email quality checks ──────────────────────────────────────────────────
-  if (isDisposableEmail(email)) {
-    return res.status(400).json({ error: 'Please use a real, permanent email address. Disposable or temporary emails are not accepted.' });
-  }
-
-  // ── Location sanity checks ────────────────────────────────────────────────
-  if (isInvalidHumanText(city)) {
-    return res.status(400).json({ error: 'Please enter a valid city name.' });
-  }
-  if (isInvalidHumanText(name)) {
-    return res.status(400).json({ error: 'Please enter your real full name.' });
-  }
+  // Every waitlist door validates identically — see api/_waitlist-core.js.
+  const check = validateWaitlistInput(body);
+  if (!check.ok) return res.status(400).json({ error: check.error });
+  const { name, email, phone, city, state } = check.value;
 
   const sName = esc(name);
   const sEmail = esc(email);
@@ -134,7 +33,7 @@ export default async function handler(req, res) {
   let saved;
   try {
     const sb = getSupabase();
-    saved = await saveWaitlistRecord(sb, { name, email, phone, city, state });
+    saved = await saveWaitlistRecord(sb, { name, email, phone, city, state, source: WAITLIST_SOURCE.PUBLIC_FORM });
   } catch (dbErr) {
     console.error('Waitlist DB save error:', dbErr);
     return res.status(500).json({ error: 'We could not save your waitlist request. Please try again.' });

@@ -1,6 +1,8 @@
 ﻿import crypto from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import { validateWaitlistInput, saveWaitlistRecord, WAITLIST_SOURCE } from '../_waitlist-core.js';
+import { isAutomaticDispatchZip } from '../_source-of-truth.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -8,7 +10,7 @@ const SITE = 'https://www.assembleatease.com';
 /**
  * /api/owner/waitlist
  * GET  — list all waitlist entries (optional ?status= filter)
- * POST — action on a waitlist entry (body.action = invite | reject)
+ * POST — add someone (body.action = add), or act on an entry (invite | reject | delete)
  */
 export default async function handler(req, res) {
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -56,12 +58,107 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ entries: data || [], stats });
+    // Coverage is a server verdict, never a rule the dashboard re-implements
+    // (Article 4). The page renders inDispatchArea; it does not own the ZIP list.
+    const entries = (data || []).map(w => ({
+      ...w,
+      inDispatchArea: w.zip ? isAutomaticDispatchZip(w.zip) : null,
+    }));
+
+    return res.status(200).json({ entries, stats });
   }
 
   // ── POST: actions ──
   if (req.method === 'POST') {
-    const { action, id, notes } = req.body;
+    const { action, id, notes } = req.body || {};
+
+    // ── ADD: the owner puts someone on the list by hand ──────────────────────
+    // Supply does not only arrive through a web form. The owner meets people on
+    // job sites, at stores, through referrals — and before this, those names had
+    // nowhere to go but a phone's notes app, which is to say they were lost.
+    //
+    // This runs BEFORE the id check because adding is the one action with no
+    // entry to act on yet.
+    if (action === 'add') {
+      // Identical validation to the public form. Being the owner is authority to
+      // add someone, not a licence to store a malformed record.
+      const check = validateWaitlistInput(req.body);
+      if (!check.ok) return res.status(400).json({ error: check.error });
+      const { name, email, phone, city, state, zip } = check.value;
+
+      // Say plainly that they are already known rather than silently updating a
+      // row and reporting success — the owner would learn nothing and might
+      // overwrite a real signup with a half-remembered one.
+      const { data: dupe } = await sb
+        .from('assembler_waitlist')
+        .select('id, name, status, source, created_at')
+        .eq('email', email)
+        .maybeSingle();
+      if (dupe) {
+        return res.status(409).json({
+          error: `${dupe.name} is already on the waitlist (${dupe.status}), added ${new Date(dupe.created_at).toLocaleDateString('en-US')}.`,
+          code: 'ALREADY_ON_WAITLIST',
+          entry: dupe,
+        });
+      }
+
+      let saved;
+      try {
+        saved = await saveWaitlistRecord(sb, {
+          name, email, phone, city, state, zip,
+          notes: notes ? String(notes).slice(0, 500) : null,
+          source: WAITLIST_SOURCE.OWNER_ADDED,
+        });
+      } catch (err) {
+        console.error('[owner/waitlist] add failed:', err?.message || err);
+        return res.status(500).json({ error: 'Could not save this person to the waitlist. Nothing was added.' });
+      }
+
+      // Whether we may email them is the OWNER'S call, and it defaults to no.
+      // This person did not ask us for anything — an unrequested email from a
+      // company they have not contacted is a cold email, and the owner is the
+      // only one who knows whether they actually said "yes, put me down".
+      let confirmationSent = false;
+      if (req.body.sendConfirmation === true) {
+        const first = esc(name.split(' ')[0]);
+        const r = await sendEmail({
+          to: email,
+          from: 'AssembleAtEase <waitlist@assembleatease.com>',
+          subject: 'You are on the AssembleAtEase Easer waitlist',
+          // Deliberately NOT the public-form confirmation. That one thanks people
+          // for signing up and closes with "you received this because you signed
+          // up" — both false here. Article 16: never assert what did not happen.
+          html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;padding:2rem;color:#1a1a1a">
+            <img src="${LOGO}" alt="AssembleAtEase" width="40" height="40" style="border-radius:50%;display:block"/>
+            <h2 style="color:#00BFFF;margin:16px 0 8px;font-size:22px">We added you to the waitlist, ${first}.</h2>
+            <p style="font-size:15px;color:#52525b;line-height:1.7">Following our conversation, we have put you on the AssembleAtEase Easer waitlist for <strong>${esc(city)}, ${esc(state)}</strong>. There is nothing for you to do right now.</p>
+            <p style="font-size:15px;color:#52525b;line-height:1.7">When we open applications in your area, you will get an invitation from us with everything you need to apply. A waitlist spot is not an offer of work and does not guarantee approval.</p>
+            <p style="font-size:14px;color:#52525b;line-height:1.7">If this was not something you asked for, reply to this email and we will remove you straight away.</p>
+            <p style="font-size:13px;color:#71717a;margin-top:22px">AssembleAtEase &bull; <a href="${SITE}" style="color:#71717a">assembleatease.com</a></p>
+          </div>`,
+          replyTo: ownerEmail(),
+          meta: { notificationType: 'easer_waitlist_owner_added', recipientType: 'easer' },
+        }).catch(() => ({ ok: false }));
+        confirmationSent = r?.ok === true;
+      }
+
+      return res.status(200).json({
+        success: true,
+        id: saved.id,
+        status: saved.status,
+        confirmationSent,
+        // The one thing the owner actually wants to know about a new name: can we
+        // send them work today? The server decides it — the page never guesses.
+        inDispatchArea: saved.degraded ? null : (zip ? isAutomaticDispatchZip(zip) : null),
+        coverageNote: saved.degraded
+          ? 'Added — but the ZIP and source were not saved because migration 082 has not run yet.'
+          : !zip
+          ? 'No ZIP on file, so dispatch coverage is unknown.'
+          : isAutomaticDispatchZip(zip)
+            ? `${city}, ${state} ${zip} is inside the auto-dispatch area.`
+            : `${city}, ${state} ${zip} is outside the auto-dispatch area, so jobs there need manual assignment.`,
+      });
+    }
 
     if (!id) return res.status(400).json({ error: 'Waitlist entry id is required' });
 

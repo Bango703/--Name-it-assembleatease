@@ -876,6 +876,33 @@
           <div class="stat orange"><div class="stat-value" id="wl-invited">—</div><div class="stat-label">Invited</div></div>
           <div class="stat teal"><div class="stat-value" id="wl-applied">—</div><div class="stat-label">Applied</div></div>
         </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:0.9rem;flex-wrap:wrap">
+          <p style="margin:0;font-size:0.82rem;color:var(--muted);max-width:52ch">Met someone who wants to work? Put them here so the lead is not lost in a phone.</p>
+          <button class="btn btn-teal" id="wl-add-toggle" type="button">Add someone</button>
+        </div>
+        <div id="wl-add-panel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.1rem;margin-bottom:1.1rem">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:0.85rem">
+          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-name">Full name</label><input id="wl-add-name" type="text" placeholder="Trapper Riney" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" /></div>
+          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-email">Email</label><input id="wl-add-email" type="text" placeholder="name@example.com" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" /></div>
+          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-phone">Phone</label><input id="wl-add-phone" type="text" placeholder="(512) 555-0134" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" /></div>
+          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-city">City</label><input id="wl-add-city" type="text" placeholder="Austin" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" /></div>
+          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-state">State</label><input id="wl-add-state" type="text" placeholder="TX" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" maxlength="2" /></div>
+          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-zip">ZIP (optional)</label><input id="wl-add-zip" type="text" placeholder="78704" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" maxlength="5" inputmode="numeric" /></div>
+          </div>
+          <div style="margin-top:0.85rem">
+            <label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-notes">Notes (optional)</label>
+            <input id="wl-add-notes" type="text" placeholder="Where you met them, what they do, who referred them" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" />
+          </div>
+          <label style="display:flex;align-items:flex-start;gap:0.55rem;margin-top:0.9rem;font-size:0.82rem;color:var(--soft);cursor:pointer">
+            <input type="checkbox" id="wl-add-notify" style="margin-top:0.15rem;flex-shrink:0" />
+            <span>Email them a confirmation. Only tick this if they asked to be added &mdash; they did not fill in a form, so an unexpected email from us is a cold email.</span>
+          </label>
+          <div id="wl-add-msg" style="display:none;margin-top:0.9rem;font-size:0.82rem;line-height:1.55;border-radius:8px;padding:0.6rem 0.75rem"></div>
+          <div style="display:flex;gap:0.6rem;margin-top:1rem">
+            <button class="btn btn-teal" id="wl-add-save" type="button">Add to waitlist</button>
+            <button class="btn" id="wl-add-cancel" type="button">Cancel</button>
+          </div>
+        </div>
         <div class="tabs" id="wl-tabs">
           <button class="tab active" data-wl-status="all">All</button>
           <button class="tab" data-wl-status="pending">Pending</button>
@@ -889,7 +916,7 @@
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Name</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Email</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Phone</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">City</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Location</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Date</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Status</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Actions</th>
@@ -9441,6 +9468,18 @@ window.intelQuick = intelQuick;
       if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
       span.textContent = c;
     });
+  // Location plus, when a ZIP is on file, what the SERVER said about coverage.
+  // inDispatchArea is computed in api/owner/waitlist.js and is never re-derived
+  // here — the ZIP rule has one owner (Article 4).
+  function wlLocationCell(w) {
+    var place = esc(w.city || '—') + (w.state ? ', ' + esc(w.state) : '');
+    if (!w.zip) return place + '<div style="font-size:0.7rem;color:var(--muted);margin-top:0.15rem">No ZIP on file</div>';
+    var note = w.inDispatchArea
+      ? '<span style="color:var(--green)">In dispatch area</span>'
+      : '<span style="color:var(--amber)">Manual dispatch only</span>';
+    return place + ' ' + esc(w.zip) + '<div style="font-size:0.7rem;margin-top:0.15rem">' + note + '</div>';
+  }
+
     var tbody = document.getElementById('wl-tbody');
     if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="7" style="padding:2rem;text-align:center;color:var(--muted)">No waitlist entries found</td></tr>'; return; }
     tbody.innerHTML = filtered.map(function(w) {
@@ -9459,10 +9498,75 @@ window.intelQuick = intelQuick;
       } else {
         actions = deleteBtn;
       }
-      return '<tr><td style="' + rs + '"><strong>' + esc(w.name) + '</strong></td><td style="' + rs + '">' + esc(w.email) + '</td><td style="' + rs + ';white-space:nowrap">' + (hasValidUsPhone(w.phone) ? esc(formatUsPhone(w.phone)) : '<span style="color:var(--red)">Valid phone required</span>') + '</td><td style="' + rs + '">' + esc(w.city||'—') + (w.state ? ', ' + esc(w.state) : '') + '</td><td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(w.created_at) + '</td><td style="' + rs + '">' + wlStatusBadge(w.status) + (expired && w.status==='invited' ? ' <span style="font-size:0.7rem;color:var(--red)">expired</span>' : '') + '</td><td style="' + rs + '">' + actions + '</td></tr>';
+      return '<tr><td style="' + rs + '"><strong>' + esc(w.name) + '</strong>' + (w.source === 'owner_added' ? ' <span title="You added this person" style="font-size:0.62rem;font-weight:700;letter-spacing:0.06em;color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:0.1rem 0.35rem;vertical-align:middle">ADDED BY YOU</span>' : '') + '</td><td style="' + rs + '">' + esc(w.email) + '</td><td style="' + rs + ';white-space:nowrap">' + (hasValidUsPhone(w.phone) ? esc(formatUsPhone(w.phone)) : '<span style="color:var(--red)">Valid phone required</span>') + '</td><td style="' + rs + '">' + wlLocationCell(w) + '</td><td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(w.created_at) + '</td><td style="' + rs + '">' + wlStatusBadge(w.status) + (expired && w.status==='invited' ? ' <span style="font-size:0.7rem;color:var(--red)">expired</span>' : '') + '</td><td style="' + rs + '">' + actions + '</td></tr>';
     }).join('');
   }
 
+  // ── Add someone to the waitlist by hand ─────────────────────────────────
+  // The server validates, decides coverage, and writes the reason. This form
+  // collects and displays — it decides nothing (Articles 4 and 16).
+  var $wlAddPanel = document.getElementById('wl-add-panel');
+  var $wlAddMsg   = document.getElementById('wl-add-msg');
+  var WL_ADD_FIELDS = ['name','email','phone','city','state','zip','notes'];
+
+  function wlAddMsg(kind, text) {
+    if (!text) { $wlAddMsg.style.display = 'none'; return; }
+    var tone = kind === 'ok'
+      ? 'background:var(--green-dim);color:var(--green)'
+      : 'background:rgba(220,38,38,0.08);color:var(--red)';
+    var base = 'display:block;margin-top:0.9rem;font-size:0.82rem;line-height:1.55;border-radius:8px;padding:0.6rem 0.75rem;';
+    $wlAddMsg.setAttribute('style', base + tone);
+    $wlAddMsg.textContent = text;
+  }
+
+  function wlAddReset() {
+    WL_ADD_FIELDS.forEach(function(k){ var el = document.getElementById('wl-add-' + k); if (el) el.value = ''; });
+    document.getElementById('wl-add-notify').checked = false;
+    wlAddMsg(null, '');
+  }
+
+  document.getElementById('wl-add-toggle').addEventListener('click', function() {
+    var open = $wlAddPanel.style.display !== 'none';
+    $wlAddPanel.style.display = open ? 'none' : '';
+    this.textContent = open ? 'Add someone' : 'Close';
+    if (!open) document.getElementById('wl-add-name').focus();
+  });
+
+  document.getElementById('wl-add-cancel').addEventListener('click', function() {
+    wlAddReset();
+    $wlAddPanel.style.display = 'none';
+    document.getElementById('wl-add-toggle').textContent = 'Add someone';
+  });
+
+  document.getElementById('wl-add-save').addEventListener('click', async function() {
+    var btn = this;
+    var payload = { action: 'add', sendConfirmation: document.getElementById('wl-add-notify').checked };
+    WL_ADD_FIELDS.forEach(function(k){
+      var el = document.getElementById('wl-add-' + k);
+      if (el) payload[k] = el.value.trim();
+    });
+
+    btn.disabled = true; btn.textContent = 'Adding…'; wlAddMsg(null, '');
+    try {
+      var r = await fetch('/api/owner/waitlist', { method:'POST', headers: headers(), body: JSON.stringify(payload) });
+      var j = await r.json().catch(function(){ return {}; });
+      if (!r.ok) {
+        // The server's reason, verbatim. Never a cause we made up.
+        wlAddMsg('err', j.error || 'Could not add this person, and the server did not say why.');
+        return;
+      }
+      var note = j.coverageNote || '';
+      if (j.confirmationSent) note += ' A confirmation email was sent.';
+      else if (payload.sendConfirmation) note += ' The confirmation email did not send — they are still on the list.';
+      wlAddMsg('ok', 'Added to the waitlist. ' + note);
+      wlAddReset();
+      await loadWaitlist();
+    } catch (err) {
+      wlAddMsg('err', 'Network error — nothing was added. Check your connection and try again.');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Add to waitlist';
+    }
+  });
   document.getElementById('wl-tbody').addEventListener('click', async function(e) {
     if (e.target.closest('[data-wl-goto-asm]')) { document.querySelector('.sidebar-nav a[data-view="assemblers"]').click(); return; }
     var inviteBtn = e.target.closest('[data-wl-invite]');
