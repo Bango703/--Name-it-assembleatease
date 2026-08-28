@@ -166,12 +166,44 @@ export default async function handler(req, res) {
       }
 
       transferAttempted = true;
+
+      // source_transaction is what stops an Easer waiting on OUR settlement.
+      //
+      // A plain transfer draws on the platform's AVAILABLE balance, and a card
+      // charge sits in PENDING for two days first — so without this the transfer
+      // simply fails until the money settles, and the Easer waits for a delay
+      // that has nothing to do with their work. Naming the originating charge
+      // lets Stripe accept the transfer immediately and execute it the moment
+      // that specific charge clears. No platform float, no failed retries, and
+      // the hold below goes back to being purely a work-verification window
+      // rather than a settlement queue.
+      //
+      // Resolved rather than stored: the charge id is not on the booking, and one
+      // retrieve per payout is cheaper than a migration plus a backfill.
+      let sourceCharge = null;
+      try {
+        const intent = await stripe.paymentIntents.retrieve(b.stripe_payment_intent_id);
+        sourceCharge = typeof intent?.latest_charge === 'string'
+          ? intent.latest_charge
+          : intent?.latest_charge?.id || null;
+      } catch (chargeErr) {
+        // Fall through to a plain transfer. It still succeeds once funds are
+        // available, so a lookup failure delays the payout — it never loses it.
+        console.error('[release-payouts] charge lookup failed:', b.ref, chargeErr?.message || chargeErr);
+      }
+
       const transfer = await stripe.transfers.create({
         amount: dueCents,
         currency: 'usd',
         destination: connectState.accountId,
         transfer_group: `booking_${b.id}`,
-        metadata: { bookingId: b.id, bookingRef: b.ref, type: 'assembler_payout' },
+        ...(sourceCharge ? { source_transaction: sourceCharge } : {}),
+        metadata: {
+          bookingId: b.id,
+          bookingRef: b.ref,
+          type: 'assembler_payout',
+          sourceCharge: sourceCharge || 'unresolved',
+        },
       }, { idempotencyKey: idem });
 
       const notes = `Stripe Connect transfer ${transfer.id} created after ${PAYOUT_HOLD_HOURS}h hold; bank payout not yet verified`;
