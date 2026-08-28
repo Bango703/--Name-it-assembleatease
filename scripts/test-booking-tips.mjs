@@ -94,4 +94,29 @@ const ui = await fs.readFile(new URL('../review.html', import.meta.url), 'utf8')
   console.log('PASS bounded, idempotent, and a failed record can never leave a chargeable intent');
 }
 
+// ── Declining is an answer, and it is remembered ───────────────────────────
+{
+  // Being asked twice for money you already declined reads as nagging, and makes
+  // the "completely optional" promise directly above it look untrue.
+  assert.ok(/action === 'decline'/.test(api), 'the customer must be able to say no explicitly');
+  assert.ok(/tip_declined_at/.test(api) && /tip_declined_at/.test(sql),
+    'the decline must be recorded, not just handled in the browser');
+  assert.ok(/declined: Boolean\(booking\.tip_declined_at\)/.test(api),
+    'the quote must report a previous decline so the offer never returns');
+  assert.ok(/d\.declined\) return;/.test(ui), 'and the page must honour it by showing nothing');
+
+  assert.ok(/id="tip-decline"|id !== 'tip-decline'/.test(ui) || /No thanks/.test(ui),
+    '"No thanks" must be a visible control, not merely the absence of a choice');
+
+  // A decline stops us asking. It must never block someone who changes their mind.
+  const sendPath = api.slice(api.indexOf("if (action !== 'send')"));
+  assert.ok(!/tip_declined_at/.test(sendPath.slice(0, sendPath.indexOf('paymentIntents.create'))),
+    'a previous decline must not block a customer who later chooses to tip');
+
+  // A decline is not a payment and must not sit in the payments table.
+  assert.ok(/ALTER TABLE public\.bookings[\s\S]{0,120}tip_declined_at/.test(sql),
+    'the decline belongs on bookings, not in booking_tips where amount_cents is CHECK > 0');
+  console.log('PASS declining is explicit, recorded, honoured, and never blocks a change of mind');
+}
+
 console.log('\nBooking tip tests passed.');

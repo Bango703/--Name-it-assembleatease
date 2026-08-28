@@ -26,8 +26,11 @@ import { logActivity } from './_activity.js';
  * proof — identical to how a review is authorised, no weaker.
  *
  * Actions:
- *   quote — what may be tipped, and whether this Easer can receive one. No write.
- *   send  — charge it.
+ *   quote   — what may be tipped, and whether this Easer can receive one. No write.
+ *   send    — charge it.
+ *   decline — the customer said no. Recorded so they are never asked again:
+ *             being asked twice for money you already declined reads as nagging
+ *             and makes "completely optional" look untrue.
  */
 
 const MIN_TIP_CENTS = 100;
@@ -47,7 +50,7 @@ export default async function handler(req, res) {
 
   const { data: booking, error: bookingErr } = await sb
     .from('bookings')
-    .select('id, ref, status, customer_email, customer_name, service, assembler_id, assembler_name, assembler_accepted_at')
+    .select('id, ref, status, customer_email, customer_name, service, assembler_id, assembler_name, assembler_accepted_at, tip_declined_at')
     .eq('ref', String(ref).trim())
     .maybeSingle();
   if (bookingErr || !booking) return res.status(404).json({ error: 'Booking not found.' });
@@ -88,11 +91,21 @@ export default async function handler(req, res) {
     .neq('status', 'failed')
     .maybeSingle();
 
+  // A recorded "no thanks" ends it. Nothing further is offered, ever.
+  if (action === 'decline') {
+    await sb.from('bookings')
+      .update({ tip_declined_at: new Date().toISOString() })
+      .eq('id', booking.id)
+      .is('tip_declined_at', null);
+    return res.status(200).json({ ok: true, declined: true });
+  }
+
   if (action === 'quote') {
     return res.status(200).json({
       ok: true,
       easerFirstName,
       canReceive,
+      declined: Boolean(booking.tip_declined_at),
       alreadyTipped: existing ? { amountCents: existing.amount_cents, at: existing.created_at } : null,
       minCents: MIN_TIP_CENTS,
       maxCents: MAX_TIP_CENTS,
@@ -101,6 +114,9 @@ export default async function handler(req, res) {
     });
   }
   if (action !== 'send') return res.status(400).json({ error: `Unknown action: ${action}` });
+
+  // Someone who declined and then changed their mind is welcome to tip — the
+  // decline only stops us ASKING, it never blocks a customer who chose to give.
 
   if (existing) {
     return res.status(409).json({

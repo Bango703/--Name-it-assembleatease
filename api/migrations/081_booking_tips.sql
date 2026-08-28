@@ -66,6 +66,18 @@ ALTER TABLE public.booking_tips
   ADD CONSTRAINT booking_tips_refund_within_amount_check
   CHECK (refunded_cents <= amount_cents);
 
+-- ── Declining is an answer, and it must be remembered ───────────────────────
+-- Without this, a customer who chose not to tip is asked again every time they
+-- open the link. Being asked twice for money you already declined is worse than
+-- never being asked: it reads as nagging, and it makes the "completely optional"
+-- promise above it look untrue.
+--
+-- Kept on bookings rather than as a booking_tips row, because a decline is not a
+-- tip and does not belong in a table of payments — amount_cents is CHECK > 0 for
+-- exactly that reason.
+ALTER TABLE public.bookings
+  ADD COLUMN IF NOT EXISTS tip_declined_at TIMESTAMPTZ;
+
 ALTER TABLE public.booking_tips ENABLE ROW LEVEL SECURITY;
 
 DO $do$
@@ -97,4 +109,6 @@ SELECT column_name FROM information_schema.columns
  WHERE table_name = 'booking_tips'
    AND column_name IN ('amount_cents','stripe_account_id','easer_net_cents','refunded_cents')
  ORDER BY 1;
--- Expected: the table name, and 4 column rows.
+SELECT column_name FROM information_schema.columns
+ WHERE table_name = 'bookings' AND column_name = 'tip_declined_at';
+-- Expected: the table name, 4 booking_tips columns, and tip_declined_at.

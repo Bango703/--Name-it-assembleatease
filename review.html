@@ -366,7 +366,8 @@ async function loadTipOffer(ref, email) {
     var d = await r.json();
     // Not eligible, already tipped, or the Easer cannot receive: show nothing.
     // An offer that would be refused is worse than no offer at all.
-    if (!r.ok || !d.canReceive || d.alreadyTipped) return;
+    // Not eligible, already tipped, or already declined: show nothing at all.
+    if (!r.ok || !d.canReceive || d.alreadyTipped || d.declined) return;
     TIP.quote = d; TIP.ref = ref; TIP.email = email;
     document.getElementById('tip-head').textContent = 'Say thanks to ' + d.easerFirstName;
     renderTipChips();
@@ -380,6 +381,14 @@ function renderTipChips() {
   wrap.innerHTML = TIP.presets.map(function (p) {
     return '<button type="button" class="tip-chip' + (TIP.amount === p * 100 ? ' on' : '') + '" data-amt="' + p + '">$' + p + '</button>';
   }).join('') + '<button type="button" class="tip-chip' + (custom ? ' on' : '') + '" data-amt="other">Other</button>';
+
+  // "No thanks" is a real, visible answer — not an absence of one. Leaving the
+  // only way out as "touch nothing" makes people feel they have to engage with
+  // the money block before they can post a review.
+  wrap.insertAdjacentHTML('afterend',
+    '<button type="button" id="tip-decline" style="background:none;border:none;color:var(--muted);'
+    + 'font-family:inherit;font-size:0.78rem;text-decoration:underline;cursor:pointer;margin-top:0.6rem;padding:0.3rem">'
+    + 'No thanks</button>');
 
   Array.prototype.forEach.call(wrap.querySelectorAll('.tip-chip'), function (b) {
     b.addEventListener('click', function () {
@@ -397,6 +406,19 @@ function renderTipChips() {
     });
   });
 }
+
+document.addEventListener('click', function (e) {
+  if (!e.target || e.target.id !== 'tip-decline') return;
+  // Recorded, so the next visit does not ask again. Fire-and-forget: a failed
+  // write must never block someone from getting on with their review.
+  fetch('/api/booking/tip', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ref: TIP.ref, email: TIP.email, token: reviewToken, action: 'decline' })
+  }).catch(function () {});
+  TIP.amount = 0;
+  document.getElementById('tip-box').style.display = 'none';
+  updateTipNote();
+});
 
 function updateTipNote() {
   var n = document.getElementById('tip-note');
