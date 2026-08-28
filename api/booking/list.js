@@ -2,6 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { loadBookingItems, countAddOns } from './_booking-items.js';
 import { loadChangeOrders, summarizeChangeOrders, changeOrderEligibility } from './_change-orders.js';
 import { loadCrew, summarizeCrew } from './_crew.js';
+import { describeArrival } from '../_geocode.js';
 import { verifyOwner } from '../_email.js';
 import {
   allocateCollectedTaxCents,
@@ -177,6 +178,18 @@ export default async function handler(req, res) {
       // silently render an empty scope that looks like "no add-ons".
       data.forEach(booking => { booking._booking_items = null; booking._add_on_count = null; });
     }
+
+    // Arrival verification, decided HERE and rendered there. The thresholds and
+    // the accuracy weighting are one rule in one module (Article 4) — the owner
+    // dashboard must not grow a second opinion about what "at the address" means.
+    data.forEach(booking => {
+      booking._arrival = booking.checked_in_at
+        ? describeArrival({
+            distanceM: booking.arrived_distance_m,
+            accuracyM: booking.arrived_accuracy_m,
+          })
+        : null;
+    });
 
     // Who else is on each job, and what each person is owed. Read through the one
     // crew loader so the owner panel and the Easer dashboard can never disagree
