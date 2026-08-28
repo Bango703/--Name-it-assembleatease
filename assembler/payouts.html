@@ -190,6 +190,23 @@
     </div>
   </div>
 
+
+  <!-- Instant payout. Rendered only when Stripe says this Easer's bank can take
+       one AND there is a sensible amount settled. Hidden entirely otherwise —
+       an option that would be refused should never be shown. -->
+  <section class="payout-process-card" id="instant-card" style="display:none">
+    <div class="payout-process-title">Get paid now</div>
+    <p class="payout-process-copy" id="instant-copy">Checking your available balance…</p>
+    <div id="instant-breakdown" style="display:none;margin:0.75rem 0;font-size:0.86rem;line-height:1.9">
+      <div style="display:flex;justify-content:space-between"><span>Available now</span><strong id="instant-gross">—</strong></div>
+      <div style="display:flex;justify-content:space-between;color:var(--e-muted)"><span id="instant-fee-label">Instant fee</span><span id="instant-fee">—</span></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--e-border);margin-top:0.4rem;padding-top:0.4rem"><span><strong>You get</strong></span><strong id="instant-net">—</strong></div>
+    </div>
+    <div id="instant-actions" style="display:none;gap:0.5rem;flex-wrap:wrap">
+      <button class="btn btn-teal" id="instant-btn" type="button">Get paid now</button>
+    </div>
+    <p class="payout-process-copy" id="instant-free-note" style="display:none;margin-top:0.6rem;font-size:0.8rem;color:var(--e-muted)"></p>
+  </section>
   <section class="payout-process-card" id="payout-mode-loading" aria-live="polite">
     <div class="payout-process-title">Loading payout setup</div>
     <p class="payout-process-copy" id="payout-mode-loading-copy">Checking how your earnings are sent.</p>
@@ -376,6 +393,82 @@
       } catch {}
       return session.access_token;
     }
+
+    // ── Instant payout ──────────────────────────────────────────────────────
+    // Quote first, then confirm. The Easer sees the exact fee and the exact net
+    // BEFORE agreeing, and the free option is stated beside it — selling speed
+    // without showing the free alternative is not a real choice.
+    var instantQuote = null;
+
+    function money(cents) { return '$' + (Number(cents || 0) / 100).toFixed(2); }
+
+    async function loadInstantPayout() {
+      var card = document.getElementById('instant-card');
+      if (!card) return;
+      try {
+        var token = await getToken();
+        var resp = await fetch('/api/assembler/instant-payout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ action: 'quote' }),
+        });
+        var d = await resp.json();
+        if (!resp.ok) { card.style.display = 'none'; return; }
+
+        // Nothing settled, or the fee would take too big a share: say nothing
+        // rather than dangle an option that gets refused.
+        if (!d.instantAvailable || !d.eligible) { card.style.display = 'none'; return; }
+
+        instantQuote = d;
+        document.getElementById('instant-gross').textContent = money(d.grossCents);
+        document.getElementById('instant-fee-label').textContent = 'Instant fee (' + d.feePct + '%)';
+        document.getElementById('instant-fee').textContent = '−' + money(d.feeCents);
+        document.getElementById('instant-net').textContent = money(d.netCents);
+        document.getElementById('instant-copy').textContent =
+          'Your earnings have cleared. Send them to your bank in about 30 minutes — any day, including weekends.';
+        document.getElementById('instant-free-note').textContent =
+          'Or wait and get the full ' + money(d.grossCents) + ' free on the standard schedule. The fee is charged by Stripe; AssembleAtEase adds nothing.';
+        document.getElementById('instant-breakdown').style.display = '';
+        document.getElementById('instant-actions').style.display = 'flex';
+        document.getElementById('instant-free-note').style.display = '';
+        card.style.display = '';
+      } catch (e) {
+        card.style.display = 'none';
+      }
+    }
+
+    loadInstantPayout();
+
+    document.addEventListener('click', async function(ev) {
+      var btn = ev.target && ev.target.id === 'instant-btn' ? ev.target : null;
+      if (!btn || !instantQuote) return;
+      if (!confirm('Send ' + money(instantQuote.netCents) + ' to your bank now?' + "\n\n" + 'Stripe charges ' + money(instantQuote.feeCents) + ' for instant transfer. Waiting is free.')) return;
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        var token = await getToken();
+        var resp = await fetch('/api/assembler/instant-payout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          // The fee the Easer actually saw. The server re-derives it and refuses
+          // if the balance moved, so a stale quote can never be charged.
+          body: JSON.stringify({ action: 'payout', acknowledgedFeeCents: instantQuote.feeCents }),
+        });
+        var d = await resp.json();
+        if (!resp.ok) {
+          btn.disabled = false; btn.textContent = 'Get paid now';
+          // The server's own reason, never an invented one.
+          APP.showAlert('page-alert', d.error || 'Instant payout could not be sent. Your earnings are safe.', 'error');
+          if (d.code === 'QUOTE_STALE') loadInstantPayout();
+          return;
+        }
+        APP.showAlert('page-alert', d.message || 'On its way.', 'success');
+        document.getElementById('instant-card').style.display = 'none';
+      } catch (e) {
+        btn.disabled = false; btn.textContent = 'Get paid now';
+        APP.showAlert('page-alert', 'Instant payout could not be sent. Your earnings are safe.', 'error');
+      }
+    });
+
 
     var closureStatus = String(auth.profile && auth.profile.account_closure_status || '').trim().toLowerCase();
     if (['requested', 'reviewing', 'completed'].includes(closureStatus)) {
