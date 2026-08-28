@@ -331,4 +331,31 @@ const ready = await getEaserReadiness(readyProfile, { connectRequired: false });
   console.log('PASS a helper can see, message and photograph the job — only the lead advances or completes it');
 }
 
+// ── The dashboard calls the right URL ───────────────────────────────────────
+// apiPost() prefixes API = '/api/booking'. Passing it an owner path produced
+// '/api/booking/owner/crew', which 404s. Nothing failed loudly: the button just
+// did nothing, and the owner reported "preview split don't work" with no clue
+// why. The path is now checked instead of trusted.
+{
+  const owner = await fs.readFile(new URL('../owner/index.html', import.meta.url), 'utf8');
+
+  assert.ok(!/apiPost\(\s*['"]\/owner\//.test(owner),
+    "apiPost() prefixes '/api/booking' — an /owner path through it 404s. Use ownerPost().");
+  assert.ok(/async function ownerPost\(/.test(owner),
+    'ownerPost() must exist so owner routes have a correctly-based caller');
+  assert.ok(/fetch\('\/api\/owner' \+ path/.test(owner),
+    'ownerPost must build /api/owner/<path>');
+  assert.ok(/ownerPost\('\/crew'/.test(owner),
+    'the crew panel must call the owner-scoped helper');
+
+  // Same defensive body handling as apiPost, or a Vercel HTML error page shows
+  // the owner a raw parser error instead of the real fault (Article 16).
+  const fn = owner.slice(owner.indexOf('async function ownerPost('));
+  const body = fn.slice(0, fn.indexOf('\n  // ─── Login'));
+  assert.ok(/catch \{ data = null; \}/.test(body) && /HTTP ' \+ r\.status/.test(body),
+    'ownerPost must survive a non-JSON error page and report the real HTTP failure');
+  assert.ok(/r\.status === 401/.test(body), 'a 401 must log the owner out rather than look like a crew error');
+  console.log('PASS the crew panel calls /api/owner/crew, not /api/booking/owner/crew');
+}
+
 console.log('\nBooking crew split tests passed.');
