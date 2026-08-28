@@ -271,9 +271,14 @@ export default async function handler(req, res) {
   if (profileForThisAuthUser) {
     const role = String(profileForThisAuthUser.role || '').toLowerCase();
     const appStatus = String(profileForThisAuthUser.application_status || '').toLowerCase();
-    const resumable = role === 'assembler'
+    const applicationPlaceholder = !appStatus
+      && applicationAttemptMatches(
+        applicationAttemptId,
+        authUser.user_metadata?.application_attempt_hash,
+      );
+    const resumable = authUserCreated || applicationPlaceholder || (role === 'assembler'
       && ['', 'payment_pending', 'applied'].includes(appStatus)
-      && String(profileForThisAuthUser.status || '').toLowerCase() !== 'active';
+      && String(profileForThisAuthUser.status || '').toLowerCase() !== 'active');
 
     if (!resumable) {
       return res.status(409).json({
