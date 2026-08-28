@@ -385,9 +385,18 @@ const marketDemand = source('api/market-demand.js');
 assert.doesNotMatch(marketDemand, /parseInt\(body\.totalCents/);
 assert.match(marketDemand, /estimatedRevenue: 0/);
 const easerWaitlist = source('api/waitlist.js');
-assert.match(easerWaitlist, /normalizeUsPhone/);
+// Phone normalization and state validation now live in api/_waitlist-core.js,
+// the module BOTH waitlist doors share — the public form and the owner adding
+// someone by hand. The rules are unchanged; moving them is what stops the owner
+// path from quietly growing a second, weaker copy (Article 3). So the gate
+// checks that the rules exist in their one home, and that the public form
+// delegates to it rather than reimplementing anything.
+const waitlistCore = source('api/_waitlist-core.js');
+assert.match(waitlistCore, /normalizeUsPhone/);
+assert.match(waitlistCore, /US_STATE_CODES/);
+assert.match(easerWaitlist, /validateWaitlistInput/, 'The public waitlist form must validate through the shared module');
+assert.doesNotMatch(easerWaitlist, /US_STATE_CODES = new Set/, 'The public form must not keep a second copy of the state list');
 assert.match(easerWaitlist, /formatUsPhone/);
-assert.match(easerWaitlist, /US_STATE_CODES/);
 assert.match(easerWaitlist, /database is the waitlist source of truth/i);
 assert.doesNotMatch(easerWaitlist, /No upfront fees to join/i);
 assert.doesNotMatch(easerWaitlist, /api\.resend\.com/, 'Waitlist email attempts must use the logged email helper');
