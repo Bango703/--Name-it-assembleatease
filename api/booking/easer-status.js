@@ -4,6 +4,7 @@ import { sendEmail, ownerEmail, esc, buildStatusEmail, formatAddress } from '../
 import { sendSms } from '../_sms.js';
 import { logActivity } from './_activity.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
+import { geocodeAddress, distanceMetres, locationConsentOk } from '../_geocode.js';
 import {
   BOOKING_STATUS,
   EASER_STAGE,
@@ -29,7 +30,7 @@ export default async function handler(req, res) {
   if (!access.ok) return respondWithEaserAccessError(res, access);
   const { user, profile } = access;
 
-  const { bookingId, stage } = req.body;
+  const { bookingId, stage, lat, lng, accuracy } = req.body;
   if (!bookingId || !stage) return res.status(400).json({ error: 'bookingId and stage required' });
   if (!STAGES[stage]) return res.status(400).json({ error: 'Invalid stage. Use: en_route, arrived, in_progress' });
 
@@ -106,6 +107,49 @@ export default async function handler(req, res) {
 
   // Primary update: status + pipeline_stage + timestamp field
   const update = { status, pipeline_stage: stage, [field]: now };
+
+  // ── Arrival verification ──────────────────────────────────────────────────
+  // Optional, consented, and captured only at the moment the Easer says they are
+  // on site. Never a gate: GPS fails indoors, in stairwells and in garages —
+  // the places furniture actually gets assembled — so a missing or poor fix
+  // records "not shared" and the check-in proceeds exactly as before.
+  //
+  // Deliberately arrival only. A continuous trail would be behavioural control
+  // over an independent contractor, which is a worker-classification risk; a
+  // single stamp against a contracted milestone is not.
+  if (stage === EASER_STAGE.ARRIVED && lat != null && lng != null) {
+    const easerLat = Number(lat);
+    const easerLng = Number(lng);
+    const acc = Number(accuracy);
+    if (Number.isFinite(easerLat) && Number.isFinite(easerLng)) {
+      // Consent is a recorded fact, never inferred from the browser's willingness
+      // to answer. A phone that CAN report a location is not permission to store one.
+      if (locationConsentOk(profile)) {
+        update.arrived_lat = easerLat;
+        update.arrived_lng = easerLng;
+        update.arrived_accuracy_m = Number.isFinite(acc) ? Math.round(acc) : null;
+        update.arrived_location_source = 'browser_geolocation';
+
+        // Geocode the address once and cache it, so this costs nothing on every
+        // later check-in and a changed address cannot leave stale coordinates.
+        let siteLat = booking.service_lat;
+        let siteLng = booking.service_lng;
+        if (siteLat == null || siteLng == null) {
+          const geo = await geocodeAddress(booking.address);
+          if (geo.ok) {
+            siteLat = geo.lat;
+            siteLng = geo.lng;
+            update.service_lat = geo.lat;
+            update.service_lng = geo.lng;
+            update.service_geocoded_at = now;
+            update.service_geocode_source = geo.source;
+          }
+        }
+        const metres = distanceMetres(easerLat, easerLng, siteLat, siteLng);
+        if (metres != null) update.arrived_distance_m = metres;
+      }
+    }
+  }
   let updateQuery = sb.from('bookings')
     .update(update)
     .eq('id', bookingId)
