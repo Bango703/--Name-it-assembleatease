@@ -22,6 +22,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { validateWaitlistInput, WAITLIST_SOURCE } from '../api/_waitlist-core.js';
+import { buildWaitlistEmail } from '../api/_waitlist-email.js';
 
 const core      = await fs.readFile(new URL('../api/_waitlist-core.js', import.meta.url), 'utf8');
 const publicFn  = await fs.readFile(new URL('../api/waitlist.js', import.meta.url), 'utf8');
@@ -100,17 +101,44 @@ const VALID = { name: 'Trapper Riney', email: 'trapper@example.com', phone: '512
   assert.ok(ownerFn.includes('req.body.sendConfirmation === true'),
     'the confirmation email must require an explicit true — a default-on cold email is the failure mode here');
   assert.ok(ownerFn.includes('easer_waitlist_owner_added'),
-    'an owner-added person must get their own template, not the public one');
+    'an owner-added person must be logged under their own notification type');
+  console.log('PASS an owner-added person is emailed only on purpose');
+}
 
-  // Article 16: the public confirmation thanks people for signing up and closes
-  // with "you received this because you signed up". Both are false here.
-  const marker = ownerFn.indexOf('easer_waitlist_owner_added');
-  const ownerEmailBody = ownerFn.slice(Math.max(0, marker - 3000), marker);
-  assert.ok(!/thank you for (your interest|signing up)/i.test(ownerEmailBody),
-    'the owner-added email must not thank someone for a signup that never happened');
-  assert.ok(/not something you asked for/i.test(ownerEmailBody),
+// ── One email, two honest variants ─────────────────────────────────────────
+// Someone who signs up and someone the owner adds get the SAME email. A person
+// must not be able to tell which door they came through, and neither version
+// should look like the cheaper one.
+{
+  const signup = buildWaitlistEmail({ name: 'Marcus Webb', city: 'Round Rock', state: 'TX', variant: 'signup' });
+  const added = buildWaitlistEmail({ name: 'Marcus Webb', city: 'Round Rock', state: 'TX', variant: 'owner_added' });
+
+  // The shell is shared, so the design cannot drift between them.
+  for (const part of ['ON WAITLIST', 'What Happens Next', 'Why Professionals Choose Us', 'Visit AssembleAtEase', 'images/logo.jpg']) {
+    assert.ok(signup.html.includes(part), `the signup email must keep ${part}`);
+    assert.ok(added.html.includes(part), `the owner-added email must have the same ${part} as a real signup`);
+  }
+  assert.ok(!/\$\{/.test(signup.html) && !/\$\{/.test(added.html), 'no unfilled placeholders may ship');
+
+  // Article 16: the three sentences that would be false for someone who never
+  // filled in a form — and the last one is the one a recipient actually reads
+  // when working out why a company is emailing them.
+  assert.ok(/signed up for the AssembleAtEase assembler waitlist/.test(signup.html),
+    'a real signup should still be told they signed up');
+  assert.ok(!/signed up/i.test(added.html),
+    'an owner-added person must never be told they signed up');
+  assert.ok(!/thank you for your interest/i.test(added.html),
+    'an owner-added person must not be thanked for interest they never expressed');
+  assert.ok(/we added you to the AssembleAtEase Easer waitlist after speaking with you/i.test(added.html),
+    'the owner-added email must say plainly why they are receiving it');
+  assert.ok(/reply to this email and we will remove you/i.test(added.html),
     'the owner-added email must give the recipient a way out, because they did not opt in');
-  console.log('PASS an owner-added person is emailed only on purpose, and never told they signed up');
+
+  // An unknown variant must fall back to the wording that is true either way.
+  const unknown = buildWaitlistEmail({ name: 'Marcus Webb', city: 'Round Rock', state: 'TX', variant: 'nonsense' });
+  assert.ok(!/signed up/i.test(unknown.html),
+    'an unrecognised variant must never claim a signup that may not have happened');
+  console.log('PASS both doors send the same email, and only the untrue sentences differ');
 }
 
 // ── A duplicate is reported, not silently overwritten ───────────────────────
