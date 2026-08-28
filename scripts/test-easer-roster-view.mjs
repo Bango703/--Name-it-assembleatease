@@ -65,4 +65,20 @@ const ui = await fs.readFile(new URL('../owner/index.html', import.meta.url), 'u
   console.log('PASS off-roster Easers stay reachable, and the tab label tells the truth');
 }
 
+// ── The list opens on people who can work today ────────────────────────────
+{
+  assert.ok(ui.includes("var currentTierFilter = 'active';"),
+    "the Easer list must default to ACTIVE — the owner's first glance should answer who can work");
+  assert.ok(ui.includes('<button class="tab active" data-tier="active">Active</button>'),
+    'the Active tab must be the one rendered as selected, or the highlight and the list disagree');
+
+  // Pending must stay one tap away and keep its count, or a new applicant sits
+  // unseen — on a platform whose only real constraint is supply, that is the
+  // most expensive thing this view could hide.
+  assert.ok(ui.includes('data-tier="pending"'), 'Pending must keep its own tab');
+  assert.ok(ui.includes("s === 'pending' ? allAssemblerProfiles.filter"),
+    'Pending must keep a live count so a new application is visible without switching tabs');
+  console.log('PASS the list opens on Active, and a pending application still shows a count');
+}
+
 console.log('\nEaser roster view tests passed.');

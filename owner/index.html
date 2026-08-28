@@ -913,7 +913,8 @@
           <div class="stat orange"><div class="stat-value" id="asm-elite">—</div><div class="stat-label">Elite</div></div>
         </div>
         <div class="tabs" id="asm-tabs">
-          <button class="tab active" data-tier="all">Roster</button>
+          <button class="tab active" data-tier="active">Active</button>
+          <button class="tab" data-tier="all">Roster</button>
           <button class="tab" data-tier="pending">Pending</button>
           <button class="tab" data-tier="starter">Starter</button>
           <button class="tab" data-tier="professional">Professional</button>
@@ -9518,7 +9519,11 @@ window.intelQuick = intelQuick;
 
   // ─── Assembler management ───
   var allAssemblerProfiles = [];
-  var currentTierFilter = 'all';
+  // Opens on ACTIVE: the only Easers who can take a job today. Everything else —
+  // pending, suspended, deactivated, rejected — is a different question and has
+  // its own tab. The owner's first glance should answer "who can work", not
+  // "who has ever existed".
+  var currentTierFilter = 'active';
   var asmConnectRequired = false;
   var currentAssemblerDetailId = null;
 
