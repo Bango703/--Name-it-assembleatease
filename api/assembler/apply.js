@@ -393,7 +393,7 @@ function isRecoverableApplication(profile, authUser, applicationAttemptId) {
   // requests" — the applicant discovering they were blocked cost them their whole
   // quota.
   return status === 'pending'
-    && [APPLICATION_PAYMENT_PENDING, 'applied', 'waitlist'].includes(applicationStatus);
+    && ['', APPLICATION_PAYMENT_PENDING, 'applied', 'waitlist'].includes(applicationStatus);
 }
 
 async function resumeApplicationDraft({

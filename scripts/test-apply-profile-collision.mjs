@@ -105,6 +105,8 @@ const src = await fs.readFile(new URL('../api/assembler/apply.js', import.meta.u
     assert.ok(body.includes(s) || body.includes('APPLICATION_PAYMENT_PENDING'),
       `${s} must remain resumable`);
   }
+  assert.ok(/\['', APPLICATION_PAYMENT_PENDING/.test(body),
+    'a same-attempt trigger-created profile with no application status must be resumable');
   // An approved or active Easer must still never be resumable through this path.
   assert.ok(/status === 'pending'/.test(body),
     'only a pending account may be resumed — an approved Easer is not an application');
