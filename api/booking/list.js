@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { loadBookingItems, countAddOns } from './_booking-items.js';
 import { loadChangeOrders, summarizeChangeOrders, changeOrderEligibility } from './_change-orders.js';
+import { loadCrew, summarizeCrew } from './_crew.js';
 import { verifyOwner } from '../_email.js';
 import {
   allocateCollectedTaxCents,
@@ -175,6 +176,32 @@ export default async function handler(req, res) {
       // Null (not []) so the dashboard can say "could not load" rather than
       // silently render an empty scope that looks like "no add-ons".
       data.forEach(booking => { booking._booking_items = null; booking._add_on_count = null; });
+    }
+
+    // Who else is on each job, and what each person is owed. Read through the one
+    // crew loader so the owner panel and the Easer dashboard can never disagree
+    // about a split. Optional enrichment, exactly like change orders below: a
+    // crew lookup fault must not degrade a booking whose money is perfectly fine.
+    try {
+      const crewByBooking = await loadCrew(bookingIds, { sb });
+      // Names are resolved here rather than joined in SQL so the loader stays a
+      // pure crew reader and this stays the only place that needs profiles.
+      const crewEaserIds = [...new Set([...crewByBooking.values()].flat().map(c => c.easer_id))];
+      const namesById = new Map();
+      if (crewEaserIds.length) {
+        const { data: profs } = await sb.from('profiles').select('id, full_name').in('id', crewEaserIds);
+        for (const pr of profs || []) namesById.set(pr.id, pr.full_name);
+      }
+      data.forEach(booking => {
+        const rows = (crewByBooking.get(booking.id) || []).map(c => ({
+          ...c, easer_name: namesById.get(c.easer_id) || 'Easer',
+        }));
+        booking._crew = rows;
+        booking._crew_summary = summarizeCrew(rows);
+      });
+    } catch (crewError) {
+      console.error('[list] crew load failed:', crewError?.message || crewError);
+      data.forEach(booking => { booking._crew = []; });
     }
 
     // Approved change orders change what the customer owes and what the Easer is

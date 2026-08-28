@@ -19,7 +19,9 @@ import {
   easerMayCompleteBooking,
   laborPoolCents,
   proposeEvenSplit,
-  marginImpact,
+  splitPressure,
+  fundingIsAllowedForNewCrew,
+  ALLOWED_NEW_FUNDING,
   crewEligibility,
   summarizeCrew,
 } from '../api/booking/_crew.js';
@@ -113,16 +115,32 @@ const ready = await getEaserReadiness(readyProfile, { connectRequired: false });
   console.log(`PASS a pay cut is computed and named ($${(proposal.leadReductionCents / 100).toFixed(2)}), never silent`);
 }
 
-// ── Margin funding surfaces the real cost ───────────────────────────────────
+// ── The platform never funds a helper ──────────────────────────────────────
+// The owner's ruling: "If a job requires 2 people then the cost of the job is
+// not enough. The owner will not take a loss." Enforced in the domain, not by
+// hiding a radio button.
 {
-  const impact = marginImpact({ booking, helperDueCents: 6000 });
-  assert.equal(impact.platformFeeCents, 7760);
-  assert.equal(impact.remainingMarginCents, 1760, 'margin after a $60 helper');
-  assert.equal(impact.goesNegative, false);
+  assert.deepEqual([...ALLOWED_NEW_FUNDING].sort(), ['change_order', 'labor_pool'],
+    'only the job\'s own pay or a customer-approved change order may fund new crew');
+  assert.equal(fundingIsAllowedForNewCrew(CREW_FUNDING.PLATFORM_MARGIN), false,
+    'platform_margin must be refused for any NEW crew member');
+  assert.equal(fundingIsAllowedForNewCrew(CREW_FUNDING.LABOR_POOL), true);
+  assert.equal(fundingIsAllowedForNewCrew(CREW_FUNDING.CHANGE_ORDER), true);
+  // The value survives in the enum so historical rows stay readable — the
+  // migration's CHECK still permits it and old data must not become unreadable.
+  assert.equal(CREW_FUNDING.PLATFORM_MARGIN, 'platform_margin',
+    'the historical value must remain defined for reading existing rows');
+  console.log('PASS the platform can never fund a helper out of margin');
+}
 
-  const heavy = marginImpact({ booking, helperDueCents: 9000 });
-  assert.equal(heavy.goesNegative, true, 'a helper who costs more than the fee must flag negative');
-  console.log('PASS margin funding reports remaining margin, including when it goes negative');
+// ── The split is a PRICING signal ──────────────────────────────────────────
+{
+  const pressure = splitPressure({ booking, crew: [leadRow], addingCount: 1 });
+  assert.equal(pressure.soloPoolCents, 18106, 'what one Easer would have earned alone');
+  assert.equal(pressure.perPersonCents, 9053, 'what each earns once split');
+  assert.equal(pressure.underpricedSignal, true,
+    'any split means the job priced for one person now pays two — that is a pricing problem, surfaced');
+  console.log(`PASS a split reports the pricing signal ($${(pressure.soloPoolCents/100).toFixed(2)} -> $${(pressure.perPersonCents/100).toFixed(2)} each)`);
 }
 
 // ── Access ──────────────────────────────────────────────────────────────────
@@ -182,16 +200,30 @@ const ready = await getEaserReadiness(readyProfile, { connectRequired: false });
   console.log('PASS eligibility blocks unready Easers and passes the server reason through');
 }
 
-// ── After payout, adding someone is a NEW obligation ────────────────────────
+// ── A completed job is locked ──────────────────────────────────────────────
+// Owner's ruling. The work is done and the lead earned the whole amount by doing
+// it; splitting afterwards takes back money someone already worked for.
+// Completion is the line, NOT settlement — so this holds even when no payout has
+// been recorded yet.
 {
+  const done = crewEligibility({ booking: { ...booking, status: 'completed', payout_status: 'pending' }, crew: [leadRow], easerId: HELPER, readiness: ready });
+  assert.equal(done.ok, false, 'a completed job takes no new crew even before payout');
+  assert.equal(done.reason, 'booking_completed');
+  assert.match(done.message, /locked once the work is done/i);
+
+  // Backstop still holds if a payout somehow exists without the completed status.
   for (const settled of ['paid', 'partial']) {
-    const result = crewEligibility({ booking: { ...booking, status: 'completed', payout_status: settled }, crew: [leadRow], easerId: HELPER, readiness: ready });
-    assert.equal(result.ok, true, 'adding is still allowed after payout');
-    assert.equal(result.defaultFunding, CREW_FUNDING.PLATFORM_MARGIN,
-      `with payout_status=${settled} the pool is already distributed, so margin funds it`);
-    assert.equal(result.createsNewObligation, true, 'the owner must be told this is new money');
+    const r = crewEligibility({ booking: { ...booking, payout_status: settled }, crew: [leadRow], easerId: HELPER, readiness: ready });
+    assert.equal(r.ok, false, `payout_status=${settled} must still refuse`);
+    assert.equal(r.reason, 'payout_settled');
   }
-  console.log('PASS adding crew after payout is allowed, funded from margin, and flagged as new money');
+
+  // ...but an ACTIVE job is still addable. This is the case that must keep working.
+  for (const live of ['confirmed', 'en_route', 'arrived', 'in_progress']) {
+    const r = crewEligibility({ booking: { ...booking, status: live }, crew: [leadRow], easerId: HELPER, readiness: ready });
+    assert.equal(r.ok, true, `${live} must still accept a second Easer`);
+  }
+  console.log('PASS completed jobs are locked; active jobs still accept crew');
 }
 
 // ── The migration matches the module ────────────────────────────────────────
