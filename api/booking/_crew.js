@@ -42,11 +42,37 @@ export const CREW_PAYOUT_STATUS = Object.freeze({
 export const CREW_FUNDING = Object.freeze({
   /** Split out of the existing Easer pool. Platform margin unchanged. */
   LABOR_POOL: 'labor_pool',
-  /** The platform absorbed it. Service recovery. Margin drops, possibly below zero. */
-  PLATFORM_MARGIN: 'platform_margin',
   /** The customer approved and paid for extra scope. */
   CHANGE_ORDER: 'change_order',
+  /**
+   * HISTORICAL ONLY — the platform absorbing a helper's pay out of margin.
+   * Migration 077's CHECK constraint still permits the value so old rows stay
+   * readable, but no new row may be written with it. See ALLOWED_NEW_FUNDING.
+   */
+  PLATFORM_MARGIN: 'platform_margin',
 });
+
+/**
+ * What may fund a crew member being added TODAY.
+ *
+ * The owner's ruling, and it is a pricing rule rather than a payments one:
+ * "If a job requires 2 people then the cost of the job is not enough. The owner
+ * will not take a loss."
+ *
+ * On a $280 job the platform keeps $77.60. A $60 helper leaves $17.60 — six
+ * percent. Funding crew from margin turns a mispriced service into a silent,
+ * per-job write-off that never shows up as the pricing problem it actually is.
+ * So there are exactly two honest sources: divide the pay the job already
+ * carries, or have the customer approve and pay for the extra scope.
+ */
+export const ALLOWED_NEW_FUNDING = Object.freeze([
+  CREW_FUNDING.LABOR_POOL,
+  CREW_FUNDING.CHANGE_ORDER,
+]);
+
+export function fundingIsAllowedForNewCrew(funding) {
+  return ALLOWED_NEW_FUNDING.includes(funding);
+}
 
 /** Statuses after which adding crew creates a NEW obligation rather than a split. */
 const PAYOUT_SETTLED = new Set(['paid', 'partial']);
@@ -207,33 +233,6 @@ export function proposeEvenSplit({ booking, crew = [], addingCount = 1 } = {}) {
   };
 }
 
-/**
- * What paying `helperDueCents` out of margin actually costs.
- *
- * Called before the owner picks platform_margin so the number is on screen
- * rather than discovered at month end. On a 30%-fee job a helper paid even a
- * third of the lead's rate consumes most of the platform fee — this returns the
- * real remaining margin, including when it goes negative.
- */
-export function marginImpact({ booking, helperDueCents = 0 } = {}) {
-  const split = computeBookingSplitFromSnapshot({
-    amountChargedCents: booking?.amount_charged ?? null,
-    totalPriceCents: booking?.total_price ?? null,
-    taxCents: booking?.tax_amount || 0,
-    feePct: booking?.easer_fee_pct_snapshot ?? null,
-    assemblecashRedeemedCents: booking?.assemblecash_redeemed_cents || 0,
-  });
-  const platformFee = Math.max(0, split.platformFeeCents || 0);
-  const cost = Math.max(0, Math.round(Number(helperDueCents) || 0));
-  const remaining = platformFee - cost;
-  return {
-    platformFeeCents: platformFee,
-    helperCostCents: cost,
-    remainingMarginCents: remaining,
-    goesNegative: remaining < 0,
-  };
-}
-
 // ── Eligibility ─────────────────────────────────────────────────────────────
 
 /**
@@ -289,14 +288,43 @@ export function crewEligibility({ booking, crew = [], easerId, readiness } = {})
     };
   }
 
-  // After any payout has been recorded the pool is no longer freely divisible —
-  // somebody has already been paid their share. Adding a person here is a NEW
-  // obligation funded by the platform, and the owner has to see that plainly.
-  const settled = PAYOUT_SETTLED.has(String(booking.payout_status || ''));
+  // Once a payout is recorded the pool is no longer divisible — somebody has
+  // already been handed their share, and money that has left cannot be re-split.
+  //
+  // The old behaviour here was to fall back to platform_margin. That is exactly
+  // the silent write-off the owner ruled out, so this now REFUSES and names the
+  // only honest route: the customer approves and pays for the extra scope.
+  if (PAYOUT_SETTLED.has(String(booking.payout_status || ''))) {
+    return {
+      ok: false,
+      reason: 'payout_settled',
+      message: 'This job\'s Easer pay has already been paid out, so it cannot be re-split. '
+        + 'To bring someone else in, raise a change order the customer approves.',
+    };
+  }
+
+  return { ok: true, defaultFunding: CREW_FUNDING.LABOR_POOL, createsNewObligation: false };
+}
+
+/**
+ * What each person is left with once the pool is divided.
+ *
+ * Surfaced because the owner's own rule implies it: if a job needs two people,
+ * the job is underpriced. The split is where that becomes visible — $181 is a
+ * fair day; $90 each may not be worth either Easer's time, and an Easer who
+ * feels underpaid declines the next one. This reports the number rather than
+ * inventing a threshold to judge it by.
+ */
+export function splitPressure({ booking, crew = [], addingCount = 1 } = {}) {
+  const proposal = proposeEvenSplit({ booking, crew, addingCount });
+  const soloPool = laborPoolCents(booking);
   return {
-    ok: true,
-    defaultFunding: settled ? CREW_FUNDING.PLATFORM_MARGIN : CREW_FUNDING.LABOR_POOL,
-    createsNewObligation: settled,
+    perPersonCents: proposal.perPersonCents,
+    headcount: proposal.headcount,
+    soloPoolCents: soloPool,
+    // True whenever a split is happening at all — the owner asked for this to be
+    // read as a pricing signal, not a payments one.
+    underpricedSignal: proposal.headcount > 1,
   };
 }
 

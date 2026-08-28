@@ -9,8 +9,10 @@ import {
   crewEligibility,
   proposeEvenSplit,
   laborPoolCents,
-  marginImpact,
   summarizeCrew,
+  splitPressure,
+  fundingIsAllowedForNewCrew,
+  ALLOWED_NEW_FUNDING,
   CREW_ROLE,
   CREW_FUNDING,
 } from '../booking/_crew.js';
@@ -125,6 +127,18 @@ export default async function handler(req, res) {
   const proposal = proposeEvenSplit({ booking, crew, addingCount: Math.max(1, Number(addingCount) || 1) });
   const chosenFunding = funding || eligibility.defaultFunding;
 
+  // The owner's ruling, enforced server-side rather than by hiding a radio
+  // button: the platform does not absorb a helper's pay. A job that needs two
+  // people is underpriced, and funding the second one out of margin turns that
+  // pricing problem into an invisible per-job write-off.
+  if (!fundingIsAllowedForNewCrew(chosenFunding)) {
+    return res.status(400).json({
+      error: 'A second Easer is paid out of the job\'s own Easer pay, or out of a change order the customer approves. '
+        + 'The platform does not cover it — if this job needs two people, its price is too low.',
+      code: 'FUNDING_NOT_ALLOWED',
+    });
+  }
+
   // ── PREVIEW ───────────────────────────────────────────────────────────────
   if (action === 'preview') {
     const named = proposal.allocations.map(a => ({
@@ -145,7 +159,10 @@ export default async function handler(req, res) {
       // The two facts the owner must see before confirming.
       leadReductionCents: proposal.leadReductionCents,
       reducesExistingPay: proposal.reducesExistingPay,
-      marginIfPlatformFunded: marginImpact({ booking, helperDueCents: proposal.perPersonCents }),
+      // The pricing signal, not a payments one: if this job needs two people its
+      // price is too low, and this is the number that shows it.
+      pressure: splitPressure({ booking, crew, addingCount: Math.max(1, Number(addingCount) || 1) }),
+      allowedFunding: ALLOWED_NEW_FUNDING,
       currentCrew: summarizeCrew(crew),
     });
   }
