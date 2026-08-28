@@ -175,6 +175,18 @@ textarea.form-control{resize:vertical;min-height:120px}
 
       <div class="err" id="r-err"></div>
 
+      <!-- Tips go DIRECTLY to the Easer's own Stripe account. The platform takes
+           nothing, and the customer is shown one number: what they chose to give.
+           The processing fee is between Stripe and the Easer and is never shown here. -->
+      <div class="tip-box" id="tip-box">
+        <div class="tip-head" id="tip-head">Say thanks</div>
+        <p class="tip-sub"><b>100% goes to your pro.</b> AssembleAtEase takes nothing. Completely optional.</p>
+        <div class="tip-chips" id="tip-chips"></div>
+        <div id="tip-custom-wrap"><input id="tip-custom" type="number" min="1" max="500" placeholder="Enter an amount" inputmode="decimal"></div>
+        <div class="tip-note" id="tip-note">No tip selected</div>
+        <div id="tip-pay"><div id="tip-pay-el"></div></div>
+      </div>
+
       <button id="r-submit" class="btn btn-cyan" style="width:100%;padding:1rem;font-size:1rem;justify-content:center" onclick="submitReview()">Submit Review</button>
 
       <div class="trust-row">
@@ -302,6 +314,11 @@ function selectRating(n) {
     prefilled = true;
     document.getElementById('verify-fields').style.display = 'none';
 
+    // Ask whether this job can be tipped. Fail-soft: the offer simply does not
+    // appear if the Easer has no payout setup, if a tip already went, or if the
+    // lookup fails. The review works either way.
+    loadTipOffer(ref.toUpperCase(), email);
+
     // Fetch booking context — service, pro name, and the completed-work photo
     fetch('/api/booking/track', {
       method: 'POST',
@@ -327,6 +344,102 @@ function selectRating(n) {
     document.getElementById('r-submit').disabled = true;
   }
 })();
+
+
+// ─── Tip ────────────────────────────────────────────────────────────────────
+// The tip is charged on the EASER'S OWN Stripe account, so the money is theirs
+// from the moment it settles and AssembleAtEase takes nothing.
+//
+// The review is submitted FIRST and never depends on the tip. A declined card
+// must never cost a pro a five-star review — that trade is indefensible in both
+// directions, so the two are deliberately not coupled.
+var TIP = { presets: [10, 20, 30], amount: 0, quote: null, stripe: null, elements: null, ref: '', email: '' };
+
+function tipMoney(c) { return '$' + (c / 100).toFixed(2); }
+
+async function loadTipOffer(ref, email) {
+  try {
+    var r = await fetch('/api/booking/tip', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: ref, email: email, token: reviewToken, action: 'quote' })
+    });
+    var d = await r.json();
+    // Not eligible, already tipped, or the Easer cannot receive: show nothing.
+    // An offer that would be refused is worse than no offer at all.
+    if (!r.ok || !d.canReceive || d.alreadyTipped) return;
+    TIP.quote = d; TIP.ref = ref; TIP.email = email;
+    document.getElementById('tip-head').textContent = 'Say thanks to ' + d.easerFirstName;
+    renderTipChips();
+    document.getElementById('tip-box').style.display = 'block';
+  } catch (e) { /* the review must work with or without a tip offer */ }
+}
+
+function renderTipChips() {
+  var wrap = document.getElementById('tip-chips');
+  var custom = TIP.amount > 0 && TIP.presets.indexOf(TIP.amount / 100) === -1;
+  wrap.innerHTML = TIP.presets.map(function (p) {
+    return '<button type="button" class="tip-chip' + (TIP.amount === p * 100 ? ' on' : '') + '" data-amt="' + p + '">$' + p + '</button>';
+  }).join('') + '<button type="button" class="tip-chip' + (custom ? ' on' : '') + '" data-amt="other">Other</button>';
+
+  Array.prototype.forEach.call(wrap.querySelectorAll('.tip-chip'), function (b) {
+    b.addEventListener('click', function () {
+      var v = b.getAttribute('data-amt');
+      if (v === 'other') {
+        document.getElementById('tip-custom-wrap').style.display = 'block';
+        document.getElementById('tip-custom').focus();
+        return;
+      }
+      // Tapping the same chip clears it, so skipping stays one tap away.
+      var cents = Number(v) * 100;
+      TIP.amount = TIP.amount === cents ? 0 : cents;
+      document.getElementById('tip-custom-wrap').style.display = 'none';
+      renderTipChips(); updateTipNote();
+    });
+  });
+}
+
+function updateTipNote() {
+  var n = document.getElementById('tip-note');
+  var name = (TIP.quote && TIP.quote.easerFirstName) || 'your pro';
+  // One number: what they chose. The processing fee is not the customer's business.
+  n.textContent = TIP.amount > 0 ? tipMoney(TIP.amount) + ' goes to ' + name : 'No tip selected';
+  var btn = document.getElementById('r-submit');
+  if (btn && !btn.disabled) btn.textContent = TIP.amount > 0 ? 'Submit review and send ' + tipMoney(TIP.amount) : 'Submit Review';
+}
+
+// Runs only AFTER the review is safely saved.
+async function sendTipAfterReview() {
+  if (!TIP.amount) return null;
+  try {
+    var r = await fetch('/api/booking/tip', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: TIP.ref, email: TIP.email, token: reviewToken, action: 'send', amountCents: TIP.amount })
+    });
+    var d = await r.json();
+    if (!r.ok) return { ok: false, error: d.error || 'The tip could not be sent.' };
+
+    var cfg = await (await fetch('/api/config/public-key')).json();
+    if (!cfg.publishableKey) return { ok: false, error: 'Secure payment could not load. Nothing was charged.' };
+
+    // Elements must be created against the CONNECTED account, or the intent's
+    // client secret will not be recognised.
+    var stripe = Stripe(cfg.publishableKey, { stripeAccount: d.stripeAccount });
+    var elements = stripe.elements({ clientSecret: d.clientSecret });
+    document.getElementById('tip-pay').style.display = 'block';
+    elements.create('payment').mount('#tip-pay-el');
+
+    return { ok: true, stripe: stripe, elements: elements, amount: d.amountCents, name: d.easerFirstName };
+  } catch (e) {
+    return { ok: false, error: 'The tip could not be sent. Nothing was charged.' };
+  }
+}
+
+document.addEventListener('input', function (e) {
+  if (!e.target || e.target.id !== 'tip-custom') return;
+  var n = Math.min(500, Math.max(0, Number(e.target.value) || 0));
+  TIP.amount = Math.round(n * 100);
+  updateTipNote();
+});
 
 async function submitReview() {
   var errEl = document.getElementById('r-err');
@@ -356,6 +469,36 @@ async function submitReview() {
       showErr(data.error || 'Something went wrong. Please try again.');
       btn.disabled = false; btn.textContent = 'Submit Review';
       return;
+    }
+    // The review is saved. Anything below can fail without costing it.
+    if (TIP.amount > 0) {
+      TIP.ref = ref; TIP.email = email;
+      btn.textContent = 'Sending tip…';
+      var t = await sendTipAfterReview();
+      if (t && t.ok) {
+        btn.textContent = 'Confirm ' + tipMoney(t.amount) + ' tip';
+        btn.disabled = false;
+        btn.onclick = async function () {
+          btn.disabled = true; btn.textContent = 'Sending…';
+          var res = await t.stripe.confirmPayment({ elements: t.elements, redirect: 'if_required' });
+          if (res.error) {
+            // Stripe's own words. The review is already posted and safe.
+            document.getElementById('tip-note').innerHTML =
+              '<div class="tip-fail">' + (res.error.message || 'Your card was declined.') +
+              '<br><br><b>Your review was still posted.</b> Nothing was charged.</div>';
+            btn.disabled = false; btn.textContent = 'Try the tip again';
+            return;
+          }
+          document.getElementById('form-state').style.display = 'none';
+          document.getElementById('success-state').style.display = 'block';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        return;
+      }
+      if (t && !t.ok) {
+        document.getElementById('tip-note').innerHTML =
+          '<div class="tip-fail">' + t.error + '<br><br><b>Your review was still posted.</b> Nothing was charged.</div>';
+      }
     }
     document.getElementById('form-state').style.display = 'none';
     document.getElementById('success-state').style.display = 'block';
