@@ -25,7 +25,11 @@ const limiters = {
   default: buildLimiter('rl:default', 10, '60 s'),
   chat: buildLimiter('rl:chat', 12, '60 s'),
   booking: buildLimiter('rl:booking', 5, '60 s'),
-  apply: buildLimiter('rl:apply', 3, '300 s'),
+  // 5 per 10 minutes, counted only for attempts that pass validation (see
+  // api/assembler/apply.js). Three was too tight once a genuine retry or a
+  // transient server error could consume a slot, and carrier NAT means several
+  // real applicants can share one address.
+  apply: buildLimiter('rl:apply', 5, '600 s'),
   setup_intent: buildLimiter('rl:setup_intent', 3, '600 s'),
   setup_intent_email: buildLimiter('rl:setup_intent_email', 2, '600 s'),
   owner_auth: buildLimiter('rl:owner_auth', 5, '900 s'),
