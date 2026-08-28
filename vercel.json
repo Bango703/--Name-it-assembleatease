@@ -89,6 +89,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/easer-arrival-nudge",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron/ops-alert",
       "schedule": "*/30 * * * *"
     },
