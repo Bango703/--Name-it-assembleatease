@@ -200,19 +200,30 @@ const ready = await getEaserReadiness(readyProfile, { connectRequired: false });
   console.log('PASS eligibility blocks unready Easers and passes the server reason through');
 }
 
-// ── After payout there is nothing left to split ────────────────────────────
-// This used to fall back to platform_margin. That is the silent write-off the
-// owner ruled out, so it now refuses and names the only honest route.
+// ── A completed job is locked ──────────────────────────────────────────────
+// Owner's ruling. The work is done and the lead earned the whole amount by doing
+// it; splitting afterwards takes back money someone already worked for.
+// Completion is the line, NOT settlement — so this holds even when no payout has
+// been recorded yet.
 {
+  const done = crewEligibility({ booking: { ...booking, status: 'completed', payout_status: 'pending' }, crew: [leadRow], easerId: HELPER, readiness: ready });
+  assert.equal(done.ok, false, 'a completed job takes no new crew even before payout');
+  assert.equal(done.reason, 'booking_completed');
+  assert.match(done.message, /locked once the work is done/i);
+
+  // Backstop still holds if a payout somehow exists without the completed status.
   for (const settled of ['paid', 'partial']) {
-    const result = crewEligibility({ booking: { ...booking, status: 'completed', payout_status: settled }, crew: [leadRow], easerId: HELPER, readiness: ready });
-    assert.equal(result.ok, false, `with payout_status=${settled} the pool is already distributed`);
-    assert.equal(result.reason, 'payout_settled');
-    assert.match(result.message, /change order/i,
-      'the refusal must name the route that exists, not just say no (Article 16)');
-    assert.ok(!/margin/i.test(result.message), 'the refusal must never offer the platform absorbing it');
+    const r = crewEligibility({ booking: { ...booking, payout_status: settled }, crew: [leadRow], easerId: HELPER, readiness: ready });
+    assert.equal(r.ok, false, `payout_status=${settled} must still refuse`);
+    assert.equal(r.reason, 'payout_settled');
   }
-  console.log('PASS once paid out, crew cannot be added — the refusal points at a change order');
+
+  // ...but an ACTIVE job is still addable. This is the case that must keep working.
+  for (const live of ['confirmed', 'en_route', 'arrived', 'in_progress']) {
+    const r = crewEligibility({ booking: { ...booking, status: live }, crew: [leadRow], easerId: HELPER, readiness: ready });
+    assert.equal(r.ok, true, `${live} must still accept a second Easer`);
+  }
+  console.log('PASS completed jobs are locked; active jobs still accept crew');
 }
 
 // ── The migration matches the module ────────────────────────────────────────

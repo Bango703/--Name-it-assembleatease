@@ -726,6 +726,10 @@
                   </select>
                   <button class="btn btn-teal" id="assign-btn" disabled>Assign</button>
                 </div>
+                <!-- Crew: a second Easer on the same job. Hidden entirely unless the
+                     booking is in a state that can take one, so it never advertises
+                     an action the server would refuse. -->
+                <div id="crew-panel" style="display:none;margin-top:0.9rem;padding-top:0.9rem;border-top:1px dashed var(--border)"></div>
               </div>
               <!-- Tabs -->
               <div class="detail-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
@@ -6994,6 +6998,10 @@ window.intelQuick = intelQuick;
   if (ownerSessionToken) loadAssemblers();
 
   function renderAssignSection(b) {
+    // Crew comes from the booking payload (api/booking/list.js), so the panel and
+    // the Easer dashboard read the same rows rather than each fetching their own.
+    crewState.crew = Array.isArray(b._crew) ? b._crew : [];
+    try { renderCrewPanel(b); } catch (e) { /* the panel is never worth breaking the detail view */ }
     var section  = document.getElementById('assign-section');
     var status   = document.getElementById('assign-status');
     var controls = document.getElementById('assign-controls');
@@ -7083,6 +7091,213 @@ window.intelQuick = intelQuick;
       }
     }
   }
+
+  // ── Crew: a second Easer on the same job ─────────────────────────────────
+  // The money is decided by the server. This renders what the server proposes and
+  // sends back exactly what the owner confirmed — it never computes a split of its
+  // own (Article 4: the UI renders a verdict, it does not own the rule).
+  var crewState = { bookingId: null, crew: [], preview: null, mode: 'even' };
+
+  function crewMoney(cents) {
+    return '$' + (Number(cents || 0) / 100).toFixed(2);
+  }
+
+  window.renderCrewPanel = function(b) {
+    var panel = document.getElementById('crew-panel');
+    if (!panel) return;
+    crewState.bookingId = b.id;
+
+    // A completed job takes no new crew and no new split: the work is done and
+    // the Easer who did it keeps the full amount. Hide the control rather than
+    // show one the server will refuse.
+    var canAddCrew = !!b.assembler_id
+      && ['confirmed', 'en_route', 'arrived', 'in_progress'].includes(b.status);
+    if (!canAddCrew) { panel.style.display = 'none'; panel.innerHTML = ''; return; }
+
+    panel.style.display = '';
+    var rows = (crewState.crew || []).filter(function(c) { return !c.removed_at; });
+    var html = '';
+
+    if (rows.length > 1) {
+      html += '<div style="font-size:0.78rem;font-weight:600;color:var(--soft);margin-bottom:0.4rem">On this job</div>';
+      rows.forEach(function(c) {
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;font-size:0.82rem;padding:0.28rem 0">'
+          + '<span>' + esc(c.easer_name || 'Easer') + (c.role === 'lead' ? ' <span style="color:var(--muted);font-size:0.72rem">(lead)</span>' : '') + '</span>'
+          + '<span style="display:flex;align-items:center;gap:8px"><strong>' + crewMoney(c.due_cents) + '</strong>'
+          + (c.role === 'lead' ? '' : '<button class="btn" style="font-size:0.7rem;padding:2px 8px" onclick="removeCrewMember(\'' + c.easer_id + '\',this)">Remove</button>')
+          + '</span></div>';
+      });
+    }
+
+    html += '<div id="crew-add-row" style="margin-top:0.5rem">'
+      + '<button class="btn" style="font-size:0.75rem;padding:3px 10px" onclick="openCrewAdd()">+ Add Easer</button>'
+      + '</div><div id="crew-add-form" style="display:none;margin-top:0.6rem"></div>';
+    panel.innerHTML = html;
+  };
+
+  window.openCrewAdd = function() {
+    var form = document.getElementById('crew-add-form');
+    var addRow = document.getElementById('crew-add-row');
+    if (!form) return;
+    addRow.style.display = 'none';
+    form.style.display = '';
+    var onJob = {};
+    (crewState.crew || []).forEach(function(c) { if (!c.removed_at) onJob[c.easer_id] = true; });
+    var opts = (eligibleAssemblers || [])
+      .filter(function(a) { return !onJob[a.id]; })
+      .map(function(a) { return '<option value="' + esc(a.id) + '">' + esc(a.full_name) + '</option>'; })
+      .join('');
+    form.innerHTML = opts
+      ? '<div style="display:flex;gap:0.5rem;align-items:center">'
+        + '<select id="crew-select" style="flex:1;padding:0.45rem 0.6rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.82rem">'
+        + '<option value="">Select an Easer...</option>' + opts + '</select>'
+        + '<button class="btn btn-teal" style="font-size:0.75rem;padding:4px 12px" onclick="previewCrewAdd(this)">Preview split</button>'
+        + '<button class="btn" style="font-size:0.75rem;padding:4px 10px" onclick="closeCrewAdd()">Cancel</button>'
+        + '</div><div id="crew-preview" style="margin-top:0.65rem"></div>'
+      : '<div style="font-size:0.8rem;color:var(--muted)">No other Easer is cleared for jobs right now. '
+        + '<button class="btn" style="font-size:0.72rem;padding:2px 8px" onclick="closeCrewAdd()">Close</button></div>';
+  };
+
+  window.closeCrewAdd = function() {
+    var form = document.getElementById('crew-add-form');
+    var addRow = document.getElementById('crew-add-row');
+    if (form) { form.style.display = 'none'; form.innerHTML = ''; }
+    if (addRow) addRow.style.display = '';
+    crewState.preview = null;
+  };
+
+  window.previewCrewAdd = async function(btn) {
+    var sel = document.getElementById('crew-select');
+    var box = document.getElementById('crew-preview');
+    if (!sel || !sel.value) { if (box) box.innerHTML = '<div style="font-size:0.78rem;color:var(--danger)">Pick an Easer first.</div>'; return; }
+    var original = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Checking...';
+    try {
+      var p = await apiPost('/owner/crew', { bookingId: crewState.bookingId, easerId: sel.value, action: 'preview' });
+      crewState.preview = p;
+      crewState.mode = 'even';
+      renderCrewPreview();
+    } catch (e) {
+      // The server's own reason, never an invented one (Article 16).
+      box.innerHTML = '<div style="font-size:0.78rem;color:var(--danger)">' + esc(e.message || 'Could not price this split.') + '</div>';
+    } finally { btn.disabled = false; btn.textContent = original; }
+  };
+
+  window.setCrewMode = function(mode) { crewState.mode = mode; renderCrewPreview(); };
+
+  function renderCrewPreview() {
+    var box = document.getElementById('crew-preview');
+    var p = crewState.preview;
+    if (!box || !p) return;
+    var custom = crewState.mode === 'custom';
+
+    var html = '<div style="background:var(--elevated);border:1px solid var(--border);border-radius:10px;padding:0.75rem">'
+      + '<div style="font-size:0.8rem;color:var(--soft);margin-bottom:0.5rem">This job pays <strong>' + crewMoney(p.poolCents) + '</strong> in Easer earnings.</div>';
+
+    html += '<div style="display:flex;gap:6px;margin-bottom:0.6rem">'
+      + '<button class="btn' + (custom ? '' : ' btn-teal') + '" style="font-size:0.72rem;padding:3px 10px" onclick="setCrewMode(\'even\')">Split even</button>'
+      + '<button class="btn' + (custom ? ' btn-teal' : '') + '" style="font-size:0.72rem;padding:3px 10px" onclick="setCrewMode(\'custom\')">Enter amounts</button>'
+      + '</div>';
+
+    (p.allocations || []).forEach(function(a, i) {
+      var label = esc(a.name || 'Easer') + (a.role === 'lead' ? ' <span style="color:var(--muted);font-size:0.72rem">(lead)</span>' : '');
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;font-size:0.82rem;padding:0.25rem 0">'
+        + '<span>' + label + '</span>';
+      if (custom) {
+        html += '<input type="number" step="0.01" min="0" class="crew-amt" data-easer="' + esc(a.easerId) + '" '
+          + 'value="' + (a.dueCents / 100).toFixed(2) + '" oninput="crewTotalCheck()" '
+          + 'style="width:92px;text-align:right;padding:0.3rem 0.45rem;background:var(--bg);border:1px solid var(--border-md);border-radius:6px;color:var(--text);font-family:inherit;font-size:0.82rem">';
+      } else {
+        html += '<span><strong>' + crewMoney(a.dueCents) + '</strong>'
+          + (a.deltaCents < 0 ? ' <span style="color:var(--danger);font-size:0.72rem">' + crewMoney(a.deltaCents) + '</span>' : '')
+          + '</span>';
+      }
+      html += '</div>';
+    });
+
+    if (custom) {
+      html += '<div id="crew-total" style="font-size:0.76rem;color:var(--muted);text-align:right;margin-top:0.35rem"></div>';
+    }
+
+    if (!custom && p.reducesExistingPay) {
+      html += '<div style="margin-top:0.5rem;font-size:0.76rem;color:var(--danger)">This cuts the lead\'s pay by ' + crewMoney(p.leadReductionCents) + '.</div>';
+    }
+    if (p.pressure && p.pressure.underpricedSignal) {
+      html += '<div style="margin-top:0.45rem;font-size:0.74rem;color:var(--muted);line-height:1.5">'
+        + 'One Easer would have earned ' + crewMoney(p.pressure.soloPoolCents) + ' here. '
+        + 'Two people means this service is priced for one — worth reviewing.</div>';
+    }
+
+    html += '<div style="margin-top:0.7rem;display:flex;gap:6px;justify-content:flex-end">'
+      + '<button class="btn" style="font-size:0.75rem;padding:4px 10px" onclick="closeCrewAdd()">Cancel</button>'
+      + '<button class="btn btn-teal" id="crew-confirm" style="font-size:0.75rem;padding:4px 12px" onclick="confirmCrewAdd(this)">Add ' + esc((p.easer && p.easer.name || 'Easer').split(' ')[0]) + '</button>'
+      + '</div></div>';
+    box.innerHTML = html;
+    if (custom) crewTotalCheck();
+  }
+
+  // Mirrors the server's ceiling so the owner sees the problem before submitting.
+  // It is a convenience, not the rule — add_booking_crew_member() re-checks the
+  // total inside its own transaction and refuses regardless of what is sent.
+  window.crewTotalCheck = function() {
+    var p = crewState.preview;
+    var out = document.getElementById('crew-total');
+    var confirmBtn = document.getElementById('crew-confirm');
+    if (!p || !out) return;
+    var total = 0;
+    document.querySelectorAll('.crew-amt').forEach(function(i) { total += Math.round(Number(i.value || 0) * 100); });
+    var over = total > p.poolCents;
+    out.innerHTML = 'Total ' + crewMoney(total) + ' of ' + crewMoney(p.poolCents)
+      + (over ? ' <span style="color:var(--danger)">over by ' + crewMoney(total - p.poolCents) + '</span>' : '');
+    if (confirmBtn) confirmBtn.disabled = over;
+  };
+
+  window.confirmCrewAdd = async function(btn) {
+    var p = crewState.preview;
+    if (!p) return;
+    var allocations;
+    if (crewState.mode === 'custom') {
+      allocations = [];
+      document.querySelectorAll('.crew-amt').forEach(function(i) {
+        allocations.push({ easerId: i.getAttribute('data-easer'), dueCents: Math.round(Number(i.value || 0) * 100) });
+      });
+    } else {
+      allocations = (p.allocations || []).map(function(a) { return { easerId: a.easerId, dueCents: a.dueCents }; });
+    }
+    var original = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Adding...';
+    try {
+      await apiPost('/owner/crew', {
+        bookingId: crewState.bookingId,
+        easerId: p.easer.id,
+        action: 'add',
+        funding: 'labor_pool',
+        allocations: allocations,
+      });
+      closeCrewAdd();
+      await openBooking(crewState.bookingId);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = original;
+      var box = document.getElementById('crew-preview');
+      if (box) box.insertAdjacentHTML('beforeend',
+        '<div style="margin-top:0.5rem;font-size:0.78rem;color:var(--danger)">' + esc(e.message || 'Could not add that Easer.') + '</div>');
+    }
+  };
+
+  window.removeCrewMember = async function(easerId, btn) {
+    var why = prompt('Why is this Easer coming off the job? It stays on the job record.');
+    if (why === null) return;
+    if (String(why).trim().length < 3) { alert('Give a short reason.'); return; }
+    var original = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Removing...';
+    try {
+      await apiPost('/owner/crew', { bookingId: crewState.bookingId, easerId: easerId, action: 'remove', reason: String(why).trim() });
+      await openBooking(crewState.bookingId);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = original;
+      alert(e.message || 'Could not remove that Easer.');
+    }
+  };
 
   // Hand an unaccepted job back to the pool in one click. Money-neutral: it
   // clears assignment fields only — no status change, no payment, no payout, and

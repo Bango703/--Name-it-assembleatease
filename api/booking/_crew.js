@@ -288,6 +288,22 @@ export function crewEligibility({ booking, crew = [], easerId, readiness } = {})
     };
   }
 
+  // Owner's ruling: a COMPLETED job takes no new crew and no new split.
+  //
+  // The work is done and the lead earned the whole amount by doing it. Splitting
+  // after the fact would retroactively cut pay for labour already performed —
+  // which is not a payments adjustment, it is taking back money someone worked
+  // for. Whether the payout has been recorded yet is irrelevant: completion is
+  // the line, not settlement.
+  if (String(booking.status || '') === 'completed') {
+    return {
+      ok: false,
+      reason: 'booking_completed',
+      message: 'This job is completed. Crew and pay splits are locked once the work is done — '
+        + 'the Easer who did it keeps the full amount.',
+    };
+  }
+
   // Once a payout is recorded the pool is no longer divisible — somebody has
   // already been handed their share, and money that has left cannot be re-split.
   //
