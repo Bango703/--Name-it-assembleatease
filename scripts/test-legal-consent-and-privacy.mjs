@@ -23,6 +23,8 @@ assert.equal(validateCustomerLegalConsent({
   termsVersion: CUSTOMER_TERMS_VERSION,
   privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
 }).ok, true);
+assert.equal(CUSTOMER_TERMS_VERSION, '2026-08-27-sms-v1');
+assert.equal(PRIVACY_NOTICE_VERSION, '2026-08-27-sms-v1');
 
 const record = buildCustomerConsentRecord({
   headers: { 'x-forwarded-for': '203.0.113.8, 10.0.0.1', 'user-agent': 'Legal test browser' },
@@ -41,6 +43,16 @@ const bookingPage = read('book.html');
 assert.match(bookingPage, /fetch\('\/api\/legal-config'/);
 assert.match(bookingPage, /termsAccepted: ackEl\.checked === true/);
 assert.match(bookingPage, /privacyNoticeVersion: legalConfig\.privacyNoticeVersion/);
+assert.match(bookingPage, /id="s5-sms-consent"/);
+assert.match(bookingPage, /Consent is not a condition of purchase/);
+assert.match(bookingPage, /\/terms#sms-terms/);
+
+const customerTerms = read('terms.html');
+assert.match(customerTerms, /id="sms-terms"/);
+assert.match(customerTerms, /replying <strong>STOP<\/strong>/);
+assert.match(customerTerms, /Reply <strong>HELP<\/strong>/);
+const privacyNotice = read('privacy.html');
+assert.match(privacyNotice, /We do not sell or share mobile phone numbers, SMS opt-in data, or SMS consent/);
 
 const ownerApi = read('api/owner/create-booking.js');
 assert.match(ownerApi, /owner_attested_customer_agreement/);

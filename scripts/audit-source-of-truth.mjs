@@ -408,6 +408,36 @@ function linesMatching(file, re) {
     offenders.length ? offenders : checked);
 }
 
+// Customer SMS must remain an explicit, optional consent chain: checkout sends
+// a boolean, the server records its own timestamp, and status updates pass the
+// booking's consent/opt-out truth into the centralized sender.
+{
+  const bookingPage = readFileSync(join(ROOT, 'book.html'), 'utf8');
+  const bookingApi = readFileSync(join(ROOT, 'api/booking.js'), 'utf8');
+  const bookingConfirmedApi = readFileSync(join(ROOT, 'api/booking-confirmed.js'), 'utf8');
+  const statusApi = readFileSync(join(ROOT, 'api/booking/easer-status.js'), 'utf8');
+  const smsSender = readFileSync(join(ROOT, 'api/_sms.js'), 'utf8');
+  const telnyxWebhook = readFileSync(join(ROOT, 'api/webhooks/telnyx.js'), 'utf8');
+  const migration = readFileSync(join(ROOT, 'api/migrations/076_sms_consent_and_delivery.sql'), 'utf8');
+  const requirements = [
+    ['book.html has optional SMS consent', bookingPage.includes('id="s5-sms-consent"') && bookingPage.includes('smsConsent:')],
+    ['booking API records consent server-side', bookingApi.includes("sms_consent_source: 'customer_booking_checkout'")],
+    ['confirmation API texts only after confirmation', bookingConfirmedApi.includes("notificationType: 'booking_confirmed'") && bookingConfirmedApi.includes('sendSms({')],
+    ['confirmation API selects consent and opt-out truth', bookingConfirmedApi.includes('customer_email, sms_consent_at, sms_opted_out_at')],
+    ['status API sends customer SMS', statusApi.includes('customerSmsBodies') && statusApi.includes('sendSms({')],
+    ['status API passes consent and opt-out truth', statusApi.includes('sms_consent_at: booking.sms_consent_at') && statusApi.includes('sms_opted_out_at: booking.sms_opted_out_at')],
+    ['sender always includes STOP instructions', smsSender.includes("? text : `${text} Reply STOP to opt out.`")],
+    ['customer START replies restore booking consent', telnyxWebhook.includes("sms_consent_source: 'sms_reply_start'") && telnyxWebhook.includes(".in('customer_phone', phoneVariants)")],
+    ['migration protects booking consent coherence', migration.includes('bookings_sms_consent_coherent_check')],
+  ];
+  const missing = requirements.filter(([, ok]) => !ok).map(([label]) => label);
+  report(missing.length ? 'FAIL' : 'PASS', 'Customer SMS consent',
+    missing.length
+      ? `customer SMS chain is incomplete: ${missing.join('; ')}`
+      : 'checkout consent, server evidence, status delivery, and opt-out truth remain connected',
+    ['book.html', 'api/booking.js', 'api/booking-confirmed.js', 'api/booking/easer-status.js', 'api/migrations/076_sms_consent_and_delivery.sql']);
+}
+
 // ── 5. Server error/reason text discarded by the UI ──────────────────────────
 {
   const ownerSrc = readFileSync(join(ROOT, 'owner/index.html'), 'utf8');

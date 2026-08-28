@@ -36,6 +36,16 @@ ALTER TABLE public.profiles
     OR sms_opted_out_at >= sms_consent_at
   );
 
+ALTER TABLE public.bookings
+  DROP CONSTRAINT IF EXISTS bookings_sms_consent_coherent_check;
+ALTER TABLE public.bookings
+  ADD CONSTRAINT bookings_sms_consent_coherent_check
+  CHECK (
+    sms_opted_out_at IS NULL
+    OR sms_consent_at IS NULL
+    OR sms_opted_out_at >= sms_consent_at
+  );
+
 -- Fast lookup of who may be texted.
 CREATE INDEX IF NOT EXISTS idx_profiles_sms_reachable
   ON public.profiles (id)

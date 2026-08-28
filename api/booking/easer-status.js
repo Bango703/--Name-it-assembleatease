@@ -1,6 +1,7 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
 import { sendEmail, ownerEmail, esc, buildStatusEmail, formatAddress } from '../_email.js';
+import { sendSms } from '../_sms.js';
 import { logActivity } from './_activity.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 import {
@@ -179,9 +180,27 @@ export default async function handler(req, res) {
     }).catch(err => ({ ok: false, error: err?.message || String(err) }));
   }
 
+  let customerSmsNotice = { ok: true, skipped: 'stage_not_texted' };
+  const customerSmsBodies = {
+    en_route: `${easerFirstName} is on the way to your AssembleAtEase appointment${appointmentTime ? ` and should arrive around ${appointmentTime}` : ''}. Ref ${booking.ref}`,
+    arrived: `${easerFirstName} has arrived for your AssembleAtEase appointment. Ref ${booking.ref}`,
+  };
+  if (customerSmsBodies[stage]) {
+    customerSmsNotice = await sendSms({
+      recipient: {
+        phone: booking.customer_phone,
+        sms_consent_at: booking.sms_consent_at,
+        sms_opted_out_at: booking.sms_opted_out_at,
+      },
+      body: customerSmsBodies[stage],
+      meta: { bookingId, notificationType: stage, recipientType: 'customer' },
+    }).catch(err => ({ ok: false, error: err?.message || String(err) }));
+  }
+
   const notificationFailures = [];
   if (!ownerNotice?.ok) notificationFailures.push({ recipient: 'owner', error: ownerNotice?.error || 'Owner email failed' });
   if (!customerNotice?.ok) notificationFailures.push({ recipient: 'customer', error: customerNotice?.error || 'Customer email failed' });
+  if (!customerSmsNotice?.ok && !customerSmsNotice?.skipped) notificationFailures.push({ recipient: 'customer SMS', error: customerSmsNotice?.error || 'Customer text failed' });
   if (notificationFailures.length) {
     await logActivity(sb, {
       bookingId,

@@ -1,6 +1,7 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from './_supabase.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from './_email.js';
+import { sendSms } from './_sms.js';
 import { guardCustomerFacing } from './_customer-error-alert.js';
 import { rateLimit } from './_ratelimit.js';
 import { dispatchBooking } from './booking/_dispatch-internal.js';
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, sms_consent_at, sms_opted_out_at, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
     .eq('id', bookingId)
     .single();
 
@@ -253,6 +254,20 @@ export default async function handler(req, res) {
 
   if (!customerEmailResult.ok) {
     console.error('booking-confirmed customer send error:', customerEmailResult.error);
+  }
+
+  const customerSmsResult = await sendSms({
+    recipient: {
+      phone: booking.customer_phone,
+      sms_consent_at: booking.sms_consent_at,
+      sms_opted_out_at: booking.sms_opted_out_at,
+    },
+    body: `AssembleAtEase received your ${service} booking for ${date}${time ? ` at ${time}` : ''}. We will text you when your Easer is on the way. Ref ${ref}`,
+    meta: { bookingId, notificationType: 'booking_confirmed', recipientType: 'customer' },
+  }).catch(error => ({ ok: false, error: error?.message || String(error) }));
+
+  if (!customerSmsResult.ok && !customerSmsResult.skipped) {
+    console.error('booking-confirmed customer SMS error:', customerSmsResult.error);
   }
 
   // ── Owner notification — sent here (not in /api/booking) so it only fires

@@ -76,9 +76,9 @@ export async function sendSms({ recipient, body, meta = {} }) {
   const text = String(body || '').trim();
   if (!text) return { ok: false, skipped: 'empty_body' };
 
-  // Every message carries the opt-out instruction. Carriers expect it and it is
-  // the difference between a compliant programme and a complaint.
-  const withOptOut = text.length > 130 ? text : `${text} Reply STOP to opt out.`;
+  // Every message carries the opt-out instruction. Callers cannot accidentally
+  // omit it by sending a longer body.
+  const withOptOut = /\breply\s+stop\b/i.test(text) ? text : `${text} Reply STOP to opt out.`;
 
   let providerId = null;
   let status = 'provider_accepted';

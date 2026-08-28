@@ -66,6 +66,7 @@ export default async function handler(req, res) {
     termsAccepted,
     termsVersion,
     privacyNoticeVersion,
+    smsConsent,
   } = req.body;
 
   const legalConsent = validateCustomerLegalConsent({ termsAccepted, termsVersion, privacyNoticeVersion });
@@ -459,6 +460,10 @@ export default async function handler(req, res) {
     assemblecash_redeemed_cents: assemblecashRedeemedCents,
     bundle_slug: (typeof bundleSlug === 'string' && bundleSlug) ? bundleSlug.slice(0, 64) : null,
     booking_attribution: cleanBookingAttribution(attribution),
+    ...(smsConsent === true ? {
+      sms_consent_at: new Date().toISOString(),
+      sms_consent_source: 'customer_booking_checkout',
+    } : {}),
     ...buildCustomerConsentRecord(req),
   };
 

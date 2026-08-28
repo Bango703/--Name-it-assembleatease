@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
-export const CUSTOMER_TERMS_VERSION = '2026-08-16-customer-v2';
-export const PRIVACY_NOTICE_VERSION = '2026-08-16-v2';
+export const CUSTOMER_TERMS_VERSION = '2026-08-27-sms-v1';
+export const PRIVACY_NOTICE_VERSION = '2026-08-27-sms-v1';
 
 function normalizedHeader(value, maxLength = 500) {
   return String(Array.isArray(value) ? value[0] : (value || ''))

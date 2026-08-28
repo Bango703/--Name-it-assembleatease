@@ -135,15 +135,24 @@ async function handleInbound(sb, payload) {
   // START / YES is re-consent. It lifts the opt-out, because that is exactly
   // what opting back in means.
   if (isOptIn && phoneVariants.length) {
+    const stamp = new Date().toISOString();
     await sb.from('profiles')
       .update({
         sms_opted_out_at: null,
         sms_opt_out_keyword: null,
-        sms_consent_at: new Date().toISOString(),
+        sms_consent_at: stamp,
         sms_consent_source: 'sms_reply_start',
       })
       .in('phone', phoneVariants)
       .then(() => {}, (e) => console.error('[telnyx-webhook] opt-in write failed:', e?.message || e));
+    await sb.from('bookings')
+      .update({
+        sms_opted_out_at: null,
+        sms_consent_at: stamp,
+        sms_consent_source: 'sms_reply_start',
+      })
+      .in('customer_phone', phoneVariants)
+      .then(() => {}, (e) => console.error('[telnyx-webhook] customer opt-in write failed:', e?.message || e));
   }
 }
 
