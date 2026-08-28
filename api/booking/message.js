@@ -152,6 +152,15 @@ export default async function handler(req, res) {
         readError = readErr.message || String(readErr);
       } else {
         markedRead = (readRows || []).length;
+        // The update succeeded and changed NOTHING, while unreadIds said there
+        // was work to do. That is a silent no-op: the row is visible to the read
+        // query and invisible to the write, and without saying so the owner gets
+        // "could not mark as read" forever with no cause anywhere (Article 16).
+        if (markedRead === 0 && unreadIds.length > 0) {
+          readError = `The update matched no rows although ${unreadIds.length} message(s) are unread on this booking. `
+            + 'The read and write queries disagree — this needs investigation, not a retry.';
+          console.error('Message read-state no-op:', { bookingId: bk.id, expected: unreadIds.length });
+        }
       }
     }
 

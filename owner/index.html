@@ -6289,7 +6289,12 @@ window.intelQuick = intelQuick;
           // The read write did not stick. Keep the badge honest and say so once,
           // rather than hiding it and letting it reappear on the next load.
           messageBooking.unread_message_count = stillUnread;
-          toast('Could not mark ' + stillUnread + ' message' + (stillUnread === 1 ? '' : 's') + ' as read — the badge will stay until this clears.', 'error');
+          // Say WHY. The server records readError and the dashboard used to drop
+          // it, leaving "could not mark as read" with no cause and nothing to do
+          // about it. A generic message where a specific one exists is a defect,
+          // not polish (Article 16).
+          toast('Could not mark ' + stillUnread + ' message' + (stillUnread === 1 ? '' : 's') + ' as read. '
+            + (data.readError ? data.readError : 'The server gave no reason.'), 'error');
         }
         // stillUnread === null: older server response shape; leave the flags alone
         // rather than clearing something we cannot confirm.
