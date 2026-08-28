@@ -108,10 +108,42 @@ async function insertNotificationLog(sb, payload) {
   }
 }
 
+// Delivery-truth columns arrive with migration 068. They are enrichment: the
+// send status is the fact that matters, and a missing timestamp column must
+// never cost us the status.
+const OPTIONAL_DELIVERY_COLUMNS = ['provider_accepted_at'];
+
+function isMissingColumnError(error, columns) {
+  if (!error) return false;
+  if (error.code === '42703' || error.code === 'PGRST204') return true;
+  const message = String(error.message || '');
+  return columns.some(col => message.includes(col));
+}
+
 async function finalizeNotificationLog(sb, queuedLog, payload) {
   if (queuedLog?.id) {
     try {
-      const { error } = await sb.from('notification_log').update(payload).eq('id', queuedLog.id);
+      let { error } = await sb.from('notification_log').update(payload).eq('id', queuedLog.id);
+
+      // THIS FALLBACK EXISTS BECAUSE ITS ABSENCE BROKE PRODUCTION.
+      // insertNotificationLog already tolerates migration 053's column being
+      // absent; finalize did not tolerate 068's. From 2026-08-27 11:51 CDT every
+      // email delivered normally and every one of them was recorded as 'queued',
+      // because PostgREST rejected the whole UPDATE over provider_accepted_at.
+      // The owner dashboard reported ~12 hours of successful mail as unsent —
+      // including an Easer assignment the owner then believed had failed.
+      //
+      // The status is the fact. Retry without the enrichment rather than lose it.
+      if (isMissingColumnError(error, OPTIONAL_DELIVERY_COLUMNS)
+          && OPTIONAL_DELIVERY_COLUMNS.some(col => col in payload)) {
+        const corePayload = { ...payload };
+        for (const col of OPTIONAL_DELIVERY_COLUMNS) delete corePayload[col];
+        ({ error } = await sb.from('notification_log').update(corePayload).eq('id', queuedLog.id));
+        if (!error) {
+          return { ok: true, id: queuedLog.id, error: null, degraded: 'delivery_columns_absent' };
+        }
+      }
+
       if (error) throw error;
       return { ok: true, id: queuedLog.id, error: null };
     } catch (error) {
