@@ -227,12 +227,57 @@ export default async function handler(req, res) {
       : {}),
   };
 
-  const { error: profileError } = await sb.from('profiles').insert(coreProfile);
+  // RESUMING AN UNFINISHED APPLICATION
+  // A plain insert assumed no profile row could exist for this auth user. It can:
+  // if a first attempt created the profile and then failed at a LATER step (the
+  // assembler columns, the agreement write, the fee), the row survives. Retrying
+  // then found the auth user, resumed, and collided on profiles_pkey — so the
+  // applicant was permanently locked out and shown raw Postgres. That is the
+  // exact failure this replaces.
+  //
+  // Only a genuinely unfinished application may be rewritten. An approved or
+  // active Easer is never overwritten by an application form, whoever is holding
+  // the attempt capability.
+  // Looked up by ID, deliberately. The check at the top of this handler queries
+  // profiles by EMAIL — so a profile row whose email is null, differently cased,
+  // or simply out of step with its auth record is invisible to it. That row still
+  // owns this primary key, and inserting over it is what produced
+  // "duplicate key value violates unique constraint profiles_pkey".
+  const { data: profileForThisAuthUser } = await sb
+    .from('profiles')
+    .select('id, role, status, application_status')
+    .eq('id', userId)
+    .maybeSingle();
+
+  let profileError = null;
+  if (profileForThisAuthUser) {
+    const role = String(profileForThisAuthUser.role || '').toLowerCase();
+    const appStatus = String(profileForThisAuthUser.application_status || '').toLowerCase();
+    const resumable = role === 'assembler'
+      && ['', 'payment_pending', 'applied'].includes(appStatus)
+      && String(profileForThisAuthUser.status || '').toLowerCase() !== 'active';
+
+    if (!resumable) {
+      return res.status(409).json({
+        error: 'An account already exists for this email. Sign in instead, or contact support if you need help.',
+        code: 'PROFILE_ALREADY_EXISTS',
+      });
+    }
+    // Do not reset the id; everything else is the applicant's latest answers.
+    const { id, ...updatable } = coreProfile;
+    ({ error: profileError } = await sb.from('profiles').update(updatable).eq('id', userId));
+  } else {
+    ({ error: profileError } = await sb.from('profiles').insert(coreProfile));
+  }
 
   if (profileError) {
-    console.error('Profile insert error:', JSON.stringify(profileError));
+    console.error('Profile write error:', JSON.stringify(profileError));
     await cleanupFreshApplicant(sb, userId, { deleteAuth: authUserCreated });
-    return res.status(500).json({ error: 'Failed to save application. ' + (profileError.message || '') });
+    // A database constraint message is not an instruction anyone can act on.
+    // Say what happened and what to do (Article 16) — never surface raw Postgres.
+    return res.status(500).json({
+      error: 'We could not save your application. Nothing was submitted — please try again, or contact support if it keeps happening.',
+    });
   }
 
   // Assembler-specific columns — all known-good after migration 018
