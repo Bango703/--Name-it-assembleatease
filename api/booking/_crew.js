@@ -1,4 +1,5 @@
 import { computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
+import { readinessError } from '../_easer-readiness.js';
 
 /**
  * THE crew module. Who is on a booking, and what each person earns.
@@ -268,14 +269,16 @@ export function crewEligibility({ booking, crew = [], easerId, readiness } = {})
   if (booking.assembler_id === easerId || (crew || []).some(r => r.easer_id === easerId && !r.removed_at)) {
     return { ok: false, reason: 'already_on_job', message: 'That Easer is already on this job.' };
   }
-  if (!readiness?.ready) {
-    // The server's own reason, never an invented one (Article 16).
+  // getEaserReadiness() returns `isReady` + `missingItems`. Reading a `ready`
+  // field that does not exist would make every READY Easer look unready, so this
+  // uses the canonical shape and the canonical message builder — the same one the
+  // dispatch and assignment paths use — rather than inventing a second wording
+  // for the same refusal (Article 16).
+  if (!readiness || readiness.isReady !== true) {
     return {
       ok: false,
       reason: 'not_ready',
-      message: readiness?.blockingReason
-        || readiness?.reason
-        || 'That Easer is not cleared for jobs yet.',
+      message: readinessError(readiness) || 'That Easer is not cleared for jobs yet.',
     };
   }
   if (['cancelled', 'declined', 'refunded'].includes(String(booking.status || ''))) {
