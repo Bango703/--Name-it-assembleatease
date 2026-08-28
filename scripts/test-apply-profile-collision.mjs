@@ -33,6 +33,12 @@ const src = await fs.readFile(new URL('../api/assembler/apply.js', import.meta.u
   assert.ok(/\.insert\(coreProfile\)/.test(block), 'a genuinely new applicant is still INSERTED');
   assert.ok(/const \{ id, \.\.\.updatable \} = coreProfile/.test(block),
     'the primary key must never be part of the update payload');
+  assert.ok(/authUserCreated \|\| applicationPlaceholder/.test(block),
+    'a profile inserted by the auth signup trigger must be adopted by the same application');
+  assert.ok(/applicationAttemptMatches[\s\S]*authUser\.user_metadata\?\.application_attempt_hash/.test(block),
+    'an existing placeholder must be owned by the same high-entropy application attempt');
+  assert.ok(/const applicationPlaceholder = !appStatus/.test(block),
+    'only an unfinished placeholder may use the application-attempt recovery path');
   console.log('PASS an unfinished application is resumed instead of colliding');
 }
 
