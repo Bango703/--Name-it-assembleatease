@@ -43,7 +43,9 @@ const bookingPage = read('book.html');
 assert.match(bookingPage, /fetch\('\/api\/legal-config'/);
 assert.match(bookingPage, /termsAccepted: ackEl\.checked === true/);
 assert.match(bookingPage, /privacyNoticeVersion: legalConfig\.privacyNoticeVersion/);
-assert.match(bookingPage, /id="s5-sms-consent"/);
+assert.match(bookingPage, /id="s4-phone"[\s\S]{0,2000}id="s4-sms-consent"/, 'SMS consent must appear directly after the booking phone field');
+assert.match(bookingPage, /<input type="checkbox" id="s4-sms-consent"(?![^>]*\bchecked\b)[^>]*>/, 'SMS consent must be unchecked by default');
+assert.match(bookingPage, /Optional: Text me appointment and service updates/);
 assert.match(bookingPage, /Consent is not a condition of purchase/);
 assert.match(bookingPage, /\/terms#sms-terms/);
 

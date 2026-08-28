@@ -420,7 +420,7 @@ function linesMatching(file, re) {
   const telnyxWebhook = readFileSync(join(ROOT, 'api/webhooks/telnyx.js'), 'utf8');
   const migration = readFileSync(join(ROOT, 'api/migrations/076_sms_consent_and_delivery.sql'), 'utf8');
   const requirements = [
-    ['book.html has optional SMS consent', bookingPage.includes('id="s5-sms-consent"') && bookingPage.includes('smsConsent:')],
+    ['book.html has adjacent optional SMS consent', /id="s4-phone"[\s\S]{0,2000}id="s4-sms-consent"/.test(bookingPage) && /<input type="checkbox" id="s4-sms-consent"(?![^>]*\bchecked\b)[^>]*>/.test(bookingPage) && bookingPage.includes('Optional: Text me') && bookingPage.includes('smsConsent:')],
     ['booking API records consent server-side', bookingApi.includes("sms_consent_source: 'customer_booking_checkout'")],
     ['confirmation API texts only after confirmation', bookingConfirmedApi.includes("notificationType: 'booking_confirmed'") && bookingConfirmedApi.includes('sendSms({')],
     ['confirmation API selects consent and opt-out truth', bookingConfirmedApi.includes('customer_email, sms_consent_at, sms_opted_out_at')],
