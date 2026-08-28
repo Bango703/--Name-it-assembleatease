@@ -948,8 +948,14 @@ export default async function handler(req, res) {
           break;
         }
 
+        // total_price, deposit_amount and is_deposit are read by
+        // validateBookingPaymentIntentTopology below. Without them it saw
+        // Number(undefined) -> NaN and threw "no valid server-priced booking
+        // total" on EVERY refund, so a refund issued from the Stripe dashboard
+        // never reached the database and the books silently disagreed with
+        // Stripe forever. A refund of $32.94 was reconciled by hand because of it.
         const { data: booking, error: refundBookingError } = await sb.from('bookings')
-          .select('id, ref, status, payment_status, amount_charged, refund_id, refund_amount, assembler_id, assembler_name, assembler_due, payout_status, payout_amount, financial_operation_key, financial_operation_type, financial_operation_started_at, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id')
+          .select('id, ref, status, payment_status, amount_charged, refund_id, refund_amount, assembler_id, assembler_name, assembler_due, payout_status, payout_amount, financial_operation_key, financial_operation_type, financial_operation_started_at, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, total_price, deposit_amount, is_deposit')
           .or(`stripe_payment_intent_id.eq.${paymentIntentId},stripe_deposit_intent_id.eq.${paymentIntentId},stripe_balance_payment_intent_id.eq.${paymentIntentId}`)
           .maybeSingle();
 
