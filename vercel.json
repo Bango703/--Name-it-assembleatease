@@ -93,6 +93,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/cron/unassigned-escalation",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron/ops-alert",
       "schedule": "*/30 * * * *"
     },

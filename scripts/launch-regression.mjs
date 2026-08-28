@@ -124,12 +124,26 @@ assert.equal(summary.taxCollectedCents, 413);
 assert.equal(summary.processingFeeIsActual, true);
 assert.equal(summary.platformGrossCents, -2_344, 'Refunded jobs must retain the Easer liability instead of hiding a loss');
 
+// Cancellation fee tiers, for a job a pro actually ACCEPTED. Without that flag
+// these now correctly return zero — a fee compensates a committed pro, and there
+// is nobody to compensate when no one took the job.
 assert.deepEqual(
-  computeCancellationFee({ serviceSubtotalCents: 20_000, hoursUntilAppointment: 30 }),
+  computeCancellationFee({ serviceSubtotalCents: 20_000, hoursUntilAppointment: 30, easerAccepted: true }),
   { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false },
 );
-assert.equal(computeCancellationFee({ serviceSubtotalCents: 20_000, hoursUntilAppointment: 8 }).feeCents, 2_000);
-assert.equal(computeCancellationFee({ serviceSubtotalCents: 20_000, status: 'en_route' }).feeCents, 3_000);
+assert.equal(computeCancellationFee({ serviceSubtotalCents: 20_000, hoursUntilAppointment: 8, easerAccepted: true }).feeCents, 2_000);
+assert.equal(computeCancellationFee({ serviceSubtotalCents: 20_000, status: 'en_route', easerAccepted: true }).feeCents, 3_000);
+
+// THE INVARIANT. A booking was assigned three times, accepted by nobody, and the
+// customer was charged $32.94 to cancel a job no one was ever coming to. Charging
+// for our own failure to staff a job is prohibited, and omitting the flag fails
+// toward not charging rather than toward taking money.
+assert.equal(
+  computeCancellationFee({ serviceSubtotalCents: 21_952, hoursUntilAppointment: 0.4, status: 'confirmed' }).feeCents,
+  0, 'no accepted Easer must never produce a cancellation fee');
+assert.equal(
+  computeCancellationFee({ serviceSubtotalCents: 20_000, status: 'en_route' }).feeCents,
+  0, 'omitting easerAccepted must fail toward NOT charging the customer');
 
 const readyProfile = {
   application_status: 'approved',

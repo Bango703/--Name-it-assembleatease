@@ -249,6 +249,9 @@ export default async function handler(req, res) {
     status: booking.status,
     isNoShow: noShow,
     forfeitFreeWindow: wasRescheduled,
+    // No accepted Easer means no commitment to compensate. The rule lives in
+    // computeCancellationFee; this only supplies the fact it needs.
+    easerAccepted: Boolean(booking.assembler_id && booking.assembler_accepted_at),
   });
   const withinCancellationWindow = policy.tier !== 'free';
 

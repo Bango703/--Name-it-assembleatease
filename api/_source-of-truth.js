@@ -281,9 +281,31 @@ export const CANCELLATION_POLICY = Object.freeze({
  * @param {{ serviceSubtotalCents?:number, hoursUntilAppointment?:(number|null), status?:(string|null), isNoShow?:boolean, forfeitFreeWindow?:boolean }} args
  * @returns {{ tier:('free'|'late'|'imminent'), feePct:number, feeCents:number, proTripCut:boolean }}
  */
-export function computeCancellationFee({ serviceSubtotalCents = 0, hoursUntilAppointment = null, status = null, isNoShow = false, forfeitFreeWindow = false } = {}) {
+export function computeCancellationFee({ serviceSubtotalCents = 0, hoursUntilAppointment = null, status = null, isNoShow = false, forfeitFreeWindow = false, easerAccepted = false } = {}) {
   const sub = Math.max(0, Math.round(Number(serviceSubtotalCents) || 0));
   const h = (typeof hoursUntilAppointment === 'number' && isFinite(hoursUntilAppointment)) ? hoursUntilAppointment : null;
+
+  // ── HARD INVARIANT: no accepted Easer, no customer cancellation fee ────────
+  //
+  // A cancellation fee compensates a committed pro for a slot they can no longer
+  // fill. If nobody ever accepted the job, there is no commitment, no lost slot,
+  // and nothing to compensate — the platform simply failed to supply, and
+  // charging the customer for that failure is indefensible.
+  //
+  // This is not hypothetical. AAE-LYTX3WIQW3 was assigned three times, accepted
+  // by nobody, still unassigned twenty-three minutes before the customer's window
+  // closed, and the customer was charged $32.94 to cancel a job no one was ever
+  // coming to. This rule exists so that cannot happen again.
+  //
+  // Tested on ACCEPTANCE rather than assignment, deliberately: that booking DID
+  // carry an assembler_id at points, and an assignment nobody agreed to is not a
+  // commitment. It also defaults to false, so a caller that forgets to pass it
+  // fails toward not charging. Losing a fee we were owed is recoverable; taking
+  // money we were not owed is not.
+  if (easerAccepted !== true) {
+    return { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false, waivedReason: 'no_easer_accepted' };
+  }
+
   const proCommitted = status === BOOKING_STATUS.EN_ROUTE || status === BOOKING_STATUS.ARRIVED || status === BOOKING_STATUS.IN_PROGRESS;
 
   let tier, feePct;
