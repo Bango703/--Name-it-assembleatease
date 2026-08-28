@@ -102,6 +102,62 @@ function formatAlertAge(ms) {
  * GET /api/owner/live-ops
  * Real-time operational snapshot for the Live Ops command center.
  */
+
+/**
+ * Failures the platform already diagnosed and told nobody about.
+ *
+ * Three separate outages in one day were recorded with their exact cause and
+ * surfaced nowhere: a twelve-hour email outage (notification_audit_failed, five
+ * times), a refund that never reconciled (financial_event_audit status 'failed'),
+ * and an assignment that threw after committing. Each was found by hand, hours
+ * or months late.
+ *
+ * The data was always there. Nothing read it back. This does.
+ *
+ * Fail-soft on purpose: if these lookups break, Live Ops still renders. A
+ * diagnostics panel must never be the reason the dashboard goes dark.
+ */
+async function loadSelfDiagnosedFailures(sb, sinceIso) {
+  const out = { financial: [], notification: [], total: 0 };
+  try {
+    const { data } = await sb
+      .from('financial_event_audit')
+      .select('event_type, error, created_at, booking_id, payment_intent_id')
+      .eq('status', 'failed')
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    out.financial = (data || []).map(r => ({
+      at: r.created_at,
+      kind: r.event_type,
+      // The server's own words. Never a generic "something went wrong".
+      detail: String(r.error || 'no reason recorded').slice(0, 240),
+      paymentIntentId: r.payment_intent_id || null,
+    }));
+  } catch (err) {
+    console.error('[live-ops] financial failure lookup failed:', err?.message || err);
+  }
+  try {
+    const { data } = await sb
+      .from('activity_logs')
+      .select('event_type, description, metadata, created_at, booking_id')
+      .in('event_type', ['notification_audit_failed', 'dispatch_notification_failed', 'acceptance_notification_failed'])
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    out.notification = (data || []).map(r => ({
+      at: r.created_at,
+      kind: r.event_type,
+      detail: String(r.description || '').slice(0, 240),
+      cause: r.metadata?.emailLogError || r.metadata?.pushLogError || null,
+    }));
+  } catch (err) {
+    console.error('[live-ops] notification failure lookup failed:', err?.message || err);
+  }
+  out.total = out.financial.length + out.notification.length;
+  return out;
+}
+
 export default async function handler(req, res) {
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -674,8 +730,13 @@ export default async function handler(req, res) {
       is_return_visit: b.return_visit_date === todayStr && (b.return_visit_required || b.return_visit_completed_at),
     }));
 
+  // 72 hours: long enough to catch an overnight failure, short enough that a
+  // resolved problem stops shouting.
+  const selfDiagnosed = await loadSelfDiagnosedFailures(sb, new Date(now.getTime() - 72 * 3600000).toISOString());
+
   return res.status(200).json({
     generatedAt: now.toISOString(),
+    selfDiagnosed,
     businessDate: todayStr,
     summary: {
       // Exclude 'pending' (awaiting payment) from Active Jobs count so the

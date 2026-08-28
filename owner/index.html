@@ -513,6 +513,9 @@
       <div id="liveops-view" style="display:none">
 
         <!-- Alert bar -->
+        <!-- Failures the platform diagnosed itself. Hidden when there are none,
+             so a quiet system stays quiet and a real one is impossible to miss. -->
+        <div id="ops-selfdiag" style="display:none;margin-bottom:1.25rem"></div>
         <div id="ops-alerts-bar" style="margin-bottom:1.25rem"></div>
 
         <!-- Summary chips -->
@@ -4615,6 +4618,49 @@ window.intelQuick = intelQuick;
   // fails in garages and stairwells — where this work happens — and colouring an
   // honest Easer's dead fix as a problem trains the owner to distrust the pro
   // rather than the satellite.
+
+  // Renders failures the platform already recorded against itself.
+  //
+  // Every one of these was previously written to the database with its exact
+  // cause and read by nobody: a twelve-hour email outage logged five times, a
+  // refund that never reconciled, an assignment that threw after committing.
+  // Each was found by hand. The data was always there.
+  //
+  // Shows the SERVER'S OWN wording — never a generic "something went wrong".
+  // A cause you can act on is the entire point (Article 16).
+  function renderSelfDiagnosed(d) {
+    var el = document.getElementById('ops-selfdiag');
+    if (!el) return;
+    var sd = d && d.selfDiagnosed;
+    if (!sd || !sd.total) { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+    var rows = [];
+    (sd.financial || []).forEach(function(f) {
+      rows.push({ at: f.at, tag: 'MONEY', kind: f.kind, detail: f.detail });
+    });
+    (sd.notification || []).forEach(function(f) {
+      rows.push({ at: f.at, tag: 'NOTIFY', kind: f.kind, detail: f.cause || f.detail });
+    });
+    rows.sort(function(a, b) { return String(b.at).localeCompare(String(a.at)); });
+
+    var html = '<div style="border:1px solid #fecaca;background:#fef2f2;border-radius:10px;padding:0.9rem 1rem">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">'
+      + '<strong style="color:#991b1b;font-size:0.85rem">The platform reported ' + rows.length + ' failure' + (rows.length === 1 ? '' : 's') + ' about itself</strong>'
+      + '<span style="font-size:0.72rem;color:#b91c1c">last 72 hours</span></div>';
+    rows.slice(0, 8).forEach(function(r) {
+      var when = new Date(r.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      html += '<div style="font-size:0.78rem;line-height:1.6;padding:0.3rem 0;border-top:1px solid #fecaca">'
+        + '<span style="font-family:monospace;font-size:0.68rem;color:#b91c1c">' + esc(r.tag) + '</span> '
+        + '<span style="color:var(--muted)">' + esc(when) + '</span> &bull; '
+        + '<strong>' + esc(r.kind) + '</strong><br>'
+        + '<span style="color:#7f1d1d">' + esc(r.detail || 'no reason recorded') + '</span></div>';
+    });
+    if (rows.length > 8) html += '<div style="font-size:0.72rem;color:#b91c1c;padding-top:0.4rem">…and ' + (rows.length - 8) + ' more</div>';
+    html += '</div>';
+    el.innerHTML = html;
+    el.style.display = '';
+  }
+
   function arrivalBadge(b) {
     var a = b && b._arrival;
     if (!a) return '';
@@ -7530,6 +7576,10 @@ window.intelQuick = intelQuick;
     var alertBadge = document.getElementById('nav-liveops-alerts');
     if (s.criticalAlerts > 0) { alertBadge.textContent = s.criticalAlerts; alertBadge.style.display = ''; }
     else alertBadge.style.display = 'none';
+
+    // Failures the platform recorded about itself, above the operational alerts:
+    // a broken pipe outranks a busy one. Never allowed to break the render.
+    try { renderSelfDiagnosed(d); } catch (e) { /* diagnostics must not blank Live Ops */ }
 
     // Alert bar
     var alertsEl = document.getElementById('ops-alerts-bar');
