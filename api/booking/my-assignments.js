@@ -15,6 +15,7 @@ import {
   SALES_TAX_RATE,
 } from '../_source-of-truth.js';
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
+import { loadCrew } from './_crew.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 
 const EASER_JOB_STAGES = Object.freeze(['en_route', 'arrived', 'in_progress']);
@@ -143,12 +144,33 @@ export default async function handler(req, res) {
   // Canonical fee — must match the completion payout (assembler-complete.js) so the
   // dashboard estimate never overstates what the Pro will actually receive.
 
+  // ── 0. Jobs this Easer is on as CREW rather than as the lead ────────────
+  // assembler_id only names the lead. A helper the owner added is on the job and
+  // must see it, or they are expected to show up at an address they cannot read.
+  // Read first so the booking query below can include them in one round trip.
+  let crewBookingIds = [];
+  try {
+    const { data: myCrew } = await sb
+      .from('booking_crew')
+      .select('booking_id')
+      .eq('easer_id', user.id)
+      .is('removed_at', null);
+    crewBookingIds = [...new Set((myCrew || []).map(r => r.booking_id).filter(Boolean))];
+  } catch (crewErr) {
+    // Never blank an Easer's job list over a crew lookup. They still see every
+    // job they lead; a helper-only job is missing rather than the page breaking.
+    console.error('[my-assignments] crew lookup failed:', crewErr?.message || crewErr);
+  }
+
   // ── 1. Bookings assigned to this Easer ──────────────────────────────────
   let query = sb
     .from('bookings')
-    .select('id, ref, source, service, customer_name, customer_phone, customer_email, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, same_day_fee_cents, same_day_easer_bonus_cents')
-    .eq('assembler_id', user.id)
-    .order('assigned_at', { ascending: false });
+    .select('id, ref, source, service, customer_name, customer_phone, customer_email, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, same_day_fee_cents, same_day_easer_bonus_cents');
+
+  query = crewBookingIds.length
+    ? query.or(`assembler_id.eq.${user.id},id.in.(${crewBookingIds.join(',')})`)
+    : query.eq('assembler_id', user.id);
+  query = query.order('assigned_at', { ascending: false });
 
   if (statusFilter) {
     query = VISIBLE_STATUSES.includes(statusFilter)
@@ -315,6 +337,29 @@ export default async function handler(req, res) {
   });
 
   const bookingIds = allBookings.map(b => b.id).filter(Boolean);
+
+  // What THIS Easer is owed on each job, and how many people are on it. Read
+  // through the one crew loader so the Easer view and the owner view can never
+  // disagree about a split.
+  const crewShareByBooking = new Map();
+  if (bookingIds.length) {
+    try {
+      const crewByBooking = await loadCrew(bookingIds, { sb });
+      for (const [bookingId, rows] of crewByBooking) {
+        const mine = rows.find(r => r.easer_id === user.id);
+        if (!mine) continue;
+        crewShareByBooking.set(bookingId, {
+          dueCents: Number(mine.due_cents || 0),
+          role: mine.role,
+          crewSize: rows.length,
+        });
+      }
+    } catch (crewErr) {
+      // Degrades to the single-Easer estimate rather than showing nothing.
+      console.error('[my-assignments] crew share load failed:', crewErr?.message || crewErr);
+    }
+  }
+
   if (bookingIds.length) {
     try {
       // Same loader the owner uses, so the two roles can never see different
@@ -361,6 +406,20 @@ export default async function handler(req, res) {
       b._pay_estimate_lo = estimateDue;
       b._pay_estimate_hi = estimateDue;
       if (sdBonus > 0) b._same_day_bonus_cents = sdBonus;
+
+      // On a CREWED job the pool was divided and this person's share is the crew
+      // row, not the whole split. Only overridden when a crew actually exists:
+      // on a single-Easer job the live computation above is the more accurate
+      // number, and every job today is single-Easer. Showing an Easer the whole
+      // pool when two people are splitting it would promise pay we will not send
+      // (Rule 10).
+      const myShare = crewShareByBooking.get(b.id);
+      if (myShare && myShare.crewSize > 1) {
+        b._pay_estimate_lo = myShare.dueCents;
+        b._pay_estimate_hi = myShare.dueCents;
+        b._crew_size = myShare.crewSize;
+        b._crew_role = myShare.role;
+      }
     } else if (b.total_price === 0 || b.total_price === null) {
       b._custom_quote = true; // signal to UI: price TBD
     }

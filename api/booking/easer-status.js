@@ -36,7 +36,25 @@ export default async function handler(req, res) {
   const { data: booking } = await sb.from('bookings').select('*').eq('id', bookingId).single();
 
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.assembler_id !== user.id) return res.status(403).json({ error: 'Not your booking' });
+  // Status stays with the LEAD, deliberately: en_route/arrived/in_progress drive
+  // customer notifications and the completion path, and two people advancing one
+  // job races. But a helper IS on this booking, so "Not your booking" would be a
+  // lie — say the real reason instead (Article 16).
+  if (booking.assembler_id !== user.id) {
+    const { data: crewRow } = await sb
+      .from('booking_crew')
+      .select('role')
+      .eq('booking_id', booking.id)
+      .eq('easer_id', user.id)
+      .is('removed_at', null)
+      .maybeSingle();
+    return res.status(403).json({
+      error: crewRow
+        ? `${booking.assembler_name || 'The lead Easer'} leads this job and updates its status. You can still message and upload photos.`
+        : 'Not your booking',
+      code: crewRow ? 'CREW_NOT_LEAD' : 'NOT_ASSIGNED',
+    });
+  }
   if (!booking.assembler_accepted_at) {
     return res.status(409).json({ error: 'Accept this assignment before updating the job status.' });
   }

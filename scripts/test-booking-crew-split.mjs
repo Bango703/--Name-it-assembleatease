@@ -265,4 +265,38 @@ const ready = await getEaserReadiness(readyProfile, { connectRequired: false });
   console.log('PASS migration 078 re-validates the pool, locks the booking, and protects settled money');
 }
 
+// ── A helper can reach the job; only the lead can drive it ──────────────────
+{
+  const read = f => fs.readFile(new URL(`../api/booking/${f}`, import.meta.url), 'utf8');
+  const [assignments, status, message, evidence, complete] = await Promise.all(
+    ['my-assignments.js', 'easer-status.js', 'message.js', 'upload-evidence.js', 'assembler-complete.js'].map(read),
+  );
+
+  // SEE IT — a helper who cannot load the job is expected at an address they
+  // cannot read.
+  assert.ok(/from\('booking_crew'\)/.test(assignments) && /crewBookingIds/.test(assignments),
+    'my-assignments must include jobs the Easer is on as crew, not only ones they lead');
+  assert.ok(/assembler_id\.eq\.\$\{user\.id\},id\.in\./.test(assignments),
+    'the job list must union led jobs with crew jobs in one query');
+
+  // EARN THE RIGHT AMOUNT — showing a helper the whole pool promises pay we will
+  // not send.
+  assert.ok(/myShare\.crewSize > 1/.test(assignments),
+    'the crew share must override the estimate ONLY on a genuinely crewed job, so single-Easer math is untouched');
+
+  // WORK IT — messaging and evidence are half of doing the job.
+  for (const [name, src] of [['message.js', message], ['upload-evidence.js', evidence]]) {
+    assert.ok(/from\('booking_crew'\)/.test(src), `${name} must let a crew member in`);
+    assert.ok(/removed_at/.test(src), `${name} must exclude removed crew`);
+  }
+
+  // NOT DRIVE IT — status and completion stay with the lead, so two people
+  // cannot race the completion/capture path.
+  assert.ok(/CREW_NOT_LEAD/.test(status),
+    'a helper hitting the status endpoint must get the real reason, not "Not your booking" — they ARE on the booking');
+  assert.ok(!/from\('booking_crew'\)/.test(complete),
+    'assembler-complete must remain lead-only: two people completing one job is how a double capture happens');
+  console.log('PASS a helper can see, message and photograph the job — only the lead advances or completes it');
+}
+
 console.log('\nBooking crew split tests passed.');
