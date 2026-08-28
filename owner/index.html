@@ -913,7 +913,7 @@
           <div class="stat orange"><div class="stat-value" id="asm-elite">—</div><div class="stat-label">Elite</div></div>
         </div>
         <div class="tabs" id="asm-tabs">
-          <button class="tab active" data-tier="all">All</button>
+          <button class="tab active" data-tier="all">Roster</button>
           <button class="tab" data-tier="pending">Pending</button>
           <button class="tab" data-tier="starter">Starter</button>
           <button class="tab" data-tier="professional">Professional</button>
@@ -9628,29 +9628,42 @@ window.intelQuick = intelQuick;
     return boolBadge(!!a.stripe_connect_payouts_enabled);
   }
 
+  // Suspended, deactivated and rejected accounts are HISTORY, not roster. They
+  // each have their own tab, so nothing becomes unreachable — but they must not
+  // sit in the default view. Two suspended Easers and a pile of rejected test
+  // applications made the list read as if there were five pros available when
+  // there was one.
+  //
+  // The default tab is named "Roster" rather than "All" for exactly this reason:
+  // a tab labelled All that hides three accounts is a small lie, and this
+  // dashboard has already been burned by views that quietly disagreed with the
+  // database.
+  var OFF_ROSTER = ['suspended', 'deactivated', 'rejected'];
+  function onRoster(a) { return OFF_ROSTER.indexOf(String(a.status || '').toLowerCase()) === -1; }
+
   function renderAssemblerTable() {
     var filtered;
     var f = currentTierFilter;
-    if (f === 'all') filtered = allAssemblerProfiles;
+    if (f === 'all') filtered = allAssemblerProfiles.filter(onRoster);
     else if (f === 'pending') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'pending'; });
     else if (f === 'active') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'active'; });
     else if (f === 'suspended') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'suspended'; });
     else if (f === 'deactivated') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'deactivated'; });
     else if (f === 'rejected') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'rejected'; });
-    else if (f === 'starter') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'starter'; });
-    else if (f === 'professional') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'professional'; });
-    else if (f === 'elite') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'elite'; });
-    else filtered = allAssemblerProfiles;
+    else if (f === 'starter') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'starter' && onRoster(a); });
+    else if (f === 'professional') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'professional' && onRoster(a); });
+    else if (f === 'elite') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'elite' && onRoster(a); });
+    else filtered = allAssemblerProfiles.filter(onRoster);
 
     document.querySelectorAll('#asm-tabs .tab').forEach(function(t) {
       var s = t.dataset.tier;
-      var c = s === 'all' ? allAssemblerProfiles.length
+      var c = s === 'all' ? allAssemblerProfiles.filter(onRoster).length
         : s === 'active' ? allAssemblerProfiles.filter(function(a){ return a.status === 'active'; }).length
         : s === 'pending' ? allAssemblerProfiles.filter(function(a){ return a.status === 'pending'; }).length
         : s === 'suspended' ? allAssemblerProfiles.filter(function(a){ return a.status === 'suspended'; }).length
         : s === 'deactivated' ? allAssemblerProfiles.filter(function(a){ return a.status === 'deactivated'; }).length
         : s === 'rejected' ? allAssemblerProfiles.filter(function(a){ return a.status === 'rejected'; }).length
-        : allAssemblerProfiles.filter(function(a){ return a.tier === s; }).length;
+        : allAssemblerProfiles.filter(function(a){ return a.tier === s && onRoster(a); }).length;
       var span = t.querySelector('.tab-count');
       if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
       span.textContent = c;
