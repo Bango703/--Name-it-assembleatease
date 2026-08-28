@@ -89,6 +89,21 @@ export default async function handler(req, res) {
         mcc: '7299',
         product_description: 'Home assembly services',
       },
+      settings: {
+        payments: {
+          // What the CUSTOMER sees on their card statement.
+          //
+          // Stripe defaults this to the Easer's legal name, so a tip showed up as
+          // "TRAPPER A RINEY" or "TRAVIS GIBSON". Someone who does not recognise a
+          // personal name on their statement does not call to ask — they file a
+          // chargeback, and it lands on the Easer's account, not ours.
+          //
+          // Set at creation so no future Easer is ever onboarded with their own
+          // name facing customers. Existing accounts were corrected 2026-08-28.
+          // Stripe allows 5-22 characters; this is 18.
+          statement_descriptor: 'ASSEMBLEATEASE TIP',
+        },
+      },
       metadata: {
         userId: profile.id,
         role: 'assembler',
