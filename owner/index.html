@@ -3065,6 +3065,28 @@ window.intelQuick = intelQuick;
     return data;
   }
 
+  // Owner-scoped POST. apiPost() prefixes API = '/api/booking', which is correct
+  // for booking routes and silently wrong for anything under /api/owner — a call
+  // to '/owner/crew' became '/api/booking/owner/crew' and 404'd. Same defensive
+  // body handling as apiPost: a Vercel error page is HTML, and a bare .json()
+  // would surface "Unexpected token '<'" to the owner instead of the real fault.
+  async function ownerPost(path, body) {
+    const r = await fetch('/api/owner' + path, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+    if (r.status === 401) { logout(true); throw new Error('Unauthorized'); }
+    const raw = await r.text();
+    let data = null;
+    if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
+    if (data === null) {
+      if (r.ok) return {};
+      const detail = r.status === 504 || r.status === 502
+        ? 'The server took too long to respond. The action may still have completed — refresh before retrying.'
+        : 'The server returned an unexpected response.';
+      throw new Error(detail + ' (HTTP ' + r.status + ')');
+    }
+    if (!r.ok || data.error) throw new Error(data.error || 'Request failed');
+    return data;
+  }
+
   // ─── Login / Logout ───
   function showDashboard() {
     $gate.style.display = 'none';
@@ -7173,7 +7195,7 @@ window.intelQuick = intelQuick;
     var original = btn.textContent;
     btn.disabled = true; btn.textContent = 'Checking...';
     try {
-      var p = await apiPost('/owner/crew', { bookingId: crewState.bookingId, easerId: sel.value, action: 'preview' });
+      var p = await ownerPost('/crew', { bookingId: crewState.bookingId, easerId: sel.value, action: 'preview' });
       crewState.preview = p;
       crewState.mode = 'even';
       renderCrewPreview();
@@ -7267,7 +7289,7 @@ window.intelQuick = intelQuick;
     var original = btn.textContent;
     btn.disabled = true; btn.textContent = 'Adding...';
     try {
-      await apiPost('/owner/crew', {
+      await ownerPost('/crew', {
         bookingId: crewState.bookingId,
         easerId: p.easer.id,
         action: 'add',
@@ -7291,7 +7313,7 @@ window.intelQuick = intelQuick;
     var original = btn.textContent;
     btn.disabled = true; btn.textContent = 'Removing...';
     try {
-      await apiPost('/owner/crew', { bookingId: crewState.bookingId, easerId: easerId, action: 'remove', reason: String(why).trim() });
+      await ownerPost('/crew', { bookingId: crewState.bookingId, easerId: easerId, action: 'remove', reason: String(why).trim() });
       await openBooking(crewState.bookingId);
     } catch (e) {
       btn.disabled = false; btn.textContent = original;
