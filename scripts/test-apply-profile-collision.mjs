@@ -58,4 +58,31 @@ const src = await fs.readFile(new URL('../api/assembler/apply.js', import.meta.u
   console.log('PASS a database error is never shown to an applicant');
 }
 
+// ── A typo must not cost an applicant their attempt ────────────────────────
+{
+  // The limiter used to run BEFORE validation, so "City is required" spent one of
+  // only three attempts. Two typos plus the profiles_pkey collision locked an
+  // applicant out of their own application with "Too many requests" and no cause.
+  const limiterAt = src.indexOf("rateLimit(ip, 'apply')");
+  const firstDbCall = src.indexOf('const sb = getSupabase();');
+  const firstValidation = src.indexOf("'Full name is required'");
+
+  assert.ok(limiterAt > -1, 'the apply route must still be rate limited');
+  assert.ok(firstValidation < limiterAt,
+    'validation must run BEFORE the limiter — a typo must never consume an attempt');
+  assert.ok(limiterAt < firstDbCall,
+    'the limiter must sit immediately before the first expensive call');
+
+  // Everything ahead of the limiter must be free: no database, no Stripe, no email.
+  const preamble = src.slice(src.indexOf('export default async function handler'), limiterAt);
+  assert.ok(!/getSupabase\(\)|stripe\.|sendEmail\(/.test(preamble),
+    'nothing expensive may run before the limiter, or it is not protecting anything');
+
+  assert.ok(/wait about 10 minutes/.test(src),
+    'a wait with no duration is not an instruction — the message must say how long');
+  assert.ok(/your answers are still in the form/.test(src),
+    'the applicant must be told their work is not lost, which is what they actually fear');
+  console.log('PASS validation is free; only real submission attempts are rate limited');
+}
+
 console.log('\nApply profile-collision tests passed.');

@@ -58,7 +58,6 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
-  if (!await rateLimit(ip, 'apply')) return res.status(429).json({ error: 'Too many requests. Please try again later.' });
 
   const {
     fullName, email, phone, city, state, zip,
@@ -111,6 +110,25 @@ export default async function handler(req, res) {
   const cleanEmail = email.trim().toLowerCase();
   const applicationAttemptHash = hashApplicationAttemptId(applicationAttemptId);
   const feeConsentGiven = applicationFeeConsent === true;
+  // Rate limit AFTER validation, deliberately.
+  //
+  // It used to run first, so a missing city or a mistyped phone number spent one
+  // of only three attempts. An applicant who typo'd twice and then hit the
+  // profiles_pkey collision was locked out of their own application with "Too
+  // many requests" and no idea why — on the funnel this business can least
+  // afford to lose.
+  //
+  // Everything above this line is pure in-memory string checking: no database,
+  // no Stripe, no email. It costs nothing to run unmetered, so it is not metered.
+  // The limiter now guards the expensive path only, which is what it was for.
+  if (!await rateLimit(ip, 'apply')) {
+    return res.status(429).json({
+      // A wait with no duration is not an instruction. Say how long (Article 16).
+      error: 'Too many application attempts from this connection. Please wait about 10 minutes and try again — your answers are still in the form.',
+      code: 'RATE_LIMITED',
+    });
+  }
+
   const sb = getSupabase();
   const { data: existingProfile, error: existingProfileErr } = await sb
     .from('profiles')
