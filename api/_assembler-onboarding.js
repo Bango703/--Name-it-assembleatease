@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { randomBytes } from 'crypto';
 
 export const SITE = 'https://www.assembleatease.com';
-export const CONTRACTOR_AGREEMENT_VERSION = '2026-08-16';
+export const CONTRACTOR_AGREEMENT_VERSION = '2026-08-28';
 
 const configuredResumeHours = Number.parseInt(process.env.IDENTITY_RESUME_TOKEN_TTL_HOURS || '72', 10);
 export const IDENTITY_RESUME_TOKEN_TTL_MS = Math.min(
