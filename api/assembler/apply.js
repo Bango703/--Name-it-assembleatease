@@ -378,8 +378,17 @@ function isRecoverableApplication(profile, authUser, applicationAttemptId) {
   )) return false;
   const status = String(profile.status || '').trim().toLowerCase();
   const applicationStatus = String(profile.application_status || '').trim().toLowerCase();
+  // 'waitlist' belongs here. Someone who joined the waitlist because their area
+  // was not live yet, and now wants to apply properly, is not a duplicate — that
+  // is the upgrade path working. Leaving it out meant a waitlist row permanently
+  // blocked its own email from EVER applying, and the refusal pointed at "the
+  // link sent to that email" which is never sent for a waitlist signup.
+  //
+  // It also burned the rate limit: five attempts, five rejections, then "Too many
+  // requests" — the applicant discovering they were blocked cost them their whole
+  // quota.
   return status === 'pending'
-    && [APPLICATION_PAYMENT_PENDING, 'applied'].includes(applicationStatus);
+    && [APPLICATION_PAYMENT_PENDING, 'applied', 'waitlist'].includes(applicationStatus);
 }
 
 async function resumeApplicationDraft({
