@@ -85,4 +85,24 @@ const src = await fs.readFile(new URL('../api/assembler/apply.js', import.meta.u
   console.log('PASS validation is free; only real submission attempts are rate limited');
 }
 
+// ── A waitlist signup must not block its own email forever ─────────────────
+{
+  // Someone who joined the waitlist because their area was not live, and now
+  // applies properly, is not a duplicate. Excluding 'waitlist' meant that row
+  // permanently blocked the email — and because the rejection sits after the
+  // rate limiter, five attempts to discover it cost the applicant their quota.
+  const fn = src.slice(src.indexOf('function isRecoverableApplication('));
+  const body = fn.slice(0, fn.indexOf('\nasync function resumeApplicationDraft'));
+  assert.ok(/'waitlist'/.test(body),
+    'a waitlist profile must be resumable — it is the upgrade path, not a duplicate');
+  for (const s of ['payment_pending', 'applied']) {
+    assert.ok(body.includes(s) || body.includes('APPLICATION_PAYMENT_PENDING'),
+      `${s} must remain resumable`);
+  }
+  // An approved or active Easer must still never be resumable through this path.
+  assert.ok(/status === 'pending'/.test(body),
+    'only a pending account may be resumed — an approved Easer is not an application');
+  console.log('PASS a waitlist signup can still apply; an approved Easer still cannot be overwritten');
+}
+
 console.log('\nApply profile-collision tests passed.');
