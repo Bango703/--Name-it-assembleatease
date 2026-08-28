@@ -68,8 +68,18 @@ export default async function handler(req, res) {
     const { data: bk, error: bkErr } = await bq.maybeSingle();
     if (bkErr) return res.status(500).json({ error: 'Failed to verify booking access' });
     if (!bk) return res.status(404).json({ error: 'Booking not found' });
+    // A helper on the crew can message about the job they are working. Kept as a
+    // 404 rather than a 403 for anyone else, so this never confirms a booking
+    // exists to someone with no claim on it.
     if (!ownerRequest && bk.assembler_id !== easerAccess.user.id) {
-      return res.status(404).json({ error: 'Booking not found' });
+      const { data: crewRow } = await sb
+        .from('booking_crew')
+        .select('id')
+        .eq('booking_id', bk.id)
+        .eq('easer_id', easerAccess.user.id)
+        .is('removed_at', null)
+        .maybeSingle();
+      if (!crewRow) return res.status(404).json({ error: 'Booking not found' });
     }
     let messagesQuery = sb
       .from('messages')

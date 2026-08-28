@@ -138,11 +138,26 @@ export default async function handler(req, res) {
     .from('bookings')
     .select('id, ref, service, date, time, status, customer_name, customer_email, customer_phone, assembler_id, assembler_name, assembler_accepted_at, job_started_at, financial_operation_key')
     .eq('id', bookingId)
-    .eq('assembler_id', user.id)
     .maybeSingle();
 
   if (bookingErr || !booking) {
     return res.status(404).json({ error: 'Booking not found or not assigned to you' });
+  }
+
+  // Completion evidence is the proof the work was done right, and a helper does
+  // half the work — they must be able to photograph it. Ownership is proven here
+  // rather than in the query above so crew and lead run the same check.
+  if (booking.assembler_id !== user.id) {
+    const { data: crewRow } = await sb
+      .from('booking_crew')
+      .select('id')
+      .eq('booking_id', booking.id)
+      .eq('easer_id', user.id)
+      .is('removed_at', null)
+      .maybeSingle();
+    if (!crewRow) {
+      return res.status(404).json({ error: 'Booking not found or not assigned to you' });
+    }
   }
 
   // Complete every assignment/workflow authorization gate before decoding the
