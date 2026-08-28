@@ -3191,6 +3191,11 @@
 
             <div class="field-error" id="s4-phone-err">Enter a valid 10-digit US phone number.</div>
 
+            <label id="s4-sms-label" style="display:flex;align-items:flex-start;gap:0.55rem;font-size:0.8rem;color:var(--muted);line-height:1.55;margin-top:0.7rem;text-align:left;cursor:pointer">
+              <input type="checkbox" id="s4-sms-consent" style="accent-color:var(--teal);width:16px;height:16px;flex:0 0 auto;margin-top:2px">
+              <span>Optional: Text me appointment and service updates from AssembleAtEase at the number above. Message frequency varies. Message and data rates may apply. Consent is not a condition of purchase. Reply STOP to opt out or HELP for help. See our <a href="/terms#sms-terms" target="_blank" rel="noopener" style="color:var(--teal)">SMS Terms</a> and <a href="/privacy" target="_blank" rel="noopener" style="color:var(--teal)">Privacy Notice</a>.</span>
+            </label>
+
           </div>
 
         </div>
@@ -3348,10 +3353,6 @@
         <label id="s5-ack-label" style="display:flex;align-items:flex-start;gap:0.55rem;font-size:0.8rem;color:var(--muted);line-height:1.55;margin-top:0.7rem;text-align:left;cursor:pointer">
           <input type="checkbox" id="s5-ack" style="accent-color:var(--teal);width:16px;height:16px;flex:0 0 auto;margin-top:2px">
           <span>I agree to the current <a href="/terms" target="_blank" rel="noopener" style="color:var(--teal)">Terms</a>, including the displayed total, payment and cancellation policy, reassembly terms, and item-condition and safe-use provisions, and I acknowledge the <a href="/privacy" target="_blank" rel="noopener" style="color:var(--teal)">Privacy Notice</a>.</span>
-        </label>
-        <label id="s5-sms-label" style="display:flex;align-items:flex-start;gap:0.55rem;font-size:0.8rem;color:var(--muted);line-height:1.55;margin-top:0.7rem;text-align:left;cursor:pointer">
-          <input type="checkbox" id="s5-sms-consent" style="accent-color:var(--teal);width:16px;height:16px;flex:0 0 auto;margin-top:2px">
-          <span>Text me appointment and service updates from AssembleAtEase. Message frequency varies. Message and data rates may apply. Consent is not a condition of purchase. Reply STOP to opt out or HELP for help. See our <a href="/terms#sms-terms" target="_blank" rel="noopener" style="color:var(--teal)">SMS Terms</a> and <a href="/privacy" target="_blank" rel="noopener" style="color:var(--teal)">Privacy Notice</a>.</span>
         </label>
 
         <div class="step-actions">
@@ -7613,7 +7614,7 @@ async function submitBooking() {
     promoCode: BOOK.promoCode || '',
     assemblecashToken: BOOK.assemblecashToken || '',
     bundleSlug: BOOK.bundleSlug || '',
-    smsConsent: !!(document.getElementById('s5-sms-consent') || {}).checked
+    smsConsent: !!(document.getElementById('s4-sms-consent') || {}).checked
   });
 
   var reusablePayment = (BOOK._pendingPayment && BOOK._pendingPayment.fingerprint === orderFingerprint)
@@ -7671,7 +7672,7 @@ async function submitBooking() {
 
         privacyNoticeVersion: legalConfig.privacyNoticeVersion,
 
-        smsConsent: !!(document.getElementById('s5-sms-consent') || {}).checked,
+        smsConsent: !!(document.getElementById('s4-sms-consent') || {}).checked,
 
         setupIntentId: (BOOK._isQuoteFlow || BOOK._scheduledAuthorization) ? savedSetupIntentId : null,
         attribution: BOOKING_ATTRIBUTION
