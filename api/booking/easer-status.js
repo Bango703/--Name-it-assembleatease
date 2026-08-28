@@ -122,8 +122,27 @@ export default async function handler(req, res) {
     const easerLng = Number(lng);
     const acc = Number(accuracy);
     if (Number.isFinite(easerLat) && Number.isFinite(easerLng)) {
-      // Consent is a recorded fact, never inferred from the browser's willingness
-      // to answer. A phone that CAN report a location is not permission to store one.
+      // The browser's own permission dialog IS the consent moment: the Easer was
+      // asked in plain terms and tapped Allow, and coordinates only reach this
+      // handler when they did. Record that the first time it happens — without
+      // this, locationConsentOk() gates a consent nothing could ever grant, and
+      // the feature stays permanently off.
+      //
+      // A refusal is NOT recorded here, deliberately. The browser sends nothing
+      // whether the Easer declined or simply had no signal in a stairwell, and
+      // the two are indistinguishable from the server. Writing "declined" on a
+      // dead GPS fix would be asserting something unverified (Article 16).
+      if (!profile.location_consent_at && !profile.location_declined_at) {
+        await sb.from('profiles')
+          .update({
+            location_consent_at: now,
+            location_consent_source: 'granted_at_checkin',
+          })
+          .eq('id', user.id)
+          .then(() => { profile.location_consent_at = now; },
+                (e) => console.error('[easer-status] consent write failed:', e?.message || e));
+      }
+
       if (locationConsentOk(profile)) {
         update.arrived_lat = easerLat;
         update.arrived_lng = easerLng;

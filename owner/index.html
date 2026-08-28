@@ -4607,6 +4607,32 @@ window.intelQuick = intelQuick;
   // deliberately sets dispatch_status 'assigned_pending_acceptance' and emails +
   // pushes the Easer, exactly like an auto-dispatch offer — so both lanes wait
   // for the same confirmation, and both must display it the same way.
+  // Renders the server's arrival verdict. Never computes one: the thresholds and
+  // the accuracy weighting live in api/_geocode.js, and a second opinion here is
+  // how the owner view and the Easer view start disagreeing.
+  //
+  // "Location not shared" is stated plainly and in muted grey, NOT in red. GPS
+  // fails in garages and stairwells — where this work happens — and colouring an
+  // honest Easer's dead fix as a problem trains the owner to distrust the pro
+  // rather than the satellite.
+  function arrivalBadge(b) {
+    var a = b && b._arrival;
+    if (!a) return '';
+    var tone = {
+      confirmed: '#059669',
+      nearby:    '#00BFFF',
+      far:       '#dc2626',
+      imprecise: 'var(--muted)',
+      unknown:   'var(--muted)'
+    }[a.state] || 'var(--muted)';
+    var dot = (a.state === 'confirmed' || a.state === 'far')
+      ? '<span style="width:6px;height:6px;border-radius:50%;background:' + tone + ';display:inline-block;flex-shrink:0"></span>'
+      : '';
+    return '<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:' + tone + ';margin-top:3px">'
+      + dot + esc(a.label) + (a.detail ? ' <span style="color:var(--muted)">' + esc(a.detail) + '</span>' : '')
+      + '</div>';
+  }
+
   function easerHasAccepted(b) {
     if (!b) return false;
     return !!b.assembler_accepted_at || b.dispatch_status === 'accepted';
@@ -7625,11 +7651,14 @@ window.intelQuick = intelQuick;
       activeEl.innerHTML = active.map(function(b) {
         var stage = b.job_started_at ? 'In Progress' : b.checked_in_at ? 'Arrived' : b.en_route_at ? 'En Route' : easerHasAccepted(b) ? 'Accepted' : 'Awaiting Accept';
         var stageColors = { 'In Progress':'#059669','Arrived':'#00BFFF','En Route':'#7c3aed','Accepted':'#00BFFF','Awaiting Accept':'#6b7280' };
+        // Did they actually get there? The server decides; this only renders it.
+        var arrivalLine = arrivalBadge(b);
         var color = stageColors[stage] || '#6b7280';
         return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
           + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
           + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
           + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.assembler_name||'Easer')+' &bull; '+esc(b.customer_name||'Customer')+'</div></div>'
+          + arrivalLine
           + '<span style="background:rgba('+hexToRgb(color)+',0.1);color:'+color+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px">'+stage+'</span>'
           + '</div>'
           + (b.address ? '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">'+esc(b.address)+'</div>' : '')

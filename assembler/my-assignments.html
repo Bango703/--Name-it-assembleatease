@@ -633,6 +633,37 @@
     };
   }
 
+  /**
+   * Ask the phone where it is, once, at check-in.
+   *
+   * Resolves to null on ANY problem — no permission, no signal, timeout, or a
+   * browser without geolocation. The caller then checks in with no location, and
+   * the office sees "Location not shared" rather than a failure. This must never
+   * be the reason an Easer cannot say they arrived.
+   *
+   * The 8s cap matters: getCurrentPosition can hang indefinitely indoors, and a
+   * pro standing on a doorstep will not wait for it.
+   */
+  function captureArrivalFix() {
+    return new Promise(function(resolve) {
+      if (!navigator.geolocation) return resolve(null);
+      var settled = false;
+      var done = function(value) { if (!settled) { settled = true; resolve(value); } };
+      setTimeout(function() { done(null); }, 8000);
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          done({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          });
+        },
+        function() { done(null); },
+        { enableHighAccuracy: true, timeout: 7000, maximumAge: 30000 }
+      );
+    });
+  }
+
   function setStageMessage(element, title, message, tone) {
     if (!element) return;
     element.replaceChildren();
@@ -2008,10 +2039,20 @@
         btn2.addEventListener('click', async function() {
           btn2.disabled = true; btn2.textContent = 'Updating…';
           try {
+            // On ARRIVED only, offer the phone's location so the office can see
+            // the job was reached. Never blocks: a refusal, a timeout, or a phone
+            // with no fix all send nothing and the check-in proceeds exactly as
+            // before. GPS dies in garages and stairwells, which is where this
+            // work happens — punishing that would be punishing the honest case.
+            const payload = { bookingId: b.id, stage: s.stage };
+            if (s.stage === 'arrived') {
+              const fix = await captureArrivalFix();
+              if (fix) { payload.lat = fix.lat; payload.lng = fix.lng; payload.accuracy = fix.accuracy; }
+            }
             const r = await fetch('/api/booking/easer-status', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-              body: JSON.stringify({ bookingId: b.id, stage: s.stage }),
+              body: JSON.stringify(payload),
             });
             const d = await r.json();
             if (!r.ok || d.error) {
