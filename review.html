@@ -4,6 +4,11 @@
 <meta charset="UTF-8"/>
 <script src="/assets/js/sentry-init.js"></script>
 <script src="https://js.sentry-cdn.com/d5e773248c17d9f13dcf8b0a5f5dd73f.min.js" crossorigin="anonymous"></script>
+<!-- Stripe.js. Tips are charged on the Easer's connected account and this page
+     calls Stripe(...) directly; without the library that call throws ReferenceError,
+     the catch reports "the tip could not be sent", and no tip can ever succeed.
+     js.stripe.com is already allowed by the CSP in vercel.json. -->
+<script src="https://js.stripe.com/v3/"></script>
 <title>Rate Your Pro &mdash; AssembleAtEase</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="Rate your completed AssembleAtEase service and share feedback about your home project."/>
@@ -153,8 +158,8 @@ textarea.form-control{resize:vertical;min-height:120px}
 
       <!-- Review text -->
       <div class="form-group">
-        <label for="r-body">Your review</label>
-        <textarea id="r-body" class="form-control" placeholder="What did your Pro do well? Anything we can improve?"></textarea>
+        <label for="r-body">Your review <span style="font-weight:400;opacity:.65">(optional)</span></label>
+        <textarea id="r-body" class="form-control" placeholder="Optional — what did your Pro do well? Anything we can improve?"></textarea>
       </div>
 
       <hr class="divider"/>
@@ -429,6 +434,23 @@ function updateTipNote() {
   if (btn && !btn.disabled) btn.textContent = TIP.amount > 0 ? 'Submit review and send ' + tipMoney(TIP.amount) : 'Submit Review';
 }
 
+// Reports the outcome of the card confirmation back to the server. 'confirm'
+// makes the server re-read the intent from Stripe and record the tip only if
+// Stripe agrees; 'fail' cancels the intent and closes the pending row so the
+// customer is free to try again.
+async function reportTip(action) {
+  try {
+    var r = await fetch('/api/booking/tip', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: TIP.ref, email: TIP.email, token: reviewToken, action: action })
+    });
+    var d = await r.json();
+    return r.ok ? Object.assign({ ok: true }, d) : { ok: false, error: d.error };
+  } catch (e) {
+    return { ok: false, error: 'We could not reach the server to confirm your tip.' };
+  }
+}
+
 // Runs only AFTER the review is safely saved.
 async function sendTipAfterReview() {
   if (!TIP.amount) return null;
@@ -473,7 +495,13 @@ async function submitReview() {
   var body  = document.getElementById('r-body').value.trim();
 
   if (!selectedRating)  { showErr('Please tap a star to rate your experience.'); return; }
-  if (body.length < 10) { showErr('Please write at least a sentence about your experience.'); return; }
+  // The written review is OPTIONAL. A star rating is a complete answer, and
+  // demanding a paragraph cost us both the rating AND the tip from every
+  // customer who did not feel like writing one — the tip only runs after the
+  // review saves. If they do write something, it still has to be a sentence.
+  if (body.length > 0 && body.length < 10) {
+    showErr('Either leave the review box empty, or write at least a sentence.'); return;
+  }
   if (!email)           { showErr('Please enter your email address.'); return; }
   if (!ref)             { showErr('Please enter your booking reference number.'); return; }
 
@@ -504,10 +532,24 @@ async function submitReview() {
           btn.disabled = true; btn.textContent = 'Sending…';
           var res = await t.stripe.confirmPayment({ elements: t.elements, redirect: 'if_required' });
           if (res.error) {
+            // Tell the server it failed. Otherwise the pending row sits there
+            // claiming an unfinished tip and blocks a second attempt.
+            await reportTip('fail');
             // Stripe's own words. The review is already posted and safe.
             document.getElementById('tip-note').innerHTML =
               '<div class="tip-fail">' + (res.error.message || 'Your card was declined.') +
               '<br><br><b>Your review was still posted.</b> Nothing was charged.</div>';
+            btn.disabled = false; btn.textContent = 'Try the tip again';
+            return;
+          }
+          // Stripe took the payment, but nothing is RECORDED until the server
+          // re-reads the intent from Stripe itself and agrees. The browser's
+          // word is a hint, never proof (Rule 5).
+          var conf = await reportTip('confirm');
+          if (!conf || !conf.ok) {
+            document.getElementById('tip-note').innerHTML =
+              '<div class="tip-fail">' + ((conf && conf.error) || 'Your tip could not be confirmed.') +
+              '<br><br><b>Your review was still posted.</b> If you were charged, contact us and we will sort it out.</div>';
             btn.disabled = false; btn.textContent = 'Try the tip again';
             return;
           }

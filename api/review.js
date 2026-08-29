@@ -38,8 +38,12 @@ export default async function handler(req, res) {
   const normalizedRef = String(ref || '').toUpperCase().trim();
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const parsedRating = parseInt(rating, 10);
-  if (!ref || !email || !rating || !body) {
-    return res.status(400).json({ error: 'Missing required fields: ref, email, rating, body' });
+  // The written review is OPTIONAL — a star rating is a complete answer.
+  // Demanding a paragraph cost the rating AND the tip from every customer who
+  // did not feel like writing one, because the tip only runs once the review
+  // saves. Rating is the field that must be present.
+  if (!ref || !email || !rating) {
+    return res.status(400).json({ error: 'Missing required fields: ref, email, rating' });
   }
   if (!token) {
     return res.status(403).json({ error: 'Use the secure review link sent to your booking email.' });
@@ -53,8 +57,11 @@ export default async function handler(req, res) {
   if (!Number.isInteger(parsedRating) || parsedRating < 1 || parsedRating > 5) {
     return res.status(400).json({ error: 'Rating must be 1-5' });
   }
-  if (typeof body !== 'string' || body.trim().length < 10) {
-    return res.status(400).json({ error: 'Please write at least a sentence' });
+  // Empty is fine. A half-word is not — if they chose to write, it should say
+  // something, or it is noise on the Easer's record.
+  const reviewBody = typeof body === 'string' ? body.trim() : '';
+  if (reviewBody.length > 0 && reviewBody.length < 10) {
+    return res.status(400).json({ error: 'Either leave the review text empty, or write at least a sentence.' });
   }
 
   // Verify booking exists, is completed, and email matches
@@ -105,7 +112,7 @@ export default async function handler(req, res) {
     customer_name: booking.customer_name,
     service: booking.service,
     rating: parsedRating,
-    body: body.trim(),
+    body: reviewBody,
     approved: true,
   };
   const { error: insErr } = await insertReviewWithRetry(sb, reviewRow, 2);

@@ -119,4 +119,99 @@ const ui = await fs.readFile(new URL('../review.html', import.meta.url), 'utf8')
   console.log('PASS declining is explicit, recorded, honoured, and never blocks a change of mind');
 }
 
+// ── The library the page calls must actually be on the page ────────────────
+// review.html called Stripe(...) and never loaded js.stripe.com. The call threw
+// ReferenceError, the catch reported "the tip could not be sent", and no tip
+// could ever succeed — while the server had already created a PaymentIntent.
+//
+// The rule that generalises: a page may call Stripe(...) only if it loads the
+// library, OR guards with typeof so it degrades on purpose instead of by
+// accident. index.html and contact.html deliberately do the latter.
+{
+  const pages = ['book.html', 'contact.html', 'index.html', 'review.html',
+    'assembler/apply.html', 'assembler/verify-identity.html'];
+  for (const page of pages) {
+    const html = await fs.readFile(new URL('../' + page, import.meta.url), 'utf8');
+    // A real constructor call, not a function named continueToStripe().
+    if (!/[^A-Za-z]Stripe\(/.test(html)) continue;
+    const loadsLibrary = html.includes('js.stripe.com');
+    const guardsForAbsence = /typeof Stripe === ['"]undefined['"]/.test(html);
+    assert.ok(loadsLibrary || guardsForAbsence,
+      `${page} calls Stripe(...) but neither loads js.stripe.com nor guards for its absence`);
+  }
+
+  // The tip is not optional on this page: a guard that degrades silently would
+  // still mean no customer can ever tip. review.html must load it outright.
+  assert.ok(ui.includes('https://js.stripe.com/v3/'),
+    'review.html must load Stripe.js — the tip cannot work without it');
+  console.log('PASS every page that calls Stripe either loads it or guards for its absence');
+}
+
+// ── A tip claims money only after Stripe says money moved ──────────────────
+// The row used to be written 'succeeded' at intent-CREATION time, and the
+// browser never reported the outcome. Rule 5: Stripe is financial truth.
+{
+  assert.ok(api.includes("status: 'pending',"),
+    'a new tip row must be recorded as pending — nothing has been paid at that point');
+  assert.ok(!/status: 'succeeded',\s*\n\s*customer_email/.test(api),
+    'the insert path must not write succeeded before the customer has confirmed');
+
+  // Promotion re-reads Stripe rather than trusting the browser.
+  assert.ok(api.includes("if (action === 'confirm')"), 'there must be a confirm step');
+  assert.ok(api.includes('stripe.paymentIntents.retrieve('),
+    'confirm must re-read the intent from Stripe, not take the browser\'s word');
+  assert.ok(api.includes("if (intent.status !== 'succeeded')"),
+    'a tip may be promoted only when Stripe itself reports succeeded');
+  assert.ok(api.includes(".eq('status', 'pending')"),
+    'promotion must be a compare-and-set so two confirmations cannot double-write');
+
+  // And the browser must actually call it, or every real tip stays pending.
+  assert.ok(ui.includes("reportTip('confirm')"), 'the page must report a successful charge to the server');
+  assert.ok(ui.includes("reportTip('fail')"), 'the page must report a failed charge so the row is closed');
+  console.log('PASS a tip is recorded only after Stripe confirms it');
+}
+
+// ── A pending tip is not a tip ─────────────────────────────────────────────
+{
+  assert.ok(api.includes("const SETTLED_STATUSES = ['succeeded', 'refunded', 'disputed'];"),
+    'the statuses that represent real money must be named in one place');
+  assert.ok(api.includes('alreadyTipped: settled ?'),
+    'a pending row must not tell the customer they already tipped — no money moved');
+  assert.ok(api.includes("if (action === 'fail')"),
+    'a failed confirmation must close the row, or it blocks the customer from retrying');
+  assert.ok(api.includes('stripe.paymentIntents.cancel('),
+    'an abandoned tip intent must be cancelled, not left chargeable on the Easer account');
+
+  const migration = await fs.readFile(new URL('../api/migrations/083_booking_tips_pending_state.sql', import.meta.url), 'utf8');
+  assert.ok(migration.includes("CHECK (status IN ('pending', 'succeeded', 'refunded', 'disputed', 'failed'))"),
+    'the database must allow the pending state');
+  assert.ok(migration.includes("ALTER COLUMN status SET DEFAULT 'pending'"),
+    'the default must understate rather than overstate whether money moved');
+
+  // A customer who closes the tab leaves a pending row. If Stripe took the
+  // money anyway, an Easer is owed a tip nobody knows about.
+  const recon = await fs.readFile(new URL('../api/cron/stripe-reconciliation.js', import.meta.url), 'utf8');
+  assert.ok(recon.includes('tip_paid_but_unrecorded'),
+    'reconciliation must surface a tip Stripe took that the books still call pending');
+  console.log('PASS a stuck tip is visible and never blocks a retry');
+}
+
+// ── Writing a review is optional; rating is not ────────────────────────────
+// Requiring a paragraph cost the rating AND the tip from every customer who did
+// not feel like writing, because the tip only runs once the review saves.
+{
+  const reviewApi = await fs.readFile(new URL('../api/review.js', import.meta.url), 'utf8');
+  assert.ok(reviewApi.includes('if (!ref || !email || !rating) {'),
+    'the written review must not be a required field');
+  assert.ok(!reviewApi.includes('!rating || !body'), 'body must no longer be required');
+  assert.ok(reviewApi.includes('reviewBody.length > 0 && reviewBody.length < 10'),
+    'empty must be allowed, but a half-word should still be refused');
+  assert.ok(reviewApi.includes('body: reviewBody,'), 'the stored body must be the normalised value');
+
+  assert.ok(ui.includes('body.length > 0 && body.length < 10'),
+    'the page must not block a rating-only review either');
+  assert.ok(/\(optional\)/.test(ui), 'the label must tell the customer writing is optional');
+  console.log('PASS a customer can rate and tip without writing anything');
+}
+
 console.log('\nBooking tip tests passed.');
