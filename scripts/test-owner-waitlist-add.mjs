@@ -237,3 +237,42 @@ console.log('\nOwner waitlist add tests passed.');
 
   console.log('PASS a waitlisted applicant shows in the waitlist view without being copied into it');
 }
+
+// ── Waitlisting must not make someone impossible to approve ────────────────
+// The waitlist action set application_status='waitlist', and the readiness gate
+// read applicationSubmitted as `status === 'applied'`. So the moment the owner
+// waitlisted Phil Hawkins, approving him became impossible — and the refusal
+// read "cannot be approved yet: Application submitted", which is both blocking
+// and nonsense about someone who had applied, verified identity, and accepted
+// the terms.
+//
+// Waitlisting is a decision ABOUT a submitted application, not a reversal of it.
+{
+  const { getEaserApprovalReadiness, approvalReadinessError } = await import('../api/_easer-readiness.js');
+  const base = {
+    identity_verified: true,
+    contractor_agreement_signed_at: '2026-08-28',
+    code_of_conduct_agreed_at: '2026-08-28',
+    application_fee_waived: true,
+    available: true,
+    phone: '+15125550100',
+  };
+
+  assert.equal(getEaserApprovalReadiness({ ...base, application_status: 'applied' }).isApprovable, true);
+  assert.equal(getEaserApprovalReadiness({ ...base, application_status: 'waitlist' }).isApprovable, true,
+    'a waitlisted applicant must stay approvable — the whole promise of waitlisting is that it is reversible');
+
+  // Rejected is NOT the same. That application was closed out and refunded;
+  // approving it without a fresh one would skip the decision entirely.
+  const rejected = getEaserApprovalReadiness({ ...base, application_status: 'rejected' });
+  assert.equal(rejected.isApprovable, false, 'a rejected application must still require re-applying');
+
+  // A refusal must say what is WRONG. Joining requirement names straight onto
+  // "cannot be approved yet:" produced a sentence that read as a reason TO
+  // approve (Article 14).
+  const msg = approvalReadinessError(rejected);
+  assert.ok(/Still missing:/.test(msg), 'the refusal must frame the items as missing, not as satisfied');
+  assert.ok(!/^Easer cannot be approved yet: Application submitted\.$/.test(msg),
+    'the old nonsense phrasing must not come back');
+  console.log('PASS waitlisting keeps someone approvable, and a refusal reads as a refusal');
+}
