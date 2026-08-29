@@ -121,7 +121,16 @@ assert.doesNotMatch(migration, /payment_collected\s*=/);
 assert.doesNotMatch(migration, /payout_status\s*=/);
 assert.doesNotMatch(migration, /total_price\s*=/);
 
-assert.match(blogIndex, /Texas Home Setup Guides/);
+// The heading used to read "Texas Home Setup Guides" and this asserted that
+// exact string. It now reads "Home Setup Guides", which is CORRECT: the city and
+// state belong in the title, meta, JSON-LD, service-area block and FAQ — not
+// stuffed through body copy. Asserting the old wording made the guard enforce
+// the opposite of the platform's own copy rule.
+//
+// What actually matters is unchanged and still checked: this is the guides
+// index, and it links the statewide guide (asserted on the next line) whose
+// Texas coverage and no-nationwide-claim are verified below.
+assert.match(blogIndex, /Home Setup Guides/);
 assert.match(blogIndex, /texas-furniture-assembly-home-setup-guide/);
 for (const place of ['Houston', 'Dallas-Fort Worth', 'San Antonio', 'Austin', 'El Paso', 'Amarillo', 'McAllen', 'Corpus Christi']) {
   assert.match(texasGuide, new RegExp(place.replace('-', '\\-'), 'i'));
