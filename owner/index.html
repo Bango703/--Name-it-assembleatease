@@ -4076,6 +4076,29 @@ window.intelQuick = intelQuick;
     _renderEvidence(bookingId, _evidenceCache[bookingId], contentEl, warningEl, badgeEl, isActiveTab);
   };
 
+  // Promote (or withdraw) the Customer-Facing Final Photo. The server decides
+  // what is eligible and reports its own reason; this only relays the click.
+  window.setEvidenceCustomerFacing = async function(evidenceId, bookingId, customerFacing) {
+    try {
+      var r = await fetch('/api/booking/evidence', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+        body: JSON.stringify({ evidenceId: evidenceId, customerFacing: customerFacing })
+      });
+      var d = await r.json().catch(function(){ return {}; });
+      if (!r.ok) {
+        alert(d.error || 'That photo could not be updated, and the server did not say why.');
+        return;
+      }
+      // Re-read rather than patch the cache: the server demotes the other
+      // photos when one is promoted, so local state would be wrong.
+      delete _evidenceCache[bookingId];
+      await window.loadEvidence(bookingId);
+    } catch (err) {
+      alert('Network error — the photo was not changed.');
+    }
+  };
+
   function _renderEvidence(bookingId, cache, contentEl, warningEl, badgeEl, isActiveTab) {
     var booking = allBookings.find(function(b) { return b.id === bookingId; });
     var damageReviewPanel = booking && booking.damage_review_status === 'review_required'
@@ -4184,6 +4207,19 @@ window.intelQuick = intelQuick;
         + '<div>' + fmtBytes(ev.file_size_bytes) + '</div>'
         + (ev.notes ? '<div style="margin-top:2px;font-style:italic">' + esc(ev.notes) + '</div>' : '')
         + expiry
+        // An Easer upload is INTERNAL until someone here decides otherwise.
+        // Nothing a customer sees reads a photo that has not been promoted, so
+        // this control is the only way a photo ever leaves the building.
+        + (ev.evidence_type === 'completion_photo'
+          ? '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">'
+            + (ev.visibility === 'all'
+              ? '<div style="font-size:0.7rem;font-weight:700;color:var(--green);margin-bottom:4px">SHOWN TO CUSTOMER</div>'
+                + '<button type="button" class="btn" style="font-size:0.68rem;padding:2px 8px" '
+                + 'onclick="event.stopPropagation();window.setEvidenceCustomerFacing(\'' + jsAttr(String(ev.id)) + '\',\'' + jsAttr(String(bookingId)) + '\',false)">Stop sharing</button>'
+              : '<button type="button" class="btn btn-teal" style="font-size:0.68rem;padding:2px 8px" '
+                + 'onclick="event.stopPropagation();window.setEvidenceCustomerFacing(\'' + jsAttr(String(ev.id)) + '\',\'' + jsAttr(String(bookingId)) + '\',true)">Share with customer</button>')
+            + '</div>'
+          : '')
         + '</div></div>';
     }).join('');
 

@@ -9,7 +9,7 @@ import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapsho
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
-import { loadCurrentCompletionEvidence } from './_completion-evidence.js';
+import { loadCurrentCompletionEvidence, loadCustomerFacingCompletionPhoto } from './_completion-evidence.js';
 import { reserveBookingFinancialOperation } from './_financial-operation.js';
 import { finalizeCompletionRewards, surfaceCompletionRewardHold } from './_completion-rewards.js';
 import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
@@ -378,11 +378,16 @@ export default async function handler(req, res) {
   }
   try {
     const amountDisplay = finalAmountCharged > 0 ? `$${(finalAmountCharged / 100).toFixed(2)}` : null;
+    // The completion gate above still requires a photo. This is the separate
+    // question of whether the CUSTOMER may see one — only a photo deliberately
+    // promoted to customer-facing qualifies. No approved photo simply means the
+    // receipt goes out without this section.
     let photoBlock = '';
     try {
-      const { data: signed } = await sb.storage
-        .from('booking-evidence')
-        .createSignedUrl(completionEvidence.storage_path, 60 * 60 * 24 * 30);
+      const { evidence: shareable } = await loadCustomerFacingCompletionPhoto(sb, booking);
+      const { data: signed } = shareable?.storage_path
+        ? await sb.storage.from('booking-evidence').createSignedUrl(shareable.storage_path, 60 * 60 * 24 * 30)
+        : { data: null };
       if (signed?.signedUrl) {
         photoBlock = `<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px"><tr><td>
           <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#374151">Here's a photo of the finished work:</p>
