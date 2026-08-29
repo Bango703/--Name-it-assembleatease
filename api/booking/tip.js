@@ -25,16 +25,27 @@ import { logActivity } from './_activity.js';
  * account, so possession of the emailed link plus a matching ref and email is the
  * proof — identical to how a review is authorised, no weaker.
  *
- * Actions:
- *   quote   — what may be tipped, and whether this Easer can receive one. No write.
- *   send    — charge it.
- *   decline — the customer said no. Recorded so they are never asked again:
- *             being asked twice for money you already declined reads as nagging
- *             and makes "completely optional" look untrue.
+ * THE LIFECYCLE, AND WHY IT HAS ONE
+ * A tip row used to be written as 'succeeded' the moment the PaymentIntent was
+ * CREATED, and the browser never reported the outcome. The row then said money
+ * had moved whether the card cleared, was declined, or the tab was closed. Rule
+ * 5 is explicit that Stripe is financial truth, so:
+ *
+ *   send    creates the intent and records it as PENDING. Nothing has moved.
+ *   confirm the browser has confirmed with Stripe; the server RE-READS the
+ *           intent from Stripe and promotes the row only if Stripe agrees.
+ *   fail    the confirmation failed or was abandoned; cancel the intent and
+ *           close the row so it cannot masquerade as money owed.
+ *
+ * The server never takes the browser's word for a payment. It asks Stripe.
  */
 
 const MIN_TIP_CENTS = 100;
 const MAX_TIP_CENTS = 50000;   // $500 — a fat-finger ceiling, not a policy on generosity
+
+// A row in one of these states represents a real, settled tip. 'pending' does
+// not: it is an intent nobody has paid yet.
+const SETTLED_STATUSES = ['succeeded', 'refunded', 'disputed'];
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -83,13 +94,17 @@ export default async function handler(req, res) {
   const canReceive = Boolean(easer?.stripe_connect_account_id && easer.stripe_connect_charges_enabled === true);
   const easerFirstName = String(easer?.full_name || booking.assembler_name || 'your pro').trim().split(/\s+/)[0];
 
-  // Already tipped? Say so rather than letting a refresh charge again.
+  // Any row that is not closed out. Its STATUS decides what it means.
   const { data: existing } = await sb
     .from('booking_tips')
-    .select('id, amount_cents, created_at')
+    .select('id, amount_cents, status, stripe_payment_intent_id, stripe_account_id, created_at')
     .eq('booking_id', booking.id)
     .neq('status', 'failed')
     .maybeSingle();
+  const settled = existing && SETTLED_STATUSES.includes(existing.status) ? existing : null;
+
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  const stripe = stripeKey ? new Stripe(stripeKey) : null;
 
   // A recorded "no thanks" ends it. Nothing further is offered, ever.
   if (action === 'decline') {
@@ -106,19 +121,100 @@ export default async function handler(req, res) {
       easerFirstName,
       canReceive,
       declined: Boolean(booking.tip_declined_at),
-      alreadyTipped: existing ? { amountCents: existing.amount_cents, at: existing.created_at } : null,
+      // Only a SETTLED tip counts as already given. A pending row is an intent
+      // nobody paid — telling someone they already tipped when no money moved
+      // would be the same false claim this lifecycle exists to prevent.
+      alreadyTipped: settled ? { amountCents: settled.amount_cents, at: settled.created_at } : null,
       minCents: MIN_TIP_CENTS,
       maxCents: MAX_TIP_CENTS,
       // The server's real reason, so the page never invents one (Article 16).
       reason: canReceive ? null : `${easerFirstName} hasn't finished setting up payouts yet, so tips can't be sent for this job.`,
     });
   }
+
+  // ── confirm: the browser says Stripe took the payment. Verify that. ───────
+  if (action === 'confirm') {
+    if (!existing) return res.status(404).json({ error: 'There is no tip to confirm.', code: 'NO_TIP' });
+    if (settled) {
+      return res.status(200).json({ ok: true, alreadyRecorded: true, amountCents: settled.amount_cents });
+    }
+    if (!stripe) return res.status(503).json({ error: 'Tips are temporarily unavailable.' });
+
+    // Stripe is asked directly. The browser reporting success is a hint, not proof.
+    let intent;
+    try {
+      intent = await stripe.paymentIntents.retrieve(
+        existing.stripe_payment_intent_id,
+        { expand: ['latest_charge.balance_transaction'] },
+        { stripeAccount: existing.stripe_account_id },
+      );
+    } catch (err) {
+      console.error('[tip] confirm retrieve failed:', err?.message || err);
+      return res.status(502).json({ error: 'The tip could not be verified with Stripe. It has not been recorded.' });
+    }
+
+    if (intent.status !== 'succeeded') {
+      // Say what Stripe said. Never promote on hope.
+      return res.status(409).json({
+        error: `Stripe reports this payment is ${intent.status}, so the tip has not been recorded.`,
+        code: 'NOT_SUCCEEDED',
+        stripeStatus: intent.status,
+      });
+    }
+
+    const balanceTx = intent.latest_charge?.balance_transaction;
+    const patch = {
+      status: 'succeeded',
+      amount_cents: intent.amount_received || intent.amount || existing.amount_cents,
+    };
+    if (balanceTx && typeof balanceTx === 'object') {
+      patch.stripe_fee_cents = balanceTx.fee ?? null;
+      patch.easer_net_cents = balanceTx.net ?? null;
+    }
+
+    // Only promote a row that is still pending, so two confirmations cannot
+    // double-write and a refund that landed first is never overwritten.
+    const { data: promoted } = await sb.from('booking_tips')
+      .update(patch)
+      .eq('id', existing.id)
+      .eq('status', 'pending')
+      .select('id, amount_cents');
+    if (!promoted?.length) {
+      return res.status(200).json({ ok: true, alreadyRecorded: true, amountCents: existing.amount_cents });
+    }
+
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'tip_succeeded',
+      actorType: 'customer',
+      actorName: booking.customer_name || 'Customer',
+      description: `Customer tipped ${easerFirstName} $${(patch.amount_cents / 100).toFixed(2)}`,
+      metadata: { easerId: easer.id, amountCents: patch.amount_cents, paymentIntentId: intent.id },
+    }).catch(() => {});
+
+    return res.status(200).json({ ok: true, amountCents: patch.amount_cents, easerFirstName });
+  }
+
+  // ── fail: the confirmation did not happen. Close the row. ─────────────────
+  // Without this a declined card leaves a pending row forever, and a pending row
+  // blocks the customer from trying again.
+  if (action === 'fail') {
+    if (!existing || settled) return res.status(200).json({ ok: true });
+    if (stripe && existing.stripe_payment_intent_id) {
+      await stripe.paymentIntents.cancel(
+        existing.stripe_payment_intent_id, {}, { stripeAccount: existing.stripe_account_id },
+      ).catch(() => {});   // already cancelled or uncancellable is fine
+    }
+    await sb.from('booking_tips').update({ status: 'failed' }).eq('id', existing.id).eq('status', 'pending');
+    return res.status(200).json({ ok: true, closed: true });
+  }
+
   if (action !== 'send') return res.status(400).json({ error: `Unknown action: ${action}` });
 
   // Someone who declined and then changed their mind is welcome to tip — the
   // decline only stops us ASKING, it never blocks a customer who chose to give.
 
-  if (existing) {
+  if (settled) {
     return res.status(409).json({
       error: `You already sent ${easerFirstName} a tip for this job. Thank you.`,
       code: 'ALREADY_TIPPED',
@@ -141,12 +237,32 @@ export default async function handler(req, res) {
   if (!await rateLimit(ip, 'default')) {
     return res.status(429).json({ error: 'Too many attempts. Please wait a moment and try again.' });
   }
-  if (!process.env.STRIPE_SECRET_KEY) {
+  if (!stripe) {
     return res.status(503).json({ error: 'Tips are temporarily unavailable. Nothing was charged.' });
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const accountId = easer.stripe_connect_account_id;
+
+  // A pending row for the SAME amount is the same attempt — a refresh or a
+  // second tap. Reuse its intent rather than creating another one the customer
+  // could be charged for.
+  if (existing && existing.status === 'pending' && existing.amount_cents === amount) {
+    try {
+      const prior = await stripe.paymentIntents.retrieve(
+        existing.stripe_payment_intent_id, {}, { stripeAccount: existing.stripe_account_id },
+      );
+      if (prior.status !== 'canceled' && prior.client_secret) {
+        return res.status(200).json({
+          ok: true,
+          clientSecret: prior.client_secret,
+          stripeAccount: existing.stripe_account_id,
+          amountCents: amount,
+          easerFirstName,
+          resumed: true,
+        });
+      }
+    } catch { /* fall through and create a fresh one */ }
+  }
 
   let intent;
   try {
@@ -178,22 +294,39 @@ export default async function handler(req, res) {
     });
   }
 
-  // The row is written BEFORE the customer confirms payment, so a tip that
-  // succeeds in Stripe can never be missing here — the webhook and the
-  // reconciler both need something to find. Status is corrected on confirmation.
-  const { error: insertErr } = await sb.from('booking_tips').insert({
+  // Recorded as PENDING, before the customer confirms — so a tip that succeeds
+  // in Stripe can never be missing here, while a row never claims money that has
+  // not moved. Promotion to 'succeeded' happens in the confirm action above,
+  // only after Stripe itself is re-read.
+  const row = {
     booking_id: booking.id,
     easer_id: easer.id,
     amount_cents: amount,
     stripe_account_id: accountId,
     stripe_payment_intent_id: intent.id,
-    status: 'succeeded',
+    status: 'pending',
     customer_email: booking.customer_email,
-  });
-  if (insertErr) {
+  };
+
+  let recordErr = null;
+  if (existing && existing.status === 'pending') {
+    // Same customer, new amount. Cancel the intent they are no longer paying so
+    // it cannot sit authorisable on the Easer's account, then reuse the row —
+    // the one-tip-per-booking index would refuse a second insert.
+    if (existing.stripe_payment_intent_id !== intent.id) {
+      await stripe.paymentIntents.cancel(
+        existing.stripe_payment_intent_id, {}, { stripeAccount: existing.stripe_account_id },
+      ).catch(() => {});
+    }
+    ({ error: recordErr } = await sb.from('booking_tips').update(row).eq('id', existing.id).eq('status', 'pending'));
+  } else {
+    ({ error: recordErr } = await sb.from('booking_tips').insert(row));
+  }
+
+  if (recordErr) {
     // Recording failed but the intent exists. Cancel it rather than leave a
     // chargeable intent nothing knows about.
-    console.error('[tip] record failed, cancelling intent:', insertErr?.message || insertErr);
+    console.error('[tip] record failed, cancelling intent:', recordErr?.message || recordErr);
     await stripe.paymentIntents.cancel(intent.id, {}, { stripeAccount: accountId }).catch(() => {});
     return res.status(500).json({
       error: 'The tip could not be recorded, so nothing was charged. Please try again.',

@@ -30,6 +30,7 @@ import { logCron } from './_cron-logger.js';
 
 const LOOKBACK_DAYS = 120;
 const TOLERANCE_CENTS = 0;   // money either matches or it does not
+const STALE_TIP_MINUTES = 30;   // longer than any honest checkout takes
 
 export default async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
@@ -119,6 +120,46 @@ export default async function handler(req, res) {
           detail: `Booking is ${b.status} but ${intent.id} still holds ${money(intent.amount)} on the customer's card`,
         });
       }
+    }
+
+    // ── 5. Tips stuck mid-flight ─────────────────────────────────────────
+    // A tip row is written as 'pending' when the PaymentIntent is created and
+    // promoted only after the server re-reads Stripe. If the customer closes
+    // the tab between those two steps the row never resolves. Usually that
+    // means nothing was paid — but if Stripe says the money DID land, an Easer
+    // is owed a tip nobody knows about, which is the case worth an alert.
+    const staleBefore = new Date(Date.now() - STALE_TIP_MINUTES * 60000).toISOString();
+    const { data: stuckTips } = await sb
+      .from('booking_tips')
+      .select('id, booking_id, amount_cents, stripe_account_id, stripe_payment_intent_id, created_at')
+      .eq('status', 'pending')
+      .lt('created_at', staleBefore);
+
+    for (const tip of stuckTips || []) {
+      checked += 1;
+      let tipIntent;
+      try {
+        tipIntent = await stripe.paymentIntents.retrieve(
+          tip.stripe_payment_intent_id, {}, { stripeAccount: tip.stripe_account_id },
+        );
+      } catch (err) {
+        findings.push({
+          ref: 'tip ' + tip.id.slice(0, 8),
+          kind: 'tip_unreadable',
+          detail: `Pending tip of ${money(tip.amount_cents)} could not be read from Stripe: ${err?.message || 'unknown error'}`,
+        });
+        continue;
+      }
+      if (tipIntent.status === 'succeeded') {
+        findings.push({
+          ref: 'tip ' + tip.id.slice(0, 8),
+          kind: 'tip_paid_but_unrecorded',
+          detail: `Stripe took ${money(tipIntent.amount_received || tipIntent.amount)} for this tip but the row still says pending`
+            + ' — an Easer has money the books do not show',
+        });
+      }
+      // Any other status means no money moved. The send path reuses or replaces
+      // the row, so it blocks nothing and does not need reporting as a problem.
     }
 
     if (findings.length) {
