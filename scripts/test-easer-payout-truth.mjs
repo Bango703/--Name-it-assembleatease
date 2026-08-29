@@ -191,7 +191,57 @@ console.log('Easer payout truth tests: PASS');
   // Number(null) is 0 and 0 is finite — without the null check this renders
   // "about 0 business days", the same trap that once made a null coordinate
   // read as a 3,000km distance.
-  assert.ok(payoutSrc.includes('delayDays != null && Number.isFinite(Number(delayDays)) && Number(delayDays) > 0'),
-    'an unknown schedule must fall back to non-specific wording, never "0 business days"');
+  // Number(null) is 0 and 0 is finite, so without an explicit absence check the
+  // copy renders "about 0 business days" — the same trap that once made a null
+  // coordinate read as a 3,000km distance. The guard now lives in
+  // expectedPayoutArrival, which returns null rather than a bogus day.
+  assert.ok(payoutSrc.includes('if (delayDays == null || !Number.isFinite(days) || days <= 0) return null;'),
+    'an unknown or zero schedule must produce no date at all, never "0 business days"');
   console.log('PASS a Stripe Connect payout tells the Easer, with timing read from Stripe');
+}
+
+// ── The Easer is told WHEN, not just that it moved ─────────────────────────
+// "Transferred" told a pro their money had moved but not when they could spend
+// it, which is the only part they needed. "About 2 business days" is a duration,
+// not an answer.
+{
+  const { expectedPayoutArrival, formatPayoutArrival, buildPayoutEmail } =
+    await import('../api/booking/payout.js');
+
+  // Business days, so a Friday transfer does not promise Sunday.
+  const fri = expectedPayoutArrival(new Date('2026-08-28T12:00:00Z'), 2);
+  assert.equal(formatPayoutArrival(fri), 'Tuesday, September 1',
+    'a Friday transfer with a 2-day delay must land Tuesday, not Sunday');
+  assert.equal(formatPayoutArrival(expectedPayoutArrival(new Date('2026-08-27T12:00:00Z'), 2)), 'Monday, August 31');
+
+  // An unknown schedule must produce NO date rather than a wrong one.
+  assert.equal(expectedPayoutArrival(new Date(), null), null, 'an unknown schedule must not invent a date');
+  assert.equal(expectedPayoutArrival(new Date(), 0), null, 'a zero delay must not render as "today"');
+  assert.equal(expectedPayoutArrival('not-a-date', 2), null, 'an unparseable date must not produce a day');
+
+  const withDate = buildPayoutEmail({
+    firstName: 'Trapper', ref: 'X', service: 'Furniture Assembly', date: '',
+    payoutDisplay: '$419.30', notes: '', method: 'stripe', viaStripeConnect: true, delayDays: 2,
+  });
+  assert.ok(/Expect it by/.test(withDate), 'the payout email must name the expected day');
+
+  const noDate = buildPayoutEmail({
+    firstName: 'T', ref: 'X', service: 'S', date: '',
+    payoutDisplay: '$1.00', notes: '', method: 'stripe', viaStripeConnect: true, delayDays: null,
+  });
+  assert.ok(!/Expect it by/.test(noDate), 'with no schedule the email must not promise a day');
+  assert.ok(/normal schedule/.test(noDate), 'it must fall back to non-specific wording instead');
+
+  const release = await fs.readFile(new URL('../api/cron/release-payouts.js', import.meta.url), 'utf8');
+  assert.ok(release.includes('expected_bank_arrival_at:'), 'the estimate must be stored at transfer time');
+  // The transfer already happened by the time this writes. A missing column must
+  // never cost us the record of a real transfer.
+  assert.ok(release.includes('const applyTransferState = patch =>'),
+    'the transfer-state write must be retryable without the new column');
+  assert.ok(/expected_bank_arrival_at\|PGRST204\|42703/.test(release),
+    'a missing migration 086 must degrade, not lose the transfer record');
+
+  const easerUi = await fs.readFile(new URL('../assembler/payouts.html', import.meta.url), 'utf8');
+  assert.ok(easerUi.includes('Expect it by'), 'the Easer dashboard must show the date too, not only the email');
+  console.log('PASS the Easer is told which day the money should land, or nothing at all');
 }

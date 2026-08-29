@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
-import { buildPayoutEmail } from '../booking/payout.js';
+import { buildPayoutEmail, expectedPayoutArrival } from '../booking/payout.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
 import { isStripeConnectEnabled, getAssemblerConnectAccount } from '../_stripe-connect.js';
 import { logCron } from './_cron-logger.js';
@@ -32,7 +32,7 @@ const PAYOUT_HOLD_HOURS = Number.isFinite(parseFloat(process.env.PAYOUT_HOLD_HOU
 
 const CONNECT_PAYOUT_RECHECK_FIELDS = [
   'id', 'status', 'assembler_id', 'assembler_due',
-  'cancellation_easer_due_cents', 'cancellation_easer_payout_status',
+  'cancellation_easer_due_cents', 'cancellation_easer_payout_status', 'easer_bonus_cents',
   'payment_status', 'payout_status', 'payout_mode_snapshot',
   'stripe_dispute_id', 'stripe_dispute_status',
   'payout_review_status', 'payout_reviewed_at', 'payout_reviewed_by', 'payout_review_notes',
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
 
   const { data: pendingRows, error } = await sb
     .from('bookings')
-    .select('id, ref, status, assembler_id, assembler_name, assembler_due, cancellation_easer_due_cents, cancellation_easer_payout_status, completed_at, cancelled_at, payment_status, payout_status, payout_amount, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, stripe_dispute_id, stripe_dispute_status, paid_out_at, total_price, tax_amount, service_call_fee, amount_charged, refund_amount, is_deposit, deposit_amount, cancellation_fee, stripe_customer_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, stripe_balance_amount_captured, stripe_transfer_id, assemblecash_redeemed_cents, reschedule_count, rescheduled_at, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, evidence_requested_at, job_started_at, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes')
+    .select('id, ref, status, assembler_id, assembler_name, assembler_due, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_bonus_cents, completed_at, cancelled_at, payment_status, payout_status, payout_amount, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, stripe_dispute_id, stripe_dispute_status, paid_out_at, total_price, tax_amount, service_call_fee, amount_charged, refund_amount, is_deposit, deposit_amount, cancellation_fee, stripe_customer_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, stripe_balance_amount_captured, stripe_transfer_id, assemblecash_redeemed_cents, reschedule_count, rescheduled_at, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, evidence_requested_at, job_started_at, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes')
     .in('status', ['completed', 'cancelled'])
     .eq('payout_status', 'pending')
     .eq('payout_mode_snapshot', 'stripe_connect')
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
     const cancellation = booking.status === 'cancelled';
     const dueCents = cancellation
       ? Number(booking.cancellation_easer_due_cents || 0)
-      : Number(booking.assembler_due || 0);
+      : Number(booking.assembler_due || 0) + Number(booking.easer_bonus_cents || 0);
     const eventAt = cancellation ? booking.cancelled_at : booking.completed_at;
     const paymentReady = cancellation
       ? booking.payment_status === 'cancellation_fee_captured'
@@ -101,9 +101,13 @@ export default async function handler(req, res) {
 
   for (const b of due || []) {
     const cancellationPayout = b.status === 'cancelled';
+    // The owner-funded bonus rides on top of the split, exactly like the
+    // same-day rush bonus. It is added HERE rather than inside
+    // computeBookingSplit, which must stay a pure function of what the
+    // customer paid. A cancellation payout has no bonus: there was no job.
     const dueCents = cancellationPayout
       ? Number(b.cancellation_easer_due_cents || 0)
-      : Number(b.assembler_due || 0);
+      : Number(b.assembler_due || 0) + Number(b.easer_bonus_cents || 0);
     if (!cancellationPayout && b.evidence_requested_at) {
       const evidenceResult = await loadCurrentCompletionEvidence(sb, b, { select: 'id, evidence_type, uploaded_by, created_at' });
       const requestedAt = new Date(b.evidence_requested_at).getTime();
@@ -207,8 +211,23 @@ export default async function handler(req, res) {
         },
       }, { idempotencyKey: idem });
 
+      // What the Easer will be told, captured at transfer time from THEIR OWN
+      // payout schedule. Stored rather than recomputed so the dashboard shows
+      // the same date the email promised, and so a later schedule change cannot
+      // silently rewrite history. Estimate only — Stripe's real arrival_date
+      // does not exist until it creates the bank payout.
+      let arrivalDelayDays = null;
+      let expectedArrivalAt = null;
+      try {
+        const acctForSchedule = await stripe.accounts.retrieve(connectState.accountId);
+        arrivalDelayDays = acctForSchedule?.settings?.payouts?.schedule?.delay_days ?? null;
+        expectedArrivalAt = expectedPayoutArrival(new Date(), arrivalDelayDays);
+      } catch (schedErr) {
+        console.error('[release-payouts] payout schedule unreadable for ' + b.ref + ':', schedErr?.message || schedErr);
+      }
+
       const notes = `Stripe Connect transfer ${transfer.id} created after ${PAYOUT_HOLD_HOURS}h hold; bank payout not yet verified`;
-      const { error: transferStateErr, data: transferredRows } = await sb.from('bookings').update({
+      const transferPatch = {
         payout_status: 'transferred',
         payout_amount: dueCents,
         payout_notes: notes,
@@ -217,17 +236,32 @@ export default async function handler(req, res) {
         stripe_transfer_status: 'succeeded',
         stripe_transfer_created_at: new Date().toISOString(),
         stripe_bank_payout_status: 'pending',
+        expected_bank_arrival_at: expectedArrivalAt ? expectedArrivalAt.toISOString() : null,
         cancellation_easer_payout_status: cancellationPayout ? 'transferred' : b.cancellation_easer_payout_status,
         financial_operation_key: null,
         financial_operation_type: null,
         financial_operation_started_at: null,
-      })
+      };
+
+      // expected_bank_arrival_at arrives with migration 086. If the code ships
+      // first, naming it here makes PostgREST reject the WHOLE update — and the
+      // transfer has already been created by this point, so the booking would be
+      // left claiming the money never moved. Losing a nice-to-have date is fine;
+      // losing the record of a real transfer is not.
+      const applyTransferState = patch => sb.from('bookings').update(patch)
         .eq('id', b.id)
         .eq('payout_status', 'pending')
         .eq('financial_operation_key', operationKey)
         .eq('financial_operation_type', 'payout_connect')
         .eq('assembler_id', b.assembler_id)
         .select('id');
+
+      let { error: transferStateErr, data: transferredRows } = await applyTransferState(transferPatch);
+      if (transferStateErr && /expected_bank_arrival_at|PGRST204|42703/i.test(String(transferStateErr.message || transferStateErr.code || ''))) {
+        console.warn('[release-payouts] migration 086 not applied; recording the transfer without an arrival estimate');
+        const { expected_bank_arrival_at: _skip, ...withoutArrival } = transferPatch;
+        ({ error: transferStateErr, data: transferredRows } = await applyTransferState(withoutArrival));
+      }
       if (transferStateErr || !transferredRows?.length) {
         throw new Error(`Transfer created but booking state failed: ${transferStateErr?.message || 'reservation changed'}`);
       }
@@ -262,10 +296,12 @@ export default async function handler(req, res) {
         if (easerProfile?.email) {
           // Read the real schedule off their own account rather than hardcoding
           // a number that belongs to Stripe and can differ per Easer.
-          let delayDays = null;
+          let delayDays = arrivalDelayDays;
           try {
-            const acct = await stripe.accounts.retrieve(connectState.accountId);
-            delayDays = acct?.settings?.payouts?.schedule?.delay_days ?? null;
+            if (delayDays == null) {
+              const acct = await stripe.accounts.retrieve(connectState.accountId);
+              delayDays = acct?.settings?.payouts?.schedule?.delay_days ?? null;
+            }
           } catch { /* copy stays non-specific rather than inventing a figure */ }
 
           const payoutDisplay = '$' + (dueCents / 100).toFixed(2);

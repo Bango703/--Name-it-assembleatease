@@ -347,6 +347,10 @@ export function computeBookingFinancialSummary({
   stripeFeeCents = null,
   assemblerDueCents = 0,
   payoutAmountCents = 0,
+  // Owner-funded bonus. Counted as an Easer cost from the moment it is
+  // promised, not from when it is paid — otherwise the margin looks
+  // healthier than it is for every job sitting between the two.
+  easerBonusCents = 0,
 } = {}) {
   const grossChargedCents = Math.max(0, Math.round(Number(amountChargedCents || totalPriceCents) || 0));
   const refundedCents = Math.min(grossChargedCents, Math.max(0, Math.round(Number(refundAmountCents) || 0)));
@@ -360,9 +364,12 @@ export function computeBookingFinancialSummary({
     ? Math.max(0, Math.round(recordedStripeFee))
     : estimateStripeFeeCents(netChargedCents);
   const payoutRecorded = Math.max(0, Math.round(Number(payoutAmountCents) || 0));
+  const bonusCents = Math.max(0, Math.round(Number(easerBonusCents) || 0));
+  // A recorded payout already includes the bonus (both rails add it before
+  // paying), so it is only added to the un-paid estimate.
   const easerCostCents = payoutRecorded > 0
     ? payoutRecorded
-    : Math.max(0, Math.round(Number(assemblerDueCents) || 0));
+    : Math.max(0, Math.round(Number(assemblerDueCents) || 0)) + bonusCents;
 
   return {
     grossChargedCents,
@@ -372,6 +379,7 @@ export function computeBookingFinancialSummary({
     processingFeeCents,
     processingFeeIsActual: stripeFeeCents != null && Number.isFinite(recordedStripeFee),
     easerCostCents,
+    easerBonusCents: bonusCents,
     // What the platform actually kept before processing costs — DERIVED, never
     // the stored bookings.platform_fee column. That column is a snapshot of the
     // 30% commission at completion time, and a later goodwill discount does not

@@ -202,7 +202,9 @@ export default async function handler(req, res) {
       try {
         await sendEmail({
           to: entry.email,
-          from: 'AssembleAtEase <booking@assembleatease.com>',
+          // Every other waitlist email sends from waitlist@. A thread that changes
+          // sender halfway through reads as a different company to the recipient.
+          from: 'AssembleAtEase <waitlist@assembleatease.com>',
           subject: 'You are invited to join AssembleAtEase',
           replyTo: 'service@assembleatease.com',
           html: buildInviteEmail(firstName, inviteUrl, entry.city, entry.state),
