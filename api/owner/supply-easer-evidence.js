@@ -15,9 +15,12 @@ import { logActivity } from '../booking/_activity.js';
  * answering — the money is stranded and the owner has no way to release it.
  *
  * WHAT IT DOES NOT DO
- * It does not let the owner mark a job complete on someone's behalf, and it
- * does not write a false author. uploaded_by is literally the uploader; the
- * Easer it was supplied for is recorded separately in uploaded_on_behalf_of.
+ * It does not write a false author. uploaded_by is literally the uploader;
+ * the Easer it was supplied for is recorded in uploaded_on_behalf_of, and
+ * the timeline says the OWNER did this. The owner may then complete the job
+ * through their own completion path — which is the point, because otherwise
+ * an Easer who cannot upload deadlocks the job forever.
+ *
  * Evidence with the wrong author is worse than no evidence, because it looks
  * trustworthy in exactly the dispute where trustworthiness matters.
  *
@@ -96,10 +99,22 @@ export default async function handler(req, res) {
     .maybeSingle();
   if (bookingError || !booking) return res.status(404).json({ error: 'Booking not found' });
 
-  if (booking.status !== 'completed') {
+  // Work must have STARTED, not finished. Requiring completion created a
+  // deadlock: an Easer who cannot upload cannot press Complete, the owner
+  // cannot complete the job either (complete.js needs a photo), and the owner
+  // could not supply one because the job was not complete. The job stuck in
+  // progress forever with money held behind it.
+  const workStarted = Boolean(booking.job_started_at) || booking.status === 'completed';
+  if (!workStarted) {
     return res.status(409).json({
-      error: 'Evidence can only be supplied for a completed job.',
-      code: 'NOT_COMPLETED',
+      error: 'This job has not started yet, so there is no completed work to document.',
+      code: 'WORK_NOT_STARTED',
+    });
+  }
+  if (['cancelled', 'declined', 'refunded'].includes(String(booking.status || '').toLowerCase())) {
+    return res.status(409).json({
+      error: `This job is ${booking.status}. Completion evidence does not apply.`,
+      code: 'JOB_NOT_LIVE',
     });
   }
   if (!booking.assembler_id) {

@@ -4165,7 +4165,11 @@ window.intelQuick = intelQuick;
     // this the payout stays held forever whenever an Easer goes quiet, and the
     // owner has no way to release money for work that was actually done.
     var canSupplyForEaser = booking
-      && booking.status === 'completed'
+      // Once work has STARTED, not only once it is finished. Requiring
+      // completion deadlocked the job: the Easer could not complete without
+      // a photo, and the owner could not supply one until it was complete.
+      && (booking.job_started_at || booking.status === 'completed')
+      && ['cancelled', 'declined', 'refunded'].indexOf(String(booking.status || '').toLowerCase()) === -1
       && booking.assembler_id
       && ownerEaserProfile
       && booking.assembler_id !== ownerEaserProfile.id;

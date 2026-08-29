@@ -87,9 +87,17 @@ const ownerUi = await read('owner/index.html');
     'the Easer completion gate must keep using the raw loader — a photo is still required to complete');
   assert.ok(easerComplete.includes('A completion photo is required.'),
     'the completion requirement must not have been weakened by the privacy fix');
-  assert.ok(ownerComplete.includes('const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking);'),
-    'the owner completion gate must be unchanged too');
-  console.log('PASS completion still requires a photo; only publication changed');
+  // The owner path now also accepts a photo the OWNER supplied for the Easer.
+  // That is a deadlock fix, not a weakening: without it an Easer who cannot
+  // upload makes the job unfinishable by anyone. A photo is still mandatory —
+  // it simply no longer has to come from a person who has stopped responding.
+  assert.ok(ownerComplete.includes('loadCurrentCompletionEvidence(sb, booking, {'),
+    'the owner completion gate must still demand evidence');
+  assert.ok(ownerComplete.includes('acceptSuppliedOnBehalf: true'),
+    'the owner may rely on evidence they supplied, or an unresponsive Easer strands the job');
+  assert.ok(!/acceptSuppliedOnBehalf/.test(easerComplete),
+    'an Easer completing their own job must never be able to lean on someone else\'s photo');
+  console.log('PASS completion still requires a photo; only publication and who may supply it changed');
 }
 
 // ── No approved photo must not break the email ────────────────────────────

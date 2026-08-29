@@ -54,9 +54,31 @@ const mig085 = await read('api/migrations/085_easer_bonus.sql');
   assert.ok(ledger.includes('uploaded_on_behalf_of'),
     'the ledger query must select the column or every supplied photo reads as missing');
 
-  // The completion gate is NOT relaxed: an Easer still needs their own photo.
-  assert.ok(!/loadCurrentCompletionEvidence\(sb, booking\);[\s\S]{0,80}acceptSuppliedOnBehalf/.test(await read('api/booking/assembler-complete.js')),
-    'completion must still require the Easer\'s own photo');
+  // ── The deadlock ─────────────────────────────────────────────────────────
+  // First cut required the job to be COMPLETED before evidence could be
+  // supplied. That made the job unfinishable: the Easer could not press
+  // Complete without a photo, the owner could not complete it either because
+  // complete.js demanded an Easer-authored photo, and the owner could not
+  // supply one because the job was not complete. Stuck forever, money behind it.
+  assert.ok(supply.includes("const workStarted = Boolean(booking.job_started_at) || booking.status === 'completed';"),
+    'evidence must be suppliable once work has STARTED, or the job cannot be finished at all');
+  assert.ok(!supply.includes("code: 'NOT_COMPLETED'"),
+    'requiring completion before evidence is what created the deadlock');
+  assert.ok(supply.includes("code: 'JOB_NOT_LIVE'"),
+    'a cancelled job must still be refused — there is no work to document');
+
+  const ownerComplete = await read('api/booking/complete.js');
+  assert.ok(/loadCurrentCompletionEvidence\(sb, booking, \{[\s\S]{0,60}acceptSuppliedOnBehalf: true/.test(ownerComplete),
+    'the OWNER completion path must accept evidence the owner supplied, or the deadlock remains');
+
+  // But the EASER's own completion is deliberately untouched: someone standing
+  // in the customer's home has no excuse for submitting another person's photo.
+  const easerComplete = await read('api/booking/assembler-complete.js');
+  assert.ok(easerComplete.includes('const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking);'),
+    'an Easer completing their own job must still supply their own photo');
+
+  assert.ok(ui.includes("(booking.job_started_at || booking.status === 'completed')"),
+    'the owner UI must offer this once work has started, not only after completion');
 
   // Supplied evidence is internal like any other upload — supplying is not publishing.
   assert.ok(supply.includes("visibility: 'owner'"),

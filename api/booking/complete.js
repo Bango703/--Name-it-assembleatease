@@ -101,7 +101,17 @@ export default async function handler(req, res) {
   });
   if (!appointmentGate.allowed) return res.status(409).json(appointmentGate);
 
-  const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking);
+  // The OWNER completing a job may rely on evidence they supplied themselves.
+  // Without this an Easer who cannot upload deadlocks the job forever: they
+  // cannot complete it, and neither can anyone else. Authorship stays honest —
+  // uploaded_by records who actually uploaded, uploaded_on_behalf_of records
+  // who it was for — so the timeline never claims the Easer took the photo.
+  //
+  // api/booking/assembler-complete.js is deliberately NOT changed: an Easer
+  // standing in the customer's home has no excuse for someone else's photo.
+  const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking, {
+    acceptSuppliedOnBehalf: true,
+  });
   if (completionEvidenceResult.error) {
     console.error('Owner completion evidence lookup failed:', completionEvidenceResult.error);
     return res.status(503).json({ error: 'Completion evidence could not be verified. No payment was captured.' });
