@@ -30,6 +30,10 @@ import { writeFinancialAudit } from '../_financial-audit.js';
 
 const INSTANT_FEE_PCT = 1.5;        // Stripe's US rate, June 2024 onward
 const INSTANT_FEE_MIN_CENTS = 50;
+// Stripe's published US ceiling for a single instant payout. Quoting above it
+// would offer an amount Stripe rejects, so the offer is capped and the
+// remainder stays on the standard schedule.
+const INSTANT_MAX_CENTS = 999900;   // $9,999.00
 // Below $33.34 the $0.50 floor bites and instant stops costing 1.5% — at $1.00
 // it would take HALF the payout. A pro in a hurry is exactly the person least
 // likely to do that arithmetic, so the offer is withdrawn rather than dressed up:
@@ -90,12 +94,29 @@ export default async function handler(req, res) {
   // genuinely withdrawable is Stripe's fact, and a stale mirror here would offer
   // a pro money that is not there yet.
   let available = 0;
+  let instantAvailable = 0;
   let instantCapable = false;
   try {
-    const balance = await stripe.balance.retrieve({ stripeAccount: accountId });
-    available = (balance.available || [])
+    // stripeAccount is an OPTIONS argument, not a parameter. Passing it first
+    // made Stripe reject the call with "Received unknown parameter:
+    // stripeAccount", so this endpoint returned "Could not read your Stripe
+    // balance" every single time. Instant payout has never worked.
+    const balance = await stripe.balance.retrieve({}, { stripeAccount: accountId });
+    const usdTotal = rows => (rows || [])
       .filter(b => b.currency === 'usd')
       .reduce((sum, b) => sum + Number(b.amount || 0), 0);
+
+    // Stripe: "The instant_available balance reflects only funds eligible for
+    // Instant Payouts" — and card funds qualify "including pending funds within
+    // your payout schedule window". Reading `available` therefore UNDERSTATED
+    // what an Easer could take: money still settling is instant-eligible while
+    // `available` reports zero, so the option would have been hidden exactly
+    // when it was most useful.
+    //
+    // instant_available is also the eligibility signal: Stripe returns 0 for an
+    // account not yet approved for Instant Payouts.
+    instantAvailable = usdTotal(balance.instant_available);
+    available = usdTotal(balance.available);
 
     const externals = await stripe.accounts.listExternalAccounts(accountId, { limit: 10 });
     instantCapable = (externals.data || []).some(e =>
@@ -105,9 +126,12 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: 'Could not read your Stripe balance. Your earnings are safe — try again shortly.' });
   }
 
-  const quote = quoteInstantPayout(available);
+  // The instant quote is priced on what Stripe says is instantly payable;
+  // the standard option still reflects the settled balance.
+  const quote = quoteInstantPayout(Math.min(instantAvailable, INSTANT_MAX_CENTS));
 
-  if (!instantCapable) {
+  // No eligible destination, or Stripe reports nothing instantly payable.
+  if (!instantCapable || instantAvailable <= 0) {
     return res.status(200).json({
       ok: true, action: 'quote', instantAvailable: false, ...quote,
       // The server's real reason, not a generic refusal (Article 16).
