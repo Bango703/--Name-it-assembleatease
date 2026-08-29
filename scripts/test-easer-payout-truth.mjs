@@ -219,21 +219,48 @@ console.log('Easer payout truth tests: PASS');
   assert.equal(expectedPayoutArrival(new Date(), 0), null, 'a zero delay must not render as "today"');
   assert.equal(expectedPayoutArrival('not-a-date', 2), null, 'an unparseable date must not produce a day');
 
+  // The date is computed from when the customer's payment SETTLES and passed in.
+  // The email must NOT invent one: doing so made the cron say Friday and the
+  // email say Tuesday about the same payout.
+  const settles = new Date('2026-09-02T00:00:00Z');
   const withDate = buildPayoutEmail({
     firstName: 'Trapper', ref: 'X', service: 'Furniture Assembly', date: '',
-    payoutDisplay: '$419.30', notes: '', method: 'stripe', viaStripeConnect: true, delayDays: 2,
+    payoutDisplay: '$419.30', notes: '', method: 'stripe', viaStripeConnect: true,
+    delayDays: 2, arrivalAt: expectedPayoutArrival(settles, 2),
   });
-  assert.ok(/Expect it by/.test(withDate), 'the payout email must name the expected day');
+  // The date sits inside <strong>, so compare against stripped text rather
+  // than raw HTML — a regex across tags silently matches nothing and passes.
+  const plain = h => String(h).replace(/<[^>]*>/g, '');
+  assert.ok(/Expect it by Friday, September 4/.test(plain(withDate)),
+    'the date must count from settlement, not from when the cron happened to run');
+  assert.ok(!/business days? from now/.test(plain(withDate)),
+    '"from now" was the wrong basis and must not return');
+  assert.ok(/queued with Stripe/.test(plain(withDate)),
+    'a source_transaction transfer is queued, not already sent — Stripe does not execute it until the charge settles');
+
+  // Given no settlement date, it must promise nothing.
+  const noArrival = buildPayoutEmail({
+    firstName: 'T', ref: 'X', service: 'S', date: '',
+    payoutDisplay: '$1.00', notes: '', method: 'stripe', viaStripeConnect: true,
+    delayDays: 2, arrivalAt: null,
+  });
+  assert.ok(!/Expect it by/.test(plain(noArrival)), 'with no settlement date the email must not name a day');
 
   const noDate = buildPayoutEmail({
     firstName: 'T', ref: 'X', service: 'S', date: '',
-    payoutDisplay: '$1.00', notes: '', method: 'stripe', viaStripeConnect: true, delayDays: null,
+    payoutDisplay: '$1.00', notes: '', method: 'stripe', viaStripeConnect: true, delayDays: null, arrivalAt: null,
   });
   assert.ok(!/Expect it by/.test(noDate), 'with no schedule the email must not promise a day');
   assert.ok(/normal schedule/.test(noDate), 'it must fall back to non-specific wording instead');
 
   const release = await fs.readFile(new URL('../api/cron/release-payouts.js', import.meta.url), 'utf8');
   assert.ok(release.includes('expected_bank_arrival_at:'), 'the estimate must be stored at transfer time');
+  assert.ok(release.includes('fundsAvailableAt'),
+    'the estimate must be based on when the charge settles, not on when the cron ran');
+  assert.ok(release.includes("expand: ['latest_charge.balance_transaction']"),
+    'available_on must be read from Stripe rather than assumed');
+  assert.ok(!/expectedPayoutArrival\(new Date\(\)/.test(release),
+    'counting from now() promised a date three days earlier than the truth');
   // The transfer already happened by the time this writes. A missing column must
   // never cost us the record of a real transfer.
   assert.ok(release.includes('const applyTransferState = patch =>'),

@@ -187,8 +187,16 @@ export default async function handler(req, res) {
       // Resolved rather than stored: the charge id is not on the booking, and one
       // retrieve per payout is cheaper than a migration plus a backfill.
       let sourceCharge = null;
+      let fundsAvailableAt = null;
       try {
-        const intent = await stripe.paymentIntents.retrieve(b.stripe_payment_intent_id);
+        // balance_transaction expanded: available_on is when the customer's
+        // payment actually settles, which is the real base for any date we
+        // promise the Easer.
+        const intent = await stripe.paymentIntents.retrieve(b.stripe_payment_intent_id, {
+          expand: ['latest_charge.balance_transaction'],
+        });
+        const bt = intent?.latest_charge?.balance_transaction;
+        if (bt?.available_on) fundsAvailableAt = new Date(bt.available_on * 1000);
         sourceCharge = typeof intent?.latest_charge === 'string'
           ? intent.latest_charge
           : intent?.latest_charge?.id || null;
@@ -222,7 +230,15 @@ export default async function handler(req, res) {
       try {
         const acctForSchedule = await stripe.accounts.retrieve(connectState.accountId);
         arrivalDelayDays = acctForSchedule?.settings?.payouts?.schedule?.delay_days ?? null;
-        expectedArrivalAt = expectedPayoutArrival(new Date(), arrivalDelayDays);
+        // Base it on when the money actually REACHES the platform, not on when
+        // this cron ran. Stripe is explicit that a source_transaction transfer
+        // succeeds immediately but does not execute until the source charge
+        // settles, so counting from now() promised Trapper Tuesday when the
+        // truth was Friday. Being three days early about someone's money is how
+        // they stop believing anything else we tell them.
+        expectedArrivalAt = fundsAvailableAt
+          ? expectedPayoutArrival(fundsAvailableAt, arrivalDelayDays)
+          : null;
       } catch (schedErr) {
         console.error('[release-payouts] payout schedule unreadable for ' + b.ref + ':', schedErr?.message || schedErr);
       }
@@ -321,6 +337,7 @@ export default async function handler(req, res) {
               isCancellation: cancellationPayout,
               viaStripeConnect: true,
               delayDays,
+              arrivalAt: expectedArrivalAt,
             }),
             replyTo: ownerEmail(),
             meta: {
