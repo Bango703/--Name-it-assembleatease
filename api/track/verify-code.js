@@ -1,6 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
-import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { ownerEmail, esc } from '../_email.js';
 import { randomToken, sha256 } from '../_payment-security.js';
 import { normalizeEmail, verifyCode } from '../_assemblecash.js';
 import { ACTIVE_BOOKING_STATUSES } from '../_source-of-truth.js';

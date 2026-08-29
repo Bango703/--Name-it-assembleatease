@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import { verifyOwner, ownerEmail, esc } from '../_email.js';
 
 /**
  * POST /api/owner/reset-password
