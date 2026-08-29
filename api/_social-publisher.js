@@ -137,8 +137,38 @@ function buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt }) {
   };
 
   if (dueAt) input.dueAt = dueAt;
-  if (imageUrl && shouldAttachImageForChannel(channel)) input.assets = [{ image: { url: imageUrl } }];
+  if (imageUrl && shouldAttachImageForChannel(channel)) {
+    input.assets = [{ image: { url: imageUrl, metadata: { altText: socialImageAlt(title) } } }];
+  }
+
+  // Buffer refuses a post carrying both an image asset and a link attachment:
+  //   "A link attachment cannot be combined with asset"
+  // Keep the image and move the URL into the post text so the click path survives
+  // without sending a payload Buffer rejects.
+  //
+  // Google Business is untouched because its link is in detailsWhatsNew.link,
+  // not linkAttachment, and accepts a photo alongside it.
+  if (input.assets.length) {
+    input.metadata = withoutLinkAttachments(input.metadata);
+    input.text = ensureUrlInText(input.text, url);
+  }
   return input;
+}
+
+function withoutLinkAttachments(metadata) {
+  const out = {};
+  for (const [key, value] of Object.entries(metadata || {})) {
+    if (!value || typeof value !== 'object') { out[key] = value; continue; }
+    const { linkAttachment: _dropped, ...rest } = value;
+    out[key] = rest;
+  }
+  return out;
+}
+
+function ensureUrlInText(text, url) {
+  if (!url) return text;
+  const body = String(text || '').trim();
+  return body.includes(url) ? body : (body ? `${body}\n\n${url}` : url);
 }
 
 function metadataForChannel(channel, { url } = {}) {
@@ -149,12 +179,17 @@ function metadataForChannel(channel, { url } = {}) {
     return {
       google: {
         type: 'whats_new',
-        detailsWhatsNew: { button: 'book', link: url },
+        detailsWhatsNew: { button: 'learn_more', link: url },
       },
     };
   }
   if (channel.key === 'linkedin') return { linkedin: url ? { linkAttachment: { url } } : {} };
   return undefined;
+}
+
+function socialImageAlt(title) {
+  const cleanTitle = String(title || '').replace(/\s+/g, ' ').trim();
+  return cleanTitle ? `AssembleAtEase guide: ${cleanTitle}`.slice(0, 220) : 'AssembleAtEase home setup guide';
 }
 
 function textForChannel(channel, { title, url, kit }) {
