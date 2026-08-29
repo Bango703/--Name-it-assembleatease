@@ -276,3 +276,31 @@ console.log('\nOwner waitlist add tests passed.');
     'the old nonsense phrasing must not come back');
   console.log('PASS waitlisting keeps someone approvable, and a refusal reads as a refusal');
 }
+
+// ── A precondition failure is not a lock, and must say what it really is ───
+// Waitlisting set application_status='waitlist'. The claim RPC required exactly
+// 'applied', so approving raised 23514 "Only a submitted pending application
+// can be approved" — and the API rewrote it as "Another application decision or
+// profile update is already in progress". The owner went looking for a lock.
+// Phil Hawkins' application_decision_key was null the entire time.
+{
+  const update = await fs.readFile(new URL('../api/assembler/update.js', import.meta.url), 'utf8');
+  const mig = await fs.readFile(new URL('../api/migrations/088_approve_waitlisted_application.sql', import.meta.url), 'utf8');
+
+  // Only genuine concurrency codes may produce the "in progress" message.
+  assert.ok(update.includes("const inProgress = error?.code === '55P03'"),
+    'only lock/serialization codes may claim something else is in progress');
+  assert.ok(!/inProgress[\s\S]{0,120}23514/.test(update),
+    'a CHECK violation is a precondition failure, not a concurrent operation');
+  assert.ok(update.includes('(precondition ? message : fallback)'),
+    'a precondition failure must surface its real, stated reason');
+
+  // The database must accept a waitlisted application for approval.
+  assert.ok(mig.includes("v_profile.application_status NOT IN ('applied', 'waitlist')"),
+    'the claim RPC must treat a waitlisted application as still submitted');
+  assert.ok(!mig.includes("application_status IS DISTINCT FROM 'applied'"),
+    'the applied-only predicate is what made a waitlisted applicant unapprovable');
+  assert.ok(!/'rejected'/.test(mig.split('v_decision = \'approve\'')[1]?.slice(0, 400) || ''),
+    'a rejected application must not become approvable by this change');
+  console.log('PASS a waitlisted application can be approved, and a refusal names its real cause');
+}
