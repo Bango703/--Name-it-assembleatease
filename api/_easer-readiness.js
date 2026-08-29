@@ -51,7 +51,12 @@ export function getEaserApprovalReadiness(profile = {}) {
     'application_fee_waived',
     'fee_waived_by_owner',
   ].some(field => Object.prototype.hasOwnProperty.call(profile, field));
-  const applicationSubmitted = applicationStatus === 'applied';
+  // 'waitlist' is a decision ABOUT a submitted application, not a reversal of
+  // it. Treating it as unsubmitted made a waitlisted applicant impossible to
+  // approve — the owner was told "cannot be approved yet: Application
+  // submitted", which is both blocking and nonsense, about a person who had
+  // applied, verified identity and accepted the terms.
+  const applicationSubmitted = ['applied', 'waitlist'].includes(applicationStatus);
   const identityVerified = profile.identity_verified === true;
   const paidFeeMode = profile.application_fee_paid === true
     && profile.payment_confirmed === true
@@ -93,7 +98,14 @@ export function getEaserApprovalReadiness(profile = {}) {
 export function approvalReadinessError(readiness) {
   if (readiness?.isApprovable) return null;
   const missing = readiness?.missingItems || [];
-  return `Easer cannot be approved yet: ${missing.join(', ') || 'approval requirements could not be verified'}.`;
+  // missingItems are named as the REQUIREMENT, so joining them straight onto
+  // "cannot be approved yet:" produced "cannot be approved yet: Application
+  // submitted" — which reads as a reason to approve, not a reason not to. A
+  // refusal has to say what is WRONG (Article 14).
+  if (!missing.length) return 'Easer cannot be approved yet: approval requirements could not be verified.';
+  // "missing:" reads correctly against every requirement name, where
+  // rephrasing each one grammatically does not ("no identity verified").
+  return `Easer cannot be approved yet. Still missing: ${missing.join(', ')}.`;
 }
 
 /**
@@ -118,7 +130,7 @@ export async function getEaserReadiness(profile = {}, options = {}) {
 
   const flags = {
     connectRequired,
-    applicationSubmitted: ['applied', 'approved'].includes(applicationStatus),
+    applicationSubmitted: ['applied', 'approved', 'waitlist'].includes(applicationStatus),
     contractorAgreementAccepted: !!profile.contractor_agreement_signed_at,
     codeOfConductAccepted: !!profile.code_of_conduct_agreed_at,
     agreementVersion: profile.contractor_agreement_version || null,
