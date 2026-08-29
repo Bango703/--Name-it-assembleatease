@@ -149,7 +149,17 @@ export default async function handler(req, res) {
         // Still non-fatal: the thread already loaded, and seeing messages must
         // never depend on the read-state write. But it is no longer silent.
         console.error('Message read-state update error:', readErr);
-        readError = readErr.message || String(readErr);
+        // Article 16 forbids showing the owner a raw database error. Postgres
+        // saying `record "new" has no field "updated_at"` is true but
+        // unactionable — it reads like a bug in their data, not a missing
+        // column a migration fixes. Translate the causes we recognise and keep
+        // the raw text in the log, where it belongs.
+        const raw = readErr.message || String(readErr);
+        readError = /has no field "?updated_at"?/i.test(raw)
+          ? 'Messages cannot be marked read until migration 087 is applied — a database trigger expects a column that does not exist yet. Your messages are safe and nothing was lost.'
+          : (/column .* does not exist|PGRST204|42703/i.test(raw)
+            ? `Messages cannot be marked read because the database is missing a column this write needs (${raw}). A migration is outstanding.`
+            : raw);
       } else {
         markedRead = (readRows || []).length;
         // The update succeeded and changed NOTHING, while unreadIds said there
