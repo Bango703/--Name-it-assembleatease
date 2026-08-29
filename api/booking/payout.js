@@ -386,7 +386,7 @@ async function reconcileFailedPayoutWrite(sb, { booking, operationKey }) {
 /**
  * When the money should actually land in the Easer's bank.
  *
- * "About 2 business days" is a duration, not an answer. A pro planning around
+ * A pro planning around money needs a DATE, not a duration. The date is
  * money needs a DATE, and working it out from a delay figure is our job rather
  * than theirs.
  *
@@ -424,7 +424,7 @@ export function formatPayoutArrival(date) {
 
 export function buildPayoutEmail({
   firstName, ref, service, date, payoutDisplay, notes, method,
-  isCancellation = false, viaStripeConnect = false, delayDays = null,
+  isCancellation = false, viaStripeConnect = false, delayDays = null, arrivalAt = null,
 }) {
   const methodLabel = viaStripeConnect
     ? 'Stripe'
@@ -435,17 +435,22 @@ export function buildPayoutEmail({
   // Number(null) is 0 and 0 is finite, so a missing schedule would render
   // "about 0 business days" — the same trap that once made a null coordinate
   // read as a 3,000km distance. Check for absence before converting.
-  const arrival = expectedPayoutArrival(new Date(), delayDays);
+  // The caller computes this from when the customer's payment SETTLES, not
+  // from now(). Recomputing here reintroduced the exact error this was built
+  // to remove: the cron said Friday and the email said Tuesday, about the
+  // same payout. One value, computed once, passed in.
+  const arrival = arrivalAt instanceof Date ? arrivalAt
+    : (arrivalAt ? new Date(arrivalAt) : null);
   const arrivalLabel = formatPayoutArrival(arrival);
   const bankTiming = arrivalLabel
-    ? `Stripe sends it to your bank automatically. Expect it by <strong>${esc(arrivalLabel)}</strong>${Number(delayDays) === 1 ? '' : ''} — about ${Number(delayDays)} business day${Number(delayDays) === 1 ? '' : 's'} from now.`
+    ? `Stripe releases it once the customer's payment settles, then deposits it to your bank. Expect it by <strong>${esc(arrivalLabel)}</strong>.`
     : 'Stripe deposits to your bank automatically on its normal schedule.';
-  const instantLine = 'Need it sooner? You can take an instant payout from your payouts page. Stripe charges a small fee for that one; AssembleAtEase adds nothing.';
+  const instantLine = 'Once it lands in your Stripe balance you can take an instant payout from your payouts page to get it the same day. Stripe charges a small fee for that one; AssembleAtEase adds nothing.';
 
   const intro = viaStripeConnect
     ? (isCancellation
-      ? `Your earnings of ${esc(payoutDisplay)} for the cancelled ${esc(service)} booking have been sent to your Stripe account. ${bankTiming} ${instantLine}`
-      : `Nice work on your ${esc(service)} job. Your payment of ${esc(payoutDisplay)} has been sent to your Stripe account. ${bankTiming} ${instantLine}`)
+      ? `Your earnings of ${esc(payoutDisplay)} for the cancelled ${esc(service)} booking are queued with Stripe. ${bankTiming} ${instantLine}`
+      : `Nice work on your ${esc(service)} job. Your payment of ${esc(payoutDisplay)} is queued with Stripe. ${bankTiming} ${instantLine}`)
     : isCancellation
       ? `Your earnings of ${esc(payoutDisplay)} for the cancelled ${esc(service)} booking are on their way ${howPaid}. They should reach you shortly — if you don't see them, just reply to this email and we'll make it right.`
       : `Nice work on your ${esc(service)} job. Your payment of ${esc(payoutDisplay)} is on its way ${howPaid} — it should reach you shortly. If you don't see it, just reply to this email and we'll make it right.`;
