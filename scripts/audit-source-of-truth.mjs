@@ -371,8 +371,13 @@ function linesMatching(file, re) {
 //      refusal rather than a missing column.
 {
   const senders = [
-    { fn: 'sendSms',        module: '_sms.js',  needs: ['sms_consent_at', 'sms_opted_out_at'] },
-    { fn: 'sendPushToUser', module: '_push.js', needs: [] },
+    { fn: 'sendSms',        module: '_sms.js',   needs: ['sms_consent_at', 'sms_opted_out_at'] },
+    { fn: 'sendPushToUser', module: '_push.js',  needs: [] },
+    // Added after api/cron/release-payouts.js was found importing sendEmail and
+    // calling it zero times: the automated rail that actually PAYS Easers sent
+    // them nothing at all, while the rarely-used manual path did. The original
+    // guard covered SMS and push and missed the most-used channel of the three.
+    { fn: 'sendEmail',      module: '_email.js', needs: [] },
   ];
   const offenders = [];
   const checked = [];

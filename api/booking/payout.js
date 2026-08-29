@@ -358,13 +358,44 @@ async function reconcileFailedPayoutWrite(sb, { booking, operationKey }) {
   return { committed: false, ledger: ledger || null, current: current || null, released: false };
 }
 
-export function buildPayoutEmail({ firstName, ref, service, date, payoutDisplay, notes, method, isCancellation = false }) {
-  const methodLabel = method && method !== 'manual' ? method : 'manual payout';
+/**
+ * The payout email an Easer receives.
+ *
+ * viaStripeConnect covers the automated rail (api/cron/release-payouts.js),
+ * which created transfers and told the Easer NOTHING — sendEmail was imported
+ * there and never called. Rule 10 says an Easer must always know when and how
+ * they get paid; "money silently appeared in your bank days later" is not that.
+ *
+ * delayDays is read from the Easer's own Stripe account rather than hardcoded,
+ * because the schedule belongs to Stripe and can differ per account. When it
+ * cannot be read the copy stays deliberately non-specific instead of inventing
+ * a number (Article 16).
+ */
+export function buildPayoutEmail({
+  firstName, ref, service, date, payoutDisplay, notes, method,
+  isCancellation = false, viaStripeConnect = false, delayDays = null,
+}) {
+  const methodLabel = viaStripeConnect
+    ? 'Stripe'
+    : (method && method !== 'manual' ? method : 'manual payout');
   const howPaid = method && method !== 'manual' ? `by ${esc(method)}` : 'through your selected payout method';
   const headline = `Your payment is on the way, ${esc(firstName)}.`;
-  const intro = isCancellation
-    ? `Your earnings of ${esc(payoutDisplay)} for the cancelled ${esc(service)} booking are on their way ${howPaid}. They should reach you shortly — if you don't see them, just reply to this email and we'll make it right.`
-    : `Nice work on your ${esc(service)} job. Your payment of ${esc(payoutDisplay)} is on its way ${howPaid} — it should reach you shortly. If you don't see it, just reply to this email and we'll make it right.`;
+
+  // Number(null) is 0 and 0 is finite, so a missing schedule would render
+  // "about 0 business days" — the same trap that once made a null coordinate
+  // read as a 3,000km distance. Check for absence before converting.
+  const bankTiming = delayDays != null && Number.isFinite(Number(delayDays)) && Number(delayDays) > 0
+    ? `Stripe deposits to your bank automatically, usually about ${Number(delayDays)} business day${Number(delayDays) === 1 ? '' : 's'} after it settles.`
+    : 'Stripe deposits to your bank automatically on its normal schedule.';
+  const instantLine = 'Need it sooner? You can take an instant payout from your payouts page. Stripe charges a small fee for that one; AssembleAtEase adds nothing.';
+
+  const intro = viaStripeConnect
+    ? (isCancellation
+      ? `Your earnings of ${esc(payoutDisplay)} for the cancelled ${esc(service)} booking have been sent to your Stripe account. ${bankTiming} ${instantLine}`
+      : `Nice work on your ${esc(service)} job. Your payment of ${esc(payoutDisplay)} has been sent to your Stripe account. ${bankTiming} ${instantLine}`)
+    : isCancellation
+      ? `Your earnings of ${esc(payoutDisplay)} for the cancelled ${esc(service)} booking are on their way ${howPaid}. They should reach you shortly — if you don't see them, just reply to this email and we'll make it right.`
+      : `Nice work on your ${esc(service)} job. Your payment of ${esc(payoutDisplay)} is on its way ${howPaid} — it should reach you shortly. If you don't see it, just reply to this email and we'll make it right.`;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">

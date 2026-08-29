@@ -1,5 +1,5 @@
 import { getSupabase } from '../_supabase.js';
-import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import { verifyOwner, ownerEmail, esc } from '../_email.js';
 import { dispatchBooking } from './_dispatch-internal.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';

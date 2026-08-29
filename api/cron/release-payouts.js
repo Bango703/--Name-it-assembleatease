@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { buildPayoutEmail } from '../booking/payout.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
 import { isStripeConnectEnabled, getAssemblerConnectAccount } from '../_stripe-connect.js';
 import { logCron } from './_cron-logger.js';
@@ -244,6 +245,59 @@ export default async function handler(req, res) {
         },
       });
 
+
+      // The Easer has just been paid and, until now, was told nothing: sendEmail
+      // was imported in this file and never called, so the automated rail — the
+      // one that actually pays people — was silent. Rule 10: an Easer must
+      // always know when and how they get paid.
+      //
+      // This can never affect the payout. The transfer is already created and
+      // recorded; a notification failure is logged and nothing more (Rule 7).
+      try {
+        const { data: easerProfile } = await sb
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', b.assembler_id)
+          .maybeSingle();
+        if (easerProfile?.email) {
+          // Read the real schedule off their own account rather than hardcoding
+          // a number that belongs to Stripe and can differ per Easer.
+          let delayDays = null;
+          try {
+            const acct = await stripe.accounts.retrieve(connectState.accountId);
+            delayDays = acct?.settings?.payouts?.schedule?.delay_days ?? null;
+          } catch { /* copy stays non-specific rather than inventing a figure */ }
+
+          const payoutDisplay = '$' + (dueCents / 100).toFixed(2);
+          await sendEmail({
+            to: easerProfile.email,
+            from: 'AssembleAtEase <booking@assembleatease.com>',
+            subject: `Your payment is on the way — ${payoutDisplay}` + (b.service ? ` for ${b.service}` : ''),
+            html: buildPayoutEmail({
+              firstName: (easerProfile.full_name || b.assembler_name || 'there').split(' ')[0],
+              ref: b.ref,
+              service: b.service || 'your job',
+              date: b.completed_at ? String(b.completed_at).slice(0, 10) : '',
+              payoutDisplay,
+              notes: '',
+              method: 'stripe',
+              isCancellation: cancellationPayout,
+              viaStripeConnect: true,
+              delayDays,
+            }),
+            replyTo: ownerEmail(),
+            meta: {
+              bookingId: b.id,
+              notificationType: 'easer_payout_transferred',
+              recipientType: 'easer',
+              recipientUserId: b.assembler_id,
+              disableDedupe: true,
+            },
+          });
+        }
+      } catch (notifyErr) {
+        console.error('[release-payouts] Easer payout notice failed for ' + b.ref + ':', notifyErr?.message || notifyErr);
+      }
       released++;
       releasedRefs.push(b.ref);
     } catch (err) {

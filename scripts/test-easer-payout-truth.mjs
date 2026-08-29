@@ -160,3 +160,38 @@ assert.match(assignmentsPage, /earningTruth\.payout\.status_label/);
 assert.doesNotMatch(assignmentsPage, /Manual payout pending after customer payment capture/);
 
 console.log('Easer payout truth tests: PASS');
+
+// ── The rail that actually pays people must say so ─────────────────────────
+// api/cron/release-payouts.js imported sendEmail and called it ZERO times. The
+// automated Stripe Connect path — the one that pays almost every job — told the
+// Easer nothing at all, while the rarely-used manual path sent a notice. Rule 10:
+// an Easer must always know when and how they get paid.
+{
+  const releaseSrc = await fs.readFile(new URL('../api/cron/release-payouts.js', import.meta.url), 'utf8');
+  const payoutSrc = await fs.readFile(new URL('../api/booking/payout.js', import.meta.url), 'utf8');
+
+  assert.ok(releaseSrc.includes('await sendEmail({'),
+    'the Connect payout cron must actually notify the Easer, not merely import the sender');
+  assert.ok(releaseSrc.includes("notificationType: 'easer_payout_transferred'"),
+    'the transfer notice needs its own notification type so failures are traceable');
+  assert.ok(releaseSrc.includes("recipientType: 'easer'"),
+    'the notice must go to the Easer, not only the owner');
+
+  // A notification failure must never affect a transfer that already happened.
+  assert.ok(/catch \(notifyErr\)/.test(releaseSrc),
+    'a failed payout email must be caught — the money already moved (Rule 7)');
+
+  // Timing is read from Stripe, not hardcoded: the schedule belongs to Stripe
+  // and can differ per account.
+  assert.ok(releaseSrc.includes('settings?.payouts?.schedule?.delay_days'),
+    'payout timing must be read from the Easer\'s own Stripe account');
+  assert.ok(payoutSrc.includes('viaStripeConnect'),
+    'the payout email must have a Connect variant distinct from the manual one');
+
+  // Number(null) is 0 and 0 is finite — without the null check this renders
+  // "about 0 business days", the same trap that once made a null coordinate
+  // read as a 3,000km distance.
+  assert.ok(payoutSrc.includes('delayDays != null && Number.isFinite(Number(delayDays)) && Number(delayDays) > 0'),
+    'an unknown schedule must fall back to non-specific wording, never "0 business days"');
+  console.log('PASS a Stripe Connect payout tells the Easer, with timing read from Stripe');
+}
