@@ -128,6 +128,26 @@ export const SALES_TAX_RATE = 0.0825;
 // receives a fixed rush bonus and the business keeps the remainder; both are
 // stored on the booking (same_day_fee_cents, same_day_easer_bonus_cents).
 export const SAME_DAY_FEE_CENTS = 6900;          // $69.00 charged to the customer
+/**
+ * How long an Easer's earnings are held after completion before the payout is
+ * released. The window exists so a dispute or damage claim can surface while
+ * the money is still recoverable.
+ *
+ * Lowered from 48 to 24 hours on 2026-08-29 at the owner's direction: getting
+ * paid quickly is what keeps supply, and supply is the platform's constraint.
+ * It halves the recovery window, which is a deliberate trade, not an oversight.
+ *
+ * ONE constant, because the cron and the message an Easer reads were separate
+ * numbers before this. The cron released after 48 hours and complete.js told
+ * them "about 48 hours" from a hardcoded string — change one and the other
+ * quietly lies. Every surface derives from here.
+ *
+ * Override with PAYOUT_HOLD_HOURS (set to 0 in tests to release immediately).
+ */
+export const PAYOUT_HOLD_HOURS = Number.isFinite(parseFloat(process.env.PAYOUT_HOLD_HOURS))
+  ? parseFloat(process.env.PAYOUT_HOLD_HOURS)
+  : 24;
+
 export const SAME_DAY_EASER_BONUS_CENTS = 3000;  // $30.00 rush bonus to the fulfiller
 export const SAME_DAY_MIN_LEAD_MINUTES = 180;    // a today slot must start >= 3h from now
 
