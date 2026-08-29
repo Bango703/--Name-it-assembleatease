@@ -91,6 +91,30 @@ const ui = await fs.readFile(new URL('../owner/index.html', import.meta.url), 'u
   console.log('PASS empty tabs hide, Active and Pending never do, and a vanishing tab lands somewhere real');
 }
 
+// ── A tier filter that filters nothing is decoration ───────────────────────
+// Splitting two Easers across Starter and Elite saves no scanning: both rows
+// are on screen already, and tier is a column on each of them. The tabs stay
+// out of the way until the list is long enough that filtering earns a click.
+{
+  assert.ok(ui.includes("var TIER_TABS = ['starter', 'professional', 'elite'];"),
+    'the tier tabs must be named in one place');
+  assert.ok(ui.includes('var TIER_TABS_MIN_ROSTER = 8;'),
+    'the roster size at which tier filtering starts paying for itself must be a named number, not a magic one');
+  assert.ok(ui.includes('var rosterCount = allAssemblerProfiles.filter(onRoster).length;'),
+    'the threshold must be measured against the on-roster count, not every profile ever created');
+  assert.ok(ui.includes('if (TIER_TABS.indexOf(s) !== -1 && rosterCount < TIER_TABS_MIN_ROSTER) hide = true;'),
+    'tier tabs must hide below the threshold');
+
+  // Hidden, not deleted: the filters still work, so this reverses itself as the
+  // roster grows without anyone having to remember to turn it back on.
+  for (const tier of ['starter', 'professional', 'elite']) {
+    assert.ok(ui.includes(`data-tier="${tier}"`), `${tier} must keep its tab markup so it returns as the roster grows`);
+    assert.ok(ui.includes(`f === '${tier}') filtered = allAssemblerProfiles.filter`),
+      `the ${tier} filter must still work when its tab is shown again`);
+  }
+  console.log('PASS tier tabs stay hidden until the roster is long enough to need filtering');
+}
+
 // ── The list opens on people who can work today ────────────────────────────
 {
   assert.ok(ui.includes("var currentTierFilter = 'active';"),
