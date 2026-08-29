@@ -5,6 +5,7 @@ import { buildPayoutEmail, expectedPayoutArrival } from '../booking/payout.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
 import { isStripeConnectEnabled, getAssemblerConnectAccount } from '../_stripe-connect.js';
 import { logCron } from './_cron-logger.js';
+import { PAYOUT_HOLD_HOURS } from '../_source-of-truth.js';
 import {
   releaseBookingFinancialOperation,
   reserveBookingFinancialOperation,
@@ -26,9 +27,9 @@ import { loadCurrentCompletionEvidence } from '../booking/_completion-evidence.j
  */
 // Hold window before a payout is released. Defaults to 48h; override with the
 // PAYOUT_HOLD_HOURS env var (e.g. set to 0 in test to release immediately).
-const PAYOUT_HOLD_HOURS = Number.isFinite(parseFloat(process.env.PAYOUT_HOLD_HOURS))
-  ? parseFloat(process.env.PAYOUT_HOLD_HOURS)
-  : 48;
+// Imported, not redeclared: this number and the one an Easer is told must
+// never be two separate values.
+
 
 const CONNECT_PAYOUT_RECHECK_FIELDS = [
   'id', 'status', 'assembler_id', 'assembler_due',

@@ -245,3 +245,27 @@ console.log('Easer payout truth tests: PASS');
   assert.ok(easerUi.includes('Expect it by'), 'the Easer dashboard must show the date too, not only the email');
   console.log('PASS the Easer is told which day the money should land, or nothing at all');
 }
+
+// ── The hold is one number, not two that can drift ─────────────────────────
+// The cron released after 48 hours from its own constant, while complete.js
+// told the Easer "about 48 hours" from a hardcoded string. Changing one would
+// have left the other quietly lying about when someone gets paid — and an Easer
+// planning around money is exactly who must not be misinformed.
+{
+  const { PAYOUT_HOLD_HOURS } = await import('../api/_source-of-truth.js');
+  assert.equal(PAYOUT_HOLD_HOURS, 24, 'the hold is 24 hours unless the env overrides it');
+
+  const cron = await fs.readFile(new URL('../api/cron/release-payouts.js', import.meta.url), 'utf8');
+  const complete = await fs.readFile(new URL('../api/booking/complete.js', import.meta.url), 'utf8');
+
+  assert.ok(cron.includes("import { PAYOUT_HOLD_HOURS } from '../_source-of-truth.js';"),
+    'the cron must import the canonical hold, not redeclare it');
+  assert.ok(!/const PAYOUT_HOLD_HOURS\s*=/.test(cron),
+    'a second declaration is how the two numbers drifted apart');
+
+  assert.ok(complete.includes('${PAYOUT_HOLD_HOURS} hours after completion'),
+    'the Easer-facing note must derive from the same constant');
+  assert.ok(!/about 48 hours/.test(complete),
+    'no surface may hardcode an hour count that the cron owns');
+  console.log('PASS the payout hold is a single number every surface reads');
+}

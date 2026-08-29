@@ -5,7 +5,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot, PAYOUT_HOLD_HOURS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
@@ -349,7 +349,7 @@ export default async function handler(req, res) {
   // single payout source of truth and avoids immediate-transfer drift.
   if (booking.assembler_id && assemblerDue > 0) {
     connectPayout = isStripeConnectEnabled()
-      ? { status: 'scheduled', note: 'Releases about 48 hours after completion once payout setup is ready.' }
+      ? { status: 'scheduled', note: `Releases about ${PAYOUT_HOLD_HOURS} hours after completion once payout setup is ready.` }
       : { status: 'pending_manual', reason: 'connect-disabled' };
   }
 
