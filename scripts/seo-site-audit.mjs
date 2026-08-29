@@ -86,6 +86,10 @@ function collectJsonLd(html, page, issues) {
   return blocks;
 }
 
+function jsonLdNodes(blocks) {
+  return blocks.flatMap((block) => Array.isArray(block?.['@graph']) ? block['@graph'] : [block]);
+}
+
 function addDuplicateIssues(records, key, label, issues) {
   const values = new Map();
   for (const record of records) {
@@ -104,6 +108,7 @@ const issues = [];
 const htmlFiles = listHtmlFiles();
 const routes = new Set(htmlFiles.map(routeForFile));
 const serviceFiles = htmlFiles.filter((file) => SERVICE_PAGE_RE.test(relative(ROOT, file).replaceAll('\\', '/')));
+const blogFiles = htmlFiles.filter((file) => /^blog\/[^/]+\.html$/.test(relative(ROOT, file).replaceAll('\\', '/')));
 const serviceRoutes = new Set(serviceFiles.map(routeForFile));
 const sitemap = readFileSync(join(ROOT, 'sitemap.xml'), 'utf8');
 const robots = readFileSync(join(ROOT, 'robots.txt'), 'utf8');
@@ -265,6 +270,65 @@ for (const file of serviceFiles) {
   }
 }
 
+const blogRecords = [];
+for (const file of blogFiles) {
+  const page = relative(ROOT, file).replaceAll('\\', '/');
+  const route = routeForFile(file);
+  const expectedUrl = `${BASE_URL}${route}`;
+  const html = readFileSync(file, 'utf8');
+  const title = extractOne(html, /<title>([\s\S]*?)<\/title>/i);
+  const description = extractOne(html, /<meta[^>]+name="description"[^>]+content="([^"]*)"/i);
+  const canonical = extractOne(html, /<link[^>]+rel="canonical"[^>]+href="([^"]*)"/i);
+  const ogUrl = extractOne(html, /<meta[^>]+property="og:url"[^>]+content="([^"]*)"/i);
+  const twitterCard = extractOne(html, /<meta[^>]+name="twitter:card"[^>]+content="([^"]*)"/i);
+  const h1Matches = [...html.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)];
+  const article = extractOne(html, /(<article\b[\s\S]*?<\/article>)/i);
+  const articleWords = visibleText(article).split(/\s+/).filter(Boolean).length;
+  const h2Count = (article.match(/<h2\b/gi) || []).length;
+  const jsonLd = jsonLdNodes(collectJsonLd(html, page, issues));
+  const blogPosting = jsonLd.find((node) => node?.['@type'] === 'BlogPosting');
+  const collectionPage = jsonLd.find((node) => node?.['@type'] === 'CollectionPage');
+  const isIndex = page === 'blog/index.html';
+
+  blogRecords.push({ page, title, description, canonical });
+  if (!title) issues.push(`${page}: missing title.`);
+  if (!description) issues.push(`${page}: missing meta description.`);
+  if (title.length < 35 || title.length > 90) issues.push(`${page}: title length is ${title.length}; expected 35-90 characters.`);
+  if (description.length < 110 || description.length > 165) issues.push(`${page}: meta description length is ${description.length}; expected 110-165 characters.`);
+  if (canonical !== expectedUrl) issues.push(`${page}: canonical is not self-referencing (${canonical || 'missing'}).`);
+  if (ogUrl !== expectedUrl) issues.push(`${page}: og:url does not match its canonical.`);
+  if (twitterCard !== 'summary_large_image') issues.push(`${page}: twitter card must use summary_large_image.`);
+  if (!/property="og:image:alt"/i.test(html)) issues.push(`${page}: missing Open Graph image alt text.`);
+  if (!/name="twitter:image:alt"/i.test(html)) issues.push(`${page}: missing Twitter image alt text.`);
+  if (!/name="robots"\s+content="index,follow,max-image-preview:large"/i.test(html)) issues.push(`${page}: missing indexable max-image-preview robots directive.`);
+  if (h1Matches.length !== 1 || !visibleText(h1Matches[0]?.[1])) issues.push(`${page}: expected exactly one non-empty H1.`);
+  if (!sitemapSet.has(expectedUrl)) issues.push(`${page}: missing from sitemap.xml.`);
+
+  if (isIndex) {
+    if (!collectionPage) issues.push(`${page}: missing CollectionPage JSON-LD.`);
+    const listed = collectionPage?.mainEntity?.itemListElement || [];
+    if (listed.length !== blogFiles.length - 1) issues.push(`${page}: ItemList contains ${listed.length} articles; expected ${blogFiles.length - 1}.`);
+  } else {
+    if (!blogPosting) issues.push(`${page}: missing BlogPosting JSON-LD.`);
+    if (blogPosting?.url && blogPosting.url !== expectedUrl) issues.push(`${page}: BlogPosting URL does not match canonical.`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(blogPosting?.datePublished || '')) issues.push(`${page}: BlogPosting datePublished is missing or invalid.`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(blogPosting?.dateModified || '')) issues.push(`${page}: BlogPosting dateModified is missing or invalid.`);
+    if (articleWords < 300) issues.push(`${page}: article does not fully answer its topic (${articleWords} words).`);
+    if (h2Count < 3) issues.push(`${page}: article needs at least three descriptive H2 sections.`);
+    if (!html.includes(`datetime="${blogPosting?.dateModified || ''}"`)) issues.push(`${page}: visible updated date does not match BlogPosting dateModified.`);
+    const lastmod = sitemapLastmods.get(expectedUrl);
+    if (lastmod !== blogPosting?.dateModified) issues.push(`${page}: sitemap lastmod does not match BlogPosting dateModified.`);
+    if (/Same-Day Available|experience mounting TVs in apartments across Austin|guaranteed same-day/i.test(html)) issues.push(`${page}: contains an unsupported availability or experience claim.`);
+  }
+
+  for (const hrefMatch of html.matchAll(/href="([^"]+)"/gi)) {
+    const href = hrefMatch[1];
+    if (!href.startsWith('/') || href.startsWith('//') || href.startsWith('/api/')) continue;
+    const pathname = new URL(href.replaceAll('&amp;', '&'), BASE_URL).pathname;
+    if (!routeTargetExists(pathname, routes)) issues.push(`${page}: broken internal link ${href}.`);
+  }
+}
+
 for (const [city, services] of cityServices) {
   const missing = SERVICE_PREFIXES.filter((prefix) => !services.has(prefix));
   if (missing.length) issues.push(`${city}: missing service pages for ${missing.join(', ')}.`);
@@ -293,6 +357,9 @@ addDuplicateIssues(records, 'description', 'meta description', issues);
 addDuplicateIssues(records, 'canonical', 'canonical', issues);
 addDuplicateIssues(records, 'h1', 'H1', issues);
 addDuplicateIssues(records, 'body', 'visible body', issues);
+addDuplicateIssues(blogRecords, 'title', 'blog title', issues);
+addDuplicateIssues(blogRecords, 'description', 'blog meta description', issues);
+addDuplicateIssues(blogRecords, 'canonical', 'blog canonical', issues);
 
 if (issues.length) {
   console.error(`SEO audit failed with ${issues.length} issue(s):`);
@@ -302,5 +369,6 @@ if (issues.length) {
 
 const inboundCounts = [...inboundLinks.values()].map((sources) => sources.size);
 console.log(`SEO audit passed: ${serviceFiles.length} service pages across ${cityServices.size} cities.`);
+console.log(`Blog SEO passed: ${blogFiles.length - 1} articles plus the guide index.`);
 console.log(`Sitemap URLs: ${sitemapUrls.length}; service URLs: ${serviceRoutes.size}.`);
 console.log(`Inbound links per service page: min ${Math.min(...inboundCounts)}, max ${Math.max(...inboundCounts)}.`);

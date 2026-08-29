@@ -255,27 +255,29 @@ export default async function handler(req, res) {
 
   const systemPrompt = `You are an SEO content writer for AssembleAtEase, a professional assembly and home-service marketplace serving customers across Texas.
 
-Write a short, booking-focused blog as complete HTML content (article body only - no <html>, <head>, or <body> tags).
+Write a useful, booking-focused guide as complete HTML content (article body only - no <html>, <head>, or <body> tags).
 
 Rules:
 - Target audience: homeowners, renters, property managers, and businesses in ${market}
 - Tone: helpful, expert, conversational, direct
-- Maximum length: exactly 2 short <p> paragraphs before the CTA
-- Do not include headings, tables, lists, emojis, or decorative symbols
-- End with one <div class="article-cta"> section
+- Begin with one <h1> containing the proposed article title
+- Use 3-5 descriptive <h2> sections, useful <p> paragraphs, and one practical <ul> or <ol> checklist
+- Answer the topic completely enough that the reader does not need another generic article to understand the next step
+- Do not write to an arbitrary word count, pad the article, repeat points, or create city-name filler
 - Reference AssembleAtEase naturally once
 - Use ${market} naturally only where the local context is genuinely useful
-- Do not claim local job history, local staff, same-day availability, guaranteed coverage, or customer results
+- Do not claim local job history, local staff, first-person field experience, meetings, partnerships, project counts, same-day availability, guaranteed coverage, or customer results
+- Do not quote a price or fee because no live catalog data was supplied in this prompt
+- Do not claim service outside Texas; say that availability is confirmed for the service address before assignment
 - Use <strong> for key phrases
 - Do NOT include CSS, scripts, or outer HTML structure
-- The CTA div must end with: <a href="/book" class="btn btn-cyan btn-lg">Check Texas Availability</a>
 
 Output ONLY the HTML article content - nothing else.`;
 
-  const userPrompt = `Write a short booking-focused blog about: "${topic}"
+  const userPrompt = `Write a practical booking-focused guide about: "${topic}"
 
 The article title should be an SEO-friendly question or statement about this topic for ${market}.
-Make it genuinely useful with practical booking advice. Keep it to two paragraphs.`;
+Make it genuinely useful with specific preparation, scope, safety, and booking advice. Avoid generic marketing filler.`;
 
   let articleHtml;
   try {
@@ -303,11 +305,16 @@ Make it genuinely useful with practical booking advice. Keep it to two paragraph
   const title = rawTitle.length > 10 ? rawTitle : `${capitalize(topic)} - ${market}`;
 
   // Remove any accidental h1 from body (we put it in the hero)
-  const cleanBody = compactArticleHtml(articleHtml.replace(/<h1[^>]*>.*?<\/h1>/gi, ''), topic, market);
+  const cleaned = sanitizeArticleHtml(articleHtml.replace(/<h1[^>]*>.*?<\/h1>/gi, ''), topic, market);
+  if (!cleaned.ok) {
+    console.error('Auto-blog content rejected:', cleaned.reason);
+    return res.status(422).json({ error: 'Generated article did not pass content quality and claim-safety checks.', reason: cleaned.reason });
+  }
+  const cleanBody = cleaned.html;
 
   // -- 3. Build the full HTML page ----------------------------------
   const canonicalUrl = `${SITE}/blog/${slug}`;
-  const readTime = 1;
+  const readTime = Math.max(3, Math.ceil(cleaned.wordCount / 225));
   const articleImage = imageForTopic({ title, topic, slug });
 
   const fullHtml = buildBlogPage({ title, canonicalUrl, today, readTime, body: cleanBody, image: articleImage, market });
@@ -360,14 +367,14 @@ Make it genuinely useful with practical booking advice. Keep it to two paragraph
 
       // Derive tag from topic keywords
       const tLower = topic.toLowerCase();
-      const tag = tLower.includes('tv') || tLower.includes('mount') || tLower.includes('projector') ? 'TV Mounting'
-        : tLower.includes('smart') || tLower.includes('nest') || tLower.includes('ring') || tLower.includes('camera') || tLower.includes('thermostat') || tLower.includes('lock') ? 'Smart Home'
-        : 'Furniture';
-      const image = tag === 'TV Mounting' ? '/images/service-tv-mounting.jpg'
-        : tag === 'Smart Home' ? '/images/service-smart-home.jpg'
+      const tag = tLower.includes('tv') || tLower.includes('mount') || tLower.includes('projector') ? 'TV mounting'
+        : tLower.includes('smart') || tLower.includes('nest') || tLower.includes('ring') || tLower.includes('camera') || tLower.includes('thermostat') || tLower.includes('lock') ? 'Smart home'
+        : 'Furniture assembly';
+      const groupId = tag === 'TV mounting' ? 'tv-guides' : tag === 'Furniture assembly' ? 'furniture-guides' : 'home-guides';
+      const image = tag === 'TV mounting' ? '/images/service-tv-mounting.jpg'
+        : tag === 'Smart home' ? '/images/service-smart-home.jpg'
         : '/images/service-furniture-assembly.jpg';
 
-      const displayDate = new Date(today).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       const excerpt = cleanBody.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) + '...';
       const safeTitle = title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const safeExcerpt = excerpt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -376,11 +383,12 @@ Make it genuinely useful with practical booking advice. Keep it to two paragraph
         <span><span class="guide-meta">${tag}</span><span class="guide-title">${safeTitle}</span><span class="guide-copy">${safeExcerpt}</span><span class="guide-link">Read blog</span></span>
       </a>\n`;
 
-      // Insert after the opening <div class="guides-grid">
-      const updatedIdx = idxHtml.replace(/(<div class="guides-grid">)/, '$1' + newCard);
-      if (updatedIdx === idxHtml) {
-        throw new Error('Guide grid marker not found in blog/index.html');
+      const groupGrid = new RegExp(`(<section class="guide-group" id="${groupId}"[\\s\\S]*?<div class="guides-grid">)`);
+      const withCard = idxHtml.replace(groupGrid, (match) => `${match}${newCard}`);
+      if (withCard === idxHtml) {
+        throw new Error(`Guide grid marker not found for ${groupId} in blog/index.html`);
       }
+      const updatedIdx = addArticleToIndexSchema(withCard, { title, canonicalUrl });
 
       await fetch(
         `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/blog/index.html`,
@@ -403,6 +411,12 @@ Make it genuinely useful with practical booking advice. Keep it to two paragraph
     }
   } catch (idxErr) {
     console.error('Blog index update error (non-fatal):', idxErr);
+  }
+
+  try {
+    await updateRemoteSitemap({ githubToken, canonicalUrl, today });
+  } catch (sitemapErr) {
+    console.error('Sitemap update error (non-fatal):', sitemapErr);
   }
 
   // -- 6. Generate the social kit and optionally auto-publish (non-fatal) --
@@ -451,24 +465,99 @@ function imageForTopic({ title = '', topic = '', slug = '' } = {}) {
   return '/images/people-service-calm.jpg';
 }
 
-function compactArticleHtml(html, topic, market) {
-  const text = String(html || '');
-  const paragraphs = [...text.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
-    .map((m) => m[1].replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .slice(0, 2);
-  const fallback = [
-    `${capitalize(topic)} works best when the job details are clear before the visit. Share the item, room, wall type, device model, or photos so the Easer can arrive prepared.`,
-    `AssembleAtEase keeps the visit focused on getting the job done cleanly instead of turning it into a long back-and-forth. Book online when you are ready to get the setup handled.`,
-  ];
-  const p1 = paragraphs[0] || fallback[0];
-  const p2 = paragraphs[1] || fallback[1];
-  return `<p>${p1}</p>
-<p>${p2}</p>
+export function sanitizeArticleHtml(html, topic, market) {
+  let safe = String(html || '')
+    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, '')
+    .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, '')
+    .replace(/<!--([\s\S]*?)-->/g, '')
+    .replace(/<div[^>]*class=["'][^"']*article-cta[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, '')
+    .replace(/<a\b[^>]*>/gi, '')
+    .replace(/<\/a>/gi, '')
+    .replace(/<(h2|h3|p|ul|ol|li|strong|em)\b[^>]*>/gi, '<$1>')
+    .replace(/<\/(h2|h3|p|ul|ol|li|strong|em)\s*>/gi, '</$1>')
+    .replace(/<(?!\/?(?:h2|h3|p|ul|ol|li|strong|em)\b)[^>]+>/gi, '')
+    .trim();
+
+  const text = safe.replace(/<[^>]+>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  const h2Count = (safe.match(/<h2>/gi) || []).length;
+  const paragraphCount = (safe.match(/<p>/gi) || []).length;
+  const hasList = /<(?:ul|ol)>/i.test(safe);
+  const unsupportedClaim = /\b(?:we recently|we have (?:helped|served|completed)|our customers (?:say|tell)|dozens of (?:customers|jobs|homes)|hundreds of (?:customers|jobs|homes)|same-day available|guaranteed coverage|our local team|seeing in the field)\b/i.test(text);
+
+  if (wordCount < 350) return { ok: false, reason: `Article is too thin (${wordCount} words).` };
+  if (h2Count < 3) return { ok: false, reason: `Article has only ${h2Count} H2 sections.` };
+  if (paragraphCount < 4 || !hasList) return { ok: false, reason: 'Article needs at least four paragraphs and one practical list.' };
+  if (unsupportedClaim) return { ok: false, reason: 'Article contains an unsupported experience, volume, or availability claim.' };
+  if (/\$\s*\d/.test(text)) return { ok: false, reason: 'Article contains a price that was not supplied by the live catalog.' };
+
+  safe += `
+<aside class="article-market-note"><strong>Location note.</strong> This guide focuses on ${market}. Service availability is confirmed for the service address before assignment.</aside>
 <div class="article-cta">
-  <strong>Need this handled in ${market}?</strong>
+  <div><strong>Ready to plan the full job?</strong><span>Enter the service address and complete scope so availability and pricing can be checked before assignment.</span></div>
   <a href="/book" class="btn btn-cyan btn-lg">Check Texas Availability</a>
 </div>`;
+  return { ok: true, html: safe, wordCount };
+}
+
+export function addArticleToIndexSchema(html, { title, canonicalUrl } = {}) {
+  let found = false;
+  const updated = String(html || '').replace(
+    /<script\s+type="application\/ld\+json">([\s\S]*?)<\/script>/gi,
+    (full, rawJson) => {
+      try {
+        const data = JSON.parse(rawJson);
+        if (data?.['@type'] !== 'CollectionPage') return full;
+        const items = data?.mainEntity?.itemListElement;
+        if (!Array.isArray(items)) return full;
+        found = true;
+        if (!items.some((item) => item?.url === canonicalUrl)) {
+          items.push({ '@type': 'ListItem', position: items.length + 1, name: title, url: canonicalUrl });
+        }
+        items.forEach((item, index) => { item.position = index + 1; });
+        return `<script type="application/ld+json">${JSON.stringify(data)}</script>`;
+      } catch {
+        return full;
+      }
+    },
+  );
+  if (!found) throw new Error('CollectionPage JSON-LD not found in blog/index.html');
+  return updated;
+}
+
+async function updateRemoteSitemap({ githubToken, canonicalUrl, today }) {
+  if (!canonicalUrl.startsWith(`${SITE}/blog/`)) throw new Error('Refusing to add a non-blog URL to sitemap.xml');
+  const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/sitemap.xml`;
+  const response = await fetch(apiUrl, {
+    headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' },
+  });
+  if (!response.ok) throw new Error(`Could not read sitemap.xml (${response.status})`);
+  const data = await response.json();
+  let sitemap = Buffer.from(data.content, 'base64').toString('utf8');
+  sitemap = sitemap.replace(
+    /(<loc>https:\/\/www\.assembleatease\.com\/blog<\/loc><lastmod>)[^<]+/,
+    `$1${today}`,
+  );
+  if (!sitemap.includes(`<loc>${canonicalUrl}</loc>`)) {
+    const entry = `  <url><loc>${canonicalUrl}</loc><lastmod>${today}</lastmod><priority>0.6</priority></url>`;
+    sitemap = sitemap.replace(/\s*<\/urlset>\s*$/, `\n${entry}\n</urlset>\n`);
+  }
+  const put = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: {
+      Authorization: `token ${githubToken}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: `Auto-blog sitemap: add ${new URL(canonicalUrl).pathname}`,
+      content: Buffer.from(sitemap).toString('base64'),
+      sha: data.sha,
+      branch: 'main',
+    }),
+  });
+  if (!put.ok) throw new Error(`Could not update sitemap.xml (${put.status})`);
 }
 
 // -- Helpers ----------------------------------------------------------
@@ -512,7 +601,9 @@ function buildBlogPage({ title, canonicalUrl, today, readTime, body, image, mark
 <title>${escaped} &mdash; AssembleAtEase</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="${escaped}. Practical assembly and home-service guidance from AssembleAtEase for ${market}."/>
+<meta name="robots" content="index,follow,max-image-preview:large"/>
 <link rel="stylesheet" href="/assets/css/marketing.css"/>
+<link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 <link rel="canonical" href="${canonicalUrl}"/>
 <meta property="og:type" content="article"/>
 <meta property="og:title" content="${escaped}"/>
@@ -520,9 +611,14 @@ function buildBlogPage({ title, canonicalUrl, today, readTime, body, image, mark
 <meta property="og:url" content="${canonicalUrl}"/>
 <meta property="og:site_name" content="AssembleAtEase"/>
 <meta property="og:image" content="${SITE}${image}"/>
+<meta property="og:image:alt" content="${escaped} guide from AssembleAtEase"/>
+<meta property="article:published_time" content="${today}"/>
+<meta property="article:modified_time" content="${today}"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${escaped}"/>
+<meta name="twitter:description" content="${escaped}. Practical guidance from AssembleAtEase for ${market}."/>
 <meta name="twitter:image" content="${SITE}${image}"/>
+<meta name="twitter:image:alt" content="${escaped} guide from AssembleAtEase"/>
 <link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/><link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>

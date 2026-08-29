@@ -211,8 +211,13 @@ function collectJsonLdTypes(value, output = new Set()) {
   } else if (typeValue) {
     output.add(String(typeValue));
   }
-  if (Array.isArray(value.mainEntity)) {
-    for (const item of value.mainEntity) collectJsonLdTypes(item, output);
+  for (const key of ['@graph', 'mainEntity', 'itemListElement']) {
+    const nested = value[key];
+    if (Array.isArray(nested)) {
+      for (const item of nested) collectJsonLdTypes(item, output);
+    } else if (nested && typeof nested === 'object') {
+      collectJsonLdTypes(nested, output);
+    }
   }
   return output;
 }

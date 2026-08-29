@@ -117,6 +117,7 @@
     "jsonLdTypes": [
       "AboutPage",
       "BreadcrumbList",
+      "ListItem",
       "Organization"
     ],
     "sharedNavShellCount": 1,
@@ -593,8 +594,8 @@
     "malformedFacebookLinkCount": 0,
     "currentGoogleMapsLinkCount": 0,
     "oldGoogleMapsLinkCount": 0,
-    "currentEmailCount": 3,
-    "currentPhoneCount": 0,
+    "currentEmailCount": 4,
+    "currentPhoneCount": 1,
     "bookLinkCount": 0,
     "businessLinkCount": 0,
     "trackLinkCount": 0,
@@ -651,7 +652,7 @@
     "malformedFacebookLinkCount": 0,
     "currentGoogleMapsLinkCount": 0,
     "oldGoogleMapsLinkCount": 0,
-    "currentEmailCount": 2,
+    "currentEmailCount": 4,
     "currentPhoneCount": 0,
     "bookLinkCount": 0,
     "businessLinkCount": 0,
@@ -767,7 +768,7 @@
     "malformedFacebookLinkCount": 0,
     "currentGoogleMapsLinkCount": 0,
     "oldGoogleMapsLinkCount": 0,
-    "currentEmailCount": 0,
+    "currentEmailCount": 1,
     "currentPhoneCount": 0,
     "bookLinkCount": 0,
     "businessLinkCount": 0,
@@ -1890,7 +1891,7 @@
     "bookLinkCount": 3,
     "businessLinkCount": 1,
     "trackLinkCount": 2,
-    "applyLinkCount": 1,
+    "applyLinkCount": 2,
     "usesSitePromoScript": false,
     "usesCookieConsent": true,
     "usesSharedCookieScript": true,
@@ -2548,6 +2549,7 @@
     "hasServiceSchema": true,
     "jsonLdTypes": [
       "BreadcrumbList",
+      "ListItem",
       "Service"
     ],
     "sharedNavShellCount": 1,
@@ -2623,6 +2625,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question"
     ],
     "sharedNavShellCount": 1,
@@ -2697,7 +2700,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "ContactPage"
+      "ContactPage",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -2771,7 +2775,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -2845,7 +2850,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -2919,7 +2925,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -2993,7 +3000,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3067,7 +3075,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3141,7 +3150,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3215,7 +3225,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3289,7 +3300,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3363,7 +3375,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3437,7 +3450,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3511,7 +3525,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3585,7 +3600,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3659,7 +3675,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3733,7 +3750,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3807,7 +3825,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3881,7 +3900,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -3955,7 +3975,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4029,7 +4050,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4103,7 +4125,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4177,7 +4200,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4251,7 +4275,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4325,7 +4350,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4399,7 +4425,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4473,7 +4500,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4547,7 +4575,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4621,7 +4650,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4695,7 +4725,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4769,7 +4800,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4843,7 +4875,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4917,7 +4950,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -4991,7 +5025,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5065,7 +5100,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5139,7 +5175,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5213,7 +5250,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5287,7 +5325,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5361,7 +5400,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5435,7 +5475,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5509,7 +5550,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5583,7 +5625,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5657,7 +5700,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5731,7 +5775,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5805,7 +5850,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5879,7 +5925,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -5953,7 +6000,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -6027,7 +6075,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -6101,7 +6150,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -6175,7 +6225,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -6249,7 +6300,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -6323,7 +6375,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -6397,7 +6450,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -6471,7 +6525,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -6545,7 +6600,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -6619,7 +6675,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -6693,7 +6750,8 @@
     "hasServiceSchema": false,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "JobPosting"
+      "JobPosting",
+      "ListItem"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -6769,6 +6827,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -6846,6 +6905,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -6923,6 +6983,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7000,6 +7061,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7076,6 +7138,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7153,6 +7216,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7230,6 +7294,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7307,6 +7372,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7384,6 +7450,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7461,6 +7528,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7538,6 +7606,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7615,6 +7684,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7692,6 +7762,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7769,6 +7840,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7846,6 +7918,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -7923,6 +7996,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8000,6 +8074,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8077,6 +8152,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8154,6 +8230,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8231,6 +8308,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8308,6 +8386,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8385,6 +8464,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8462,6 +8542,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8539,6 +8620,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8616,6 +8698,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8693,6 +8776,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8770,6 +8854,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8847,6 +8932,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -8924,6 +9010,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9001,6 +9088,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9078,6 +9166,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9155,6 +9244,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9232,6 +9322,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9309,6 +9400,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9386,6 +9478,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9463,6 +9556,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9540,6 +9634,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9617,6 +9712,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9694,6 +9790,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9771,6 +9868,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9848,6 +9946,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -9925,6 +10024,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10002,6 +10102,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10079,6 +10180,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10156,6 +10258,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10233,6 +10336,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10310,6 +10414,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10387,6 +10492,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10464,6 +10570,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10541,6 +10648,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10618,6 +10726,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10695,6 +10804,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10772,6 +10882,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10849,6 +10960,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -10926,6 +11038,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11003,6 +11116,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11080,6 +11194,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11157,6 +11272,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11233,6 +11349,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11310,6 +11427,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11387,6 +11505,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11464,6 +11583,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11541,6 +11661,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11618,6 +11739,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11695,6 +11817,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11772,6 +11895,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11849,6 +11973,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -11926,6 +12051,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12003,6 +12129,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12080,6 +12207,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12157,6 +12285,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12234,6 +12363,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12311,6 +12441,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12388,6 +12519,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12465,6 +12597,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12542,6 +12675,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12619,6 +12753,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12696,6 +12831,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12773,6 +12909,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12850,6 +12987,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -12927,6 +13065,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13004,6 +13143,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13081,6 +13221,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13158,6 +13299,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13235,6 +13377,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13312,6 +13455,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13389,6 +13533,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13466,6 +13611,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13543,6 +13689,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13620,6 +13767,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13697,6 +13845,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13774,6 +13923,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13851,6 +14001,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -13928,6 +14079,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14005,6 +14157,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14082,6 +14235,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14159,6 +14313,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14236,6 +14391,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14313,6 +14469,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14390,6 +14547,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14467,6 +14625,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14544,6 +14703,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14621,6 +14781,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14698,6 +14859,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14775,6 +14937,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14852,6 +15015,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -14929,6 +15093,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -15006,8 +15171,87 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
+    ],
+    "sharedNavShellCount": 1,
+    "usesMarketingDesktopCss": true,
+    "hasSharedFooter": true,
+    "footerDuplicateHrefs": [],
+    "footerBusinessLinkCount": 1,
+    "footerLegacyBusinessCustomCount": 0,
+    "footerCompanyLabels": [
+      "About Us",
+      "Locations",
+      "Pricing",
+      "Guides",
+      "Business Services"
+    ],
+    "footerServiceLabels": [
+      "Furniture Assembly",
+      "TV Mounting",
+      "Smart Home Setup",
+      "Fitness Equipment",
+      "Office Furniture",
+      "Outdoor / Playsets"
+    ],
+    "status": "PASS",
+    "failCount": 0,
+    "warningCount": 0,
+    "issues": []
+  },
+  {
+    "path": "furniture-stores-texas.html",
+    "pageType": "core_marketing",
+    "visibility": "public_marketing",
+    "generatorOwners": [
+      "manual marketing page"
+    ],
+    "title": "Where to Buy Furniture, TVs, Patio &amp; Office in Texas (2026) &mdash; And Who Assembles It | AssembleAtEase",
+    "h1": "Where Texans buy it &mdash; and who sets it up.",
+    "metaDescription": "A real guide to where Texans buy furniture, TVs, patio and outdoor gear, office furniture, and fitness equipment &mdash; across Austin, Dallas&ndash;Fort Worth, Houston, and San Antonio. Search by what you're buying, then we assemble, mount, or install it &mdash; wherever you bought it.",
+    "canonical": "https://www.assembleatease.com/furniture-stores-texas",
+    "ogTitle": "Where to Buy Furniture, TVs, Patio & Office in Texas — And Who Assembles It",
+    "ogDescription": "Search where Texans buy furniture, TVs, patio, office, and fitness gear — then we assemble, mount, or install it, wherever you bought it.",
+    "ogImage": "https://www.assembleatease.com/images/logo.jpg",
+    "twitterImage": "https://www.assembleatease.com/images/logo.jpg",
+    "twitterCard": "summary",
+    "heroMediaCount": 0,
+    "legacyAustinMetroCount": 0,
+    "secureCheckoutCount": 0,
+    "serviceCallFeeCount": 0,
+    "totalShownUpfrontCount": 0,
+    "clearPricingCount": 0,
+    "exactTotalBeforeConfirmCount": 0,
+    "closestOptionCount": 0,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "currentEmailCount": 2,
+    "currentPhoneCount": 1,
+    "bookLinkCount": 17,
+    "businessLinkCount": 1,
+    "trackLinkCount": 3,
+    "applyLinkCount": 2,
+    "usesSitePromoScript": false,
+    "usesCookieConsent": true,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "hasSkipNavLink": true,
+    "hasMainContentTarget": true,
+    "hasLocalBusinessSchema": false,
+    "hasOrganizationSchema": false,
+    "hasServiceSchema": false,
+    "jsonLdTypes": [
+      "Article",
+      "BreadcrumbList",
+      "FAQPage",
+      "ItemList",
+      "ListItem",
+      "Question"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -15152,10 +15396,12 @@
     "hasMainContentTarget": true,
     "hasLocalBusinessSchema": false,
     "hasOrganizationSchema": false,
-    "hasServiceSchema": false,
+    "hasServiceSchema": true,
     "jsonLdTypes": [
       "BreadcrumbList",
-      "CollectionPage"
+      "CollectionPage",
+      "ListItem",
+      "Service"
     ],
     "sharedNavShellCount": 1,
     "usesMarketingDesktopCss": true,
@@ -15231,6 +15477,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -15308,6 +15555,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -15385,6 +15633,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -15462,6 +15711,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -15538,6 +15788,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -15615,6 +15866,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -15692,6 +15944,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -15769,6 +16022,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -15846,6 +16100,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -15923,6 +16178,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16000,6 +16256,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16077,6 +16334,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16154,6 +16412,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16231,6 +16490,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16308,6 +16568,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16385,6 +16646,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16462,6 +16724,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16539,6 +16802,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16616,6 +16880,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16693,6 +16958,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16770,6 +17036,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16847,6 +17114,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -16924,6 +17192,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17001,6 +17270,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17078,6 +17348,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17155,6 +17426,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17232,6 +17504,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17309,6 +17582,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17386,6 +17660,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17463,6 +17738,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17540,6 +17816,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17617,6 +17894,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17694,6 +17972,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17771,6 +18050,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17848,6 +18128,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -17925,6 +18206,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18002,6 +18284,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18079,6 +18362,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18156,6 +18440,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18233,6 +18518,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18310,6 +18596,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18387,6 +18674,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18464,6 +18752,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18541,6 +18830,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18618,6 +18908,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18695,6 +18986,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18772,6 +19064,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18849,6 +19142,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -18926,6 +19220,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19003,6 +19298,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19080,6 +19376,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19157,6 +19454,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19234,6 +19532,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19311,6 +19610,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19504,6 +19804,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19581,6 +19882,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19658,6 +19960,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19735,6 +20038,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19811,6 +20115,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19888,6 +20193,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -19965,6 +20271,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20042,6 +20349,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20119,6 +20427,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20196,6 +20505,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20273,6 +20583,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20350,6 +20661,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20427,6 +20739,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20504,6 +20817,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20581,6 +20895,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20658,6 +20973,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20735,6 +21051,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20812,6 +21129,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20889,6 +21207,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -20966,6 +21285,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21043,6 +21363,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21120,6 +21441,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21197,6 +21519,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21274,6 +21597,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21351,6 +21675,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21428,6 +21753,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21505,6 +21831,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21582,6 +21909,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21659,6 +21987,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21736,6 +22065,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21813,6 +22143,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21890,6 +22221,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -21967,6 +22299,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22044,6 +22377,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22121,6 +22455,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22198,6 +22533,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22275,6 +22611,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22352,6 +22689,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22429,6 +22767,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22506,6 +22845,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22583,6 +22923,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22660,6 +23001,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22737,6 +23079,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22814,6 +23157,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22891,6 +23235,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -22968,6 +23313,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -23045,6 +23391,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -23122,6 +23469,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -23199,6 +23547,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -23276,6 +23625,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -23353,6 +23703,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -23430,6 +23781,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -23507,6 +23859,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -23584,6 +23937,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -23659,6 +24013,7 @@
     "hasServiceSchema": true,
     "jsonLdTypes": [
       "BreadcrumbList",
+      "ListItem",
       "Service",
       "WebPage"
     ],
@@ -23695,11 +24050,11 @@
     "generatorOwners": [
       "manual marketing page"
     ],
-    "title": "Privacy Policy &mdash; AssembleAtEase",
-    "h1": "Privacy Policy",
-    "metaDescription": "Read the AssembleAtEase Privacy Policy to understand what personal information we collect, why we use it, how it is protected, and the choices available to you.",
+    "title": "Privacy Notice &mdash; AssembleAtEase",
+    "h1": "Privacy Notice",
+    "metaDescription": "Read the AssembleAtEase Privacy Notice to understand what personal information we collect, why we use it, how it is protected, and the choices available to you.",
     "canonical": "https://www.assembleatease.com/privacy",
-    "ogTitle": "Privacy Policy &mdash; AssembleAtEase",
+    "ogTitle": "Privacy Notice &mdash; AssembleAtEase",
     "ogDescription": "Understand what personal information AssembleAtEase collects, why we use it, how it is protected, and the choices available to you.",
     "ogImage": "https://www.assembleatease.com/images/logo.jpg",
     "twitterImage": "https://www.assembleatease.com/images/logo.jpg",
@@ -23717,7 +24072,7 @@
     "malformedFacebookLinkCount": 0,
     "currentGoogleMapsLinkCount": 0,
     "oldGoogleMapsLinkCount": 0,
-    "currentEmailCount": 10,
+    "currentEmailCount": 14,
     "currentPhoneCount": 1,
     "bookLinkCount": 8,
     "businessLinkCount": 1,
@@ -23951,6 +24306,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24028,6 +24384,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24105,6 +24462,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24182,6 +24540,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24258,6 +24617,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24335,6 +24695,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24412,6 +24773,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24489,6 +24851,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24566,6 +24929,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24643,6 +25007,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24720,6 +25085,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24797,6 +25163,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24874,6 +25241,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -24951,6 +25319,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25028,6 +25397,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25105,6 +25475,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25182,6 +25553,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25259,6 +25631,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25336,6 +25709,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25413,6 +25787,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25490,6 +25865,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25567,6 +25943,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25644,6 +26021,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25721,6 +26099,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25798,6 +26177,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25875,6 +26255,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -25952,6 +26333,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26029,6 +26411,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26106,6 +26489,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26183,6 +26567,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26260,6 +26645,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26337,6 +26723,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26414,6 +26801,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26491,6 +26879,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26568,6 +26957,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26645,6 +27035,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26722,6 +27113,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26799,6 +27191,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26876,6 +27269,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -26953,6 +27347,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27030,6 +27425,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27107,6 +27503,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27184,6 +27581,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27261,6 +27659,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27338,6 +27737,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27415,6 +27815,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27492,6 +27893,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27569,6 +27971,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27646,6 +28049,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27723,6 +28127,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27800,6 +28205,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27877,6 +28283,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -27954,6 +28361,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -28031,6 +28439,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -28089,8 +28498,8 @@
     "malformedFacebookLinkCount": 0,
     "currentGoogleMapsLinkCount": 0,
     "oldGoogleMapsLinkCount": 0,
-    "currentEmailCount": 12,
-    "currentPhoneCount": 1,
+    "currentEmailCount": 18,
+    "currentPhoneCount": 2,
     "bookLinkCount": 8,
     "businessLinkCount": 1,
     "trackLinkCount": 3,
@@ -28252,6 +28661,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -28329,6 +28739,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -28406,6 +28817,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -28483,6 +28895,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -28559,6 +28972,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -28636,6 +29050,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -28713,6 +29128,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -28790,6 +29206,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -28867,6 +29284,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -28944,6 +29362,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29021,6 +29440,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29098,6 +29518,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29175,6 +29596,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29252,6 +29674,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29329,6 +29752,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29406,6 +29830,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29483,6 +29908,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29560,6 +29986,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29637,6 +30064,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29714,6 +30142,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29791,6 +30220,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29868,6 +30298,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -29945,6 +30376,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30022,6 +30454,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30099,6 +30532,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30176,6 +30610,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30253,6 +30688,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30330,6 +30766,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30407,6 +30844,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30484,6 +30922,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30561,6 +31000,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30638,6 +31078,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30715,6 +31156,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30792,6 +31234,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30869,6 +31312,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -30946,6 +31390,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31023,6 +31468,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31100,6 +31546,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31177,6 +31624,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31254,6 +31702,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31331,6 +31780,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31408,6 +31858,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31485,6 +31936,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31562,6 +32014,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31639,6 +32092,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31716,6 +32170,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31793,6 +32248,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31870,6 +32326,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -31947,6 +32404,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -32024,6 +32482,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -32101,6 +32560,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -32178,6 +32638,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -32255,6 +32716,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],
@@ -32332,6 +32794,7 @@
     "jsonLdTypes": [
       "BreadcrumbList",
       "FAQPage",
+      "ListItem",
       "Question",
       "Service"
     ],

@@ -24,7 +24,7 @@ Mention Austin when the article, URL, or hook is Austin-local. For broader servi
 
 Important LinkedIn context:
 - The LinkedIn post is for the founder's personal profile, not a corporate page.
-- It should feel like a founder/operator sharing a practical observation, customer pattern, or local business insight.
+- It should feel like a founder/operator explaining a practical operating principle or useful planning lesson.
 - Keep it credible for property managers, apartment operators, office managers, realtors, and referral partners.
 - Avoid sounding like a generic ad, discount blast, or social-media intern recap.
 
@@ -38,7 +38,10 @@ Use the assigned hook style to avoid boring recap posts:
 
 Hard content rules:
 - No emojis or emoji-style symbols on any platform.
-- No fake crime claims, fake urgency, or scare tactics.
+- Never invent a meeting, customer conversation, job, partnership, project count, customer count, result, review, trend, field observation, or first-person experience.
+- Do not say "we are seeing," "I met," "we recently helped," "our customers tell us," or similar unless that exact fact was supplied in the article inputs.
+- No fake crime claims, fake urgency, scare tactics, or unverified same-day availability.
+- Do not claim service outside Texas. Broader articles may give generally useful planning advice, but the call to action must ask the reader to check availability for the service address.
 - No generic "Ready to..." opener unless it is the direct-offer style.
 - Keep each post direct, useful, and easy to approve.
 - Hashtags must be clean, specific, and platform-appropriate. Do not use unrelated viral tags.`;
@@ -51,8 +54,8 @@ Assigned hook style: ${hookStyle}
 Return ONLY valid minified JSON (no markdown, no code fences) with EXACTLY these string keys:
 {
 "facebook":"A scroll-stopping Facebook Page post. Lead with the assigned hook style, then 2-3 useful sentences, then the article URL on its own line, then 1-3 specific hashtags",
-"linkedin":"a founder-style LinkedIn personal-profile post from the founder of AssembleAtEase. Make it sound like an operator sharing something useful he is seeing in the field. Keep it thoughtful, practical, and lightly commercial at most. End with the article URL and 0-3 professional hashtags",
-"googleBusiness":"a short Google Business Profile update under 300 characters. Make it service-specific, local when appropriate, and useful. End with a clear action like 'Book online' or 'Schedule setup'",
+"linkedin":"a founder-style LinkedIn personal-profile post from the founder of AssembleAtEase. Explain one useful operating principle or planning lesson without implying a real meeting, customer, job, trend, or field experience that was not provided. Keep it thoughtful, practical, and lightly commercial at most. End with the article URL and 0-3 professional hashtags",
+"googleBusiness":"a short Google Business Profile update under 300 characters. Make it service-specific, local when appropriate, and useful. Point to the article with an action such as 'Read the guide' or ask readers to check availability for their address",
 "videoScript":"a 20-30 second short-video script for Reels/TikTok/Shorts, with [HOOK], [VALUE] and [CTA] labels on separate lines",
 "apartmentOutreach":"one short, friendly outreach message to a property manager or apartment complex offering move-in furniture assembly + TV mounting for their residents",
 "hashtags":"separate owner-review hashtag recommendations grouped by platform, like Facebook: ... LinkedIn: ... Google Business: ..."
