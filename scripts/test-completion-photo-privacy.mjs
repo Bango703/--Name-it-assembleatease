@@ -150,3 +150,24 @@ const ownerUi = await read('owner/index.html');
 }
 
 console.log('\nCompletion photo privacy tests passed.');
+
+// ── The Easer is never offered an escape that does not exist ───────────────
+// When a photo upload failed, the status line read "Remove the photo to skip,
+// or try again." Removing it calls _resetPhotoState(), which re-disables the
+// confirm button — and the server requires a photo regardless. An Easer who
+// followed that advice would remove the photo, find the button dead, and have
+// no way forward on a job they had already finished.
+{
+  const easerUi = await read('assembler/my-assignments.html');
+  assert.ok(!/Remove the photo to skip/.test(easerUi),
+    'the UI must not offer skipping a photo the server requires');
+  assert.ok((easerUi.match(/A photo is required to complete this job/g) || []).length >= 2,
+    'both upload-failure paths must say a photo is required, not optional');
+
+  // Completion is only offered once the job is in progress, so the photo always
+  // falls inside the window the server accepts. Without this an Easer could
+  // photograph finished work and still be told a photo was required.
+  assert.ok(easerUi.includes("const canComplete2 = b.status === 'in_progress' && !!b.assembler_accepted_at;"),
+    'Complete must appear only for an accepted, in-progress job');
+  console.log('PASS a failed upload never tells the Easer to skip a required photo');
+}
