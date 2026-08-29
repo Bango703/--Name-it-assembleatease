@@ -107,6 +107,28 @@ const mig085 = await read('api/migrations/085_easer_bonus.sql');
     'a captured application fee must block waitlisting, with a stated reason');
   assert.ok(block.includes("notificationType: 'easer_application_waitlisted'"),
     'the applicant must be told — silence reads as rejection');
+  // The applicant came to US. The email must not reference a conversation that
+  // never happened, and must not claim their area is closed — that is a reason
+  // we may not have and would have to stand behind the next time they asked.
+  const waitlistEmail = await read('api/_waitlist-email.js');
+  const { buildWaitlistEmail } = await import('../api/_waitlist-email.js');
+  const applied = buildWaitlistEmail({ name: 'Phil Hawkins', city: 'Houston', state: 'TX', variant: 'applied' });
+  assert.ok(!/following our conversation/i.test(applied.html),
+    'a self-submitted applicant must not be told we spoke');
+  assert.ok(!/not open|opening in your area|area just yet/i.test(applied.html),
+    'the email must not claim a market is closed');
+  assert.ok(/Thank you for applying/i.test(applied.html), 'it must acknowledge the application they actually made');
+  assert.ok(/you applied to join/i.test(applied.html), 'the footer must state the real reason they received it');
+  for (const part of ['ON WAITLIST', 'What Happens Next', 'Why Professionals Choose Us', 'Visit AssembleAtEase']) {
+    assert.ok(applied.html.includes(part), `a waitlisted applicant must get the same branded ${part} as a signup`);
+  }
+  // A missing city must not render as a stray comma where a place should be.
+  assert.ok(/professionals in your area/.test(buildWaitlistEmail({ name: 'X', variant: 'applied' }).html),
+    'with no location on file the copy must stay neutral, not print an empty place');
+  assert.ok(waitlistEmail.includes("APPLIED: 'applied'"), 'the variant must be named in one place');
+  assert.ok(update.includes('WAITLIST_EMAIL_VARIANT.APPLIED'),
+    'the waitlist action must use the shared branded template, not a hand-rolled one');
+
   assert.ok(ui.includes('data-waitlist-asm'), 'the owner needs the button');
   console.log('PASS an application can be waitlisted without money moving or a door closing');
 }

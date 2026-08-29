@@ -2,6 +2,7 @@
 import { getSupabase } from '../_supabase.js';
 import { randomUUID } from 'crypto';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import { buildWaitlistEmail, WAITLIST_EMAIL_VARIANT } from '../_waitlist-email.js';
 import {
   ACTIVE_EASER_TIERS,
   getPreservedTier,
@@ -953,19 +954,26 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Could not move this application to the waitlist.' });
     }
 
-    // Silence would read as rejection. Tell them plainly, and promise nothing.
+    // Silence would read as rejection. They get the SAME branded email a public
+    // signup gets — same header, status badge, next steps and footer — because
+    // an applicant has given us more than a signup, not less.
+    //
+    // The APPLIED variant exists so the copy stays true: they came to us, so
+    // nothing references a conversation, and nothing claims their area is
+    // closed. That would be a reason we may not have and would have to stand
+    // behind the next time they asked.
     if (profile.email) {
+      const welcome = buildWaitlistEmail({
+        name: profile.full_name,
+        city: profile.city,
+        state: profile.state,
+        variant: WAITLIST_EMAIL_VARIANT.APPLIED,
+      });
       await sendEmail({
         to: profile.email,
         from: 'AssembleAtEase <waitlist@assembleatease.com>',
-        subject: 'Your AssembleAtEase application — on our waitlist',
-        html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;padding:2rem;color:#1a1a1a">
-          <h2 style="color:#00BFFF;margin:0 0 10px;font-size:22px">You are on our waitlist, ${esc((profile.full_name || 'there').split(' ')[0])}.</h2>
-          <p style="font-size:15px;color:#52525b;line-height:1.7">Thank you for applying to AssembleAtEase. We are not opening new spots in your area just yet, so we have placed your application on our waitlist rather than turning it down.</p>
-          <p style="font-size:15px;color:#52525b;line-height:1.7">There is nothing you need to do. When we open your area we will come back to you directly, and you will not have to apply again.</p>
-          <p style="font-size:14px;color:#52525b;line-height:1.7">A waitlist place is not an offer of work and does not guarantee approval. If you would rather we removed you, just reply to this email.</p>
-          <p style="font-size:13px;color:#71717a;margin-top:22px">AssembleAtEase &bull; <a href="https://www.assembleatease.com" style="color:#71717a">assembleatease.com</a></p>
-        </div>`,
+        subject: welcome.subject,
+        html: welcome.html,
         replyTo: ownerEmail(),
         meta: {
           notificationType: 'easer_application_waitlisted',

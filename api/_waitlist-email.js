@@ -27,6 +27,11 @@ const SITE = 'https://www.assembleatease.com';
 export const WAITLIST_EMAIL_VARIANT = Object.freeze({
   SIGNUP: 'signup',
   OWNER_ADDED: 'owner_added',
+  // Someone who submitted a full APPLICATION and was placed on the waitlist
+  // rather than approved or rejected. They came to us, so nothing here may
+  // reference a conversation — and it must not claim their area is closed,
+  // which is a reason we may not have and would have to stand behind later.
+  APPLIED: 'applied',
 });
 
 /**
@@ -40,20 +45,31 @@ export function buildWaitlistEmail({ name, city, state, variant = WAITLIST_EMAIL
   const sCity = esc(city || '');
   const sState = esc(state || '');
   const isSignup = variant === WAITLIST_EMAIL_VARIANT.SIGNUP;
+  const isApplied = variant === WAITLIST_EMAIL_VARIANT.APPLIED;
 
-  const intro = isSignup
-    ? `Thank you for your interest in joining AssembleAtEase. We're building a trusted network of skilled professionals in <strong>${sCity}, ${sState}</strong>, and we're glad you want to be part of it.`
-    : `Following our conversation, we've added you to the AssembleAtEase professional network waitlist for <strong>${sCity}, ${sState}</strong>. There's nothing you need to do right now &mdash; we'll be in touch when applications open in your area.`;
+  // "Houston, TX" when we know it, a neutral phrase when we do not — never a
+  // stray comma where a place should be.
+  const place = (sCity && sState) ? `<strong>${sCity}, ${sState}</strong>` : (sCity ? `<strong>${sCity}</strong>` : 'your area');
 
-  const step1 = isSignup ? 'We review your request' : 'We review your details';
+  const intro = isApplied
+    ? `Thank you for applying to AssembleAtEase. We're building a trusted network of skilled professionals in ${place}, and your application is on our waitlist.`
+    : isSignup
+      ? `Thank you for your interest in joining AssembleAtEase. We're building a trusted network of skilled professionals in ${place}, and we're glad you want to be part of it.`
+      : `Following our conversation, we've added you to the AssembleAtEase professional network waitlist for ${place}. There's nothing you need to do right now &mdash; we'll be in touch when applications open.`;
 
-  const legalLine = isSignup
-    ? 'You received this email because you signed up for the AssembleAtEase assembler waitlist. If you did not make this request, please disregard this email.'
-    : 'You received this email because we added you to the AssembleAtEase Easer waitlist after speaking with you. If this was not something you asked for, reply to this email and we will remove you straight away.';
+  const step1 = isApplied ? 'We review your application' : (isSignup ? 'We review your request' : 'We review your details');
 
-  const subject = isSignup
-    ? 'Your AssembleAtEase Easer waitlist request'
-    : 'You are on the AssembleAtEase Easer waitlist';
+  const legalLine = isApplied
+    ? 'You received this email because you applied to join the AssembleAtEase professional network. If you would rather we removed your application, reply to this email.'
+    : isSignup
+      ? 'You received this email because you signed up for the AssembleAtEase assembler waitlist. If you did not make this request, please disregard this email.'
+      : 'You received this email because we added you to the AssembleAtEase Easer waitlist after speaking with you. If this was not something you asked for, reply to this email and we will remove you straight away.';
+
+  const subject = isApplied
+    ? 'Your AssembleAtEase application is on our waitlist'
+    : isSignup
+      ? 'Your AssembleAtEase Easer waitlist request'
+      : 'You are on the AssembleAtEase Easer waitlist';
 
   return { subject, html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
