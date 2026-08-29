@@ -355,12 +355,28 @@
       var dateLabel = (isCancellation ? 'Cancellation earnings ' : 'Completed ')
         + fmtDate(earningEventDate(b))
         + (payout.status_message ? ' · ' + esc(payout.status_message) : '');
+
+      // When the money should actually land. "Transferred" told a pro their
+      // money had moved but not when they could spend it, which is the only
+      // part they needed. Always "expect it by" — Stripe's real arrival date
+      // does not exist until it creates the bank payout, and a pro told Tuesday
+      // and paid Thursday trusts the next number less.
+      var arrivalNote = '';
+      if (isTransferred && b.expected_bank_arrival_at) {
+        var arrivalOn = new Date(b.expected_bank_arrival_at);
+        if (!isNaN(arrivalOn.getTime())) {
+          arrivalNote = '<div style="font-size:0.68rem;color:#0369a1;margin-top:2px;line-height:1.4">'
+            + 'Expect it by ' + esc(arrivalOn.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' }))
+            + '</div>';
+        }
+      }
       return '<div class="earn-tx-row">' +
         '<div class="earn-tx-icon ' + (isPaid ? 'paid' : (needsReview ? 'review' : (isTransferred ? 'processing' : 'pending'))) + '">' + (isPaid ? checkIcon : clockIcon) + '</div>' +
         '<div class="earn-tx-info">' +
           '<div class="earn-tx-name">' + (isCancellation ? 'Cancellation trip earnings — ' : '') + esc(APP.formatServiceLabel(b.service)) + '</div>' +
           '<div class="earn-tx-date">' + dateLabel + '</div>' +
           ((isZero && !isPaid) ? '<div style="font-size:0.68rem;color:#d97706;margin-top:2px;line-height:1.4">Amount unavailable. Check back soon.</div>' : '') +
+          arrivalNote +
         '</div>' +
         '<div class="earn-tx-right">' +
           '<div class="earn-tx-amount ' + (isPaid ? 'paid' : '') + '">' + fmt(amount) + '</div>' +

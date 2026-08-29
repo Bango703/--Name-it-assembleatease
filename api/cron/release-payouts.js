@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
-import { buildPayoutEmail } from '../booking/payout.js';
+import { buildPayoutEmail, expectedPayoutArrival } from '../booking/payout.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
 import { isStripeConnectEnabled, getAssemblerConnectAccount } from '../_stripe-connect.js';
 import { logCron } from './_cron-logger.js';
@@ -211,8 +211,23 @@ export default async function handler(req, res) {
         },
       }, { idempotencyKey: idem });
 
+      // What the Easer will be told, captured at transfer time from THEIR OWN
+      // payout schedule. Stored rather than recomputed so the dashboard shows
+      // the same date the email promised, and so a later schedule change cannot
+      // silently rewrite history. Estimate only — Stripe's real arrival_date
+      // does not exist until it creates the bank payout.
+      let arrivalDelayDays = null;
+      let expectedArrivalAt = null;
+      try {
+        const acctForSchedule = await stripe.accounts.retrieve(connectState.accountId);
+        arrivalDelayDays = acctForSchedule?.settings?.payouts?.schedule?.delay_days ?? null;
+        expectedArrivalAt = expectedPayoutArrival(new Date(), arrivalDelayDays);
+      } catch (schedErr) {
+        console.error('[release-payouts] payout schedule unreadable for ' + b.ref + ':', schedErr?.message || schedErr);
+      }
+
       const notes = `Stripe Connect transfer ${transfer.id} created after ${PAYOUT_HOLD_HOURS}h hold; bank payout not yet verified`;
-      const { error: transferStateErr, data: transferredRows } = await sb.from('bookings').update({
+      const transferPatch = {
         payout_status: 'transferred',
         payout_amount: dueCents,
         payout_notes: notes,
@@ -221,17 +236,32 @@ export default async function handler(req, res) {
         stripe_transfer_status: 'succeeded',
         stripe_transfer_created_at: new Date().toISOString(),
         stripe_bank_payout_status: 'pending',
+        expected_bank_arrival_at: expectedArrivalAt ? expectedArrivalAt.toISOString() : null,
         cancellation_easer_payout_status: cancellationPayout ? 'transferred' : b.cancellation_easer_payout_status,
         financial_operation_key: null,
         financial_operation_type: null,
         financial_operation_started_at: null,
-      })
+      };
+
+      // expected_bank_arrival_at arrives with migration 086. If the code ships
+      // first, naming it here makes PostgREST reject the WHOLE update — and the
+      // transfer has already been created by this point, so the booking would be
+      // left claiming the money never moved. Losing a nice-to-have date is fine;
+      // losing the record of a real transfer is not.
+      const applyTransferState = patch => sb.from('bookings').update(patch)
         .eq('id', b.id)
         .eq('payout_status', 'pending')
         .eq('financial_operation_key', operationKey)
         .eq('financial_operation_type', 'payout_connect')
         .eq('assembler_id', b.assembler_id)
         .select('id');
+
+      let { error: transferStateErr, data: transferredRows } = await applyTransferState(transferPatch);
+      if (transferStateErr && /expected_bank_arrival_at|PGRST204|42703/i.test(String(transferStateErr.message || transferStateErr.code || ''))) {
+        console.warn('[release-payouts] migration 086 not applied; recording the transfer without an arrival estimate');
+        const { expected_bank_arrival_at: _skip, ...withoutArrival } = transferPatch;
+        ({ error: transferStateErr, data: transferredRows } = await applyTransferState(withoutArrival));
+      }
       if (transferStateErr || !transferredRows?.length) {
         throw new Error(`Transfer created but booking state failed: ${transferStateErr?.message || 'reservation changed'}`);
       }
@@ -266,10 +296,12 @@ export default async function handler(req, res) {
         if (easerProfile?.email) {
           // Read the real schedule off their own account rather than hardcoding
           // a number that belongs to Stripe and can differ per Easer.
-          let delayDays = null;
+          let delayDays = arrivalDelayDays;
           try {
-            const acct = await stripe.accounts.retrieve(connectState.accountId);
-            delayDays = acct?.settings?.payouts?.schedule?.delay_days ?? null;
+            if (delayDays == null) {
+              const acct = await stripe.accounts.retrieve(connectState.accountId);
+              delayDays = acct?.settings?.payouts?.schedule?.delay_days ?? null;
+            }
           } catch { /* copy stays non-specific rather than inventing a figure */ }
 
           const payoutDisplay = '$' + (dueCents / 100).toFixed(2);

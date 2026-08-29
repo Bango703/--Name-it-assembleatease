@@ -379,6 +379,45 @@ async function reconcileFailedPayoutWrite(sb, { booking, operationKey }) {
  * cannot be read the copy stays deliberately non-specific instead of inventing
  * a number (Article 16).
  */
+/**
+ * When the money should actually land in the Easer's bank.
+ *
+ * "About 2 business days" is a duration, not an answer. A pro planning around
+ * money needs a DATE, and working it out from a delay figure is our job rather
+ * than theirs.
+ *
+ * Stripe's delay_days counts business days, so weekends are skipped. This is an
+ * ESTIMATE and is always labelled as one: the real arrival_date only exists once
+ * Stripe creates the bank payout, which happens after the transfer. Presenting
+ * an estimate as a promise is the failure mode to avoid — a pro who was told
+ * Tuesday and paid Thursday trusts the next number less.
+ *
+ * @returns {Date|null} null when the schedule is unknown, so callers fall back
+ *                      to non-specific wording rather than inventing a day.
+ */
+export function expectedPayoutArrival(fromDate, delayDays) {
+  const days = Number(delayDays);
+  if (delayDays == null || !Number.isFinite(days) || days <= 0) return null;
+  const start = fromDate instanceof Date ? new Date(fromDate.getTime()) : new Date(fromDate);
+  if (Number.isNaN(start.getTime())) return null;
+
+  const d = new Date(start.getTime());
+  let remaining = Math.round(days);
+  while (remaining > 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    const day = d.getUTCDay();
+    if (day !== 0 && day !== 6) remaining -= 1;   // skip Sat/Sun
+  }
+  return d;
+}
+
+export function formatPayoutArrival(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC',
+  });
+}
+
 export function buildPayoutEmail({
   firstName, ref, service, date, payoutDisplay, notes, method,
   isCancellation = false, viaStripeConnect = false, delayDays = null,
@@ -392,8 +431,10 @@ export function buildPayoutEmail({
   // Number(null) is 0 and 0 is finite, so a missing schedule would render
   // "about 0 business days" — the same trap that once made a null coordinate
   // read as a 3,000km distance. Check for absence before converting.
-  const bankTiming = delayDays != null && Number.isFinite(Number(delayDays)) && Number(delayDays) > 0
-    ? `Stripe deposits to your bank automatically, usually about ${Number(delayDays)} business day${Number(delayDays) === 1 ? '' : 's'} after it settles.`
+  const arrival = expectedPayoutArrival(new Date(), delayDays);
+  const arrivalLabel = formatPayoutArrival(arrival);
+  const bankTiming = arrivalLabel
+    ? `Stripe sends it to your bank automatically. Expect it by <strong>${esc(arrivalLabel)}</strong>${Number(delayDays) === 1 ? '' : ''} — about ${Number(delayDays)} business day${Number(delayDays) === 1 ? '' : 's'} from now.`
     : 'Stripe deposits to your bank automatically on its normal schedule.';
   const instantLine = 'Need it sooner? You can take an instant payout from your payouts page. Stripe charges a small fee for that one; AssembleAtEase adds nothing.';
 
