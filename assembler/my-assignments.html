@@ -1451,7 +1451,7 @@
             // Upload failed — keep sheet open so Easer can retry or skip
             const errData = await uploadResp.json().catch(function(){ return {}; });
             if (statusEl) {
-              statusEl.textContent = (errData.error || 'Photo upload failed.') + ' Remove the photo to skip, or try again.';
+              statusEl.textContent = (errData.error || 'Photo upload failed.') + ' A photo is required to complete this job — try again, or take a new one.';
               statusEl.style.color = '#dc2626';
               statusEl.style.display = 'block';
             }
@@ -1462,7 +1462,7 @@
           }
         } catch {
           if (statusEl) {
-            statusEl.textContent = 'Photo upload failed (connection error). Remove the photo to skip, or try again.';
+            statusEl.textContent = 'Photo upload failed (connection error). A photo is required to complete this job — check your signal and try again, or take a new one.';
             statusEl.style.color = '#dc2626';
             statusEl.style.display = 'block';
           }
