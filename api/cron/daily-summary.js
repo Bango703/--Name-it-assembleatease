@@ -1,5 +1,5 @@
 ﻿import { getSupabase } from '../_supabase.js';
-import { sendEmail, ownerEmail } from '../_email.js';
+import { sendEmail, ownerEmail, esc } from '../_email.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -54,6 +54,26 @@ export default async function handler(req, res) {
         .eq('role', 'assembler').in('tier', ['starter', 'professional', 'elite']),
     ]);
 
+    // What the owner OWES. Money is captured on completion but a manual payout
+    // only leaves when someone records it, and nothing anywhere was reminding
+    // the owner that an Easer is still waiting. An unpaid pro is the fastest way
+    // to lose supply, and supply is the platform's only real constraint.
+    const { data: owedRows } = await sb
+      .from('bookings')
+      .select('ref, assembler_name, assembler_due, easer_bonus_cents, completed_at')
+      .eq('status', 'completed')
+      .eq('payout_status', 'pending')
+      .not('assembler_id', 'is', null);
+    const owed = (owedRows || []).map(r => ({
+      ref: r.ref,
+      who: r.assembler_name || 'Easer',
+      cents: Number(r.assembler_due || 0) + Number(r.easer_bonus_cents || 0),
+      daysWaiting: r.completed_at
+        ? Math.floor((Date.now() - new Date(r.completed_at).getTime()) / 86400000)
+        : null,
+    })).filter(r => r.cents > 0).sort((a, b) => (b.daysWaiting || 0) - (a.daysWaiting || 0));
+    const owedTotalCents = owed.reduce((sum, r) => sum + r.cents, 0);
+
     // Revenue: sum captured amounts from yesterday's completed bookings
     const revenueYesterday = (completedBookings || []).reduce((sum, b) => {
       return b.payment_status === 'captured' ? sum + (b.amount_charged || 0) : sum;
@@ -70,6 +90,8 @@ export default async function handler(req, res) {
       newApps: newApps || [],
       activeAssemblerCount: (activeAssemblers || []).length,
       revenue: revDisplay,
+      owed,
+      owedTotalCents,
     });
 
     await sendEmail({
@@ -87,7 +109,7 @@ export default async function handler(req, res) {
   }
 }
 
-function buildDailySummaryEmail({ date, newBookings, completedCount, cancelledCount, pendingCount, newApps, activeAssemblerCount, revenue }) {
+function buildDailySummaryEmail({ date, newBookings, completedCount, cancelledCount, pendingCount, newApps, activeAssemblerCount, revenue, owed = [], owedTotalCents = 0 }) {
   const bookingRows = newBookings.length
     ? newBookings.map(b => `
       <tr>
@@ -144,6 +166,18 @@ function buildDailySummaryEmail({ date, newBookings, completedCount, cancelledCo
         </td>
       </tr>
     </table>
+
+    ${owed.length > 0 ? `
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;border:1px solid #fdba74;border-radius:6px;margin-bottom:14px"><tr><td style="padding:14px 16px">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#9a3412">You owe ${owed.length} Easer payout${owed.length === 1 ? '' : 's'} &mdash; $${(owedTotalCents / 100).toFixed(2)}</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#7c2d12">
+        ${owed.slice(0, 8).map(r => `<tr>
+          <td style="padding:3px 0">${esc(r.who)} &bull; ${esc(r.ref)}</td>
+          <td style="padding:3px 0;text-align:right;font-weight:600">$${(r.cents / 100).toFixed(2)}${r.daysWaiting != null ? ` <span style="font-weight:400">(${r.daysWaiting}d)</span>` : ''}</td>
+        </tr>`).join('')}
+      </table>
+      <p style="margin:8px 0 0;font-size:12px;color:#9a3412">Money is captured on completion, but a manual payout only leaves when you record it.</p>
+    </td></tr></table>` : ''}
 
     <!-- Status row -->
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:14px 18px">

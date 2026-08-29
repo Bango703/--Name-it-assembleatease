@@ -120,8 +120,12 @@ export default async function handler(req, res) {
   let hasEvidence = false;
   if (completedPayout) {
     const evidenceResult = await loadCurrentCompletionEvidence(sb, booking, {
-      select: 'id, evidence_type, uploaded_by, created_at',
+      select: 'id, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at',
       allowHistoricalOwnerManual: true,
+      // Evidence the owner supplied FOR this Easer releases the payout. The
+      // work is documented; who held the phone does not change that, and an
+      // Easer who cannot upload must not strand their own money forever.
+      acceptSuppliedOnBehalf: true,
     });
     if (evidenceResult.error) {
       console.error('Payout completion evidence lookup failed:', evidenceResult.error);
@@ -136,9 +140,13 @@ export default async function handler(req, res) {
     console.warn(`[payout-no-evidence] ${booking.ref} — proceeding with no completion evidence on file`);
   }
 
+  // The owner-funded bonus rides on top of the split, exactly like the
+  // same-day rush bonus, and is added HERE rather than inside
+  // computeBookingSplit — that function must stay a pure function of what
+  // the customer paid. A cancellation payout carries no bonus: no job ran.
   const derivedDue = cancellationPayout
     ? Number(booking.cancellation_easer_due_cents || 0)
-    : Number(booking.assembler_due || 0);
+    : Number(booking.assembler_due || 0) + Number(booking.easer_bonus_cents || 0);
   if (!derivedDue || derivedDue <= 0) return res.status(409).json({ error: 'Canonical Easer earnings are missing. Reconcile completion before payout.' });
   const readiness = deriveManualPayoutReadiness(booking, {
     owed: derivedDue,

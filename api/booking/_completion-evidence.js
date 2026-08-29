@@ -1,7 +1,18 @@
-export function isCurrentCompletionEvidence(row, booking) {
+/**
+ * @param {object} row      a booking_evidence row
+ * @param {object} booking
+ * @param {{acceptSuppliedOnBehalf?: boolean}} [opts]
+ *   acceptSuppliedOnBehalf accepts a row the OWNER supplied for this Easer
+ *   (uploaded_on_behalf_of). Payout-only: it releases money for work already
+ *   done. The completion gate never passes it, so an Easer still needs their
+ *   own photo to mark a job complete.
+ */
+export function isCurrentCompletionEvidence(row, booking, { acceptSuppliedOnBehalf = false } = {}) {
   if (!row || !booking?.assembler_id || !booking?.job_started_at) return false;
   if (row.evidence_type !== 'completion_photo') return false;
-  if (row.uploaded_by !== booking.assembler_id) return false;
+  const authoredByEaser = row.uploaded_by === booking.assembler_id;
+  const suppliedForEaser = acceptSuppliedOnBehalf && row.uploaded_on_behalf_of === booking.assembler_id;
+  if (!authoredByEaser && !suppliedForEaser) return false;
 
   const createdAt = new Date(row.created_at).getTime();
   const workStartedAt = new Date(booking.job_started_at).getTime();
@@ -41,15 +52,19 @@ export const CUSTOMER_FACING_VISIBILITY = 'all';
 export async function loadCustomerFacingCompletionPhoto(sb, booking, opts = {}) {
   return loadCurrentCompletionEvidence(sb, booking, {
     ...opts,
-    select: 'id, storage_path, evidence_type, uploaded_by, created_at, visibility',
+    select: 'id, storage_path, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at, visibility',
     customerFacingOnly: true,
   });
 }
 
 export async function loadCurrentCompletionEvidence(sb, booking, {
-  select = 'id, storage_path, evidence_type, uploaded_by, created_at',
+  select = 'id, storage_path, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at',
   allowHistoricalOwnerManual = false,
   customerFacingOnly = false,
+  // Payout only. Accepts evidence the OWNER supplied for this Easer, recorded
+  // honestly via uploaded_on_behalf_of. Never enabled on the completion gate:
+  // an Easer still needs their own photo to mark a job done.
+  acceptSuppliedOnBehalf = false,
 } = {}) {
   if (!booking?.assembler_id) {
     return { evidence: null, error: null, reason: 'work_start_or_assignee_missing' };
@@ -81,8 +96,14 @@ export async function loadCurrentCompletionEvidence(sb, booking, {
     .select(select)
     .eq('booking_id', booking.id)
     .eq('evidence_type', 'completion_photo')
-    .eq('uploaded_by', booking.assembler_id)
     .gte('created_at', new Date(validAfter).toISOString());
+
+  // The default path keeps the exact single-column filter it always had.
+  // Only the payout path widens to include evidence the owner supplied FOR
+  // this Easer, so nothing else changes shape.
+  query = acceptSuppliedOnBehalf
+    ? query.or(`uploaded_by.eq.${booking.assembler_id},uploaded_on_behalf_of.eq.${booking.assembler_id}`)
+    : query.eq('uploaded_by', booking.assembler_id);
 
   // Only a photo somebody deliberately promoted may leave the building.
   if (customerFacingOnly) query = query.eq('visibility', CUSTOMER_FACING_VISIBILITY);
@@ -98,7 +119,7 @@ export async function loadCurrentCompletionEvidence(sb, booking, {
       && data.evidence_type === 'completion_photo'
       && data.uploaded_by === booking.assembler_id
       && new Date(data.created_at).getTime() >= validAfter)
-    : isCurrentCompletionEvidence(data, booking);
+    : isCurrentCompletionEvidence(data, booking, { acceptSuppliedOnBehalf });
   const visibilityOk = !customerFacingOnly || data?.visibility === CUSTOMER_FACING_VISIBILITY;
   if (!data || !evidenceIsValid || !visibilityOk) {
     if (customerFacingOnly && data && evidenceIsValid && !visibilityOk) {

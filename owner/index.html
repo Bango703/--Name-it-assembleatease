@@ -785,7 +785,7 @@
                 </div>
                 <div id="evidence-content" style="font-size:0.85rem;color:var(--muted)">Loading…</div>
                 <div id="owner-evidence-upload" style="display:none;margin-top:0.9rem;padding-top:0.9rem;border-top:1px solid var(--border)">
-                  <div style="font-size:0.78rem;font-weight:700;color:var(--text);margin-bottom:0.45rem">Add historical completion evidence</div>
+                  <div id="owner-evidence-title" style="font-size:0.78rem;font-weight:700;color:var(--text);margin-bottom:0.45rem">Add historical completion evidence</div>
                   <input id="owner-evidence-file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:block;width:100%;font-size:0.78rem;margin-bottom:0.55rem" />
                   <textarea id="owner-evidence-notes" class="modal-input" rows="2" maxlength="2000" placeholder="Describe what the photo shows and when it was taken" style="margin:0"></textarea>
                   <button id="owner-evidence-upload-btn" class="btn btn-teal" style="margin-top:0.55rem;width:100%">Upload Evidence</button>
@@ -3729,6 +3729,19 @@ window.intelQuick = intelQuick;
       field('Easer Earnings', !b.assembler_id
         ? '<span style="color:var(--muted)">Not calculated — assign the owner-Easer</span>'
         : (b.assembler_due != null ? fmt$(b.assembler_due) : '<span style="color:var(--muted)">Not finalized</span>')),
+      // Owner-funded bonus. It comes out of platform margin — the customer has
+      // already paid and is never re-charged for a decision made afterwards —
+      // and it rides on top of the split rather than through it.
+      field('Bonus Pay', !b.assembler_id || b.status !== 'completed'
+        ? '<span style="color:var(--muted)">Available once a completed job has an Easer</span>'
+        : ((Number(b.easer_bonus_cents || 0) > 0
+            ? '<strong style="color:var(--green)">' + fmt$(b.easer_bonus_cents) + '</strong>'
+              + (b.easer_bonus_reason ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">' + esc(b.easer_bonus_reason) + '</div>' : '')
+            : '<span style="color:var(--muted)">None</span>')
+          + (['paid','transferred'].indexOf(String(b.payout_status || '').toLowerCase()) === -1
+            ? ' <button type="button" class="btn" style="font-size:0.68rem;padding:2px 8px;margin-left:6px" onclick="window.setEaserBonus(&quot;' + jsAttr(String(b.id)) + '&quot;)">'
+              + (Number(b.easer_bonus_cents || 0) > 0 ? 'Change' : 'Add bonus') + '</button>'
+            : '<div style="font-size:0.7rem;color:var(--muted);margin-top:2px">Payout already sent &mdash; fixed</div>'))),
       field('Platform Gross', financial.platformGrossCents != null
         ? (isOfflinePayment && !offlineFullyCollected
           ? '<span style="color:var(--muted)">Not available until the full balance is collected</span>'
@@ -4078,6 +4091,38 @@ window.intelQuick = intelQuick;
 
   // Promote (or withdraw) the Customer-Facing Final Photo. The server decides
   // what is eligible and reports its own reason; this only relays the click.
+  // Add, change, or clear an owner-funded bonus. The server owns every rule:
+  // range, reason, completed-only, and refusing once the payout has gone out.
+  window.setEaserBonus = async function(bookingId) {
+    var b = allBookings.find(function(x){ return x.id === bookingId; }) || {};
+    var current = Number(b.easer_bonus_cents || 0);
+    var raw = prompt('Bonus amount in dollars for ' + (b.assembler_name || 'this Easer') + '. Enter 0 to remove it.', current ? (current / 100).toFixed(2) : '');
+    if (raw === null) return;
+    var dollars = Number(String(raw).replace(/[^0-9.]/g, ''));
+    if (!isFinite(dollars) || dollars < 0) { toast('Enter a dollar amount', 'error'); return; }
+    var cents = Math.round(dollars * 100);
+    var reason = '';
+    if (cents > 0) {
+      reason = prompt('Why is this bonus being paid? This is recorded and shown to the Easer.', b.easer_bonus_reason || '') || '';
+      if (reason.trim().length < 3) { toast('A reason is required', 'error'); return; }
+    }
+    try {
+      var r = await fetch('/api/owner/easer-bonus', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+        body: JSON.stringify({ bookingId: bookingId, amountCents: cents, reason: reason })
+      });
+      var d = await r.json().catch(function(){ return {}; });
+      if (!r.ok) { toast(d.error || 'The bonus could not be saved, and the server did not say why.', 'error'); return; }
+      toast(cents > 0
+        ? 'Bonus set' + (d.easerNotified ? ' and the Easer was emailed' : ' (the Easer email did not send)')
+        : 'Bonus removed', 'success');
+      await loadBookings();
+    } catch (err) {
+      toast('Network error — nothing changed.', 'error');
+    }
+  };
+
   window.setEvidenceCustomerFacing = async function(evidenceId, bookingId, customerFacing) {
     try {
       var r = await fetch('/api/booking/evidence', {
@@ -4116,7 +4161,25 @@ window.intelQuick = intelQuick;
       && ownerEaserProfile
       && booking.assembler_id === ownerEaserProfile.id
       && !booking.financial_operation_key;
-    if (ownerUploadPanel) ownerUploadPanel.style.display = canOwnerUploadHistorical && cache.total < 5 ? '' : 'none';
+    // Supplying evidence FOR an assigned Easer who could not upload it. Without
+    // this the payout stays held forever whenever an Easer goes quiet, and the
+    // owner has no way to release money for work that was actually done.
+    var canSupplyForEaser = booking
+      && booking.status === 'completed'
+      && booking.assembler_id
+      && ownerEaserProfile
+      && booking.assembler_id !== ownerEaserProfile.id;
+    var uploadMode = canOwnerUploadHistorical ? 'historical' : (canSupplyForEaser ? 'on_behalf' : null);
+    if (ownerUploadPanel) {
+      ownerUploadPanel.style.display = uploadMode && cache.total < 5 ? '' : 'none';
+      ownerUploadPanel.dataset.mode = uploadMode || '';
+      var titleEl = document.getElementById('owner-evidence-title');
+      if (titleEl) {
+        titleEl.textContent = uploadMode === 'on_behalf'
+          ? 'Supply completion evidence for ' + (booking.assembler_name || 'this Easer')
+          : 'Add historical completion evidence';
+      }
+    }
 
     // Update tab badge
     if (badgeEl) {
@@ -4248,7 +4311,14 @@ window.intelQuick = intelQuick;
           reader.onerror = function(){ reject(new Error('The selected file could not be read')); };
           reader.readAsDataURL(file);
         });
-        var response = await fetch('/api/owner/upload-completion-evidence', {
+        // Two different acts, two endpoints. 'historical' is the owner's own
+        // past job; 'on_behalf' records the owner supplying a photo FOR another
+        // Easer, which is stored with truthful authorship.
+        var panelEl = document.getElementById('owner-evidence-upload');
+        var endpoint = (panelEl && panelEl.dataset.mode === 'on_behalf')
+          ? '/api/owner/supply-easer-evidence'
+          : '/api/owner/upload-completion-evidence';
+        var response = await fetch(endpoint, {
           method: 'POST',
           headers: headers(),
           body: JSON.stringify({
@@ -9868,6 +9938,12 @@ window.intelQuick = intelQuick;
         } else {
           quickActions += '<button class="btn" disabled title="Application fee or refund truth must be reconciled first" style="font-size:0.73rem;padding:3px 10px;opacity:0.5">Approve</button> ';
         }
+        // A third answer. Without it a promising applicant in a market that is
+        // not open yet had to be REJECTED — which refunds their fee, closes them
+        // out, and loses the lead. Waitlisting is reversible and keeps them here.
+        if (String(a.application_status || '').toLowerCase() !== 'waitlist') {
+          quickActions += '<button class="btn btn-amber" data-waitlist-asm="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Waitlist</button> ';
+        }
         quickActions += '<button class="btn btn-red" data-reject-asm="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Reject</button> ';
       }
       // Archive was offered for 'rejected' only, so a DEACTIVATED account had no
@@ -9945,6 +10021,30 @@ window.intelQuick = intelQuick;
       if (a) showAssemblerDetail(a);
       return;
     }
+    // Waitlist: reversible, no money moves, and the applicant stays in the list.
+    // The server refuses if their application fee is captured — holding someone's
+    // $30 for a decision we have not made is not defensible — and says so.
+    var waitlistAsmBtn = e.target.closest('[data-waitlist-asm]');
+    if (waitlistAsmBtn) {
+      if (!confirm('Move this application to the waitlist? They stay on file, keep their place, and are emailed that we are not opening their area yet.')) return;
+      waitlistAsmBtn.disabled = true; waitlistAsmBtn.textContent = '…';
+      try {
+        var rw = await fetch('/api/assembler/update', {
+          method: 'POST', headers: headers(),
+          body: JSON.stringify({ assemblerId: waitlistAsmBtn.dataset.waitlistAsm, action: 'waitlist' })
+        });
+        var dw = await rw.json().catch(function(){ return {}; });
+        if (!rw.ok) { toast(dw.error || 'Could not waitlist this application.', 'error'); return; }
+        toast('Moved to the waitlist', 'success');
+        await loadAssemblers();
+      } catch (err) {
+        toast('Network error — nothing changed.', 'error');
+      } finally {
+        waitlistAsmBtn.disabled = false; waitlistAsmBtn.textContent = 'Waitlist';
+      }
+      return;
+    }
+
     var rejectAsmBtn = e.target.closest('[data-reject-asm]');
     if (rejectAsmBtn) {
       prepareReasonModal();

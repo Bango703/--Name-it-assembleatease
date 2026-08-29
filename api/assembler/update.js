@@ -912,6 +912,72 @@ export default async function handler(req, res) {
   }
 
   // ── SUSPEND ──────────────────────────────────────────────────────────────
+  // ── waitlist ──────────────────────────────────────────────────────────────
+  // A third answer to an application. Before this the owner could only approve
+  // or reject, so a good applicant in a market that is not open yet had to be
+  // REJECTED — which refunds their fee, closes them out, and loses the lead.
+  //
+  // Waitlisting is deliberately NOT a finalization: it does not go through
+  // claimApplicationDecision, it changes no money, and it is reversible. The
+  // person stays exactly where they are with a different label, so they can be
+  // approved later without reapplying.
+  //
+  // application_status = 'waitlist' has been legal in the database since
+  // migration 069; nothing had ever set it.
+  if (action === 'waitlist') {
+    if (profile.status === 'active') {
+      return res.status(400).json({ error: 'This Easer is already active. Use suspend if you need to pause them.' });
+    }
+    if (String(profile.application_status || '').toLowerCase() === 'approved') {
+      return res.status(400).json({ error: 'This application is already approved. Waitlisting it would contradict that.' });
+    }
+
+    // A captured application fee makes this a money decision, not a filing one:
+    // holding someone's $30 indefinitely for an application we are not
+    // processing is not defensible. Reject already refunds; waitlist does not
+    // touch money at all, so it refuses rather than quietly holding the fee.
+    if (profile.application_fee_paid === true && !profile.application_fee_refund_id) {
+      return res.status(409).json({
+        error: 'This applicant has paid the application fee. Waitlisting would hold their money with no decision. Approve them, or reject to refund the fee.',
+        code: 'WAITLIST_BLOCKED_BY_PAID_FEE',
+      });
+    }
+
+    const { error: waitlistError } = await sb
+      .from('profiles')
+      .update({ application_status: 'waitlist' })
+      .eq('id', assemblerId)
+      .neq('application_status', 'approved');
+    if (waitlistError) {
+      console.error('waitlist update error:', waitlistError);
+      return res.status(500).json({ error: 'Could not move this application to the waitlist.' });
+    }
+
+    // Silence would read as rejection. Tell them plainly, and promise nothing.
+    if (profile.email) {
+      await sendEmail({
+        to: profile.email,
+        from: 'AssembleAtEase <waitlist@assembleatease.com>',
+        subject: 'Your AssembleAtEase application — on our waitlist',
+        html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;padding:2rem;color:#1a1a1a">
+          <h2 style="color:#00BFFF;margin:0 0 10px;font-size:22px">You are on our waitlist, ${esc((profile.full_name || 'there').split(' ')[0])}.</h2>
+          <p style="font-size:15px;color:#52525b;line-height:1.7">Thank you for applying to AssembleAtEase. We are not opening new spots in your area just yet, so we have placed your application on our waitlist rather than turning it down.</p>
+          <p style="font-size:15px;color:#52525b;line-height:1.7">There is nothing you need to do. When we open your area we will come back to you directly, and you will not have to apply again.</p>
+          <p style="font-size:14px;color:#52525b;line-height:1.7">A waitlist place is not an offer of work and does not guarantee approval. If you would rather we removed you, just reply to this email.</p>
+          <p style="font-size:13px;color:#71717a;margin-top:22px">AssembleAtEase &bull; <a href="https://www.assembleatease.com" style="color:#71717a">assembleatease.com</a></p>
+        </div>`,
+        replyTo: ownerEmail(),
+        meta: {
+          notificationType: 'easer_application_waitlisted',
+          recipientType: 'easer',
+          recipientUserId: assemblerId,
+        },
+      }).catch(err => console.error('waitlist email failed:', err?.message || err));
+    }
+
+    return res.status(200).json({ ok: true, action: 'waitlisted', applicationStatus: 'waitlist' });
+  }
+
   if (action === 'suspend') {
     if (profile.status === 'suspended') return res.status(200).json({
       ok: true,

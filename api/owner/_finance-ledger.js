@@ -183,13 +183,17 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
     const evidenceBookingById = new Map(evidenceRequiredBookings.map(booking => [booking.id, booking]));
     const { data: evidenceRows, error: evidenceError } = await sb
       .from('booking_evidence')
-      .select('booking_id, evidence_type, uploaded_by, created_at')
+      // uploaded_on_behalf_of is required: without it the check below compares
+      // against undefined and every owner-supplied photo reads as missing.
+      .select('booking_id, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at')
       .in('booking_id', evidenceBookingIds)
       .eq('evidence_type', 'completion_photo');
     if (evidenceError) throw evidenceError;
     for (const evidence of evidenceRows || []) {
       const booking = evidenceBookingById.get(evidence.booking_id);
-      if (booking && isCurrentCompletionEvidence(evidence, booking)) {
+      // Same rule as api/booking/payout.js, or the ledger and the payout
+      // endpoint disagree about whether a job is releasable.
+      if (booking && isCurrentCompletionEvidence(evidence, booking, { acceptSuppliedOnBehalf: true })) {
         currentEvidenceBookingIds.add(evidence.booking_id);
       }
     }
