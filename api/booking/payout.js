@@ -177,7 +177,11 @@ export default async function handler(req, res) {
     return res.status(409).json({
       error: booking.payout_mode_snapshot === 'stripe_connect'
         ? 'This earning was assigned to Stripe Connect and cannot be recorded as a manual payout.'
-        : 'The payout mode is missing. Apply migration 037 and reconcile this booking before paying it.',
+        // Migration 037 IS applied. This booking simply predates payout-mode
+        // tracking, so the field is null. Sending the owner to re-run a
+        // 3,500-line migration for a one-column gap is a cause we never
+        // verified (Article 16) and costs them an afternoon.
+        : 'This booking has no payout mode recorded, so neither rail owns it. Set payout_mode_snapshot to manual (you record the payment) or stripe_connect (the hourly transfer handles it), then pay it.',
       code: 'PAYOUT_MODE_RECONCILIATION_REQUIRED',
     });
   }

@@ -182,3 +182,30 @@ const mig085 = await read('api/migrations/085_easer_bonus.sql');
 }
 
 console.log('\nOwner bonus / waitlist / evidence tests passed.');
+
+// ── An error must not blame a migration that is applied ────────────────────
+// Four handlers told the owner to "Apply migration 037" — a 3,591-line file
+// that has been applied since long before. The real causes were a null column
+// on one old booking, or any query error at all. Sending someone to re-run a
+// migration for a one-column gap costs them an afternoon and teaches them to
+// distrust the next message (Article 16).
+{
+  const files = [
+    'api/booking/payout.js',
+    'api/booking/list.js',
+    'api/booking/reschedule.js',
+    'api/booking/_cancellation-policy-truth.js',
+  ];
+  for (const f of files) {
+    const src = await read(f);
+    assert.ok(!/Apply migration 037/.test(src),
+      `${f} must not blame migration 037 — it is applied, and that was never the verified cause`);
+  }
+  const payoutSrc = await read('api/booking/payout.js');
+  assert.ok(/Set payout_mode_snapshot to manual .* or stripe_connect/.test(payoutSrc),
+    'a missing payout mode must tell the owner the actual fix, not a migration number');
+  const listSrc = await read('api/booking/list.js');
+  assert.ok(/unreadError\.message \|\| 'reason unknown'/.test(listSrc),
+    'a query failure must pass through Postgres\'s own words or admit the reason is unknown');
+  console.log('PASS no handler blames an applied migration for a per-booking gap');
+}

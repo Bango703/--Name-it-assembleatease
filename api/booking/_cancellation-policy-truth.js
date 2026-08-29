@@ -6,7 +6,10 @@ export function loadBookingRescheduleTruth(booking) {
   }
   const rescheduleCount = Number(booking.reschedule_count);
   if (!Number.isInteger(rescheduleCount) || rescheduleCount < 0) {
-    const truthError = new Error('Cancellation history could not be verified. Apply migration 037 before taking a cancellation payment action.');
+    // Same false cause as the other three: 037 is applied, and a null
+    // reschedule_count on an older booking is a per-booking gap, not a
+    // missing migration.
+    const truthError = new Error('This booking has no reschedule history recorded, so the cancellation policy cannot be applied safely. Reconcile it before taking a payment action.');
     truthError.code = 'CANCELLATION_POLICY_TRUTH_UNAVAILABLE';
     throw truthError;
   }
