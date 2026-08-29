@@ -9769,6 +9769,15 @@ window.intelQuick = intelQuick;
     // never be one hidden tab away from unseen. They reappear the moment they have
     // someone in them.
     var ALWAYS_SHOWN = ['active', 'pending'];
+
+    // Tier tabs only earn their space once the list is too long to read whole.
+    // Filtering two Easers by tier saves no scanning, and tier is already a
+    // column on every row — so below this many on-roster pros the tabs are pure
+    // decoration. They come back on their own as the roster grows.
+    var TIER_TABS = ['starter', 'professional', 'elite'];
+    var TIER_TABS_MIN_ROSTER = 8;
+    var rosterCount = allAssemblerProfiles.filter(onRoster).length;
+
     var visibleTiers = [];
     document.querySelectorAll('#asm-tabs .tab').forEach(function(t) {
       var s = t.dataset.tier;
@@ -9783,6 +9792,7 @@ window.intelQuick = intelQuick;
       if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
       span.textContent = c;
       var hide = c === 0 && ALWAYS_SHOWN.indexOf(s) === -1;
+      if (TIER_TABS.indexOf(s) !== -1 && rosterCount < TIER_TABS_MIN_ROSTER) hide = true;
       t.style.display = hide ? 'none' : '';
       if (!hide) visibleTiers.push(s);
     });
