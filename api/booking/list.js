@@ -159,7 +159,10 @@ export default async function handler(req, res) {
     if (unreadError) {
       console.error('Unread booking messages lookup error:', unreadError);
       return res.status(503).json({
-        error: 'Bookings loaded, but owner message notifications could not be verified. Apply migration 037 and retry.',
+        // Any failure here was blamed on migration 037, which is applied. The
+        // real cause could be a timeout, RLS, or anything else — pass Postgres's
+        // own words through rather than inventing one (Article 16).
+        error: `Bookings loaded, but owner message notifications could not be verified: ${unreadError.message || 'reason unknown'}`,
         code: 'MESSAGE_NOTIFICATION_TRUTH_UNAVAILABLE',
       });
     }

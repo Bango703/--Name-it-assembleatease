@@ -114,7 +114,9 @@ export default async function handler(req, res) {
   const priorReschedules = Number(booking.reschedule_count);
   if (!Number.isInteger(priorReschedules) || priorReschedules < 0) {
     return res.status(503).json({
-      error: 'Reschedule history is unavailable. Apply migration 037 before changing this appointment.',
+      // reschedule_count being null on an older booking is not a missing
+      // migration — 037 is applied. Say what is actually wrong with THIS booking.
+      error: 'This booking has no reschedule history recorded, so the limit cannot be checked. Reconcile it before changing the appointment.',
       code: 'RESCHEDULE_TRUTH_UNAVAILABLE',
     });
   }
