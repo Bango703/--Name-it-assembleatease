@@ -189,3 +189,37 @@ const VALID = { name: 'Trapper Riney', email: 'trapper@example.com', phone: '512
 }
 
 console.log('\nOwner waitlist add tests passed.');
+
+// ── A waitlisted applicant is visible without being duplicated ─────────────
+// The owner clicked Waitlist, it worked, and the person vanished: they were
+// filed on their profile while the Easer Waitlist view read only the
+// assembler_waitlist table. A waitlist you cannot see is not a waitlist.
+//
+// They are MERGED for display, never copied. One person in two stores is the
+// failure this platform keeps paying for.
+{
+  const ownerWaitlist = await fs.readFile(new URL('../api/owner/waitlist.js', import.meta.url), 'utf8');
+
+  assert.ok(ownerWaitlist.includes("eq('application_status', 'waitlist')"),
+    'the waitlist view must read applicants the owner waitlisted');
+  assert.ok(ownerWaitlist.includes('isApplicant: true'),
+    'a merged applicant must be marked so the view never treats them as a lead');
+  assert.ok(ownerWaitlist.includes('const entries = [...applicantEntries, ...tableEntries]'),
+    'both sources must feed one list');
+
+  // No INSERT into assembler_waitlist anywhere near the merge — display only.
+  const getBlock = ownerWaitlist.slice(ownerWaitlist.indexOf("if (req.method === 'GET')"), ownerWaitlist.indexOf("if (req.method === 'POST')"));
+  assert.ok(!/\.insert\(/.test(getBlock),
+    'reading the waitlist must never write a copy of an applicant into the table');
+
+  // Counts must match the rows, or a tab reading 0 sits above a visible person.
+  assert.ok(ownerWaitlist.includes('stats.total += applicantCount'),
+    'merged applicants must be counted, or the tabs contradict the list');
+
+  const ui = await fs.readFile(new URL('../owner/index.html', import.meta.url), 'utf8');
+  assert.ok(ui.includes('w.isApplicant'), 'the row must distinguish an applicant from a signup');
+  assert.ok(ui.includes('>Review application</button>'),
+    'an applicant must be sent to their application, not offered an invite to apply again');
+  assert.ok(/APPLIED<\/span>/.test(ui), 'the badge must say they already applied');
+  console.log('PASS a waitlisted applicant shows in the waitlist view without being copied into it');
+}

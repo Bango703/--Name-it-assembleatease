@@ -9609,7 +9609,14 @@ window.intelQuick = intelQuick;
       var expired = w.invite_expires_at && new Date(w.invite_expires_at) < new Date();
       var actions = '';
       var deleteBtn = '<button class="btn btn-red" data-wl-delete="' + w.id + '" data-wl-name="' + esc(w.name) + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Remove</button>';
-      if (w.status === 'pending') {
+      // Someone who APPLIED and was waitlisted is not a lead to invite — they
+      // already applied, verified identity, and accepted the terms. Offering
+      // "Invite" would ask them to do it again, and Delete would remove a real
+      // application record. They belong in the Easer list; this row is a
+      // pointer to it, not a second copy of them.
+      if (w.isApplicant) {
+        actions = '<button class="btn btn-teal" data-wl-goto-asm="1" style="font-size:0.75rem;padding:0.3rem 0.6rem">Review application</button>';
+      } else if (w.status === 'pending') {
         actions = '<button class="btn btn-teal" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Invite</button> <button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button> ' + deleteBtn;
       } else if (w.status === 'invited' && expired) {
         actions = '<button class="btn btn-amber" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Re-invite</button> <button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button> ' + deleteBtn;
@@ -9620,7 +9627,7 @@ window.intelQuick = intelQuick;
       } else {
         actions = deleteBtn;
       }
-      return '<tr><td style="' + rs + '"><strong>' + esc(w.name) + '</strong>' + (w.source === 'owner_added' ? ' <span title="You added this person" style="font-size:0.62rem;font-weight:700;letter-spacing:0.06em;color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:0.1rem 0.35rem;vertical-align:middle">ADDED BY YOU</span>' : '') + '</td><td style="' + rs + '">' + esc(w.email) + '</td><td style="' + rs + ';white-space:nowrap">' + (hasValidUsPhone(w.phone) ? esc(formatUsPhone(w.phone)) : '<span style="color:var(--red)">Valid phone required</span>') + '</td><td style="' + rs + '">' + wlLocationCell(w) + '</td><td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(w.created_at) + '</td><td style="' + rs + '">' + wlStatusBadge(w.status) + (expired && w.status==='invited' ? ' <span style="font-size:0.7rem;color:var(--red)">expired</span>' : '') + '</td><td style="' + rs + '">' + actions + '</td></tr>';
+      return '<tr><td style="' + rs + '"><strong>' + esc(w.name) + '</strong>' + (w.isApplicant ? ' <span title="Applied and was waitlisted" style="font-size:0.62rem;font-weight:700;letter-spacing:0.06em;color:var(--brand-deep,#0077a3);border:1px solid currentColor;border-radius:99px;padding:0.1rem 0.35rem;vertical-align:middle">APPLIED</span>' : '') + (w.source === 'owner_added' ? ' <span title="You added this person" style="font-size:0.62rem;font-weight:700;letter-spacing:0.06em;color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:0.1rem 0.35rem;vertical-align:middle">ADDED BY YOU</span>' : '') + '</td><td style="' + rs + '">' + esc(w.email) + '</td><td style="' + rs + ';white-space:nowrap">' + (hasValidUsPhone(w.phone) ? esc(formatUsPhone(w.phone)) : '<span style="color:var(--red)">Valid phone required</span>') + '</td><td style="' + rs + '">' + wlLocationCell(w) + '</td><td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(w.created_at) + '</td><td style="' + rs + '">' + wlStatusBadge(w.status) + (expired && w.status==='invited' ? ' <span style="font-size:0.7rem;color:var(--red)">expired</span>' : '') + '</td><td style="' + rs + '">' + actions + '</td></tr>';
     }).join('');
   }
 
