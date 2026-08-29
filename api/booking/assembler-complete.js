@@ -10,7 +10,7 @@ import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapsho
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
-import { loadCurrentCompletionEvidence } from './_completion-evidence.js';
+import { loadCurrentCompletionEvidence, loadCustomerFacingCompletionPhoto } from './_completion-evidence.js';
 import {
   releaseBookingFinancialOperation,
   reserveBookingFinancialOperation,
@@ -411,9 +411,14 @@ export default async function handler(req, res) {
     const amountDisplay = finalAmount > 0 ? `$${(finalAmount / 100).toFixed(2)}` : null;
 
     // Completion photo — visual proof of the finished work (signed URL, 30-day expiry).
+    // The completion GATE above still requires a photo — that is unchanged.
+    // This is a different question: may the CUSTOMER see one? Only a photo an
+    // owner deliberately promoted to customer-facing qualifies. If none has
+    // been, the receipt sends exactly as it is, minus this section.
     let photoBlock = '';
     try {
-      const path = completionEvidence.storage_path;
+      const { evidence: shareable } = await loadCustomerFacingCompletionPhoto(sb, booking);
+      const path = shareable?.storage_path;
       if (path) {
         const { data: signed } = await sb.storage.from('booking-evidence').createSignedUrl(path, 60 * 60 * 24 * 30);
         if (signed?.signedUrl) {

@@ -1,5 +1,5 @@
 import { esc } from './_email.js';
-import { loadCurrentCompletionEvidence } from './booking/_completion-evidence.js';
+import { loadCustomerFacingCompletionPhoto } from './booking/_completion-evidence.js';
 
 // Single source of truth for the customer review-request email — used by BOTH the
 // automatic cron (api/cron/review-request.js) and the owner's manual send
@@ -81,7 +81,7 @@ export function buildReviewEmail(step, b, url, { photoUrl, proFirst } = {}) {
 // evidence source of truth as the completion email so they never disagree.
 export async function completionPhotoUrl(sb, b) {
   try {
-    const { evidence } = await loadCurrentCompletionEvidence(sb, b, { allowHistoricalOwnerManual: true });
+    const { evidence } = await loadCustomerFacingCompletionPhoto(sb, b, { allowHistoricalOwnerManual: true });
     if (!evidence?.storage_path) return null;
     const { data: signed } = await sb.storage
       .from('booking-evidence')

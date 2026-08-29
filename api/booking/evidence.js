@@ -11,8 +11,62 @@ const SIGNED_URL_EXPIRY_SECONDS = 3600; // 1-hour ephemeral URLs
  * URLs are never stored in the database.
  */
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
+
+  // ── POST: designate (or withdraw) the Customer-Facing Final Photo ────────
+  // An Easer upload is INTERNAL. booking_evidence.visibility defaults to
+  // 'owner', and nothing a customer sees may read a row that still says so.
+  // Promoting one is a deliberate human act, and this endpoint is that act.
+  if (req.method === 'POST') {
+    const { evidenceId, customerFacing } = req.body || {};
+    if (!evidenceId) return res.status(400).json({ error: 'evidenceId is required' });
+
+    const sbPost = getSupabase();
+    const { data: row, error: rowErr } = await sbPost
+      .from('booking_evidence')
+      .select('id, booking_id, evidence_type')
+      .eq('id', evidenceId)
+      .maybeSingle();
+    if (rowErr || !row) return res.status(404).json({ error: 'Evidence not found' });
+
+    // Only finished-work photos are shareable. Damage claims and before-photos
+    // are internal documentation and must never become customer-facing.
+    if (row.evidence_type !== 'completion_photo') {
+      return res.status(400).json({
+        error: 'Only a completion photo can be shown to the customer.',
+        code: 'NOT_SHAREABLE_TYPE',
+      });
+    }
+
+    const promote = customerFacing === true;
+    if (promote) {
+      // Exactly one final photo per booking. Every customer surface picks the
+      // most recent approved row, so leaving old ones approved would make which
+      // photo the customer sees depend on timestamps rather than a decision.
+      const { error: demoteErr } = await sbPost
+        .from('booking_evidence')
+        .update({ visibility: 'owner' })
+        .eq('booking_id', row.booking_id)
+        .neq('id', evidenceId);
+      if (demoteErr) {
+        console.error('[evidence] demote siblings failed:', demoteErr.message);
+        return res.status(500).json({ error: 'Could not update the other photos. Nothing was changed.' });
+      }
+    }
+
+    const { error: updErr } = await sbPost
+      .from('booking_evidence')
+      .update({ visibility: promote ? 'all' : 'owner' })
+      .eq('id', evidenceId);
+    if (updErr) {
+      console.error('[evidence] visibility update failed:', updErr.message);
+      return res.status(500).json({ error: 'Could not update this photo.' });
+    }
+
+    return res.status(200).json({ ok: true, evidenceId, customerFacing: promote });
+  }
+
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const { bookingId } = req.query;
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });

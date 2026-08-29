@@ -14,9 +14,42 @@ export function isCurrentCompletionEvidence(row, booking) {
   return Number.isFinite(createdAt) && Number.isFinite(validAfter) && createdAt >= validAfter;
 }
 
+/**
+ * The visibility value that means "a human decided a customer may see this".
+ * booking_evidence.visibility defaults to 'owner', so an Easer upload is
+ * INTERNAL until someone deliberately promotes it.
+ */
+export const CUSTOMER_FACING_VISIBILITY = 'all';
+
+/**
+ * The photo a customer is allowed to see.
+ *
+ * WHY THIS IS A SEPARATE FUNCTION FROM loadCurrentCompletionEvidence
+ * Two different questions were being answered by one query:
+ *
+ *   "Did the Easer provide completion evidence?"  — gates completion
+ *   "May the customer be shown this image?"       — gates publication
+ *
+ * Conflating them meant every photo an Easer uploaded was emailed to the
+ * customer and embedded on the tracking page behind a 30-day signed URL, even
+ * though booking_evidence.visibility defaults to 'owner'. A selfie, an ID, a
+ * photo of the wrong room — anything the Easer's camera produced went straight
+ * to the customer. The column that should have stopped it was never read.
+ *
+ * Completion still requires a photo. Publishing one now requires a decision.
+ */
+export async function loadCustomerFacingCompletionPhoto(sb, booking, opts = {}) {
+  return loadCurrentCompletionEvidence(sb, booking, {
+    ...opts,
+    select: 'id, storage_path, evidence_type, uploaded_by, created_at, visibility',
+    customerFacingOnly: true,
+  });
+}
+
 export async function loadCurrentCompletionEvidence(sb, booking, {
   select = 'id, storage_path, evidence_type, uploaded_by, created_at',
   allowHistoricalOwnerManual = false,
+  customerFacingOnly = false,
 } = {}) {
   if (!booking?.assembler_id) {
     return { evidence: null, error: null, reason: 'work_start_or_assignee_missing' };
@@ -43,13 +76,18 @@ export async function loadCurrentCompletionEvidence(sb, booking, {
     return { evidence: null, error: null, reason: 'work_start_or_assignee_missing' };
   }
 
-  const { data, error } = await sb
+  let query = sb
     .from('booking_evidence')
     .select(select)
     .eq('booking_id', booking.id)
     .eq('evidence_type', 'completion_photo')
     .eq('uploaded_by', booking.assembler_id)
-    .gte('created_at', new Date(validAfter).toISOString())
+    .gte('created_at', new Date(validAfter).toISOString());
+
+  // Only a photo somebody deliberately promoted may leave the building.
+  if (customerFacingOnly) query = query.eq('visibility', CUSTOMER_FACING_VISIBILITY);
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -61,7 +99,11 @@ export async function loadCurrentCompletionEvidence(sb, booking, {
       && data.uploaded_by === booking.assembler_id
       && new Date(data.created_at).getTime() >= validAfter)
     : isCurrentCompletionEvidence(data, booking);
-  if (!data || !evidenceIsValid) {
+  const visibilityOk = !customerFacingOnly || data?.visibility === CUSTOMER_FACING_VISIBILITY;
+  if (!data || !evidenceIsValid || !visibilityOk) {
+    if (customerFacingOnly && data && evidenceIsValid && !visibilityOk) {
+      return { evidence: null, error: null, reason: 'not_approved_for_customer' };
+    }
     return {
       evidence: null,
       error: null,
