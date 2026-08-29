@@ -304,3 +304,37 @@ console.log('\nOwner waitlist add tests passed.');
     'a rejected application must not become approvable by this change');
   console.log('PASS a waitlisted application can be approved, and a refusal names its real cause');
 }
+
+// ── The approve path has TWO functions, and both must accept a waitlist ────
+// 088 fixed the claim and shipped. The finalize carried the same applied-only
+// predicate, so the owner got past "already in progress" straight into "Easer
+// approval requirements changed before finalization". Fixing one of two is how
+// the same bug gets reported three times.
+//
+// The finalize lives in migration 043, which superseded 037's version — so
+// grepping 037 alone finds the wrong copy.
+{
+  const readFile = f => fs.readFile(new URL('../' + f, import.meta.url), 'utf8');
+  const claim = await readFile('api/migrations/088_approve_waitlisted_application.sql');
+  const finalize = await readFile('api/migrations/089_finalize_waitlisted_approval.sql');
+
+  for (const [name, sql] of [['claim (088)', claim], ['finalize (089)', finalize]]) {
+    assert.ok(sql.includes("application_status NOT IN ('applied', 'waitlist')"),
+      `${name} must accept a waitlisted application`);
+    assert.ok(!sql.includes("v_profile.application_status IS DISTINCT FROM 'applied'"),
+      `${name} must not keep the applied-only predicate`);
+  }
+
+  // They must define DIFFERENT functions — a copy/paste of the same one would
+  // silently leave the other unfixed.
+  assert.ok(claim.includes('FUNCTION public.claim_easer_application_decision'),
+    '088 must define the claim function');
+  assert.ok(finalize.includes('FUNCTION public.finalize_easer_application_approval'),
+    '089 must define the finalize function that approval actually calls');
+
+  // The API expects this exact result_action; a rename would break approval
+  // after every gate had already passed.
+  assert.ok(finalize.includes("RETURN QUERY SELECT 'applied'::TEXT"),
+    'finalize must still return the result_action the API checks for');
+  console.log('PASS both halves of the approve path accept a waitlisted application');
+}
