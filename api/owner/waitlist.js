@@ -30,12 +30,22 @@ export default async function handler(req, res) {
     }
 
     const { data, error } = await query;
+
+    // Counted before stats so the tabs and the rows agree.
+    const { count: applicantCountRaw } = await sb
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'assembler')
+      .eq('application_status', 'waitlist');
+    const applicantCount = Number(applicantCountRaw || 0);
     if (error) {
       console.error('Waitlist list error:', error);
       return res.status(500).json({ error: 'Failed to load waitlist' });
     }
 
     // Compute stats
+    // Counted from the same merged set the list renders, or the tab counts
+    // and the rows beneath them disagree.
     const all = data || [];
     const stats = {
       total: all.length,
@@ -44,6 +54,13 @@ export default async function handler(req, res) {
       applied: all.filter(w => w.status === 'applied').length,
       approved: all.filter(w => w.status === 'approved').length,
       rejected: all.filter(w => w.status === 'rejected').length,
+    };
+    // Waitlisted applicants are merged into the list below, so they must be in
+    // the counts too. A tab reading 0 above a row that is plainly there is the
+    // kind of small lie that makes an owner stop trusting the panel.
+    const countApplicants = () => {
+      stats.total += applicantCount;
+      stats.applied += applicantCount;
     };
 
     // If filtered, we need full stats, so do a separate count query
@@ -61,11 +78,50 @@ export default async function handler(req, res) {
 
     // Coverage is a server verdict, never a rule the dashboard re-implements
     // (Article 4). The page renders inDispatchArea; it does not own the ZIP list.
-    const entries = (data || []).map(w => ({
+    const tableEntries = (data || []).map(w => ({
       ...w,
       inDispatchArea: w.zip ? isAutomaticDispatchZip(w.zip) : null,
+      isApplicant: false,
     }));
 
+    // Someone who APPLIED and was waitlisted lives on their profile, not in
+    // assembler_waitlist. They are read here and merged for DISPLAY only —
+    // copying them into the table would put one person in two stores that can
+    // drift apart, which is the failure this platform keeps paying for.
+    //
+    // They are the more valuable half of this list: they completed a full
+    // application, verified identity, and accepted the terms. A waitlist that
+    // hides them is worse than no waitlist.
+    const { data: applicantRows, error: applicantError } = await sb
+      .from('profiles')
+      .select('id, full_name, email, phone, city, state, zip, created_at, identity_verified, application_fee_waived')
+      .eq('role', 'assembler')
+      .eq('application_status', 'waitlist');
+    if (applicantError) {
+      console.error('Waitlisted applicant lookup error:', applicantError);
+    }
+
+    const applicantEntries = (applicantRows || []).map(p => ({
+      id: p.id,
+      name: p.full_name,
+      email: p.email,
+      phone: p.phone,
+      city: p.city,
+      state: p.state,
+      zip: p.zip,
+      // Its own status so the view never implies they still need to apply.
+      status: 'applied',
+      source: 'applicant',
+      created_at: p.created_at,
+      inDispatchArea: p.zip ? isAutomaticDispatchZip(p.zip) : null,
+      identityVerified: p.identity_verified === true,
+      isApplicant: true,
+    }));
+
+    const entries = [...applicantEntries, ...tableEntries]
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+    countApplicants();
     return res.status(200).json({ entries, stats });
   }
 
