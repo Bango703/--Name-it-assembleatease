@@ -183,16 +183,28 @@ async function approvedAccountReadiness(profile = {}) {
 
 function applicationDecisionHttpError(error, fallback) {
   const message = error?.message || String(error || fallback);
-  const conflict = error?.code === '55P03'
+  // 55P03 (lock unavailable) and 40001 (serialization) are the ONLY codes that
+  // mean something else is genuinely happening right now. 23514 is a CHECK
+  // violation — a precondition was not met — and lumping it in here told the
+  // owner to look for a lock that did not exist. Phil Hawkins' decision key was
+  // null the whole time while the real cause was his application_status.
+  //
+  // The word-matching was worse: any message containing "decision" was rewritten
+  // as a concurrency error, including "Only a submitted pending application can
+  // be approved". Never replace a stated reason with a guessed one (Article 16).
+  const inProgress = error?.code === '55P03'
     || error?.code === '40001'
-    || error?.code === '23514'
-    || /decision|profile state changed|closure|active Easer|already in progress/i.test(message);
+    || /already in progress/i.test(message);
+  const precondition = error?.code === '23514'
+    || /profile state changed|closure|active Easer|can be approved|can be rejected/i.test(message);
+  const conflict = inProgress || precondition;
   return {
     status: conflict ? 409 : 503,
     code: conflict ? 'APPLICATION_DECISION_CONFLICT' : 'APPLICATION_DECISION_DATABASE_REQUIRED',
-    error: conflict
+    error: inProgress
       ? 'Another application decision or profile update is already in progress. Refresh before trying again.'
-      : fallback,
+      // A precondition failure has a real, specific reason. Show it.
+      : (precondition ? message : fallback),
   };
 }
 
