@@ -2,6 +2,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { validateWaitlistInput, saveWaitlistRecord, WAITLIST_SOURCE } from '../_waitlist-core.js';
+import { buildWaitlistEmail, WAITLIST_EMAIL_VARIANT } from '../_waitlist-email.js';
 import { isAutomaticDispatchZip } from '../_source-of-truth.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -120,22 +121,17 @@ export default async function handler(req, res) {
       // only one who knows whether they actually said "yes, put me down".
       let confirmationSent = false;
       if (req.body.sendConfirmation === true) {
-        const first = esc(name.split(' ')[0]);
+        // The SAME email a public signup gets — same header, badge, steps and
+        // footer. Only the three sentences that would be false for someone who
+        // never filled in a form are swapped. See api/_waitlist-email.js.
+        const welcome = buildWaitlistEmail({
+          name, city, state, variant: WAITLIST_EMAIL_VARIANT.OWNER_ADDED,
+        });
         const r = await sendEmail({
           to: email,
           from: 'AssembleAtEase <waitlist@assembleatease.com>',
-          subject: 'You are on the AssembleAtEase Easer waitlist',
-          // Deliberately NOT the public-form confirmation. That one thanks people
-          // for signing up and closes with "you received this because you signed
-          // up" — both false here. Article 16: never assert what did not happen.
-          html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;padding:2rem;color:#1a1a1a">
-            <img src="${LOGO}" alt="AssembleAtEase" width="40" height="40" style="border-radius:50%;display:block"/>
-            <h2 style="color:#00BFFF;margin:16px 0 8px;font-size:22px">We added you to the waitlist, ${first}.</h2>
-            <p style="font-size:15px;color:#52525b;line-height:1.7">Following our conversation, we have put you on the AssembleAtEase Easer waitlist for <strong>${esc(city)}, ${esc(state)}</strong>. There is nothing for you to do right now.</p>
-            <p style="font-size:15px;color:#52525b;line-height:1.7">When we open applications in your area, you will get an invitation from us with everything you need to apply. A waitlist spot is not an offer of work and does not guarantee approval.</p>
-            <p style="font-size:14px;color:#52525b;line-height:1.7">If this was not something you asked for, reply to this email and we will remove you straight away.</p>
-            <p style="font-size:13px;color:#71717a;margin-top:22px">AssembleAtEase &bull; <a href="${SITE}" style="color:#71717a">assembleatease.com</a></p>
-          </div>`,
+          subject: welcome.subject,
+          html: welcome.html,
           replyTo: ownerEmail(),
           meta: { notificationType: 'easer_waitlist_owner_added', recipientType: 'easer' },
         }).catch(() => ({ ok: false }));
