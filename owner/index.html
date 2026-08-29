@@ -3714,9 +3714,18 @@ window.intelQuick = intelQuick;
         : financial.processingFeeCents != null
         ? fmt$(financial.processingFeeCents) + (financial.processingFeeIsActual ? ' <span style="font-size:0.7rem;color:var(--muted)">(recorded)</span>' : ' <span style="font-size:0.7rem;color:var(--muted)">(estimate)</span>')
         : (b.stripe_fee != null ? fmt$(b.stripe_fee) : '—')),
+      // DERIVED from the server's financial summary, never the stored
+      // bookings.platform_fee column. That column snapshots the commission
+      // at completion and is not updated by a later goodwill discount — the
+      // discount RPC preserves the Easer's earnings and lets the platform
+      // absorb the reduction. Rendering the stored value made this panel claim
+      // a commission the platform no longer took, while the financial dashboard
+      // (which derives) showed the truth. Two screens, one job, two numbers.
       field('Platform Fee', !b.assembler_id
         ? '<span style="color:var(--muted)">Not calculated — assign the owner-Easer</span>'
-        : (b.platform_fee != null ? fmt$(b.platform_fee) : '<span style="color:var(--muted)">Not finalized</span>')),
+        : (financial.platformFeeCents != null
+          ? fmt$(financial.platformFeeCents)
+          : (b.platform_fee != null ? fmt$(b.platform_fee) : '<span style="color:var(--muted)">Not finalized</span>'))),
       field('Easer Earnings', !b.assembler_id
         ? '<span style="color:var(--muted)">Not calculated — assign the owner-Easer</span>'
         : (b.assembler_due != null ? fmt$(b.assembler_due) : '<span style="color:var(--muted)">Not finalized</span>')),

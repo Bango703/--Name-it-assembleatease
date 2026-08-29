@@ -372,6 +372,15 @@ export function computeBookingFinancialSummary({
     processingFeeCents,
     processingFeeIsActual: stripeFeeCents != null && Number.isFinite(recordedStripeFee),
     easerCostCents,
+    // What the platform actually kept before processing costs — DERIVED, never
+    // the stored bookings.platform_fee column. That column is a snapshot of the
+    // 30% commission at completion time, and a later goodwill discount does not
+    // update it: the discount RPC deliberately preserves the Easer's earnings
+    // and lets the platform absorb the reduction, so the stored fee keeps
+    // claiming a commission the platform no longer took. Deriving it here means
+    // the booking panel and the financial dashboard can never disagree about
+    // the same job (Article 2).
+    platformFeeCents: netChargedCents - taxCollectedCents - easerCostCents,
     platformGrossCents: netChargedCents - taxCollectedCents - processingFeeCents - easerCostCents,
   };
 }

@@ -124,6 +124,42 @@ assert.equal(summary.taxCollectedCents, 413);
 assert.equal(summary.processingFeeIsActual, true);
 assert.equal(summary.platformGrossCents, -2_344, 'Refunded jobs must retain the Easer liability instead of hiding a loss');
 
+// ── Platform fee is DERIVED, so two screens cannot disagree about one job ──
+// bookings.platform_fee snapshots the 30% commission at completion. A later
+// goodwill discount does not update it: the discount RPC deliberately preserves
+// the Easer's earnings and lets the platform absorb the reduction. The booking
+// panel used to render that stored number while the financial dashboard derived
+// the truth — the same job showing two platform fees.
+{
+  // A normal job: derived must equal the stored 30% commission exactly, or this
+  // change would have quietly altered every undiscounted booking on the panel.
+  const normal = computeBookingFinancialSummary({
+    amountChargedCents: 64_842, taxAmountCents: 4_942, stripeFeeCents: 1_910, assemblerDueCents: 41_930,
+  });
+  assert.equal(normal.platformFeeCents, 17_970,
+    'on an undiscounted job the derived fee must match the 30% commission');
+  assert.equal(normal.platformFeeCents - normal.processingFeeCents, normal.platformGrossCents,
+    'platform fee minus processing must be exactly the platform gross');
+
+  // A discounted job: the Easer keeps their full earnings and the platform eats
+  // the reduction, so the fee is what is actually left — not 30% of anything.
+  const discounted = computeBookingFinancialSummary({
+    amountChargedCents: 37_400, taxAmountCents: 2_850, stripeFeeCents: 1_020,
+    assemblerDueCents: 24_550, payoutAmountCents: 24_550,
+  });
+  assert.equal(discounted.platformFeeCents, 10_000,
+    'a goodwill discount comes out of the platform, so the fee is what remains after tax and the Easer');
+  assert.ok(discounted.platformFeeCents < Math.round((37_400 - 2_850) * 0.30),
+    'the derived fee must fall below the nominal 30% once the platform has absorbed a discount');
+
+  // Tax is never on the platform's side of the line.
+  assert.equal(
+    discounted.taxCollectedCents + discounted.platformFeeCents + discounted.easerCostCents,
+    discounted.netChargedCents,
+    'tax + platform fee + Easer earnings must account for every cent the customer paid',
+  );
+}
+
 // Cancellation fee tiers, for a job a pro actually ACCEPTED. Without that flag
 // these now correctly return zero — a fee compensates a committed pro, and there
 // is nobody to compensate when no one took the job.
