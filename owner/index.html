@@ -834,7 +834,11 @@
         <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1.5rem" class="content-grid">
           <div class="detail-panel open">
             <div class="detail-section-title">Top Demand Markets</div>
-            <div id="md-top-markets" style="margin-top:0.85rem"></div>
+            <!-- Scrolls inside its panel. This list renders EVERY market with demand and
+                 had no height cap, so it grew the whole page as coverage widened while the
+                 Demand Activity table beside it already scrolled at 60vh. Same convention
+                 now applies to both. -->
+            <div id="md-top-markets" style="margin-top:0.85rem;max-height:48vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain"></div>
           </div>
 
           <div class="detail-panel open">
@@ -848,7 +852,7 @@
 
           <div class="detail-panel open" style="grid-column:1/-1">
             <div class="detail-section-title">Demand Activity</div>
-            <div style="overflow:auto;-webkit-overflow-scrolling:touch;max-height:60vh;margin-top:0.85rem">
+            <div style="overflow:auto;-webkit-overflow-scrolling:touch;max-height:48vh;overscroll-behavior:contain;margin-top:0.85rem">
               <table id="md-requests-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.82rem">
                 <thead>
                   <tr style="text-align:left">
