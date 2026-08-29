@@ -221,5 +221,19 @@ console.log('\nOwner waitlist add tests passed.');
   assert.ok(ui.includes('>Review application</button>'),
     'an applicant must be sent to their application, not offered an invite to apply again');
   assert.ok(/APPLIED<\/span>/.test(ui), 'the badge must say they already applied');
+  // A cached page can still offer Invite or Remove on a merged applicant. Their
+  // id is a PROFILE id, so the table lookup misses and the owner would be told
+  // "Waitlist entry not found" — sending them hunting for a record that was
+  // never missing (Article 16).
+  assert.ok(ownerWaitlist.includes("code: 'IS_WAITLISTED_APPLICANT'"),
+    'an action aimed at a merged applicant must say what they actually are');
+  // String matching, not a regex: a pattern written in a template literal can
+  // silently match nothing while still reporting PASS. That trap has produced
+  // a false green in this repo before.
+  assert.ok(ownerWaitlist.includes('const { data: mergedApplicant } = await sb'),
+    'the guard must look the id up before claiming what it is');
+  assert.ok(ownerWaitlist.includes('Manage them from the Easer list instead'),
+    'the refusal must tell the owner where the person actually lives');
+
   console.log('PASS a waitlisted applicant shows in the waitlist view without being copied into it');
 }

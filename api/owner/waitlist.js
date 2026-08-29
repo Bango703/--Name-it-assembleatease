@@ -222,6 +222,22 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (lookupErr || !entry) {
+      // The view MERGES waitlisted applicants, who live on profiles and are not
+      // rows in this table. An old cached page can still offer Invite or Remove
+      // on one of them, and "Waitlist entry not found" would send the owner
+      // hunting for a record that was never missing. Name the real situation.
+      const { data: mergedApplicant } = await sb
+        .from('profiles')
+        .select('id, full_name')
+        .eq('id', id)
+        .eq('application_status', 'waitlist')
+        .maybeSingle();
+      if (mergedApplicant) {
+        return res.status(409).json({
+          error: `${mergedApplicant.full_name || 'This person'} applied and was waitlisted, so they are not a waitlist lead. Manage them from the Easer list instead. If you are seeing Invite or Remove on their row, refresh the page.`,
+          code: 'IS_WAITLISTED_APPLICANT',
+        });
+      }
       return res.status(404).json({ error: 'Waitlist entry not found' });
     }
 
