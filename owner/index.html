@@ -941,7 +941,6 @@
         </div>
         <div class="tabs" id="asm-tabs">
           <button class="tab active" data-tier="active">Active</button>
-          <button class="tab" data-tier="all">Roster</button>
           <button class="tab" data-tier="pending">Pending</button>
           <button class="tab" data-tier="starter">Starter</button>
           <button class="tab" data-tier="professional">Professional</button>
@@ -9743,10 +9742,10 @@ window.intelQuick = intelQuick;
   // applications made the list read as if there were five pros available when
   // there was one.
   //
-  // The default tab is named "Roster" rather than "All" for exactly this reason:
-  // a tab labelled All that hides three accounts is a small lie, and this
-  // dashboard has already been burned by views that quietly disagreed with the
-  // database.
+  // There is deliberately no "All"/"Roster" tab. It was exactly Active plus
+  // Pending — both of which have their own tab — so it could never show anything
+  // the others did not, while implying it could. OFF_ROSTER still governs which
+  // accounts the tier tabs exclude.
   var OFF_ROSTER = ['suspended', 'deactivated', 'rejected'];
   function onRoster(a) { return OFF_ROSTER.indexOf(String(a.status || '').toLowerCase()) === -1; }
 
@@ -9764,6 +9763,13 @@ window.intelQuick = intelQuick;
     else if (f === 'elite') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'elite' && onRoster(a); });
     else filtered = allAssemblerProfiles.filter(onRoster);
 
+    // A tab that can only ever show an empty list is noise, and nine tabs above a
+    // roster of two was most of this view. Empty tabs are hidden — EXCEPT Active
+    // (home) and Pending, which stay visible at zero because a new applicant must
+    // never be one hidden tab away from unseen. They reappear the moment they have
+    // someone in them.
+    var ALWAYS_SHOWN = ['active', 'pending'];
+    var visibleTiers = [];
     document.querySelectorAll('#asm-tabs .tab').forEach(function(t) {
       var s = t.dataset.tier;
       var c = s === 'all' ? allAssemblerProfiles.filter(onRoster).length
@@ -9776,7 +9782,21 @@ window.intelQuick = intelQuick;
       var span = t.querySelector('.tab-count');
       if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
       span.textContent = c;
+      var hide = c === 0 && ALWAYS_SHOWN.indexOf(s) === -1;
+      t.style.display = hide ? 'none' : '';
+      if (!hide) visibleTiers.push(s);
     });
+
+    // If the tab you were standing on just emptied and vanished, land on Active
+    // rather than staring at a list with no selected tab. Active is always
+    // visible, so this can recurse at most once.
+    if (visibleTiers.indexOf(currentTierFilter) === -1) {
+      currentTierFilter = 'active';
+      document.querySelectorAll('#asm-tabs .tab').forEach(function(t) {
+        t.classList.toggle('active', t.dataset.tier === 'active');
+      });
+      return renderAssemblerTable();
+    }
 
     var tbody = document.getElementById('asm-tbody');
     if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="10" style="padding:2rem;text-align:center;color:var(--muted)">No Easers found</td></tr>'; return; }

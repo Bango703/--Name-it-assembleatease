@@ -57,12 +57,38 @@ const ui = await fs.readFile(new URL('../owner/index.html', import.meta.url), 'u
     assert.ok(ui.includes(`f === '${status}') filtered = allAssemblerProfiles.filter`),
       `the ${status} tab must still list them`);
   }
-  // A tab labelled "All" that hides three accounts is a small lie, and this
-  // dashboard has already been burned by views that disagreed with the database.
-  assert.ok(!ui.includes('data-tier="all">All<'),
-    'the default tab must not be labelled "All" while filtering');
-  assert.ok(ui.includes('data-tier="all">Roster<'), 'it should say what it actually shows');
-  console.log('PASS off-roster Easers stay reachable, and the tab label tells the truth');
+  // The union tab is gone. "Roster" was exactly Active plus Pending — both of
+  // which have their own tab — so it could never show anything they did not,
+  // while implying it could. A tab that is always a duplicate of two others is
+  // worse than no tab: it costs a click to learn it told you nothing.
+  assert.ok(!ui.includes('data-tier="all"'),
+    'there must be no All/Roster tab — it was a union of two tabs that both already exist');
+  console.log('PASS off-roster Easers stay reachable, and no tab duplicates two others');
+}
+
+// ── Empty tabs get out of the way, but never the two that matter ───────────
+// Nine tabs above a roster of two was most of this view. An empty tab is not
+// information; it is a click that teaches you nothing.
+{
+  assert.ok(ui.includes("var ALWAYS_SHOWN = ['active', 'pending'];"),
+    'the tabs that survive at zero must be named in one place');
+  assert.ok(ui.includes("var hide = c === 0 && ALWAYS_SHOWN.indexOf(s) === -1;"),
+    'a tab with nothing in it must hide, so the bar reflects the real roster');
+
+  // Pending at zero must STILL show. A new applicant arriving behind a hidden
+  // tab is the most expensive thing this view could conceal — supply is the
+  // platform's only real constraint.
+  assert.ok(/ALWAYS_SHOWN\s*=\s*\[[^\]]*'pending'/.test(ui),
+    'Pending must stay visible at zero or a new applicant can arrive unseen');
+  assert.ok(/ALWAYS_SHOWN\s*=\s*\[[^\]]*'active'/.test(ui),
+    'Active is home and must never hide');
+
+  // Standing on a tab that empties must not leave the list with no selection.
+  assert.ok(ui.includes("if (visibleTiers.indexOf(currentTierFilter) === -1) {"),
+    'a tab that vanishes under the owner must fall back to a real one');
+  assert.ok(ui.includes("return renderAssemblerTable();"),
+    'the fallback must re-render, and can only recurse once because Active always shows');
+  console.log('PASS empty tabs hide, Active and Pending never do, and a vanishing tab lands somewhere real');
 }
 
 // ── The list opens on people who can work today ────────────────────────────
