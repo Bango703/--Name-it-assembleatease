@@ -8049,12 +8049,19 @@ window.intelQuick = intelQuick;
       if (!list.length) { panel.style.display = 'none'; return; }
       panel.style.display = '';
       body.innerHTML = '<div style="font-size:0.78rem;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.6rem 0.75rem;margin-bottom:0.6rem">'
-        + '<strong>' + list.length + ' customer' + (list.length === 1 ? '' : 's') + '</strong> saved a card to request a quote, but no booking was created &mdash; so they never appeared in your queue and were never contacted. Their cards are valid. Reach out and quote them.</div>'
+        + '<strong>' + list.length + ' customer' + (list.length === 1 ? '' : 's') + '</strong> saved a card, but no booking was created &mdash; so they never appeared in your queue and were never contacted. Their cards are valid. Reach out and quote them.</div>'
         + list.map(function(o) {
           var when = o.savedAt ? new Date(o.savedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'unknown date';
+          var waited = (typeof o.ageDays === 'number')
+            ? o.ageDays + ' day' + (o.ageDays === 1 ? '' : 's') + ' waiting'
+            : '';
+          var stale = (typeof o.ageDays === 'number') && o.ageDays >= 7;
           return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:0.45rem 0;border-bottom:1px solid var(--border)">'
             + '<div style="min-width:0"><div style="font-size:0.85rem;font-weight:600;color:var(--text)">' + esc(o.name || 'Name not on file') + '</div>'
-            + '<div style="font-size:0.75rem;color:var(--muted)">' + esc(when) + (o.cardOnFile ? ' &bull; card on file' : ' &bull; no card') + '</div></div>'
+            + '<div style="font-size:0.75rem;color:var(--muted)">' + esc(when)
+              + (waited ? ' &bull; <span style="' + (stale ? 'color:var(--red);font-weight:600' : '') + '">' + esc(waited) + '</span>' : '')
+              + (o.sourceLabel ? ' &bull; ' + esc(o.sourceLabel) : '')
+              + (o.cardOnFile ? ' &bull; card on file' : ' &bull; no card') + '</div></div>'
             + (o.email
               ? '<a href="mailto:' + esc(o.email) + '?subject=' + encodeURIComponent('Your AssembleAtEase quote request') + '" class="btn btn-teal" style="font-size:0.72rem;padding:3px 10px;text-decoration:none;white-space:nowrap">Email</a>'
               : '<span style="font-size:0.72rem;color:var(--red);white-space:nowrap">No email</span>')
