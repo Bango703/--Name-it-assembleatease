@@ -3,6 +3,16 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/about-us",
+      "destination": "/about",
+      "permanent": true
+    },
+    {
+      "source": "/aboutus",
+      "destination": "/about",
+      "permanent": true
+    },
+    {
       "source": "/choose-assembly-pro",
       "destination": "/compare-assembly-options",
       "permanent": true
