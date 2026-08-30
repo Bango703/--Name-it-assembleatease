@@ -4793,19 +4793,33 @@ window.intelQuick = intelQuick;
     });
     rows.sort(function(a, b) { return String(b.at).localeCompare(String(a.at)); });
 
-    var html = '<div style="border:1px solid #fecaca;background:#fef2f2;border-radius:10px;padding:0.9rem 1rem">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">'
-      + '<strong style="color:#991b1b;font-size:0.85rem">The platform reported ' + rows.length + ' failure' + (rows.length === 1 ? '' : 's') + ' about itself</strong>'
-      + '<span style="font-size:0.72rem;color:#b91c1c">last 72 hours</span></div>';
+    // A failure ten minutes old is a fire; one from two days ago that stopped is
+    // history aging out of a 72-hour window. The panel showed both in the same red
+    // and the owner reasonably read a resolved incident as a live one.
+    var newestMs = rows.length ? new Date(rows[0].at).getTime() : 0;
+    var hoursSince = newestMs ? (Date.now() - newestMs) / 3600000 : 0;
+    var settled = newestMs && hoursSince >= 6;
+    var edge = settled ? '#fed7aa' : '#fecaca';
+    var wash = settled ? '#fff7ed' : '#fef2f2';
+    var ink  = settled ? '#9a3412' : '#991b1b';
+    var sub  = settled ? '#9a3412' : '#b91c1c';
+    var recency = !newestMs ? 'last 72 hours'
+      : settled ? ('nothing new in ' + Math.round(hoursSince) + 'h \u00b7 last 72 hours')
+      : ('newest ' + (hoursSince < 1 ? Math.max(1, Math.round(hoursSince * 60)) + 'm' : Math.round(hoursSince) + 'h') + ' ago \u00b7 last 72 hours');
+
+    var html = '<div style="border:1px solid ' + edge + ';background:' + wash + ';border-radius:10px;padding:0.9rem 1rem">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:0.5rem">'
+      + '<strong style="color:' + ink + ';font-size:0.85rem">The platform reported ' + rows.length + ' failure' + (rows.length === 1 ? '' : 's') + ' about itself</strong>'
+      + '<span style="font-size:0.72rem;color:' + sub + ';white-space:nowrap">' + esc(recency) + '</span></div>';
     rows.slice(0, 8).forEach(function(r) {
       var when = new Date(r.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-      html += '<div style="font-size:0.78rem;line-height:1.6;padding:0.3rem 0;border-top:1px solid #fecaca">'
+      html += '<div style="font-size:0.78rem;line-height:1.6;padding:0.3rem 0;border-top:1px solid ' + edge + '">'
         + '<span style="font-family:monospace;font-size:0.68rem;color:#b91c1c">' + esc(r.tag) + '</span> '
         + '<span style="color:var(--muted)">' + esc(when) + '</span> &bull; '
         + '<strong>' + esc(r.kind) + '</strong><br>'
         + '<span style="color:#7f1d1d">' + esc(r.detail || 'no reason recorded') + '</span></div>';
     });
-    if (rows.length > 8) html += '<div style="font-size:0.72rem;color:#b91c1c;padding-top:0.4rem">…and ' + (rows.length - 8) + ' more</div>';
+    if (rows.length > 8) html += '<div style="font-size:0.72rem;color:' + sub + ';padding-top:0.4rem">…and ' + (rows.length - 8) + ' more</div>';
     html += '</div>';
     el.innerHTML = html;
     el.style.display = '';

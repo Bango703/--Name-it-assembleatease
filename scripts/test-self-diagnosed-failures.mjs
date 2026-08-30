@@ -62,4 +62,44 @@ const ui = await fs.readFile(new URL('../owner/index.html', import.meta.url), 'u
   console.log('PASS it shows the real cause, and disappears entirely when nothing is wrong');
 }
 
+// ── A resolved incident must not read as a live fire ───────────────
+// Eight notification_audit_failed rows from 2026-08-27 sat in a uniformly red
+// panel labelled only 'last 72 hours'. The cause (migration 068's missing
+// schema-cache reload) was fixed and nothing had failed for 53 hours, but the
+// owner had no way to tell that from the panel and read it as current.
+{
+  const fn = ui.slice(ui.indexOf('function renderSelfDiagnosed('));
+  const body = fn.slice(0, fn.indexOf('\n  function arrivalBadge('));
+
+  // Evaluate the REAL recency block, not a paraphrase of it.
+  const start = body.indexOf('var newestMs');
+  const tail = "last 72 hours');";
+  const end = body.indexOf(tail, body.indexOf("' ago ", start)) + tail.length;
+  assert.ok(start > 0 && end > start, 'the recency block must exist in the renderer');
+  const snippet = body.slice(start, end);
+  const evaluate = new Function('rows', snippet + '; return { recency, settled };');
+
+  const hoursAgo = h => [{ at: new Date(Date.now() - h * 3600000).toISOString() }];
+
+  const stale = evaluate(hoursAgo(53));
+  assert.equal(stale.settled, true, 'a 53-hour-old failure is history, not an active incident');
+  assert.match(stale.recency, /nothing new in 5[23]h/,
+    'a settled panel must say how long it has been quiet');
+
+  const live = evaluate(hoursAgo(0.5));
+  assert.equal(live.settled, false, 'a failure 30 minutes old is still active');
+  assert.match(live.recency, /newest \d+m ago/,
+    'a fresh failure must show minutes, not be rounded away to 0h');
+
+  const edge = evaluate(hoursAgo(6));
+  assert.equal(edge.settled, true, 'the six-hour boundary settles');
+
+  // Tone must follow the same fact, or the colour contradicts the words.
+  assert.ok(/settled \? '#fed7aa' : '#fecaca'/.test(body),
+    'a settled incident must not keep the active-failure red');
+  assert.ok(/border:1px solid ' \+ edge \+ '/.test(body),
+    'the panel border must follow the computed tone rather than a fixed red');
+  console.log('PASS a settled incident is toned and labelled differently from a live one');
+}
+
 console.log('\nSelf-diagnosed failure tests passed.');
