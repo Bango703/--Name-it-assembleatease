@@ -24,6 +24,13 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Scratch + verification working files.
+# 65 untracked files here were flooding the VS Code Source Control panel,
+# which made a clean repo look like it had pending work everywhere.
+# tmp/pdfs/financial-report-preview/index.html is already tracked and stays
+# tracked -- ignore rules never apply to files git is already following.
+tmp/
+
 # Local dev artifacts (browser profiles, screenshots)
 _local_artifacts/
 .tmp-mobile-audit/
