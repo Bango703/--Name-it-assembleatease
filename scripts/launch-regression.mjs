@@ -551,6 +551,13 @@ for (const file of servicePages) {
     assert.ok(html.includes(rackPrice), `${file} must display catalog rack pricing`);
     assert.ok(!html.includes(`${rackPrice}+`), `${file} must not turn an exact catalog price into an open-ended price`);
   }
+  if (file.startsWith('fitness-equipment-assembly-') || file.startsWith('playset-assembly-')) {
+    const showcasePrices = [...html.matchAll(/<span class="pr">([^<]+)<\/span>/g)].map((match) => match[1]);
+    assert.ok(
+      showcasePrices.every((price) => !/\$[\d,]+(?:&ndash;|–|-)\$[\d,]+/.test(price)),
+      `${file} must show one exact showcase price or Custom quote, never a price range`,
+    );
+  }
   if (!file.includes('-austin-tx.html')) {
     assert.doesNotMatch(html, />4\.9</);
     assert.doesNotMatch(html, /11 Google reviews/);

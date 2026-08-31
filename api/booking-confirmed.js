@@ -7,10 +7,11 @@ import { rateLimit } from './_ratelimit.js';
 import { dispatchBooking } from './booking/_dispatch-internal.js';
 import { logActivity } from './booking/_activity.js';
 import { safeTokenHashMatch } from './_payment-security.js';
+import { normalizeBookingPaymentMethod } from './booking/_payment-method.js';
 
 /**
  * POST /api/booking-confirmed
- * Called by the frontend after Stripe card authorization succeeds.
+ * Called by the frontend after Stripe payment authorization succeeds.
  * Sends the customer confirmation email now that payment is on file.
  * Body: { bookingId: string }
  */
@@ -31,7 +32,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, sms_consent_at, sms_opted_out_at, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, sms_consent_at, sms_opted_out_at, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_method_type, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
     .eq('id', bookingId)
     .single();
 
@@ -69,6 +70,7 @@ export default async function handler(req, res) {
   // Verify the PaymentIntent is genuinely authorized with Stripe before marking the booking.
   // This prevents IDOR abuse where anyone with a bookingId could call this endpoint.
   let verifiedPaymentMethodId = null;
+  let verifiedPaymentMethodType = null;
   if (!booking.stripe_payment_intent_id || !process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({ error: 'Payment verification is unavailable. Your booking has not been confirmed.' });
   }
@@ -84,9 +86,13 @@ export default async function handler(req, res) {
       ? true
       : (String(process.env.STRIPE_SECRET_KEY || '').startsWith('sk_test_') ? false : null);
     const modeMatches = expectedLiveMode == null || pi.livemode === expectedLiveMode;
-    if (!metadataMatches || !amountMatches || !customerMatches || !modeMatches || pi.capture_method !== 'manual') {
+    verifiedPaymentMethodType = normalizeBookingPaymentMethod(pi.metadata?.paymentMethodType || booking.payment_method_type);
+    const methodMatches = !!verifiedPaymentMethodType
+      && (!booking.payment_method_type || booking.payment_method_type === verifiedPaymentMethodType)
+      && (!Array.isArray(pi.payment_method_types) || pi.payment_method_types.includes(verifiedPaymentMethodType));
+    if (!metadataMatches || !amountMatches || !customerMatches || !modeMatches || !methodMatches || pi.capture_method !== 'manual') {
       console.error('[booking-confirmed] PaymentIntent/booking mismatch', {
-        bookingId, paymentIntentId: pi.id, metadataMatches, amountMatches, customerMatches, modeMatches,
+        bookingId, paymentIntentId: pi.id, metadataMatches, amountMatches, customerMatches, modeMatches, methodMatches,
       });
       return res.status(409).json({
         error: 'Payment details do not match this booking. The booking was not confirmed.',
@@ -103,7 +109,7 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: 'Could not verify payment status. Please try again.' });
   }
 
-  // Confirm booking + mark card authorized. Promotes status so dispatch can run.
+  // Confirm booking + mark payment authorized. Promotes status so dispatch can run.
   const updatePayload = {
     payment_status: 'authorized',
     payment_authorized_at: new Date().toISOString(),
@@ -111,6 +117,7 @@ export default async function handler(req, res) {
     confirmed_at: new Date().toISOString(),
     confirmed_by: 'payment',
   };
+  updatePayload.payment_method_type = verifiedPaymentMethodType;
   if (booking.dispatch_status === 'payment_hold') {
     const requiresOwnerAssignment = !['austin_core', 'near_suburb'].includes(booking.call_zone);
     updatePayload.dispatch_status = null;
@@ -136,7 +143,7 @@ export default async function handler(req, res) {
   if (updateErr) {
     console.error('booking-confirmed status update error:', updateErr);
     return res.status(500).json({
-      error: 'Your card was authorized, but the booking could not be confirmed. Please retry; you will not be authorized twice.',
+      error: 'Your payment was authorized, but the booking could not be confirmed. Please retry; you will not be authorized twice.',
       code: 'CONFIRMATION_PERSIST_FAILED',
     });
   }
@@ -188,9 +195,16 @@ export default async function handler(req, res) {
   // link after a secure token rotation (for example, a reschedule or recovery).
   const guestTrackUrl = `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(guestMutationToken)}`;
 
+  const usesKlarna = verifiedPaymentMethodType === 'klarna';
+
   const paymentLine = amount > 0
-    ? `Nothing is charged today — we'll charge the $${(amount / 100).toFixed(2)} total only after your Easer completes the job to your satisfaction.`
+    ? (usesKlarna
+      ? `Klarna approved your payment method for this $${(amount / 100).toFixed(2)} booking. Klarna will provide your payment schedule; we finalize the service charge after the job is complete.`
+      : `Nothing is charged today — we'll charge the $${(amount / 100).toFixed(2)} total only after your Easer completes the job to your satisfaction.`)
     : `No payment has been collected for this request.`;
+  const customerPaymentHeading = usesKlarna
+    ? 'Klarna approved — payment schedule provided by Klarna'
+    : 'Card safely on file — charged after completion';
   const assignmentLine = booking.needs_manual_dispatch
     ? `Our team is reviewing local Easer availability for your requested appointment. We&rsquo;ll email you as soon as an Easer accepts the job; the appointment is not assigned until then.`
     : `We&rsquo;re matching you with a verified Easer and will email you again once they accept the job.`;
@@ -225,7 +239,7 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We match you with an Easer</strong> — We review availability for your address. You'll get a confirmation email when an eligible Easer accepts the job.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your Easer arrives</strong> — Once assigned, a reviewed Easer arrives on the confirmed date with the tools needed for the job.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Card safely on file — charged after completion</strong> — ${paymentLine}</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${customerPaymentHeading}</strong> — ${paymentLine}</td></tr>
     </table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
       <strong style="color:#1a1a1a">Need to reschedule or cancel?</strong> Do it yourself anytime from <strong>Track or manage your booking</strong> below — no need to email us. Rescheduling is free. Cancel at least 24 hours ahead at no charge; inside 24 hours a small late-cancel fee may apply under the cancellation policy.
@@ -271,11 +285,12 @@ export default async function handler(req, res) {
   }
 
   // ── Owner notification — sent here (not in /api/booking) so it only fires
-  //    after the card has been successfully authorized. If auth fails, owner
+  //    after payment has been successfully authorized. If auth fails, owner
   //    gets no email and the booking stays in Supabase as 'pending' for cleanup.
   const paymentStatus = amount > 0
-    ? `CARD AUTHORIZED — $${(amount / 100).toFixed(2)} held, charged after completion`
+    ? `${usesKlarna ? 'KLARNA' : 'CARD'} AUTHORIZED — $${(amount / 100).toFixed(2)} held, charged after completion`
     : 'No payment required';
+  const paymentMethodLabel = usesKlarna ? 'Klarna' : 'Card';
 
   const ownerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
@@ -286,7 +301,7 @@ export default async function handler(req, res) {
     </tr></table>
   </td><td style="padding:20px 24px;text-align:right;font-size:12px;color:#71717a">Internal Notification</td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
-    <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">New Booking — Card Authorized</p>
+    <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">New Booking — ${paymentMethodLabel} Authorized</p>
     <p style="margin:0 0 20px;font-size:22px;font-weight:700;color:#1a1a1a">Ref: ${esc(ref)}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:16px 18px">
       <p style="margin:0 0 2px;font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Services</p>
@@ -313,7 +328,7 @@ export default async function handler(req, res) {
   const ownerEmailResult = await sendEmail({
     from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
     to: TO,
-    subject: `New Booking (Card Authorized) — ${ref} — ${service}`,
+    subject: `New Booking (${paymentMethodLabel} Authorized) — ${ref} — ${service}`,
     html: ownerHtml,
     replyTo: email,
     meta: { bookingId, notificationType: 'booking_confirmed', recipientType: 'owner' },
@@ -324,7 +339,7 @@ export default async function handler(req, res) {
   }
 
   const sb2 = getSupabase();
-  logActivity(sb2, { bookingId, eventType: 'booking_created', actorType: 'customer', actorName: booking.ref ? 'Customer' : 'Unknown', description: `Booking created — card authorized. ${booking.service} on ${booking.date}.`, metadata: { amount: booking.total_price } });
+  logActivity(sb2, { bookingId, eventType: 'booking_created', actorType: 'customer', actorName: booking.ref ? 'Customer' : 'Unknown', description: `Booking created — ${paymentMethodLabel.toLowerCase()} authorized. ${booking.service} on ${booking.date}.`, metadata: { amount: booking.total_price, paymentMethodType: verifiedPaymentMethodType } });
 
   return res.status(200).json({
     success: true,

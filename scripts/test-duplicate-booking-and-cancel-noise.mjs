@@ -61,6 +61,20 @@ check('Stripe amount drift blocks reuse even when the row agrees', () => {
 
 check('a cancelled or missing intent is not reused', () => {
   assert.equal(classifyExistingIntent({ status: 'canceled', amount: AMOUNT, client_secret: 'cs_1' }, { amountCents: AMOUNT }), 'unusable');
+  assert.equal(
+    classifyExistingIntent(
+      { status: 'requires_payment_method', amount: AMOUNT, client_secret: 'cs_1', payment_method_types: ['klarna'] },
+      { amountCents: AMOUNT, paymentMethodType: 'card' },
+    ),
+    'replace',
+  );
+  assert.equal(
+    classifyExistingIntent(
+      { status: 'requires_capture', amount: AMOUNT, client_secret: 'cs_1', payment_method_types: ['klarna'] },
+      { amountCents: AMOUNT, paymentMethodType: 'card' },
+    ),
+    'already_authorized',
+  );
   assert.equal(classifyExistingIntent(null, { amountCents: AMOUNT }), 'unusable');
   assert.equal(classifyExistingIntent({ status: 'requires_payment_method', amount: AMOUNT }, { amountCents: AMOUNT }), 'unusable');
 });
@@ -118,13 +132,13 @@ check('the booking page reuses its PaymentIntent on a card retry', () => {
 
 check('the cached booking is cleared once the booking is confirmed', () => {
   const confirmAt = bookPage.indexOf("sessionStorage.removeItem('aaePaymentRecovery')");
-  const clearAt = bookPage.indexOf('BOOK._pendingPayment = null');
+  const clearAt = bookPage.indexOf('BOOK._pendingPayment = null', confirmAt);
   assert.ok(confirmAt > 0 && clearAt > confirmAt, 'cleared alongside the recovery record');
 });
 
 check('the fingerprint covers everything that moves the price', () => {
   const block = bookPage.slice(bookPage.indexOf('var orderFingerprint'), bookPage.indexOf('var reusablePayment'));
-  const fields = ['services', 'items', 'email', 'address', 'zip', 'date', 'time', 'totalCents', 'promoCode', 'assemblecashToken', 'bundleSlug'];
+  const fields = ['services', 'items', 'email', 'address', 'zip', 'date', 'time', 'totalCents', 'promoCode', 'assemblecashToken', 'bundleSlug', 'paymentMethod'];
   for (const field of fields) {
     assert.ok(block.includes(field + ':'), 'fingerprint includes ' + field);
   }

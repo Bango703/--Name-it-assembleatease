@@ -116,8 +116,8 @@ assert.ok(
 // The customer-facing page must quote the catalog's entry price. This is the
 // drift that would actually cost trust: the site advertising a number the
 // booking engine no longer charges.
-const trampolineFrom = pricingPage.match(/Trampoline assembly<\/span><strong>From \$(\d+)</);
-assert.ok(trampolineFrom, 'pricing.html must advertise a "From $X" trampoline price.');
+const trampolineFrom = pricingPage.match(/Trampoline assembly \(up to 10 ft\)<\/span><strong>\$(\d+)</);
+assert.ok(trampolineFrom, 'pricing.html must advertise the exact up-to-10-ft trampoline price.');
 assert.equal(
   Number(trampolineFrom[1]),
   trampolineTiers[0].price,

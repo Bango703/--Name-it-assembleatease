@@ -149,6 +149,9 @@ export default async function handler(req, res) {
 }
 
 export async function processBookingReauthorization({ sb, stripe, booking, expectedLivemode, nowIso }) {
+  if (booking.payment_method_type === 'klarna') {
+    return { ok: true, changed: false, recovered: false, skipped: true, reason: 'klarna_authorization_valid_28_days' };
+  }
   const operationKey = `reauth:${booking.id}`;
   const hadReauthLock = booking.financial_operation_key === operationKey
     && booking.financial_operation_type === REAUTH_OPERATION_TYPE;

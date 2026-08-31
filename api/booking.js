@@ -32,6 +32,11 @@ import {
   isReusableBookingRow,
   UNPAID_BOOKING_REUSE_WINDOW_MS,
 } from './booking/_duplicate-booking-guard.js';
+import {
+  BOOKING_PAYMENT_METHOD,
+  getKlarnaEligibility,
+  normalizeBookingPaymentMethod,
+} from './booking/_payment-method.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -67,6 +72,8 @@ export default async function handler(req, res) {
     termsVersion,
     privacyNoticeVersion,
     smsConsent,
+    paymentMethod,
+    accountMode,
   } = req.body;
 
   const legalConsent = validateCustomerLegalConsent({ termsAccepted, termsVersion, privacyNoticeVersion });
@@ -196,6 +203,25 @@ export default async function handler(req, res) {
   const sameDayEaserBonusCents = appliedSameDayFeeCents > 0 ? SAME_DAY_EASER_BONUS_CENTS : 0;
   const pricedBooking = amount > 0 && !quoteRequested;
   const shouldAuthorizeNow = pricedBooking && !scheduledAuthorization;
+  const requestedPaymentMethod = normalizeBookingPaymentMethod(paymentMethod);
+  if (!requestedPaymentMethod) {
+    return res.status(400).json({ error: 'Select a supported payment method.', code: 'PAYMENT_METHOD_UNSUPPORTED' });
+  }
+  if (requestedPaymentMethod === BOOKING_PAYMENT_METHOD.KLARNA) {
+    const klarnaEligibility = getKlarnaEligibility({
+      quoteRequested,
+      scheduledAuthorization,
+      accountMode,
+      amountCents: amount,
+    });
+    if (!klarnaEligibility.eligible) {
+      return res.status(409).json({
+        error: 'Klarna is not available for this booking. Select card to continue.',
+        code: 'KLARNA_NOT_AVAILABLE',
+        reason: klarnaEligibility.reason,
+      });
+    }
+  }
 
   // ── Retry guard: reuse an unpaid booking rather than duplicating it ────────
   // A declined card does not remove the booking this endpoint already created.
@@ -215,6 +241,11 @@ export default async function handler(req, res) {
         email, date, time, service, address, amount,
         hasPromo: !!promo.applied,
         hasAssembleCash: !!assemblecashToken,
+        paymentMethodType: requestedPaymentMethod,
+        name,
+        phone,
+        city: bookingCity,
+        zip: String(zip).trim(),
       });
       if (reused?.conflict) {
         return res.status(409).json({
@@ -239,6 +270,7 @@ export default async function handler(req, res) {
           bookingId: reusedId,
           guestMutationToken: deriveGuestMutationToken({ bookingId: reusedId, ref: reusedRef, email }),
           clientSecret: reused.clientSecret,
+          paymentMethodType: requestedPaymentMethod,
           scheduledAuthorization: false,
           isDeposit: false,
           depositAmountCents: null,
@@ -439,6 +471,9 @@ export default async function handler(req, res) {
     details,
     status: scheduledAuthorization ? 'confirmed' : 'pending',
     payment_status: scheduledAuthorization ? 'card_saved' : (shouldAuthorizeNow ? 'pending' : 'not_required'),
+    payment_method_type: quoteRequested || scheduledAuthorization
+      ? BOOKING_PAYMENT_METHOD.CARD
+      : (shouldAuthorizeNow ? requestedPaymentMethod : null),
     total_price: amount,
     tax_amount: taxCents,
     service_call_fee: serviceCallFeeCents,
@@ -595,45 +630,27 @@ export default async function handler(req, res) {
         metadata: { bookingRef: ref },
       });
 
-      // Create PaymentIntent — authorize card now, capture manually after job completion
+      // Authorize now and capture manually after job completion. Klarna is a
+      // one-time redirect flow; card retains off-session reuse for recovery.
       paymentIntentCreationAttempted = true;
-      const pi = await stripe.paymentIntents.create({
+      const pi = await stripe.paymentIntents.create(buildBookingPaymentIntentParams({
         amount,
-        currency: 'usd',
-        customer: customer.id,
-        capture_method: 'manual',
-        setup_future_usage: 'off_session',
-        payment_method_types: ['card'],
-        payment_method_options: {
-          card: {
-            request_three_d_secure: 'automatic',
-          },
-        },
-        receipt_email: email,
-        statement_descriptor_suffix: 'ASSEMBLEATEASE',
-        description: `${service} — ${name}`,
-        shipping: {
-          name,
-          address: {
-            line1: address,
-            ...(bookingCity ? { city: bookingCity } : {}),
-            state: 'TX',
-            postal_code: String(zip).trim(),
-            country: 'US',
-          },
-        },
-        metadata: {
-          bookingRef: ref,
-          bookingId,
-          type: 'customer_booking',
-          isDeposit: 'false',
-          depositAmountCents: '0',
-          bundleSlug: String(bundleSlug || ''),
-          promoCode: promo.applied ? promo.appliedCode : '',
-          promoDiscountCents: String(promoDiscountCents || 0),
-          assemblecashRedeemedCents: String(assemblecashRedeemedCents || 0),
-        },
-      }, { idempotencyKey: `booking-create-${bookingId}-${amount}` });
+        customerId: customer.id,
+        paymentMethodType: requestedPaymentMethod,
+        email,
+        name,
+        phone,
+        address,
+        city: bookingCity,
+        zip: String(zip).trim(),
+        service,
+        ref,
+        bookingId,
+        bundleSlug,
+        promoCode: promo.applied ? promo.appliedCode : '',
+        promoDiscountCents,
+        assemblecashRedeemedCents,
+      }), { idempotencyKey: `booking-create-${bookingId}-${amount}-${requestedPaymentMethod}` });
 
       // Save Stripe IDs to booking record
       const { data: stripeLinkRows, error: stripeLinkErr } = await sb.from('bookings').update({
@@ -891,6 +908,7 @@ export default async function handler(req, res) {
       bookingId,
       guestMutationToken,
       clientSecret,
+      paymentMethodType: shouldAuthorizeNow ? requestedPaymentMethod : BOOKING_PAYMENT_METHOD.CARD,
       scheduledAuthorization,
       isDeposit,
       depositAmountCents,
@@ -960,7 +978,10 @@ function buildBookingItemRows({ bookingId, itemsByService }) {
 //   null                        — nothing safe to reuse; create a new booking
 //   { booking, clientSecret }   — reuse this booking and confirm this intent
 //   { conflict: true, booking } — the card already authorized; do not charge again
-async function reuseUnpaidBooking(sb, { email, date, time, service, address, amount, hasPromo, hasAssembleCash }) {
+async function reuseUnpaidBooking(sb, {
+  email, date, time, service, address, amount, hasPromo, hasAssembleCash,
+  paymentMethodType, name, phone, city, zip,
+}) {
   if (!cartAllowsBookingReuse({ hasPromo, hasAssembleCash })) return null;
   if (!process.env.STRIPE_SECRET_KEY) return null;
 
@@ -987,14 +1008,99 @@ async function reuseUnpaidBooking(sb, { email, date, time, service, address, amo
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const intent = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
 
-  switch (classifyExistingIntent(intent, { amountCents: amount })) {
+  switch (classifyExistingIntent(intent, { amountCents: amount, paymentMethodType })) {
     case 'already_authorized':
       return { conflict: true, booking };
     case 'reuse':
       return { booking, clientSecret: intent.client_secret, paymentIntentId: intent.id };
+    case 'replace': {
+      if (intent.status !== 'canceled') {
+        const canceled = await stripe.paymentIntents.cancel(intent.id, {}, {
+          idempotencyKey: `booking-payment-method-switch-cancel-${booking.id}-${intent.id}`,
+        });
+        if (canceled.status !== 'canceled') throw new Error('Prior payment attempt could not be canceled safely.');
+      }
+      const replacement = await stripe.paymentIntents.create(buildBookingPaymentIntentParams({
+        amount,
+        customerId: booking.stripe_customer_id,
+        paymentMethodType,
+        email,
+        name,
+        phone,
+        address,
+        city,
+        zip,
+        service,
+        ref: booking.ref,
+        bookingId: booking.id,
+      }), {
+        idempotencyKey: `booking-payment-method-switch-${booking.id}-${intent.id}-${paymentMethodType}`,
+      });
+      const { data: linked, error: linkError } = await sb.from('bookings').update({
+        stripe_payment_intent_id: replacement.id,
+        payment_method_type: paymentMethodType,
+        payment_status: 'pending',
+      })
+        .eq('id', booking.id)
+        .eq('stripe_payment_intent_id', intent.id)
+        .in('payment_status', ['pending', 'failed'])
+        .select('id');
+      if (linkError || !linked?.length) {
+        await stripe.paymentIntents.cancel(replacement.id, {}, {
+          idempotencyKey: `booking-payment-method-switch-orphan-${booking.id}-${replacement.id}`,
+        });
+        throw new Error('Payment method changed while the replacement was being prepared.');
+      }
+      return { booking, clientSecret: replacement.client_secret, paymentIntentId: replacement.id };
+    }
     default:
       return null;
   }
+}
+
+function buildBookingPaymentIntentParams({
+  amount, customerId, paymentMethodType, email, name, phone, address, city, zip,
+  service, ref, bookingId, bundleSlug = '', promoCode = '', promoDiscountCents = 0,
+  assemblecashRedeemedCents = 0,
+}) {
+  const cardPayment = paymentMethodType === BOOKING_PAYMENT_METHOD.CARD;
+  return {
+    amount,
+    currency: 'usd',
+    customer: customerId,
+    capture_method: 'manual',
+    payment_method_types: [paymentMethodType],
+    ...(cardPayment ? {
+      setup_future_usage: 'off_session',
+      payment_method_options: { card: { request_three_d_secure: 'automatic' } },
+    } : {}),
+    receipt_email: email,
+    statement_descriptor_suffix: 'ASSEMBLEATEASE',
+    description: `${service} — ${name}`,
+    shipping: {
+      name,
+      phone: phone || undefined,
+      address: {
+        line1: address,
+        ...(city ? { city } : {}),
+        state: 'TX',
+        postal_code: zip,
+        country: 'US',
+      },
+    },
+    metadata: {
+      bookingRef: ref,
+      bookingId,
+      type: 'customer_booking',
+      paymentMethodType,
+      isDeposit: 'false',
+      depositAmountCents: '0',
+      bundleSlug: String(bundleSlug || ''),
+      promoCode,
+      promoDiscountCents: String(promoDiscountCents || 0),
+      assemblecashRedeemedCents: String(assemblecashRedeemedCents || 0),
+    },
+  };
 }
 
 function cleanText(value, maxLength) {

@@ -1061,6 +1061,14 @@
 
     #card-errors { color: var(--red); font-size: 0.82rem; margin-top: 0.5rem; min-height: 1.2em; }
 
+    .payment-method-picker { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; margin-bottom: 0.8rem; }
+
+    .payment-method-option { min-height: 48px; border: 1.5px solid var(--border); border-radius: var(--radius-md); background: var(--white); color: var(--ink); font: 700 0.82rem var(--font-body); cursor: pointer; }
+
+    .payment-method-option[aria-pressed="true"] { border-color: var(--teal); background: #f0f9ff; color: var(--teal-dark); box-shadow: 0 0 0 2px rgba(0,191,255,0.08); }
+
+    #klarna-payment-note { display: none; margin: 0.1rem 0 0.75rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: #fafafa; }
+
     .auth-note { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem 1rem; background: #f0fdf4; border: 1px solid rgba(34,197,94,0.25); border-radius: var(--radius-md); font-size: 0.82rem; color: #166534; line-height: 1.5; }
 
     .auth-note-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
@@ -2712,7 +2720,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16m12-16v16M3 8h4m10 0h4M3 16h4m10 0h4"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Fitness Equipment</div>
-              <div class="svc-row-meta">From $119</div>
+              <div class="svc-row-meta">From $139</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -2722,7 +2730,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V12.5L12 2l9 10.5V22"/><path d="M9 22v-7h6v7"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Outdoor &amp; Playsets</div>
-              <div class="svc-row-meta">From $89</div>
+              <div class="svc-row-meta">From $109</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -3295,7 +3303,14 @@
 
           <div>
 
-            <label class="form-label">Card details <span class="req">*</span></label>
+            <div id="payment-method-picker" class="payment-method-picker" role="group" aria-label="Payment method">
+              <button type="button" class="payment-method-option" data-payment-method="card" aria-pressed="true" onclick="selectBookingPaymentMethod('card')">Card</button>
+              <button type="button" class="payment-method-option" data-payment-method="klarna" aria-pressed="false" onclick="selectBookingPaymentMethod('klarna')">Klarna</button>
+            </div>
+
+            <div id="klarna-payment-note"><div id="klarna-payment-message"></div></div>
+
+            <label class="form-label" id="card-details-label">Card details <span class="req">*</span></label>
 
             <div id="stripe-card-wrap" aria-busy="true"><div class="payment-loader" id="payment-loader" role="status">Preparing secure card entry</div><div id="stripe-card-element"></div></div>
 
@@ -3529,6 +3544,10 @@
             minLeadMinutes: Number(cfg.sameDay.minLeadMinutes) || 0
           };
         }
+        if (cfg && cfg.klarna && window.AAE_BOOKING_SOURCE) {
+          window.AAE_BOOKING_SOURCE.klarna = { enabled: !!cfg.klarna.enabled };
+          if (typeof renderBookingPaymentMethods === 'function') renderBookingPaymentMethods();
+        }
       })
       .catch(function(){});
   } catch(e) {}
@@ -3621,9 +3640,15 @@ var BOOK = {
 
   _stripe: null,
 
+  _elements: null,
+
   _cardEl: null,
 
-  _cardComplete: false
+  _cardComplete: false,
+
+  paymentMethod: 'card',
+
+  _klarnaMessageEl: null
 
 };
 
@@ -4314,15 +4339,19 @@ function fmtLinePrice(item) {
 
 // ----------------------------------------------------------------------------
 
-var SVC_FROM = {
-  'Furniture Assembly':  'From $69',
-  'Mounting & Hanging':  'From $79',
-  'Smart Home':          'From $69',
-  'Fitness Equipment':   'From $119',
-  'Outdoor & Playsets':  'From $89',
-  'Office Assembly':     'From $89',
-  'Other':               'Custom quote'
-};
+function serviceFromLabel(serviceName) {
+  var prices = (SUBCATS[serviceName] || []).reduce(function(allPrices, group) {
+    return allPrices.concat((group.items || []).filter(function(item) {
+      return !item.addon && !item.customQuote && Number(item.price) > 0;
+    }).map(function(item) { return Number(item.price); }));
+  }, []);
+  return prices.length ? 'From $' + Math.min.apply(Math, prices) : 'Custom quote';
+}
+
+var SVC_FROM = Object.keys(SUBCATS).reduce(function(labels, serviceName) {
+  labels[serviceName] = serviceFromLabel(serviceName);
+  return labels;
+}, {});
 
 var SVC_DETAILS = {
   'Furniture Assembly': {
@@ -6578,7 +6607,9 @@ async function goToStep5Payment() {
 
   BOOK._isQuoteFlow = isQuoteFlow;
   BOOK._scheduledAuthorization = isScheduledAuthorization;
+  if (isQuoteFlow || isScheduledAuthorization) BOOK.paymentMethod = 'card';
   if (isQuoteFlow || isScheduledAuthorization) BOOK._setupIntentSecret = null;
+  renderBookingPaymentMethods();
   syncPaymentSubmitState();
   await refreshPromoPreview({ silentFailure: true });
 
@@ -7315,15 +7346,18 @@ function syncPaymentSubmitState() {
 
   var paymentFormReady = !!BOOK._stripe && !!BOOK._cardEl;
   var usesSetupIntent = !!BOOK._isQuoteFlow || !!BOOK._scheduledAuthorization;
+  var usesKlarna = !usesSetupIntent && BOOK.paymentMethod === 'klarna';
   var setupReady = !usesSetupIntent || !!BOOK._setupIntentSecret;
-  var canSubmit = paymentFormReady && setupReady && !!BOOK._cardComplete;
+  var canSubmit = paymentFormReady && setupReady && (usesKlarna || !!BOOK._cardComplete);
 
   submitBtn.disabled = !canSubmit;
 
   if (!paymentFormReady || !setupReady) {
     submitBtn.textContent = 'Preparing secure checkout...';
-  } else if (!BOOK._cardComplete) {
+  } else if (!usesKlarna && !BOOK._cardComplete) {
     submitBtn.textContent = 'Enter card details to continue';
+  } else if (usesKlarna) {
+    submitBtn.innerHTML = 'Continue with Klarna <span>&#8594;</span>';
   } else {
     submitBtn.innerHTML = BOOK._isQuoteFlow
       ? 'Request Custom Quote <span>&#8594;</span>'
@@ -7332,6 +7366,62 @@ function syncPaymentSubmitState() {
         : 'Complete Booking <span>&#8594;</span>');
   }
 
+}
+
+function klarnaAvailableForCurrentBooking() {
+  var config = (window.AAE_BOOKING_SOURCE && window.AAE_BOOKING_SOURCE.klarna) || {};
+  return !!config.enabled
+    && !BOOK._isQuoteFlow
+    && !BOOK._scheduledAuthorization
+    && BOOK.accountMode !== 'business'
+    && Number(BOOK._grandTotalCents || 0) > 0;
+}
+
+function renderBookingPaymentMethods() {
+  var picker = document.getElementById('payment-method-picker');
+  var cardWrap = document.getElementById('stripe-card-wrap');
+  var cardLabel = document.getElementById('card-details-label');
+  var klarnaNote = document.getElementById('klarna-payment-note');
+  var available = klarnaAvailableForCurrentBooking();
+  if (!available) BOOK.paymentMethod = 'card';
+  if (picker) picker.style.display = available ? 'grid' : 'none';
+  var usesKlarna = available && BOOK.paymentMethod === 'klarna';
+  if (cardWrap) cardWrap.style.display = usesKlarna ? 'none' : '';
+  if (cardLabel) cardLabel.style.display = usesKlarna ? 'none' : '';
+  if (klarnaNote) klarnaNote.style.display = usesKlarna ? 'block' : 'none';
+  document.querySelectorAll('[data-payment-method]').forEach(function(button) {
+    button.setAttribute('aria-pressed', String(button.getAttribute('data-payment-method') === BOOK.paymentMethod));
+  });
+  if (available && BOOK._elements && !BOOK._klarnaMessageEl) mountKlarnaMessaging(BOOK._elements);
+  syncPaymentSubmitState();
+}
+
+function selectBookingPaymentMethod(method) {
+  if (method !== 'card' && method !== 'klarna') return;
+  if (method === 'klarna' && !klarnaAvailableForCurrentBooking()) return;
+  BOOK.paymentMethod = method;
+  BOOK._pendingPayment = null;
+  renderBookingPaymentMethods();
+}
+
+function mountKlarnaMessaging(elements) {
+  var target = document.getElementById('klarna-payment-message');
+  if (!target || !klarnaAvailableForCurrentBooking() || !elements) return;
+  if (BOOK._klarnaMessageEl) {
+    try { BOOK._klarnaMessageEl.destroy(); } catch (e) {}
+    BOOK._klarnaMessageEl = null;
+  }
+  target.innerHTML = '';
+  try {
+    BOOK._klarnaMessageEl = elements.create('paymentMethodMessaging', {
+      amount: Number(BOOK._grandTotalCents || 0),
+      currency: 'USD',
+      paymentMethodTypes: ['klarna']
+    });
+    BOOK._klarnaMessageEl.mount('#klarna-payment-message');
+  } catch (e) {
+    target.textContent = 'Klarna payment options are shown after you continue. Eligibility is determined by Klarna.';
+  }
 }
 
 async function retryStripeCheckout() {
@@ -7389,6 +7479,7 @@ async function initializeStripe() {
     BOOK._stripe = Stripe(d.publishableKey);
 
     var elements = BOOK._stripe.elements();
+    BOOK._elements = elements;
 
     if (BOOK._cardEl) { try { BOOK._cardEl.destroy(); } catch(e){} }
 
@@ -7402,10 +7493,13 @@ async function initializeStripe() {
 
     BOOK._cardEl.mount('#stripe-card-element');
 
+    mountKlarnaMessaging(elements);
+
     var paymentLoader = document.getElementById('payment-loader');
     if (paymentLoader) paymentLoader.remove();
     document.getElementById('stripe-card-wrap').setAttribute('aria-busy', 'false');
     syncPaymentSubmitState();
+    renderBookingPaymentMethods();
 
     BOOK._cardEl.on('focus', function() {
       document.getElementById('stripe-card-wrap').classList.add('focused');
@@ -7528,7 +7622,9 @@ async function submitBooking() {
 
   }
 
-  if (!BOOK._cardComplete) {
+  var usesKlarna = !BOOK._isQuoteFlow && !BOOK._scheduledAuthorization && BOOK.paymentMethod === 'klarna';
+
+  if (!usesKlarna && !BOOK._cardComplete) {
 
     errEl.textContent = 'Complete your card details before continuing.';
 
@@ -7614,6 +7710,7 @@ async function submitBooking() {
     promoCode: BOOK.promoCode || '',
     assemblecashToken: BOOK.assemblecashToken || '',
     bundleSlug: BOOK.bundleSlug || '',
+    paymentMethod: BOOK.paymentMethod,
     smsConsent: !!(document.getElementById('s4-sms-consent') || {}).checked
   });
 
@@ -7649,6 +7746,8 @@ async function submitBooking() {
         date: BOOK.date, time: BOOK.time, details: BOOK.details,
 
         totalCents: totalCents, accountMode: BOOK.accountMode,
+
+        paymentMethod: BOOK.paymentMethod,
 
         discountPct: BOOK._discountPct || 0,
 
@@ -7756,7 +7855,41 @@ async function submitBooking() {
       isQuote: false
     }));
 
-    var result = await BOOK._stripe.confirmCardPayment(data.clientSecret, {
+    var result = data.paymentMethodType === 'klarna'
+      ? await BOOK._stripe.confirmKlarnaPayment(data.clientSecret, {
+
+        payment_method: {
+
+          billing_details: {
+
+            name: BOOK.firstName + ' ' + BOOK.lastName,
+
+            email: BOOK.email,
+
+            phone: BOOK.phone || undefined,
+
+            address: {
+
+              line1: BOOK.address,
+
+              city: BOOK.city,
+
+              state: 'TX',
+
+              postal_code: BOOK.zip,
+
+              country: 'US'
+
+            }
+
+          }
+
+        },
+
+        return_url: window.location.origin + '/book?payment_return=1&payment_method=klarna'
+
+      })
+      : await BOOK._stripe.confirmCardPayment(data.clientSecret, {
 
       payment_method: {
 

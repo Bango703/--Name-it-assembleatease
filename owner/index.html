@@ -3787,6 +3787,7 @@ window.intelQuick = intelQuick;
         : '—'),
       field('Status', bookingBadge(b) + (b.payment_status ? ' ' + paymentBadge(b.payment_status) : '')),
       field('Payment', paymentStatusLabel(b)),
+      field('Payment Method', paymentMethodLabel(b)),
       field('Easer Payout', b.payout_status === 'transferred'
         ? 'Transferred to Stripe balance; bank payout not yet verified'
         : b.payout_status === 'paid'
@@ -5175,10 +5176,10 @@ window.intelQuick = intelQuick;
           notices.push('<div style="flex-basis:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.8rem;color:#92400e;font-size:0.78rem;line-height:1.5"><strong>Awaiting customer:</strong> the replacement appointment is not confirmed. The customer must add a payment method and complete the required Stripe authorization before assignment or dispatch.</div>');
           btns.push('<button class="btn btn-teal" data-action="send-rebook-payment" data-id="' + b.id + '">Resend Payment Method Link</button>');
         } else if (b.payment_status === 'authorized') {
-          notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Card hold authorized:</strong> the customer has not been charged. Confirm the booking before dispatch; capture occurs after completed work.</div>');
+          notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>' + esc(paymentMethodLabel(b)) + ' authorization confirmed:</strong> funds have not been captured. Confirm the booking before dispatch; capture occurs after completed work.</div>');
           btns.push('<button class="btn btn-teal" data-action="reconcile-payment" data-id="' + b.id + '">Reconcile Authorization &amp; Confirm</button>');
         } else if (['pending', 'failed'].includes(b.payment_status)) {
-          notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payment incomplete:</strong> no card hold or charge is confirmed. Do not confirm or dispatch this booking.</div>');
+          notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payment incomplete:</strong> no payment authorization or charge is confirmed. Do not confirm or dispatch this booking.</div>');
           if (b.stripe_payment_intent_id) {
             btns.push('<button class="btn btn-teal" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
           } else {
@@ -7083,6 +7084,7 @@ window.intelQuick = intelQuick;
 
   function paymentStatusLabel(booking) {
     var status = String(booking && booking.payment_status || 'unknown');
+    var usesKlarna = booking && booking.payment_method_type === 'klarna';
     if (status === 'offline_recorded') {
       var receivedCents = Number((booking && booking.amount_collected_cents) || 0);
       var remainingCents = Number((booking && booking.remaining_balance_cents) || 0);
@@ -7095,12 +7097,12 @@ window.intelQuick = intelQuick;
       return 'No customer payment recorded in AAE';
     }
     var labels = {
-      pending: 'No card authorization or charge is confirmed',
+      pending: 'No payment authorization or charge is confirmed',
       failed: 'Authorization failed; customer can retry securely',
       card_saved: booking && booking.status === 'confirmed'
         ? 'Card saved; authorization scheduled five days before the appointment'
         : 'Card saved for an owner-priced quote; no charge captured',
-      authorized: 'Card hold authorized; funds not captured yet',
+      authorized: (usesKlarna ? 'Klarna' : 'Card') + ' authorization confirmed; funds not captured yet',
       captured: 'Customer payment captured by Stripe',
       cancellation_fee_captured: 'Cancellation fee captured by Stripe',
       partially_refunded: 'Customer payment partially refunded',
@@ -7111,6 +7113,12 @@ window.intelQuick = intelQuick;
       deposit_paid: 'Deposit captured; review remaining balance',
     };
     return esc(labels[status] || status.replace(/_/g, ' '));
+  }
+
+  function paymentMethodLabel(booking) {
+    if (booking && booking.payment_method_type === 'klarna') return 'Klarna';
+    if (booking && (booking.payment_method_type === 'card' || booking.stripe_payment_method_id)) return 'Card';
+    return 'Not recorded';
   }
 
   function offerStatusBadge(status) {

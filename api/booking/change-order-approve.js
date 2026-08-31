@@ -54,7 +54,7 @@ export default async function handler(req, res) {
 
   const { data: booking } = await sb
     .from('bookings')
-    .select('id, ref, service, status, customer_name, customer_email, total_price, stripe_customer_id, stripe_payment_method_id, stripe_dispute_id, financial_operation_key, financial_operation_type, financial_operation_started_at')
+    .select('id, ref, service, status, customer_name, customer_email, total_price, payment_method_type, stripe_customer_id, stripe_payment_method_id, stripe_dispute_id, financial_operation_key, financial_operation_type, financial_operation_started_at')
     .eq('id', changeOrder.booking_id)
     .maybeSingle();
   if (!booking) return respondPage(res, 404, 'Booking not found', 'We could not find the booking for this request.');

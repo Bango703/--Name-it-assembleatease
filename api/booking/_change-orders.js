@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { SALES_TAX_RATE, ACTIVE_BOOKING_STATUSES, BOOKING_STATUS } from '../_source-of-truth.js';
+import { BOOKING_PAYMENT_METHOD } from './_payment-method.js';
 
 /**
  * THE change-order domain. Every rule about additional scope on a live booking
@@ -91,6 +92,9 @@ export function changeOrderEligibility(booking) {
   }
   if (booking.stripe_dispute_id) {
     return { ok: false, reason: 'This booking has an open Stripe dispute. Resolve it before charging anything further.' };
+  }
+  if (booking.payment_method_type === BOOKING_PAYMENT_METHOD.KLARNA) {
+    return { ok: false, reason: 'Additional work cannot be added to this Klarna payment. Create a separate card booking for the extra work.' };
   }
   // The charge goes on the card already on file. Without it there is nothing to
   // authorize against and the customer would have to re-enter payment details.

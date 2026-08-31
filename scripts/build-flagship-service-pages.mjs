@@ -595,6 +595,7 @@ function aaeCopyShareLink(link){
 const SERVICES = [
   {
     slug: 'furniture-assembly-austin-tx', prefix: 'furniture-assembly', linkLabel: 'Furniture assembly',
+    titleLabel: 'Furniture Assembly',
     eyebrow: 'Furniture Assembly', faqNoun: 'furniture assembly', bookingParam: 'Furniture+Assembly',
     fromPrice: '$69', fromLabel: 'per item', ctaVerb: 'Book furniture assembly',
     heroTitle: 'Furniture Assembly in Austin,<br><em>built right the first time.</em>',
@@ -674,7 +675,7 @@ const SERVICES = [
   {
     slug: 'fitness-equipment-assembly-austin-tx', prefix: 'fitness-equipment-assembly', linkLabel: 'Fitness Equipment Assembly',
     eyebrow: 'Fitness Equipment Assembly', faqNoun: 'fitness equipment assembly', bookingParam: 'Fitness+Equipment',
-    fromPrice: '$119', fromLabel: 'per machine &mdash; assembled &amp; leveled', ctaVerb: 'Book fitness assembly',
+    fromPrice: '$139', fromLabel: 'per machine &mdash; assembled &amp; leveled', ctaVerb: 'Book fitness assembly',
     heroTitle: 'Fitness Equipment Assembly in Austin,<br><em>ready to train.</em>',
     heroSub: 'Treadmills, ellipticals, racks and full home gyms &mdash; assembled solid, leveled, and wiped down. We bring the tools and break down the boxes so you can start day one.',
     heroPhoto: 'real-fitness-home-gym.jpg', heroAlt: 'Home gym with assembled cardio machines and a power rack',
@@ -682,10 +683,10 @@ const SERVICES = [
     noteStrong: 'From a single treadmill to a full home gym.', noteSpan: 'Cardio machines, racks, benches and cable systems &mdash; built to spec, leveled, stable, and wiped down before we go.',
     gallery: [],
     offers: [
-      { n: 'Inversion Table', p: '$119' },
-      { n: 'Treadmill Assembly', p: '$189', popular: true },
-      { n: 'Elliptical Machine', p: '$209' },
-      { n: 'Squat Rack / Power Cage', p: '$239' },
+      { n: 'Inversion Table', p: '$139' },
+      { n: 'Treadmill Assembly', p: '$219', popular: true },
+      { n: 'Elliptical Machine', p: '$239' },
+      { n: 'Squat Rack / Power Cage', p: '$279' },
     ],
     faqs: [
       { q: 'How long does equipment assembly take?', a: 'Most treadmills and ellipticals take 1&ndash;2 hours; racks, cages and full home gyms can take longer. We&rsquo;ll give you a time estimate when we confirm your booking.' },
@@ -723,7 +724,7 @@ const SERVICES = [
   {
     slug: 'playset-assembly-austin-tx', prefix: 'playset-assembly', linkLabel: 'Playset Assembly',
     eyebrow: 'Outdoor & Playset Assembly', faqNoun: 'playset & outdoor assembly', bookingParam: 'Outdoor+%26+Playsets',
-    fromPrice: '$299', fromLabel: 'playsets &mdash; smaller outdoor items from $89', ctaVerb: 'Book outdoor assembly',
+    fromPrice: '$349', fromLabel: 'playsets &mdash; smaller outdoor items from $109', ctaVerb: 'Book outdoor assembly',
     heroTitle: 'Playset Assembly in Austin,<br><em>ready for the backyard.</em>',
     heroSub: 'Playsets, swing sets, trampolines, gazebos and patio sets &mdash; built to spec, anchored safe, and checked over before anyone climbs on. Tools and cleanup included.',
     heroPhoto: 'service-outdoor-playsets.jpg', heroAlt: 'Assembler building a backyard playset frame with the completed set behind him',
@@ -734,11 +735,11 @@ const SERVICES = [
       { src: 'real-outdoor-gazebo.png', alt: 'Assembled backyard gazebo structure', cap: 'Completed gazebo kit', sub: 'Leveled, tightened, and ready for the backyard' },
     ],
     offers: [
-      { n: 'Deck box / outdoor storage bench', p: '$89' },
-      { n: 'Patio umbrella + base', p: '$89' },
-      { n: 'Trampoline Assembly', p: '$229&ndash;$329', popular: true },
-      { n: 'Swing Set / Backyard Playset', p: '$299&ndash;$379' },
-      { n: 'Pergola / Gazebo Kit', p: '$599&ndash;$1199' },
+      { n: 'Deck box / outdoor storage bench', p: '$109' },
+      { n: 'Patio umbrella + base', p: '$109' },
+      { n: 'Trampoline Assembly (up to 10 ft)', p: '$319', popular: true },
+      { n: 'Swing Set / Backyard Playset', p: '$349' },
+      { n: 'Pergola / Gazebo Kit', p: 'Custom quote' },
     ],
     faqs: [
       { q: 'How long does a playset take?', a: 'A trampoline or sandbox is often 1&ndash;2 hours; a large swing set or playset can take 3&ndash;5 hours or more. We&rsquo;ll give you a time estimate when we confirm your booking.' },
@@ -758,6 +759,11 @@ export function applyFlagshipToPage(html, cfg, city) {
   html = html.replace(FLAGSHIP_STYLE_RE, '');
   html = html.replace(CITY_TEMPLATE_STYLE_RE, '');
   html = html.replace('</head>', `${FA_STYLE}\n</head>`);
+
+  const pageTitle = `${cfg.titleLabel || cfg.linkLabel} in ${city.name}, TX — From ${cfg.fromPrice} | AssembleAtEase`;
+  html = html.replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`);
+  html = html.replace(/<meta property="og:title" content="[^"]*"\/>/, `<meta property="og:title" content="${pageTitle}"/>`);
+  html = html.replace(/<meta name="twitter:title" content="[^"]*"\/>/, `<meta name="twitter:title" content="${pageTitle}"/>`);
 
   const start = html.indexOf('<!-- HERO -->');
   const end = html.indexOf('<footer class="footer">');
