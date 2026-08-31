@@ -6,6 +6,7 @@
 // asserts, per booking, that what the Easer sees == what the Owner sees.
 import assert from 'node:assert/strict';
 import { loadLedgerFirstFinanceRows, summarizeFinanceRows } from '../api/owner/_finance-ledger.js';
+import { classifyOutstandingPayout } from '../api/owner/payouts.js';
 import { toEaserEarningDto, summarizeEaserEarnings } from '../api/assembler/_earnings.js';
 import { computeBookingSplitFromSnapshot } from '../api/_source-of-truth.js';
 
@@ -68,6 +69,9 @@ const bookings = [
   // F: online, refunded after completion, review not done → HOLD on both
   base({ id: 'F', source: 'online', status: 'completed', payment_status: 'refunded',
     refund_amount: 5000, payout_review_status: 'not_required' }),
+  // G: Connect payout awaiting automatic transfer → PENDING on both, never manually payable
+  base({ id: 'G', source: 'online', status: 'completed', payment_status: 'captured',
+    payout_mode_snapshot: 'stripe_connect' }),
 ];
 
 // Ledger rows exist only for the paid jobs (B, D) — mirrors record_booking_payout.
@@ -86,8 +90,9 @@ const ownerByRef = new Map(ownerFinance.rows.map(r => [r.ref, r]));
 const easerDtos = easerFinance.rows.filter(r => r.assemblerId === EID).map(toEaserEarningDto);
 const easerByRef = new Map(easerDtos.map(d => [d.booking_ref, d]));
 
-assert.equal(ownerFinance.rows.length, 6, 'owner sees all six finance rows');
-assert.equal(easerDtos.length, 6, 'easer sees their six earnings');
+assert.equal(ownerFinance.rows.length, 7, 'owner sees all seven finance rows');
+assert.equal(easerDtos.length, 7, 'easer sees their seven earnings');
+assert.equal(classifyOutstandingPayout(ownerByRef.get('G')), 'connect_pending', 'Connect pending is not manually payable');
 
 // ── The core guarantee: per job, Easer number == Owner number, status agrees ──
 const expect = {
@@ -97,6 +102,7 @@ const expect = {
   D: { amount: onlineDue, ownerPaid: true, easerDisposition: 'paid' },
   E: { amount: offlineDue, ownerPaid: false, easerDisposition: 'on_hold' },
   F: { amount: offlineDue, ownerPaid: false, easerDisposition: 'on_hold' },
+  G: { amount: offlineDue, ownerPaid: false, easerDisposition: 'pending' },
 };
 
 for (const [ref, exp] of Object.entries(expect)) {
@@ -114,6 +120,7 @@ for (const [ref, exp] of Object.entries(expect)) {
   assert.equal(easerPaid, exp.ownerPaid, `${ref}: Easer paid-state must match`);
   assert.equal(owner.paidOut, exp.ownerPaid, `${ref}: Owner paid-state must match`);
   assert.equal(easer.payout.disposition, exp.easerDisposition, `${ref}: Easer disposition`);
+  assert.equal(owner.payoutDisposition, easer.payout.disposition, `${ref}: Owner and Easer disposition must match`);
 
   // 3. Same HOLD reason when on hold (Easer sees a message for the owner's reason).
   if (exp.easerDisposition === 'on_hold') {

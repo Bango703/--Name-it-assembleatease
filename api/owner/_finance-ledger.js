@@ -261,7 +261,12 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
       owed,
       hasCurrentCompletionEvidence: !b.evidence_requested_at || currentEvidenceBookingIds.has(b.id),
     });
-    const payoutDisposition = payoutReadiness.disposition;
+    const connectRailPending = b.payout_mode_snapshot === 'stripe_connect'
+      && payoutStatus === 'pending'
+      && payoutReadiness.disposition === 'on_hold'
+      && payoutReadiness.holdCodes.length > 0
+      && payoutReadiness.holdCodes.every(code => code === 'stripe_connect_path');
+    const payoutDisposition = connectRailPending ? 'pending' : payoutReadiness.disposition;
     const legacyDerived = !ledger;
 
     // Sales tax is a pass-through liability owed to the state — NOT platform revenue.
@@ -312,8 +317,8 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
       payoutReviewedAt: b.payout_reviewed_at || null,
       payoutReviewNotes: b.payout_review_notes || null,
       payoutDisposition,
-      payoutHoldReasons: payoutReadiness.holdReasons,
-      payoutHoldCodes: payoutReadiness.holdCodes,
+      payoutHoldReasons: connectRailPending ? [] : payoutReadiness.holdReasons,
+      payoutHoldCodes: connectRailPending ? [] : payoutReadiness.holdCodes,
       cancellationEarnings: isCancellationEarning,
       bundleSlug: b.bundle_slug || null,
       assemblecashEarnedCents: Number(b.assemblecash_earned_cents || 0),
