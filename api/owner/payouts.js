@@ -3,6 +3,12 @@ import { verifyOwner } from '../_email.js';
 import { loadLedgerFirstFinanceRows, summarizeFinanceRows } from './_finance-ledger.js';
 import { formatUsPhone } from '../_phone.js';
 
+export function classifyOutstandingPayout(row = {}) {
+  if (row.payoutDisposition === 'on_hold') return 'on_hold';
+  if (row.payoutDisposition !== 'pending') return null;
+  return row.payoutMode === 'stripe_connect' ? 'connect_pending' : 'payable';
+}
+
 /**
  * GET /api/owner/payouts
  * Owner-only. Returns per-Easer payout ledger from completed bookings and
@@ -50,6 +56,7 @@ export default async function handler(req, res) {
         total_paid:     0,
         total_pending:  0,
         total_payable:  0,
+        total_connect_pending: 0,
         total_on_hold:  0,
         unpaid_jobs:    [],
         last_job_date:  null,
@@ -71,8 +78,10 @@ export default async function handler(req, res) {
 
     if (!b.paidOut && ['pending', 'on_hold'].includes(b.payoutDisposition) && owed > 0) {
       e.total_pending += owed;
-      if (b.payoutDisposition === 'on_hold') e.total_on_hold += owed;
-      else e.total_payable += owed;
+      const payoutQueue = classifyOutstandingPayout(b);
+      if (payoutQueue === 'on_hold') e.total_on_hold += owed;
+      else if (payoutQueue === 'connect_pending') e.total_connect_pending += owed;
+      else if (payoutQueue === 'payable') e.total_payable += owed;
       const eventMs = Date.parse(b.eventAt || b.date || '');
       const ageDays = Number.isFinite(eventMs)
         ? Math.max(0, Math.floor((Date.now() - eventMs) / 86400000))
@@ -138,6 +147,7 @@ export default async function handler(req, res) {
     total_paid:    acc.total_paid    + e.total_paid,
     total_pending: acc.total_pending + e.total_pending,
     total_payable: acc.total_payable + e.total_payable,
+    total_connect_pending: acc.total_connect_pending + e.total_connect_pending,
     total_on_hold: acc.total_on_hold + e.total_on_hold,
   }), {
     jobs: 0,
@@ -147,6 +157,7 @@ export default async function handler(req, res) {
     total_paid: 0,
     total_pending: 0,
     total_payable: 0,
+    total_connect_pending: 0,
     total_on_hold: 0,
   });
 

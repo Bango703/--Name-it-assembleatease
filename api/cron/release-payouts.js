@@ -25,7 +25,7 @@ import { loadCurrentCompletionEvidence } from '../booking/_completion-evidence.j
  * assembler_due > 0, completed_at older than the hold. On a transfer error (e.g. funds
  * not yet available) the booking stays pending and is retried on the next run.
  */
-// Hold window before a payout is released. Defaults to 48h; override with the
+// Hold window before a payout is released. Defaults to 24h; override with the
 // PAYOUT_HOLD_HOURS env var (e.g. set to 0 in test to release immediately).
 // Imported, not redeclared: this number and the one an Easer is told must
 // never be two separate values.
@@ -110,7 +110,10 @@ export default async function handler(req, res) {
       ? Number(b.cancellation_easer_due_cents || 0)
       : Number(b.assembler_due || 0) + Number(b.easer_bonus_cents || 0);
     if (!cancellationPayout && b.evidence_requested_at) {
-      const evidenceResult = await loadCurrentCompletionEvidence(sb, b, { select: 'id, evidence_type, uploaded_by, created_at' });
+      const evidenceResult = await loadCurrentCompletionEvidence(sb, b, {
+        select: 'id, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at',
+        acceptSuppliedOnBehalf: true,
+      });
       const requestedAt = new Date(b.evidence_requested_at).getTime();
       const evidenceAt = new Date(evidenceResult.evidence?.created_at || '').getTime();
       if (evidenceResult.error
@@ -412,7 +415,7 @@ export async function verifyConnectPayoutReleaseState(sb, expected, operationKey
   const cancellation = current.status === 'cancelled';
   const currentDueCents = cancellation
     ? Number(current.cancellation_easer_due_cents || 0)
-    : Number(current.assembler_due || 0);
+    : Number(current.assembler_due || 0) + Number(current.easer_bonus_cents || 0);
   if (currentDueCents <= 0 || currentDueCents !== Number(expectedDueCents)) {
     return { ok: false, reason: 'canonical_payout_amount_changed' };
   }
@@ -436,7 +439,8 @@ export async function verifyConnectPayoutReleaseState(sb, expected, operationKey
     }
     if (current.evidence_requested_at) {
       const evidenceResult = await loadCurrentCompletionEvidence(sb, current, {
-        select: 'id, evidence_type, uploaded_by, created_at',
+        select: 'id, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at',
+        acceptSuppliedOnBehalf: true,
       });
       if (evidenceResult.error || !evidenceResult.evidence) {
         return { ok: false, reason: evidenceResult.error?.message || evidenceResult.reason || 'evidence_hold' };

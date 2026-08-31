@@ -9265,7 +9265,7 @@ window.intelQuick = intelQuick;
       if (payoutNav) {
         if (unpaidJobCount > 0) {
           payoutNav.textContent = unpaidJobCount;
-          payoutNav.title = fmt$(totals.total_payable || 0) + ' payable; ' + fmt$(totals.total_on_hold || 0) + ' on hold';
+          payoutNav.title = fmt$(totals.total_payable || 0) + ' payable; ' + fmt$(totals.total_connect_pending || 0) + ' automatic transfer pending; ' + fmt$(totals.total_on_hold || 0) + ' on hold';
           payoutNav.style.display = '';
         } else {
           payoutNav.style.display = 'none';
@@ -9275,6 +9275,7 @@ window.intelQuick = intelQuick;
       if (totalsEl && totals.total_pending !== undefined) {
         var paidDollars    = fmt$(totals.total_paid);
         totalsEl.innerHTML = '<span style="color:#047857;font-weight:700">' + fmt$(totals.total_payable || 0) + ' payable</span>'
+          + ' &nbsp;&middot;&nbsp; <span style="color:#0369a1;font-weight:700">' + fmt$(totals.total_connect_pending || 0) + ' automatic transfer pending</span>'
           + ' &nbsp;&middot;&nbsp; <span style="color:#b45309;font-weight:700">' + fmt$(totals.total_on_hold || 0) + ' on hold</span>'
           + ' &nbsp;&middot;&nbsp; ' + paidDollars + ' paid &nbsp;&middot;&nbsp; '
           + totals.jobs + ' completed job' + (totals.jobs !== 1 ? 's' : '')
@@ -9295,6 +9296,10 @@ window.intelQuick = intelQuick;
         var preferredMethod = methodLabels[e.payout_method_preference] || 'Not selected';
         var jobsNeedingAction = e.unpaid_jobs || [];
         var actionButtons = jobsNeedingAction.slice(0, 3).map(function(job) {
+          var isConnectPending = job.payout_mode === 'stripe_connect' && job.disposition === 'pending';
+          if (isConnectPending) {
+            return '<div style="font-size:0.68rem;line-height:1.35;color:#0369a1;margin:0 0.2rem 0.3rem">Pending automatic transfer · ' + esc(job.ref) + '</div>';
+          }
           var isHeld = job.disposition === 'on_hold';
           var tone = isHeld ? 'btn-amber' : 'btn-teal';
           var label = isHeld ? 'Review ' : 'Record ';

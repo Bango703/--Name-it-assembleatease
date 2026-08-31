@@ -104,6 +104,7 @@ const baseBooking = {
   status: 'completed',
   assembler_id: '22222222-2222-4222-8222-222222222222',
   assembler_due: 10_000,
+  easer_bonus_cents: 0,
   cancellation_easer_due_cents: 0,
   cancellation_easer_payout_status: null,
   payment_status: 'captured',
@@ -131,6 +132,7 @@ function fakeReadSupabase(current, evidence = null) {
   const terminal = value => ({
     select() { return this; },
     eq() { return this; },
+    or() { return this; },
     gte() { return this; },
     order() { return this; },
     limit() { return this; },
@@ -185,5 +187,30 @@ state = await verifyConnectPayoutReleaseState(
   10_000,
 );
 assert.equal(state.ok, true);
+
+state = await verifyConnectPayoutReleaseState(
+  fakeReadSupabase({
+    ...baseBooking,
+    evidence_requested_at: '2026-07-14T11:00:00.000Z',
+  }, {
+    id: 'owner-supplied-evidence-new',
+    evidence_type: 'completion_photo',
+    uploaded_by: 'owner-user-id',
+    uploaded_on_behalf_of: baseBooking.assembler_id,
+    created_at: '2026-07-14T11:30:00.000Z',
+  }),
+  baseBooking,
+  operationKey,
+  10_000,
+);
+assert.equal(state.ok, true, 'owner-supplied evidence for the assigned Easer must release the payout hold');
+
+state = await verifyConnectPayoutReleaseState(
+  fakeReadSupabase({ ...baseBooking, easer_bonus_cents: 500 }),
+  baseBooking,
+  operationKey,
+  10_500,
+);
+assert.equal(state.ok, true, 'the final payout check must include the canonical Easer bonus');
 
 console.log('Evidence, damage, and payout safety tests: PASS');
