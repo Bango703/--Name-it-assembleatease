@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import { normalizeChatRoute, sanitizeReplyLinks } from '../api/chat.js';
 import { applyPromotionToPricing, resolveBookingPromotion } from '../api/_promotions.js';
 import { businessIdentity, governanceConfig } from './lib/site-governance.mjs';
@@ -367,14 +368,6 @@ for (const file of flagshipAustinPages) {
 const sitemap = readFileSync('sitemap.xml', 'utf8');
 const robots = readFileSync('robots.txt', 'utf8');
 
-const serviceFromBlock = bookingPage.match(/var SVC_FROM = \{([\s\S]*?)\};/)?.[1] || '';
-const serviceStartPrices = Object.fromEntries(
-  [...serviceFromBlock.matchAll(/'([^']+)'\s*:\s*'From \$(\d+)/g)].map((match) => [match[1], Number(match[2])]),
-);
-if (Object.keys(serviceStartPrices).length !== 6) {
-  throw new Error(`Booking page should expose 6 service start prices; found ${Object.keys(serviceStartPrices).length}`);
-}
-
 const pricingTitleToService = {
   'Furniture Assembly': 'Furniture Assembly',
   'TV &amp; Mounting': 'Mounting & Hanging',
@@ -383,6 +376,31 @@ const pricingTitleToService = {
   'Outdoor &amp; Playsets': 'Outdoor & Playsets',
   'Office Assembly': 'Office Assembly',
 };
+const catalogContext = { window: {} };
+runInNewContext(readFileSync('assets/js/booking-source-of-truth.js', 'utf8'), catalogContext);
+const catalogSubcategories = catalogContext.window.AAE_BOOKING_SOURCE?.subcategories || {};
+const serviceStartPrices = Object.fromEntries(
+  Object.values(pricingTitleToService).map((service) => {
+    const prices = (catalogSubcategories[service] || []).flatMap((group) => (group.items || []))
+      .filter((item) => !item.addon && !item.customQuote && Number(item.price) > 0)
+      .map((item) => Number(item.price));
+    return [service, prices.length ? Math.min(...prices) : 0];
+  }),
+);
+if (Object.keys(serviceStartPrices).length !== 6 || Object.values(serviceStartPrices).some((price) => price <= 0)) {
+  throw new Error('Canonical booking catalog should expose 6 positive service start prices');
+}
+
+const displayedBookingStarts = new Map();
+for (const match of bookingPage.matchAll(/<button class="svc-row" data-service="([^"]+)"[\s\S]*?<div class="svc-row-meta">From \$(\d+)<\/div>[\s\S]*?<\/button>/g)) {
+  displayedBookingStarts.set(match[1].replaceAll('&amp;', '&'), Number(match[2]));
+}
+for (const [service, startPrice] of Object.entries(serviceStartPrices)) {
+  if (displayedBookingStarts.get(service) !== startPrice) {
+    throw new Error(`Booking page mismatch for ${service}: displayed ${displayedBookingStarts.get(service)}, catalog starts at ${startPrice}`);
+  }
+}
+
 const displayedPricingStarts = new Map();
 for (const match of pricingPage.matchAll(/<article class="price-card">([\s\S]*?)<\/article>/g)) {
   const card = match[1];

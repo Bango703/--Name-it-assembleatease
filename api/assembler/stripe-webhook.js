@@ -28,6 +28,7 @@ import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { finalizeEaserApplicationSubmission } from './apply.js';
 import { loadBookingStripeRefundTruth, refundPaymentStatus } from '../booking/_stripe-refund-truth.js';
 import { reconcileRefundAssembleCash } from '../booking/_refund-credits.js';
+import { normalizeBookingPaymentMethod } from '../booking/_payment-method.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const STRIPE_DISPUTE_STATUSES = new Set([
@@ -388,7 +389,7 @@ export default async function handler(req, res) {
         webhookPaymentIntentId = pi.id;
 
         const { data: existing, error: existingError } = await sb.from('bookings')
-          .select('id, ref, payment_status, status, payment_authorized_at, confirmed_at, dispatch_status, dispatch_paused, needs_manual_dispatch, call_zone, service_zip, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit, assembler_id, stripe_payment_intent_id, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at, guest_mutation_token_hash')
+          .select('id, ref, payment_status, payment_method_type, status, payment_authorized_at, confirmed_at, dispatch_status, dispatch_paused, needs_manual_dispatch, call_zone, service_zip, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit, assembler_id, stripe_payment_intent_id, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at, guest_mutation_token_hash')
           .eq('id', bookingId)
           .maybeSingle();
 
@@ -480,6 +481,18 @@ export default async function handler(req, res) {
         const paymentMethodId = typeof liveAuthorization.payment_method === 'string'
           ? liveAuthorization.payment_method
           : liveAuthorization.payment_method?.id || null;
+        const paymentMethodType = normalizeBookingPaymentMethod(
+          liveAuthorization.metadata?.paymentMethodType || existing.payment_method_type,
+        );
+        if (!paymentMethodType
+            || (existing.payment_method_type && existing.payment_method_type !== paymentMethodType)
+            || (Array.isArray(liveAuthorization.payment_method_types)
+              && !liveAuthorization.payment_method_types.includes(paymentMethodType))) {
+          webhookOutcome = 'failed';
+          webhookError = 'Stripe payment method did not match booking truth';
+          webhookMetadata = { ...webhookMetadata, reason: 'payment-method-type-mismatch', bookingId };
+          break;
+        }
         const authorizedAt = new Date().toISOString();
         // Repair either half of the confirmed/authorized state pair. Stripe is
         // validated first, and the linked PaymentIntent participates in the CAS.
@@ -487,6 +500,7 @@ export default async function handler(req, res) {
           || !isAutomaticDispatchZip(existing.service_zip || '');
         const authorizationUpdate = {
           payment_status: 'authorized',
+          payment_method_type: paymentMethodType,
           payment_authorized_at: existing.payment_authorized_at || authorizedAt,
           stripe_payment_method_id: paymentMethodId,
           status: 'confirmed',

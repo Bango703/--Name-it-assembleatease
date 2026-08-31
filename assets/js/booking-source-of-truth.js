@@ -306,42 +306,42 @@ window.AAE_BOOKING_SOURCE = {
     ],
     'Outdoor & Playsets': [
       { group: 'Playsets & Backyard Structures', items: [
-        { name: 'Swing set / backyard playset assembly', price: 299, popular: true },
-        { name: 'Trampoline assembly (up to 10 ft)', price: 279 },
-        { name: 'Trampoline assembly (11–14 ft)', price: 349 },
-        { name: 'Trampoline assembly (15 ft+)', price: 399 },
+        { name: 'Swing set / backyard playset assembly', price: 349, popular: true },
+        { name: 'Trampoline assembly (up to 10 ft)', price: 319 },
+        { name: 'Trampoline assembly (11–14 ft)', price: 389 },
+        { name: 'Trampoline assembly (15 ft+)', price: 449 },
         { name: 'Trampoline relocation (disassembly, transport & reassembly) — custom quote', price: 0, customQuote: true },
         { name: 'Pergola / gazebo kit assembly — custom quote', price: 0, customQuote: true },
         { name: 'Storage shed assembly — custom quote', price: 0, customQuote: true },
-        { name: 'Monkey bars / climbing frame', price: 269 },
-        { name: 'Sandbox / outdoor playhouse', price: 169 }
+        { name: 'Monkey bars / climbing frame', price: 299 },
+        { name: 'Sandbox / outdoor playhouse', price: 199 }
       ]},
       { group: 'Sports & Recreation', items: [
-        { name: 'Basketball hoop assembly (portable)', price: 219 },
+        { name: 'Basketball hoop assembly (portable)', price: 249 },
         { name: 'In-ground basketball hoop (custom quote)', price: 0, customQuote: true },
-        { name: 'Outdoor swing / glider set', price: 159 },
-        { name: 'Patio swing / hanging chair', price: 139 },
-        { name: 'Portable pickleball / sports net setup', price: 99 },
-        { name: 'Soccer goal / sports goal assembly', price: 99 }
+        { name: 'Outdoor swing / glider set', price: 179 },
+        { name: 'Patio swing / hanging chair', price: 159 },
+        { name: 'Portable pickleball / sports net setup', price: 119 },
+        { name: 'Soccer goal / sports goal assembly', price: 119 }
       ]},
       { group: 'Outdoor Living', items: [
-        { name: 'Grill (gas / charcoal assembly)', price: 109 },
-        { name: 'Fire pit (assembly only)', price: 99 },
-        { name: 'Patio heater assembly', price: 109 },
-        { name: 'Deck box / outdoor storage bench', price: 89 },
-        { name: 'Outdoor storage cabinet', price: 119 }
+        { name: 'Grill (gas / charcoal assembly)', price: 129 },
+        { name: 'Fire pit (assembly only)', price: 119 },
+        { name: 'Patio heater assembly', price: 129 },
+        { name: 'Deck box / outdoor storage bench', price: 109 },
+        { name: 'Outdoor storage cabinet', price: 139 }
       ]},
       { group: 'Outdoor & Patio', items: [
-        { name: 'Outdoor dining set (table + 4 chairs)', price: 149 },
-        { name: 'Outdoor dining set (table + 6+ chairs)', price: 179 },
-        { name: 'Outdoor lounge set (sofa + 2 chairs)', price: 169 },
-        { name: 'Adirondack chairs (per 2)', price: 99 },
-        { name: 'Patio umbrella + base', price: 89 }
+        { name: 'Outdoor dining set (table + 4 chairs)', price: 179 },
+        { name: 'Outdoor dining set (table + 6+ chairs)', price: 219 },
+        { name: 'Outdoor lounge set (sofa + 2 chairs)', price: 199 },
+        { name: 'Adirondack chairs (per 2)', price: 119 },
+        { name: 'Patio umbrella + base', price: 109 }
       ]},
       { group: 'Add-ons', items: [
-        { name: 'Anchoring / leveling / safety hardware', price: 99, addon: true, tags: ['safety'], appliesTo: ['playset','swing','trampoline','basketball','hoop','climbing','monkey','pergola','gazebo','shed','sandbox','playhouse'], recoLabel: 'Anchoring & leveling', recoWhy: 'Stable, level, safe install' },
-        { name: 'Disassembly only (customer handles transport)', price: 119, addon: true },
-        { name: 'Heavy-duty material haul-away', price: 109, addon: true, tags: ['convenience'], recoLabel: 'Haul away packaging', recoWhy: 'No boxes left behind' }
+        { name: 'Anchoring / leveling / safety hardware', price: 119, addon: true, tags: ['safety'], appliesTo: ['playset','swing','trampoline','basketball','hoop','climbing','monkey','pergola','gazebo','shed','sandbox','playhouse'], recoLabel: 'Anchoring & leveling', recoWhy: 'Stable, level, safe install' },
+        { name: 'Disassembly only (customer handles transport)', price: 149, addon: true },
+        { name: 'Heavy-duty material haul-away', price: 139, addon: true, tags: ['convenience'], recoLabel: 'Haul away packaging', recoWhy: 'No boxes left behind' }
       ]}
     ],
     'Office Assembly': [
@@ -376,26 +376,26 @@ window.AAE_BOOKING_SOURCE = {
     ],
     'Fitness Equipment': [
       { group: 'Cardio Equipment', items: [
-        { name: 'Treadmill assembly', price: 189, popular: true },
-        { name: 'Exercise bike / Peloton-style bike', price: 159 },
-        { name: 'Elliptical machine', price: 209 },
-        { name: 'Rowing machine', price: 169 },
-        { name: 'Stair climber / stepper machine', price: 189 }
+        { name: 'Treadmill assembly', price: 219, popular: true },
+        { name: 'Exercise bike / Peloton-style bike', price: 179 },
+        { name: 'Elliptical machine', price: 239 },
+        { name: 'Rowing machine', price: 189 },
+        { name: 'Stair climber / stepper machine', price: 219 }
       ]},
       { group: 'Strength Equipment', items: [
-        { name: 'Weight bench', price: 129 },
-        { name: 'Inversion table', price: 119 },
-        { name: 'Power rack / squat rack', price: 239 },
-        { name: 'Punching bag stand', price: 129 },
-        { name: 'Dumbbell / weight set assembly', price: 139 },
-        { name: 'Home gym / cable machine', price: 329 },
+        { name: 'Weight bench', price: 149 },
+        { name: 'Inversion table', price: 139 },
+        { name: 'Power rack / squat rack', price: 279 },
+        { name: 'Punching bag stand', price: 149 },
+        { name: 'Dumbbell / weight set assembly', price: 159 },
+        { name: 'Home gym / cable machine', price: 399 },
         { name: 'Multi-station gym', price: 0, customQuote: true }
       ]},
       { group: 'Add-ons', items: [
-        { name: 'Disassembly before move or storage', price: 65, addon: true },
-        { name: 'Equipment move within home (same floor)', price: 55, addon: true },
-        { name: 'Floor leveling / placement support', price: 45, addon: true, tags: ['safety'], recoLabel: 'Level and place it', recoWhy: 'Better stability before first use' },
-        { name: 'Safety anchoring / wall securing', price: 55, addon: true, tags: ['safety'], appliesTo: ['rack','squat','home gym','cable machine','multi-station'], recoLabel: 'Safety anchoring', recoWhy: 'Secures heavy equipment safely' }
+        { name: 'Disassembly before move or storage', price: 89, addon: true },
+        { name: 'Equipment move within home (same floor)', price: 79, addon: true },
+        { name: 'Floor leveling / placement support', price: 59, addon: true, tags: ['safety'], recoLabel: 'Level and place it', recoWhy: 'Better stability before first use' },
+        { name: 'Safety anchoring / wall securing', price: 69, addon: true, tags: ['safety'], appliesTo: ['rack','squat','home gym','cable machine','multi-station'], recoLabel: 'Safety anchoring', recoWhy: 'Secures heavy equipment safely' }
       ]}
     ],
     'Other': [

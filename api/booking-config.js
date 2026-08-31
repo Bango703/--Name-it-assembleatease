@@ -1,4 +1,5 @@
 import { isSameDayServiceEnabled, SAME_DAY_FEE_CENTS, SAME_DAY_MIN_LEAD_MINUTES } from './_source-of-truth.js';
+import { isKlarnaEnabled } from './booking/_payment-method.js';
 
 // GET /api/booking-config — the ONE source of truth for launch-gated booking
 // config the browser needs. The front-end reads the same-day flag from here so
@@ -14,6 +15,9 @@ export default function handler(req, res) {
       enabled: isSameDayServiceEnabled(),
       feeCents: SAME_DAY_FEE_CENTS,
       minLeadMinutes: SAME_DAY_MIN_LEAD_MINUTES,
+    },
+    klarna: {
+      enabled: isKlarnaEnabled(),
     },
   });
 }

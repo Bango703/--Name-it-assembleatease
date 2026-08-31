@@ -65,12 +65,21 @@ export function isReusableBookingRow(row, { amountCents }) {
  * Stripe is the financial truth here, so the intent's own amount is checked
  * against this attempt before anything is reused.
  *
- * @returns {'reuse'|'already_authorized'|'unusable'}
+ * @returns {'reuse'|'replace'|'already_authorized'|'unusable'}
  */
-export function classifyExistingIntent(intent, { amountCents }) {
+export function classifyExistingIntent(intent, { amountCents, paymentMethodType } = {}) {
   if (!intent) return 'unusable';
   if (Number(intent.amount) !== Number(amountCents)) return 'unusable';
   if (AUTHORIZED_INTENT_STATUSES.has(intent.status)) return 'already_authorized';
+  const requestedMethod = String(paymentMethodType || '').trim().toLowerCase();
+  const intentMethods = Array.isArray(intent.payment_method_types) && intent.payment_method_types.length
+    ? intent.payment_method_types
+    : ['card'];
+  if (requestedMethod && !intentMethods.includes(requestedMethod)) {
+    return REUSABLE_INTENT_STATUSES.has(intent.status) || intent.status === 'canceled'
+      ? 'replace'
+      : 'unusable';
+  }
   if (REUSABLE_INTENT_STATUSES.has(intent.status) && intent.client_secret) return 'reuse';
   return 'unusable';
 }
