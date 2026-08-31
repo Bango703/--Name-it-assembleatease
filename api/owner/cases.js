@@ -189,9 +189,11 @@ async function loadNotificationMap(sb, cases) {
 
 export function summarizeOperationCases(rows = []) {
   const activeRows = rows.filter((row) => ACTIVE_STATUSES.has(row.status));
+  const ownerActionRows = rows.filter((row) => ['open', 'acknowledged', 'in_progress'].includes(row.status));
   return {
     total: rows.length,
     active: activeRows.length,
+    ownerActionRequired: ownerActionRows.length,
     new: rows.filter((row) => row.status === 'open').length,
     critical: activeRows.filter((row) => row.severity === 'critical').length,
     highPriority: activeRows.filter((row) => row.severity === 'high' || row.severity === 'critical').length,

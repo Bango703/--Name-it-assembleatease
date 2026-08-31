@@ -43,8 +43,9 @@
     if (!badge) return;
     try {
       var data = await request('/api/owner/cases?status=active');
-      var count = Number(data.summary && data.summary.active || 0);
+      var count = Number(data.summary && data.summary.ownerActionRequired || 0);
       badge.textContent = String(count);
+      badge.title = 'Cases requiring owner action';
       badge.style.display = count > 0 ? '' : 'none';
     } catch (error) {
       badge.style.display = 'none';
@@ -105,8 +106,9 @@
   function updateBadge(summary) {
     var badge = document.getElementById('nav-cases');
     if (!badge) return;
-    var count = Number(summary.active || 0);
+    var count = Number(summary.ownerActionRequired || 0);
     badge.textContent = String(count);
+    badge.title = 'Cases requiring owner action';
     badge.style.display = count > 0 ? '' : 'none';
   }
 

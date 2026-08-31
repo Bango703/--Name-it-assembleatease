@@ -385,6 +385,9 @@
     #wl-table th:last-child,#wl-table td:last-child{min-width:270px}
     #asm-table th:first-child,#asm-table td:first-child{min-width:200px;white-space:nowrap}
     #asm-table th:last-child,#asm-table td:last-child{min-width:300px}
+    #asm-table.connect-disabled th:nth-child(5),#asm-table.connect-disabled td:nth-child(5),
+    #asm-table.connect-disabled th:nth-child(6),#asm-table.connect-disabled td:nth-child(6){display:none}
+    #asm-table.connect-disabled{min-width:900px}
     #an-expansion-summary { grid-template-columns:repeat(auto-fit,minmax(155px,1fr)) !important;gap:0.7rem; }
     #an-expansion-summary .stat-value { white-space:normal;overflow-wrap:anywhere; }
     @media(max-width:700px){
@@ -439,6 +442,18 @@
       .today-job-actions{justify-content:space-between}
       .site-chat-thread-head{flex-wrap:wrap}
     }
+    @media(max-width:800px){
+      .owner-responsive-table{display:block;min-width:0 !important;width:100% !important}
+      .owner-responsive-table thead{display:none}
+      .owner-responsive-table tbody{display:grid;gap:0.75rem}
+      .owner-responsive-table tr{display:block;border:1px solid var(--border) !important;border-radius:8px;background:var(--surface);overflow:hidden}
+      .owner-responsive-table td{display:grid !important;grid-template-columns:minmax(105px,0.8fr) minmax(0,1.2fr);gap:0.75rem;align-items:start;padding:0.65rem 0.75rem !important;text-align:left !important;white-space:normal !important;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+      .owner-responsive-table td:last-child{border-bottom:0}
+      .owner-responsive-table td::before{content:attr(data-label);color:var(--muted);font-size:0.65rem;font-weight:700;line-height:1.35;text-transform:uppercase;letter-spacing:0.06em}
+      .owner-responsive-table td[colspan]{display:block !important;text-align:center !important}
+      .owner-responsive-table td[colspan]::before{display:none}
+      .owner-responsive-table td .btn{min-height:44px;justify-content:center}
+    }
   </style>
 </head>
 <body>
@@ -467,16 +482,16 @@
       <div class="sidebar-label">Operations</div>
       <ul class="sidebar-nav">
         <li><a data-view="liveops"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="15" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="5" y1="9" x2="5" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/></svg></span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
-        <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" style="display:none">0</span></a></li>
+        <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" title="Active jobs scheduled today" style="display:none;background:#64748b">0</span></a></li>
         <li><a class="active" data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span><span class="nav-count" id="nav-messages" title="Unread customer or Easer messages" style="display:none;background:#dc2626">0</span></a></li>
-        <li><a data-view="cases"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 5V3h8v2"/><path d="M9 11h6M9 15h4"/></svg></span> Cases <span class="nav-count" id="nav-cases" title="Active support and operational cases" style="display:none;background:#dc2626">0</span></a></li>
+        <li><a data-view="cases"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 5V3h8v2"/><path d="M9 11h6M9 15h4"/></svg></span> Cases <span class="nav-count" id="nav-cases" title="Cases requiring owner action" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
         <li><a data-view="market-demand"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z"/></svg></span> Market Demand <span class="nav-count" id="nav-market-demand" style="display:none">0</span></a></li>
-        <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews <span class="nav-count" id="nav-reviews" style="display:none">0</span></a></li>
+        <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews</a></li>
         <li><a data-view="marketing"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M9 14h6"/><path d="M12 14v6"/></svg></span> Marketing</a></li>
-        <li><a data-view="analytics"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Financials <span class="nav-count" id="nav-payouts" title="Easer earnings needing action" style="display:none;background:#d97706">0</span></a></li>
+        <li><a data-view="analytics"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Financials <span class="nav-count" id="nav-payouts" title="Easer earnings requiring owner action" style="display:none;background:#d97706">0</span></a></li>
         <li><a data-view="intelligence"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg></span> AI Intelligence <span class="nav-count" id="nav-alerts" style="display:none">!</span></a></li>
-        <li><a onclick="window.openContentKit&&window.openContentKit()" style="cursor:pointer"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span> Content Kit</a></li>
+        <li><a role="button" aria-haspopup="dialog" title="Open the Buffer content tool" onclick="window.openContentKit&&window.openContentKit()" style="cursor:pointer"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span> Content Kit</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -807,7 +822,7 @@
         <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem">All bookings <strong>scheduled for today</strong> (<span id="today-date-display"></span>). These are jobs customers have booked on this date, regardless of confirmation status.</p>
         <div class="stats-row" id="today-stats-row">
           <div class="stat teal"><div class="stat-value" id="today-count">—</div><div class="stat-label">Jobs Today</div></div>
-          <div class="stat amber"><div class="stat-value" id="today-pending">—</div><div class="stat-label">Unconfirmed</div></div>
+          <div class="stat amber"><div class="stat-value" id="today-pending">—</div><div class="stat-label">Pending Confirmation</div></div>
           <div class="stat orange"><div class="stat-value" id="today-confirmed">—</div><div class="stat-label">Confirmed</div></div>
           <div class="stat neutral"><div class="stat-value" id="today-done">—</div><div class="stat-label">Completed</div></div>
         </div>
@@ -828,6 +843,7 @@
           <div class="stat neutral"><div class="stat-value" id="md-requests">—</div><div class="stat-label">Unbooked Requests</div></div>
           <div class="stat teal"><div class="stat-value" id="md-conversion">—</div><div class="stat-label">Manual Assignment</div></div>
           <div class="stat orange"><div class="stat-value" id="md-supply">—</div><div class="stat-label">Job-Ready Easers</div></div>
+          <div class="stat neutral"><div class="stat-value" id="md-approved-supply">—</div><div class="stat-label">Approved Easers</div></div>
           <div class="stat neutral"><div class="stat-value" id="md-potential">—</div><div class="stat-label">Priced Demand</div></div>
         </div>
 
@@ -980,7 +996,7 @@
           <div class="stat amber"><div class="stat-value" id="intel-urgent">—</div><div class="stat-label">Urgent Alerts</div></div>
           <div class="stat teal"><div class="stat-value" id="intel-velocity">—</div><div class="stat-label">7-Day Trend</div></div>
           <div class="stat neutral"><div class="stat-value" id="intel-needs-review">—</div><div class="stat-label">Needs Review Request</div></div>
-          <div class="stat orange"><div class="stat-value" id="intel-payouts">—</div><div class="stat-label">Pending Payouts</div></div>
+          <div class="stat orange"><div class="stat-value" id="intel-payouts">—</div><div class="stat-label">Manual Payout Action</div></div>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem" class="content-grid">
@@ -1228,11 +1244,11 @@
           <div class="detail-panel open">
             <div class="detail-section-title" style="margin-bottom:0.75rem">Assumptions</div>
             <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.6rem;font-size:0.78rem;color:var(--soft)">
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Reserve</strong><br><span id="fin-assumption-reserve">2%</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Processing</strong><br><span id="fin-assumption-processing">2.9% + $0.30</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Other overhead</strong><br><span id="fin-assumption-opex">$3,500/year</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Known recurring costs</strong><br><span id="fin-assumption-known-costs">$7.98/month</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>CAC</strong><br><span id="fin-assumption-cac">Editable</span></div>
+              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Reserve</strong><br><span id="fin-assumption-reserve">Loading...</span></div>
+              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Processing</strong><br><span id="fin-assumption-processing">Loading...</span></div>
+              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Other overhead</strong><br><span id="fin-assumption-opex">Loading...</span></div>
+              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Known recurring costs</strong><br><span id="fin-assumption-known-costs">Loading...</span></div>
+              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>CAC</strong><br><span id="fin-assumption-cac">Loading...</span></div>
             </div>
             <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.9rem">
               <button class="tab active" data-fin-period="year" type="button">Year</button>
@@ -1506,13 +1522,14 @@
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Owed</th>
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Paid</th>
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Payable</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Automatic Transfer Pending</th>
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">On Hold</th>
                   <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Last Earning</th>
                   <th style="padding:0.5rem 0.75rem;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em"></th>
                 </tr>
               </thead>
               <tbody id="an-payout-body">
-                <tr><td colspan="9" style="padding:1.5rem;text-align:center;color:var(--muted)">Loading…</td></tr>
+                <tr><td colspan="10" style="padding:1.5rem;text-align:center;color:var(--muted)">Loading…</td></tr>
               </tbody>
             </table>
           </div>
@@ -1560,23 +1577,26 @@ async function runIntelligence() {
     // Stats from data
     var pd = d.data || {};
     var alerts = pd.alerts || {};
-    var urgent = (alerts.stalePendingCount||0) + (alerts.missedJobsCount||0);
+    var urgent = (alerts.stalePendingCount||0) + (alerts.missedJobsCount||0) + (alerts.ownerManualNeedsAssignmentCount||0);
     document.getElementById('intel-urgent').textContent = urgent || 'Clear';
     document.getElementById('intel-velocity').textContent = pd.growth ? pd.growth.velocityTrendPct : '—';
     document.getElementById('intel-needs-review').textContent = alerts.needsReviewCount || 0;
-    document.getElementById('intel-payouts').textContent = alerts.pendingPayoutsDollars ? '$'+alerts.pendingPayoutsDollars : '—';
+    document.getElementById('intel-payouts').textContent = '$' + (alerts.payablePayoutsDollars || '0.00');
 
     // Alert cards
     var alertList = document.getElementById('intel-alert-list');
     var alertItems = [];
     if (alerts.stalePendingCount > 0) alertItems.push({ level:'red', msg: alerts.stalePendingCount + ' pending booking(s) unactioned for 2+ hours: ' + alerts.stalePendingRefs });
     if (alerts.missedJobsCount > 0) alertItems.push({ level:'red', msg: alerts.missedJobsCount + ' confirmed job(s) date has passed — not marked complete: ' + alerts.missedJobRefs });
+    if (alerts.ownerManualNeedsAssignmentCount > 0) alertItems.push({ level:'red', msg: alerts.ownerManualNeedsAssignmentCount + ' owner-created job(s) still need an Easer: ' + alerts.ownerManualNeedsAssignmentRefs });
     if (alerts.needsReviewCount > 0) alertItems.push({ level:'amber', msg: alerts.needsReviewCount + ' completed job(s) haven\'t had a review request sent yet.' });
-    if (parseFloat(alerts.pendingPayoutsDollars) > 0) alertItems.push({ level:'amber', msg: '$' + alerts.pendingPayoutsDollars + ' in Easer payouts pending.' });
+    if (parseFloat(alerts.payablePayoutsDollars) > 0) alertItems.push({ level:'amber', msg: 'Manual Easer payout action required: $' + alerts.payablePayoutsDollars + '.' });
+    if (parseFloat(alerts.connectPendingPayoutsDollars) > 0) alertItems.push({ level:'amber', msg: '$' + alerts.connectPendingPayoutsDollars + ' is pending automatic Stripe transfer. No manual payout action is required.' });
+    if (parseFloat(alerts.heldPayoutsDollars) > 0) alertItems.push({ level:'amber', msg: '$' + alerts.heldPayoutsDollars + ' in Easer earnings is on hold and requires review.' });
     if (pd.reviews && pd.reviews.lowRatingCount > 0) alertItems.push({ level:'red', msg: pd.reviews.lowRatingCount + ' review(s) rated 2 stars or below — check and respond.' });
 
     if (!alertItems.length) {
-      alertList.innerHTML = '<div style="color:var(--teal);font-weight:600">No urgent alerts. Platform looks healthy.</div>';
+      alertList.innerHTML = '<div style="color:var(--teal);font-weight:600">No alerts found in this intelligence check. Review Live Ops for operational health.</div>';
     } else {
       var colors = { red:'#ef4444', amber:'#f59e0b' };
       alertList.innerHTML = alertItems.map(function(a) {
@@ -1669,7 +1689,7 @@ window.intelQuick = intelQuick;
     </div>
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:0.6rem">
       <button class="btn btn-teal" id="ck-generate" onclick="window.ckGenerate(false)">Generate</button>
-      <button class="btn btn-teal" id="ck-publish" onclick="window.ckPublish(false)">Publish now</button>
+      <button class="btn btn-teal" id="ck-publish" onclick="window.ckPublish(false)">Add to Buffer Queue</button>
       <button class="btn" id="ck-dryrun" onclick="window.ckPublish(true)">Test only</button>
       <button class="btn" id="ck-email" onclick="window.ckGenerate(true)">Email to me</button>
     </div>
@@ -2845,13 +2865,25 @@ window.intelQuick = intelQuick;
     if (!slug) return;
     var status = document.getElementById('ck-status');
     var results = document.getElementById('ck-results');
+    var hook = ckCurrentHook();
+    var channels = window.ckSelectedChannels ? window.ckSelectedChannels() : [];
+    if (!channels.length) {
+      status.textContent = 'Select at least one social channel before sending to Buffer.';
+      return;
+    }
+    if (!dryRun && (!_ckLast || _ckLast.slug !== slug || !_ckLast.kit)) {
+      status.textContent = 'Generate and review this article copy before adding it to Buffer.';
+      return;
+    }
+    var copyPreview = channels.map(function(channel) {
+      var copy = String((_ckLast && _ckLast.kit && _ckLast.kit[channel]) || '').replace(/\s+/g, ' ').trim();
+      return ckChannelLabel(channel) + ': ' + (copy ? copy.slice(0, 120) + (copy.length > 120 ? '...' : '') : 'No copy generated');
+    }).join('\n');
+    if (!dryRun && !confirm('Confirm Buffer queue\n\nArticle: ' + ckArticleTitle(slug) + '\nAngle: ' + ckHookLabel(hook) + '\nChannels: ' + channels.map(ckChannelLabel).join(', ') + '\n\nCopy preview:\n' + copyPreview + '\n\nAdd this content to the selected Buffer queues?')) return;
     var buttons = ['ck-generate','ck-email','ck-publish','ck-dryrun'].map(function(id){ return document.getElementById(id); });
     buttons.forEach(function(b){ if (b) b.disabled = true; });
     status.textContent = dryRun ? 'Testing Buffer payloads...' : 'Publishing to Buffer queue...';
     try {
-      var hook = ckCurrentHook();
-      var channels = window.ckSelectedChannels ? window.ckSelectedChannels() : [];
-      if (!channels.length) throw new Error('Select at least one social channel before sending to Buffer.');
       var body = { slug: slug, dryRun: !!dryRun, hookStyle: hook };
       body.channels = channels;
       if (_ckLast && _ckLast.slug === slug && _ckLast.kit) body.kit = _ckLast.kit;
@@ -2950,7 +2982,7 @@ window.intelQuick = intelQuick;
   }
   function ckPublishRender(publish) {
     var keys = Object.keys(publish || {});
-    if (!keys.length) return '<div style="border:1px solid #fbbf24;background:#fffbeb;color:#92400e;border-radius:8px;padding:10px 12px;font-size:0.82rem;margin-bottom:10px">No Buffer channels are configured yet. Add the Buffer API key and channel IDs, then Publish now will send posts to Buffer.</div>';
+    if (!keys.length) return '<div style="border:1px solid #fbbf24;background:#fffbeb;color:#92400e;border-radius:8px;padding:10px 12px;font-size:0.82rem;margin-bottom:10px">No Buffer channels are configured yet. Add the Buffer API key and channel IDs, then Add to Buffer Queue will send posts to Buffer.</div>';
     return '<div style="border:1px solid #d1fae5;background:#ecfdf5;border-radius:8px;padding:10px 12px;margin-bottom:10px">'
       + '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#047857;margin-bottom:6px">Publish results</div>'
       + keys.map(function(k){
@@ -3134,10 +3166,10 @@ window.intelQuick = intelQuick;
     // not have to discover payout work by opening Financials first.
     loadPayoutLedger();
     // Nav badge: pending Easer applications
-    fetch('/api/assembler/list?tier=pending', { headers: headers() })
+    fetch('/api/assembler/list', { headers: headers() })
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        var ct = (d.assemblers || []).length;
+        var ct = Number((d.stats || {}).pending || 0);
         var $navApps = document.getElementById('nav-pending-apps');
         if (ct > 0) { $navApps.textContent = ct; $navApps.style.display = ''; }
         else $navApps.style.display = 'none';
@@ -7774,7 +7806,6 @@ window.intelQuick = intelQuick;
     // Summary chips
     var chips = [
       { label: 'Active Jobs', val: s.totalActive, color: '#00BFFF' },
-      { label: 'Pending', val: s.pendingPayment || 0, color: s.pendingPayment > 0 ? '#d97706' : '#6b7280' },
       { label: 'Needs Easer', val: s.unassigned + (s.ownerManualNeedsAssignment||0) + (s.offersExpired||0) + (s.needsManual||0), color: (s.unassigned + (s.ownerManualNeedsAssignment||0) + (s.offersExpired||0) + (s.needsManual||0)) > 0 ? '#dc2626' : '#6b7280' },
       { label: 'Owner Reconciliation', val: s.ownerManualReconciliation || 0, color: (s.ownerManualReconciliation || 0) > 0 ? '#d97706' : '#6b7280' },
       { label: 'Payment Recovery', val: s.pendingPayment || 0, color: (s.pendingPayment || 0) > 0 ? '#d97706' : '#6b7280' },
@@ -8119,7 +8150,7 @@ window.intelQuick = intelQuick;
       return (aTime||'').localeCompare(bTime||'');
     });
     document.getElementById('today-count').textContent = jobs.length;
-    // "Unconfirmed" = status is still pending (customer submitted, owner hasn't confirmed)
+    // Pending confirmation = customer submitted, owner has not confirmed.
     document.getElementById('today-pending').textContent = jobs.filter(function(b){return b.status==='pending';}).length;
     // "Confirmed" = actively managed jobs (confirmed + all pipeline stages)
     document.getElementById('today-confirmed').textContent = jobs.filter(function(b){return b.status==='confirmed'||PIPELINE_STATUSES.includes(b.status);}).length;
@@ -8169,8 +8200,6 @@ window.intelQuick = intelQuick;
     document.getElementById('rev-avg').textContent = total ? avg + ' / 5' : '—';
     document.getElementById('rev-five').textContent = fiveStars;
     document.getElementById('rev-pending').textContent = hidden;
-    var navRev = document.getElementById('nav-reviews');
-    if(hidden>0){navRev.textContent=hidden;navRev.style.display='';}else{navRev.style.display='none';}
     var list = document.getElementById('reviews-list');
     var empty = document.getElementById('reviews-empty');
     if(!total){ list.innerHTML=''; empty.style.display=''; return; }
@@ -8213,9 +8242,9 @@ window.intelQuick = intelQuick;
     var map = {};
     allBookings.forEach(function(b){
       var key = (b.customer_email||'').toLowerCase();
-      if(!key) return;
+      if(!key) key = 'booking:' + b.id;
       if(!map[key]){
-        map[key] = { name:b.customer_name, email:b.customer_email, phone:b.customer_phone, bookings:0, spent:0, lastDate:'', lastService:'' };
+        map[key] = { name:b.customer_name, email:b.customer_email, phone:b.customer_phone, bookings:0, spent:0, lastDate:'', lastService:'', identityUnverified:!b.customer_email };
       }
       map[key].bookings++;
       map[key].spent += actualNetPaymentsCents(b);
@@ -8768,6 +8797,8 @@ window.intelQuick = intelQuick;
         'an-owner-easer-earnings', 'an-external-easer-earnings', 'an-ajv', 'an-gross-margin',
         'an-costed-gross-per-job', 'an-known-operating-costs', 'an-opex-allocated', 'an-net-profit']
         .forEach(function(id){ setText(id, 'Unavailable'); });
+      ['fin-assumption-reserve', 'fin-assumption-processing', 'fin-assumption-opex', 'fin-assumption-known-costs', 'fin-assumption-cac']
+        .forEach(function(id){ setText(id, 'Unavailable'); });
       setText('an-completed-jobs', '—');
       setText('an-period-note', 'Financial data unavailable · Refresh');
       console.error('Financial dashboard error:', e);
@@ -9259,7 +9290,9 @@ window.intelQuick = intelQuick;
       renderReserveRollup();
 
       var unpaidJobCount = easers.reduce(function(count, easer) {
-        return count + (easer.unpaid_jobs || []).length;
+        return count + (easer.unpaid_jobs || []).filter(function(job) {
+          return job.disposition === 'on_hold' || (job.disposition === 'pending' && job.payout_mode !== 'stripe_connect');
+        }).length;
       }, 0);
       var payoutNav = document.getElementById('nav-payouts');
       if (payoutNav) {
@@ -9283,7 +9316,7 @@ window.intelQuick = intelQuick;
       }
 
       if (!easers.length) {
-        tbody.innerHTML = '<tr><td colspan="9" style="padding:1.5rem;text-align:center;color:var(--muted)">No completed-job or cancellation earnings with assigned Easers yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="padding:1.5rem;text-align:center;color:var(--muted)">No completed-job or cancellation earnings with assigned Easers yet.</td></tr>';
         if (selectedId) {
           var selectedWithoutEarnings = allBookings.find(function(item){ return item.id == selectedId; });
           if (selectedWithoutEarnings) renderActions(selectedWithoutEarnings);
@@ -9322,6 +9355,7 @@ window.intelQuick = intelQuick;
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--text)">' + fmt$(e.total_owed) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--green)">' + fmt$(e.total_paid) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;font-weight:700;color:#047857">' + fmt$(e.total_payable || 0) + '</td>'
+          + '<td style="padding:0.6rem 0.75rem;text-align:right;font-weight:700;color:#0369a1">' + fmt$(e.total_connect_pending || 0) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;font-weight:700;color:#b45309">' + fmt$(e.total_on_hold || 0) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;font-size:0.78rem;color:var(--muted)">' + (e.last_earning_date ? formatDate(e.last_earning_date) : '—') + '</td>'
           + '<td style="padding:0.6rem 0.75rem">' + (actionButtons || '<span style="font-size:0.72rem;color:var(--muted)">No action</span>') + '</td>'
@@ -9338,7 +9372,7 @@ window.intelQuick = intelQuick;
       if (totalsEl) totalsEl.innerHTML = '<span style="color:var(--red);font-weight:700">Payout totals unavailable - do not rely on reserve totals</span>';
       var payoutNavError = document.getElementById('nav-payouts');
       if (payoutNavError) { payoutNavError.textContent = '!'; payoutNavError.title = 'Payout truth unavailable'; payoutNavError.style.display = ''; }
-      if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="padding:1rem;color:var(--red);font-size:0.85rem">Payout data could not be verified. No amounts are being shown as zero. Retry before sending or recording any Easer payment.</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="padding:1rem;color:var(--red);font-size:0.85rem">Payout data could not be verified. No amounts are being shown as zero. Retry before sending or recording any Easer payment.</td></tr>';
       if (selectedId) {
         var selectedWithoutPayoutTruth = allBookings.find(function(item){ return item.id == selectedId; });
         if (selectedWithoutPayoutTruth) renderActions(selectedWithoutPayoutTruth);
@@ -9430,7 +9464,7 @@ window.intelQuick = intelQuick;
   }
 
   function mdSetLoading() {
-    ['md-active','md-emerging','md-requests','md-conversion','md-supply','md-potential'].forEach(function(id){
+    ['md-active','md-emerging','md-requests','md-conversion','md-supply','md-approved-supply','md-potential'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.textContent = '—';
     });
@@ -9444,7 +9478,8 @@ window.intelQuick = intelQuick;
     document.getElementById('md-emerging').textContent = s.bookedDemand || 0;
     document.getElementById('md-requests').textContent = s.unbookedDemand || 0;
     document.getElementById('md-conversion').textContent = s.manualDispatchDemand || 0;
-    document.getElementById('md-supply').textContent = s.easerSupplyByMarket || 0;
+    document.getElementById('md-supply').textContent = s.onlineReadyEasers || 0;
+    document.getElementById('md-approved-supply').textContent = s.easerSupplyByMarket || 0;
     document.getElementById('md-potential').textContent = s.totalPotentialRevenue == null
       ? '—'
       : fmt$(s.totalPotentialRevenue);
@@ -9824,7 +9859,7 @@ window.intelQuick = intelQuick;
   }
 
   async function loadAssemblerList() {
-    document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">Loading Easers...</td></tr>';
+    document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="10" style="padding:2rem;text-align:center;color:var(--muted)">Loading Easers...</td></tr>';
     try {
       var r = await fetch('/api/assembler/list', { headers: headers() });
       if (!r.ok) throw new Error('Failed');
@@ -9832,6 +9867,7 @@ window.intelQuick = intelQuick;
       allAssemblerProfiles = (data.assemblers || []).map(normalizeAssemblerRecord);
       var stats = data.stats || {};
       asmConnectRequired = !!stats.connectRequired;
+      document.getElementById('asm-table').classList.toggle('connect-disabled', !asmConnectRequired);
       document.getElementById('asm-total').textContent = stats.total || 0;
       document.getElementById('asm-pending').textContent = stats.pending || 0;
       document.getElementById('asm-active').textContent = stats.active || 0;
@@ -10802,6 +10838,26 @@ window.intelQuick = intelQuick;
     link.addEventListener('click', function() {
       if (window.innerWidth <= 900) closeSidebar();
     });
+  });
+
+  function labelResponsiveTable(table) {
+    var labels = Array.from(table.querySelectorAll('thead th')).map(function(th) {
+      return th.textContent.trim() || 'Action';
+    });
+    table.classList.add('owner-responsive-table');
+    table.querySelectorAll('tbody tr').forEach(function(row) {
+      Array.from(row.children).forEach(function(cell, index) {
+        if (cell.tagName === 'TD' && !cell.hasAttribute('colspan')) cell.setAttribute('data-label', labels[index] || 'Details');
+      });
+    });
+  }
+
+  ['cust-table','md-requests-table','mk-social-table','mk-recent-table','ct-table','clawback-table','tax-table','tax-rem-history','an-service-profit-table','an-ledger','an-payout-table','asm-table','wl-table'].forEach(function(id) {
+    var table = document.getElementById(id);
+    if (!table) return;
+    labelResponsiveTable(table);
+    var body = table.tBodies[0];
+    if (body) new MutationObserver(function() { labelResponsiveTable(table); }).observe(body, { childList:true });
   });
 
 })();

@@ -133,6 +133,7 @@ const summary = summarizeOperationCases([
 assert.deepEqual(summary, {
   total: 3,
   active: 2,
+  ownerActionRequired: 1,
   new: 1,
   critical: 1,
   highPriority: 2,

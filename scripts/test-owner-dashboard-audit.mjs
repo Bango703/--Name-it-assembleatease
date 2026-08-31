@@ -7,6 +7,7 @@ import {
   summarizeKnownOperatingCosts,
   summarizeLaborCosting,
 } from '../api/owner/financial-dashboard.js';
+import { summarizeFinanceRows } from '../api/owner/_finance-ledger.js';
 
 const read = relative => readFile(new URL(`../${relative}`, import.meta.url), 'utf8');
 const [
@@ -26,6 +27,9 @@ const [
   testPushApi,
   testEaserApi,
   ownerAuth,
+  marketDemandApi,
+  assemblerListApi,
+  casesApi,
 ] = await Promise.all([
   read('owner/index.html'),
   read('api/owner/live-ops.js'),
@@ -43,6 +47,9 @@ const [
   read('api/owner/test-push.js'),
   read('api/owner/create-test-easer.js'),
   read('api/_email.js'),
+  read('api/owner/market-demand.js'),
+  read('api/assembler/list.js'),
+  read('api/owner/cases.js'),
 ]);
 
 assert.match(ownerAuth, /Production accepts signed bearer sessions only/);
@@ -92,6 +99,31 @@ const payoutMutation = ownerUi.slice(
 assert.match(payoutMutation, /await loadBookings\(true\);\s*await loadPayoutLedger\(\);\s*if \(selectedId\) selectBooking\(selectedId\);\s*loadLiveOps\(\);/);
 assert.doesNotMatch(ownerUi, /id="test-push-btn"/);
 assert.doesNotMatch(ownerUi, /deleteReview\(/);
+assert.match(ownerUi, /s\.onlineReadyEasers \|\| 0/);
+assert.doesNotMatch(ownerUi, /id="fin-assumption-reserve">2%/);
+assert.match(ownerUi, /Add to Buffer Queue/);
+assert.match(ownerUi, /Confirm Buffer queue/);
+assert.match(ownerUi, /Generate and review this article copy/);
+assert.match(ownerUi, /Copy preview:/);
+assert.match(ownerUi, /No alerts found in this intelligence check/);
+assert.match(ownerUi, /ownerManualNeedsAssignmentCount/);
+assert.match(ownerUi, /Manual Payout Action/);
+assert.match(ownerUi, /total_connect_pending/);
+assert.match(ownerUi, /Automatic Transfer Pending/);
+assert.doesNotMatch(ownerUi, /id="nav-reviews"/);
+assert.match(ownerUi, /Pending Confirmation/);
+assert.match(ownerUi, /owner-responsive-table/);
+assert.match(ownerUi, /MutationObserver/);
+assert.match(ownerUi, /aria-haspopup="dialog"/);
+assert.match(ownerUi, /md-approved-supply/);
+assert.match(ownerUi, /connect-disabled/);
+assert.doesNotMatch(ownerUi, /fin-assumption-processing">2\.9%/);
+assert.doesNotMatch(ownerUi, /\{ label: 'Pending', val: s\.pendingPayment/);
+assert.match(ownerUi, /fetch\('\/api\/assembler\/list', \{ headers: headers\(\) \}\)/);
+assert.doesNotMatch(ownerUi, /api\/assembler\/list\?tier=pending/);
+assert.match(marketDemandApi, /onlineReadyEasers/);
+assert.match(assemblerListApi, /stats =/);
+assert.match(casesApi, /ownerActionRequired/);
 
 for (const source of [testPushApi, testEaserApi]) {
   assert.match(source, /process\.env\.VERCEL_ENV === 'production' \|\|/);
@@ -186,6 +218,16 @@ assert.equal(laborCosting.costedGrossProfitPerJob, 5_840);
 assert.equal(laborCosting.uncostedCompletedJobs, 1);
 assert.equal(laborCosting.uncostedPlatformGross, 13_660);
 assert.deepEqual(laborCosting.uncostedRefs, ['AAE-BARRY']);
+
+const payoutSummary = summarizeFinanceRows([
+  { payoutDisposition: 'pending', payoutMode: 'manual', owed: 1_000 },
+  { payoutDisposition: 'pending', payoutMode: 'stripe_connect', owed: 2_000 },
+  { payoutDisposition: 'on_hold', payoutMode: 'manual', owed: 3_000 },
+]);
+assert.equal(payoutSummary.pendingPayouts, 6_000);
+assert.equal(payoutSummary.payablePayouts, 1_000);
+assert.equal(payoutSummary.connectPendingPayouts, 2_000);
+assert.equal(payoutSummary.heldPayouts, 3_000);
 
 const refundBooking = {
   status: 'completed',

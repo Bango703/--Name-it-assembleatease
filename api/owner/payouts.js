@@ -1,13 +1,9 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
-import { loadLedgerFirstFinanceRows, summarizeFinanceRows } from './_finance-ledger.js';
+import { classifyOutstandingPayout, loadLedgerFirstFinanceRows, summarizeFinanceRows } from './_finance-ledger.js';
 import { formatUsPhone } from '../_phone.js';
 
-export function classifyOutstandingPayout(row = {}) {
-  if (row.payoutDisposition === 'on_hold') return 'on_hold';
-  if (row.payoutDisposition !== 'pending') return null;
-  return row.payoutMode === 'stripe_connect' ? 'connect_pending' : 'payable';
-}
+export { classifyOutstandingPayout } from './_finance-ledger.js';
 
 /**
  * GET /api/owner/payouts
