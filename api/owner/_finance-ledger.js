@@ -393,6 +393,12 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
   };
 }
 
+export function classifyOutstandingPayout(row = {}) {
+  if (row.payoutDisposition === 'on_hold') return 'on_hold';
+  if (row.payoutDisposition !== 'pending') return null;
+  return row.payoutMode === 'stripe_connect' ? 'connect_pending' : 'payable';
+}
+
 export function summarizeFinanceRows(rows) {
   let completedJobs = 0;
   let cancellationEarningEvents = 0;
@@ -404,6 +410,8 @@ export function summarizeFinanceRows(rows) {
   let totalPlatformRevenue = 0;
   let pendingPayouts = 0;
   let heldPayouts = 0;
+  let payablePayouts = 0;
+  let connectPendingPayouts = 0;
   let totalTaxCollected = 0;
   let totalStripeFees = 0;
   let stripeFeesAllActual = true;
@@ -422,6 +430,8 @@ export function summarizeFinanceRows(rows) {
     } else if (row.payoutDisposition === 'pending' && Number(row.owed || 0) > 0) {
       pendingJobs++;
       pendingPayouts += Number(row.owed || 0);
+      if (classifyOutstandingPayout(row) === 'connect_pending') connectPendingPayouts += Number(row.owed || 0);
+      else payablePayouts += Number(row.owed || 0);
     } else if (row.payoutDisposition === 'on_hold' && Number(row.owed || 0) > 0) {
       heldJobs++;
       heldPayouts += Number(row.owed || 0);
@@ -447,6 +457,8 @@ export function summarizeFinanceRows(rows) {
     stripeFeesAllActual,
     pendingPayouts,
     heldPayouts,
+    payablePayouts,
+    connectPendingPayouts,
   };
 }
 
