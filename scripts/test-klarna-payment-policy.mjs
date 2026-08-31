@@ -61,6 +61,9 @@ assert.ok(paymentIntentBuilder.includes("paymentMethodType === BOOKING_PAYMENT_M
 assert.ok(paymentIntentBuilder.includes("setup_future_usage: 'off_session'"));
 assert.ok(paymentIntentBuilder.includes('...(cardPayment ? {'));
 assert.ok(bookingPage.includes("paymentMethod: 'card'"), 'card remains the checkout default');
+assert.ok(bookingPage.includes('Klarna available at checkout'), 'booking start announces Klarna availability');
+assert.ok(bookingPage.includes('klarna-eligibility-note'), 'checkout explains method eligibility');
+assert.ok(bookingPage.includes('appointments within six days'), 'future appointment limitation is stated clearly');
 assert.ok(bookingPage.includes('paymentMethod: BOOK.paymentMethod'), 'selected method is sent to the server');
 assert.ok(bookingPage.includes('confirmKlarnaPayment'), 'Klarna uses Stripe redirect confirmation');
 assert.ok(bookingPage.includes("'/api/booking-confirmed'"), 'redirect recovery verifies the booking server-side');
