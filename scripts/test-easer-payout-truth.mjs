@@ -231,12 +231,20 @@ console.log('Easer payout truth tests: PASS');
   // The date sits inside <strong>, so compare against stripped text rather
   // than raw HTML — a regex across tags silently matches nothing and passes.
   const plain = h => String(h).replace(/<[^>]*>/g, '');
-  assert.ok(/Expect it by Friday, September 4/.test(plain(withDate)),
+  assert.ok(/Expected in your bank account by Friday, September 4/.test(plain(withDate)),
     'the date must count from settlement, not from when the cron happened to run');
   assert.ok(!/business days? from now/.test(plain(withDate)),
     '"from now" was the wrong basis and must not return');
-  assert.ok(/queued with Stripe/.test(plain(withDate)),
-    'a source_transaction transfer is queued, not already sent — Stripe does not execute it until the charge settles');
+  assert.ok(/Your payment is processing/.test(plain(withDate)),
+    'the Easer should receive a concise external status instead of Stripe settlement mechanics');
+  assert.ok(!/queued with Stripe|customer's payment settles|Stripe charges a small fee|to get it the same day|job job/i.test(plain(withDate)),
+    'the email must not expose settlement detail, sell another payout path, or duplicate service wording');
+  assert.equal((plain(withDate).match(/\$419\.30/g) || []).length, 1,
+    'the payment amount should appear once');
+  assert.ok(/Instant payout may be available/.test(plain(withDate)),
+    'Connect emails may point to the optional faster payout without promising eligibility');
+  assert.ok(/href="https:\/\/www\.assembleatease\.com\/assembler\/payouts"/.test(withDate),
+    'instant payout discovery must lead to the authenticated Payouts page where eligibility and fees are checked');
 
   // Given no settlement date, it must promise nothing.
   const noArrival = buildPayoutEmail({
@@ -251,7 +259,7 @@ console.log('Easer payout truth tests: PASS');
     payoutDisplay: '$1.00', notes: '', method: 'stripe', viaStripeConnect: true, delayDays: null, arrivalAt: null,
   });
   assert.ok(!/Expect it by/.test(noDate), 'with no schedule the email must not promise a day');
-  assert.ok(/normal schedule/.test(noDate), 'it must fall back to non-specific wording instead');
+  assert.ok(/based on your payout schedule/.test(noDate), 'it must fall back to non-specific wording instead');
 
   const release = await fs.readFile(new URL('../api/cron/release-payouts.js', import.meta.url), 'utf8');
   assert.ok(release.includes('expected_bank_arrival_at:'), 'the estimate must be stored at transfer time');
