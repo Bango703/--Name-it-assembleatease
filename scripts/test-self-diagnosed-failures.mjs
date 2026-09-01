@@ -19,9 +19,20 @@
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import { collapseFailureAttempts } from '../api/owner/live-ops.js';
 
 const api = await fs.readFile(new URL('../api/owner/live-ops.js', import.meta.url), 'utf8');
 const ui = await fs.readFile(new URL('../owner/index.html', import.meta.url), 'utf8');
+
+const collapsed = collapseFailureAttempts([
+  { at: '2026-09-01T11:00:00.000Z', kind: 'transfer_attempt', bookingId: 'booking-1', detail: 'same lock' },
+  { at: '2026-09-01T10:00:00.000Z', kind: 'transfer_attempt', bookingId: 'booking-1', detail: 'same lock' },
+  { at: '2026-09-01T09:00:00.000Z', kind: 'transfer_attempt', bookingId: 'booking-2', detail: 'same lock' },
+]);
+assert.equal(collapsed.length, 2, 'retries for one booking must be one incident');
+assert.equal(collapsed[0].attempts, 2, 'the owner must retain the retry count');
+assert.equal(collapsed[0].at, '2026-09-01T11:00:00.000Z', 'incident recency must use the newest attempt');
+assert.match(ui, /r\.attempts > 1[\s\S]*attempts/, 'the dashboard must label repeated attempts');
 
 // ── The server reads its own failure records ────────────────────────────────
 {
@@ -32,6 +43,10 @@ const ui = await fs.readFile(new URL('../owner/index.html', import.meta.url), 'u
     assert.ok(api.includes(kind), `${kind} must be surfaced`);
   }
   assert.ok(/selfDiagnosed,/.test(api), 'the findings must ship in the Live Ops payload');
+  assert.ok((api.match(/\.limit\(100\)/g) || []).length >= 2,
+    'duplicate retries must not crowd distinct incidents out of the database read');
+  assert.ok((api.match(/collapseFailureAttempts[\s\S]{0,500}\.slice\(0, 20\)/g) || []).length >= 2,
+    'the owner payload must be capped after retries are collapsed');
   console.log('PASS the server reads back the failures it already recorded');
 }
 

@@ -43,6 +43,8 @@ const CONNECT_PAYOUT_RECHECK_FIELDS = [
   'financial_operation_type', 'financial_operation_started_at',
 ].join(', ');
 
+const ACTIVE_FINANCIAL_LOCK_MINUTES = 15;
+
 export default async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret || req.headers.authorization !== 'Bearer ' + cronSecret) {
@@ -60,10 +62,11 @@ export default async function handler(req, res) {
 
   const { data: pendingRows, error } = await sb
     .from('bookings')
-    .select('id, ref, status, assembler_id, assembler_name, assembler_due, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_bonus_cents, completed_at, cancelled_at, payment_status, payout_status, payout_amount, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, stripe_dispute_id, stripe_dispute_status, paid_out_at, total_price, tax_amount, service_call_fee, amount_charged, refund_amount, is_deposit, deposit_amount, cancellation_fee, stripe_customer_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, stripe_balance_amount_captured, stripe_transfer_id, assemblecash_redeemed_cents, reschedule_count, rescheduled_at, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, evidence_requested_at, job_started_at, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes')
+    .select('id, ref, status, assembler_id, assembler_name, assembler_due, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_bonus_cents, completed_at, cancelled_at, payment_status, payout_status, payout_amount, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, stripe_dispute_id, stripe_dispute_status, paid_out_at, total_price, tax_amount, service_call_fee, amount_charged, refund_amount, is_deposit, deposit_amount, cancellation_fee, stripe_customer_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, stripe_balance_amount_captured, stripe_transfer_id, assemblecash_redeemed_cents, reschedule_count, rescheduled_at, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, evidence_requested_at, job_started_at, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at')
     .in('status', ['completed', 'cancelled'])
     .eq('payout_status', 'pending')
     .eq('payout_mode_snapshot', 'stripe_connect')
+    .is('financial_reconciliation_required_at', null)
     .order('completed_at', { ascending: true, nullsFirst: true })
     .limit(100);
 
@@ -127,6 +130,12 @@ export default async function handler(req, res) {
     }
     const idem = `transfer-booking-${b.id}`;
     const operationKey = `payout:connect:${b.id}`;
+    const lockState = classifyConnectPayoutLock(b, operationKey);
+    if (lockState === 'active_foreign') continue;
+    if (lockState === 'stale_foreign') {
+      await holdStaleConnectPayoutLock(sb, b, { dueCents, cancellationPayout });
+      continue;
+    }
     let reservationHeld = false;
     let transferAttempted = false;
     try {
@@ -364,16 +373,74 @@ export default async function handler(req, res) {
       }
       // Most common transient cause: platform balance not yet available. Leave pending; retry next run.
       console.error('release-payouts transfer error for ' + b.ref + ':', err.message);
+      const auditError = err?.cause?.message
+        ? `${err.message} Database reason: ${err.cause.message}`
+        : err?.message || 'transfer failed';
       await writeFinancialAudit(sb, {
         eventType: 'transfer_attempt', eventSource: 'cron_release_payouts',
         bookingId: b.id, paymentIntentId: b.stripe_payment_intent_id, idempotencyKey: idem,
-        status: 'failed', metadata: { ref: b.ref, amount: dueCents, cancellationPayout }, error: err?.message || 'transfer failed',
+        status: 'failed', metadata: { ref: b.ref, amount: dueCents, cancellationPayout }, error: auditError,
       });
     }
   }
 
   await logCron('release-payouts', { status: 'ok', records: released, duration: Date.now() - t });
   return res.status(200).json({ released, refs: releasedRefs });
+}
+
+export function classifyConnectPayoutLock(booking, operationKey, nowMs = Date.now()) {
+  const hasAnyLock = Boolean(
+    booking?.financial_operation_key
+    || booking?.financial_operation_type
+    || booking?.financial_operation_started_at,
+  );
+  if (!hasAnyLock) return 'unlocked';
+  if (booking.financial_operation_key === operationKey
+      && booking.financial_operation_type === 'payout_connect'
+      && booking.financial_operation_started_at) {
+    return 'resumable';
+  }
+  const startedAtMs = new Date(booking?.financial_operation_started_at || '').getTime();
+  const activeAfterMs = nowMs - ACTIVE_FINANCIAL_LOCK_MINUTES * 60_000;
+  return Number.isFinite(startedAtMs) && startedAtMs >= activeAfterMs
+    ? 'active_foreign'
+    : 'stale_foreign';
+}
+
+async function holdStaleConnectPayoutLock(sb, booking, { dueCents, cancellationPayout }) {
+  const reason = `Automatic payout blocked by stale ${booking.financial_operation_type || 'malformed'} financial operation lock from ${booking.financial_operation_started_at || 'an unknown time'}. Reconcile the booking before retrying.`;
+  let query = sb.from('bookings').update({
+    financial_reconciliation_required_at: new Date().toISOString(),
+    financial_reconciliation_reason: reason,
+  })
+    .eq('id', booking.id)
+    .eq('payout_status', 'pending')
+    .is('financial_reconciliation_required_at', null);
+  query = booking.financial_operation_key
+    ? query.eq('financial_operation_key', booking.financial_operation_key)
+    : query.is('financial_operation_key', null);
+  query = booking.financial_operation_type
+    ? query.eq('financial_operation_type', booking.financial_operation_type)
+    : query.is('financial_operation_type', null);
+  query = booking.financial_operation_started_at
+    ? query.eq('financial_operation_started_at', booking.financial_operation_started_at)
+    : query.is('financial_operation_started_at', null);
+  const { data, error } = await query.select('id');
+  if (error || !data?.length) {
+    console.error(`release-payouts stale lock hold failed for ${booking.ref}:`, error?.message || 'lock changed');
+    return false;
+  }
+  await writeFinancialAudit(sb, {
+    eventType: 'transfer_reconciliation_required',
+    eventSource: 'cron_release_payouts',
+    bookingId: booking.id,
+    paymentIntentId: booking.stripe_payment_intent_id,
+    idempotencyKey: `transfer-lock-hold-${booking.id}-${booking.financial_operation_started_at || 'malformed'}`,
+    status: 'failed',
+    metadata: { ref: booking.ref, amount: dueCents, cancellationPayout },
+    error: reason,
+  });
+  return true;
 }
 
 export async function verifyConnectPayoutReleaseState(sb, expected, operationKey, expectedDueCents) {
