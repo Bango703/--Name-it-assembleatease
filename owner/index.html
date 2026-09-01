@@ -8088,8 +8088,8 @@ window.intelQuick = intelQuick;
   };
 
   // Customers who saved a card for a custom quote but whose booking never got
-  // created. Their card is valid and they are waiting to hear back — they simply
-  // never reached the queue. Read-only: nothing is charged or changed.
+  // created. Resolving an entry writes an audit event only; it never charges or
+  // deletes the saved payment method.
   async function loadQuoteOrphans() {
     var panel = document.getElementById('ops-orphan-panel');
     var body = document.getElementById('ops-orphans');
@@ -8115,9 +8115,11 @@ window.intelQuick = intelQuick;
               + (waited ? ' &bull; <span style="' + (stale ? 'color:var(--red);font-weight:600' : '') + '">' + esc(waited) + '</span>' : '')
               + (o.sourceLabel ? ' &bull; ' + esc(o.sourceLabel) : '')
               + (o.cardOnFile ? ' &bull; card on file' : ' &bull; no card') + '</div></div>'
+            + '<div style="display:flex;gap:6px;align-items:center">'
             + (o.email
               ? '<a href="mailto:' + esc(o.email) + '?subject=' + encodeURIComponent('Your AssembleAtEase quote request') + '" class="btn btn-teal" style="font-size:0.72rem;padding:3px 10px;text-decoration:none;white-space:nowrap">Email</a>'
               : '<span style="font-size:0.72rem;color:var(--red);white-space:nowrap">No email</span>')
+            + '<button type="button" class="btn ops-orphan-resolve" data-setup-intent-id="' + esc(o.setupIntentId) + '" style="font-size:0.72rem;padding:3px 10px;white-space:nowrap">Mark Resolved</button></div>'
           + '</div>';
         }).join('');
     } catch (e) {
@@ -8126,8 +8128,32 @@ window.intelQuick = intelQuick;
   }
   window.loadQuoteOrphans = loadQuoteOrphans;
 
+  async function resolveQuoteOrphan(button) {
+    var setupIntentId = button.getAttribute('data-setup-intent-id');
+    if (!setupIntentId || !window.confirm('Remove this handled request from the outstanding list?')) return;
+    button.disabled = true;
+    button.textContent = 'Saving...';
+    try {
+      var r = await fetch('/api/owner/quote-orphans', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+        body: JSON.stringify({ setupIntentId: setupIntentId })
+      });
+      var d = await r.json().catch(function() { return {}; });
+      if (!r.ok) throw new Error(d.error || 'Could not mark this request resolved.');
+      toast('Quote request marked resolved', 'success');
+      await loadQuoteOrphans();
+    } catch (e) {
+      button.disabled = false;
+      button.textContent = 'Mark Resolved';
+      toast((e && e.message) || 'Could not mark this request resolved.', 'error');
+    }
+  }
+
   document.addEventListener('click', function(e) {
     if (e.target && e.target.id === 'ops-orphan-refresh') loadQuoteOrphans();
+    var resolveButton = e.target && e.target.closest ? e.target.closest('.ops-orphan-resolve') : null;
+    if (resolveButton) resolveQuoteOrphan(resolveButton);
   });
 
   window.loadLiveOps = loadLiveOps;

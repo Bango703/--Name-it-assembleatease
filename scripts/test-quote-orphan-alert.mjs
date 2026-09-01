@@ -25,6 +25,7 @@ const read = p => fs.readFile(new URL('../' + p, import.meta.url), 'utf8');
 const core = await read('api/_quote-orphans-core.js');
 const cron = await read('api/cron/quote-orphan-alert.js');
 const ownerApi = await read('api/owner/quote-orphans.js');
+const ownerPage = await read('owner/index.html');
 const vercel = JSON.parse(await read('vercel.json'));
 
 // ── One detection rule, two callers ────────────────────────────────────────
@@ -98,6 +99,56 @@ const vercel = JSON.parse(await read('vercel.json'));
   assert.ok(/quote_booking/.test(core) && /future_booking/.test(core),
     'both card-save purposes must be watched — the failure window is identical');
   console.log('PASS quote and scheduled-appointment card saves are both watched');
+}
+
+// ── Handled entries leave both views without deleting Stripe history ───────
+{
+  assert.ok(/QUOTE_ORPHAN_RESOLVED_EVENT/.test(core),
+    'the shared detector must own the resolution event name');
+  assert.ok(/resolvedIds\.has\(si\.id\)/.test(core),
+    'resolved SetupIntents must be excluded by the shared detector');
+  assert.ok(/req\.method === 'POST'/.test(ownerApi) && /actor_role: 'owner'/.test(ownerApi),
+    'only the owner API may record an audited resolution');
+  assert.ok(/onConflict: 'request_id,event_type'/.test(ownerApi),
+    'marking the same request resolved twice must be idempotent');
+  assert.ok(/setupIntents\.retrieve\(setupIntentId\)/.test(ownerApi) && /WATCHED_SOURCES\.includes/.test(ownerApi),
+    'the owner API must verify the Stripe object and its source before resolving it');
+  assert.ok(/Mark Resolved/.test(ownerPage) && /setupIntentId/.test(ownerPage),
+    'the owner dashboard must expose the resolution action');
+  assert.ok(!/setupIntents\.(update|cancel)|customers\.(update|del)/.test(ownerApi),
+    'resolving an alert must not mutate Stripe');
+  console.log('PASS handled quote orphans are audited, idempotent, and removed without mutating Stripe');
+}
+
+{
+  const { findQuoteOrphans } = await import('../api/_quote-orphans-core.js');
+  const sb = {
+    from(table) {
+      assert.equal(table, 'operational_events');
+      return {
+        select() { return this; },
+        async eq() {
+          return { data: [{ reason_detail: 'seti_resolved' }], error: null };
+        },
+      };
+    },
+  };
+  const stripe = {
+    setupIntents: {
+      async list() {
+        return {
+          data: [
+            { id: 'seti_resolved', status: 'succeeded', metadata: { source: 'quote_booking' }, created: 1 },
+            { id: 'seti_open', status: 'succeeded', metadata: { source: 'quote_booking' }, created: 2 },
+          ],
+        };
+      },
+    },
+  };
+
+  const found = await findQuoteOrphans(sb, { stripe });
+  assert.deepEqual(found.map(orphan => orphan.setupIntentId), ['seti_open']);
+  console.log('PASS the shared detector returns unresolved SetupIntents only');
 }
 
 // ── The email says what the owner needs to act ─────────────────────────────
