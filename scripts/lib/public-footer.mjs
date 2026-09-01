@@ -151,6 +151,11 @@ ${renderFooterInner({
 ${renderFooterInner({
   tagline,
   servicesLinks: SERVICE_PAGE_LINKS,
+  // Resources was absent here while 68 other pages carried it, so "Compare your
+  // options" — the page a hesitating customer most wants — was reachable from
+  // /about but not from /bundles, /pricing, or any location page.
+  resourcesTitle: 'Resources',
+  resourcesLinks: RESOURCES_LINKS,
 })}
   </div>
   <div class="footer-bottom">
