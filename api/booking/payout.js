@@ -443,17 +443,12 @@ export function buildPayoutEmail({
     : (arrivalAt ? new Date(arrivalAt) : null);
   const arrivalLabel = formatPayoutArrival(arrival);
   const bankTiming = arrivalLabel
-    ? `Stripe releases it once the customer's payment settles, then deposits it to your bank. Expect it by <strong>${esc(arrivalLabel)}</strong>.`
-    : 'Stripe deposits to your bank automatically on its normal schedule.';
-  const instantLine = 'Once it lands in your Stripe balance you can take an instant payout from your payouts page to get it the same day. Stripe charges a small fee for that one; AssembleAtEase adds nothing.';
+    ? `Expected in your bank account by <strong>${esc(arrivalLabel)}</strong>.`
+    : 'It will arrive based on your payout schedule.';
 
   const intro = viaStripeConnect
-    ? (isCancellation
-      ? `Your earnings of ${esc(payoutDisplay)} for the cancelled ${esc(service)} booking are queued with Stripe. ${bankTiming} ${instantLine}`
-      : `Nice work on your ${esc(service)} job. Your payment of ${esc(payoutDisplay)} is queued with Stripe. ${bankTiming} ${instantLine}`)
-    : isCancellation
-      ? `Your earnings of ${esc(payoutDisplay)} for the cancelled ${esc(service)} booking are on their way ${howPaid}. They should reach you shortly — if you don't see them, just reply to this email and we'll make it right.`
-      : `Nice work on your ${esc(service)} job. Your payment of ${esc(payoutDisplay)} is on its way ${howPaid} — it should reach you shortly. If you don't see it, just reply to this email and we'll make it right.`;
+    ? `Your payment is processing. ${bankTiming}`
+    : `Your payment was sent ${howPaid}. If it does not arrive shortly, reply to this email.`;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
@@ -464,9 +459,10 @@ export function buildPayoutEmail({
     <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">${headline}</p>
     <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">${intro}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px">
-      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#166534">Payment On The Way</p>
+      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#166534">Payment Amount</p>
       <p style="margin:0;font-size:26px;font-weight:700;color:#065f46">${esc(payoutDisplay)}</p>
     </td></tr></table>
+    ${viaStripeConnect ? `<p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.6">Need it sooner? Instant payout may be available from your <a href="https://www.assembleatease.com/assembler/payouts" style="color:#0099CC;font-weight:600">Payouts page</a>.</p>` : ''}
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:14px">
       <table width="100%">
         <tr><td style="padding:6px 0;color:#71717a;width:110px;border-bottom:1px solid #f0f0f0">Reference</td><td style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(ref)}</td></tr>
