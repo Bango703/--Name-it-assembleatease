@@ -109,7 +109,7 @@ assert.match(ownerUi, /No alerts found in this intelligence check/);
 assert.match(ownerUi, /ownerManualNeedsAssignmentCount/);
 assert.match(ownerUi, /Manual Payout Action/);
 assert.match(ownerUi, /total_connect_pending/);
-assert.match(ownerUi, /Automatic Transfer Pending/);
+assert.match(ownerUi, /Automatic Payout Processing/);
 assert.doesNotMatch(ownerUi, /id="nav-reviews"/);
 assert.match(ownerUi, /Pending Confirmation/);
 assert.match(ownerUi, /owner-responsive-table/);

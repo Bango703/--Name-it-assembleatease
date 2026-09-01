@@ -1522,7 +1522,7 @@
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Owed</th>
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Paid</th>
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Payable</th>
-                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Automatic Transfer Pending</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Automatic Payout Processing</th>
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">On Hold</th>
                   <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Last Earning</th>
                   <th style="padding:0.5rem 0.75rem;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em"></th>
@@ -4819,10 +4819,10 @@ window.intelQuick = intelQuick;
 
     var rows = [];
     (sd.financial || []).forEach(function(f) {
-      rows.push({ at: f.at, tag: 'MONEY', kind: f.kind, detail: f.detail });
+      rows.push({ at: f.at, tag: 'MONEY', kind: f.kind, detail: f.detail, attempts: f.attempts || 1 });
     });
     (sd.notification || []).forEach(function(f) {
-      rows.push({ at: f.at, tag: 'NOTIFY', kind: f.kind, detail: f.cause || f.detail });
+      rows.push({ at: f.at, tag: 'NOTIFY', kind: f.kind, detail: f.cause || f.detail, attempts: f.attempts || 1 });
     });
     rows.sort(function(a, b) { return String(b.at).localeCompare(String(a.at)); });
 
@@ -4842,14 +4842,14 @@ window.intelQuick = intelQuick;
 
     var html = '<div style="border:1px solid ' + edge + ';background:' + wash + ';border-radius:10px;padding:0.9rem 1rem">'
       + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:0.5rem">'
-      + '<strong style="color:' + ink + ';font-size:0.85rem">The platform reported ' + rows.length + ' failure' + (rows.length === 1 ? '' : 's') + ' about itself</strong>'
+      + '<strong style="color:' + ink + ';font-size:0.85rem">The platform reported ' + rows.length + ' incident' + (rows.length === 1 ? '' : 's') + ' about itself</strong>'
       + '<span style="font-size:0.72rem;color:' + sub + ';white-space:nowrap">' + esc(recency) + '</span></div>';
     rows.slice(0, 8).forEach(function(r) {
       var when = new Date(r.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
       html += '<div style="font-size:0.78rem;line-height:1.6;padding:0.3rem 0;border-top:1px solid ' + edge + '">'
         + '<span style="font-family:monospace;font-size:0.68rem;color:#b91c1c">' + esc(r.tag) + '</span> '
         + '<span style="color:var(--muted)">' + esc(when) + '</span> &bull; '
-        + '<strong>' + esc(r.kind) + '</strong><br>'
+        + '<strong>' + esc(r.kind) + '</strong>' + (r.attempts > 1 ? ' &middot; ' + r.attempts + ' attempts' : '') + '<br>'
         + '<span style="color:#7f1d1d">' + esc(r.detail || 'no reason recorded') + '</span></div>';
     });
     if (rows.length > 8) html += '<div style="font-size:0.72rem;color:' + sub + ';padding-top:0.4rem">…and ' + (rows.length - 8) + ' more</div>';
@@ -9332,7 +9332,7 @@ window.intelQuick = intelQuick;
       if (payoutNav) {
         if (unpaidJobCount > 0) {
           payoutNav.textContent = unpaidJobCount;
-          payoutNav.title = fmt$(totals.total_payable || 0) + ' payable; ' + fmt$(totals.total_connect_pending || 0) + ' automatic transfer pending; ' + fmt$(totals.total_on_hold || 0) + ' on hold';
+          payoutNav.title = fmt$(totals.total_payable || 0) + ' payable; ' + fmt$(totals.total_connect_pending || 0) + ' automatic payout processing; ' + fmt$(totals.total_on_hold || 0) + ' on hold';
           payoutNav.style.display = '';
         } else {
           payoutNav.style.display = 'none';
@@ -9342,7 +9342,7 @@ window.intelQuick = intelQuick;
       if (totalsEl && totals.total_pending !== undefined) {
         var paidDollars    = fmt$(totals.total_paid);
         totalsEl.innerHTML = '<span style="color:#047857;font-weight:700">' + fmt$(totals.total_payable || 0) + ' payable</span>'
-          + ' &nbsp;&middot;&nbsp; <span style="color:#0369a1;font-weight:700">' + fmt$(totals.total_connect_pending || 0) + ' automatic transfer pending</span>'
+          + ' &nbsp;&middot;&nbsp; <span style="color:#0369a1;font-weight:700">' + fmt$(totals.total_connect_pending || 0) + ' automatic payout processing</span>'
           + ' &nbsp;&middot;&nbsp; <span style="color:#b45309;font-weight:700">' + fmt$(totals.total_on_hold || 0) + ' on hold</span>'
           + ' &nbsp;&middot;&nbsp; ' + paidDollars + ' paid &nbsp;&middot;&nbsp; '
           + totals.jobs + ' completed job' + (totals.jobs !== 1 ? 's' : '')
@@ -9363,6 +9363,10 @@ window.intelQuick = intelQuick;
         var preferredMethod = methodLabels[e.payout_method_preference] || 'Not selected';
         var jobsNeedingAction = e.unpaid_jobs || [];
         var actionButtons = jobsNeedingAction.slice(0, 3).map(function(job) {
+          var isConnectProcessing = job.payout_mode === 'stripe_connect' && job.disposition === 'transferred';
+          if (isConnectProcessing) {
+            return '<div style="font-size:0.68rem;line-height:1.35;color:#0369a1;margin:0 0.2rem 0.3rem">Processing bank payout · ' + esc(job.ref) + '</div>';
+          }
           var isConnectPending = job.payout_mode === 'stripe_connect' && job.disposition === 'pending';
           if (isConnectPending) {
             return '<div style="font-size:0.68rem;line-height:1.35;color:#0369a1;margin:0 0.2rem 0.3rem">Pending automatic transfer · ' + esc(job.ref) + '</div>';

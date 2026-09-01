@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 import { buildBookingFinancialSnapshot } from '../api/booking/_financial-operation.js';
-import { verifyConnectPayoutReleaseState } from '../api/cron/release-payouts.js';
+import { classifyConnectPayoutLock, verifyConnectPayoutReleaseState } from '../api/cron/release-payouts.js';
 
 const load = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const [
@@ -148,6 +148,26 @@ function fakeReadSupabase(current, evidence = null) {
 }
 
 const operationKey = baseBooking.financial_operation_key;
+const lockNow = new Date('2026-07-14T12:10:00.000Z').getTime();
+assert.equal(classifyConnectPayoutLock(baseBooking, operationKey, lockNow), 'resumable');
+assert.equal(classifyConnectPayoutLock({
+  ...baseBooking,
+  financial_operation_key: 'refund:owner:other',
+  financial_operation_type: 'refund_owner',
+  financial_operation_started_at: '2026-07-14T12:00:00.000Z',
+}, operationKey, lockNow), 'active_foreign');
+assert.equal(classifyConnectPayoutLock({
+  ...baseBooking,
+  financial_operation_key: 'refund:owner:other',
+  financial_operation_type: 'refund_owner',
+  financial_operation_started_at: '2026-07-14T11:00:00.000Z',
+}, operationKey, lockNow), 'stale_foreign');
+assert.equal(classifyConnectPayoutLock({
+  ...baseBooking,
+  financial_operation_key: null,
+  financial_operation_type: null,
+  financial_operation_started_at: null,
+}, operationKey, lockNow), 'unlocked');
 let state = await verifyConnectPayoutReleaseState(
   fakeReadSupabase({ ...baseBooking, damage_review_status: 'review_required', damage_claim_opened_at: '2026-07-14T10:00:00.000Z' }),
   baseBooking,

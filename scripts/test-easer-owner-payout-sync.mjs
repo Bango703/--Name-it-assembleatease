@@ -5,6 +5,7 @@
 // lifecycle (offline + online, before/after payout, uncollected, refunded) and
 // asserts, per booking, that what the Easer sees == what the Owner sees.
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { loadLedgerFirstFinanceRows, summarizeFinanceRows } from '../api/owner/_finance-ledger.js';
 import { classifyOutstandingPayout } from '../api/owner/payouts.js';
 import { toEaserEarningDto, summarizeEaserEarnings } from '../api/assembler/_earnings.js';
@@ -17,6 +18,7 @@ const NOW = '2026-07-17T12:00:00.000Z';
 // Canonical earnings for a $110 all-in offline job and a $150 online job.
 const offlineDue = computeBookingSplitFromSnapshot({ amountChargedCents: 11000, taxCents: 838, feePct: 30 }).assemblerDueCents; // 7113
 const onlineDue = computeBookingSplitFromSnapshot({ amountChargedCents: 15000, taxCents: 1144, feePct: 30 }).assemblerDueCents;
+const connectBonus = 2500;
 
 // ── Mock Supabase: the exact query chains loadLedgerFirstFinanceRows uses ──────
 function mockSb({ bookings, ledger }) {
@@ -71,7 +73,15 @@ const bookings = [
     refund_amount: 5000, payout_review_status: 'not_required' }),
   // G: Connect payout awaiting automatic transfer → PENDING on both, never manually payable
   base({ id: 'G', source: 'online', status: 'completed', payment_status: 'captured',
-    payout_mode_snapshot: 'stripe_connect' }),
+    payout_mode_snapshot: 'stripe_connect', easer_bonus_cents: connectBonus }),
+  // H: Connect transfer created; Stripe has not yet confirmed the bank payout.
+  base({ id: 'H', source: 'online', status: 'completed', payment_status: 'captured',
+    payout_mode_snapshot: 'stripe_connect', payout_status: 'transferred', payout_amount: offlineDue,
+    stripe_transfer_id: 'tr_test', stripe_transfer_status: 'succeeded', stripe_bank_payout_status: 'pending' }),
+  // I: a contradictory transfer row must fail closed for owner review.
+  base({ id: 'I', source: 'online', status: 'completed', payment_status: 'captured',
+    payout_mode_snapshot: 'stripe_connect', payout_status: 'transferred', payout_amount: offlineDue,
+    stripe_transfer_id: 'tr_failed', stripe_transfer_status: 'failed', stripe_bank_payout_status: 'pending' }),
 ];
 
 // Ledger rows exist only for the paid jobs (B, D) — mirrors record_booking_payout.
@@ -90,9 +100,10 @@ const ownerByRef = new Map(ownerFinance.rows.map(r => [r.ref, r]));
 const easerDtos = easerFinance.rows.filter(r => r.assemblerId === EID).map(toEaserEarningDto);
 const easerByRef = new Map(easerDtos.map(d => [d.booking_ref, d]));
 
-assert.equal(ownerFinance.rows.length, 7, 'owner sees all seven finance rows');
-assert.equal(easerDtos.length, 7, 'easer sees their seven earnings');
+assert.equal(ownerFinance.rows.length, 9, 'owner sees all nine finance rows');
+assert.equal(easerDtos.length, 9, 'easer sees their nine earnings');
 assert.equal(classifyOutstandingPayout(ownerByRef.get('G')), 'connect_pending', 'Connect pending is not manually payable');
+assert.equal(classifyOutstandingPayout(ownerByRef.get('H')), 'connect_pending', 'Connect processing remains in the automatic payout bucket');
 
 // ── The core guarantee: per job, Easer number == Owner number, status agrees ──
 const expect = {
@@ -102,8 +113,12 @@ const expect = {
   D: { amount: onlineDue, ownerPaid: true, easerDisposition: 'paid' },
   E: { amount: offlineDue, ownerPaid: false, easerDisposition: 'on_hold' },
   F: { amount: offlineDue, ownerPaid: false, easerDisposition: 'on_hold' },
-  G: { amount: offlineDue, ownerPaid: false, easerDisposition: 'pending' },
+  G: { amount: offlineDue + connectBonus, ownerPaid: false, easerDisposition: 'pending' },
+  H: { amount: offlineDue, ownerPaid: false, easerDisposition: 'transferred' },
+  I: { amount: offlineDue, ownerPaid: false, easerDisposition: 'on_hold' },
 };
+assert.equal(ownerByRef.get('G').platformRevenue, 3049 - connectBonus,
+  'the owner-funded bonus must reduce platform margin penny for penny');
 
 for (const [ref, exp] of Object.entries(expect)) {
   const owner = ownerByRef.get(ref);
@@ -144,6 +159,15 @@ assert.equal(
   easerSummary.awaiting_payout_cents + easerSummary.on_hold_cents,
   'outstanding totals must reconcile',
 );
+
+const payoutsApi = await readFile(new URL('../api/owner/payouts.js', import.meta.url), 'utf8');
+const ownerUi = await readFile(new URL('../owner/index.html', import.meta.url), 'utf8');
+assert.match(payoutsApi, /\['pending', 'transferred', 'on_hold'\]/,
+  'the owner aggregation must retain transfers until Stripe confirms the bank payout');
+assert.match(ownerUi, /job\.disposition === 'transferred'/,
+  'the owner row must render Connect processing without a Review action');
+assert.match(ownerUi, /Processing bank payout/,
+  'the owner must see what happens next while no action is required');
 
 // ── Desync SAFETY NET: a ledger-paid job whose booking columns went stale must
 // be flagged, so the owner is warned instead of the two views silently drifting.

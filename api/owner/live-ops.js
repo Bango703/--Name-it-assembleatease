@@ -126,14 +126,15 @@ async function loadSelfDiagnosedFailures(sb, sinceIso) {
       .eq('status', 'failed')
       .gte('created_at', sinceIso)
       .order('created_at', { ascending: false })
-      .limit(20);
-    out.financial = (data || []).map(r => ({
+      .limit(100);
+    out.financial = collapseFailureAttempts((data || []).map(r => ({
       at: r.created_at,
       kind: r.event_type,
       // The server's own words. Never a generic "something went wrong".
       detail: String(r.error || 'no reason recorded').slice(0, 240),
       paymentIntentId: r.payment_intent_id || null,
-    }));
+      bookingId: r.booking_id || null,
+    }))).slice(0, 20);
   } catch (err) {
     console.error('[live-ops] financial failure lookup failed:', err?.message || err);
   }
@@ -144,18 +145,35 @@ async function loadSelfDiagnosedFailures(sb, sinceIso) {
       .in('event_type', ['notification_audit_failed', 'dispatch_notification_failed', 'acceptance_notification_failed'])
       .gte('created_at', sinceIso)
       .order('created_at', { ascending: false })
-      .limit(20);
-    out.notification = (data || []).map(r => ({
+      .limit(100);
+    out.notification = collapseFailureAttempts((data || []).map(r => ({
       at: r.created_at,
       kind: r.event_type,
       detail: String(r.description || '').slice(0, 240),
       cause: r.metadata?.emailLogError || r.metadata?.pushLogError || null,
-    }));
+      bookingId: r.booking_id || null,
+    }))).slice(0, 20);
   } catch (err) {
     console.error('[live-ops] notification failure lookup failed:', err?.message || err);
   }
   out.total = out.financial.length + out.notification.length;
   return out;
+}
+
+export function collapseFailureAttempts(rows = []) {
+  const incidents = new Map();
+  for (const row of rows) {
+    const cause = String(row.cause || row.detail || 'no reason recorded');
+    const key = [row.kind || '', row.bookingId || '', row.paymentIntentId || '', cause].join('|');
+    const existing = incidents.get(key);
+    if (existing) {
+      existing.attempts += 1;
+      if (String(row.at || '') > String(existing.at || '')) existing.at = row.at;
+      continue;
+    }
+    incidents.set(key, { ...row, attempts: 1 });
+  }
+  return [...incidents.values()].sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
 }
 
 export default async function handler(req, res) {

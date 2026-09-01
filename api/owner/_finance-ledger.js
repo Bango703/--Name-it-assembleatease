@@ -27,6 +27,17 @@ export function deriveManualPayoutReadiness(booking, {
     return { disposition: 'not_payable', holdReasons: [], holdCodes: [] };
   }
 
+  const payoutStatus = String((booking.status === 'cancelled'
+    ? (booking.cancellation_easer_payout_status || booking.payout_status)
+    : booking.payout_status) || '').toLowerCase();
+  const validConnectTransfer = payoutStatus === 'transferred'
+    && booking.payout_mode_snapshot === 'stripe_connect'
+    && Boolean(booking.stripe_transfer_id)
+    && booking.stripe_transfer_status === 'succeeded';
+  if (validConnectTransfer) {
+    return { disposition: 'transferred', holdReasons: [], holdCodes: [] };
+  }
+
   const holdReasons = [];
   const holdCodes = [];
   const hold = (code, reason) => {
@@ -34,9 +45,6 @@ export function deriveManualPayoutReadiness(booking, {
     holdReasons.push(reason);
   };
   const isCancellationEarning = booking.status === 'cancelled';
-  const payoutStatus = String((isCancellationEarning
-    ? (booking.cancellation_easer_payout_status || booking.payout_status)
-    : booking.payout_status) || '').toLowerCase();
   const paymentStatus = String(booking.payment_status || '').toLowerCase();
   const disputeStatus = String(booking.stripe_dispute_status || '').toLowerCase();
 
@@ -118,7 +126,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
 
   let bookingsQuery = sb
     .from('bookings')
-    .select('id, ref, source, payment_method, payment_collected, payment_collected_at, payment_collected_by, status, created_at, completed_at, cancelled_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, paid_out_at, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes, evidence_requested_at, job_started_at, return_visit_required, return_visit_date, return_visit_time, return_visit_remaining_scope, financial_operation_key, financial_reconciliation_required_at, stripe_transfer_id, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_hold, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status')
+    .select('id, ref, source, payment_method, payment_collected, payment_collected_at, payment_collected_by, status, created_at, completed_at, cancelled_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, easer_bonus_cents, payout_status, payout_amount, paid_out_at, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes, evidence_requested_at, job_started_at, return_visit_required, return_visit_date, return_visit_time, return_visit_remaining_scope, financial_operation_key, financial_reconciliation_required_at, stripe_transfer_id, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_hold, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status')
     .in('status', ['completed', 'cancelled']);
 
   if (assemblerId) bookingsQuery = bookingsQuery.eq('assembler_id', assemblerId);
@@ -239,9 +247,9 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
     const refund = Number(b.source === 'owner_manual' && hasOwnerManualEvents
       ? ownerManualTruth.refunded
       : (b.refund_amount || 0));
-    const canonicalDue = Number(isCancellationEarning
-      ? b.cancellation_easer_due_cents
-      : b.assembler_due) || 0;
+    const canonicalDue = isCancellationEarning
+      ? Number(b.cancellation_easer_due_cents || 0)
+      : Number(b.assembler_due || 0) + Number(b.easer_bonus_cents || 0);
     const payoutStatus = isCancellationEarning
       ? (b.cancellation_easer_payout_status || b.payout_status)
       : b.payout_status;
@@ -395,7 +403,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
 
 export function classifyOutstandingPayout(row = {}) {
   if (row.payoutDisposition === 'on_hold') return 'on_hold';
-  if (row.payoutDisposition !== 'pending') return null;
+  if (!['pending', 'transferred'].includes(row.payoutDisposition)) return null;
   return row.payoutMode === 'stripe_connect' ? 'connect_pending' : 'payable';
 }
 
@@ -427,7 +435,7 @@ export function summarizeFinanceRows(rows) {
     if (row.paidOut) {
       paidOutJobs++;
       totalPaidOut += Number(row.payoutAmount || 0);
-    } else if (row.payoutDisposition === 'pending' && Number(row.owed || 0) > 0) {
+    } else if (['pending', 'transferred'].includes(row.payoutDisposition) && Number(row.owed || 0) > 0) {
       pendingJobs++;
       pendingPayouts += Number(row.owed || 0);
       if (classifyOutstandingPayout(row) === 'connect_pending') connectPendingPayouts += Number(row.owed || 0);

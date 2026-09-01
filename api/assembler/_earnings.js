@@ -105,7 +105,10 @@ export function toEaserEarningDto(row = {}) {
     && String(row.stripeBankPayoutStatus || '').toLowerCase() === 'paid'
     && Boolean(row.stripeBankPayoutPaidAt);
   const isPaid = row.paidOut === true || rawPayoutStatus === 'paid';
-  const isTransferred = !isPaid && !stripeBankPaid && rawPayoutStatus === 'transferred';
+  const isTransferred = !isPaid
+    && !stripeBankPaid
+    && rawPayoutStatus === 'transferred'
+    && row.payoutDisposition === 'transferred';
   let disposition = row.payoutDisposition || 'on_hold';
   let statusCode = 'on_hold';
   let statusLabel = 'On Hold';

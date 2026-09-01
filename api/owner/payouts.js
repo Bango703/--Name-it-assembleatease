@@ -72,7 +72,7 @@ export default async function handler(req, res) {
     e.total_paid    += paid;
     if (b.legacyDerived) e.legacy_rows++;
 
-    if (!b.paidOut && ['pending', 'on_hold'].includes(b.payoutDisposition) && owed > 0) {
+    if (!b.paidOut && ['pending', 'transferred', 'on_hold'].includes(b.payoutDisposition) && owed > 0) {
       e.total_pending += owed;
       const payoutQueue = classifyOutstandingPayout(b);
       if (payoutQueue === 'on_hold') e.total_on_hold += owed;

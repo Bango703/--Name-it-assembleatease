@@ -70,11 +70,21 @@ const transferred = toEaserEarningDto({
   ...baseRow,
   payoutStatus: 'transferred',
   payoutMode: 'stripe_connect',
-  payoutDisposition: 'on_hold',
+  payoutDisposition: 'transferred',
 });
 assert.equal(transferred.payout.disposition, 'transferred');
 assert.equal(transferred.payout.status_label, 'Processing');
 assert.match(transferred.payout.status_message, /processing/i);
+
+const unverifiedTransfer = toEaserEarningDto({
+  ...baseRow,
+  payoutStatus: 'transferred',
+  payoutMode: 'stripe_connect',
+  payoutDisposition: 'on_hold',
+  payoutHoldCodes: ['payout_state_reconciliation'],
+});
+assert.equal(unverifiedTransfer.payout.disposition, 'on_hold');
+assert.equal(unverifiedTransfer.payout.status_label, 'On Hold');
 
 const bankPaid = toEaserEarningDto({
   ...baseRow,
