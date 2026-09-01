@@ -34,6 +34,7 @@ const sot = await read('api/_source-of-truth.js');
 const ui = await read('owner/index.html');
 const mig084 = await read('api/migrations/084_evidence_uploaded_on_behalf_of.sql');
 const mig085 = await read('api/migrations/085_easer_bonus.sql');
+const mig092 = await read('api/migrations/092_connect_payout_owner_supplied_evidence.sql');
 
 // ── 1. Evidence supplied for an Easer keeps honest authorship ──────────────
 {
@@ -53,6 +54,9 @@ const mig085 = await read('api/migrations/085_easer_bonus.sql');
     'the ledger must use the same rule as the payout endpoint, or the panel and the money disagree');
   assert.ok(ledger.includes('uploaded_on_behalf_of'),
     'the ledger query must select the column or every supplied photo reads as missing');
+  assert.match(mig092,
+    /\(\s*evidence\.uploaded_by = v_booking\.assembler_id\s+OR evidence\.uploaded_on_behalf_of = v_booking\.assembler_id\s*\)/,
+    'the locked payout reservation must accept only evidence authored by or explicitly supplied for the assigned Easer');
 
   // ── The deadlock ─────────────────────────────────────────────────────────
   // First cut required the job to be COMPLETED before evidence could be
