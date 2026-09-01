@@ -36,6 +36,7 @@ import Stripe from 'stripe';
 
 /** Card-save reasons that are supposed to be followed by a booking. */
 export const WATCHED_SOURCES = Object.freeze(['quote_booking', 'future_booking']);
+export const QUOTE_ORPHAN_RESOLVED_EVENT = 'quote_orphan_resolved';
 
 export const SOURCE_LABEL = Object.freeze({
   quote_booking: 'custom quote',
@@ -53,8 +54,17 @@ export async function findQuoteOrphans(sb, { stripe, limit = 100 } = {}) {
 
   const setupIntents = await client.setupIntents.list({ limit });
 
+  const { data: resolvedRows, error: resolvedError } = await sb
+    .from('operational_events')
+    .select('reason_detail')
+    .eq('event_type', QUOTE_ORPHAN_RESOLVED_EVENT);
+  if (resolvedError) throw resolvedError;
+  const resolvedIds = new Set((resolvedRows || []).map(row => row.reason_detail));
+
   const candidates = (setupIntents.data || []).filter(
-    si => si.status === 'succeeded' && WATCHED_SOURCES.includes(si.metadata?.source),
+    si => si.status === 'succeeded'
+      && WATCHED_SOURCES.includes(si.metadata?.source)
+      && !resolvedIds.has(si.id),
   );
 
   const orphans = [];
