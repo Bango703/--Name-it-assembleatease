@@ -19,6 +19,19 @@ const api = await fs.readFile(new URL('../api/booking/tip.js', import.meta.url),
 const sql = await fs.readFile(new URL('../api/migrations/081_booking_tips.sql', import.meta.url), 'utf8');
 const ui = await fs.readFile(new URL('../review.html', import.meta.url), 'utf8');
 
+// ── The offer is a finished control, not raw browser HTML ──────────────────
+{
+  assert.ok(/\.tip-box\{[^}]*display:none/.test(ui),
+    'the optional tip offer must stay hidden until the server says the Easer can receive it');
+  assert.ok(/\.tip-chips\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/.test(ui),
+    'the four tip choices must render as a stable row');
+  assert.ok(/\.tip-chip\{[^}]*min-height:44px/.test(ui),
+    'tip choices must remain touch-sized instead of falling back to raw browser buttons');
+  assert.ok(/#tip-pay\{[^}]*display:none/.test(ui),
+    'the Stripe payment element must be contained and hidden until a tip is sent');
+  console.log('PASS the tip offer is styled, touch-sized, and initially hidden');
+}
+
 // ── 100% reaches the Easer ──────────────────────────────────────────────────
 {
   assert.ok(/stripeAccount: accountId/.test(api),
