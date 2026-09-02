@@ -743,8 +743,8 @@ export default async function handler(req, res) {
               await sendEmail({
                 to: currentBooking.customer_email,
                 from: 'AssembleAtEase <booking@assembleatease.com>',
-                subject: `Action needed: we couldn't confirm your card — ${esc(currentBooking.ref)}`,
-                html: buildCustomerPaymentFailEmail((currentBooking.customer_name || 'Customer').split(' ')[0], currentBooking.ref, reason),
+                subject: `Your booking wasn't completed - ${esc(currentBooking.ref)}`,
+                html: buildCustomerPaymentFailEmail((currentBooking.customer_name || 'Customer').split(' ')[0], currentBooking.ref),
                 replyTo: ownerEmail(),
                 meta: { bookingId, notificationType: 'payment_failed_customer', recipientType: 'customer' },
               });
@@ -2638,14 +2638,19 @@ function buildBookingConfirmEmail(booking, totalDisplay) {
 </div></body></html>`;
 }
 
-function buildCustomerPaymentFailEmail(firstName, ref, reason) {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
-<div style="max-width:520px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #fecaca"><tr><td style="padding:28px 24px">
-    <p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a">Card authorization failed, ${esc(firstName)}</p>
-    <p style="margin:0 0 8px;font-size:14px;color:#52525b;line-height:1.6">We were unable to authorize your card for booking <strong>${esc(ref)}</strong>.</p>
-    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Reason: <strong>${esc(reason)}</strong></p>
-    <p style="margin:0;font-size:14px;color:#52525b;line-height:1.6">Please contact us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a> to rebook with a different card.</p>
+function buildCustomerPaymentFailEmail(firstName, ref) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:560px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #00BFFF"><tr><td style="padding:20px 24px;text-align:center">
+    <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
+    <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
+  </td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e4e4e7;border-top:0;border-radius:0 0 8px 8px"><tr><td style="padding:32px 24px 28px">
+    <p style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1a1a1a">Your booking wasn't completed, ${esc(firstName)}</p>
+    <p style="margin:0 0 18px;font-size:14px;color:#52525b;line-height:1.7">We couldn't finish booking <strong>${esc(ref)}</strong>. No appointment was confirmed, and you were not charged.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin:0 0 22px"><tr><td style="padding:14px 18px;font-size:14px;color:#334155;line-height:1.65">Return to booking when you're ready and choose the payment option that works best for you.</td></tr></table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px"><tr><td style="text-align:center;background:#00BFFF;border-radius:8px"><a href="https://www.assembleatease.com/book" style="display:block;padding:13px 24px;color:#002b3a;font-size:15px;font-weight:800;text-decoration:none;border-radius:8px">Try booking again</a></td></tr></table>
+    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Need help? Reply to this email or contact <a href="mailto:service@assembleatease.com" style="color:#0099CC">service@assembleatease.com</a>.</p>
   </td></tr></table>
 </div></body></html>`;
 }
