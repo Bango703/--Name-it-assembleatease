@@ -1461,6 +1461,52 @@ export default async function handler(req, res) {
         break;
       }
 
+      // ── Stripe Connect: Stripe scheduled the bank payout ──
+      // We estimate the arrival date at transfer time by counting business days,
+      // because the payout does not exist yet. That estimate was wrong by two
+      // days on the first real payout: we told the Easer Friday 2026-09-04, the
+      // money landed Wednesday 2026-09-02.
+      //
+      // The moment Stripe creates the payout it publishes the real arrival_date.
+      // From here on the guess is replaced by the fact, BEFORE the Easer is
+      // waiting on it — which is the only point at which correcting it helps.
+      case 'payout.created': {
+        if (!isStripeConnectEnabled()) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { eventType: event.type, reason: 'stripe_connect_disabled' };
+          break;
+        }
+        const payout = event.data.object || {};
+        const connectedAccount = event.account;
+        if (!connectedAccount || !payout.id || !payout.arrival_date) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { eventType: event.type, reason: 'missing_payout_context' };
+          break;
+        }
+        const transferIds = await getPayoutTransferIds(stripe, payout.id, connectedAccount);
+        if (!transferIds.length) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { eventType: event.type, account: connectedAccount, payoutId: payout.id, reason: 'no_matching_transfers' };
+          break;
+        }
+        const arrivalIso = new Date(payout.arrival_date * 1000).toISOString();
+        // Scoped exactly like payout.paid. This only ever corrects a date — it
+        // never advances payout_status, so a scheduled payout is never mistaken
+        // for a completed one.
+        const { data: datedRows, error: datedErr } = await sb.from('bookings').update({
+          stripe_bank_payout_id: payout.id,
+          expected_bank_arrival_at: arrivalIso,
+        })
+          .eq('stripe_destination_account_id', connectedAccount)
+          .eq('payout_status', 'transferred')
+          .in('stripe_bank_payout_status', ['pending', 'failed'])
+          .in('stripe_transfer_id', transferIds)
+          .select('id, ref');
+        if (datedErr) { webhookOutcome = 'failed'; webhookError = datedErr.message; break; }
+        webhookMetadata = { eventType: event.type, account: connectedAccount, payoutId: payout.id, arrivalAt: arrivalIso, corrected: datedRows?.length || 0 };
+        break;
+      }
+
       // ── Stripe Connect: bank payout to the Easer SUCCEEDED ──
       // Resolve the payout's exact balance transactions before advancing any
       // booking. Account- or timestamp-wide updates can mark unrelated earnings
@@ -1477,11 +1523,20 @@ export default async function handler(req, res) {
         const transferIds = await getPayoutTransferIds(stripe, payout.id, connectedAccount);
         if (!transferIds.length) { webhookOutcome = 'ignored'; webhookMetadata = { eventType: event.type, account: connectedAccount, payoutId: payout.id, reason: 'no_matching_transfers' }; break; }
         const nowIso = new Date().toISOString();
+        // Stripe's own arrival_date beats our clock: the webhook can land hours
+        // after the money did, and "paid at" should be when it actually arrived.
+        const paidArrivalIso = payout.arrival_date
+          ? new Date(payout.arrival_date * 1000).toISOString()
+          : null;
         const { data: paidRows, error: paidErr } = await sb.from('bookings').update({
           payout_status: 'paid',
           stripe_bank_payout_status: 'paid',
-          stripe_bank_payout_paid_at: nowIso,
-          paid_out_at: nowIso,
+          stripe_bank_payout_id: payout.id,
+          stripe_bank_payout_paid_at: paidArrivalIso || nowIso,
+          // Replace our estimate with what actually happened, so the record does
+          // not keep claiming a date Stripe already disproved.
+          ...(paidArrivalIso ? { expected_bank_arrival_at: paidArrivalIso } : {}),
+          paid_out_at: paidArrivalIso || nowIso,
         })
           .eq('stripe_destination_account_id', connectedAccount)
           .eq('payout_status', 'transferred')
