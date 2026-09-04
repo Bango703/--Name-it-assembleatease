@@ -383,7 +383,7 @@ const SERVICES = [
     slug: 'furniture-assembly',
     bookingParam: 'Furniture+Assembly',
     tagline: 'Professional assembly for any brand, any room.',
-    intro: 'We assemble IKEA, Wayfair, Amazon, Ashley, and any other brand — beds, dressers, sofas, desks, wardrobes, and more. All tools included, work guaranteed.',
+    intro: 'We assemble IKEA, Wayfair, Amazon, Ashley, and any other brand: beds, dressers, sofas, desks, wardrobes, and more. All tools included, work guaranteed.',
     heroPhoto: 'service-furniture-assembly.jpg',
     heroAlt: 'Assembler building a white storage unit in a bright living room',
     heroSummary: 'Beds, dressers, desks, dining sets, and IKEA builds assembled carefully and left ready to use.',
@@ -397,8 +397,8 @@ const SERVICES = [
     ],
     faqs: [
       { q: 'How long does furniture assembly take?', a: 'Most single items take 30–90 minutes. A full bedroom set (bed + dresser + desk) typically takes 2–3 hours. We\'ll give you a time estimate when confirming your booking.' },
-      { q: 'Do you bring your own tools?', a: 'Yes — our Easers arrive fully equipped. You don\'t need to provide any tools or equipment.' },
-      { q: 'Can you assemble any brand?', a: 'Yes — IKEA, Wayfair, Amazon, Ashley, Target, Costco, CB2, Pottery Barn, West Elm, and more. If it came in a box with instructions, we can build it.' },
+      { q: 'Do you bring your own tools?', a: 'Yes. our Easers arrive fully equipped. You don\'t need to provide any tools or equipment.' },
+      { q: 'Can you assemble any brand?', a: 'Yes. IKEA, Wayfair, Amazon, Ashley, Target, Costco, CB2, Pottery Barn, West Elm, and more. If it came in a box with instructions, we can build it.' },
     ],
     relatedService: 'office-furniture-assembly',
     brands: ['IKEA', 'Wayfair', 'Amazon', 'Ashley', 'West Elm', 'Pottery Barn', 'Costco', 'Target'],
@@ -410,7 +410,7 @@ const SERVICES = [
     slug: 'tv-mounting',
     bookingParam: 'Mounting+%26+Hanging',
     tagline: 'Safe, level, and clean mounting on any wall.',
-    intro: 'We mount TVs, shelves, mirrors, gallery walls, curtain rods, projectors, and more — standard drywall, brick, concrete, tile, or above the fireplace. All bracket types handled, cords managed, no mess left behind.',
+    intro: 'We mount TVs, shelves, mirrors, gallery walls, curtain rods, projectors, and more, on standard drywall, brick, concrete, tile, or above the fireplace. All bracket types handled, cords managed, no mess left behind.',
     heroPhoto: 'service-tv-mounting.jpg',
     heroAlt: 'Assembler leveling a TV wall mount in a living room',
     heroSummary: 'TVs, mirrors, shelves, and soundbars mounted level with the right anchors for your wall.',
@@ -423,7 +423,7 @@ const SERVICES = [
       { name: 'In-wall cord concealment', price: '$199', popular: false },
     ],
     faqs: [
-      { q: 'Do you supply the TV mount?', a: 'No — you provide the TV mount and hardware; our pros bring the tools and do the install. Not sure what fits your TV and wall? Coordinate with your pro after booking.' },
+      { q: 'Do you supply the TV mount?', a: 'No. you provide the TV mount and hardware; our pros bring the tools and do the install. Not sure what fits your TV and wall? Coordinate with your pro after booking.' },
       { q: 'Can you mount a TV above a fireplace?', a: 'Yes. Above-fireplace mounts include an $85 add-on for the extra height, reach, and precise tilt-angle work required.' },
       { q: 'What wall types do you work with?', a: 'Drywall, brick, concrete, tile, and steel-stud framing. Brick/concrete is a $75 add-on, tile is $65, and steel stud framing is $55.' },
     ],
@@ -436,7 +436,7 @@ const SERVICES = [
     slug: 'smart-home-installation',
     bookingParam: 'Smart+Home',
     tagline: 'Seamless smart device setup in every room.',
-    intro: 'From smart thermostats and doorbells to locks, cameras, lighting systems, hubs, Wi-Fi, and streaming devices — we install, connect, and test every device so it works perfectly the first time.',
+    intro: 'From smart thermostats and doorbells to locks, cameras, lighting systems, hubs, Wi-Fi, and streaming devices. We install, connect, and test every device so it works perfectly the first time.',
     heroPhoto: 'service-smart-home.jpg',
     heroAlt: 'Assembler installing a smart video doorbell at a front entry',
     heroSummary: 'Doorbells, locks, thermostats, cameras, and smart plugs installed, connected, and tested before we leave.',
@@ -444,13 +444,13 @@ const SERVICES = [
     pricingHighlights: [
       { name: 'Smart plug install + setup (per 2 plugs)', price: '$69', popular: false },
       { name: 'Smart Thermostat (Nest, Ecobee)', price: '$99', popular: true },
-      { name: 'Smart Doorbell — wireless', price: '$89', popular: false },
+      { name: 'Smart Doorbell (wireless)', price: '$89', popular: false },
       { name: 'Camera System (4 cameras)', price: '$279', popular: false },
     ],
     faqs: [
-      { q: 'Do I need WiFi set up before the appointment?', a: 'Yes — a working WiFi network is required. We handle all device pairing, configuration, and app setup during the visit.' },
+      { q: 'Do I need WiFi set up before the appointment?', a: 'Yes. a working WiFi network is required. We handle all device pairing, configuration, and app setup during the visit.' },
       { q: 'Can you install a smart thermostat without a C-wire?', a: 'Yes. Choose the no-C-wire thermostat option in booking; current catalog price is $129.' },
-      { q: 'Do you set up the app on my phone too?', a: 'Yes — we configure and test the device app on your phone before we leave, so everything works before we go.' },
+      { q: 'Do you set up the app on my phone too?', a: 'Yes. we configure and test the device app on your phone before we leave, so everything works before we go.' },
     ],
     relatedService: 'tv-mounting',
     brands: ['Nest', 'Ring', 'Ecobee', 'August', 'Schlage', 'Lutron', 'Philips Hue'],
@@ -461,7 +461,7 @@ const SERVICES = [
     slug: 'fitness-equipment-assembly',
     bookingParam: 'Fitness+Equipment',
     tagline: 'Get your home gym set up and ready to use.',
-    intro: 'We assemble treadmills, ellipticals, stationary bikes, rowing machines, weight benches, squat racks, and cable machines — heavy equipment handled safely and placed exactly where you want it.',
+    intro: 'We assemble treadmills, ellipticals, stationary bikes, rowing machines, weight benches, squat racks, and cable machines. Heavy equipment is handled safely and placed exactly where you want it.',
     heroPhoto: 'service-fitness-equipment.jpg',
     heroAlt: 'Assembler building a treadmill in a home gym',
     heroSummary: 'Treadmills, bikes, benches, racks, and home gym pieces assembled solid, leveled, and ready to train.',
@@ -473,7 +473,7 @@ const SERVICES = [
       { name: 'Squat Rack / Power Cage', price: '$279', popular: false },
     ],
     faqs: [
-      { q: 'Do you move the equipment to the right room?', a: 'Yes — same-floor equipment moves can be added during booking. Heavy or stair moves may need a custom quote.' },
+      { q: 'Do you move the equipment to the right room?', a: 'Yes. same-floor equipment moves can be added during booking. Heavy or stair moves may need a custom quote.' },
       { q: 'Can you assemble Peloton or NordicTrack machines?', a: 'Yes. We assemble all major brands including Peloton, NordicTrack, Bowflex, Life Fitness, Concept2, and more.' },
       { q: 'What if the machine is very heavy?', a: 'We\'re prepared for heavy equipment. Very large machines or two-person moves may need a custom quote before booking.' },
     ],
@@ -486,7 +486,7 @@ const SERVICES = [
     slug: 'playset-assembly',
     bookingParam: 'Outdoor+%26+Playsets',
     tagline: 'Professional outdoor playset, trampoline, and structure assembly.',
-    intro: 'We assemble swing sets, playsets, trampolines, pergolas, gazebos, storage sheds, and outdoor structures — fully built, safely leveled, and ready for your family to enjoy.',
+    intro: 'We assemble swing sets, playsets, trampolines, pergolas, gazebos, storage sheds, and outdoor structures, fully built, safely leveled, and ready for your family to enjoy.',
     heroPhoto: 'service-outdoor-playsets.jpg',
     heroAlt: 'Assembler building a backyard playset frame with the completed set behind him',
     heroSummary: 'Playsets, trampolines, pergolas, gazebos, and backyard builds assembled safely and checked before we leave.',
@@ -500,7 +500,7 @@ const SERVICES = [
       { name: 'Pergola / Gazebo Kit', price: 'Custom quote', popular: false },
     ],
     faqs: [
-      { q: 'Do you anchor the playset to the ground?', a: 'Yes — we anchor and level to the manufacturer\'s spec and check stability before play. If your kit or ground needs extra anchoring, coordinate with your pro.' },
+      { q: 'Do you anchor the playset to the ground?', a: 'Yes. we anchor and level to the manufacturer\'s spec and check stability before play. If your kit or ground needs extra anchoring, coordinate with your pro.' },
       { q: 'How long does playset assembly take?', a: 'Small outdoor items may take a couple of hours. Large modular playsets, gazebos, and sheds often take longer and may need a custom quote.' },
       { q: 'Do you work on concrete pads or grass?', a: 'Both. Grass, concrete, paver, and deck installs are supported. Tell us your surface type when booking.' },
     ],
@@ -513,7 +513,7 @@ const SERVICES = [
     slug: 'office-furniture-assembly',
     bookingParam: 'Office+Assembly',
     tagline: 'Home office and commercial workspace setup done right.',
-    intro: 'We assemble desks, standing desks, L-shaped workstations, office chairs, bookcases, filing cabinets, conference tables, and storage — for home offices, commercial spaces, and everything in between.',
+    intro: 'We assemble desks, standing desks, L-shaped workstations, office chairs, bookcases, filing cabinets, conference tables, and storage for home offices, commercial spaces, and everything in between.',
     heroPhoto: 'service-office-assembly.jpg',
     heroAlt: 'Assembler tightening the leg on a standing desk in a home office',
     heroSummary: 'Desks, chairs, cabinets, and workstations built square, leveled, and ready for a productive day.',
@@ -525,9 +525,9 @@ const SERVICES = [
       { name: 'Electric Standing Desk', price: '$199', popular: false },
     ],
     faqs: [
-      { q: 'Can you do a full office setup in one visit?', a: 'Yes — we can knock out multiple desks, chairs, and shelving units in a single visit. Bundle pricing applies for 3+ qualifying items booked together.' },
+      { q: 'Can you do a full office setup in one visit?', a: 'Yes. we can knock out multiple desks, chairs, and shelving units in a single visit. Bundle pricing applies for 3+ qualifying items booked together.' },
       { q: 'Do you assemble motorized standing desks?', a: 'Yes. We assemble and test all electric standing desks including UPLIFT, Flexispot, Autonomous, and similar brands.' },
-      { q: 'Can you handle a commercial office buildout?', a: 'Yes — we work with businesses, real estate offices, and coworking spaces. Contact us for a custom quote on larger commercial projects.' },
+      { q: 'Can you handle a commercial office buildout?', a: 'Yes. we work with businesses, real estate offices, and coworking spaces. Contact us for a custom quote on larger commercial projects.' },
     ],
     relatedService: 'furniture-assembly',
     brands: ['UPLIFT', 'Flexispot', 'IKEA', 'Autonomous', 'Hon', 'Steelcase', 'Branch'],
@@ -949,7 +949,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
           <p class="pricing-band-text">If the setup is a little different, add the item list, wall type, or room notes in booking so we can confirm the right visit before it is scheduled.</p>
         </div>
         <div class="pricing-band-actions">
-          <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Check Availability &mdash; ${esc(city.name)}</a>
+          <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Check Availability in ${esc(city.name)}</a>
           <p class="pricing-band-note">Add item count, wall details, or room notes and we will review everything before the visit.</p>
         </div>
       </div>
