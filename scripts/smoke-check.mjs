@@ -136,8 +136,12 @@ if (!customerReviewsSection) throw new Error('Homepage customer reviews section 
 
 const displayedReviewCount = Number(customerReviewsSection.match(/(\d+)\s+Google reviews/)?.[1] || 0);
 const customerReviewCount = (customerReviewsSection.match(/{b:"/g) || []).length;
-if (!displayedReviewCount || displayedReviewCount !== customerReviewCount) {
-  throw new Error(`Homepage Google review count must match carousel cards; displayed ${displayedReviewCount}, found ${customerReviewCount}`);
+// The carousel is a SAMPLE of the reviews on Google, not the complete set --
+// requiring displayed === cards forced either a stale number or a carousel
+// that grows without bound. What must never happen is the reverse: showing
+// more review cards than the site claims exist, or claiming none at all.
+if (!displayedReviewCount || customerReviewCount === 0 || displayedReviewCount < customerReviewCount) {
+  throw new Error(`Homepage Google review count must be a real number and at least the carousel card count; displayed ${displayedReviewCount}, cards ${customerReviewCount}`);
 }
 
 const faviconSvg = readFileSync('images/favicon.svg', 'utf8');
