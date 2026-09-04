@@ -88,8 +88,8 @@ export default async function handler(req, res) {
 
   if (![BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED].includes(booking.status)) {
     const message = [BOOKING_STATUS.EN_ROUTE, BOOKING_STATUS.ARRIVED, BOOKING_STATUS.IN_PROGRESS].includes(booking.status)
-      ? 'Your Easer is already on the way or working. Please call 737-290-6129 to make changes.'
-      : 'This booking can no longer be rescheduled. Please call 737-290-6129.';
+      ? 'Your Easer is already on the way or working. Please call (979) 232-5139 to make changes.'
+      : 'This booking can no longer be rescheduled. Please call (979) 232-5139.';
     return res.status(400).json({ error: message });
   }
 
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
   }
   if (priorReschedules >= MAX_RESCHEDULES) {
     return res.status(409).json({
-      error: `This booking has already been rescheduled ${MAX_RESCHEDULES} times. Please call 737-290-6129 for further changes.`,
+      error: `This booking has already been rescheduled ${MAX_RESCHEDULES} times. Please call (979) 232-5139 for further changes.`,
       code: 'RESCHEDULE_LIMIT_REACHED',
     });
   }

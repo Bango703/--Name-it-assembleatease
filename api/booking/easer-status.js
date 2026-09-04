@@ -215,7 +215,7 @@ export default async function handler(req, res) {
   // highest-anxiety click ("is my pro here?") — it must never dead-end on a form.
   const trackUrl = guestManageUrl(booking);
   const trackButton = `<table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="${trackUrl}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Track your booking</a></td></tr></table>`;
-  const reachUs = `<p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Need to reach ${esc(easerFirstName)}? Call or text us at <a href="tel:+17372906129" style="color:#00BFFF;text-decoration:none">737-290-6129</a> and we'll connect you.</p>`;
+  const reachUs = `<p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Need to reach ${esc(easerFirstName)}? Call or text us at <a href="tel:+19792325139" style="color:#00BFFF;text-decoration:none">(979) 232-5139</a> and we'll connect you.</p>`;
   const customerMessages = {
     en_route: {
       subject: `Your Easer is on the way — ${esc(booking.ref)}`,

@@ -153,7 +153,7 @@ function buildServiceSchema(cfg, city) {
       '@id': 'https://www.assembleatease.com/#organization',
       name: 'AssembleAtEase',
       url: 'https://www.assembleatease.com',
-      telephone: '+17372906129',
+      telephone: '+19792325139',
       email: 'service@assembleatease.com',
     },
     areaServed: {

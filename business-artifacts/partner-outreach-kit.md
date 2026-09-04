@@ -41,7 +41,7 @@ Then hand them the counter-card (QR). That's the whole ask.
 >
 > Could I stop by this week and leave a few cards?
 >
-> [Name] · AssembleAtEase · (737) 290-6129 · assembleatease.com
+> [Name] · AssembleAtEase · (979) 232-5139 · assembleatease.com
 
 **B. Realtor / closing agent**
 
@@ -55,7 +55,7 @@ Then hand them the counter-card (QR). That's the whole ask.
 >
 > Want me to drop off a small stack of cards for your closing folders?
 >
-> [Name] · AssembleAtEase · (737) 290-6129 · assembleatease.com
+> [Name] · AssembleAtEase · (979) 232-5139 · assembleatease.com
 
 **C. Moving company (partner, not competitor)**
 
@@ -67,7 +67,7 @@ Then hand them the counter-card (QR). That's the whole ask.
 >
 > Happy to send referrals your way too. Can I leave cards with your dispatcher?
 >
-> [Name] · AssembleAtEase · (737) 290-6129
+> [Name] · AssembleAtEase · (979) 232-5139
 
 ## 4. What we say that competitors can't
 

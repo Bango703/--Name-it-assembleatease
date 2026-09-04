@@ -619,7 +619,7 @@ section#service-area{display:block}
 .trust-strip{display:none!important}
 .how-section{display:none!important}
 </style>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","@id":"https://www.assembleatease.com/#organization","name":"AssembleAtEase","legalName":"AssembleAtEase LLC","url":"https://www.assembleatease.com","logo":{"@type":"ImageObject","url":"https://www.assembleatease.com/images/logo.jpg"},"email":"service@assembleatease.com","telephone":"+17372906129","foundingLocation":{"@type":"City","name":"Austin","addressRegion":"TX","addressCountry":"US"},"areaServed":{"@type":"State","name":"Texas"},"contactPoint":{"@type":"ContactPoint","contactType":"customer service","telephone":"+17372906129","email":"service@assembleatease.com","areaServed":"US-TX","availableLanguage":"English","hoursAvailable":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"07:00","closes":"17:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Saturday","opens":"07:00","closes":"13:00"}]},"sameAs":["https://www.google.com/maps?cid=7847022131459448801","https://www.facebook.com/people/Assembleatease/61572042722009/","https://www.linkedin.com/company/133355841","https://www.yelp.com/biz/assembleatease-austin","https://local.yahoo.com/info-233982268-assembleatease-austin/"]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","@id":"https://www.assembleatease.com/#organization","name":"AssembleAtEase","legalName":"AssembleAtEase LLC","url":"https://www.assembleatease.com","logo":{"@type":"ImageObject","url":"https://www.assembleatease.com/images/logo.jpg"},"email":"service@assembleatease.com","telephone":"+19792325139","foundingLocation":{"@type":"City","name":"Austin","addressRegion":"TX","addressCountry":"US"},"areaServed":{"@type":"State","name":"Texas"},"contactPoint":{"@type":"ContactPoint","contactType":"customer service","telephone":"+19792325139","email":"service@assembleatease.com","areaServed":"US-TX","availableLanguage":"English","hoursAvailable":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"07:00","closes":"17:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Saturday","opens":"07:00","closes":"13:00"}]},"sameAs":["https://www.google.com/maps?cid=7847022131459448801","https://www.facebook.com/people/Assembleatease/61572042722009/","https://www.linkedin.com/company/133355841","https://www.yelp.com/biz/assembleatease-austin","https://local.yahoo.com/info-233982268-assembleatease-austin/"]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","@id":"https://www.assembleatease.com/#website","name":"AssembleAtEase","url":"https://www.assembleatease.com","publisher":{"@id":"https://www.assembleatease.com/#organization"}}</script>
 <script src="/assets/js/site-promo.js" defer></script>
 <script src="/assets/js/booking-source-of-truth.js" defer></script>
@@ -1409,7 +1409,7 @@ section#service-area{display:block}
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and custom setup services.</p>
       <div class="footer-contact">
-        <a href="tel:+17372906129">737-290-6129</a>
+        <a href="tel:+19792325139">(979) 232-5139</a>
         <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
       </div>
       <div class="footer-social">
@@ -1817,7 +1817,7 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
     h=h.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
     h=h.replace(/(^|[\s(>])(\/(?:book|pricing|blog|about|contact|track)[A-Za-z0-9_%?=&;+.\/-]*)/g,'$1<a href="$2">$2</a>');
     h=h.replace(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g,'<a href="mailto:$1">$1</a>');
-    h=h.replace(/(?:\(737\)\s?|737-)290-6129/g,'<a href="tel:+17372906129">737-290-6129</a>');
+    h=h.replace(/(?:\(737\)\s?|737-)290-6129/g,'<a href="tel:+19792325139">(979) 232-5139</a>');
     return h;
   }
   function bubble(cls,html){var d=document.createElement('div');d.className='aae-msg '+cls;d.innerHTML=html;bodyEl.appendChild(d);bodyEl.scrollTop=bodyEl.scrollHeight;return d;}
@@ -1839,7 +1839,7 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
       .then(function(r){return r.json().catch(function(){return {};});})
       .then(function(data){
         t.remove();
-        var reply=(data&&data.reply)?data.reply:"I'm having trouble right now. You can email service@assembleatease.com or call 737-290-6129, or book at /book.";
+        var reply=(data&&data.reply)?data.reply:"I'm having trouble right now. You can email service@assembleatease.com or call (979) 232-5139, or book at /book.";
         bot(reply);
         hist.push({role:'assistant',content:reply});
         if(hist.length>12)hist=hist.slice(-12);
@@ -1848,7 +1848,7 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
       })
       .catch(function(){
         t.remove();
-        bot("I'm having trouble connecting. Please email service@assembleatease.com or call 737-290-6129, or book at /book.");
+        bot("I'm having trouble connecting. Please email service@assembleatease.com or call (979) 232-5139, or book at /book.");
         setBusy(false);
       });
   }

@@ -6,7 +6,7 @@ or customer support. Work it top to bottom and review results after each complet
 
 Business facts to use everywhere below:
 - Site: https://www.assembleatease.com  •  Book: https://www.assembleatease.com/book
-- Phone / text: (737) 290-6129  •  Email: service@assembleatease.com
+- Phone / text: (979) 232-5139  •  Email: service@assembleatease.com
 - Services: TV mounting, furniture assembly (incl. IKEA), fitness equipment, smart home, office, outdoor/playsets
 - Pricing model: flat upfront price + $5 service-call fee + tax, **full total shown before you confirm**
 - TV mounting from $79 (pictures/mirrors), TVs from $99. Furniture assembly: see /book for live total.
@@ -52,7 +52,7 @@ Headlines (mix 6–8; Google rotates):
 
 Descriptions:
 - Professional TV mounting across Austin. Flat upfront price + tax, no surprises. Book online today.
-- Cords concealed, mount level, mess cleaned up. See your exact total before you confirm. (737) 290-6129.
+- Cords concealed, mount level, mess cleaned up. See your exact total before you confirm. (979) 232-5139.
 
 ### Ad group 2 — Furniture / IKEA Assembly  → send to /furniture-assembly-austin-tx (IKEA → /ikea-assembly-austin-tx)
 Keywords:
@@ -73,7 +73,7 @@ Headlines:
 
 Descriptions:
 - We assemble IKEA, Wayfair, Amazon & more. Flat price + tax shown before you book. Austin metro.
-- Skip the frustration. Pro assembly, cleaned up, done right. Book online or call (737) 290-6129.
+- Skip the frustration. Pro assembly, cleaned up, done right. Book online or call (979) 232-5139.
 
 ### Ad group 3 — Fitness equipment  → send to /fitness-equipment-assembly-austin-tx
 Keywords: "treadmill assembly austin", "peloton assembly austin", "home gym assembly austin",
@@ -109,7 +109,7 @@ Search "AssembleAtEase" on Google, open your Business Profile, and:
 - [ ] Service area set to the Austin metro cities you serve.
 - [ ] Add 10–15 real job photos (before/after of mounts and assemblies — no stock, no logo-as-photo).
 - [ ] Add services with prices matching the site (TV from $99, etc.).
-- [ ] Turn on messaging + make sure the phone is (737) 290-6129.
+- [ ] Turn on messaging + make sure the phone is (979) 232-5139.
 - [ ] Post a weekly "Update" (a recent job photo + one line). Keeps the listing active in the map pack.
 - [ ] **Ask every completed customer for a Google review the same day** — this is your #1 long-term lead driver.
 
@@ -130,7 +130,7 @@ recommend. Visit 5 complexes near you. Hand the leasing manager 10 cards and thi
 > Subject: Move-in TV mounting & furniture assembly for your residents
 > Hi [Name] — great meeting you. AssembleAtEase handles TV mounting and furniture/IKEA assembly across
 > Austin with flat, upfront pricing. Send residents to assembleatease.com/book or have them text
-> (737) 290-6129. I can offer your community a move-in rate — just let me know. Thank you! — Travis
+> (979) 232-5139. I can offer your community a move-in rate — just let me know. Thank you! — Travis
 
 Same pitch works for **realtors** (closing gifts / new-homeowner setup) and **moving companies** (they get
 asked "who assembles this?" weekly — be their referral).
@@ -149,7 +149,7 @@ apartment-community groups, buy/sell/Marketplace. Read each group's rules — ma
 **Paste-ready post (for groups that allow it / your own page / Marketplace):**
 > Just moved or got new furniture? We're AssembleAtEase, a local Austin crew that does TV mounting and
 > furniture assembly (IKEA, Wayfair, Amazon — all of it). Flat upfront price, we show your total before you
-> book, and we clean up after. Book at assembleatease.com or text (737) 290-6129. Happy to answer questions!
+> book, and we clean up after. Book at assembleatease.com or text (979) 232-5139. Happy to answer questions!
 
 ---
 

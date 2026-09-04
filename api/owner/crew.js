@@ -273,7 +273,7 @@ export default async function handler(req, res) {
         <h2 style="color:#00BFFF">A second pro is joining your appointment</h2>
         <p>Hi ${esc((booking.customer_name || '').split(' ')[0] || 'there')}, we've added <strong>${esc(easer.full_name || 'a second pro')}</strong> to your ${esc(booking.service || 'appointment')} on <strong>${esc(booking.date || 'your scheduled date')}</strong>${booking.time ? ' at ' + esc(booking.time) : ''}.</p>
         <p>They'll be working alongside ${esc(booking.assembler_name || 'your Easer')}. <strong>Your price hasn't changed.</strong></p>
-        <p style="font-size:14px;color:#52525b">Questions? Call or text us at <a href="tel:+17372906129" style="color:#00BFFF;text-decoration:none">737-290-6129</a>.</p>
+        <p style="font-size:14px;color:#52525b">Questions? Call or text us at <a href="tel:+19792325139" style="color:#00BFFF;text-decoration:none">(979) 232-5139</a>.</p>
       </div>`,
       replyTo: ownerEmail(),
       meta: { bookingId, notificationType: 'crew_added', recipientType: 'customer', disableDedupe: true },

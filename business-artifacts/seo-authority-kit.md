@@ -12,7 +12,7 @@ business's accounts. Nothing here changes the site; it's yours to execute.
 Consistency is the whole point — copy/paste identically on every listing.
 
 - **Business name:** AssembleAtEase (legal entity: AssembleAtEase LLC)
-- **Phone:** 737-290-6129
+- **Phone:** (979) 232-5139
 - **Email:** service@assembleatease.com
 - **Website:** https://www.assembleatease.com
 - **Booking link:** https://www.assembleatease.com/book
@@ -78,7 +78,7 @@ designers · chambers of commerce · suppliers · any business you've completed 
 > and we're glad to send business your way too.
 >
 > Either way, thanks for the time.
-> [Your name] · AssembleAtEase · 737-290-6129 · https://www.assembleatease.com
+> [Your name] · AssembleAtEase · (979) 232-5139 · https://www.assembleatease.com
 
 ### Outreach email — after a completed job (warm)
 > **Subject:** Thanks — and a small ask

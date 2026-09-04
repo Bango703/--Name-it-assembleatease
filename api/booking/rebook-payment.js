@@ -509,7 +509,7 @@ function buildPaymentPage({ booking, token }) {
 }
 
 function buildSimplePage(title, body) {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AssembleAtEase</title></head><body style="font-family:Arial,sans-serif;background:#f4f4f5;color:#18181b"><main style="max-width:560px;margin:40px auto;background:#fff;padding:28px;border-radius:12px"><h1>${esc(title)}</h1><p style="line-height:1.65">${esc(body)}</p><p><a href="mailto:service@assembleatease.com">service@assembleatease.com</a> | 737-290-6129</p></main></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AssembleAtEase</title></head><body style="font-family:Arial,sans-serif;background:#f4f4f5;color:#18181b"><main style="max-width:560px;margin:40px auto;background:#fff;padding:28px;border-radius:12px"><h1>${esc(title)}</h1><p style="line-height:1.65">${esc(body)}</p><p><a href="mailto:service@assembleatease.com">service@assembleatease.com</a> | (979) 232-5139</p></main></body></html>`;
 }
 
 function jsonForScript(value) {

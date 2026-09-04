@@ -47,7 +47,7 @@ assert.match(profile, /Completion: '[\s\S]*t\.completionRate == null \? 'No scor
 assert.doesNotMatch(profile, /You’re at the top — Elite Pro/);
 assert.match(profile, /id="profile-support"/);
 assert.match(profile, /mailto:service@assembleatease\.com/);
-assert.match(profile, /tel:\+17372906129/);
+assert.match(profile, /tel:\+19792325139/);
 assert.match(profile, /Closure is not immediate/);
 assert.match(profile, /Existing scheduled jobs must be completed or reassigned/);
 assert.match(profile, /outstanding payouts must be resolved/);

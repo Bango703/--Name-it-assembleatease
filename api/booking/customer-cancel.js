@@ -430,7 +430,7 @@ export default async function handler(req, res) {
       stripeReconciled: true,
     });
     return res.status(500).json({
-      error: 'The payment action completed, but the cancellation could not be finalized. Please call us at 737-290-6129 and do not retry through another cancellation path.',
+      error: 'The payment action completed, but the cancellation could not be finalized. Please call us at (979) 232-5139 and do not retry through another cancellation path.',
       code: 'CANCELLATION_FINALIZE_FAILED',
     });
   }

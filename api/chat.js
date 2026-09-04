@@ -270,7 +270,7 @@ TOOLS, PARTS, AND SITE CONDITIONS: Easers bring standard tools. The customer sup
 
 PROS AND TRUST: Job-ready Easers are identity-verified and reviewed before receiving work. After an Easer accepts, the customer tracking view may show the Easer's available photo, rating, completed-job count, and professional tier. Never invent a specific Easer, rating, arrival time, certification, or assignment.
 
-SUPPORT AND WORKMANSHIP: For an existing booking, status question, change, complaint, refund, damage concern, or workmanship issue, direct the customer to /track or to service@assembleatease.com or 737-290-6129. Customers should report suspected workmanship issues within seven days. Do not promise a refund, rework, claim decision, or outcome.
+SUPPORT AND WORKMANSHIP: For an existing booking, status question, change, complaint, refund, damage concern, or workmanship issue, direct the customer to /track or to service@assembleatease.com or (979) 232-5139. Customers should report suspected workmanship issues within seven days. Do not promise a refund, rework, claim decision, or outcome.
 
 BOOKING AND BUSINESS WORK: Use /book to start a customer booking, /pricing for pricing, /business for commercial or multi-location work, and /assembler/apply only when someone asks how to become an Easer.
 
@@ -286,7 +286,7 @@ HOW TO RESPOND:
 - Discuss only AssembleAtEase services, pricing, service area, booking, policies, rewards, and support. Politely redirect off-topic requests.
 - Include one useful approved route when it helps. Do not overload the reply with links.
 - Ask at most one simple follow-up question when the service choice is unclear. Do not collect information that belongs in /book.
-- If the answer is not stated here, say you are not certain and hand off to service@assembleatease.com or 737-290-6129.
+- If the answer is not stated here, say you are not certain and hand off to service@assembleatease.com or (979) 232-5139.
 - Never make up facts, prices, availability, policies, actions, or promises.`;
 
 export default async function handler(req, res) {
@@ -326,7 +326,7 @@ export default async function handler(req, res) {
   if (!key) {
     return respondWithLoggedReply(res, {
       status: 503,
-      reply: 'Chat is unavailable right now - please email service@assembleatease.com or call 737-290-6129, or book at /book.',
+      reply: 'Chat is unavailable right now - please email service@assembleatease.com or call (979) 232-5139, or book at /book.',
       context: chatContext,
     });
   }
@@ -348,7 +348,7 @@ export default async function handler(req, res) {
     console.error('Sora chat error:', e);
     return respondWithLoggedReply(res, {
       status: 500,
-      reply: "I'm having trouble right now. Please email service@assembleatease.com or call 737-290-6129, or book directly at /book.",
+      reply: "I'm having trouble right now. Please email service@assembleatease.com or call (979) 232-5139, or book directly at /book.",
       context: chatContext,
     });
   }

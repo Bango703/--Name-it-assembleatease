@@ -716,7 +716,7 @@ export default async function handler(req, res) {
           metadata: { paymentIntentId: stripeErr.paymentIntentId || null },
         }).catch(activityError => console.error('Payment reconciliation activity log failed:', activityError?.message || activityError));
         return res.status(503).json({
-          error: `Payment setup needs review. Do not submit another booking. Contact 737-290-6129 with reference ${ref}.`,
+          error: `Payment setup needs review. Do not submit another booking. Contact (979) 232-5139 with reference ${ref}.`,
           code: 'PAYMENT_RECONCILIATION_REQUIRED',
           bookingRef: ref,
         });

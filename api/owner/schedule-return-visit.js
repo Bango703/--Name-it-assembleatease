@@ -143,7 +143,7 @@ export default async function handler(req, res) {
           headline: 'Your return appointment is confirmed',
           bodyHtml: `<p style="margin:0 0 14px;font-size:14px;color:#52525b;line-height:1.7">We completed <strong>${esc(completed)}</strong>.</p>
             <p style="margin:0 0 14px;font-size:14px;color:#52525b;line-height:1.7">We will return on <strong>${esc(returnDate)}${returnTime ? ` at ${esc(returnTime)}` : ''}</strong> to complete <strong>${esc(remaining)}</strong>.</p>
-            <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Reply here or call <a href="tel:+17372906129">737-290-6129</a>.</p>`,
+            <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Reply here or call <a href="tel:+19792325139">(979) 232-5139</a>.</p>`,
         }),
         replyTo: ownerEmail(),
         meta: {

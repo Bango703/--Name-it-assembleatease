@@ -24,7 +24,7 @@ if (!KEY) throw new Error('RESEND_API_KEY not found in .env.local');
 
 const ref = 'AAE-PREVIEW1';
 const trackBtn = (r) => `<table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="${SITE}/track?ref=${r}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Track your booking</a></td></tr></table>`;
-const reachUs = (name) => `<p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Need to reach ${esc(name)}? Call or text us at <a href="tel:+17372906129" style="color:#00BFFF;text-decoration:none">737-290-6129</a> and we'll connect you.</p>`;
+const reachUs = (name) => `<p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Need to reach ${esc(name)}? Call or text us at <a href="tel:+19792325139" style="color:#00BFFF;text-decoration:none">(979) 232-5139</a> and we'll connect you.</p>`;
 
 // review-request.js email, reproduced (the real "Leave Your Review" button).
 const reviewEmail = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
@@ -47,7 +47,7 @@ const emails = [
     html: buildPayoutEmail({ firstName: 'Travis', ref, service: 'King Bed Frame Assembly', date: 'Jul 17', payoutDisplay: '$71.13', method: 'zelle', isCancellation: false }) },
   { who: 'Customer', subject: `Your Easer is confirmed — ${ref}`,
     html: buildStatusEmail({ customerName: 'Gupta', ref, status: 'Confirmed', statusColor: '#065f46', statusBg: '#d1fae5',
-      headline: 'Your Easer is confirmed.', bodyHtml: `<p style="margin:0;font-size:15px;color:#52525b;line-height:1.7">Hi Gupta, good news — <strong>Travis</strong> will be handling your <strong>King Bed Frame Assembly</strong> on <strong>Sat, Jul 20</strong> at <strong>10:00 AM</strong>. We'll send another note when they're on the way.</p>${trackBtn(ref)}<p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Questions before then? Call or text us at <a href="tel:+17372906129" style="color:#00BFFF;text-decoration:none">737-290-6129</a>.</p>` }) },
+      headline: 'Your Easer is confirmed.', bodyHtml: `<p style="margin:0;font-size:15px;color:#52525b;line-height:1.7">Hi Gupta, good news — <strong>Travis</strong> will be handling your <strong>King Bed Frame Assembly</strong> on <strong>Sat, Jul 20</strong> at <strong>10:00 AM</strong>. We'll send another note when they're on the way.</p>${trackBtn(ref)}<p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Questions before then? Call or text us at <a href="tel:+19792325139" style="color:#00BFFF;text-decoration:none">(979) 232-5139</a>.</p>` }) },
   { who: 'Customer', subject: `Your Easer is on the way — ${ref}`,
     html: buildStatusEmail({ customerName: 'Gupta', ref, status: 'On the way', statusColor: '#1d4ed8', statusBg: '#dbeafe',
       headline: 'Your Easer is on the way.', bodyHtml: `<p style="margin:0;font-size:15px;color:#52525b;line-height:1.7">Hi Gupta, Travis is heading to you now and should arrive around 10:00 AM.</p>${trackBtn(ref)}${reachUs('Travis')}` }) },

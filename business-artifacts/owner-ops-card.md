@@ -4,7 +4,7 @@ One page. What to check, and what to do when something fails. This is a *routine
 not a system — every workflow named here already exists in the owner dashboard.
 Keep it lean; expand only when real volume demands it.
 
-**Contact for customers/Easers:** (737) 290-6129 · service@assembleatease.com
+**Contact for customers/Easers:** (979) 232-5139 · service@assembleatease.com
 **Response promise:** during business hours, within one business day.
 
 ---

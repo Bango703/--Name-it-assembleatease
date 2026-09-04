@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     <div style="font-size:34px;font-weight:800;letter-spacing:7px;color:#0d2430;background:#f6fafb;border:1px solid #e5edf0;border-radius:10px;padding:14px 0">${esc(code)}</div>
     <p style="margin:18px 0 0;font-size:13px;color:#73828a">This code expires in ${ASSEMBLECASH.CODE_TTL_MIN} minutes. If you didn't request it, you can ignore this email.</p>
   </div>
-  <p style="text-align:center;margin:14px 0 0;font-size:12px;color:#9aa7ad">AssembleAtEase &middot; 737-290-6129</p>
+  <p style="text-align:center;margin:14px 0 0;font-size:12px;color:#9aa7ad">AssembleAtEase &middot; (979) 232-5139</p>
 </div></body></html>`,
     });
   } catch (e) {
