@@ -8063,7 +8063,12 @@ function showMarketDemandConfirmation(ref) {
 
 function showConfirmation(ref, isQuote, isScheduledAuthorization) {
 
-  if (window.gtag) gtag('event', 'conversion', { send_to: 'AW-16551666395/7KS0CIjz1aMcENvFudQ9', transaction_id: ref });
+  if (!isQuote && window.gtag) window.gtag('event', 'conversion', {
+    send_to: 'AW-16551666395/7KS0CIjz1aMcENvFudQ9',
+    transaction_id: ref,
+    value: Number(BOOK._grandTotalCents || 0) / 100,
+    currency: 'USD'
+  });
   trackBookingFunnelOnce('booking_completed', {
     transaction_id: ref,
     value: Number(BOOK._grandTotalCents || 0) / 100,

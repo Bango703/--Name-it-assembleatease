@@ -37,7 +37,7 @@ function resolveFooterOptions(pagePath) {
   if (pagePath === 'bundles.html') {
     return {
       variant: 'service_support',
-      tagline: 'Flat-price home setup &mdash; furniture, TV mounting, smart home, office, and whole-room bundles with reviewed local pros.',
+      tagline: 'Flat-price home setup: furniture, TV mounting, smart home, office, and whole-room bundles with reviewed local pros.',
     };
   }
 
