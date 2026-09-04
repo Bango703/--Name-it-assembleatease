@@ -237,7 +237,7 @@ export default async function handler(req, res) {
               <tr><td style="padding:10px 0;color:#71717a">Quote Total</td><td style="padding:10px 0;font-weight:800;font-size:18px;color:#065f46">$${esc(quoteDollars)}</td></tr>
             </table>
             ${quoteNote ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:16px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">${esc(quoteNote)}</td></tr></table>` : ''}
-            <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Reply to this email or call us at 737-290-6129.</p>`,
+            <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Reply to this email or call us at (979) 232-5139.</p>`,
         });
         const customerResult = await sendEmail({
           to: booking.customer_email,
@@ -268,7 +268,7 @@ export default async function handler(req, res) {
             headline: 'Your booking has been updated.',
             bodyHtml: `<p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.7">We've made the following changes to your booking:</p>
               <ul style="margin:0 0 20px;padding-left:1.25rem;font-size:14px;color:#52525b;line-height:1.9">${changed.map(c => '<li>' + c + '</li>').join('')}</ul>
-              <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Reply to this email or call us at 737-290-6129.</p>`,
+              <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Reply to this email or call us at (979) 232-5139.</p>`,
           });
           const customerResult = await sendEmail({
             to: booking.customer_email,

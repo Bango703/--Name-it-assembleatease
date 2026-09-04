@@ -636,7 +636,7 @@ function generatePage(city, service) {
       '@id': 'https://www.assembleatease.com/#organization',
       'name': 'AssembleAtEase',
       'url': 'https://www.assembleatease.com',
-      'telephone': '+17372906129',
+      'telephone': '+19792325139',
       'email': 'service@assembleatease.com',
       'foundingLocation': { '@type': 'City', 'name': 'Austin', 'addressRegion': 'TX', 'addressCountry': 'US' },
       'areaServed': { '@type': 'State', 'name': 'Texas' },
@@ -1045,7 +1045,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
     <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem">Ready to get it done in ${esc(city.name)}?</h2>
     <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Tell us what is waiting to get done, choose an appointment, and receive assignment updates after booking.</p>
     <a href="/book?service=${service.bookingParam}" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0d2b45;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Check availability &rarr;</a>
-    <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">737-290-6129</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
+    <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+19792325139" style="color:rgba(255,255,255,0.7);text-decoration:none">(979) 232-5139</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
   </div>
 </section>
 

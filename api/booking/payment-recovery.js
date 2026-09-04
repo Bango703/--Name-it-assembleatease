@@ -222,7 +222,7 @@ function buildRecoveryPage({ booking, token }) {
 }
 
 function buildSimplePage(title, body) {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AssembleAtEase secure payment</title><style>body{margin:0;background:#f4f4f5;color:#18181b;font-family:Arial,sans-serif}.card{max-width:540px;margin:50px auto;background:#fff;border:1px solid #e4e4e7;border-radius:12px;padding:28px}p{line-height:1.7;color:#52525b}</style></head><body><main class="card"><h1>${esc(title)}</h1><p>${body}</p><p>Support: <a href="mailto:service@assembleatease.com">service@assembleatease.com</a> or 737-290-6129.</p></main></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AssembleAtEase secure payment</title><style>body{margin:0;background:#f4f4f5;color:#18181b;font-family:Arial,sans-serif}.card{max-width:540px;margin:50px auto;background:#fff;border:1px solid #e4e4e7;border-radius:12px;padding:28px}p{line-height:1.7;color:#52525b}</style></head><body><main class="card"><h1>${esc(title)}</h1><p>${body}</p><p>Support: <a href="mailto:service@assembleatease.com">service@assembleatease.com</a> or (979) 232-5139.</p></main></body></html>`;
 }
 
 function jsonForScript(value) {

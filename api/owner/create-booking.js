@@ -498,7 +498,7 @@ export default async function handler(req, res) {
       <p><strong>What to expect:</strong> your pro arrives within the scheduled window, confirms the work, completes the assembly, and cleans up. We'll follow up if anything about the appointment changes.</p>
       <p style="font-size:13px;color:#52525b;line-height:1.6">This booking was arranged directly with AssembleAtEase under our current <a href="https://www.assembleatease.com/terms">Terms &amp; Conditions</a> and <a href="https://www.assembleatease.com/privacy">Privacy Notice</a>. Contact us before service if any booking detail is incorrect.</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="https://www.assembleatease.com/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(cleanEmail)}&token=${encodeURIComponent(guestMutationToken)}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Review and track booking</a></td></tr></table>
-      <p style="margin-top:18px">Questions? Reply to this email, call <a href="tel:+17372906129">737-290-6129</a>, or write <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`;
+      <p style="margin-top:18px">Questions? Reply to this email, call <a href="tel:+19792325139">(979) 232-5139</a>, or write <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`;
     try {
       const emailResult = await sendEmail({
         to: cleanEmail,
@@ -542,7 +542,7 @@ export default async function handler(req, res) {
           statusBg: '#d1fae5',
           headline: 'Your job is complete',
           bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(cleanService)}</strong> service is complete. Thank you for choosing AssembleAtEase.</p>
-            <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Questions? Reply here, call <a href="tel:+17372906129">737-290-6129</a>, or email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`,
+            <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Questions? Reply here, call <a href="tel:+19792325139">(979) 232-5139</a>, or email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`,
         }),
         replyTo: ownerEmail(),
         meta: { bookingId, notificationType: 'completion', recipientType: 'customer' },

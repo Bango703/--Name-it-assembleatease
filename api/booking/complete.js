@@ -584,7 +584,7 @@ async function completeOwnerManualBooking(sb, res, booking) {
         headline: 'Your job is complete!',
         bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> service is complete. Thank you for choosing AssembleAtEase!</p>
           ${buildReviewCta()}
-          <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Questions? Reply here, call <a href="tel:+17372906129">737-290-6129</a>, or email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`,
+          <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Questions? Reply here, call <a href="tel:+19792325139">(979) 232-5139</a>, or email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`,
       }),
       replyTo: ownerEmail(),
       meta: { bookingId: booking.id, notificationType: 'completion', recipientType: 'customer' },

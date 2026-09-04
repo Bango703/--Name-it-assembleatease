@@ -94,7 +94,7 @@ export default async function handler(req, res) {
               <li><strong>Cancel</strong> — no cancellation fee, and your card is released in full.</li>
             </ul>
             <p style="margin-top:18px"><a href="${manageUrl}" style="display:inline-block;background:#00BFFF;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Reschedule or cancel</a></p>
-            <p style="font-size:14px;color:#52525b;line-height:1.7">We are still trying to fill it. If a pro accepts before you decide, we will let you know straight away. Questions, or want us to keep trying? Call or text <a href="tel:+17372906129" style="color:#00BFFF;text-decoration:none">737-290-6129</a>.</p>
+            <p style="font-size:14px;color:#52525b;line-height:1.7">We are still trying to fill it. If a pro accepts before you decide, we will let you know straight away. Questions, or want us to keep trying? Call or text <a href="tel:+19792325139" style="color:#00BFFF;text-decoration:none">(979) 232-5139</a>.</p>
             <p style="font-size:13px;color:#71717a">This is our shortfall, not yours. Sorry for the disruption.</p>
           </div>`,
           replyTo: ownerEmail(),

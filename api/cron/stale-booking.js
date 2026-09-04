@@ -123,7 +123,7 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#166534;line-height:1.6">
       Your booking remains secure and confirmed.<br/>You will receive an updated Easer confirmation after reassignment.<br/>Your existing payment authorization has not changed; capture occurs only after completion.
     </td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a">Questions? Reply to this email or call us at 737-290-6129.</p>
+    <p style="margin:0;font-size:13px;color:#71717a">Questions? Reply to this email or call us at (979) 232-5139.</p>
   </td></tr></table>
 </div></body></html>`,
         replyTo: ownerEmail(),

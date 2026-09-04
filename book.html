@@ -3470,7 +3470,7 @@
 
             Confirmation sent to <strong id="confirm-email"></strong><br>
 
-            Questions <a href="mailto:service@assembleatease.com" style="color:var(--teal)">service@assembleatease.com</a> &nbsp;•&nbsp; <a href="tel:+17372906129" style="color:var(--teal)">737-290-6129</a>
+            Questions <a href="mailto:service@assembleatease.com" style="color:var(--teal)">service@assembleatease.com</a> &nbsp;•&nbsp; <a href="tel:+19792325139" style="color:var(--teal)">(979) 232-5139</a>
 
           </p>
 
@@ -3516,7 +3516,7 @@
 
     &copy; <span id="book-year"></span> AssembleAtEase • 
 
-    <a href="tel:+17372906129" style="color:rgba(255,255,255,0.6);text-decoration:none">737-290-6129</a> •
+    <a href="tel:+19792325139" style="color:rgba(255,255,255,0.6);text-decoration:none">(979) 232-5139</a> •
 
     <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.6);text-decoration:none">service@assembleatease.com</a><br>
     <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.6);text-decoration:none">Follow us on Facebook</a><br>
@@ -8191,7 +8191,7 @@ function showConfirmation(ref, isQuote, isScheduledAuthorization) {
 
         + '&dates=' + s + '/' + e
 
-        + '&details=' + encodeURIComponent('Booking ref: ' + (ref||'') + '\nAssembleAtEase\n737-290-6129')
+        + '&details=' + encodeURIComponent('Booking ref: ' + (ref||'') + '\nAssembleAtEase\n(979) 232-5139')
 
         + '&location=' + encodeURIComponent(BOOK.address||'Service address to be confirmed');
 
@@ -8226,7 +8226,7 @@ function showConfirmationPending(ref, message) {
   var refEl=document.getElementById('confirm-ref');
   if(refEl) refEl.textContent=ref ? 'Ref: '+ref : '';
   var steps=document.getElementById('confirm-next-steps');
-  if(steps) steps.innerHTML='<div style="font-size:0.9rem;color:var(--ink-soft);line-height:1.6"><strong style="color:var(--ink)">Do not submit another booking.</strong> Your card authorization exists, but we could not finish confirming the booking. Retry this page or contact 737-290-6129 with your reference.<br><br>'+esc(message||'Confirmation is still pending.')+'</div>';
+  if(steps) steps.innerHTML='<div style="font-size:0.9rem;color:var(--ink-soft);line-height:1.6"><strong style="color:var(--ink)">Do not submit another booking.</strong> Your card authorization exists, but we could not finish confirming the booking. Retry this page or contact (979) 232-5139 with your reference.<br><br>'+esc(message||'Confirmation is still pending.')+'</div>';
   var portal=document.getElementById('confirm-portal-link'); if(portal) portal.style.display='none';
   var cal=document.getElementById('confirm-calendar-link'); if(cal) cal.style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
