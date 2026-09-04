@@ -40,15 +40,32 @@ export async function getPayoutTransferIds(stripe, payoutId, connectedAccount) {
   if (!payoutId || !connectedAccount) return [];
 
   const transferIds = new Set();
+  // `expand` is required. On the DESTINATION account a platform transfer lands
+  // as a balance transaction of type 'payment' whose source is a charge (py_…),
+  // and only the expanded charge carries source_transfer — the tr_… id we store
+  // on the booking. Without expansion the source is a bare string and the link
+  // back to the transfer is unrecoverable.
   const transactions = stripe.balanceTransactions.list(
-    { payout: payoutId, limit: 100 },
+    { payout: payoutId, limit: 100, expand: ['data.source'] },
     { stripeAccount: connectedAccount },
   );
 
   for await (const transaction of transactions) {
-    const sourceId = typeof transaction.source === 'string'
-      ? transaction.source
-      : transaction.source?.id;
+    const source = transaction.source;
+    const sourceId = typeof source === 'string' ? source : source?.id;
+
+    // Money arriving on a connected account from the platform is type
+    // 'payment', NOT 'transfer'. On a connected account 'transfer' means funds
+    // leaving to somewhere else. Matching only 'transfer'/tr_ found nothing on
+    // every real payout, so payout.paid was ignored every time and no Easer was
+    // ever marked paid — the owner dashboard showed "Processing bank payout"
+    // forever while the money had already reached their bank.
+    if (transaction.type === 'payment' && typeof source === 'object' && source?.source_transfer) {
+      transferIds.add(source.source_transfer);
+      continue;
+    }
+
+    // Kept for topologies where the transfer does appear as such.
     if (transaction.type === 'transfer' && sourceId?.startsWith('tr_')) {
       transferIds.add(sourceId);
     }

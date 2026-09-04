@@ -37,16 +37,26 @@ const payoutTransferIds = await getPayoutTransferIds({
           yield { type: 'charge', source: 'ch_unrelated' };
           yield { type: 'transfer', source: { id: 'tr_included_2' } };
           yield { type: 'transfer', source: 'tr_included_1' };
+          // How a platform transfer ACTUALLY appears on the destination
+          // account: type 'payment', source is a charge, and only the expanded
+          // charge carries source_transfer. Matching 'transfer'/tr_ alone found
+          // nothing on every real payout, so payout.paid was ignored every time
+          // and no Easer was ever marked paid.
+          yield { type: 'payment', source: { id: 'py_1', source_transfer: 'tr_included_3' } };
+          // The payout's own debit line must never be mistaken for earnings.
+          yield { type: 'payout', source: { id: 'po_test' } };
         },
       };
     },
   },
 }, 'po_test', 'acct_test');
 assert.deepEqual(payoutListCalls, [{
-  params: { payout: 'po_test', limit: 100 },
+  // expand is REQUIRED: without it source is a bare string and source_transfer
+  // is unreachable, which is exactly how the linkage silently returned [].
+  params: { payout: 'po_test', limit: 100, expand: ['data.source'] },
   options: { stripeAccount: 'acct_test' },
 }]);
-assert.deepEqual(payoutTransferIds, ['tr_included_1', 'tr_included_2']);
+assert.deepEqual(payoutTransferIds, ['tr_included_1', 'tr_included_2', 'tr_included_3']);
 
 const booking = { id: '11111111-1111-4111-8111-111111111111', ref: 'AAE-TEST123', customer_email: 'customer@example.com' };
 const token = deriveGuestMutationToken({ bookingId: booking.id, ref: booking.ref, email: booking.customer_email });
