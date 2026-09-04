@@ -127,8 +127,21 @@ assert.match(webhookApi, /Webhook processing failed and is retryable/, 'webhook 
 assert.match(webhookApi, /balanceTransactions\.list\(\s*\{ payout: payoutId/, 'Connect bank payout reconciliation must load Stripe payout membership');
 assert.match(webhookApi, /\.in\('stripe_transfer_id', transferIds\)/, 'Connect bank payout updates must target exact Stripe transfer IDs');
 assert.match(webhookApi, /\.in\('stripe_bank_payout_status', \['pending', 'failed'\]\)/, 'a later successful bank payout must recover an earlier failed payout state');
-assert.equal((webhookApi.match(/if \(!isStripeConnectEnabled\(\)\)/g) || []).length, 3, 'all Connect webhook mutations must remain dormant while the feature flag is disabled');
-assert.equal((webhookApi.match(/reason: 'stripe_connect_disabled'/g) || []).length, 3, 'disabled Connect events must be explicitly audited as ignored');
+// Tied to the number of Connect payout cases rather than a fixed count, so
+// adding a case WITHOUT the flag gate fails instead of merely moving the number.
+const connectGateCount = (webhookApi.match(/if \(!isStripeConnectEnabled\(\)\)/g) || []).length;
+const connectIgnoreCount = (webhookApi.match(/reason: 'stripe_connect_disabled'/g) || []).length;
+const payoutCaseCount = (webhookApi.match(/case 'payout\.[a-z]+':/g) || []).length;
+assert.ok(payoutCaseCount >= 3, `expected the payout.* Connect cases, found ${payoutCaseCount}`);
+assert.ok(connectGateCount >= payoutCaseCount,
+  `every Connect payout case must be dormant while the flag is disabled; ${payoutCaseCount} case(s) but ${connectGateCount} gate(s)`);
+assert.equal(connectIgnoreCount, connectGateCount,
+  'every disabled Connect event must be explicitly audited as ignored, not silently dropped');
+// And prove it per case, not just by count.
+for (const m of webhookApi.matchAll(/case 'payout\.[a-z]+':([\s\S]*?)(?=\n {6}case '|\n {6}default:)/g)) {
+  assert.match(m[1], /if \(!isStripeConnectEnabled\(\)\)/,
+    `Connect payout case ${m[0].slice(0, 24)} must be gated by the feature flag`);
+}
 assert.doesNotMatch(webhookApi, /\.lte\('stripe_transfer_created_at'/, 'Connect bank payouts must not mark earnings paid by timestamp');
 assert.match(migration, /payment_status NOT IN \('captured', 'partially_refunded'\)/, 'database payout RPC must enforce captured funds');
 assert.match(migration, /p_payout_amount_cents IS DISTINCT FROM canonical_due_cents/, 'database payout RPC must enforce canonical amount');

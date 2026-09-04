@@ -70,4 +70,34 @@ const body = fn.slice(0, fn.indexOf('\n}') + 2);
   console.log('PASS only bookings genuinely inside the payout are marked paid');
 }
 
+// -- The arrival date stops being a guess once Stripe knows -----------------
+// We estimate arrival at transfer time by counting business days, because the
+// payout does not exist yet. That estimate was wrong by two days on the first
+// real payout: the Easer was told Friday 2026-09-04, the money landed Wednesday
+// 2026-09-02. payout.created is the moment Stripe publishes the real date.
+{
+  const start = src.indexOf("case 'payout.created'");
+  const end = src.indexOf("case 'payout.paid'");
+  assert.ok(start > 0 && end > start, 'payout.created must be handled, or the estimate is never corrected');
+  const created = src.slice(start, end);
+  assert.ok(/expected_bank_arrival_at: arrivalIso/.test(created),
+    "payout.created must replace the estimate with Stripe's real arrival_date");
+  assert.ok(!/payout_status:/.test(created),
+    'a SCHEDULED payout must never advance payout_status - only paid does that');
+  assert.ok(/\.in\('stripe_transfer_id', transferIds\)/.test(created)
+    && /\.eq\('stripe_destination_account_id', connectedAccount\)/.test(created),
+    'the correction must be scoped exactly like payout.paid');
+  console.log('PASS payout.created replaces the estimated arrival date, and advances nothing else');
+}
+
+// -- payout.paid records what actually happened -----------------------------
+{
+  const paid = src.slice(src.indexOf("case 'payout.paid'"), src.indexOf("case 'payout.failed'"));
+  assert.ok(/stripe_bank_payout_id: payout\.id/.test(paid),
+    'the payout id must be stored, or the booking cannot be traced back to Stripe');
+  assert.ok(/paidArrivalIso \|\| nowIso/.test(paid),
+    "Stripe's arrival_date must win over our clock: the webhook can land hours after the money did");
+  console.log("PASS payout.paid stores the payout id and prefers Stripe's arrival date");
+}
+
 console.log('\nConnect payout.paid linkage tests passed.');
