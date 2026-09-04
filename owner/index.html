@@ -371,6 +371,11 @@
     .finance-scroll::-webkit-scrollbar { height:8px; }
     .finance-scroll::-webkit-scrollbar-thumb { background:rgba(17,24,39,0.28);border-radius:999px; }
     .finance-table { min-width:980px; }
+    /* The table above is 980px wide. Without overflow-x its container
+       cannot scroll, so the ten-column payout ledger crushes together
+       instead of scrolling. .finance-scroll was named for this and never
+       actually declared it. */
+    .finance-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .finance-table.pro-table { font-size:0.78rem; }
     .finance-table.pro-table th { padding:0.48rem 0.55rem;font-size:0.62rem;letter-spacing:0.06em; }
     .finance-table.pro-table td { padding:0.58rem 0.55rem;line-height:1.25; }
