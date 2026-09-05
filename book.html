@@ -8063,12 +8063,39 @@ function showMarketDemandConfirmation(ref) {
 
 function showConfirmation(ref, isQuote, isScheduledAuthorization) {
 
-  if (!isQuote && window.gtag) window.gtag('event', 'conversion', {
-    send_to: 'AW-16551666395/7KS0CIjz1aMcENvFudQ9',
-    transaction_id: ref,
-    value: Number(BOOK._grandTotalCents || 0) / 100,
-    currency: 'USD'
-  });
+  // Google Ads conversions. A completed booking is revenue with a known total.
+  // A quote request is a LEAD whose price does not exist yet - the owner sets it
+  // later. These must not share one conversion action: reporting a quote through
+  // the booking action tells Ads a lead is a sale, and reporting it with
+  // _grandTotalCents would train bidding on a number no customer was ever charged.
+  //
+  // Quote requests were previously reported to Ads NOT AT ALL. Custom quotes are
+  // the highest-value path on the platform (a completed one was $648.42), so Ads
+  // has been optimising against incomplete data and will underbid exactly the
+  // traffic worth the most.
+  //
+  // TO ENABLE: create a 'Quote Request' conversion action in Google Ads and paste
+  // its label below as 'AW-16551666395/<label>'. Until then the quote branch stays
+  // inert, which is today's behaviour exactly - no wrong data is sent meanwhile.
+  var ADS_BOOKING_CONVERSION = 'AW-16551666395/7KS0CIjz1aMcENvFudQ9';
+  var ADS_QUOTE_CONVERSION = '';
+
+  if (window.gtag) {
+    if (!isQuote) {
+      window.gtag('event', 'conversion', {
+        send_to: ADS_BOOKING_CONVERSION,
+        transaction_id: ref,
+        value: Number(BOOK._grandTotalCents || 0) / 100,
+        currency: 'USD'
+      });
+    } else if (ADS_QUOTE_CONVERSION) {
+      // Deliberately no value or currency. The price is unknown at this moment.
+      window.gtag('event', 'conversion', {
+        send_to: ADS_QUOTE_CONVERSION,
+        transaction_id: ref
+      });
+    }
+  }
   trackBookingFunnelOnce('booking_completed', {
     transaction_id: ref,
     value: Number(BOOK._grandTotalCents || 0) / 100,
