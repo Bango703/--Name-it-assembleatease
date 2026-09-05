@@ -7,7 +7,14 @@
   var GTAG_SCRIPT_ID = 'aae-gtag-script';
   var HUBSPOT_SCRIPT_ID = 'hs-script-loader';
   var PHONE_CLICK_EVENT = 'phone_call_click';
+  var PHONE_CALL_CONVERSION = 'AW-16551666395/NyDNCOCKq-8cENvFudQ9';
+  // Kept in sync with page-governance/site-governance.json by the Ads tests.
+  var BUSINESS_PHONE = '+19792325139';
+  var BUSINESS_PHONE_DISPLAY = '(979) 232-5139';
   var measurementLoaded = false;
+  var phoneTrackingActive = false;
+  var phoneTrackingGeneration = 0;
+  var phoneReplacements = [];
 
   window.dataLayer = window.dataLayer || [];
   window.gtag = window.gtag || function gtag() { window.dataLayer.push(arguments); };
@@ -101,6 +108,7 @@
       ad_user_data: 'denied',
       ad_personalization: 'denied'
     });
+    enableWebsiteCallTracking();
     loadMeasurement();
     loadHubspot();
   }
@@ -112,6 +120,10 @@
   }
 
   function acceptCookies() {
+    if (globalPrivacyControlEnabled()) {
+      declineCookies();
+      return;
+    }
     setConsent('accepted');
     hideBanner();
     window._hsq = window._hsq || [];
@@ -120,6 +132,9 @@
   }
 
   function declineCookies() {
+    phoneTrackingActive = false;
+    phoneTrackingGeneration += 1;
+    restoreBusinessPhone();
     setConsent('declined');
     window.gtag('consent', 'update', {
       analytics_storage: 'denied',
@@ -153,6 +168,71 @@
       if (button.dataset.cookieConsentBound === 'true') return;
       button.dataset.cookieConsentBound = 'true';
       button.addEventListener('click', declineCookies);
+    });
+  }
+
+  function normalizedPhone(value) {
+    var digits = String(value || '').replace(/\D/g, '');
+    return '+' + (digits.length === 10 ? '1' + digits : digits);
+  }
+
+  function restoreBusinessPhone() {
+    phoneReplacements.forEach(function (change) {
+      if (change.attribute) {
+        if (change.node.getAttribute(change.attribute) === change.replacement) {
+          change.node.setAttribute(change.attribute, change.original);
+        }
+      } else if (change.node.nodeValue === change.replacement) {
+        change.node.nodeValue = change.original;
+      }
+    });
+    phoneReplacements = [];
+  }
+
+  function replaceBusinessPhone(formattedNumber, mobileNumber) {
+    // Only accept a valid North American forwarding number from Google's callback.
+    if (!phoneTrackingActive || globalPrivacyControlEnabled() ||
+        typeof mobileNumber !== 'string' || !/^\+1\d{10}$/.test(mobileNumber) ||
+        typeof formattedNumber !== 'string' || !/^[+()\d .-]+$/.test(formattedNumber) ||
+        normalizedPhone(formattedNumber) !== mobileNumber) return;
+
+    restoreBusinessPhone();
+    document.querySelectorAll('a[href^="tel:"]').forEach(function (link) {
+      if (normalizedPhone(link.getAttribute('href').slice(4)) !== BUSINESS_PHONE) return;
+      var replaceText = function (value) {
+        return value.replace(/(?:\+?1[- .]?)?(?:\(979\)[ .-]?|979[- .])232[- .]5139/g, formattedNumber);
+      };
+      ['href', 'aria-label', 'title'].forEach(function (attribute) {
+        var original = link.getAttribute(attribute);
+        if (original === null) return;
+        var replacement = attribute === 'href' ? 'tel:' + mobileNumber : replaceText(original);
+        if (replacement === original) return;
+        phoneReplacements.push({ node: link, attribute: attribute, original: original, replacement: replacement });
+        link.setAttribute(attribute, replacement);
+      });
+      // Preserve icons, nested markup, labels such as "Call us", and event handlers.
+      var walker = document.createTreeWalker(link, NodeFilter.SHOW_TEXT);
+      var textNode;
+      while ((textNode = walker.nextNode())) {
+        var original = textNode.nodeValue;
+        var replacement = replaceText(original);
+        if (replacement === original) continue;
+        phoneReplacements.push({ node: textNode, original: original, replacement: replacement });
+        textNode.nodeValue = replacement;
+      }
+    });
+  }
+
+  function enableWebsiteCallTracking() {
+    if (phoneTrackingActive || globalPrivacyControlEnabled()) return;
+    phoneTrackingActive = true;
+    var generation = ++phoneTrackingGeneration;
+    window.gtag('config', PHONE_CALL_CONVERSION, {
+      phone_conversion_number: BUSINESS_PHONE_DISPLAY,
+      phone_conversion_callback: function (formattedNumber, mobileNumber) {
+        if (generation !== phoneTrackingGeneration) return;
+        replaceBusinessPhone(formattedNumber, mobileNumber);
+      }
     });
   }
 
