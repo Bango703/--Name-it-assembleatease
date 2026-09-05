@@ -6,6 +6,7 @@
   var STYLE_ID = 'aae-cookie-consent-style';
   var GTAG_SCRIPT_ID = 'aae-gtag-script';
   var HUBSPOT_SCRIPT_ID = 'hs-script-loader';
+  var PHONE_CLICK_EVENT = 'phone_call_click';
   var measurementLoaded = false;
 
   window.dataLayer = window.dataLayer || [];
@@ -155,10 +156,34 @@
     });
   }
 
+  function bindPhoneCallTracking() {
+    if (document.documentElement.dataset.phoneCallTrackingBound === 'true') return;
+    document.documentElement.dataset.phoneCallTrackingBound = 'true';
+
+    document.addEventListener('click', function (event) {
+      var target = event.target;
+      var link = target && target.closest ? target.closest('a[href^="tel:"]') : null;
+      if (!link || typeof window.gtag !== 'function') return;
+
+      var location = link.closest('header, nav')
+        ? 'header'
+        : link.closest('footer')
+          ? 'footer'
+          : 'content';
+
+      window.gtag('event', PHONE_CLICK_EVENT, {
+        contact_method: 'phone',
+        link_location: location,
+        page_path: window.location.pathname
+      });
+    });
+  }
+
   function initConsent() {
     injectStyles();
     updateBannerCopy();
     bindBannerActions();
+    bindPhoneCallTracking();
 
     var storedConsent = null;
     try {

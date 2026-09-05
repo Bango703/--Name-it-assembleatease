@@ -6,6 +6,10 @@ const bookingPage = readFileSync('book.html', 'utf8');
 
 assert.match(cookies, /function loadMeasurement\(\)/);
 assert.match(cookies, /function grantAnalytics\(\)/);
+assert.match(cookies, /function bindPhoneCallTracking\(\)/);
+assert.match(cookies, /target\.closest\('a\[href\^="tel:"\]'\)/);
+assert.match(cookies, /window\.gtag\('event', PHONE_CLICK_EVENT,[\s\S]*?contact_method: 'phone'/);
+assert.match(cookies, /bindPhoneCallTracking\(\);/);
 assert.match(cookies, /if \(globalPrivacyControlEnabled\(\)\)[\s\S]*?return;[\s\S]*?loadMeasurement\(\)/);
 assert.match(cookies, /function acceptCookies\(\)[\s\S]*?grantAnalytics\(\)/);
 assert.ok(
