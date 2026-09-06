@@ -1,0 +1,86 @@
+{
+  "status": "LOCAL DRAFT: not attached; reuse existing secret-backed Authorization header at approved activation",
+  "endpoint": "https://www.assembleatease.com/api/ai/support",
+  "method": "POST",
+  "workflow_attachment_plan": {
+    "status": "Names only; resolve newly created shared tool IDs after approved deployment. Not an API payload.",
+    "global_instructions": "Replace with telnyx-sora-intake-only-prompt-2026-09-06.txt; do not append to contradictory legacy instructions.",
+    "nodes": [
+      { "id": "sora_receptionist", "instructions_mode": "append", "tools_mode": "replace", "tool_names": ["get_support_options", "get_service_catalog", "get_service_items", "transfer", "hangup"], "instructions": "Identify the purpose and route to the customer or service pro path without repeating known facts. Safety first. Check get_support_options. Do not save here; transition to the appropriate role path." },
+      { "id": "sora_customer", "instructions_mode": "append", "tools_mode": "replace", "tool_names": ["get_support_options", "get_service_catalog", "get_service_items", "save_support_request", "transfer", "hangup"], "instructions": "Follow the customer instructions. Distinguish new_service/custom_quote from existing-customer support. Use save_support_request only after explicit readback confirmation and callback consent. Use callerRole=customer. Requested times are not confirmed. If this call is actually for a service pro, switch paths." },
+      { "id": "sora_service_pro", "instructions_mode": "append", "tools_mode": "replace", "tool_names": ["get_support_options", "save_support_request", "transfer", "hangup"], "instructions": "Follow the Easer instructions. Never conduct the customer booking interview. Use callerRole=service_pro, a role-appropriate topic and no bookingDetails. Save only confirmed support intake, never account/job/payment changes. If they need customer service, switch paths." }
+    ],
+    "edges": "Preserve the existing four role-routing edges; verify each node and tool scope after saving.",
+    "legacy_tools": "Exclude request_callback, request_pro_support and prepare_booking from this version without deleting shared tools used by older versions.",
+    "transfer": "Reuse the existing fixed target/acceptance settings only. The hours check is not a hard telephony access-control gate; after-hours and failed-transfer acceptance tests remain required. Do not change public routing."
+  },
+  "tools": [
+    {
+      "name": "get_support_options",
+      "description": "Check whether confirmed customer/Easer request intake is enabled, get supported topics and service categories, and check current Central human-support hours. Does not look up accounts or save requests.",
+      "preset_body_fields": { "action": "support_options" },
+      "body_parameters": { "type": "object", "properties": {}, "additionalProperties": false }
+    },
+    {
+      "name": "save_support_request",
+      "description": "Save ONE caller-confirmed customer service/support or Easer support request for follow-up. Only after reading back details and receiving callback permission. Does NOT book, price, reserve, cancel, refund, pay, access accounts, dispatch or send customer messages. Caller descriptions and references are unverified. Do not include passwords, payment/identity numbers, access codes or other secrets.",
+      "preset_body_fields": { "action": "submit_request", "callControlId": "{{call_control_id}}" },
+      "body_parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["callerRole", "topic", "name", "phone", "summary", "detailsConfirmed", "callbackConsent"],
+        "properties": {
+          "callerRole": { "type": "string", "enum": ["customer", "service_pro"] },
+          "topic": {
+            "type": "string",
+            "description": "Choose a topic returned for this role by get_support_options. The server rejects role/topic mismatches.",
+            "enum": ["new_service", "custom_quote", "existing_booking", "scheduling", "cancellation", "payment", "quality", "damage", "safety", "application", "account", "assigned_job", "access_or_parts", "scope_change", "availability", "customer_issue", "earnings"]
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "phone": { "type": "string", "maxLength": 30, "description": "Caller-confirmed US callback number; no extension. Never infer identity from it." },
+          "email": { "type": "string", "maxLength": 254, "description": "Optional request contact email, not marketing consent. Omit if unknown or declined." },
+          "city": { "type": "string", "maxLength": 100, "description": "City if provided; no service-coverage promise." },
+          "summary": { "type": "string", "minLength": 10, "maxLength": 1200, "description": "Confirmed factual request. Include scope, problems, unknowns and work-paused status when relevant. No secrets." },
+          "preferredCallbackTime": { "type": "string", "maxLength": 120, "description": "Caller preference only; never a promised response time." },
+          "jobReference": { "type": "string", "maxLength": 80, "description": "Optional caller-provided reference as text only; no booking/account lookup or authorization." },
+          "activeJob": { "type": "boolean", "description": "True only when the caller reports a job currently in progress or a current on-site problem; not verified assignment." },
+          "requestedOutcome": { "type": "string", "maxLength": 200, "description": "The help/change wanted, not an action already performed." },
+          "bookingDetails": {
+            "type": "object",
+            "description": "REQUIRED for customer new_service/custom_quote; FORBIDDEN for other topics/roles. Omit optional unknown fields. Total request must fit a 5000-character case including labels; condense repetition and reconfirm if rejected.",
+            "additionalProperties": false,
+            "required": ["services"],
+            "properties": {
+              "services": {
+                "type": "array", "minItems": 1, "maxItems": 7, "uniqueItems": true,
+                "description": "Use exact current categories from get_support_options.",
+                "items": { "type": "string", "enum": ["Furniture Assembly", "Mounting & Hanging", "Smart Home", "Outdoor & Playsets", "Office Assembly", "Fitness Equipment", "Other"] }
+              },
+              "items": {
+                "type": "array", "maxItems": 15,
+                "description": "Grouped caller-described items, not priced catalog selections. Unknown quantities belong in summary, not invented numbers.",
+                "items": {
+                  "type": "object", "additionalProperties": false, "required": ["service", "description", "quantity"],
+                  "properties": {
+                    "service": { "type": "string", "description": "One of bookingDetails.services." },
+                    "description": { "type": "string", "minLength": 1, "maxLength": 100 },
+                    "quantity": { "type": "integer", "minimum": 1, "maximum": 99 }
+                  }
+                }
+              },
+              "address": { "type": "string", "maxLength": 250, "description": "Service street address and unit, if offered. Never access codes." },
+              "postalCode": { "type": "string", "maxLength": 10, "description": "US ZIP or ZIP+4; omit if unknown." },
+              "requestedDate": { "type": "string", "maxLength": 100, "description": "Requested date(s), not confirmed; preserve unresolved relative wording." },
+              "requestedWindow": { "type": "string", "maxLength": 100, "description": "Requested window(s), not confirmed." },
+              "siteNotes": { "type": "string", "maxLength": 300, "description": "Relevant stairs, elevator, parking or surface notes. No door/gate/alarm codes or credentials." },
+              "productNotes": { "type": "string", "maxLength": 400, "description": "Model, dimensions, condition, supplied hardware and scope; no long serial numbers." },
+              "readiness": { "type": "string", "enum": ["ready", "not_ready", "not_sure"] }
+            }
+          },
+          "detailsConfirmed": { "type": "boolean", "enum": [true], "description": "True only after caller explicitly confirms the read-back details." },
+          "callbackConsent": { "type": "boolean", "enum": [true], "description": "True only after caller explicitly permits a callback about this request. No SMS/marketing consent." }
+        }
+      }
+    }
+  ]
+}
