@@ -255,7 +255,7 @@
     return events.map(function(event) {
       var title = eventTitle(event);
       var note = event.note ? '<div class="cases-event-note">' + esc(event.note) + '</div>' : '';
-      var publicMessage = event.publicMessage ? '<div class="cases-event-public"><strong>Message sent:</strong> ' + esc(event.publicMessage) + '</div>' : '';
+      var publicMessage = event.publicMessage ? '<div class="cases-event-public"><strong>Customer-visible update:</strong> ' + esc(event.publicMessage) + '</div>' : '';
       return '<div class="cases-event">' +
         '<div class="cases-event-title">' + esc(title) + '</div>' +
         '<div class="cases-event-meta">' + esc(event.actor && event.actor.name || event.actor && event.actor.type || 'System') + ' &middot; ' + esc(formatDate(event.createdAt)) + '</div>' +

@@ -227,6 +227,8 @@ assert.match(ownerUi, /id="cases-view"/);
 assert.match(ownerUi, /\/owner\/assets\/cases\.js/);
 assert.match(ownerUi, /\/owner\/assets\/cases\.css/);
 assert.match(ownerCasesJs, /window\.OwnerCases/);
+assert.match(ownerCasesJs, /Customer-visible update:/);
+assert.doesNotMatch(ownerCasesJs, /<strong>Message sent:<\/strong>/);
 assert.match(ownerCasesJs, /This does not send money, issue a refund, change a booking, or release an Easer payout/);
 assert.match(ownerCasesCss, /@media \(max-width: 520px\)/);
 assert.match(ownerCasesCss, /grid-template-columns: minmax\(0, 1fr\)/);
