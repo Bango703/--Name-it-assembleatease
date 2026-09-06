@@ -204,7 +204,7 @@
       '</div>' +
       '<div class="cases-detail-section">' +
         '<div class="cases-section-label">Request</div>' +
-        '<div class="cases-description">' + esc(item.description) + '</div>' +
+        '<div class="cases-description">' + renderRequestDescription(item.description) + '</div>' +
       '</div>' +
       '<div class="cases-detail-section">' +
         '<div class="cases-section-label">Case information</div>' +
@@ -248,6 +248,67 @@
       '</div>';
 
     updateConfirmationVisibility();
+  }
+
+  // Presentation only: never rewrite the stored description or infer verified
+  // identity, booking status, prices or permissions from a caller's text.
+  function renderRequestDescription(description) {
+    var original = String(description == null ? '' : description);
+    var lines = original.split(/\r?\n/);
+    var isIntake = /^Sora (Customer|Easer \/ Service Pro) request\. Caller identity and any job reference are NOT verified\.$/.test(lines[0]);
+    if (!isIntake) {
+      return '<div class="cases-request-prose">' + lines.map(function(line) {
+        return line.trim() ? '<p>' + esc(line) + '</p>' : '';
+      }).join('') + '</div>';
+    }
+
+    var groups = [
+      { title: 'Request summary', labels: ['Topic', 'Active job reported', 'Job reference (unverified)', 'Summary', 'Requested outcome'], fields: [] },
+      { title: 'Caller & callback', labels: ['Caller', 'Callback', 'Email', 'City', 'Preferred callback time (not promised)'], fields: [] },
+      { title: 'Service & location', labels: ['Services', 'Service address', 'ZIP code'], fields: [] },
+      { title: 'Requested schedule', labels: ['Preferred service date (not confirmed)', 'Preferred service window (not confirmed)'], fields: [] },
+      { title: 'Product & site details', labels: ['Readiness (caller report)', 'Product / project notes', 'Site notes (no access codes)'], fields: [] },
+    ];
+    var wideLabels = ['Summary', 'Requested outcome', 'Job reference (unverified)', 'Preferred callback time (not promised)',
+      'Services', 'Service address', 'Product / project notes', 'Site notes (no access codes)'];
+    var itemsLabel = 'Items are caller descriptions, NOT priced or verified catalog selections:';
+    var items = [];
+    var notes = [];
+    var readingItems = false;
+    var hasItemsLabel = false;
+    lines.slice(1).forEach(function(line) {
+      if (!line.trim()) return;
+      if (line === itemsLabel) { readingItems = true; hasItemsLabel = true; return; }
+      if (readingItems && /^- /.test(line)) { items.push(line.slice(2)); return; }
+      readingItems = false;
+      var separator = line.indexOf(':');
+      var label = separator > 0 ? line.slice(0, separator) : '';
+      var group = groups.find(function(candidate) { return candidate.labels.includes(label); });
+      if (group) group.fields.push({ label: label, value: line.slice(separator + 1).trim() });
+      else notes.push(line); // Preserve unknown/new fields and every safety note.
+    });
+
+    var html = '<p class="cases-request-context">' + esc(lines[0]) + '</p>';
+    html += groups.filter(function(group) { return group.fields.length; }).map(function(group) {
+      return '<section class="cases-request-group"><h4>' + esc(group.title) + '</h4><dl class="cases-request-fields">' +
+        group.fields.map(function(field) {
+          return '<div class="cases-request-field' + (wideLabels.includes(field.label) ? ' is-wide' : '') + '">' +
+            '<dt>' + esc(field.label) + '</dt><dd>' + esc(field.value) + '</dd></div>';
+        }).join('') + '</dl></section>';
+    }).join('');
+    if (hasItemsLabel) {
+      html += '<section class="cases-request-group"><h4>Items requested</h4>' +
+        '<p class="cases-request-hint">' + esc(itemsLabel) + '</p>' +
+        (items.length ? '<ul class="cases-request-items">' + items.map(function(item) {
+          return '<li>' + esc(item) + '</li>';
+        }).join('') + '</ul>' : '') + '</section>';
+    }
+    if (notes.length) {
+      html += '<section class="cases-request-group"><h4>Follow-up &amp; verification</h4><div class="cases-request-prose">' +
+        notes.map(function(note) { return '<p>' + esc(note) + '</p>'; }).join('') + '</div></section>';
+    }
+    return html + '<details class="cases-original-request"><summary>View original saved request</summary>' +
+      '<div class="cases-original-text">' + esc(original) + '</div></details>';
   }
 
   function renderEvents(events) {
