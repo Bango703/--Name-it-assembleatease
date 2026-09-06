@@ -77,9 +77,18 @@ const tools = [
 ];
 const keepIds = draft.tools.map(t => t.tool_id);
 if (keepIds.some(id => !id) || keepIds.length !== 2) throw new Error('Existing tool set changed; review before attachment');
+const originalFlow = draft.conversation_flow;
+if (originalFlow?.nodes?.length !== 1 || originalFlow.nodes[0].id !== 'start'
+    || originalFlow.nodes[0].instructions !== '' || originalFlow.edges?.length !== 0) {
+  throw new Error('Workflow changed; review before replacing the blank start-node override');
+}
 await telnyx(`${base}/versions/${version}`, 'POST', {
   tools, tool_ids: keepIds,
   instructions: readFileSync('business-artifacts/telnyx-sora-receptionist-prompt-2026-09-06.txt', 'utf8'),
+  conversation_flow: { start_node_id: 'start', edges: [], nodes: [{
+    type: 'prompt', id: 'start', name: 'Sora receptionist', instructions: '',
+    instructions_mode: 'append', tools_mode: 'append', shared_tool_ids: [], position: originalFlow.nodes[0].position,
+  }] },
 });
 const saved = await telnyx(`${base}/versions/${version}`);
 report({ draft: saved.version_id, tools: saved.tools.map(t => ({ id: t.tool_id, type: t.type, name: t.webhook?.name || t.name })),
