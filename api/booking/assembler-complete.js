@@ -492,17 +492,26 @@ export default async function handler(req, res) {
 
   // ── Notify owner ─────────────────────────────────────────────────────────
   try {
-    await sendEmail({
+    const ownerNotice = await sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Job Completed by Easer — ${booking.ref}`,
       html: `<p>Booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}) has been marked complete by the Easer.</p>
 <p>Customer: ${esc(booking.customer_name)} | Amount: $${(finalAmount/100).toFixed(2)} | Easer due: $${(assemblerDue/100).toFixed(2)}</p>`,
+      meta: { bookingId: booking.id, notificationType: 'owner_completion', recipientType: 'owner' },
     });
-  } catch (e) { console.error('Owner notify error:', e); }
+    if (ownerNotice?.ok !== true) throw new Error('Owner completion alert was not accepted');
+  } catch (e) {
+    console.error('Owner notify error:', e);
+    await logActivity(sb, {
+      bookingId: booking.id, eventType: 'notification_failed', actorType: 'system', actorName: 'Notifications',
+      description: 'Job completion was saved, but the owner completion alert failed. Review this booking directly.',
+      metadata: { notificationType: 'owner_completion', recipientType: 'owner' },
+    });
+  }
 
   // Activity log (surfaces in owner Timeline tab)
-  logActivity(sb, {
+  await logActivity(sb, {
     bookingId: booking.id,
     eventType: 'completed',
     actorType: 'easer',
@@ -723,7 +732,7 @@ async function completeOfflineOwnerManualBooking(sb, res, {
     const collectionSummary = booking.payment_collected
       ? `Customer payment recorded as collected: $${(totalCents / 100).toFixed(2)}.`
       : `Customer payment is not yet recorded as collected. Confirm the exact $${(totalCents / 100).toFixed(2)} customer payment before recording the payout.`;
-    await sendEmail({
+    const ownerNotice = await sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Offline job completed — ${booking.ref}`,
@@ -732,9 +741,17 @@ async function completeOfflineOwnerManualBooking(sb, res, {
 <p>${collectionSummary} The external Easer payout remains manual and must be recorded from the Payouts page after every hold clears.</p>`,
       meta: { bookingId: booking.id, notificationType: 'owner_offline_completion', recipientType: 'owner' },
     });
-  } catch (e) { console.error('Offline completion owner email error:', e); }
+    if (ownerNotice?.ok !== true) throw new Error('Owner offline completion alert was not accepted');
+  } catch (e) {
+    console.error('Offline completion owner email error:', e);
+    await logActivity(sb, {
+      bookingId: booking.id, eventType: 'notification_failed', actorType: 'system', actorName: 'Notifications',
+      description: 'Offline job completion was saved, but the owner completion alert failed. Review this booking directly.',
+      metadata: { notificationType: 'owner_offline_completion', recipientType: 'owner' },
+    });
+  }
 
-  logActivity(sb, {
+  await logActivity(sb, {
     bookingId: booking.id,
     eventType: 'completed',
     actorType: 'easer',
