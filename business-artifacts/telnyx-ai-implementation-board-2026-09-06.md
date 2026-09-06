@@ -10,6 +10,17 @@ Implemented: a gated callback-request/catalog API and Easer-completion notificat
 
 ## Board: do not call this finished until every required row has proof
 
+### Connection follow-up, 2026-09-06
+
+- Preview commit `ed44fecb` built successfully in Vercel. This is not a live AI activation.
+- P0 test-isolation finding: read-only inspection of current hosted configuration confirms preview uses the production Supabase project and a live Stripe key. Do not create test bookings, complete jobs, capture payments, or treat this full website preview as a financial sandbox. No such mutation was performed.
+- Local follow-up fix: catalog access and callback persistence now have separate activation controls. `TELNYX_AI_CALLBACKS_ENABLED=true` is also required, and callback writes are refused outside Vercel production even when both flags are set. Catalog responses report `callbackRequestsEnabled`; an assistant must not offer a callback when false. This blocks AI callback writes only, not unrelated website APIs.
+- No isolated callback sandbox is configured. A future sandbox must use a verified separate database and notification setup before extending the preview write guard; do not simply remove the guard to make a test pass.
+- Current Telnyx draft still has Transfer and Hang Up only, and displays Not live. No catalog/callback tool has been attached or falsely described as operational.
+- Vercel CLI access works. Its production Telnyx API key is a non-retrievable Secret, and the local environment has no usable Telnyx API key. The existing key was not revealed, copied, replaced, or revoked. A separately supplied secure credential is needed for API-based draft configuration.
+- Vercel preview protection requires authentication and prevents an unauthenticated Telnyx webhook tool from reaching this preview. Do not disable deployment protection or share a broad bypass credential merely to connect the tool.
+- Live recording/privacy choice, modest call-test budget, every-call reporting, and actual owner-email delivery remain unverified. Existing public-number forwarding remains untouched.
+
 | Process | Canonical record / owner visibility | Current status | Completion evidence required |
 |---|---|---|---|
 | Assistant configuration | Telnyx non-live version 20260906T153456589927 | Saved in prior turn; NOT LIVE | Approved privacy settings, cost controls, voice/transfer tests |
@@ -95,6 +106,7 @@ Endpoint: POST /api/ai/receptionist, JSON, Authorization: Bearer <dedicated tool
 Required server setup after approval:
 
 - TELNYX_AI_INTAKE_ENABLED remains false/unset until explicitly activated.
+- TELNYX_AI_CALLBACKS_ENABLED remains false/unset until callback persistence is explicitly activated after testing/review. Enabling catalog access alone must not enable callback writes. Current callback persistence requires VERCEL_ENV=production and no conflicting VERCEL_TARGET_ENV.
 - TELNYX_AI_TOOL_SECRET: a dedicated high-entropy secret at least 32 characters, generated/stored via an approved secure setup. It is not the Telnyx API key, Supabase service-role key, or owner password.
 - Existing Supabase configuration and migration 053 Cases RPC must be present; this task did not apply SQL.
 - Existing durable Upstash rate limiting must be configured. Callback intake fails closed if missing/unavailable; current default limiter bounds this path to 10 requests per minute for the assistant-wide key. This is not an AI spend cap.

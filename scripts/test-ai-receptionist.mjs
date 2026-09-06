@@ -49,13 +49,17 @@ for (const bad of [
 ]) assert.ok(validateReceptionistIntake({ ...valid, ...bad }).error, JSON.stringify(bad));
 
 function harness(options = {}) {
-  const calls = { cases: [], events: [], emails: [] };
+  const calls = { cases: [], events: [], emails: [], databaseConnections: 0, rateLimits: 0 };
   const saved = new Map();
   let serial = 0;
-  const env = { TELNYX_AI_INTAKE_ENABLED: 'true', TELNYX_AI_TOOL_SECRET: secret, ...options.env };
+  const env = {
+    TELNYX_AI_INTAKE_ENABLED: 'true', TELNYX_AI_TOOL_SECRET: secret,
+    TELNYX_AI_CALLBACKS_ENABLED: 'true', VERCEL_ENV: 'production',
+    ...options.env,
+  };
   const handler = createReceptionistHandler({
     env, catalog: () => catalog,
-    supabase: () => ({ marker: 'fake-supabase-only' }),
+    supabase: () => { calls.databaseConnections++; return { marker: 'fake-supabase-only' }; },
     newRef: () => `AAE-AI-LOCAL-${++serial}`,
     createCase: async (_sb, input) => {
       calls.cases.push(input);
@@ -74,6 +78,7 @@ function harness(options = {}) {
     ownerAddress: () => 'owner@example.com',
     durableLimit: () => options.hasLimit !== false,
     limit: async () => {
+      calls.rateLimits++;
       if (options.limitFails) throw new Error('Fake limiter unavailable');
       return options.allowRequest !== false;
     },
@@ -105,8 +110,34 @@ for (const authorization of [undefined, `Bearer ${secret}bad`, 'Basic xyz', ['Be
 assert.equal((await harness({ env: { TELNYX_AI_TOOL_SECRET: 'short' } }).invoke()).statusCode, 401);
 assert.equal((await harness().invoke(valid, { method: 'GET' })).statusCode, 405);
 assert.equal((await harness().invoke({ ...valid, action: 'complete_booking' })).statusCode, 400);
+// Simulate production credentials being inherited by preview: not even the
+// limiter, database client or email adapter may be touched by a callback test.
+for (const env of [
+  { TELNYX_AI_CALLBACKS_ENABLED: undefined },
+  { TELNYX_AI_CALLBACKS_ENABLED: 'false' },
+  { TELNYX_AI_CALLBACKS_ENABLED: 'TRUE' },
+  { VERCEL_ENV: 'preview' },
+  { VERCEL_ENV: 'development' },
+  { VERCEL_ENV: undefined },
+  { VERCEL_ENV: 'production', VERCEL_TARGET_ENV: 'preview' },
+  { VERCEL_ENV: 'production', VERCEL_TARGET_ENV: 'staging' },
+]) {
+  const blocked = harness({ env });
+  const catalogResponse = await blocked.invoke({ action: 'catalog' });
+  assert.equal(catalogResponse.statusCode, 200);
+  assert.equal(catalogResponse.body.callbackRequestsEnabled, false);
+  const response = await blocked.invoke();
+  assert.equal(response.statusCode, 503);
+  assert.equal(response.body.bookingCreated, false);
+  assert.equal(blocked.calls.databaseConnections, 0);
+  assert.equal(blocked.calls.rateLimits, 0);
+  assert.equal(blocked.calls.cases.length, 0);
+  assert.equal(blocked.calls.emails.length, 0);
+  assert.equal(blocked.calls.events.length, 0);
+}
 const catalogHarness = harness();
 assert.equal((await catalogHarness.invoke({ action: 'catalog' })).body.services.length, 7);
+assert.equal((await catalogHarness.invoke({ action: 'catalog' })).body.callbackRequestsEnabled, true);
 assert.equal(catalogHarness.calls.cases.length, 0);
 assert.equal((await catalogHarness.invoke({ action: 'catalog', service: 'Fitness Equipment' })).body.services.length, 1);
 assert.equal((await catalogHarness.invoke({ action: 'catalog', service: 'Fake' })).statusCode, 400);
