@@ -15,6 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/status.css" />
   <link rel="stylesheet" href="/owner/assets/cases.css" />
+  <link rel="stylesheet" href="/owner/assets/voice-calls.css" />
   <script src="/assets/js/mobile-nav.js" defer></script>
   <!-- Canonical service catalog. The Edit Booking service list was hardcoded here
        and had drifted: it offered only 4 of the 7 real services and wrote
@@ -23,6 +24,7 @@
   <script src="/assets/js/booking-source-of-truth.js" defer></script>
   <script src="/assets/js/status-source-of-truth.js" defer></script>
   <script src="/owner/assets/cases.js" defer></script>
+  <script src="/owner/assets/voice-calls.js" defer></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -490,6 +492,7 @@
         <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" title="Active jobs scheduled today" style="display:none;background:#64748b">0</span></a></li>
         <li><a class="active" data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span><span class="nav-count" id="nav-messages" title="Unread customer or Easer messages" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="cases"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 5V3h8v2"/><path d="M9 11h6M9 15h4"/></svg></span> Cases <span class="nav-count" id="nav-cases" title="Cases requiring owner action" style="display:none;background:#dc2626">0</span></a></li>
+        <li><a data-view="voice-calls"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h4l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z"/></svg></span> Phone Calls <span class="nav-count" id="nav-voice-calls" title="Call activity requiring review" style="display:none">0</span></a></li>
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
         <li><a data-view="market-demand"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z"/></svg></span> Market Demand <span class="nav-count" id="nav-market-demand" style="display:none">0</span></a></li>
         <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews</a></li>
@@ -632,6 +635,18 @@
 
       <!-- Durable owner-only support and operational case queue. Financial,
            booking, dispatch, payout, and Stripe truth remain in their existing workflows. -->
+      <div id="voice-calls-view" class="voice-calls-view" style="display:none">
+        <div class="voice-calls-toolbar">
+          <div><h2>Phone Calls</h2><p class="voice-muted">Call activity and confirmed requests, kept separate.</p></div>
+          <button type="button" class="voice-button" id="voice-calls-refresh">Refresh</button>
+        </div>
+        <div id="voice-calls-notice" class="voice-calls-note" role="status">Checking call capture and history...</div>
+        <p id="voice-calls-updated" class="voice-muted" aria-live="polite"></p>
+        <div class="voice-calls-grid">
+          <div><div id="voice-calls-list" class="voice-calls-list"><div class="voice-call-empty">Loading call history...</div></div><button type="button" id="voice-calls-more" class="voice-button" hidden>Load older activity</button></div>
+          <div id="voice-calls-detail" class="voice-calls-detail" aria-live="polite"><p>Select a call to see its timeline and any linked request.</p></div>
+        </div>
+      </div>
       <div id="cases-view" class="cases-view-shell" style="display:none">
         <div class="cases-toolbar">
           <div class="cases-toolbar-copy">
@@ -3203,6 +3218,7 @@ window.intelQuick = intelQuick;
       if (window.OwnerCases && typeof window.OwnerCases.loadBadge === 'function') {
         window.OwnerCases.loadBadge();
       }
+      if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.loadBadge();
     }, 0);
   }
 
@@ -3294,6 +3310,7 @@ window.intelQuick = intelQuick;
     try {
       if (currentView === 'assemblers') await loadAssemblerList();
       else if (currentView === 'cases') { if (window.OwnerCases) await window.OwnerCases.refresh(); }
+      else if (currentView === 'voice-calls') { if (window.OwnerVoiceCalls) await window.OwnerVoiceCalls.refresh(); }
       else if (currentView === 'waitlist') await loadWaitlist();
       else if (currentView === 'market-demand') await loadMarketDemand();
       else if (currentView === 'reviews') { await loadReviews(); }
@@ -7684,6 +7701,7 @@ window.intelQuick = intelQuick;
   var currentView = 'bookings';
   var $bookingsView   = document.getElementById('bookings-view');
   var $casesView      = document.getElementById('cases-view');
+  var $voiceCallsView = document.getElementById('voice-calls-view');
   var $marketDemandView = document.getElementById('market-demand-view');
   var $waitlistView   = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
@@ -7696,7 +7714,7 @@ window.intelQuick = intelQuick;
   var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var allViews = [$bookingsView,$casesView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
+  var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
   var _bookingsLoadPromise = null;
@@ -7731,6 +7749,7 @@ window.intelQuick = intelQuick;
       if (view === 'liveops')      { $liveopsView.style.display='';     $topbarTitle.textContent='Live Operations'; startLiveOps(); }
       else if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; stopLiveOps(); }
       else if (view === 'cases')        { $casesView.style.display='';       $topbarTitle.textContent='Cases'; stopLiveOps(); if (window.OwnerCases) window.OwnerCases.load(); }
+      else if (view === 'voice-calls')  { $voiceCallsView.style.display='';  $topbarTitle.textContent='Phone Calls'; stopLiveOps(); if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.load(); }
       else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); loadMarketDemand(); }
       else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; stopLiveOps(); loadWaitlist(); }
       else if (view === 'assemblers')  { $assemblersView.style.display='';  $topbarTitle.textContent='Easers'; loadAssemblerList(); }
