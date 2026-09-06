@@ -9,6 +9,12 @@ globalThis.fetch = async () => { throw new Error('Network access forbidden in re
 const secret = 'fictional-local-test-secret-only-000000000000000';
 const catalog = getBookingCatalog();
 const services = receptionistCatalog(catalog);
+const receptionistPrompt = await readFile(new URL('../business-artifacts/telnyx-sora-receptionist-prompt-2026-09-06.txt', import.meta.url), 'utf8');
+assert.match(receptionistPrompt, /You are not a DIY coach\./);
+assert.match(receptionistPrompt, /This catalog check is required, not optional\./);
+assert.match(receptionistPrompt, /Do not end a booking enquiry by only giving a website address\./);
+assert.match(receptionistPrompt, /Are those details correct, and may our team call you about this request\?/);
+assert.match(receptionistPrompt, /Only after request_callback returns success=true/);
 assert.deepEqual(services.map(s => s.service), Object.keys(catalog.subcategories));
 assert.equal(services.length, 7);
 for (const service of services) {
