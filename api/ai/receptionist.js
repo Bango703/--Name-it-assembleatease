@@ -71,6 +71,16 @@ function authorized(req, secret) {
   return supplied.length === expected.length && timingSafeEqual(supplied, expected);
 }
 
+// This project's preview currently inherits the live database and email setup.
+// Catalog testing must not implicitly enable live case writes. Until there is
+// a verified isolated sandbox, callback persistence is production-only and
+// requires its own explicit activation in addition to the intake/auth gate.
+export function receptionistCallbacksEnabled(env = process.env) {
+  return env.TELNYX_AI_CALLBACKS_ENABLED === 'true'
+    && env.VERCEL_ENV === 'production'
+    && (!env.VERCEL_TARGET_ENV || env.VERCEL_TARGET_ENV === 'production');
+}
+
 export function createReceptionistHandler({
   env = process.env, catalog = getBookingCatalog, supabase = getSupabase,
   createCase = createOperationCase, appendEvent = appendOperationCaseEvent,
@@ -98,10 +108,14 @@ export function createReceptionistHandler({
         services: selected ? services.filter(service => service.service === selected)
           : services.map(({ service, label, groups, bookingUrl: url }) => ({ service, label, groups: groups.map(group => group.name), bookingUrl: url })),
         bookingCreated: false,
+        callbackRequestsEnabled: receptionistCallbacksEnabled(env),
         message: 'Use these exact service names. Availability and final totals are confirmed only through secure booking.',
       });
     }
     if (req.body?.action !== 'request_callback') return res.status(400).json({ error: 'Unsupported action.' });
+    if (!receptionistCallbacksEnabled(env)) {
+      return res.status(503).json({ error: 'Callback requests are unavailable here. Please use the contact page.', bookingCreated: false });
+    }
     const validation = validateReceptionistIntake(req.body, source);
     if (validation.error) return res.status(400).json({ error: validation.error });
     try {
