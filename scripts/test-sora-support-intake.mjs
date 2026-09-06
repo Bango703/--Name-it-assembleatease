@@ -86,7 +86,7 @@ for (const data of [null, [], {}, { ...valid, action: 'pay' }, { ...valid, callb
   { ...valid, phone: '+44 2071234567' }, { ...valid, phone: '512-555-0100 ext 4' },
   { ...valid, topic: 'earnings' }, { ...pro, topic: 'new_service' }, { ...pro, bookingDetails: {} },
   { ...valid, summary: 'short' }, { ...valid, summary: 'x'.repeat(1201) }, { ...valid, name: {} },
-  { ...valid, email: 'bad@@example.com' }, { ...valid, city: null }, { ...valid, activeJob: 'true' },
+  { ...valid, email: 'bad@@example.com' }, { ...valid, city: {} }, { ...valid, activeJob: 'true' },
   { ...valid, bookingId: 'victim' }, { ...valid, easerId: 'victim' }, { ...valid, total: 0 }, { ...valid, payout: 100 },
   { ...valid, to: 'attacker@example.com' }, { ...valid, verified: true }, { ...valid, cardNumber: 'not allowed' },
   { ...valid, summary: 'Card number 4242 4242 4242 4242' }, { ...valid, summary: 'SSN 123-45-6789' },
@@ -110,6 +110,55 @@ check(validateSupportRequest(tooLong, catalog).error?.includes('too long'), 'No 
 const optional = harness(); const minimal = { ...valid, email: undefined, city: undefined, bookingDetails: { services: ['Furniture Assembly'] } };
 check((await optional.invoke(minimal)).code === 200, 'Incomplete but consented intake saved');
 check(optional.calls.cases[0].description.includes('Still to clarify: city; email (optional); service address; ZIP code; preferred service date; preferred service window; item details/quantities; site/product readiness'), 'Missing details visible');
+
+// Voice tool arguments can omit optional fields while the webhook transport
+// represents them as null. Missing optional data must not strand consented intake.
+const optionalTextFields = ['email', 'city', 'preferredCallbackTime', 'jobReference', 'requestedOutcome'];
+const optionalBookingFields = ['address', 'postalCode', 'requestedDate', 'requestedWindow', 'siteNotes', 'productNotes', 'readiness'];
+const absentPro = { ...pro, jobReference: undefined };
+const nullPro = { ...absentPro, ...Object.fromEntries(optionalTextFields.map(field => [field, null])), activeJob: null, bookingDetails: null };
+const absentCustomer = { ...minimal, preferredCallbackTime: undefined };
+const nullCustomer = { ...absentCustomer, ...Object.fromEntries(optionalTextFields.map(field => [field, null])), activeJob: null,
+  bookingDetails: { services: ['Furniture Assembly'], items: null, ...Object.fromEntries(optionalBookingFields.map(field => [field, null])) } };
+for (const [omitted, transported, role] of [[absentPro, nullPro, 'Easer'], [absentCustomer, nullCustomer, 'Customer']]) {
+  const h = harness();
+  const first = await h.invoke(transported);
+  check(first.code === 200, `${role} null optional fields accepted`);
+  const second = await h.invoke(omitted);
+  check(second.code === 200 && second.data.ref === first.data.ref, `${role} null/omitted retries have one reference`);
+  check(h.saved.size === 1 && h.calls.emails.length === 1, `${role} null/omitted retries do not duplicate Case or owner alert`);
+  check(h.calls.cases[0].description === h.calls.cases[1].description, `${role} missing field representations produce identical owner detail`);
+  check(h.calls.cases[0].description.includes('Email: Not provided') && h.calls.cases[0].description.includes('Active job reported: Not reported'), `${role} unknowns remain visibly unknown`);
+  check(h.calls.cases[0].bookingId === null && h.calls.cases[0].easerId === null, `${role} no private record linking`);
+  check(h.calls.events[0].metadata.deliveryConfirmed === false, `${role} notification acceptance is not delivery`);
+  for (const key of ['bookingCreated', 'appointmentConfirmed', 'paymentTaken', 'accountChanged', 'identityVerified', 'callbackTimeConfirmed']) check(first.data[key] === false, `${role} ${key} remains false`);
+}
+for (const field of ['action', 'callControlId', 'callerRole', 'topic', 'name', 'phone', 'summary', 'detailsConfirmed', 'callbackConsent']) {
+  const h = harness();
+  check((await h.invoke({ ...nullPro, [field]: null })).code === 400, `Required ${field} cannot be null`);
+  check(h.calls.connections === 0 && h.calls.emails.length === 0, `Null ${field} rejected before writes`);
+}
+for (const field of optionalTextFields) {
+  for (const value of [{}, [], false, 123]) {
+    const h = harness();
+    check((await h.invoke({ ...nullPro, [field]: value })).code === 400, `Invalid optional ${field} type rejected`);
+    check(h.calls.connections === 0, `Invalid optional ${field} rejected before writes`);
+  }
+}
+for (const data of [
+  { ...nullCustomer, bookingDetails: null },
+  { ...nullCustomer, bookingDetails: { services: null } },
+  { ...nullCustomer, bookingDetails: { services: ['Furniture Assembly'], items: false } },
+  { ...nullCustomer, bookingDetails: { services: ['Furniture Assembly'], items: [{ service: 'Furniture Assembly', description: 'Bed', quantity: null }] } },
+  { ...nullPro, bookingDetails: {} }, { ...nullPro, activeJob: 'false' },
+  { ...nullPro, bookingId: null }, { ...nullPro, payout: null },
+  { ...nullCustomer, bookingDetails: { services: ['Furniture Assembly'], price: null } },
+  { ...nullPro, email: 'not-an-email' }, { ...nullPro, summary: 'Card number 4242 4242 4242 4242' },
+]) {
+  const h = harness();
+  check((await h.invoke(data)).code === 400, 'Null compatibility does not weaken schema/privacy boundaries');
+  check(h.calls.connections === 0 && h.calls.emails.length === 0, 'Boundary rejection happens before writes');
+}
 const active = harness(); await active.invoke({ ...pro, activeJob: true });
 check(active.calls.cases[0].severity === 'high', 'Active-job escalation');
 const duplicate = harness(); const [one, two] = await Promise.all([duplicate.invoke(), duplicate.invoke()]);

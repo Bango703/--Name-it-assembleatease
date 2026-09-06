@@ -43,7 +43,9 @@ const hasExtra = (value, fields) => Object.keys(value).some(key => !fields.has(k
 const isNewService = value => value.callerRole === 'customer' && ['new_service', 'custom_quote'].includes(value.topic);
 
 function text(value, max, field, required = false) {
-  if (value === undefined || value === '') {
+  // Optional webhook fields may arrive as null instead of being omitted.
+  // Required fields still fail here; never coerce objects or numbers to text.
+  if (value === undefined || value === null || value === '') {
     if (required) throw new Error(`${field} is required.`);
     return '';
   }
@@ -100,8 +102,8 @@ export function validateSupportRequest(body, catalog) {
     };
     if (input.summary.length < 10) throw new Error('Provide a clear request summary of at least 10 characters.');
     if (input.email && !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(input.email)) throw new Error('Provide a valid email address or omit it.');
-    if (body.activeJob !== undefined && typeof body.activeJob !== 'boolean') throw new Error('Active job must be true or false.');
-    if (body.bookingDetails !== undefined && !isNewService(input)) throw new Error('Booking details are only for new customer service requests.');
+    if (body.activeJob != null && typeof body.activeJob !== 'boolean') throw new Error('Active job must be true or false.');
+    if (body.bookingDetails != null && !isNewService(input)) throw new Error('Booking details are only for new customer service requests.');
     if (isNewService(input)) {
       const details = body.bookingDetails;
       if (!isObject(details) || hasExtra(details, BOOKING_FIELDS)) throw new Error('Provide structured service request details.');
@@ -110,7 +112,7 @@ export function validateSupportRequest(body, catalog) {
       if (!Array.isArray(details.services) || details.services.length < 1 || details.services.length > 7
           || details.services.some(service => typeof service !== 'string' || !Object.hasOwn(available, service))
           || new Set(details.services).size !== details.services.length) throw new Error('Choose distinct, exact service categories from the current catalog.');
-      if (details.items !== undefined && (!Array.isArray(details.items) || details.items.length > 15)) throw new Error('Use at most 15 grouped item lines; describe additional scope in the summary.');
+      if (details.items != null && (!Array.isArray(details.items) || details.items.length > 15)) throw new Error('Use at most 15 grouped item lines; describe additional scope in the summary.');
       const items = (details.items || []).map(item => {
         if (!isObject(item) || hasExtra(item, ITEM_FIELDS) || !details.services.includes(item.service)
             || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) throw new Error('Each item needs a selected service and a whole quantity between 1 and 99.');
