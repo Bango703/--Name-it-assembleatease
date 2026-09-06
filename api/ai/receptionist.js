@@ -93,7 +93,7 @@ export function receptionistCallbacksEnabled(env = process.env) {
 export function createReceptionistHandler({
   env = process.env, catalog = getBookingCatalog, supabase = getSupabase,
   createCase = createOperationCase, appendEvent = appendOperationCaseEvent,
-  email = sendEmail, ownerAddress = ownerEmail, newRef = buildOperationCaseRef,
+  email = options => sendEmail(options), ownerAddress = ownerEmail, newRef = buildOperationCaseRef,
   durableLimit = hasDurableRateLimit, limit = rateLimitKey,
 } = {}) {
   return async function handler(req, res) {
