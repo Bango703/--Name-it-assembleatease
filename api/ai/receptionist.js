@@ -8,7 +8,7 @@ import { createOperationCase, appendOperationCaseEvent, buildOperationCaseRef } 
 export const config = { api: { bodyParser: { sizeLimit: '16kb' } } };
 const SITE = 'https://www.assembleatease.com';
 const INTAKE_FIELDS = new Set([
-  'action', 'conversationId', 'service', 'name', 'phone', 'city', 'project',
+  'action', 'conversationId', 'callControlId', 'service', 'name', 'phone', 'city', 'project',
   'preferredTime', 'detailsConfirmed', 'callbackConsent',
 ]);
 
@@ -46,7 +46,16 @@ export function validateReceptionistIntake(body, catalog = getBookingCatalog()) 
   if (body.detailsConfirmed !== true || body.callbackConsent !== true) {
     return { error: 'The caller must confirm the request and agree to a callback before saving.' };
   }
-  const conversationId = text(body.conversationId, 100);
+  // Voice tools preset Telnyx's built-in call_control_id, never an LLM-chosen ID.
+  // Hash its opaque identifier to fit the existing case source_ref; no new table.
+  let conversationId = text(body.conversationId, 100);
+  if (body.callControlId !== undefined) {
+    if (body.conversationId !== undefined || typeof body.callControlId !== 'string'
+        || !/^v3:[A-Za-z0-9_+/=-]{10,1000}$/.test(body.callControlId)) {
+      return { error: 'A valid provider call reference is required.' };
+    }
+    conversationId = `call_${createHash('sha256').update(body.callControlId).digest('hex')}`;
+  }
   if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{9,99}$/.test(conversationId)) return { error: 'A valid conversation reference is required.' };
   const service = text(body.service, 80);
   if (!Object.hasOwn(catalog.subcategories || {}, service)) return { error: 'Choose an exact service from the catalog.' };
@@ -125,6 +134,7 @@ export function createReceptionistHandler({
       return res.status(503).json({ error: 'Callback requests are temporarily unavailable. Please use the contact page.' });
     }
     const input = validation.value;
+    const testLabel = input.name === 'TEST - Sora integration' && input.project.startsWith('TEST ONLY') ? '[TEST] ' : '';
     const sourceRef = `telnyx-ai:${input.conversationId}`;
     const description = [
       'AI-assisted callback request. Caller-provided details; not an identity-verified booking.',
@@ -141,7 +151,7 @@ export function createReceptionistHandler({
       // Existing (source, source_ref) uniqueness prevents duplicate cases.
       saved = await createCase(sb, {
         caseRef: proposedRef, caseType: 'support', source: 'system', sourceRef,
-        severity: 'normal', subject: `Sora callback: ${input.service} - ${input.city}`,
+        severity: 'normal', subject: `${testLabel}Sora callback: ${input.service} - ${input.city}`,
         description, customerName: input.name, customerPhone: input.phone,
         createdByType: 'system', createdByName: 'Sora (AI intake)',
         metadata: { channel: 'telnyx_ai', conversationId: input.conversationId, service: input.service,
@@ -161,7 +171,7 @@ export function createReceptionistHandler({
       try {
         notice = await email({
           to: ownerAddress(), from: 'AssembleAtEase <contact@assembleatease.com>',
-          subject: `Sora callback request ${saved.case_ref}`,
+          subject: `${testLabel}Sora callback request ${saved.case_ref}`,
           html: `<h2>Customer callback requested</h2><p>Reference: ${esc(saved.case_ref)}</p><p>${esc(input.name)} | ${esc(input.phone)}</p><p style="white-space:pre-wrap">${esc(description)}</p><p>Open Owner Dashboard &gt; Cases to acknowledge and follow up. This is a request, not a booking.</p>`,
           meta: { operationCaseId: saved.id, notificationType: 'ai_callback_owner', recipientType: 'owner' },
         });

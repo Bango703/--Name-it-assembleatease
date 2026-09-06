@@ -39,6 +39,16 @@ const valid = {
   preferredTime: 'Next Tuesday morning, if available', callbackConsent: true, detailsConfirmed: true,
 };
 assert.equal(validateReceptionistIntake(valid).value.phone, '+15125550100');
+const { conversationId: _unusedConversationId, ...voiceInput } = valid;
+const voice = { ...voiceInput, callControlId: 'v3:fictional_call_control_123456' };
+assert.match(validateReceptionistIntake(voice).value.conversationId, /^call_[a-f0-9]{64}$/);
+assert.equal(validateReceptionistIntake(voice).value.conversationId, validateReceptionistIntake(voice).value.conversationId);
+assert.notEqual(validateReceptionistIntake(voice).value.conversationId,
+  validateReceptionistIntake({ ...voice, callControlId: 'v3:another_fictional_call_123456' }).value.conversationId);
+for (const callControlId of ['{{call_control_id}}', '', 'v3:short', 'v3:' + 'a'.repeat(1001), 123, 'v3:bad id with spaces']) {
+  assert.ok(validateReceptionistIntake({ ...voiceInput, callControlId }).error);
+}
+assert.ok(validateReceptionistIntake({ ...valid, callControlId: voice.callControlId }).error);
 for (const city of ['Austin', 'Houston', 'San Antonio']) assert.ok(validateReceptionistIntake({ ...valid, city }).value);
 for (const bad of [
   { callbackConsent: false }, { detailsConfirmed: false }, { callbackConsent: 'true' },
