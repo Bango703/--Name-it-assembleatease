@@ -70,6 +70,11 @@ jobs:
       - name: Status/constraint drift
         run: node scripts/check-status-constraint-drift.mjs
 
+      - name: Phone call history and Sora intake safety
+        run: |
+          node scripts/test-owner-voice-calls.mjs
+          node scripts/test-sora-support-intake.mjs
+
       # ── Article 8: the regression gate. Previously proven behaviour.
       - name: Regression suite
         run: npm run test:launch
