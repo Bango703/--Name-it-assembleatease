@@ -57,14 +57,13 @@ const connectBlocked = await getEaserReadiness({
     requirements: { currently_due: ['external_account'], past_due: [], disabled_reason: 'requirements.past_due' },
   },
 });
-// Payout setup no longer blocks job readiness — offers keep flowing and earnings
-// are held at release until Stripe payouts are ready. It surfaces as a payout-setup
-// action (payoutSetupItems), not a readiness blocker (missingItems).
-assert.equal(connectBlocked.isReady, true);
+// Master policy: Connect prerequisites gate new jobs only when Connect is on.
+// Manual-payout launch remains independent of Connect readiness.
+assert.equal(connectBlocked.isReady, false);
 assert.equal(connectBlocked.payoutSetupComplete, false);
 assert.ok(connectBlocked.payoutSetupItems.includes('Stripe payouts enabled'));
 assert.ok(connectBlocked.payoutSetupItems.some(item => item.startsWith('Stripe requirements due:')));
-assert.ok(!connectBlocked.missingItems.includes('Stripe payouts enabled'));
+assert.ok(connectBlocked.missingItems.includes('Stripe payouts enabled'));
 
 assert.equal(canTransitionBookingStatus('confirmed', 'en_route'), true);
 assert.equal(canTransitionBookingStatus('confirmed', 'arrived'), false);

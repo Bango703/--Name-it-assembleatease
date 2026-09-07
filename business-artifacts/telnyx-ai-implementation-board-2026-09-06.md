@@ -1,6 +1,43 @@
 # Telnyx AI + booking + owner dashboard implementation board
 
-Updated: 2026-09-06. "Board" is provisionally interpreted as Owner Dashboard. Both call completion and job completion are explicitly covered below. This file is a work/acceptance checklist, not a second source of customer booking status.
+Updated: 2026-09-06. This board covers Owner Dashboard integration and CTO/payments/security/operations acceptance review; it is not an independent human board's approval. Both call completion and job completion are explicitly covered below. This file is a work/acceptance checklist, not a second source of customer booking status.
+
+## Current scope: intake and support only; full phone booking/payment PAUSED
+
+The user narrowed the scope to full customer service-request details and Easer job/account/earnings support, saved into existing Cases and owner email. [Current 52-capability have/need review](telnyx-sora-intake-capabilities-2026-09-06.md) and [isolated two-runtime-file release checklist](telnyx-sora-intake-release-2026-09-06.md) supersede the larger release plan below for this task. The new endpoint/prompt/tool contracts are LOCAL, offline-tested and not deployed/attached. Existing transactional work is preserved, not activated. No paid call, live data change or public routing change occurred in this intake-only pass.
+
+## Previous scope: Customer and Service Pro paths, full voice booking
+
+### Latest fixing pass after "FIX ALL PLEASE" (local, not deployed)
+
+This status overrides the older implementation gaps immediately below where noted. [Exact changes, test evidence, release scope and remaining blockers](telnyx-sora-fix-pass-2026-09-06.md).
+
+- FIXED LOCALLY: server rejects priced/quote-only mixed carts unless the full request explicitly uses quote approval. It does not silently charge for only part of the work.
+- FIXED LOCALLY: Connect-mode new-job readiness requires verified payout setup, while manual payout readiness is preserved. No Connect flag or payout rail was changed.
+- FIXED LOCALLY: website chat now distinguishes human support hours from daily appointment windows, including Sunday; no staffing guarantee.
+- BUILT / OFF: read-only `prepare_booking` handoff preserves exact catalog services/items/quantities, forces quote mode when required and opens the existing checkout for customer review. All 201 catalog items pass offline round-trip checks; furniture plus treadmill visibly verified in Edge. This does NOT send a link or create a booking, payment or authenticated caller session.
+- BUILT / OFF: signed, connection-scoped voice lifecycle receiver persists minimal call events in existing owner Cases; duplicate and out-of-order fixtures pass, persistence failures request retry. No transcripts, recordings, card digits, client_state or inferred callback consent are stored. Provider webhook connection is not configured.
+- FIXED LOCALLY: owner Cases flags missing/failed/unconfirmed notifications and failed notification lookups, and links call logs with confirmed Customer/Pro requests by the same provider-derived call hash. A call log and an intake case remain different facts; neither changes booking/payment status.
+- VALIDATION: focused offline Sora tests and the full clean production-based launch regression PASS, including the final run after same-call owner links. Root-wide smoke failed on unrelated `_mobileframe.html`; that user draft remains untouched. No secret files were copied to the clean test worktree.
+- STILL OPEN: authenticated voice account actions, full voice-originated booking/quote submission and completion proof, consented link delivery, isolated Stripe/database sandbox, telephone payment connector, durable notification outbox/provider reconciliation, deterministic after-hours fallback and dedicated AI spend controls.
+- NO LIVE CHANGE in this pass: no push/deploy, no new calls/SMS/emails, no real record edits/deletions, no provider settings or public-routing change. New integrations stay default-off.
+
+Full public transactional launch remains NOT approved. Local regression success is not provider/financial end-to-end certification.
+
+### Prior two-path configuration pass (historical)
+
+This section supersedes earlier descriptions of the draft as a single-node receptionist. Detailed findings, end-to-end target journeys, source files, test evidence and release gates: [Two-sided booking audit](telnyx-two-sided-booking-audit-2026-09-06.md).
+
+- SAVED in existing TEST draft: Customer/Service Pro greeting, three named workflow nodes, four routing edges, separate Pro guidance and per-node tool scoping. Entry can read the catalog; only Customer inherits callback intake; Pro has only the existing fixed transfer and hangup. API read-back and Edge Workflow view verified. Full telephone route switching remains untested.
+- CORRECTED in Sora: human-support hours no longer described as appointment hours; no Sunday-closed or real-time-professional-availability claim. The website chatbot still needs its own scoped hours correction.
+- TESTED: limited Pro text response stayed in applicant context and refused unearned approval. Initial customer test exposed missing entry catalog access; fixed and retested with actual catalog/items tool invocation for couch plus treadmill. These are not booking/payment or complete voice tests.
+- LOCAL IMPLEMENTATION TESTED after the owner's CONTINUE: proper unverified Service Pro support intake with separate default-off flag, six support topics, durable Cases record before owner email, shared rate limit, idempotent retries, and no customer/profile/booking mislabeling or financial mutation. Not deployed, enabled or attached to Telnyx. See [Pro-support connection checklist](telnyx-pro-support-connection-2026-09-06.md) for exact runtime files and acceptance steps.
+- NOT IMPLEMENTED: voice booking/quote submission, prefilled secure payment continuation, authenticated Customer/Pro records and mutations, all-call/abandoned-call owner ingestion, and telephone payment connector. Pro support cannot be called live until the tested local backend is separately deployed and connected.
+- P0 GATES: no Pay connector configured (live GET inventory empty); no proven isolated financial sandbox; no caller-bound account authorization; incomplete call/event reconciliation. Additional code findings: Connect-mode readiness contradicts master policy, and mixed priced/quote-only carts need server-side review before any voice booking adapter.
+- PAYMENT DIRECTION: use the existing Stripe collection flow while on the call first; evaluate Telnyx Pay keypad/tokenization separately with a verified processor. Never send raw card data to an AssembleAtEase webhook, expose it to Sora, or use immediate charge as a substitute for the existing authorization/capture workflow.
+- UNCHANGED: public +19792325139 still always forwards to +17372906129, owner-only test routing, main version, five global tools, recording off, website deployment, financial logic, records and manual payouts. No new phone calls or purchases.
+
+Review decision: staged implementation may proceed; full public transactional launch is NOT approved. A node name is not proof that its backend action exists. Keep every required test open until there is specific evidence.
 
 ## Executive summary
 

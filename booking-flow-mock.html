@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Experience Preview | AssembleAtEase</title>
+  <meta name="description" content="Interactive preview of the AssembleAtEase service booking experience.">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="canonical" href="https://www.assembleatease.com/book">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Booking Experience Preview | AssembleAtEase">
+  <meta property="og:description" content="Preview a clear, guided way to choose services, schedule a visit, and review a home project.">
+  <meta property="og:url" content="https://www.assembleatease.com/book">
+  <meta property="og:site_name" content="AssembleAtEase">
+  <meta property="og:image" content="https://www.assembleatease.com/images/booking-service-furniture-assembly.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Booking Experience Preview | AssembleAtEase">
+  <meta name="twitter:description" content="Preview a clear, guided way to choose services, schedule a visit, and review a home project.">
+  <meta name="twitter:image" content="https://www.assembleatease.com/images/booking-service-furniture-assembly.jpg">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="96x96" href="/images/favicon-96.png">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+  <link rel="stylesheet" href="/assets/css/booking-flow-mock.css">
+</head>
+<body>
+  <div class="preview-ribbon" role="note">Interactive preview only &mdash; no booking or payment will be submitted</div>
+
+  <header class="booking-header">
+    <a class="brand" href="/" aria-label="AssembleAtEase home">
+      <img src="/images/logo.webp" alt="" width="40" height="40">
+      <span>Assemble<span>AtEase</span></span>
+    </a>
+    <div class="header-title">Book a service</div>
+    <a class="header-help" href="tel:+19792325139">
+      <small>Questions?</small>
+      <strong>(979) 232-5139</strong>
+    </a>
+  </header>
+
+  <nav class="booking-progress" aria-label="Booking progress">
+    <ol>
+      <li class="is-active" data-progress="1" aria-current="step"><span>1</span><strong>Services</strong></li>
+      <li data-progress="2"><span>2</span><strong>Project</strong></li>
+      <li data-progress="3"><span>3</span><strong>Schedule</strong></li>
+      <li data-progress="4"><span>4</span><strong>Details</strong></li>
+      <li data-progress="5"><span>5</span><strong>Review</strong></li>
+    </ol>
+  </nav>
+
+  <main class="booking-shell">
+    <section class="booking-card form-step" id="service-step" data-step="1" aria-labelledby="service-heading">
+      <div class="step-intro">
+        <p class="eyebrow">Step 1 of 5</p>
+        <h1 id="service-heading">What can we take off your list?</h1>
+        <p>Choose one or more service types. You&rsquo;ll select the exact items next.</p>
+      </div>
+
+      <div class="service-grid" id="service-grid">
+        <button class="service-card" type="button" data-service="Furniture Assembly" aria-pressed="false">
+          <span class="service-photo"><img src="/images/booking-service-furniture-assembly.jpg" alt="Assembled living room furniture"></span>
+          <span class="service-copy"><strong>Furniture assembly</strong><small>Beds, dressers, shelving &amp; more</small><span class="service-price" data-price>View options</span></span>
+          <span class="selection-mark" aria-hidden="true">&check;</span>
+        </button>
+        <button class="service-card" type="button" data-service="Office Assembly" aria-pressed="false">
+          <span class="service-photo"><img src="/images/booking-service-office-assembly.jpg" alt="Assembled office desk and chair"></span>
+          <span class="service-copy"><strong>Office assembly</strong><small>Desks, chairs &amp; workstations</small><span class="service-price" data-price>View options</span></span>
+          <span class="selection-mark" aria-hidden="true">&check;</span>
+        </button>
+        <button class="service-card" type="button" data-service="Outdoor &amp; Playsets" aria-pressed="false">
+          <span class="service-photo"><img src="/images/booking-service-outdoor-playsets.jpg" alt="Outdoor playset in a backyard"></span>
+          <span class="service-copy"><strong>Outdoor assembly</strong><small>Playsets, grills, patio &amp; storage</small><span class="service-price" data-price>View options</span></span>
+          <span class="selection-mark" aria-hidden="true">&check;</span>
+        </button>
+        <button class="service-card" type="button" data-service="Fitness Equipment" aria-pressed="false">
+          <span class="service-photo"><img src="/images/booking-service-fitness-equipment.jpg" alt="Home fitness equipment"></span>
+          <span class="service-copy"><strong>Gym equipment</strong><small>Treadmills, racks, bikes &amp; gyms</small><span class="service-price" data-price>View options</span></span>
+          <span class="selection-mark" aria-hidden="true">&check;</span>
+        </button>
+        <button class="service-card" type="button" data-service="Mounting &amp; Hanging" aria-pressed="false">
+          <span class="service-photo"><img src="/images/booking-service-tv-mounting.jpg" alt="Television mounted on a wall"></span>
+          <span class="service-copy"><strong>TV mounting</strong><small>TVs, soundbars &amp; cord concealment</small><span class="service-price" data-price>View options</span></span>
+          <span class="selection-mark" aria-hidden="true">&check;</span>
+        </button>
+        <button class="service-card" type="button" data-service="Other" aria-pressed="false">
+          <span class="service-photo service-photo-other"><span aria-hidden="true">Custom</span></span>
+          <span class="service-copy"><strong>Something else</strong><small>Tell us about your assembly project</small><span class="service-price">Request a quote</span></span>
+          <span class="selection-mark" aria-hidden="true">&check;</span>
+        </button>
+      </div>
+
+      <p class="field-error" id="service-error" role="alert" hidden>Please choose at least one service to continue.</p>
+      <div class="step-footer">
+        <a href="/" class="text-link">Back to home</a>
+        <button class="primary-button" type="button" id="continue-button" disabled>Choose project items <span aria-hidden="true">&rarr;</span></button>
+      </div>
+    </section>
+
+    <section class="booking-card form-step" id="project-step" data-step="2" aria-labelledby="project-heading" hidden>
+      <div class="step-intro step-intro-wide">
+        <p class="eyebrow">Step 2 of 5</p>
+        <h1 id="project-heading">Build your project list</h1>
+        <p>Choose the exact items you want handled. Add as many as you need for the same visit.</p>
+      </div>
+
+      <div class="project-tabs" id="project-tabs" role="tablist" aria-label="Selected service types"></div>
+      <div class="catalog-toolbar">
+        <label class="search-field">
+          <span class="sr-only">Search project items</span>
+          <input id="item-search" type="search" placeholder="Search items, such as dresser or treadmill" autocomplete="off">
+        </label>
+        <label class="select-field">
+          <span class="sr-only">Filter by group</span>
+          <select id="group-filter" aria-label="Filter project items by group"></select>
+        </label>
+      </div>
+      <div class="catalog-status" id="catalog-status" aria-live="polite"></div>
+      <div class="item-catalog" id="item-catalog"></div>
+      <div class="custom-project" id="custom-project" hidden>
+        <label for="custom-description">Describe what you need assembled or installed</label>
+        <textarea id="custom-description" rows="5" placeholder="Include the item, brand or model, approximate size, and anything that may affect the work."></textarea>
+        <p>We&rsquo;ll review the details and provide clear pricing before the visit is confirmed.</p>
+      </div>
+
+      <div class="project-context">
+        <div>
+          <label for="project-notes">Anything we should know?</label>
+          <textarea id="project-notes" rows="4" placeholder="Access notes, item condition, wall type, or special instructions"></textarea>
+        </div>
+        <div class="photo-upload">
+          <input id="project-photos" type="file" accept="image/*" multiple>
+          <label for="project-photos">
+            <span class="upload-mark" aria-hidden="true">+</span>
+            <strong>Add helpful photos</strong>
+            <small>Optional in this preview</small>
+          </label>
+          <div class="photo-list" id="photo-list" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <p class="field-error" id="project-error" role="alert" hidden>Choose at least one project item, or describe your custom project.</p>
+      <div class="step-footer">
+        <button class="secondary-button" type="button" data-back="1">Back</button>
+        <button class="primary-button" type="button" id="project-continue">Continue to schedule <span aria-hidden="true">&rarr;</span></button>
+      </div>
+    </section>
+
+    <section class="booking-card form-step" id="schedule-step" data-step="3" aria-labelledby="schedule-heading" hidden>
+      <div class="step-intro step-intro-wide">
+        <p class="eyebrow">Step 3 of 5</p>
+        <h1 id="schedule-heading">Where and when should we come?</h1>
+        <p>Choose a preferred visit window and tell us where the work will happen.</p>
+      </div>
+
+      <div class="section-block">
+        <div class="section-heading"><div><span>Preferred day</span><h2>Choose a date</h2></div><small>You can review this before confirming</small></div>
+        <div class="date-options" id="date-options" role="radiogroup" aria-label="Preferred service date"></div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-heading"><div><span>Arrival window</span><h2>Choose a time</h2></div></div>
+        <div class="time-options" role="radiogroup" aria-label="Preferred arrival window">
+          <button type="button" data-time="8:00 AM - 11:00 AM" aria-pressed="false"><strong>Morning</strong><small>8:00 AM &ndash; 11:00 AM</small></button>
+          <button type="button" data-time="11:00 AM - 2:00 PM" aria-pressed="false"><strong>Midday</strong><small>11:00 AM &ndash; 2:00 PM</small></button>
+          <button type="button" data-time="2:00 PM - 5:00 PM" aria-pressed="false"><strong>Afternoon</strong><small>2:00 PM &ndash; 5:00 PM</small></button>
+        </div>
+      </div>
+
+      <div class="section-block address-block">
+        <div class="section-heading"><div><span>Service location</span><h2>Where is the project?</h2></div></div>
+        <div class="field-grid">
+          <label class="field span-2"><span>Street address</span><input id="address-line" autocomplete="street-address" placeholder="123 Main Street"></label>
+          <label class="field"><span>Unit or suite <small>Optional</small></span><input id="address-unit" autocomplete="address-line2" placeholder="Apt 4B"></label>
+          <label class="field"><span>ZIP code</span><input id="address-zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="78701"></label>
+          <label class="field"><span>City</span><input id="address-city" autocomplete="address-level2" placeholder="Austin"></label>
+          <label class="field"><span>Project setting</span><select id="property-type"><option value="">Choose one</option><option>House</option><option>Apartment or condo</option><option>Office or business</option><option>Outdoor property</option></select></label>
+        </div>
+        <label class="field"><span>Parking, gate, stairs, or entry details <small>Optional</small></span><textarea id="access-notes" rows="3" placeholder="Share anything that will help the visit go smoothly"></textarea></label>
+      </div>
+
+      <p class="field-error" id="schedule-error" role="alert" hidden>Please choose a date and time, then add the service address.</p>
+      <div class="step-footer">
+        <button class="secondary-button" type="button" data-back="2">Back</button>
+        <button class="primary-button" type="button" id="schedule-continue">Continue to your details <span aria-hidden="true">&rarr;</span></button>
+      </div>
+    </section>
+
+    <section class="booking-card form-step" id="details-step" data-step="4" aria-labelledby="details-heading" hidden>
+      <div class="step-intro step-intro-wide">
+        <p class="eyebrow">Step 4 of 5</p>
+        <h1 id="details-heading">How can we reach you?</h1>
+        <p>We&rsquo;ll use these details for visit confirmation and service updates.</p>
+      </div>
+
+      <div class="customer-details">
+        <div class="field-grid">
+          <label class="field"><span>First name</span><input id="first-name" autocomplete="given-name" placeholder="First name"></label>
+          <label class="field"><span>Last name</span><input id="last-name" autocomplete="family-name" placeholder="Last name"></label>
+          <label class="field"><span>Email address</span><input id="customer-email" type="email" autocomplete="email" placeholder="you@example.com"></label>
+          <label class="field"><span>Mobile number</span><input id="customer-phone" type="tel" autocomplete="tel" placeholder="(512) 555-0123"></label>
+        </div>
+        <fieldset class="contact-choice">
+          <legend>Best way to send updates</legend>
+          <label><input type="radio" name="contact-method" value="Text message" checked><span><strong>Text message</strong><small>Fast visit and arrival updates</small></span></label>
+          <label><input type="radio" name="contact-method" value="Email"><span><strong>Email</strong><small>Updates sent to your inbox</small></span></label>
+          <label><input type="radio" name="contact-method" value="Both"><span><strong>Both</strong><small>Text and email updates</small></span></label>
+        </fieldset>
+      </div>
+
+      <div class="calm-note">
+        <strong>Your information stays with your booking.</strong>
+        <p>This preview does not save or send your information. A live booking would use your contact details only for service and account communication.</p>
+      </div>
+
+      <p class="field-error" id="details-error" role="alert" hidden>Please add your name, a valid email address, and mobile number.</p>
+      <div class="step-footer">
+        <button class="secondary-button" type="button" data-back="3">Back</button>
+        <button class="primary-button" type="button" id="details-continue">Review booking <span aria-hidden="true">&rarr;</span></button>
+      </div>
+    </section>
+
+    <section class="booking-card form-step" id="review-step" data-step="5" aria-labelledby="review-heading" hidden>
+      <div id="review-content">
+        <div class="step-intro step-intro-wide">
+          <p class="eyebrow">Step 5 of 5</p>
+          <h1 id="review-heading">Review your visit</h1>
+          <p>Make sure the project, location, and preferred time look right before the final confirmation.</p>
+        </div>
+
+        <div class="review-stack">
+          <article class="review-card"><div class="review-card-head"><div><span>Project</span><h2>Services and items</h2></div><button type="button" data-edit="2">Edit</button></div><div id="review-project"></div></article>
+          <article class="review-card"><div class="review-card-head"><div><span>Visit</span><h2>Schedule and location</h2></div><button type="button" data-edit="3">Edit</button></div><div id="review-schedule"></div></article>
+          <article class="review-card"><div class="review-card-head"><div><span>Contact</span><h2>Your details</h2></div><button type="button" data-edit="4">Edit</button></div><div id="review-contact"></div></article>
+        </div>
+
+        <div class="payment-preview">
+          <div class="payment-heading"><div><span>Payment preview</span><h2>Secure your preferred visit</h2></div><strong>Protected checkout</strong></div>
+          <p>No card details are collected in this mock. In the live flow, secure card fields appear here and the amount shown at checkout is the final total.</p>
+          <div class="review-pricing">
+            <div><span>Service subtotal</span><strong id="review-service-subtotal">$0</strong></div>
+            <div id="review-addons-row" hidden><span>Add-ons</span><strong id="review-addons">$0</strong></div>
+            <div><span>Service call fee</span><strong>Calculated securely</strong></div>
+            <div><span>Texas sales tax</span><strong>Calculated securely</strong></div>
+            <div class="review-estimate"><span>Preview estimate</span><strong id="review-estimated-total">$0 + required fees &amp; tax</strong></div>
+          </div>
+          <div class="fake-payment" aria-hidden="true">
+            <div><span>Card number</span><strong>&bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull;</strong></div>
+            <div><span>Expires</span><strong>MM / YY</strong></div>
+            <div><span>Security code</span><strong>CVC</strong></div>
+          </div>
+          <div class="policy-preview"><strong>Payment and cancellation timing</strong><p>In the live flow, your card is authorized when the visit is confirmed and charged after completed work. Cancellation is free until 24 hours before the appointment. A fee of 10% of the service subtotal may apply inside 24 hours, or 15% once your professional is on the way; tax is not included in the cancellation fee.</p></div>
+        </div>
+
+        <label class="terms-check"><input id="terms-check" type="checkbox"><span>I&rsquo;ve reviewed the project details, estimated service subtotal, preferred schedule, and cancellation terms shown in this preview.</span></label>
+        <p class="field-error" id="review-error" role="alert" hidden>Please review and check the confirmation box to preview completion.</p>
+        <div class="step-footer">
+          <button class="secondary-button" type="button" data-back="4">Back</button>
+          <button class="primary-button" type="button" id="review-confirm">Preview booking confirmation</button>
+        </div>
+      </div>
+
+      <div class="confirmation-preview" id="confirmation-preview" hidden>
+        <span class="confirmation-mark" aria-hidden="true">&check;</span>
+        <p class="eyebrow">Preview complete</p>
+        <h1>This is how a confirmed visit could feel.</h1>
+        <p>No booking was created and no payment was collected. A live confirmation would include the booking reference, visit window, project list, and a link to track updates.</p>
+        <div class="confirmation-ticket">
+          <div><span>Booking reference</span><strong>PREVIEW-2501</strong></div>
+          <div><span>Preferred visit</span><strong id="confirmation-date">Your selected date</strong></div>
+          <div><span>Next step</span><strong>Visit confirmation and service updates</strong></div>
+        </div>
+        <button class="primary-button" type="button" id="start-over">Start preview again</button>
+      </div>
+    </section>
+
+    <aside class="summary-card" aria-labelledby="summary-title">
+      <div class="summary-head">
+        <p class="eyebrow">Your visit</p>
+        <h2 id="summary-title">Booking summary</h2>
+      </div>
+      <div class="summary-empty" id="summary-empty">
+        <span class="summary-empty-mark" aria-hidden="true">01</span>
+        <strong>Start with a service</strong>
+        <p>Your choices and estimated pricing will appear here as you build the visit.</p>
+      </div>
+      <div class="summary-selection" id="summary-selection" hidden>
+        <ul id="summary-services"></ul>
+        <div class="summary-next"><span>Next</span><strong>Choose exact project items</strong></div>
+      </div>
+      <div class="summary-money" id="summary-money" hidden>
+        <div><span>Service subtotal</span><strong id="summary-subtotal">$0</strong></div>
+        <div id="summary-addons-row" hidden><span>Add-ons</span><strong id="summary-addons">$0</strong></div>
+        <div class="summary-calculated"><span>Service call fee</span><small>Calculated securely</small></div>
+        <div class="summary-calculated"><span>Texas sales tax</span><small>Calculated securely</small></div>
+        <div class="summary-total"><span>Preview estimate</span><strong id="summary-estimated-total">$0 + fees &amp; tax</strong></div>
+        <p>Catalog preview only. Live checkout validates every item and shows the final total before confirmation.</p>
+      </div>
+      <div class="summary-assurances">
+        <div><span aria-hidden="true">&check;</span><p><strong>Clear pricing</strong><small>Review every charge before confirming</small></p></div>
+        <div><span aria-hidden="true">&check;</span><p><strong>Reviewed professionals</strong><small>Careful, reliable help for your home</small></p></div>
+        <div><span aria-hidden="true">&check;</span><p><strong>Secure checkout</strong><small>Your card is not charged in this preview</small></p></div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="booking-footer">
+    <span>Serving Austin and communities across Texas</span>
+    <span aria-hidden="true">&middot;</span>
+    <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
+  </footer>
+
+  <div id="cookie-banner" class="hidden" data-cookie-banner>
+    <span>Optional cookies help improve the booking experience. See our <a href="/privacy">Privacy Notice</a>.</span>
+    <div class="cookie-btns">
+      <button type="button" class="cookie-btn cookie-decline" data-cookie-decline>Decline</button>
+      <button type="button" class="cookie-btn cookie-accept" data-cookie-accept>Accept</button>
+    </div>
+  </div>
+
+  <script src="/assets/js/booking-source-of-truth.js"></script>
+  <script src="/assets/js/booking-flow-mock.js"></script>
+  <script src="/assets/js/cookie-consent.js"></script>
+</body>
+</html>

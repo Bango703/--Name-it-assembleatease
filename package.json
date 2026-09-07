@@ -6,6 +6,7 @@
     "test": "node scripts/smoke-check.mjs",
     "lint": "eslint .",
     "test:booking-add-service": "node scripts/test-booking-add-service-flow.mjs",
+    "test:sora": "node --import=./scripts/sora-offline-test-preload.mjs scripts/test-ai-receptionist.mjs && node --import=./scripts/sora-offline-test-preload.mjs scripts/test-sora-launch-guards.mjs",
     "test:owner-audit": "node scripts/test-owner-demand-damage-discount-and-texas-content.mjs",
     "test:owner-financial-report": "node scripts/test-owner-financial-report.mjs",
     "test:legal": "node scripts/test-legal-consent-and-privacy.mjs",

@@ -136,7 +136,7 @@ export async function sendSms({ recipient, body, meta = {} }) {
  */
 async function logSms(sb, { meta, to, body, status, errorText, providerId }) {
   try {
-    await sb.from('notification_log').insert({
+    const { error } = await sb.from('notification_log').insert({
       channel: 'sms',
       booking_id: meta.bookingId || null,
       notification_type: meta.notificationType || 'sms',
@@ -148,6 +148,7 @@ async function logSms(sb, { meta, to, body, status, errorText, providerId }) {
       provider_id: providerId,
       error_text: errorText,
     });
+    if (error) throw error;
   } catch (err) {
     console.error('[sms] notification_log write failed:', err?.message || err);
   }

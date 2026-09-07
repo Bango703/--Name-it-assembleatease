@@ -1,0 +1,64 @@
+{
+  "start_node_id": "sora_receptionist",
+  "nodes": [
+    {
+      "type": "prompt",
+      "id": "sora_receptionist",
+      "name": "Customer or Service Pro",
+      "instructions": "Identify whether this call is about hiring service or working as a Service Pro. The greeting already asks the role; do not repeat it if answered. If unclear, ask one short clarification. A person can be both; follow this call's purpose. Do not start customer project intake for a Pro. Follow global safety and human-transfer rules immediately when needed. Role choice is not authentication. Once the purpose is clear, follow the appropriate path. The read-only catalog tools are available here so an immediately stated customer service enquiry can be answered from the actual catalog before routing completes. Callback writes are available only in the customer node. Never print tool-call syntax or pretend a tool ran.",
+      "instructions_mode": "append",
+      "tools_mode": "replace",
+      "shared_tool_ids": ["tool-568f3d9b-9693-4103-83a4-60ad2f3c8f58", "tool-41bb44a8-6d41-4008-8d1a-debc51f63298", "tool-a193faea-60da-436d-ad92-6c866c19b9f7", "tool-c197145f-507c-4aae-81af-e27119417232"],
+      "tools": [],
+      "position": {"x": 360, "y": 0}
+    },
+    {
+      "type": "prompt",
+      "id": "sora_customer",
+      "name": "Customer - Services, Quotes and Booking Help",
+      "instructions": "Follow CUSTOMER PATH. For a new non-emergency service enquiry, call get_service_catalog before selecting the service or offering a callback, then get_service_items only for the relevant category. Use returned service names and callbackRequestsEnabled. Capture a confirmed customer callback only with both details confirmation and callback consent. Mixed-service projects use one confirmed primary service and an accurate summary. Existing bookings require secure customer access; you have no lookup or mutation tool. Do not invent prices, payment results, saved quotes, appointments, or sent links. If the caller changes their purpose to Pro work, stop customer intake and follow the Service Pro path.",
+      "instructions_mode": "append",
+      "tools_mode": "append",
+      "shared_tool_ids": [],
+      "tools": [],
+      "position": {"x": 0, "y": 300}
+    },
+    {
+      "type": "prompt",
+      "id": "sora_service_pro",
+      "name": "Service Pro - Apply, Account and Job Support",
+      "instructions": "Follow SERVICE PRO PATH. Distinguish new application, application in progress, or existing Easer job/earnings support. Do not use customer callback intake, ask furniture-project questions, or claim a Pro request was saved. No account lookup, identity verification, application submission, job action or payout tool is enabled. Use the secure application/account or the permitted fixed human-transfer path. Emergency safety takes priority. Do not collect unnecessary personal data or sensitive credentials. If they now want to hire service as a customer, acknowledge the switch and follow the customer path.",
+      "instructions_mode": "append",
+      "tools_mode": "replace",
+      "shared_tool_ids": ["tool-a193faea-60da-436d-ad92-6c866c19b9f7", "tool-c197145f-507c-4aae-81af-e27119417232"],
+      "tools": [],
+      "position": {"x": 720, "y": 300}
+    }
+  ],
+  "edges": [
+    {
+      "id": "role_to_customer",
+      "start_node_id": "sora_receptionist",
+      "target": {"type": "node", "node_id": "sora_customer"},
+      "condition": {"type": "llm", "prompt": "The caller clearly wants to hire AssembleAtEase, ask about a service or custom quote, or get help with their customer booking; their purpose is not to find work or support a Pro account."}
+    },
+    {
+      "id": "role_to_pro",
+      "start_node_id": "sora_receptionist",
+      "target": {"type": "node", "node_id": "sora_service_pro"},
+      "condition": {"type": "llm", "prompt": "The caller clearly wants to become a Service Pro, continue their application, or get help with their existing Easer account, job, availability or earnings."}
+    },
+    {
+      "id": "customer_switch_to_pro",
+      "start_node_id": "sora_customer",
+      "target": {"type": "node", "node_id": "sora_service_pro"},
+      "condition": {"type": "llm", "prompt": "The caller explicitly changes this call's purpose from hiring service to applying or getting support as a Service Pro. Merely mentioning the pro coming to their home does not count."}
+    },
+    {
+      "id": "pro_switch_to_customer",
+      "start_node_id": "sora_service_pro",
+      "target": {"type": "node", "node_id": "sora_customer"},
+      "condition": {"type": "llm", "prompt": "The caller explicitly changes this call's purpose from Pro work to hiring AssembleAtEase as a customer. Merely discussing a customer on their assigned job does not count."}
+    }
+  ]
+}

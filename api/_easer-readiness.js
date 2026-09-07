@@ -110,11 +110,9 @@ export function approvalReadinessError(readiness) {
 
 /**
  * One source of truth for whether an Easer may receive or accept jobs.
- * Payout setup (Stripe Connect) does NOT gate job readiness — an approved Easer
- * can work before finishing payout setup, and the earnings are held until their
- * connected account is payouts-enabled (enforced at payout release, not here).
- * Connect state is still returned (payoutSetupComplete / payoutSetupItems) to
- * drive the payout-setup nudge.
+ * Manual-payout launch does not require Stripe Connect. When Connect is
+ * explicitly enabled, readiness also requires verified, complete payout setup.
+ * Approval is still separate, and this check never releases or changes a payout.
  */
 export async function getEaserReadiness(profile = {}, options = {}) {
   const connectRequired = options.connectRequired ?? isStripeConnectEnabled();
@@ -194,10 +192,8 @@ export async function getEaserReadiness(profile = {}, options = {}) {
   if (!flags.phoneAvailable) missingItems.push('Valid 10-digit U.S. phone number on file');
   if (requireAvailability && !flags.available) missingItems.push('Online and available');
 
-  // Payout setup (Stripe Connect) does NOT block job offers. An approved Easer
-  // can receive and accept jobs before finishing payout setup; the earnings are
-  // simply held — release-payouts only transfers once the connected account is
-  // payouts-enabled. These items drive the payout-setup nudge, not readiness.
+  // Preserve manual-payout launch. In Connect mode, do not offer new work
+  // before the payout prerequisites in the master readiness policy are met.
   const payoutSetupItems = [];
   if (connectRequired) {
     if (!connect.connectStarted) payoutSetupItems.push('Stripe Connect started');
@@ -210,6 +206,7 @@ export async function getEaserReadiness(profile = {}, options = {}) {
     if (connect.disabledReason) payoutSetupItems.push(`Stripe disabled reason: ${connect.disabledReason}`);
   }
   const payoutSetupComplete = !connectRequired || payoutSetupItems.length === 0;
+  if (connectRequired) missingItems.push(...payoutSetupItems);
 
   return {
     ...flags,

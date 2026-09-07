@@ -97,6 +97,11 @@ export default [
     },
   },
   {
+    // This one shared validator is imported by both browser and server ESM.
+    files: ['assets/js/voice-booking-selection.js'],
+    languageOptions: { sourceType: 'module' },
+  },
+  {
     // app.js is where APP is DEFINED (`const APP = {...}`). Declaring it as a
     // global for this file too would make its own declaration a redeclaration.
     // Consumers keep the global; the definer does not.

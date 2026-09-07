@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+  html,body{margin:0;background:#555;font:12px/1.5 monospace;overflow:hidden}
+  #wrap{display:flex;align-items:flex-start;gap:0}
+  iframe{border:0;display:block;background:#fff}
+  #diag{position:fixed;top:0;right:0;bottom:0;width:520px;overflow:auto;color:#0f0;background:#000;white-space:pre-wrap;padding:8px;margin:0;z-index:9}
+</style></head><body>
+<div id="wrap"><iframe id="f"></iframe><pre id="diag">measuring...</pre></div>
+<script>
+var q = new URLSearchParams(location.search);
+var page = q.get('p') || 'assembler/apply.html';
+var W = parseInt(q.get('w') || '390', 10);
+var H = parseInt(q.get('h') || '3000', 10);
+var Y = parseInt(q.get('y') || '0', 10);
+var f = document.getElementById('f');
+f.style.width = W + 'px';
+f.style.height = H + 'px';
+f.style.marginTop = (-Y) + 'px';
+f.src = '/' + page;
+
+f.addEventListener('load', function () {
+  setTimeout(function () {
+    var d = f.contentDocument, w = f.contentWindow;
+    var vw = d.documentElement.clientWidth;
+    var out = ['page=' + page, 'viewport=' + vw, 'scrollWidth=' + d.body.scrollWidth];
+
+    // Anything sticking out past the right edge, or starting left of zero.
+    var over = [];
+    d.querySelectorAll('body *').forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      var cs = w.getComputedStyle(el);
+      if (cs.position === 'fixed') return;
+      if (r.right > vw + 1 || r.left < -1) {
+        over.push('  ' + el.tagName.toLowerCase() + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : '')
+          + '  L=' + Math.round(r.left) + ' R=' + Math.round(r.right) + ' w=' + Math.round(r.width));
+      }
+    });
+    out.push('overflow=' + over.length);
+    out = out.concat(over.slice(0, 14));
+
+    // Off-centre blocks: a constrained container whose left and right gutters
+    // differ by more than a pixel is not centred.
+    var off = [];
+    d.querySelectorAll('main, section, .container, .wrap, .card, .panel, form, h1, h2, .hero, header, footer').forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.width > vw - 2) return;
+      var left = r.left, right = vw - r.right;
+      if (Math.abs(left - right) > 2) {
+        off.push('  ' + el.tagName.toLowerCase() + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0,3).join('.') : '')
+          + '  gutterL=' + Math.round(left) + ' gutterR=' + Math.round(right) + ' w=' + Math.round(r.width));
+      }
+    });
+    out.push('uneven-gutters=' + off.length);
+    out = out.concat(off.slice(0, 14));
+
+    document.getElementById('diag').textContent = out.join('\n');
+  }, 900);
+});
+</script></body></html>

@@ -1,0 +1,4 @@
+Row Type,Action,Asset action,Customer ID,Level,Campaign ID,Campaign,Phone number,Country code,Use forwarding number
+Call asset,Add,Create new,293-675-5780,Campaign,23801977873,Austin | Furniture Assembly | Search,9792325139,US,yes
+Call asset,Add,Create new,293-675-5780,Campaign,24208421733,Houston | Furniture Assembly | Search,9792325139,US,yes
+Call asset,Add,Create new,293-675-5780,Campaign,24219606707,San Antonio | Furniture Assembly | Search,9792325139,US,yes

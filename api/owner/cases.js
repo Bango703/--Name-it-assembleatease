@@ -22,6 +22,7 @@ const CASE_SELECT = [
 ].join(', ');
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store');
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -91,7 +92,7 @@ async function loadCaseDetail({ sb, res, caseId }) {
   if (error) return caseLoadError(res, error);
   if (!row) return res.status(404).json({ error: 'Case not found' });
 
-  const [eventsResult, bookingMap, easerMap, notificationMap] = await Promise.all([
+  const [eventsResult, bookingMap, easerMap, notificationMap, related] = await Promise.all([
     sb.from('operations_case_events')
       .select('id, event_type, actor_type, actor_name, from_status, to_status, note, public_message, metadata, created_at')
       .eq('case_id', caseId)
@@ -100,6 +101,7 @@ async function loadCaseDetail({ sb, res, caseId }) {
     loadBookingMap(sb, [row]),
     loadEaserMap(sb, [row]),
     loadNotificationMap(sb, [row]),
+    loadRelatedSoraCases(sb, row),
   ]);
 
   if (eventsResult.error) return caseLoadError(res, eventsResult.error);
@@ -109,9 +111,27 @@ async function loadCaseDetail({ sb, res, caseId }) {
       booking: bookingMap.get(row.booking_id) || null,
       easer: easerMap.get(row.easer_id) || null,
       notifications: notificationMap.get(row.id) || emptyNotificationSummary(),
+      related,
     }),
     events: (eventsResult.data || []).map(formatCaseEvent),
   });
+}
+
+export function relatedSoraSourceRefs(row) {
+  if (row.source !== 'system') return [];
+  const matched = /^telnyx-(?:ai(?:-pro)?|call):(call_[a-f0-9]{64})$/.exec(row.source_ref || '');
+  return matched ? ['telnyx-call:', 'telnyx-ai:', 'telnyx-ai-pro:'].map(prefix => prefix + matched[1]) : [];
+}
+
+async function loadRelatedSoraCases(sb, row) {
+  const refs = relatedSoraSourceRefs(row);
+  if (!refs.length) return null;
+  const { data, error } = await sb.from('operations_cases')
+    .select('id, case_ref, subject, status').eq('source', 'system').in('source_ref', refs).limit(3);
+  if (error) return { unavailable: true, cases: [] };
+  return { unavailable: false, cases: (data || []).filter(item => item.id !== row.id).map(item => ({
+    id: item.id, ref: item.case_ref, subject: item.subject, statusLabel: operationCaseOwnerStatusLabel(item.status),
+  })) };
 }
 
 async function loadBookingMap(sb, cases) {
@@ -167,7 +187,8 @@ async function loadNotificationMap(sb, cases) {
     .limit(1000);
   if (error) {
     console.error('Operations case notification load failed:', error);
-    return new Map();
+    // Unavailable notification history is not evidence that nothing failed.
+    return new Map(ids.map(id => [id, { ...emptyNotificationSummary(), unavailable: true }]));
   }
 
   const map = new Map();
@@ -242,9 +263,26 @@ export function formatOperationCase(row, context = {}) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     notifications: context.notifications || emptyNotificationSummary(),
+    attention: soraCaseAttention(row, context.notifications || emptyNotificationSummary()),
+    related: context.related || null,
     availableActions: actions,
     requiresBookingDamageResolution,
   };
+}
+
+export function soraCaseAttention(row, notifications = {}) {
+  if (row.source !== 'system' || !/^telnyx-(?:ai(?:-pro)?|call):/.test(row.source_ref || '')) return null;
+  if (notifications.unavailable) return 'Notification history could not be loaded. Check this request directly; email delivery is unknown.';
+  if (row.source_ref.startsWith('telnyx-call:')) {
+    return 'Call history only. Review its timeline and confirmed requests before closing. Caller ID does not verify identity, callback permission, or a completed booking.';
+  }
+  if (!notifications.attempts) return 'This request is saved, but no notification attempt is logged. Acknowledge and follow up from this case.';
+  const latest = notifications.latest?.status;
+  if (['failed', 'bounced', 'complained', 'delivery_delayed'].includes(latest)) {
+    return 'The latest notification needs attention. The request is still saved; follow up from this case.';
+  }
+  if (!['delivered'].includes(latest)) return 'The request is saved. Email delivery is not confirmed; do not rely on the email alone.';
+  return null;
 }
 
 function formatCaseEvent(row) {

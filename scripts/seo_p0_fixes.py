@@ -9,7 +9,9 @@ MAPS  = "https://www.google.com/maps?cid=7847022131459448801"
 SITE  = "https://www.assembleatease.com"
 BOOK  = SITE + "/book"
 LOGO  = SITE + "/images/logo.jpg"
-PHONE = "+17372906129"
+with open("business-artifacts/page-governance/site-governance.json", "r", encoding="utf-8") as governance_file:
+    BUSINESS_IDENTITY = json.load(governance_file)["business"]
+PHONE = BUSINESS_IDENTITY["phoneE164"]
 EMAIL = "service@assembleatease.com"
 ADDR  = {"@type":"PostalAddress","streetAddress":"1910 W Braker Ln",
          "addressLocality":"Austin","addressRegion":"TX",

@@ -6,6 +6,7 @@ Keep it lean; expand only when real volume demands it.
 
 **Contact for customers/Easers:** (979) 232-5139 · service@assembleatease.com
 **Response promise:** during business hours, within one business day.
+**Internal missed-call target:** return calls within 15 minutes during business hours; return after-hours calls by 8:00 AM the next business day.
 
 ---
 
@@ -20,6 +21,14 @@ Keep it lean; expand only when real volume demands it.
 - Card is **authorized (held), not charged** — capture happens at completion. Confirm the hold shows in Stripe.
 - If it's **same-day**, *you* are the backstop: if no Easer accepts, take it on your own Easer account.
 - Check the ZIP is one you can actually reach today.
+
+## Phone and SMS lead routine
+- Calls to (979) 232-5139 forward to the owner phone. Keep forwarding enabled and keep the destination phone's voicemail forwarding disabled.
+- During published hours (Mon–Fri 7 AM–5 PM; Sat 7 AM–1 PM), answer when safe. If a job is active, finish the safety-critical step before returning the call.
+- After hours, let the destination phone's professional AssembleAtEase voicemail answer. Review and return those messages by 8:00 AM the next business day.
+- Log every qualified phone lead in the owner workflow with source, city, requested service, and whether it became a booking. Do not rely on the phone's recent-calls list as the business record.
+- Review Telnyx failed SMS and webhook deliveries during the daily owner check. A failed notification must never change booking or payment truth.
+- For an active safety or access problem, tell the caller to use 911 for an immediate emergency; then open a Case and document the operational follow-up. Do not route emergency calls through the Telnyx web dialer until E911 is registered and verified.
 
 ## Failure playbook (one line each)
 | If this happens | Do this |

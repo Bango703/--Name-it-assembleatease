@@ -8303,6 +8303,29 @@ window.setTimeout(recoverRedirectedPayment, 0);
   </div>
 </div>
 <script src="/assets/js/cookie-consent.js" defer></script>
+<script type="module">
+import { readVoiceSelectionFragment, applyVoiceSelection } from '/assets/js/voice-booking-selection.js';
+if (window.location.hash.startsWith('#sora=')) {
+  const params = new URLSearchParams(window.location.search);
+  const recoveringPayment = params.has('payment_intent_client_secret') || params.has('setup_intent_client_secret');
+  const parsed = readVoiceSelectionFragment(window.location.hash, window.AAE_BOOKING_SOURCE);
+  const result = recoveringPayment
+    ? { error: 'Your payment return was kept. Finish that booking before starting another selection.' }
+    : parsed.error ? parsed : applyVoiceSelection(parsed.value, window.AAE_BOOKING_SOURCE, BOOK);
+  const notice = document.createElement('p');
+  notice.setAttribute('role', 'status');
+  notice.className = 'quote-helper';
+  notice.textContent = result.error || 'Your selected items are ready to review. Confirm the details and current prices before continuing. Nothing has been booked yet.';
+  document.getElementById('step-1')?.prepend(notice);
+  if (result.ok) {
+    const quoteBox = document.getElementById('s1-quote');
+    if (quoteBox) quoteBox.checked = BOOK.wantsQuote;
+    showItemScreen(result.service, 'items');
+  }
+  // The fragment contains catalog items only, never personal data or auth tokens.
+  history.replaceState(history.state, '', window.location.pathname + window.location.search);
+}
+</script>
 </body>
 
 </html>

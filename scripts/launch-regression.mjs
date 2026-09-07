@@ -201,7 +201,7 @@ const staleAgreement = await getEaserReadiness({ ...readyProfile, contractor_agr
 assert.equal(staleAgreement.isReady, false);
 assert.match(staleAgreement.missingItems.join(' '), /current contractor agreement/i);
 const connectBlocked = await getEaserReadiness(readyProfile, { connectRequired: true, stripeAccount: null });
-assert.equal(connectBlocked.isReady, true, 'Payout setup must NOT block job readiness — offers keep flowing; earnings hold at release until Stripe is ready');
+assert.equal(connectBlocked.isReady, false, 'Connect-mode job readiness requires verified payout setup; manual mode remains independent');
 assert.equal(connectBlocked.payoutSetupComplete, false, 'Payout setup is incomplete without a verified Connect account');
 
 assert.equal(canTransitionBookingStatus('confirmed', 'en_route'), true);

@@ -4,6 +4,9 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { hasDurableRateLimit, rateLimitKey } from '../_ratelimit.js';
 import { createOperationCase, appendOperationCaseEvent, buildOperationCaseRef } from '../_operation-cases.js';
+import { cleanIntakeText as text, intakeCallReference, intakeCallbackPhone } from '../_ai-intake-validation.js';
+import { createProSupportIntake } from './_pro-support-intake.js';
+import { prepareBookingContinuation } from './_booking-continuation.js';
 
 export const config = { api: { bodyParser: { sizeLimit: '16kb' } } };
 const SITE = 'https://www.assembleatease.com';
@@ -34,12 +37,6 @@ function bookingUrl(service) {
   return url.toString();
 }
 
-function text(value, max) {
-  if (typeof value !== 'string') return '';
-  const clean = value.trim().replace(/\s+/g, ' ');
-  return clean.length <= max && !/[\u0000-\u001f\u007f]/.test(clean) ? clean : '';
-}
-
 export function validateReceptionistIntake(body, catalog = getBookingCatalog()) {
   if (!body || typeof body !== 'object' || Array.isArray(body)
       || Object.keys(body).some(key => !INTAKE_FIELDS.has(key))) return { error: 'Unexpected request fields.' };
@@ -48,27 +45,18 @@ export function validateReceptionistIntake(body, catalog = getBookingCatalog()) 
   }
   // Voice tools preset Telnyx's built-in call_control_id, never an LLM-chosen ID.
   // Hash its opaque identifier to fit the existing case source_ref; no new table.
-  let conversationId = text(body.conversationId, 100);
-  if (body.callControlId !== undefined) {
-    if (body.conversationId !== undefined || typeof body.callControlId !== 'string'
-        || !/^v3:[A-Za-z0-9_+/=-]{10,1000}$/.test(body.callControlId)) {
-      return { error: 'A valid provider call reference is required.' };
-    }
-    conversationId = `call_${createHash('sha256').update(body.callControlId).digest('hex')}`;
-  }
-  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{9,99}$/.test(conversationId)) return { error: 'A valid conversation reference is required.' };
+  const conversationId = intakeCallReference(body);
+  if (!conversationId) return { error: 'A valid provider conversation reference is required.' };
   const service = text(body.service, 80);
   if (!Object.hasOwn(catalog.subcategories || {}, service)) return { error: 'Choose an exact service from the catalog.' };
   const name = text(body.name, 120);
   const city = text(body.city, 100);
   const project = text(body.project, 1500);
   const preferredTime = text(body.preferredTime || 'Not specified', 120);
-  const rawPhone = typeof body.phone === 'string' && body.phone.length <= 30 ? body.phone : '';
-  if (/[^\d+().\s-]/.test(rawPhone)) return { error: 'Use a US callback number without an extension.' };
-  const digits = rawPhone.replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
-  if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) return { error: 'A valid US callback number is required.' };
+  const phone = intakeCallbackPhone(body.phone);
+  if (!phone) return { error: 'A valid US callback number without an extension is required.' };
   if (!name || !city || project.length < 10 || !preferredTime) return { error: 'Name, city, and a clear project summary are required.' };
-  return { value: { conversationId, service, name, phone: `+1${digits}`, city, project, preferredTime } };
+  return { value: { conversationId, service, name, phone, city, project, preferredTime } };
 }
 
 function authorized(req, secret) {
@@ -96,14 +84,26 @@ export function createReceptionistHandler({
   email = options => sendEmail(options), ownerAddress = ownerEmail, newRef = buildOperationCaseRef,
   durableLimit = hasDurableRateLimit, limit = rateLimitKey,
 } = {}) {
+  const proSupport = createProSupportIntake({ env, supabase, createCase, appendEvent,
+    email, ownerAddress, newRef, durableLimit, limit, esc });
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
     // Deployment alone must never enable a new live customer workflow.
     if (env.TELNYX_AI_INTAKE_ENABLED !== 'true') return res.status(503).json({ error: 'Assistant intake is not enabled.' });
     if (!authorized(req, env.TELNYX_AI_TOOL_SECRET)) return res.status(401).json({ error: 'Unauthorized' });
+    if (['support_options', 'request_pro_support'].includes(req.body?.action)) {
+      return proSupport(req.body, res);
+    }
     let source;
     try { source = catalog(); } catch { return res.status(503).json({ error: 'Service information is temporarily unavailable.' }); }
+    if (req.body?.action === 'prepare_booking') {
+      if (env.TELNYX_AI_BOOKING_HANDOFF_ENABLED !== 'true') {
+        return res.status(503).json({ error: 'Booking handoff is not enabled.', bookingCreated: false });
+      }
+      const prepared = prepareBookingContinuation(req.body, source);
+      return prepared.error ? res.status(400).json({ error: prepared.error }) : res.status(200).json(prepared.value);
+    }
     if (req.body?.action === 'catalog') {
       if (Object.keys(req.body).some(key => !['action', 'service'].includes(key))) return res.status(400).json({ error: 'Unexpected catalog fields.' });
       const selected = req.body.service;

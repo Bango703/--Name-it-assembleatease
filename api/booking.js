@@ -173,7 +173,6 @@ export default async function handler(req, res) {
   }
 
   // ── Supabase: save booking ──────────────────────────────────
-  const sb = getSupabase();
   const pricing = calculateBookingPricing({ services: serviceList, itemsByService: items, zip, sameDayFeeCents: sameDayFeeCentsForDate });
   if (pricing.invalidItems.length) {
     return res.status(400).json({
@@ -181,6 +180,17 @@ export default async function handler(req, res) {
       invalidItems: pricing.invalidItems,
     });
   }
+  // A positive cart total prices only the fixed-price lines. It must never
+  // authorize accompanying quote-only work for zero dollars. The website
+  // already routes any custom item through quote approval; enforce that same
+  // contract here before promotions, persistence, rewards or Stripe calls.
+  if (pricing.hasCustomQuote && !quoteRequested) {
+    return res.status(409).json({
+      error: 'This selection includes work that needs a custom quote. Submit the full selection as a quote request, or remove the quote-only items to book the priced work separately.',
+      code: 'CUSTOM_QUOTE_REQUIRED',
+    });
+  }
+  const sb = getSupabase();
 
   const promo = await resolveBookingPromotion({
     promoCode,

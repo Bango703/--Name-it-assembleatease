@@ -14,8 +14,8 @@ export const config = { api: { bodyParser: false } };
  * WHAT THIS ENDPOINT IS FOR
  *   1. STOP / opt-out. Telnyx blocks further messages to a number that texts
  *      STOP, but without this the platform would never know: the dashboard would
- *      keep reporting "sent" for a number the carrier is silently dropping. TCPA
- *      compliance is the provider's job; KNOWING about it is ours.
+ *      keep reporting "sent" for a number the carrier is silently dropping.
+ *      Provider-level blocking does not replace our consent records or checks.
  *   2. Delivery truth. 'sent' means the provider accepted it, not that it
  *      arrived. Same distinction migration 068 draws for email.
  *   3. Inbound replies, which is what makes accept-by-reply possible later.
@@ -72,21 +72,29 @@ export default async function handler(req, res) {
 
   const payload = event?.data?.payload || {};
   const eventType = String(event?.data?.event_type || '').toLowerCase();
-  const sb = getSupabase();
-
-  try {
-    if (eventType === 'message.received') {
-      await handleInbound(sb, payload);
-    } else if (['message.sent', 'message.finalized'].includes(eventType)) {
-      await handleDeliveryStatus(sb, payload, eventType);
-    }
-  } catch (error) {
-    // Never 500 a webhook for a processing fault: the provider would retry the
-    // same event indefinitely. Record it and acknowledge.
-    console.error('[telnyx-webhook] processing failed:', eventType, error?.message || error);
+  if (!['message.received', 'message.sent', 'message.finalized'].includes(eventType)) {
+    return res.status(200).json({ ok: true, ignored: true });
+  }
+  const occurredAt = validTimestamp(event?.data?.occurred_at);
+  if (!payload.id || !occurredAt) {
+    return res.status(400).json({ error: 'Incomplete Telnyx message event' });
   }
 
-  // Always 200 once the signature is valid, so Telnyx stops retrying.
+  try {
+    const sb = getSupabase();
+    if (eventType === 'message.received') {
+      await handleInbound(sb, payload, occurredAt);
+    } else {
+      await handleDeliveryStatus(sb, payload, eventType, occurredAt);
+    }
+  } catch (error) {
+    // Telnyx retries failed deliveries. A 200 here would permanently lose an
+    // opt-out or delivery receipt whenever Supabase is unavailable.
+    console.error('[telnyx-webhook] processing failed:', eventType, error?.message || error);
+    return res.status(503).json({ error: 'Webhook event could not be saved' });
+  }
+
+  // Acknowledge only after persistence succeeds (or a newer event already won).
   return res.status(200).json({ ok: true, eventType });
 }
 
@@ -95,24 +103,13 @@ export default async function handler(req, res) {
  * carrier has already stopped delivery at that point, so this records the fact
  * rather than enforcing it.
  */
-async function handleInbound(sb, payload) {
+async function handleInbound(sb, payload, stamp) {
   const from = normalizePhone(payload?.from?.phone_number);
   const text = String(payload?.text || '').trim();
   const upper = text.toUpperCase();
   // The keyword set carriers honour automatically.
-  const isOptOut = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'].includes(upper);
-  const isOptIn = ['START', 'YES', 'UNSTOP'].includes(upper);
-
-  await sb.from('notification_log').insert({
-    channel: 'sms',
-    notification_type: isOptOut ? 'sms_opt_out' : isOptIn ? 'sms_opt_in' : 'sms_inbound',
-    recipient_type: 'unknown',
-    recipient_email: null,
-    subject: `Inbound SMS from ${from || 'unknown'}`,
-    status: 'delivered',
-    provider_id: payload?.id || null,
-    error_text: text.slice(0, 500),
-  }).then(() => {}, (e) => console.error('[telnyx-webhook] inbound log failed:', e?.message || e));
+  const isOptOut = ['STOP', 'STOPALL', 'STOP ALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'].includes(upper);
+  const isOptIn = ['START', 'UNSTOP'].includes(upper);
 
   // Mirror the carrier's decision into our own data. Telnyx already blocks the
   // number; without this the platform would keep queueing messages into a void
@@ -120,40 +117,65 @@ async function handleInbound(sb, payload) {
   // profiles store whatever the applicant typed.
   const phoneVariants = [from, from?.replace(/^\+1/, ''), from?.replace(/^\+/, '')].filter(Boolean);
   if (isOptOut && phoneVariants.length) {
-    const stamp = new Date().toISOString();
-    await sb.from('profiles')
+    await requireWrite(currentConsentOnly(sb.from('profiles')
       .update({ sms_opted_out_at: stamp, sms_opt_out_keyword: upper })
-      .in('phone', phoneVariants)
-      .then(() => {}, (e) => console.error('[telnyx-webhook] opt-out write failed:', e?.message || e));
-    await sb.from('bookings')
+      .in('phone', phoneVariants), stamp));
+    await requireWrite(currentConsentOnly(sb.from('bookings')
       .update({ sms_opted_out_at: stamp })
-      .in('customer_phone', phoneVariants)
-      .is('sms_opted_out_at', null)
-      .then(() => {}, () => { /* best effort */ });
+      .in('customer_phone', phoneVariants), stamp));
   }
 
-  // START / YES is re-consent. It lifts the opt-out, because that is exactly
-  // what opting back in means.
+  // Match Telnyx's documented restart keywords. A conversational "YES" is not
+  // carrier re-consent and must not silently lift a previous opt-out.
   if (isOptIn && phoneVariants.length) {
-    const stamp = new Date().toISOString();
-    await sb.from('profiles')
+    await requireWrite(currentConsentOnly(sb.from('profiles')
       .update({
         sms_opted_out_at: null,
         sms_opt_out_keyword: null,
         sms_consent_at: stamp,
         sms_consent_source: 'sms_reply_start',
       })
-      .in('phone', phoneVariants)
-      .then(() => {}, (e) => console.error('[telnyx-webhook] opt-in write failed:', e?.message || e));
-    await sb.from('bookings')
+      .in('phone', phoneVariants), stamp, true));
+    await requireWrite(currentConsentOnly(sb.from('bookings')
       .update({
         sms_opted_out_at: null,
         sms_consent_at: stamp,
         sms_consent_source: 'sms_reply_start',
       })
-      .in('customer_phone', phoneVariants)
-      .then(() => {}, (e) => console.error('[telnyx-webhook] customer opt-in write failed:', e?.message || e));
+      .in('customer_phone', phoneVariants), stamp, true));
   }
+
+  // A stable ID makes retries/concurrent duplicates one owner-inbox entry.
+  // Log after consent writes, so retrying a partial failure completes them.
+  await requireWrite(sb.from('notification_log').upsert({
+    id: inboundNotificationId(payload.id),
+    channel: 'sms',
+    notification_type: isOptOut ? 'sms_opt_out' : isOptIn ? 'sms_opt_in' : 'sms_inbound',
+    recipient_type: 'unknown',
+    recipient_email: from,
+    subject: `Inbound SMS from ${from || 'unknown'}`,
+    status: 'delivered',
+    provider_id: payload.id,
+    error_text: text.slice(0, 500),
+    last_provider_event_at: stamp,
+    last_provider_event_type: 'message.received',
+  }, { onConflict: 'id', ignoreDuplicates: true }));
+}
+
+function currentConsentOnly(query, stamp, isOptIn = false) {
+  // Conditions are evaluated in the UPDATE itself, including concurrent events.
+  // Use provider occurrence time, not retry arrival time. STOP wins a time tie.
+  return query
+    .or(`sms_consent_at.is.null,sms_consent_at.lte.${stamp}`)
+    .or(`sms_opted_out_at.is.null,sms_opted_out_at.${isOptIn ? 'lt' : 'lte'}.${stamp}`);
+}
+
+function inboundNotificationId(providerId) {
+  const bytes = crypto.createHash('sha256').update(`telnyx:inbound:${providerId}`).digest().subarray(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x80;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 /**
@@ -161,7 +183,7 @@ async function handleInbound(sb, payload) {
  * worst status across recipients is the one that matters for a single-recipient
  * transactional message.
  */
-async function handleDeliveryStatus(sb, payload, eventType) {
+async function handleDeliveryStatus(sb, payload, eventType, occurredAt) {
   const providerId = payload?.id;
   if (!providerId) return;
 
@@ -175,16 +197,40 @@ async function handleDeliveryStatus(sb, payload, eventType) {
     ? payload.errors.map(e => e?.detail || e?.title).filter(Boolean).join('; ').slice(0, 500)
     : null;
 
-  await sb.from('notification_log')
+  let update = sb.from('notification_log')
     .update({
       status,
       error_text: errorText,
-      last_provider_event_at: new Date().toISOString(),
+      last_provider_event_at: occurredAt,
       last_provider_event_type: eventType,
     })
     .eq('provider_id', providerId)
     .eq('channel', 'sms')
-    .then(() => {}, (e) => console.error('[telnyx-webhook] status update failed:', e?.message || e));
+    .or(`last_provider_event_at.is.null,last_provider_event_at.lte.${occurredAt}`);
+  if (eventType === 'message.sent') {
+    // A delayed "sent" webhook must not erase delivered/failed/unconfirmed.
+    update = update.in('status', ['queued', 'provider_accepted', 'sent']);
+  }
+  const changed = await requireWrite(update.select('id'));
+  if (!changed?.length) {
+    const existing = await requireWrite(sb.from('notification_log')
+      .select('id').eq('provider_id', providerId).eq('channel', 'sms').limit(1));
+    // Delivery can race the sender's notification insert. Ask Telnyx to retry
+    // if that row has not arrived yet; stale events for existing rows are safe.
+    if (!existing?.length) throw new Error('SMS notification record is not available yet');
+  }
+}
+
+async function requireWrite(query) {
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
+
+function validTimestamp(value) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const stamp = new Date(value);
+  return Number.isNaN(stamp.getTime()) ? null : stamp.toISOString();
 }
 
 function mapStatus(eventType, recipientStatus) {
