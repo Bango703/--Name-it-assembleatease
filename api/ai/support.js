@@ -5,6 +5,7 @@ import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { hasDurableRateLimit, rateLimitKey } from '../_ratelimit.js';
 import { createOperationCase, appendOperationCaseEvent, buildOperationCaseRef } from '../_operation-cases.js';
 import { cleanIntakeText, intakeCallReference, intakeCallbackPhone } from '../_ai-intake-validation.js';
+import { verifySoraConfirmation } from '../_sora-confirmation.js';
 
 // Intake only. This module has no booking, Stripe, dispatch, or profile mutation dependency.
 export const config = { api: { bodyParser: { sizeLimit: '16kb' } } };
@@ -106,7 +107,10 @@ export function validateSupportRequest(body, catalog) {
     if (body.bookingDetails != null && !isNewService(input)) throw new Error('Booking details are only for new customer service requests.');
     if (isNewService(input)) {
       const details = body.bookingDetails;
-      if (!isObject(details) || hasExtra(details, BOOKING_FIELDS)) throw new Error('Provide structured service request details.');
+      if (!isObject(details)) throw new Error('Provide structured service request details.');
+      if (hasExtra(details, BOOKING_FIELDS)) throw new Error('Unsupported bookingDetails field(s): '
+        + Object.keys(details).filter(key => !BOOKING_FIELDS.has(key)).join(', ')
+        + '. City belongs in the top-level city field, not bookingDetails. Correct the field placement without changing confirmed facts; do not discard caller details.');
       const available = catalog?.subcategories;
       if (!available) throw new Error('Service information is unavailable.');
       if (!Array.isArray(details.services) || details.services.length < 1 || details.services.length > 7
@@ -187,6 +191,7 @@ function authorized(req, secret) {
 export function createSupportHandler({ env = process.env, catalog = getBookingCatalog, supabase = getSupabase,
   createCase = createOperationCase, appendEvent = appendOperationCaseEvent, email = options => sendEmail(options),
   ownerAddress = ownerEmail, newRef = buildOperationCaseRef, durableLimit = hasDurableRateLimit, limit = rateLimitKey,
+  confirmRequest = verifySoraConfirmation,
   now = () => new Date(),
 } = {}) {
   return async (req, res) => {
@@ -219,6 +224,11 @@ export function createSupportHandler({ env = process.env, catalog = getBookingCa
       if (!await limit('telnyx-ai:intake', 'default')) return res.status(429).json({ error: 'Please try again shortly or use the contact page.' });
     } catch { return res.status(503).json({ error: 'Intake is temporarily unavailable. Please use the contact page.' }); }
     const input = validated.value;
+    let confirmation;
+    try { confirmation = await confirmRequest({ callControlId: body.callControlId, phone: input.phone, env, now: now().getTime() }); }
+    catch { confirmation = { ok: false, status: 503, error: 'Caller confirmation could not be verified. Do not claim this request is saved.' }; }
+    if (confirmation?.ok !== true) return res.status(confirmation?.status === 400 ? 400 : 503)
+      .json({ error: confirmation?.error || 'Caller confirmation could not be verified.', bookingCreated: false, success: false });
     const [label, caseType, priority] = SUPPORT_TOPICS[input.callerRole][input.topic];
     const severity = input.activeJob && priority === 'normal' ? 'high' : priority;
     const proposedRef = newRef('AI');
@@ -235,7 +245,8 @@ export function createSupportHandler({ env = process.env, catalog = getBookingCa
         bookingId: null, easerId: null, createdByType: 'system', createdByName: 'Sora (unverified intake)',
         metadata: { channel: 'telnyx_ai', intakeVersion: 2, conversationId: input.callRef,
           callerRole: input.callerRole, topic: input.topic, identityVerified: false,
-          detailsConfirmed: true, callbackConsent: true, bookingCreated: false, activeJobReported: input.activeJob },
+          detailsConfirmed: true, callbackConsent: true, confirmationEvidence: confirmation.evidence,
+          bookingCreated: false, activeJobReported: input.activeJob },
       });
       if (!saved?.id || !saved.case_ref) throw new Error('Case was not persisted.');
     } catch { return res.status(503).json({ error: 'Your request could not be saved. Please use the contact page.', bookingCreated: false }); }

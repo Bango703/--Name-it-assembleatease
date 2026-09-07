@@ -26,7 +26,7 @@ let checks = 0;
 function check(condition, message) { assert.ok(condition, message); checks++; }
 
 function harness(options = {}) {
-  const calls = { cases: [], emails: [], events: [], connections: 0, limits: 0 };
+  const calls = { cases: [], emails: [], events: [], connections: 0, limits: 0, confirmations: 0 };
   const saved = new Map();
   let serial = 0;
   const handler = createSupportHandler({
@@ -48,6 +48,8 @@ function harness(options = {}) {
       if (options.limitFails) throw new Error('Fake unavailable limiter'); return options.allowed !== false; },
     appendEvent: async (_sb, value) => { calls.events.push(value); if (options.eventFails) throw new Error('Fake unavailable timeline'); },
     now: () => new Date('2026-09-07T14:00:00Z'),
+    confirmRequest: async () => { calls.confirmations++; return options.confirmation || { ok: true,
+      evidence: { provider: 'telnyx', method: 'test_fixture_only', confirmedAt: '2026-09-07T13:59:59Z' } }; },
   });
   async function invoke(body = valid, request = {}) {
     const res = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, status(code) { this.code = code; return this; }, json(data) { this.data = data; return this; } };
@@ -80,6 +82,7 @@ for (const [callerRole, topics] of Object.entries(SUPPORT_TOPICS)) {
 }
 
 const newBooking = patch => ({ ...valid, bookingDetails: { ...valid.bookingDetails, ...patch } });
+check(validateSupportRequest(newBooking({ city: 'Austin' }), catalog).error.includes('City belongs in the top-level city field'), 'Nested city receives an actionable schema error without silently losing data');
 for (const data of [null, [], {}, { ...valid, action: 'pay' }, { ...valid, callbackConsent: 'true' }, { ...valid, detailsConfirmed: false },
   { ...valid, callControlId: '{{call_control_id}}' }, { ...valid, conversationId: 'fake_model_id_123' },
   { ...valid, callControlId: 'v3:short' }, { ...valid, callControlId: 'v3:' + 'a'.repeat(1001) },
@@ -202,6 +205,13 @@ check((await outage.invoke()).code === 503, 'Catalog outage blocks new-service c
 check((await outage.invoke(pro)).code === 200, 'Easer support survives catalog outage');
 check((await outage.invoke({ ...pro, callControlId: 'v3:fictional_customer_support_999', callerRole: 'customer', topic: 'payment' })).code === 200, 'Existing-customer support survives catalog outage');
 const options = harness(); const info = await options.invoke({ action: 'support_options' });
+for (const confirmation of [{ ok: false, status: 400, error: 'Separate caller confirmation required' },
+  { ok: false, status: 503, error: 'Provider evidence unavailable' }]) {
+  const h = harness({ confirmation }); const response = await h.invoke(valid);
+  check(response.code === confirmation.status && response.data.success === false, 'Model booleans cannot bypass provider confirmation');
+  check(h.calls.cases.length === 0 && h.calls.emails.length === 0 && h.calls.connections === 0, 'Unverified confirmation creates no Case or owner alert');
+}
+check(duplicate.calls.cases[0].metadata.confirmationEvidence.method === 'test_fixture_only', 'Confirmation evidence retained with durable intake');
 check(info.code === 200 && info.data.requestsEnabled === true && options.calls.connections === 0, 'Options read only');
 check(info.data.services.length === 7 && info.data.topics.customer.length === 9 && info.data.topics.service_pro.length === 9, 'Catalog and all topics');
 check((await options.invoke({ action: 'support_options', id: 'victim' })).code === 400, 'Options reject extra fields');
@@ -216,7 +226,7 @@ const contract = JSON.parse(await readFile(new URL('../business-artifacts/telnyx
 const tool = contract.tools.find(item => item.name === 'save_support_request');
 const nodes = contract.workflow_attachment_plan.nodes;
 check(nodes.every(node => node.instructions_mode === 'append' && node.tools_mode === 'replace'), 'Target node scopes retain new global safety and replace old tools');
-check(!nodes.find(node => node.id === 'sora_receptionist').tool_names.includes('save_support_request'), 'Entry cannot submit before routing');
+check(nodes.find(node => node.id === 'sora_receptionist').tool_names.includes('save_support_request'), 'Confirmed intake is not stranded when the role transition fails');
 check(nodes.filter(node => node.id !== 'sora_receptionist').every(node => node.tool_names.includes('save_support_request')), 'Both support paths get the new save tool');
 check(tool.preset_body_fields.callControlId === '{{call_control_id}}' && !Object.hasOwn(tool.body_parameters.properties, 'callControlId'), 'Provider ID not model-controlled');
 check(!Object.hasOwn(tool.body_parameters.properties, 'action') && tool.preset_body_fields.action === 'submit_request', 'Action preset');
@@ -230,3 +240,6 @@ for (const phrase of ['You are not a DIY coach', 'Role selection is not identity
 const source = await readFile(new URL('../api/ai/support.js', import.meta.url), 'utf8');
 check(!/from\s+['"][^'"]*(?:stripe|booking-continuation|dispatch|easer-readiness)/.test(source), 'No financial/dispatch dependency');
 console.log(`PASS Sora intake-only: ${checks} checks; 18 role/topic workflows, full/incomplete customer intake, Easer/owner truth, replay, auth, privacy, outages and Central hours. No live requests.`);
+// Run new runtime-boundary regressions under the existing required CI gate.
+await import('./test-sora-confirmation.mjs');
+await import('./test-sora-save-guard.mjs');
