@@ -5,6 +5,7 @@
     cases: [],
     selectedId: null,
     loading: false,
+    pendingCaseId: null,
   };
 
   var TYPE_LABELS = {
@@ -52,7 +53,8 @@
     }
   }
 
-  async function load() {
+  async function load(preferredCaseId) {
+    if (typeof preferredCaseId === 'string' && /^[a-f0-9-]{36}$/i.test(preferredCaseId)) state.pendingCaseId = preferredCaseId;
     if (state.loading) return;
     state.loading = true;
     var list = document.getElementById('cases-list');
@@ -72,13 +74,16 @@
       updateBadge(data.summary || {});
 
       var selectedStillVisible = state.cases.some(function(item) { return item.id === state.selectedId; });
-      if (!selectedStillVisible) state.selectedId = state.cases.length ? state.cases[0].id : null;
+      if (state.pendingCaseId) { state.selectedId = state.pendingCaseId; state.pendingCaseId = null; }
+      else if (!selectedStillVisible) state.selectedId = state.cases.length ? state.cases[0].id : null;
       if (state.selectedId) await select(state.selectedId, true);
       else renderEmptyDetail();
     } catch (error) {
+      state.pendingCaseId = null;
       renderLoadError(error);
     } finally {
       state.loading = false;
+      if (state.pendingCaseId) load();
     }
   }
 
@@ -90,8 +95,10 @@
     detail.innerHTML = '<div class="cases-loading">Loading case details...</div>';
     try {
       var data = await request('/api/owner/cases?caseId=' + encodeURIComponent(caseId));
+      if (state.selectedId !== caseId) return;
       renderDetail(data.case, data.events || []);
     } catch (error) {
+      if (state.selectedId !== caseId) return;
       detail.innerHTML = '<div class="cases-error">' + esc(error.message || 'Could not load this case.') + '</div>';
     }
   }
@@ -568,5 +575,6 @@
     loadBadge: loadBadge,
     refresh: load,
     select: select,
+    open: load,
   };
 })();
