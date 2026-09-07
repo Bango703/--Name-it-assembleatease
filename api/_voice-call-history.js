@@ -44,8 +44,11 @@ export function voiceRowId(value) {
 }
 
 function date(value, now) {
-  if (typeof value !== 'string' || value.length > 40 || !/^\d{4}-\d{2}-\d{2}T/.test(value)) return null;
-  const time = Date.parse(value);
+  // Live TeXML callbacks use a space separator and microseconds; Voice API
+  // examples use T. Require an explicit timezone in both, never local time.
+  if (typeof value !== 'string' || value.length > 40
+    || !/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return null;
+  const time = Date.parse(value.replace(' ', 'T'));
   return Number.isFinite(time) && time > 0 && time <= now + 300000 ? new Date(time).toISOString() : null;
 }
 
@@ -62,6 +65,12 @@ export function parseVoiceEvent(raw, contentType, config, now = Date.now()) {
     if (!config.connections.includes(connection)) return { forbidden: true };
     if (p.CallbackSource !== 'call-progress-events') throw new Error('Invalid callback source');
     status = p.CallStatus;
+    // Documented post-processing callback, not another phone lifecycle state.
+    // Authenticate and validate its call context, but do not persist insights.
+    if (status === 'analyzed') {
+      if (!callRef(p.CallSid) || !date(p.Timestamp, now)) throw new Error('Invalid analysis callback');
+      return { ignored: true };
+    }
     if (!STATUS.has(status) || status === 'ended') throw new Error('Unsupported TeXML status');
     if (!/^\d{1,9}$/.test(p.SequenceNumber || '')) throw new Error('Invalid sequence');
     sequence = Number(p.SequenceNumber);

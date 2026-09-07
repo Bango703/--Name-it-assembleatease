@@ -132,6 +132,16 @@ const privateFields = parseForm(form({ From: 'sip:secret@private.example', Recor
 check(privateFields.metadata.from === null, 'SIP URI never persisted');
 check(!JSON.stringify(privateFields).includes('secret') && !JSON.stringify(privateFields).includes('private transcript') && !JSON.stringify(privateFields).includes('private-card'), 'Sensitive payload fields dropped');
 check(privateFields.metadata.sessionReference.startsWith('session_') && privateFields.metadata.parentCallReference.startsWith('call_'), 'Relationships hashed');
+check(parseForm(form({ Timestamp: '2026-09-07 01:59:50.072158Z' })).metadata.occurredAt === '2026-09-07T01:59:50.072Z', 'Observed live TeXML space and microsecond timestamp');
+check(parseForm(form({ Timestamp: '2026-09-06 20:59:50.072158-05:00' })).metadata.occurredAt === '2026-09-07T01:59:50.072Z', 'Explicit timezone offset normalized');
+check((await webhook(database(), form({ Timestamp: '2026-09-07 01:59:50.072158Z' }))).code === 200, 'Signed live-shaped form persists');
+for (const timestamp of ['2026-09-07T01:59:50', '2026-09-07 01:59:50', '2026-09-07\n01:59:50Z', '2099-01-01 01:00:00Z'])
+  check((await webhook(database(), form({ Timestamp: timestamp }))).code === 400, 'Ambiguous/invalid time still rejected');
+const analysisDb = database();
+check((await webhook(analysisDb, form({ CallStatus: 'analyzed' }))).data.ignored === true, 'Signed post-analysis callback acknowledged without storing insights');
+check(analysisDb.tables.activity_logs.length === 0, 'Post-analysis does not create a call or Case');
+check((await webhook(analysisDb, form({ CallStatus: 'analyzed', ConnectionId: '999' }))).code === 403, 'Ignored analysis still requires allowed connection');
+check((await webhook(analysisDb, form({ CallStatus: 'analyzed', CallSid: '' }))).code === 400, 'Ignored analysis still validates call reference');
 for (const status of ['initiated', 'ringing', 'in-progress', 'completed', 'busy', 'no-answer', 'canceled', 'failed']) {
   check(parseForm(form({ CallStatus: status })).metadata.status === status, 'TeXML ' + status);
 }
