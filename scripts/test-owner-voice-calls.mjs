@@ -164,6 +164,21 @@ check(projectVoiceCall([ended], null, false).status === 'incomplete', 'Truncatio
 check(projectVoiceCall([ended, ended]).events.length === 1, 'Projection deduplicates IDs');
 check(parseForm(form({ From: '+15125550101', To: '+15125550100' })).metadata.direction === 'outbound', 'Owned outbound leg classified');
 check(parseForm(form({ From: '+15125550102', To: '+15125550103' })).metadata.direction === 'unknown', 'Unknown direction not guessed');
+// Live Voice API answer/hangup events omit direction. Preserve the known
+// initiated direction without rewriting event history or inferring consent.
+const directionRows = ['call.initiated', 'call.answered', 'call.hangup'].map((type, index) => {
+  const value = jsonEvent(type, index ? { direction: undefined } : {});
+  value.data.occurred_at = new Date(now - 10000 + index * 1000).toISOString();
+  return parseVoiceEvent(Buffer.from(JSON.stringify(value)), 'application/json', settings, now).row;
+});
+check(projectVoiceCall(directionRows).direction === 'inbound', 'Known incoming direction survives later missing direction');
+check(projectVoiceCall([...directionRows].reverse()).direction === 'inbound', 'Late/out-of-order event arrival preserves known direction');
+check(directionRows[2].metadata.direction === 'unknown', 'Projection does not rewrite stored provider metadata');
+check(projectVoiceCall(directionRows.slice(1)).direction === 'unknown', 'No known direction remains unknown');
+const outboundDirectionRows = structuredClone(directionRows);
+outboundDirectionRows[0].metadata.direction = 'outbound';
+check(projectVoiceCall(outboundDirectionRows).direction === 'outbound', 'Known outbound direction survives later missing direction');
+check(projectVoiceCall(directionRows).status === 'ended', 'Direction recovery preserves terminal outcome');
 
 const ownerDb = database({ activity_logs: [started, ended, answeredLate] });
 let out = await owner(ownerDb);

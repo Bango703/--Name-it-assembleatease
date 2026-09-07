@@ -133,10 +133,13 @@ export function projectVoiceCall(rows, review = null, complete = true) {
   if (!complete) status = 'incomplete';
   const revision = hash(events.map(r => r.id).sort().join('|'));
   const latest = field => [...events].reverse().find(r => r.metadata[field] != null)?.metadata[field] ?? null;
+  // Answer/hangup callbacks can omit direction; do not let their unknown
+  // placeholder hide a direction already reported for this same call leg.
+  const direction = [...events].reverse().find(r => ['inbound', 'outbound'].includes(r.metadata.direction))?.metadata.direction || 'unknown';
   return {
     reference: metadata.callReference, revision, status, complete,
     reviewed: complete && review?.metadata?.revision === revision,
-    reviewedAt: review?.created_at || null, direction: latest('direction') || 'unknown',
+    reviewedAt: review?.created_at || null, direction,
     from: latest('from'), to: latest('to'), parentReference: latest('parentCallReference'), sessionReference: latest('sessionReference'),
     firstObservedAt: first.metadata.occurredAt, lastObservedAt: last.metadata.occurredAt,
     receivedAt: events.map(r => r.created_at).sort().at(-1),
