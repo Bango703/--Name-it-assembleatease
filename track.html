@@ -1089,8 +1089,8 @@ async function confirmReschedule() {
   }
   if (!rsSlotAvailable(date, time)) {
     errEl.textContent = currentBooking && currentBooking.payment_status === 'card_saved'
-      ? 'Choose an available future appointment from 7 to 30 days out. Sunday is closed, and Saturday appointments end at 1 PM.'
-      : 'Choose an available time within the next 6 days. Sunday is closed, and Saturday appointments end at 1 PM.';
+      ? 'Choose an available future appointment from 7 to 30 days out. We book every day, 8 AM to 8 PM.'
+      : 'Choose an available time within the next 6 days. We book every day, 8 AM to 8 PM.';
     errEl.style.display = 'block';
     return;
   }
