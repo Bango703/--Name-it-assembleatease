@@ -1166,15 +1166,16 @@
           </div>
           <span class="field-error" id="fee-consent-error"></span>
 
-          <!-- SMS consent. OPTIONAL and unchecked by default: TCPA requires prior
-               express consent, it must be a deliberate act, and it must never be a
-               condition of applying. A phone number on file is not permission to
-               text it — api/_sms.js refuses to send without the timestamp this
-               checkbox records. -->
-          <div class="conduct-check" style="margin-bottom:0.75rem">
-            <input type="checkbox" id="sms-consent" />
+          <!-- Job-dispatch texts. Not an optional extra: this is how offers reach
+               an Easer, so applying enrolls them and the notice below says so before
+               they submit. Consent is still a deliberate act (submitting the form)
+               and still a SERVER-recorded timestamp — see api/assembler/apply.js.
+               STOP always works and is honoured at the carrier. Anyone who opts out
+               later can turn texts back on from their profile. -->
+          <div id="sms-notice" style="margin-bottom:0.75rem;padding:0.8rem 0.9rem;border:1px solid rgba(0,191,255,0.35);border-radius:10px;background:#eefaff">
+            <div style="font-weight:700;font-size:0.88rem;color:#0a1628;margin-bottom:0.25rem">Job offers are sent by text</div>
             <div class="conduct-check-text">
-              Text me job offers and updates at the number above. Message and data rates may apply; message frequency varies. Reply STOP to opt out at any time, HELP for help. Optional &mdash; you can still work without it.
+              By submitting this application you agree to receive job offers, crew assignments and arrival reminders by text at the number above. These are how work reaches you. Message and data rates may apply and message frequency varies. Reply STOP to any message to turn texts off, or HELP for help — you can turn them back on later from your profile.
             </div>
           </div>
 
@@ -1724,7 +1725,7 @@
         yearsExperience: Number(data.years),
         // The checkbox state at the moment of submission. The server records the
         // timestamp; the browser never supplies one.
-        smsConsent: !!(document.getElementById('sms-consent') || {}).checked,
+        // Job texts are part of applying now; the server records the consent
         bio: ([
           (data.competingVal === 'yes'
             ? ('⚠ Competing home-services business disclosed: ' + (data.competingDetails || 'not specified'))

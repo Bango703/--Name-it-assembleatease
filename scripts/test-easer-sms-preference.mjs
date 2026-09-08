@@ -154,4 +154,26 @@ assert.match(ownerReadiness, /smsEligibility\(profile\)/,
 assert.match(ownerReadiness, /jobTexts: jobTextStatus\(profile\)/);
 assert.match(ownerReadiness, /replied STOP/, 'The owner must see WHY someone is unreachable');
 
-console.log('PASS Easer SMS: consent gate, endpoint scoping, no silent sends, UI truth, opt-in prompt, owner reachability');
+
+// --------------------------------------------- applying enrols the applicant --
+// Job dispatch happens by text, so it is no longer an optional box almost nobody
+// ticked. It stays an affirmative act (submitting) and a server-recorded
+// timestamp; the browser supplies neither a flag nor a time it could tamper with.
+const applyServer = await read('api/assembler/apply.js');
+assert.match(applyServer, /sms_consent_at: new Date\(\)\.toISOString\(\)/,
+  'Applying must record consent server-side');
+assert.match(applyServer, /sms_consent_source: 'easer_application'/);
+assert.doesNotMatch(applyServer, /req\.body\?\.smsConsent/,
+  'The browser must not decide whether consent was given');
+
+const applyForm = await read('assembler/apply.html');
+// The applicant has to SEE it before they submit, or it is not consent.
+assert.match(applyForm, /Job offers are sent by text/,
+  'The form must disclose the enrolment above the submit button');
+assert.match(applyForm, /Reply STOP/, 'The form must show how to stop texts');
+assert.doesNotMatch(applyForm, /id="sms-consent"/,
+  'The optional checkbox is gone; nothing should still reference it');
+assert.doesNotMatch(applyForm, /still work without it/,
+  'Old optional-era copy must not contradict the new notice');
+
+console.log('PASS Easer SMS: consent gate, endpoint scoping, no silent sends, UI truth, opt-in prompt, owner reachability, application enrolment');

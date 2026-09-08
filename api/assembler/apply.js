@@ -236,13 +236,14 @@ export default async function handler(req, res) {
     tier: 'pending',
     is_available: false,
     identity_verified: false,
-    // TCPA: consent is a SERVER-recorded timestamp, taken only when the
-    // applicant actually ticked the optional box. The browser never supplies a
-    // timestamp, and a phone number alone is never treated as permission —
-    // api/_sms.js refuses to send without this value.
-    ...(req.body?.smsConsent === true
-      ? { sms_consent_at: new Date().toISOString(), sms_consent_source: 'easer_application' }
-      : {}),
+    // Job dispatch happens by text, so applying enrolls the applicant and the
+    // form says so above the submit button before they commit. The consent is
+    // still an affirmative act and is still a SERVER-recorded timestamp: the
+    // browser supplies neither the timestamp nor a flag it could tamper with.
+    // STOP is honoured at the carrier and mirrored here by the inbound webhook,
+    // and an Easer can turn texts off or back on from their profile at any time.
+    sms_consent_at: new Date().toISOString(),
+    sms_consent_source: 'easer_application',
   };
 
   // RESUMING AN UNFINISHED APPLICATION
