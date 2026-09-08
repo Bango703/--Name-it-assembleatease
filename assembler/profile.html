@@ -131,6 +131,17 @@
     body.theme-pro .danger-zone { border-color:rgba(239,68,68,0.2); background:rgba(239,68,68,0.05); }
     body.theme-pro .danger-zone .form-section-title { color:#f87171; border-color:rgba(239,68,68,0.15); }
     body.theme-pro .danger-text { font-size:0.875rem; color:#f87171; margin-bottom:1rem; line-height:1.6; }
+    /* Job-text switch */
+    .sms-switch { position: relative; display: inline-block; width: 46px; height: 26px; cursor: pointer; }
+    .sms-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+    .sms-slider { position: absolute; inset: 0; background: #cbd5e1; border-radius: 999px; transition: background 0.18s; pointer-events: none; }
+    .sms-slider::before { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform 0.18s; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+    .sms-switch input:checked + .sms-slider { background: #00BFFF; }
+    .sms-switch input:checked + .sms-slider::before { transform: translateX(20px); }
+    .sms-switch input:disabled + .sms-slider { opacity: 0.55; }
+    .sms-switch input:focus-visible + .sms-slider { outline: 2px solid #00BFFF; outline-offset: 2px; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+    @media (prefers-reduced-motion: reduce) { .sms-slider, .sms-slider::before { transition: none; } }
     /* Sheet overlays: must be display:none when closed (opacity:0 alone is insufficient) */
     .sheet-overlay { display: none !important; }
     .sheet-overlay.open { display: flex !important; }
@@ -279,6 +290,25 @@
         <span id="rating-display" style="display:none">New</span>
       </div>
 
+
+      <!-- Job texts. The application form was the only place consent could
+           ever be recorded, so an approved Easer who skipped that box had no
+           way to turn texts on. This is that missing switch. -->
+      <div class="form-section" id="sms-pref-section" style="display:none">
+        <div class="form-section-title">Notifications</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
+          <div style="flex:1">
+            <div style="font-size:0.9rem;font-weight:600;color:var(--pro-ink)">Text me job offers</div>
+            <p style="font-size:0.82rem;color:var(--pro-soft);line-height:1.55;margin:0.25rem 0 0">Get a text when a job is offered to you, when you are added to a crew, and a reminder to tap Arrived. Message and data rates may apply. Reply STOP to any text to turn them off.</p>
+          </div>
+          <label class="sms-switch" for="sms-pref-toggle" style="flex-shrink:0;margin-top:2px">
+            <input type="checkbox" id="sms-pref-toggle" />
+            <span class="sms-slider" aria-hidden="true"></span>
+            <span class="sr-only">Text me job offers</span>
+          </label>
+        </div>
+        <div id="sms-pref-status" role="status" aria-live="polite" style="font-size:0.8rem;margin-top:0.75rem;display:none"></div>
+      </div>
       <!-- Billing escape hatch for an accidental/legacy subscription only. -->
       <div class="form-section" id="membership-section" style="display:none;border-color:rgba(0,191,255,0.3);background:linear-gradient(135deg,rgba(0,191,255,0.04),rgba(0,131,143,0.06))">
         <div class="form-section-title" style="color:#00BFFF">Legacy Membership Billing</div>
@@ -761,6 +791,68 @@
     if (statRating) statRating.textContent = profile.rating ? Number(profile.rating).toFixed(1) : '\u2014';
     var statEarned = document.getElementById('prof-stat-earned');
     if (statEarned) statEarned.textContent = '—';
+
+    // Job-text preference. Reads server truth on load and never assumes the
+    // write succeeded - the toggle is set from the response, not from the click.
+    (function initSmsPreference(token) {
+      var section = document.getElementById("sms-pref-section");
+      var toggle  = document.getElementById("sms-pref-toggle");
+      var status  = document.getElementById("sms-pref-status");
+      if (!section || !toggle) return;
+
+      function say(message, tone) {
+        if (!message) { status.style.display = "none"; return; }
+        status.textContent = message;
+        status.style.color = tone === "bad" ? "#b91c1c" : tone === "good" ? "#067647" : "var(--pro-soft)";
+        status.style.display = "block";
+      }
+
+      function render(state) {
+        toggle.checked = !!state.enabled;
+        toggle.disabled = false;
+        section.style.display = "";
+        if (!state.hasPhone) {
+          toggle.disabled = true;
+          say("Add a mobile number above before turning on job texts.");
+        } else if (state.optedOut && !state.enabled) {
+          say("Texts are off. You can turn them back on here at any time.");
+        } else {
+          say("");
+        }
+      }
+
+      fetch("/api/assembler/sms-preference", { headers: { "Authorization": "Bearer " + token } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d && d.ok) render(d); })
+        .catch(function () { /* leave the section hidden rather than guess */ });
+
+      toggle.addEventListener("change", function () {
+        var wanted = toggle.checked;
+        toggle.disabled = true;
+        say("Saving\u2026");
+        fetch("/api/assembler/sms-preference", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({ enabled: wanted })
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok || !res.d || !res.d.ok) {
+              toggle.checked = !wanted;
+              toggle.disabled = false;
+              say((res.d && res.d.error) || "That could not be saved. Please try again.", "bad");
+              return;
+            }
+            render(res.d);
+            say(res.d.enabled ? "Job texts are on." : "Job texts are off.", "good");
+          })
+          .catch(function () {
+            toggle.checked = !wanted;
+            toggle.disabled = false;
+            say("That could not be saved. Please try again.", "bad");
+          });
+      });
+    })(session.access_token);
     var performancePromise = loadCanonicalPerformance(session.access_token);
     var proPathPromise = renderProPath(session.access_token);
     document.getElementById('member-since').textContent   = profile.created_at

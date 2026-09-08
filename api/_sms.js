@@ -55,6 +55,18 @@ export async function sendSms({ recipient, body, meta = {} }) {
   const sb = getSupabase();
 
   if (!isSmsEnabled()) {
+    // Logged for the same reason a consent block is: the owner must be able
+    // to see that a text did not go and why. This returned silently until
+    // 2026-09-08, so TELNYX_FROM_NUMBER sat unset in production with every
+    // attempted send vanishing and nothing anywhere recording it.
+    await logSms(sb, {
+      meta,
+      to: recipient?.phone || null,
+      body,
+      status: 'suppressed',
+      errorText: 'sms_not_configured',
+      providerId: null,
+    });
     return { ok: false, skipped: 'sms_not_configured' };
   }
 
