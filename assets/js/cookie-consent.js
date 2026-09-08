@@ -52,14 +52,40 @@
     if (copy) copy.innerHTML = 'Optional analytics, advertising measurement, and CRM cookies help us improve booking. You can accept or decline them. See our <a href="/privacy">Privacy Notice</a>.';
   }
 
+  // The bar is position:fixed, so whatever sits at the bottom of the page stays
+  // underneath it until someone answers. On mobile it is a ~130px floating card
+  // and it was covering a service card on the homepage and a service row on
+  // /book. Reserving the same height at the end of the document keeps every
+  // page fully reachable while the choice is still open.
+  function reserveSpaceForBanner() {
+    if (!document.body) return;
+    var banner = getBanner();
+    if (!banner || banner.classList.contains('hidden')) {
+      document.body.style.removeProperty('padding-bottom');
+      return;
+    }
+    var height = banner.getBoundingClientRect().height;
+    if (!height) return;
+    document.body.style.setProperty('padding-bottom', Math.ceil(height + 16) + 'px');
+  }
+
   function hideBanner() {
     var banner = getBanner();
     if (banner) banner.classList.add('hidden');
+    reserveSpaceForBanner();
   }
 
   function showBanner() {
     var banner = getBanner();
-    if (banner) banner.classList.remove('hidden');
+    if (!banner) return;
+    banner.classList.remove('hidden');
+    // Measure after the browser has laid the bar out, not before.
+    if (window.requestAnimationFrame) window.requestAnimationFrame(reserveSpaceForBanner);
+    else reserveSpaceForBanner();
+    if (!showBanner.resizeBound) {
+      showBanner.resizeBound = true;
+      window.addEventListener('resize', reserveSpaceForBanner);
+    }
   }
 
   function initGtag() {

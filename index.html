@@ -208,6 +208,8 @@ section#service-area{display:block}
 .m-hero-stars{color:#f59e0b;letter-spacing:1px;font-size:0.9rem}
 .cta-actions{flex-direction:column}
 .cta-section .btn{width:100%}
+/* Those two are mobile-first defaults; restore the side-by-side pair on desktop. */
+@media(min-width:1024px){.cta-actions{flex-direction:row}.cta-section .btn{width:auto}}
 
 /* -----------------------------------------------------
    SERVICE AREA PILLS
@@ -1376,6 +1378,18 @@ section#service-area{display:block}
 </section>
 
 <!-- BECOME AN EASER &mdash; split CTA (all viewports) -->
+<!-- DESKTOP: CTA (shown =1024px) -->
+<section class="cta-section">
+  <div style="max-width:640px;margin:0 auto">
+    <h2 class="cta-title">Ready when you are?</h2>
+    <p class="cta-desc">Pick your items, see the full total, and choose a time. Your card is verified when you book and charged after the job is complete.</p>
+    <div class="cta-actions">
+      <a href="/book" class="btn btn-white btn-lg">Book your setup &rarr;</a>
+      <a href="/pricing" class="btn btn-ghost-white btn-lg">See pricing</a>
+    </div>
+  </div>
+</section>
+
 <section class="homepage-easer-cta" style="background:#001f2b;padding:4rem 1.5rem">
   <div style="max-width:680px;margin:0 auto;text-align:center">
     <div>
@@ -1400,18 +1414,6 @@ section#service-area{display:block}
   #easer-split{grid-template-columns:1fr 1fr !important}
 }
 </style>
-
-<!-- DESKTOP: CTA (shown =1024px) -->
-<section class="cta-section">
-  <div style="max-width:640px;margin:0 auto">
-    <h2 class="cta-title">Ready when you are?</h2>
-    <p class="cta-desc">Pick your items, see the full total, and choose a time. Your card is verified when you book and charged after the job is complete.</p>
-    <div class="cta-actions">
-      <a href="/book" class="btn btn-white btn-lg">Book your setup &rarr;</a>
-      <a href="/pricing" class="btn btn-ghost-white btn-lg">See pricing</a>
-    </div>
-  </div>
-</section>
 
 </main>
 
@@ -1446,7 +1448,7 @@ section#service-area{display:block}
         <li><a href="/about">About Us</a></li>
         <li><a href="/locations">Locations</a></li>
         <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/blog">Guides</a></li>
+        <li><a href="/blog">Blogs</a></li>
         <li><a href="/business">Business Services</a></li>
       </ul>
     </div>
