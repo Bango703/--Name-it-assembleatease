@@ -30,14 +30,14 @@ const CORE_MOBILE_LINKS = [
 
 const BLOG_DESKTOP_LINKS = [
   { href: '/#services-hdr', label: 'Services' },
-  { href: '/blog/', label: 'Guides' },
+  { href: '/blog/', label: 'Blogs' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/about', label: 'About Us' },
 ];
 
 const BLOG_MOBILE_LINKS = [
   { href: '/#services-hdr', label: 'Services' },
-  { href: '/blog/', label: 'Guides' },
+  { href: '/blog/', label: 'Blogs' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/track', label: 'Track My Booking' },
   { href: '/about', label: 'About Us' },

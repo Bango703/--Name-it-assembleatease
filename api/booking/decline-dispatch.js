@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     }
     if (assigned.assembler_accepted_at) {
       return res.status(409).json({
-        error: 'You already accepted this job. Use Drop Job if you can no longer do it, so the owner is told.',
+        error: 'You already accepted this job. Use Drop Job if you can no longer do it, so AssembleAtEase is notified.',
         code: 'ALREADY_ACCEPTED',
       });
     }
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
       ok: true,
       declined: true,
       assignedJob: true,
-      message: 'Job declined. It has been handed back to the owner.',
+      message: 'Job declined. It has been handed back to AssembleAtEase.',
     });
   }
 

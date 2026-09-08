@@ -404,7 +404,7 @@ export function auditPageFacts(facts) {
     if (facts.footerBusinessLinkCount !== 1 || facts.footerLegacyBusinessCustomCount) {
       addIssue(issues, 'fail', 'duplicate_business_footer_path', 'Footer must expose one Business Services destination and no combined Business & Custom Quotes duplicate.');
     }
-    const expectedCompanyLabels = ['About Us', 'Locations', 'Pricing', 'Guides', 'Business Services'];
+    const expectedCompanyLabels = ['About Us', 'Locations', 'Pricing', 'Blogs', 'Business Services'];
     const expectedServiceLabels = ['Furniture Assembly', 'TV Mounting', 'Smart Home Setup', 'Fitness Equipment', 'Office Furniture', 'Outdoor / Playsets'];
     if (facts.footerCompanyLabels.join('|') !== expectedCompanyLabels.join('|')
         || facts.footerServiceLabels.join('|') !== expectedServiceLabels.join('|')) {

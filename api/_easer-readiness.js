@@ -226,6 +226,35 @@ export async function getEaserReadiness(profile = {}, options = {}) {
   };
 }
 
+// The internal missing-item labels name internal actors and internal steps.
+// An Easer must never be shown "Owner approved" - they are waiting on
+// AssembleAtEase, not on a person. This is the single mapping from internal
+// labels to the ones an Easer is allowed to read; it lives beside the labels it
+// translates so the two cannot drift apart.
+export function publicMissingItems(readiness = {}) {
+  const publicItems = [];
+  const missing = Array.isArray(readiness.missingItems) ? readiness.missingItems : [];
+  if (missing.some(item => /application fee/i.test(item))) publicItems.push('Application payment complete');
+  if (missing.some(item => /identity/i.test(item))) publicItems.push('Identity verification complete');
+  if (missing.some(item => /owner approved/i.test(item))) publicItems.push('Application approved');
+  if (missing.some(item => /phone/i.test(item))) publicItems.push('Phone number added');
+  if (missing.some(item => /contractor agreement/i.test(item))) publicItems.push('Contractor agreement accepted');
+  if (missing.some(item => /code of conduct/i.test(item))) publicItems.push('Code of Conduct accepted');
+  if (missing.some(item => /availability/i.test(item))) publicItems.push('Availability enabled');
+  if (missing.some(item => /stripe|payout/i.test(item))) publicItems.push('Payout setup complete');
+  if (missing.some(item => /account closure/i.test(item))) publicItems.push('Account available for jobs');
+  return publicItems;
+}
+
+// Easer-facing counterpart to readinessError(), which is owner-facing and keeps
+// the internal labels.
+export function publicReadinessError(readiness) {
+  if (readiness?.isReady) return null;
+  const missing = publicMissingItems(readiness);
+  return missing.length
+    ? `Your account is not ready for jobs yet. Still needed: ${missing.join(', ')}.`
+    : 'Your account is not ready for jobs yet. AssembleAtEase is reviewing your application.';
+}
 export function readinessError(readiness) {
   if (readiness?.isReady) return null;
   const missing = readiness?.missingItems || [];

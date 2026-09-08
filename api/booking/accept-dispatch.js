@@ -6,7 +6,7 @@ import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
 import { buildRequestId, hashIdentifier, getDeploymentMetadata, normalizeReasonCode, redactString } from '../_observability.js';
-import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
+import { getEaserReadiness, publicReadinessError, publicMissingItems } from '../_easer-readiness.js';
 import { isLegacyAssignmentTokenFresh } from './_dispatch-safety.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
@@ -278,7 +278,7 @@ export default async function handler(req, res) {
     {
       const readiness = await getEaserReadiness(easer);
       if (!readiness.isReady) {
-        return res.status(403).json({ error: readinessError(readiness), missingItems: readiness.missingItems });
+        return res.status(403).json({ error: publicReadinessError(readiness), missingItems: publicMissingItems(readiness) });
       }
     }
     let feeSnapshot;
@@ -407,7 +407,7 @@ export default async function handler(req, res) {
   {
     const readiness = await getEaserReadiness(easer);
     if (!readiness.isReady) {
-      return res.status(403).json({ error: readinessError(readiness), missingItems: readiness.missingItems });
+      return res.status(403).json({ error: publicReadinessError(readiness), missingItems: publicMissingItems(readiness) });
     }
   }
   let feeSnapshot;

@@ -1,10 +1,10 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildPublicNavBlock } from './lib/public-nav.mjs';
+import { findNavBlock } from './lib/public-nav-block.mjs';
 import { classifyPage, collectPageFacts, listHtmlPages, writeReportFile } from './lib/page-governance.mjs';
 import { ROOT } from './lib/site-governance.mjs';
 
-const NAV_BLOCK_PATTERN = /(?:<a href="#main-content" class="skip-nav"[\s\S]*?<\/a>\s*)?(?:<!-- NAV -->\s*)?<nav class="nav">[\s\S]*?<\/nav>\s*(?:<div class="nav-mobile" id="mobileNav">[\s\S]*?<\/div>\s*(?:<script src="\/assets\/js\/mobile-nav\.js" defer><\/script>|<script>document\.getElementById\('mobileNav'\)[\s\S]*?<\/script>)?\s*)?/i;
 
 function resolveNavOptions(pagePath) {
   const pageType = classifyPage(pagePath);
@@ -34,11 +34,21 @@ function resolveNavOptions(pagePath) {
 function syncNav(relativePath, options) {
   const absolutePath = join(ROOT, relativePath);
   const original = readFileSync(absolutePath, 'utf8');
-  if (!NAV_BLOCK_PATTERN.test(original)) {
+  const span = findNavBlock(original);
+  if (!span) {
     throw new Error(`Could not locate public nav block in ${relativePath}`);
   }
-  const next = original.replace(NAV_BLOCK_PATTERN, buildPublicNavBlock(options));
+  const next = original.slice(0, span.start) + buildPublicNavBlock(options) + original.slice(span.end);
   if (next === original) return null;
+  // A nav rewrite must never change how many elements the page closes. This is
+  // the exact failure the old regex shipped, so it is checked every run.
+  const divs = html => ((html.match(/<div\b/gi) || []).length - (html.match(/<\/div>/gi) || []).length);
+  if (divs(next) !== divs(original)) {
+    throw new Error(
+      `Nav sync would unbalance <div> tags in ${relativePath} `
+      + `(before ${divs(original)}, after ${divs(next)}). Refusing to write.`,
+    );
+  }
   writeFileSync(absolutePath, next);
   return relativePath;
 }

@@ -203,7 +203,13 @@
 section#services-hdr{display:none}
 section#how-it-works{display:none}
 section#service-area{display:block}
-.cta-section{display:none}
+.cta-section{display:block;padding:3.25rem 1.5rem}
+.m-hero-proof{display:flex;align-items:center;justify-content:center;gap:0.5rem;margin:0.85rem 0 0.25rem;font-size:0.85rem;color:var(--ink-soft)}
+.m-hero-stars{color:#f59e0b;letter-spacing:1px;font-size:0.9rem}
+.cta-actions{flex-direction:column}
+.cta-section .btn{width:100%}
+/* Those two are mobile-first defaults; restore the side-by-side pair on desktop. */
+@media(min-width:1024px){.cta-actions{flex-direction:row}.cta-section .btn{width:auto}}
 
 /* -----------------------------------------------------
    SERVICE AREA PILLS
@@ -219,6 +225,7 @@ section#service-area{display:block}
 .cta-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem}
 .cta-desc{font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2.5rem;line-height:1.7}
 .cta-section .btn-white,.cta-section .btn-ghost-white{padding:1rem 2.75rem;font-size:1rem;min-height:52px}
+.cta-actions{display:flex;gap:0.75rem;justify-content:center;align-items:center;flex-wrap:wrap}
 
 /* -----------------------------------------------------
    MOBILE/TABLET SERVICE SECTION (<1024px only)
@@ -691,8 +698,8 @@ section#service-area{display:block}
       <div class="hv2-h1" aria-hidden="true">A clearer way to get the job done.</div>
       <p class="hv2-desc">AssembleAtEase gives customers one clean place to book assembly, mounting, and setup work with upfront pricing, reviewed local pros, booking tracking, and payment after completion.</p>
       <div class="hv2-actions">
-        <a href="#rr-section" class="hv2-btn-book">See room-ready bundles &rarr;</a>
-        <a href="#services-hdr" class="hv2-btn-secondary">See services</a>
+        <a href="/book" class="hv2-btn-book">Book your setup &rarr;</a>
+        <a href="#rr-section" class="hv2-btn-secondary">See room-ready bundles</a>
       </div>
     </div>
   </div>
@@ -710,9 +717,13 @@ section#service-area{display:block}
     <div class="m-hero-photo">
       <img src="/images/hero-pro-mobile.jpg" alt="AssembleAtEase pro assembling furniture in a home" width="768" height="512" fetchpriority="high" decoding="async">
     </div>
+    <div class="m-hero-proof">
+      <span class="m-hero-stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+      <span><strong>5.0</strong> from 13 Google reviews</span>
+    </div>
     <div class="m-hero-actions">
-      <a href="#services" class="m-primary-cta">See services</a>
-      <a href="#rr-section" class="m-secondary-cta">Browse bundles</a>
+      <a href="/book" class="m-primary-cta">Book your setup</a>
+      <a href="#services" class="m-secondary-cta">See services</a>
     </div>
   </div>
 </section>
@@ -776,7 +787,7 @@ section#service-area{display:block}
           <span class="svc-chip">Most booked</span>
         </div>
         <div class="svc-item-desc">IKEA, Wayfair, Amazon &amp; more</div>
-        <div class="svc-price-badge">Upfront pricing</div>
+        <div class="svc-price-badge">From $69</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -791,7 +802,7 @@ section#service-area{display:block}
           <span class="svc-chip">Same-week</span>
         </div>
         <div class="svc-item-desc">Any wall type, wire management incl.</div>
-        <div class="svc-price-badge">Same-visit add-ons</div>
+        <div class="svc-price-badge">From $79</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -805,7 +816,7 @@ section#service-area{display:block}
           <span class="svc-item-name">Fitness Equipment</span>
         </div>
         <div class="svc-item-desc">Treadmills, bikes, racks, benches &amp; more</div>
-        <div class="svc-price-badge">Heavy equipment</div>
+        <div class="svc-price-badge">From $139</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -819,7 +830,7 @@ section#service-area{display:block}
           <span class="svc-item-name">Outdoor / Playsets</span>
         </div>
         <div class="svc-item-desc">Playsets, patio builds, and outdoor installs</div>
-        <div class="svc-price-badge">Custom scope</div>
+        <div class="svc-price-badge">From $109</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -833,7 +844,7 @@ section#service-area{display:block}
           <span class="svc-item-name">Office Assembly</span>
         </div>
         <div class="svc-item-desc">Desks, chairs, cubicles, and office setups</div>
-        <div class="svc-price-badge">Office-ready</div>
+        <div class="svc-price-badge">From $89</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -848,7 +859,7 @@ section#service-area{display:block}
           <span class="svc-chip">Popular</span>
         </div>
         <div class="svc-item-desc">Cameras, lights, hubs &amp; more</div>
-        <div class="svc-price-badge">Device setup</div>
+        <div class="svc-price-badge">From $69</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -900,13 +911,13 @@ section#service-area{display:block}
       <div class="svc5-photo"><img src="/images/service-fitness-equipment.jpg?v=service-photos-1" alt="Professional assembling fitness equipment in a home garage" loading="lazy" decoding="async" width="1536" height="1024"></div>
       <div class="svc5-name">Fitness Equipment</div>
       <div class="svc5-desc">Treadmills, bikes, racks &amp; more</div>
-      <div class="svc5-cardfoot"><div class="svc5-price">From $119</div><span class="svc5-link">See options &rarr;</span></div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $139</div><span class="svc5-link">See options &rarr;</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Outdoor+%26+Playsets">
       <div class="svc5-photo"><img src="/images/service-outdoor-playsets.jpg?v=service-photos-1" alt="Professional assembling an outdoor playset in a backyard" loading="lazy" decoding="async" width="1536" height="1024"></div>
       <div class="svc5-name">Outdoor Assembly &amp; Playsets</div>
       <div class="svc5-desc">Playsets, patios &amp; outdoor builds</div>
-      <div class="svc5-cardfoot"><div class="svc5-price">From $89</div><span class="svc5-link">See options &rarr;</span></div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $109</div><span class="svc5-link">See options &rarr;</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Office+Assembly">
       <div class="svc5-photo"><img src="/images/service-office-assembly.jpg?v=service-photos-1" alt="Professional assembling office furniture in a home office" loading="lazy" decoding="async" width="1536" height="1024"></div>
@@ -1367,6 +1378,18 @@ section#service-area{display:block}
 </section>
 
 <!-- BECOME AN EASER &mdash; split CTA (all viewports) -->
+<!-- DESKTOP: CTA (shown =1024px) -->
+<section class="cta-section">
+  <div style="max-width:640px;margin:0 auto">
+    <h2 class="cta-title">Ready when you are?</h2>
+    <p class="cta-desc">Pick your items, see the full total, and choose a time. Your card is verified when you book and charged after the job is complete.</p>
+    <div class="cta-actions">
+      <a href="/book" class="btn btn-white btn-lg">Book your setup &rarr;</a>
+      <a href="/pricing" class="btn btn-ghost-white btn-lg">See pricing</a>
+    </div>
+  </div>
+</section>
+
 <section class="homepage-easer-cta" style="background:#001f2b;padding:4rem 1.5rem">
   <div style="max-width:680px;margin:0 auto;text-align:center">
     <div>
@@ -1391,15 +1414,6 @@ section#service-area{display:block}
   #easer-split{grid-template-columns:1fr 1fr !important}
 }
 </style>
-
-<!-- DESKTOP: CTA (shown =1024px) -->
-<section class="cta-section">
-  <div style="max-width:640px;margin:0 auto">
-    <h2 class="cta-title">Ready when you are?</h2>
-    <p class="cta-desc">Explore services, room-ready bundles, and pricing now. Book when the setup plan feels right.</p>
-    <a href="#services-hdr" class="btn btn-white btn-lg">See services &amp; pricing &rarr;</a>
-  </div>
-</section>
 
 </main>
 
@@ -1434,7 +1448,7 @@ section#service-area{display:block}
         <li><a href="/about">About Us</a></li>
         <li><a href="/locations">Locations</a></li>
         <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/blog">Guides</a></li>
+        <li><a href="/blog">Blogs</a></li>
         <li><a href="/business">Business Services</a></li>
       </ul>
     </div>

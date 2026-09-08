@@ -76,7 +76,24 @@ for (const column of [
 assert.doesNotMatch(migration, /UPDATE\s+public\.bookings/i, 'Historical bookings must not be backfilled as accepted');
 assert.match(migration, /VALUES \(65, 'customer_legal_consent'\)/);
 
-assert.equal(CONTRACTOR_AGREEMENT_VERSION, '2026-08-16');
+// The required agreement version has exactly one source: the row migration 090
+// publishes in agreement_versions. This assertion used to hardcode a literal,
+// and when the agreement was bumped to '2026-08-28' the constant moved but this
+// test did not - leaving test:launch red on main for a reason unrelated to
+// whatever was being shipped. Derive it instead so the two cannot drift.
+const versioningMigration = read('api/migrations/090_agreement_versioning.sql');
+const publishedAgreementVersion = versioningMigration.match(
+  /\('easer_agreement',\s*'(\d{4}-\d{2}-\d{2})',\s*'published'/,
+)?.[1];
+assert.ok(
+  publishedAgreementVersion,
+  'Migration 090 must publish an easer_agreement version',
+);
+assert.equal(
+  CONTRACTOR_AGREEMENT_VERSION,
+  publishedAgreementVersion,
+  'CONTRACTOR_AGREEMENT_VERSION must match the version migration 090 publishes',
+);
 const agreementMigration = read('api/migrations/066_contractor_agreement_2026_08_16.sql');
 assert.match(agreementMigration, /migration_number = 65/);
 for (const functionName of [

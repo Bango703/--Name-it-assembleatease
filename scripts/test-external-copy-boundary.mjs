@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 import { toEaserEarningDto } from '../api/assembler/_earnings.js';
 import { toPublicEaserReadiness } from '../api/assembler/readiness.js';
+import { publicReadinessError } from '../api/_easer-readiness.js';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -85,6 +86,11 @@ const [
   declineApi,
   feeFinalizeApi,
   readinessApi,
+  easerReadinessModule,
+  easerOnboardingEmail,
+  tierCheckEmails,
+  aboutPage,
+  acceptDispatchApi,
   uploadEvidenceApi,
   messageApi,
   customerCancelApi,
@@ -110,6 +116,11 @@ const [
   read('api/booking/decline-dispatch.js'),
   read('api/assembler/application-fee-finalize.js'),
   read('api/assembler/readiness.js'),
+  read('api/_easer-readiness.js'),
+  read('api/owner/resend-easer-onboarding.js'),
+  read('api/cron/tier-check.js'),
+  read('about.html'),
+  read('api/booking/accept-dispatch.js'),
   read('api/booking/upload-evidence.js'),
   read('api/booking/message.js'),
   read('api/booking/customer-cancel.js'),
@@ -172,6 +183,7 @@ assert.match(dropResponse, /You will not receive further updates for this assign
 assert.doesNotMatch(dropResponse, /redispatch|dispatchAction|warning|owner review|customer payment/i);
 
 const declineResponse = declineApi.slice(declineApi.lastIndexOf('return res.status(200).json'));
+const declineResponseAssigned = declineApi.slice(declineApi.indexOf('assignedJob: true') - 300, declineApi.indexOf('assignedJob: true') + 300);
 assert.match(declineResponse, /You will not receive further offers for this job/);
 assert.doesNotMatch(declineResponse, /dispatchAction|warning|owner review/i);
 
@@ -186,8 +198,60 @@ for (const oldPublicError of [
 }
 
 assert.match(readinessApi, /readiness: toPublicEaserReadiness\(readiness\)/);
-assert.match(readinessApi, /Application approved/);
-assert.match(readinessApi, /Payout setup complete/);
+// The internal-to-public label mapping lives beside the internal labels in
+// api/_easer-readiness.js, so both readiness.js and accept-dispatch.js read one copy.
+assert.match(easerReadinessModule, /Application approved/);
+assert.match(easerReadinessModule, /Payout setup complete/);
+assert.match(readinessApi, /publicMissingItems/);
+
+// An Easer who cannot accept a job must be told what THEY still need, never
+// that they are waiting on an "owner".
+assert.doesNotMatch(acceptDispatchApi, /error: readinessError\(readiness\)/);
+assert.match(acceptDispatchApi, /publicReadinessError\(readiness\)/);
+assert.match(acceptDispatchApi, /missingItems: publicMissingItems\(readiness\)/);
+assert.doesNotMatch(publicReadinessError({ isReady: false, missingItems: ['Owner approved'] }), /owner/i);
+
+// AssembleAtEase is a company, not a person. Outbound copy naming "the owner"
+// makes the platform read as one individual, and it reached real Easers: the
+// onboarding email said "the owner issued a new time-limited link", the Elite
+// tier perk promised "a quarterly call with the owner", and declining a job
+// answered "handed back to the owner". These assert the message bodies an Easer
+// or customer actually reads - internal logs, owner dashboards and audit trails
+// are deliberately not covered here.
+// Scoped to the exact constructs an Easer reads. tier-check.js and
+// resend-easer-onboarding.js also build owner-facing alerts in the same file,
+// and those may keep saying "owner" - only the Easer-facing pieces are asserted.
+const tierBenefits = tierCheckEmails.slice(
+  tierCheckEmails.indexOf('const TIER_BENEFITS'),
+  tierCheckEmails.indexOf('function shell('),
+);
+assert.ok(tierBenefits.includes('Elite Pro'), 'tier benefit list not found - update this slice');
+assert.doesNotMatch(
+  tierBenefits,
+  /owner/i,
+  'Easer tier benefits name the owner - AssembleAtEase is a company, not a person',
+);
+
+const onboardingEmailBody = easerOnboardingEmail.slice(
+  easerOnboardingEmail.indexOf('function buildEmail('),
+);
+assert.ok(onboardingEmailBody.includes('Continue your Easer onboarding'), 'onboarding email body not found');
+assert.doesNotMatch(
+  onboardingEmailBody,
+  /the owner|owner issued/i,
+  'Easer onboarding email names the owner - use AssembleAtEase',
+);
+
+// Both Easer-visible strings from declining a job.
+assert.doesNotMatch(
+  declineApi.slice(declineApi.indexOf('ALREADY_ACCEPTED') - 400, declineApi.indexOf('ALREADY_ACCEPTED')),
+  /the owner/i,
+  'already-accepted error names the owner',
+);
+assert.doesNotMatch(declineResponseAssigned, /the owner/i, 'declined-job message names the owner');
+
+assert.doesNotMatch(aboutPage, /Owner-led/i, 'About page still calls the business owner-led');
+
 
 const uploadResponse = uploadEvidenceApi.slice(uploadEvidenceApi.lastIndexOf('return res.status(201).json'));
 assert.match(uploadResponse, /Your issue report was received/);
