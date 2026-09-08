@@ -102,10 +102,21 @@
   }
 
   function grantAnalytics() {
+    // ad_user_data must be granted for Google Ads to RECORD a conversion. It was
+    // denied here even after the visitor pressed Accept, so Ads set the cookie and
+    // was then forbidden from using it to measure. Every campaign read 0
+    // conversions, the primary "Book appointment" action showed "Needs attention",
+    // and Smart Bidding sat in Learning with no signal to learn from - while the
+    // account kept spending.
+    //
+    // This only ever runs after an explicit Accept. Nothing changes for a visitor
+    // who ignores or declines the banner - the defaults above stay denied.
+    // ad_personalization stays denied on purpose: measurement does not require it,
+    // and this business does not run remarketing.
     window.gtag('consent', 'update', {
       analytics_storage: 'granted',
       ad_storage: 'granted',
-      ad_user_data: 'denied',
+      ad_user_data: 'granted',
       ad_personalization: 'denied'
     });
     enableWebsiteCallTracking();
