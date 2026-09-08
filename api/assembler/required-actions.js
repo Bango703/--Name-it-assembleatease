@@ -14,7 +14,9 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: profile, error } = await sb
     .from('profiles')
-    .select('id, role, status, application_status, stripe_connect_payouts_enabled')
+    // Every column any TARGET_RULES entry reads must be selected here, or that
+    // rule silently never fires for the in-app banner.
+    .select('id, role, status, application_status, stripe_connect_payouts_enabled, phone, sms_consent_at, sms_opted_out_at')
     .eq('id', authed.user.id)
     .maybeSingle();
 
