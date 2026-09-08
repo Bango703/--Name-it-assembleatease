@@ -5,11 +5,42 @@
 // in easer_announcements — no other plumbing changes.
 
 import { isStripeConnectEnabled, refreshConnectPayoutState } from './_stripe-connect.js';
+import { isSmsEnabled } from './_sms.js';
 
 // Each rule decides, from a plain profile row, whether an Easer still NEEDS the
 // action (`incomplete`) and how to bulk-select those Easers (`query`). `active`
 // gates whether the rule is live at all right now (e.g. Connect must be on).
 export const TARGET_RULES = {
+  // Job texts. An Easer approved before the application form started recording
+  // SMS consent has no consent row, so api/_sms.js silently suppresses every
+  // offer, crew add and arrival nudge sent to them. On 2026-09-08 that was two
+  // of four active Easers, and notification_log shows a real August 28 job where
+  // every text to both Easers AND the customer was dropped for exactly this.
+  //
+  // The consent itself can only ever come from the Easer, so this asks. It never
+  // blocks offers, and it deliberately does NOT target anyone who opted out:
+  // sms_opted_out_at is a decision, and re-nagging someone who made it is the
+  // behaviour carriers and the TCPA exist to stop.
+  sms_consent_missing: {
+    active: () => isSmsEnabled(),
+    incomplete(profile = {}) {
+      return String(profile.status || '').toLowerCase() === 'active'
+        && String(profile.application_status || '').toLowerCase() === 'approved'
+        && Boolean(String(profile.phone || '').trim())
+        && !profile.sms_consent_at
+        && !profile.sms_opted_out_at;
+    },
+    query(sb) {
+      return sb.from('profiles')
+        .select('id, full_name, email, status, application_status, phone, sms_consent_at, sms_opted_out_at')
+        .eq('role', 'assembler')
+        .eq('status', 'active')
+        .eq('application_status', 'approved')
+        .is('sms_consent_at', null)
+        .is('sms_opted_out_at', null)
+        .not('phone', 'is', null);
+    },
+  },
   payout_setup_incomplete: {
     active: () => isStripeConnectEnabled(),
     incomplete(profile = {}) {

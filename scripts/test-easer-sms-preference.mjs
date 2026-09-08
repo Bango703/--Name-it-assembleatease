@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 import { smsEligibility } from '../api/_sms.js';
+import { TARGET_RULES } from '../api/_announcements.js';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -105,4 +106,52 @@ const envExample = await read('.env.example');
 assert.match(envExample, /^TELNYX_API_KEY=/m);
 assert.match(envExample, /^TELNYX_FROM_NUMBER=/m);
 
-console.log('PASS Easer SMS preference: consent gate, endpoint scoping, no silent sends, UI truth');
+
+// ------------------------------------------------- the prompt to turn it on --
+// Having the switch is not enough: nobody knew to look for it. The announcement
+// engine asks, and the rule below decides who gets asked.
+const rule = TARGET_RULES.sms_consent_missing;
+assert.ok(rule, 'sms_consent_missing rule must exist');
+
+const approved = { status: 'active', application_status: 'approved', phone };
+
+assert.equal(rule.incomplete(approved), true,
+  'An approved Easer with a phone and no consent has never been asked, so ask');
+
+// The single most important thing this rule must never do.
+assert.equal(
+  rule.incomplete({ ...approved, sms_opted_out_at: '2026-09-08T00:00:00.000Z' }), false,
+  'Never re-ask someone who opted out - that is what the opt-out is for',
+);
+
+assert.equal(rule.incomplete({ ...approved, sms_consent_at: '2026-09-08T00:00:00.000Z' }), false,
+  'Do not ask someone who already said yes');
+assert.equal(rule.incomplete({ ...approved, phone: '' }), false,
+  'Do not ask someone with no number to text');
+assert.equal(rule.incomplete({ ...approved, status: 'suspended' }), false,
+  'Do not ask a suspended Easer');
+assert.equal(rule.incomplete({ ...approved, application_status: 'applied' }), false,
+  'Do not ask before approval');
+
+// The banner reads a profile the endpoint selected. A column missing there means
+// the rule can never fire, which is a silent no-op rather than an error.
+const requiredActions = await read('api/assembler/required-actions.js');
+for (const column of ['phone', 'sms_consent_at', 'sms_opted_out_at']) {
+  assert.ok(requiredActions.includes(column),
+    `required-actions.js must select ${column} or the SMS rule never fires`);
+}
+
+const migration = await read('api/migrations/093_easer_sms_consent_announcement.sql');
+assert.match(migration, /'sms_consent_missing'/, 'Migration must target the rule');
+assert.match(migration, /false,/, 'The announcement must not block offers');
+assert.doesNotMatch(migration, /UPDATE\s+public\.profiles/i,
+  'A migration must never write consent on an Easer behalf');
+
+// Owner view: reachability comes from the sender's own gate, not a second guess.
+const ownerReadiness = await read('api/owner/easer-readiness.js');
+assert.match(ownerReadiness, /smsEligibility\(profile\)/,
+  'Owner reachability must reuse smsEligibility, not reimplement it');
+assert.match(ownerReadiness, /jobTexts: jobTextStatus\(profile\)/);
+assert.match(ownerReadiness, /replied STOP/, 'The owner must see WHY someone is unreachable');
+
+console.log('PASS Easer SMS: consent gate, endpoint scoping, no silent sends, UI truth, opt-in prompt, owner reachability');

@@ -3,6 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
+import { isSmsEnabled, smsEligibility } from '../_sms.js';
 
 function taxReadinessFromAccount(account) {
   if (!account) return { code: 'unknown', label: 'Unknown' };
@@ -24,6 +25,28 @@ function taxReadinessFromAccount(account) {
   return { code: 'pending', label: 'Pending Stripe Requirements' };
 }
 
+
+// Whether this Easer would actually receive a job text right now, decided by the
+// same function the sender uses so the owner view cannot disagree with reality.
+// Until 2026-09-08 an Easer could be READY FOR JOBS and still silently receive
+// nothing, because consent lives outside the readiness gates by design.
+function jobTextStatus(profile) {
+  if (!isSmsEnabled()) {
+    return { reachable: false, code: 'sms_not_configured', label: 'Texting is not configured' };
+  }
+  const eligible = smsEligibility(profile);
+  if (eligible.ok) return { reachable: true, code: 'ok', label: 'On' };
+  const labels = {
+    no_consent_recorded: 'Off - the Easer has not turned on job texts',
+    opted_out: 'Off - the Easer replied STOP',
+    no_valid_phone: 'Off - no valid mobile number on file',
+  };
+  return {
+    reachable: false,
+    code: eligible.reason,
+    label: labels[eligible.reason] || 'Off',
+  };
+}
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -88,6 +111,7 @@ export default async function handler(req, res) {
       ...readiness,
       taxReadinessStatus: taxReadiness.label,
       w9Status,
+      jobTexts: jobTextStatus(profile),
       finalStatus: missingItems.length === 0 ? 'READY FOR JOBS' : 'ACTION REQUIRED',
       missingItems,
       checkedAt: new Date().toISOString(),
