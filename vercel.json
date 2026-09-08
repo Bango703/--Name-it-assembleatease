@@ -161,6 +161,10 @@
     {
       "path": "/api/cron/expire-assemblecash",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/stranded-booking-alert",
+      "schedule": "20,50 * * * *"
     }
   ],
   "headers": [
