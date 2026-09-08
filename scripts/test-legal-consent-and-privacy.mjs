@@ -23,8 +23,37 @@ assert.equal(validateCustomerLegalConsent({
   termsVersion: CUSTOMER_TERMS_VERSION,
   privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
 }).ok, true);
-assert.equal(CUSTOMER_TERMS_VERSION, '2026-08-27-sms-v1');
-assert.equal(PRIVACY_NOTICE_VERSION, '2026-08-27-sms-v1');
+// Both documents are versioned together, and the version carries the date the
+// documents themselves display. Hardcoding the literal here is how the
+// agreement-version assertion went stale and left the launch gate red, so this
+// checks the constant against what the published pages actually say: edit
+// terms.html or privacy.html without versioning the change and this fails.
+assert.equal(
+  CUSTOMER_TERMS_VERSION,
+  PRIVACY_NOTICE_VERSION,
+  'Terms and Privacy are versioned together',
+);
+assert.match(
+  CUSTOMER_TERMS_VERSION,
+  /^\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/,
+  'Legal version must be <YYYY-MM-DD>-<slug>',
+);
+const legalVersionDate = CUSTOMER_TERMS_VERSION.slice(0, 10);
+const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+for (const [name, doc] of [
+  ['terms.html', read('terms.html')],
+  ['privacy.html', read('privacy.html')],
+]) {
+  const shown = doc.match(/Last updated: ([A-Z][a-z]+) (\d{1,2}), (\d{4})/);
+  assert.ok(shown, `${name} must display a Last updated date`);
+  const [, monthName, day, year] = shown;
+  const month = String(monthNames.indexOf(monthName) + 1).padStart(2, "0");
+  assert.equal(
+    `${year}-${month}-${String(day).padStart(2, "0")}`,
+    legalVersionDate,
+    `${name} shows ${monthName} ${day}, ${year} but the legal version is ${CUSTOMER_TERMS_VERSION}`,
+  );
+}
 
 const record = buildCustomerConsentRecord({
   headers: { 'x-forwarded-for': '203.0.113.8, 10.0.0.1', 'user-agent': 'Legal test browser' },
