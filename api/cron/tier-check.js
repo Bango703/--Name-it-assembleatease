@@ -67,7 +67,7 @@ const TIER_BENEFITS = {
     'Top priority — you see the best jobs first',
     'First dibs on same-day (rush) jobs',
     'A prominent <strong>Elite Pro ⭐</strong> badge customers can see',
-    'Priority support + a quarterly call with the owner',
+    'Priority support + a quarterly call with the AssembleAtEase team',
     'Eligible to be featured as Elite Pro of the month',
   ],
 };
