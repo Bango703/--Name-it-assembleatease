@@ -276,7 +276,11 @@ export default async function handler(req, res) {
       sms_consent_at: booking.sms_consent_at,
       sms_opted_out_at: booking.sms_opted_out_at,
     },
-    body: `AssembleAtEase received your ${service} booking for ${date}${time ? ` at ${time}` : ''}. We will text you when your Easer is on the way. Ref ${ref}`,
+    // Kept under 160 GSM-7 characters at worst case (longest catalog service
+    // name, ISO date, longest ref) INCLUDING the ' Reply STOP to opt out.'
+    // that _sms.js appends. The previous wording ran to 172 and billed as two
+    // segments on every booking. scripts/test-sms-message-length.mjs holds it.
+    body: `AssembleAtEase: ${service} booked for ${date}${time ? ` ${time}` : ''}. We'll text when your Easer is on the way. Ref ${ref}`,
     meta: { bookingId, notificationType: 'booking_confirmed', recipientType: 'customer' },
   }).catch(error => ({ ok: false, error: error?.message || String(error) }));
 
