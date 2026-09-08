@@ -40,13 +40,13 @@ export default async function handler(req, res) {
       { data: newApps },
       { data: activeAssemblers },
     ] = await Promise.all([
-      sb.from('bookings').select('id, ref, service, customer_name, payment_status, amount_charged')
+      sb.from('bookings').select('id, ref, service, customer_name, payment_status, amount_charged').eq('is_test_booking', false)
         .gte('created_at', yStart).lt('created_at', yEnd),
-      sb.from('bookings').select('id, ref, service, amount_charged, payment_status')
+      sb.from('bookings').select('id, ref, service, amount_charged, payment_status').eq('is_test_booking', false)
         .eq('status', 'completed').gte('completed_at', yStart).lt('completed_at', yEnd),
-      sb.from('bookings').select('id, ref')
+      sb.from('bookings').select('id, ref').eq('is_test_booking', false)
         .eq('status', 'cancelled').gte('cancelled_at', yStart).lt('cancelled_at', yEnd),
-      sb.from('bookings').select('id').eq('status', 'pending'),
+      sb.from('bookings').select('id').eq('is_test_booking', false).eq('status', 'pending'),
       sb.from('profiles').select('id, full_name, email')
         .eq('role', 'assembler').eq('application_status', 'applied')
         .gte('created_at', yStart).lt('created_at', yEnd),
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
     // to lose supply, and supply is the platform's only real constraint.
     const { data: owedRows } = await sb
       .from('bookings')
-      .select('ref, assembler_name, assembler_due, easer_bonus_cents, completed_at')
+      .select('ref, assembler_name, assembler_due, easer_bonus_cents, completed_at').eq('is_test_booking', false)
       .eq('status', 'completed')
       .eq('payout_status', 'pending')
       .not('assembler_id', 'is', null);

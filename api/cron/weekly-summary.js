@@ -40,11 +40,11 @@ export default async function handler(req, res) {
       { data: approvedAssemblers },
       { data: allActive },
     ] = await Promise.all([
-      sb.from('bookings').select('id, ref, service, customer_name, status')
+      sb.from('bookings').select('id, ref, service, customer_name, status').eq('is_test_booking', false)
         .gte('created_at', wStart).lt('created_at', wEnd),
-      sb.from('bookings').select('id, ref, service, amount_charged, payment_status')
+      sb.from('bookings').select('id, ref, service, amount_charged, payment_status').eq('is_test_booking', false)
         .eq('status', 'completed').gte('completed_at', wStart).lt('completed_at', wEnd),
-      sb.from('bookings').select('id')
+      sb.from('bookings').select('id').eq('is_test_booking', false)
         .eq('status', 'cancelled').gte('cancelled_at', wStart).lt('cancelled_at', wEnd),
       sb.from('profiles').select('id, full_name')
         .eq('role', 'assembler').eq('application_status', 'applied')
