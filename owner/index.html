@@ -3131,6 +3131,24 @@ window.intelQuick = intelQuick;
     return data;
   }
 
+
+  // Click-to-call. Rings the owner first, then bridges the customer, so the
+  // customer only ever sees the business number. A plain tel: link dials from
+  // the owner handset and hands over the personal number for good.
+  window.callCustomerViaBusinessLine = async function (bookingId, btn) {
+    if (!bookingId) return;
+    var original = btn ? btn.textContent : "";
+    if (btn) { btn.disabled = true; btn.textContent = "Calling..."; }
+    try {
+      var res = await ownerPost("/call-customer", { bookingId: bookingId });
+      toast(res && res.message ? res.message : "Your phone is ringing.");
+    } catch (e) {
+      // Show the server reason, never a generic failure (Article 16).
+      toast(e && e.message ? e.message : "The call could not be placed.", "error");
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = original; }
+    }
+  };
   async function apiPost(path, body) {
     const r = await fetch(API + path, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
     if (r.status === 401) { logout(true); throw new Error('Unauthorized'); }
@@ -3753,6 +3771,11 @@ window.intelQuick = intelQuick;
       field('Customer', esc(b.customer_name || '—')),
       field('Email', b.customer_email ? '<a href="mailto:'+esc(b.customer_email)+'" style="color:var(--teal);text-decoration:none">'+esc(b.customer_email)+'</a>' : '—'),
       field('Phone', hasValidUsPhone(b.customer_phone) ? '<a href="tel:'+esc(b.customer_phone)+'" style="color:var(--teal);text-decoration:none;font-weight:600">'+esc(formatUsPhone(b.customer_phone))+'</a>' : '<span style="color:var(--red)">Valid phone required</span>'),
+      hasValidUsPhone(b.customer_phone)
+        ? '<div style="grid-column:1/-1;margin:0.1rem 0 0.5rem">'
+          + '<button type="button" onclick="callCustomerViaBusinessLine(\'' + esc(b.id) + '\', this)" style="background:#00BFFF;color:#04222c;border:none;border-radius:8px;padding:0.45rem 0.9rem;font-size:0.8rem;font-weight:800;cursor:pointer">Call via business line</button>'
+          + '<div style="font-size:0.72rem;color:#64748b;margin-top:0.25rem">Rings your phone first, then connects them. They see the AssembleAtEase number.</div></div>'
+        : '',
       field('Service', esc(b.service || '—')),
       field('Service Subtotal', b.total_price != null ? fmt$(bookedSubtotal) : '—'),
       field('Sales Tax', b.tax_amount != null ? fmt$(bookedTax) : '—'),
