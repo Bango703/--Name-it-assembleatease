@@ -74,17 +74,19 @@ export default async function handler(req, res) {
   const result = await placeCall(cfg, buildCustomerLegRequest(cfg, state, callControlId));
 
   const sb = getSupabase();
-  await sb.from('operational_events').insert({
-    event_type: result.ok ? 'owner_call_bridged' : 'owner_call_bridge_failed',
-    route: '/api/webhooks/telnyx-call-control',
-    method: 'POST',
-    actor_role: 'cron',
-    stage: 'customer_leg',
-    reason_code: result.ok ? 'customer_leg_dialing' : 'customer_leg_rejected',
-    reason_detail: result.ok ? (state.ref || '') : String(result.error).slice(0, 200),
-    mutation_result: result.ok ? 'bridged' : 'not_bridged',
-    payload: { ref: state.ref || null, bookingId: state.bookingId || null },
-  }).catch(() => {});
+  try {
+    await sb.from('operational_events').insert({
+      event_type: result.ok ? 'owner_call_bridged' : 'owner_call_bridge_failed',
+      route: '/api/webhooks/telnyx-call-control',
+      method: 'POST',
+      actor_role: 'cron',
+      stage: 'customer_leg',
+      reason_code: result.ok ? 'customer_leg_dialing' : 'customer_leg_rejected',
+      reason_detail: result.ok ? (state.ref || '') : String(result.error).slice(0, 200),
+      mutation_result: result.ok ? 'bridged' : 'not_bridged',
+      payload: { ref: state.ref || null, bookingId: state.bookingId || null },
+    });
+  } catch { /* logging is never worth failing the request for */ }
 
   if (!result.ok) console.error('[call-control] customer leg failed:', result.error);
 

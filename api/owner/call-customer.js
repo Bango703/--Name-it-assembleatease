@@ -56,31 +56,35 @@ export default async function handler(req, res) {
   const result = await placeCall(config, leg.body);
   if (!result.ok) {
     console.error('[owner-call] Telnyx rejected the call:', result.error);
+    try {
+      await sb.from('operational_events').insert({
+        event_type: 'owner_call_failed',
+        route: '/api/owner/call-customer',
+        method: 'POST',
+        actor_role: 'owner',
+        stage: 'owner_leg',
+        reason_code: 'telnyx_rejected',
+        reason_detail: String(result.error).slice(0, 200),
+        mutation_result: 'no_call_placed',
+        payload: { ref: booking.ref },
+      });
+    } catch { /* logging is never worth failing the request for */ }
+    return res.status(502).json({ error: 'The call could not be placed: ' + result.error });
+  }
+
+  try {
     await sb.from('operational_events').insert({
-      event_type: 'owner_call_failed',
+      event_type: 'owner_call_started',
       route: '/api/owner/call-customer',
       method: 'POST',
       actor_role: 'owner',
       stage: 'owner_leg',
-      reason_code: 'telnyx_rejected',
-      reason_detail: String(result.error).slice(0, 200),
-      mutation_result: 'no_call_placed',
-      payload: { ref: booking.ref },
-    }).catch(() => {});
-    return res.status(502).json({ error: 'The call could not be placed: ' + result.error });
-  }
-
-  await sb.from('operational_events').insert({
-    event_type: 'owner_call_started',
-    route: '/api/owner/call-customer',
-    method: 'POST',
-    actor_role: 'owner',
-    stage: 'owner_leg',
-    reason_code: 'owner_initiated_call',
-    reason_detail: booking.ref || '',
-    mutation_result: 'owner_leg_dialing',
-    payload: { ref: booking.ref, callControlId: result.callControlId },
-  }).catch(() => {});
+      reason_code: 'owner_initiated_call',
+      reason_detail: booking.ref || '',
+      mutation_result: 'owner_leg_dialing',
+      payload: { ref: booking.ref, callControlId: result.callControlId },
+    });
+  } catch { /* logging is never worth failing the request for */ }
 
   // Deliberately does not return the customer's number — the browser already
   // has what it needs, and this response ends up in logs.

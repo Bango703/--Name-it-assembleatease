@@ -727,9 +727,13 @@ export default async function handler(req, res) {
       }
       // Deletion is safe only when no PaymentIntent exists or Stripe confirmed
       // cancellation of the unlinked intent.
-      await sb.from('bookings').delete().eq('id', bookingId).catch(delErr =>
-        console.error('Failed to clean up booking after Stripe setup error:', delErr)
-      );
+      // A query builder is a thenable, not a Promise: .catch() on it throws
+      // TypeError and the customer gets a bare 500 instead of the message below.
+      try {
+        await sb.from('bookings').delete().eq('id', bookingId);
+      } catch (delErr) {
+        console.error('Failed to clean up booking after Stripe setup error:', delErr);
+      }
       return res.status(502).json({
         error: 'Payment setup failed. Please try again in a moment. Your card was not charged.',
         code: 'STRIPE_SETUP_FAILED',
