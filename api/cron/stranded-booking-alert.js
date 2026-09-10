@@ -110,17 +110,19 @@ export default async function handler(req, res) {
   // Recorded AFTER the send, so a failed email is not remembered as reported and
   // the next run tries again rather than going silent.
   if (emailResult?.ok !== false) {
-    await sb.from('operational_events').insert({
-      event_type: 'stranded_booking_alert',
-      route: '/api/cron/stranded-booking-alert',
-      method: 'CRON',
-      actor_role: 'cron',
-      stage: 'alert',
-      reason_code: 'bookings_unassigned_beyond_threshold',
-      reason_detail: String(fresh.length),
-      mutation_result: 'owner_alerted',
-      payload: { refs: fresh.map(b => b.ref), totalCents: total, minutes: STRANDED_AFTER_MINUTES },
-    }).catch(() => {});
+    try {
+      await sb.from('operational_events').insert({
+        event_type: 'stranded_booking_alert',
+        route: '/api/cron/stranded-booking-alert',
+        method: 'CRON',
+        actor_role: 'cron',
+        stage: 'alert',
+        reason_code: 'bookings_unassigned_beyond_threshold',
+        reason_detail: String(fresh.length),
+        mutation_result: 'owner_alerted',
+        payload: { refs: fresh.map(b => b.ref), totalCents: total, minutes: STRANDED_AFTER_MINUTES },
+      });
+    } catch { /* logging is never worth failing the request for */ }
   }
 
   await logCron('stranded-booking-alert', {
