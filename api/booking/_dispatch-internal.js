@@ -3,7 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc, ownerEmail } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForDispatch, isSameServiceMarket } from '../_source-of-truth.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { logActivity } from './_activity.js';
@@ -158,11 +158,18 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     // When re-dispatching a job a Pro just dropped, don't bounce it straight back
     // to them — it should go to OTHER online Pros (per the drop-and-rematch flow).
     if (excludeEaserId && easer.id === excludeEaserId) return false;
-    // No hard city filter. The booking already passed the exact active-ZIP check
-    // at creation, and every launch Easer serves the one Central Texas market. City-name matching
-    // wrongly excludes Pros whose profile city differs from the booking's (e.g. an
-    // "Austin" Pro on a Pflugerville job, or a mistyped city) — which silently chokes
-    // dispatch. Proximity is rewarded in scoring (ZIP-match bonus) instead.
+    // Never match on city NAME. It drifts (an "Austin" Pro on a Pflugerville job,
+    // or a mistyped city) and silently chokes dispatch. Match on service market
+    // instead — see SERVICE_MARKETS in _source-of-truth.js, which spans 786+787
+    // so Central Texas keeps working exactly as it does today.
+    //
+    // This gate used to be absent: proximity was only a scoring bonus (+75), and
+    // the safety came entirely from auto-dispatch being Austin-only. That premise
+    // died when Easers registered in Lubbock, Houston and San Antonio. Without
+    // this, widening auto-dispatch by one prefix would offer a Lubbock job to an
+    // Austin Pro. It fails OPEN on an unknown ZIP, so nothing that dispatches
+    // today stops dispatching.
+    if (!isSameServiceMarket(bookingZip, easer.zip)) return false;
     return true;
   }).map(({ easer }) => easer);
 

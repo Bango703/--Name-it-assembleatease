@@ -461,8 +461,16 @@ export const AUTOMATIC_DISPATCH_ZIPS = Object.freeze([
 // job can never be blasted to an Austin Easer. It authorizes the card (a hold,
 // not a charge) and waits for the owner to assign or cancel.
 //
-// DO NOT widen isAutomaticDispatchZip to match this. Auto-dispatch staying
-// narrow is the safety mechanism that makes statewide booking safe.
+// Widening isAutomaticDispatchZip is now GATED, not forbidden. It used to be
+// forbidden outright, because dispatch had no hard proximity rule and this
+// narrowness was the only thing keeping a far-market job away from an Austin
+// Pro. SERVICE_MARKETS + isSameServiceMarket (above) now enforce that directly,
+// so adding a prefix here opens exactly one market and cannot leak into another.
+//
+// Before adding a prefix, confirm all three: a ready Easer actually lives in
+// that market, SERVICE_MARKETS covers its prefixes, and someone is accountable
+// for jobs that go unaccepted there. Opening a market with no local supply just
+// moves a stranded booking from `manual_required` to an offer nobody answers.
 export const ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES = Object.freeze([
   ...TEXAS_ZIP_PREFIXES,
   ...Array.from({ length: 50 }, (_, index) => String(750 + index)),
@@ -478,6 +486,57 @@ export function isAutomaticDispatchZip(zip) {
   if (!/^\d{5}$/.test(normalized)) return false;
   return AUTOMATIC_DISPATCH_ZIP_PREFIXES.includes(normalized.slice(0, 3))
     || AUTOMATIC_DISPATCH_ZIPS.includes(normalized);
+}
+
+// ── Service markets ────────────────────────────────────────────────────────
+// A market is a set of 3-digit ZIP prefixes a single Easer can reasonably drive
+// within. This is the ONE answer to "are these two ZIPs the same market"; do not
+// re-derive it from city names, which drift (an "Austin" Easer on a Pflugerville
+// job) and silently choke dispatch.
+//
+// WHY THIS EXISTS
+// Dispatch scoring rewards a ZIP match (+75) but never *required* one. That was
+// safe only while auto-dispatch was Austin-only AND every Easer was in Central
+// Texas. Neither still holds: there are ready Easers in Lubbock, Houston and San
+// Antonio. Without a hard gate, widening auto-dispatch by even one prefix would
+// offer a Lubbock job to an Austin Easer.
+//
+// Austin deliberately spans 786 and 787 — Travis is 78660 (786) and real
+// bookings have come from 78759 (787) and 78642 (786). A naive prefix-equality
+// check would break the market that actually works.
+export const SERVICE_MARKETS = Object.freeze({
+  central_texas: Object.freeze(['786', '787']),
+  houston:       Object.freeze(['770', '771', '772', '773', '774', '775']),
+  san_antonio:   Object.freeze(['780', '781', '782']),
+  lubbock:       Object.freeze(['793', '794']),
+  permian_basin: Object.freeze(['797', '798']),
+});
+
+/** Which market does this ZIP belong to, or null if we do not serve/know it. */
+export function marketForZip(zip) {
+  const normalized = String(zip || '').trim();
+  if (!/^\d{5}$/.test(normalized)) return null;
+  const prefix = normalized.slice(0, 3);
+  for (const [market, prefixes] of Object.entries(SERVICE_MARKETS)) {
+    if (prefixes.includes(prefix)) return market;
+  }
+  return null;
+}
+
+/**
+ * May an Easer in `easerZip` be offered a job in `bookingZip`?
+ *
+ * Fails OPEN when either ZIP maps to no known market, so an unrecognised or
+ * mistyped ZIP degrades to today's behaviour (offer it, let scoring sort it)
+ * rather than silently dispatching to nobody. It fails CLOSED only when both
+ * sides are known and genuinely different — the case that would put an Easer on
+ * the road for five hours.
+ */
+export function isSameServiceMarket(bookingZip, easerZip) {
+  const a = marketForZip(bookingZip);
+  const b = marketForZip(easerZip);
+  if (!a || !b) return true;
+  return a === b;
 }
 
 // Service-call fee — FLAT $5 across all Texas booking zones.
