@@ -262,9 +262,14 @@ Changes here require audit-before-code and explicit intent in the request:
 
 ### Known structural gaps (honest, tracked, not yet closed)
 
-- **No CI/CD gate.** `git push` deploys. The guards exist but nothing *forces* them
-  to run. Highest-leverage remaining control.
+- ~~**No CI/CD gate.**~~ **CLOSED (verified 2026-09-10).** `main` is protected: a
+  required **"Constitution guards"** status check must pass before merge, `strict`
+  is on (branch must be current), and `enforce_admins` is enabled — so nobody,
+  including the owner, can force a merge past a failing guard. Direct pushes to
+  `main` are blocked; changes land through a PR. Wire every new guard into
+  `governance:truth` / `test:launch` so this check actually runs it.
 - **No staging/preview environment.** Production is the first place a change runs.
+  (Vercel does build a preview deployment per PR, but nothing is tested against it.)
 - **No E2E tests.** No Playwright; the three-role flow is verified by reading code.
 - **No feature-flag system** beyond individual env vars.
 - **Constraints added by hand in Supabase remain invisible** to Article 7's guard
