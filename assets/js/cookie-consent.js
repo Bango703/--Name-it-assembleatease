@@ -25,6 +25,14 @@
     ad_personalization: 'denied',
     wait_for_update: 500
   });
+  // With ad_storage denied there is no cookie to hold the Google click id, so a
+  // visitor who lands from an ad and accepts on a LATER page was unattributable —
+  // the gclid died on the first navigation. url_passthrough carries it in the URL
+  // instead. ads_data_redaction strips identifiers from the pings sent while
+  // consent is denied. Neither sets a cookie, so a visitor who ignores or
+  // declines the banner is no more tracked than before.
+  window.gtag('set', 'url_passthrough', true);
+  window.gtag('set', 'ads_data_redaction', true);
 
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
