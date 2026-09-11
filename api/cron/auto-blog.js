@@ -596,7 +596,6 @@ function buildBlogPage({ title, canonicalUrl, today, readTime, body, image, mark
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}})();</script>
 <meta charset="UTF-8"/>
 <title>${escaped} &mdash; AssembleAtEase</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -769,6 +768,14 @@ ${body}
     <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
   </div>
 </footer>
+<div id="cookie-banner" class="hidden" data-cookie-banner>
+  <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
+  <div class="cookie-btns">
+    <button type="button" class="cookie-btn cookie-decline" data-cookie-decline>Decline</button>
+    <button type="button" class="cookie-btn cookie-accept" data-cookie-accept>Accept</button>
+  </div>
+</div>
+<script src="/assets/js/cookie-consent.js" defer></script>
 </body>
 </html>`;
 }
