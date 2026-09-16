@@ -100,8 +100,13 @@ assert.match(homePage, /id="home-decline-sheet" role="dialog"/,
   'Declining a Home offer must use an accessible in-app confirmation.');
 assert.match(homePage, /id="home-complete-status" role="alert"/,
   'Completion errors must remain visible inside the completion sheet.');
-assert.match(homePage, /<a class="eh-upcoming-card" href="\/assembler\/my-assignments"/,
+// Still a native link, so still keyboard-accessible. The destination is now
+// chosen per job: a job waiting on this Easer's acceptance opens that job
+// directly (?job=), everything else opens the list as before.
+assert.match(homePage, /<a class="eh-upcoming-card" href="' \+ esc\(cardHref\) \+ '"/,
   'Upcoming jobs must be native keyboard-accessible links.');
+assert.match(homePage, /var cardHref = needsAcceptance \? '\/assembler\/my-assignments\?job=' \+ encodeURIComponent\(b\.id\) : '\/assembler\/my-assignments';/,
+  'Both Upcoming destinations must stay inside the jobs page.');
 
 assert.match(assignmentsApi, /evaluateEaserAppointmentGate/,
   'The assignments API must reuse the server appointment gate.');
