@@ -12,7 +12,7 @@ import {
   resolveBookingPromotion,
 } from './_promotions.js';
 import { logActivity } from './booking/_activity.js';
-import { appointmentTimestampMs } from './booking/_appt-date.js';
+import { appointmentTimestampMs, formatAppointmentDate } from './booking/_appt-date.js';
 import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './booking/_booking-window.js';
 import { SCHEDULED_AUTHORIZATION_LEAD_DAYS } from './booking/_booking-window.js';
 import { CANCELLATION_POLICY } from './_source-of-truth.js';
@@ -748,7 +748,7 @@ export default async function handler(req, res) {
   const sPhone = esc(formatUsPhone(phone));
   const sEmail = esc(email);
   const sAddress = esc(formatAddress(address));
-  const sDate = esc(date);
+  const sDate = esc(formatAppointmentDate(date));
   const sTime = esc(time);
   const sDetails = esc(details);
   const guestTrackUrl = `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(guestMutationToken)}`;

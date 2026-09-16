@@ -21,15 +21,32 @@
 
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { toGsm7 } from '../api/_sms.js';
+import { formatAppointmentDateShort, formatSlotShort } from '../api/booking/_appt-date.js';
 
 const OPT_OUT = ' Reply STOP to opt out.';
 const GSM7_LIMIT = 160;
 
 // Worst realistic values. Service names come from the booking catalog, refs from
 // the longest form seen in production.
+//
+// The date and time are NOT hand-typed samples any more. This test used to
+// measure date '2026-09-09' and time '2:00 PM', while production sends the stored
+// slot "10:00 AM \u2013 12:00 PM": twelve characters longer and carrying an en dash
+// that forces UCS-2. The test passed while four real texts went out in three
+// parts each. So the slot is read from the booking form's own list, and every
+// body goes through the same formatters and toGsm7() that the senders use.
+const bookSource = readFileSync(new URL('../book.html', import.meta.url), 'utf8');
+const slotList = bookSource.match(/var TIME_SLOTS = (\[[^\]]+\])/);
+assert.ok(slotList, 'book.html TIME_SLOTS not found');
+const TIME_SLOTS = JSON.parse(slotList[1].replace(/'/g, '"'));
+const longestSlot = TIME_SLOTS.reduce((a, b) => (formatSlotShort(b).length > formatSlotShort(a).length ? b : a));
+assert.ok(TIME_SLOTS.some(s => /[\u2013\u2014]/.test(s)),
+  'the stored slots carry a dash -- if that changed, revisit why toGsm7 exists');
+
 const service = 'Mounting & Hanging';
-const date = '2026-09-09';
-const time = '2:00 PM';
+const date = formatAppointmentDateShort('2026-09-30');   // two-digit day: the longest short date
+const time = formatSlotShort(longestSlot);
 const ref = 'AAE-LYTX3WIQW3';
 const pay = '$1,250.00 est. ';
 const easerFirstName = 'Bartholomew';
@@ -39,7 +56,7 @@ const MESSAGES = {
   dispatch_offer:
     `New AssembleAtEase job: ${service} ${date} at ${time}. ${pay}Open the app to accept. Ref ${ref}`,
   assignment_confirmation:
-    `New AssembleAtEase job: ${service} on ${date} ${time}. Open your dashboard to accept. Ref ${ref}`,
+    `New AssembleAtEase job: ${service} on ${date}, ${time}. Open your dashboard to accept. Ref ${ref}`,
   crew_added:
     `You've been added to an AssembleAtEase job: ${service} ${date}. $${(helperDue / 100).toFixed(2)} est. Open the app for details. Ref ${ref}`,
   arrival_nudge:
@@ -59,7 +76,7 @@ const GSM7 = '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%
 
 let failures = 0;
 for (const [name, body] of Object.entries(MESSAGES)) {
-  const full = body + OPT_OUT;
+  const full = toGsm7(body) + OPT_OUT;
 
   const nonGsm = [...full].filter(ch => !GSM7.includes(ch));
   if (nonGsm.length) {
@@ -87,5 +104,28 @@ assert.match(src, /AssembleAtEase: \$\{service\} booked for/,
   'booking-confirmed.js no longer matches the template measured here');
 assert.doesNotMatch(src, /AssembleAtEase received your \$\{service\} booking for/,
   'The 172-character wording is back');
+
+// Every shipped template that prints a date or time must use the short
+// formatters measured above, and the sender must convert to GSM-7 before it
+// counts -- otherwise the measurement above describes a message nobody sends.
+const shipped = {
+  'api/booking/_dispatch-internal.js': [/formatAppointmentDateShort\(booking\.date\)/, /formatSlotShort\(booking\.time\)/],
+  'api/booking/assign.js': [/on \$\{formatAppointmentDateShort\(booking\.date\)\}/, /formatSlotShort\(booking\.time\)/],
+  'api/booking-confirmed.js': [/booked for \$\{formatAppointmentDateShort\(date\)\}/, /formatSlotShort\(time\)/],
+  'api/booking/easer-status.js': [/should arrive around \$\{formatSlotShort\(appointmentTime\)\}/],
+  'api/owner/crew.js': [/formatAppointmentDateShort\(booking\.date\)/],
+};
+for (const [rel, patterns] of Object.entries(shipped)) {
+  const body = readFileSync(new URL('../' + rel, import.meta.url), 'utf8');
+  for (const pattern of patterns) assert.match(body, pattern, `${rel} no longer matches the template measured here`);
+}
+const smsSource = readFileSync(new URL('../api/_sms.js', import.meta.url), 'utf8');
+assert.match(smsSource, /const text = toGsm7\(String\(body \|\| ''\)\)\.trim\(\);/,
+  '_sms.js must convert to GSM-7 before sending');
+
+// The conversion itself, on the value production actually stores.
+assert.equal(toGsm7('8:00 AM \u2013 10:00 AM'), '8:00 AM - 10:00 AM');
+assert.equal(toGsm7('it\u2019s \u201Cready\u201D\u2026'), 'it\'s "ready"...');
+assert.equal(toGsm7('plain text stays plain'), 'plain text stays plain');
 
 console.log('\nPASS all 7 SMS templates fit one GSM-7 segment at worst case');

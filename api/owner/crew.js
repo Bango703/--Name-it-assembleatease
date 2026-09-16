@@ -1,5 +1,5 @@
 import { getSupabase } from '../_supabase.js';
-import { formatAppointmentDate } from '../booking/_appt-date.js';
+import { formatAppointmentDate, formatAppointmentDateShort } from '../booking/_appt-date.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendSms } from '../_sms.js';
 import { sendPushToUser } from '../_push.js';
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
 
   const { data: booking, error: bookingErr } = await sb
     .from('bookings')
-    .select('id, ref, status, assembler_id, assembler_name, total_price, amount_charged, tax_amount, assembler_due, easer_fee_pct_snapshot, assemblecash_redeemed_cents, payout_status, service, date, time, customer_name, customer_email, address, city, zip')
+    .select('id, ref, status, assembler_id, assembler_name, assembler_accepted_at, total_price, amount_charged, tax_amount, assembler_due, easer_fee_pct_snapshot, assemblecash_redeemed_cents, payout_status, service, date, time, customer_name, customer_email, address, city, zip')
     .eq('id', bookingId)
     .single();
   if (bookingErr || !booking) return res.status(404).json({ error: 'Booking not found' });
@@ -243,7 +243,7 @@ export default async function handler(req, res) {
       <strong>When:</strong> ${esc(booking.date ? formatAppointmentDate(booking.date) : 'TBD')}${booking.time ? ' at ' + esc(booking.time) : ''}<br>
       <strong>Working with:</strong> ${esc(booking.assembler_name || 'the lead Easer')}<br>
       <strong>Your estimated earnings:</strong> $${(helperDue / 100).toFixed(2)}</p>
-      <p style="font-size:14px;color:#52525b">${esc(booking.assembler_name || 'The lead Easer')} is the lead on this job and marks it complete. Open your dashboard for the address and job details.</p>
+      <p style="font-size:14px;color:#52525b">${esc(booking.assembler_name || 'The lead Easer')} is the lead on this job and marks it complete. ${booking.assembler_accepted_at ? 'Open your dashboard for the address and job details.' : `The address appears in your dashboard once ${esc(booking.assembler_name || 'the lead Easer')} accepts the job.`}</p>
       <p><a href="${SITE}/assembler/my-assignments" style="display:inline-block;background:#00BFFF;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">View the job</a></p>
     </div>`,
     replyTo: ownerEmail(),
@@ -252,7 +252,7 @@ export default async function handler(req, res) {
 
   await sendSms({
     recipient: easer,
-    body: `You've been added to an AssembleAtEase job: ${booking.service || 'Service'}${booking.date ? ' ' + booking.date : ''}. $${(helperDue / 100).toFixed(2)} est. Open the app for details. Ref ${booking.ref}`,
+    body: `You've been added to an AssembleAtEase job: ${booking.service || 'Service'}${booking.date ? ' ' + formatAppointmentDateShort(booking.date) : ''}. $${(helperDue / 100).toFixed(2)} est. Open the app for details. Ref ${booking.ref}`,
     meta: { bookingId, notificationType: 'crew_added', recipientType: 'easer', recipientUserId: easerId },
   }).catch(() => {});
 

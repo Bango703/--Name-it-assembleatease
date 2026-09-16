@@ -22,6 +22,30 @@ import { normalizeUsPhone } from './_phone.js';
 
 const TELNYX_API = 'https://api.telnyx.com/v2/messages';
 
+// One character outside the GSM-7 set switches the WHOLE message to UCS-2, which
+// cuts a single segment from 160 characters to 70. Appointment slots are stored
+// with an en dash ("8:00 AM – 10:00 AM"), so every text that printed a time was
+// billed as three segments, while the length test measured a copy with no dash
+// in it. Map the typographic punctuation this platform writes to its plain
+// equivalent; anything else passes through unchanged.
+const GSM7_SUBSTITUTIONS = [
+  [/[\u2012\u2013\u2014\u2015\u2212]/g, '-'],
+  [/[\u2018\u2019\u201A\u201B\u2032]/g, "'"],
+  [/[\u201C\u201D\u201E\u201F\u2033]/g, '"'],
+  [/\u2026/g, '...'],
+  [/[\u00B7\u2022]/g, '-'],
+  [/[\u00A0\u2007\u2009\u200A\u202F]/g, ' '],
+  [/[\u200B\u200C\u200D\u2060\uFEFF]/g, ''],
+];
+
+export function toGsm7(text) {
+  let out = String(text ?? '');
+  for (const [pattern, replacement] of GSM7_SUBSTITUTIONS) {
+    out = out.replace(pattern, replacement);
+  }
+  return out;
+}
+
 export function isSmsEnabled() {
   return Boolean(
     (process.env.TELNYX_API_KEY || '').trim()
@@ -85,7 +109,7 @@ export async function sendSms({ recipient, body, meta = {} }) {
     return { ok: false, skipped: eligible.reason };
   }
 
-  const text = String(body || '').trim();
+  const text = toGsm7(String(body || '')).trim();
   if (!text) return { ok: false, skipped: 'empty_body' };
 
   // Every message carries the opt-out instruction. Callers cannot accidentally

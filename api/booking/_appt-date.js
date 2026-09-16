@@ -95,6 +95,29 @@ export function appointmentTimestampMs(dateStr, timeStr) {
 // other calendar date here, which keeps the weekday correct regardless of the
 // reader's timezone. Returns the raw input unchanged if it cannot be parsed:
 // a malformed date should look odd, never silently become a different day.
+// The same date sized for a text message: "Thu, Sep 24". Every SMS template
+// has to fit one 160-character segment, and the long form is 18 longer.
+export function formatAppointmentDateShort(dateStr) {
+  const parsed = parseIsoCalendarDate(dateStr);
+  if (!parsed) return String(dateStr || '');
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    weekday: 'short', month: 'short', day: 'numeric',
+  }).format(parsed);
+}
+
+// A booked slot sized for a text: "10:00 AM – 12:00 PM" becomes "10 AM-12 PM".
+// Minutes that are not :00 are kept, and nothing is invented for an empty slot.
+export function formatSlotShort(timeStr) {
+  const raw = String(timeStr || '').trim();
+  if (!raw) return '';
+  return raw
+    .replace(/:00(?=\s*[AP]M)/gi, '')
+    .replace(/\s*[\u2012\u2013\u2014\u2212-]\s*/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function formatAppointmentDate(dateStr) {
   const parsed = parseIsoCalendarDate(dateStr);
   if (!parsed) return String(dateStr || '');

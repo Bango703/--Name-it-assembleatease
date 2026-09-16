@@ -1,7 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
-import { appointmentTimestampMs } from '../booking/_appt-date.js';
+import { appointmentTimestampMs, formatAppointmentDate, formatAppointmentDateShort } from '../booking/_appt-date.js';
 import { logCron } from './_cron-logger.js';
 
 /**
@@ -84,10 +84,10 @@ export default async function handler(req, res) {
         await sendEmail({
           to: b.customer_email,
           from: 'AssembleAtEase <booking@assembleatease.com>',
-          subject: `We haven't confirmed a pro for your ${esc(b.date)} appointment — ${esc(b.ref)}`,
+          subject: `We haven't confirmed a pro for your ${esc(formatAppointmentDateShort(b.date))} appointment — ${esc(b.ref)}`,
           html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
             <h2 style="color:#00BFFF">We need to be straight with you</h2>
-            <p>Hi ${esc((b.customer_name || '').split(' ')[0] || 'there')}, we have not been able to confirm a pro for your <strong>${esc(b.service || 'appointment')}</strong> on <strong>${esc(b.date)}</strong>${b.time ? ' at ' + esc(b.time) : ''}.</p>
+            <p>Hi ${esc((b.customer_name || '').split(' ')[0] || 'there')}, we have not been able to confirm a pro for your <strong>${esc(b.service || 'appointment')}</strong> on <strong>${esc(formatAppointmentDate(b.date))}</strong>${b.time ? ' at ' + esc(b.time) : ''}.</p>
             <p>We would rather tell you now than let you wait. Two options, and <strong>neither costs you anything</strong>:</p>
             <ul style="line-height:1.9;color:#3f3f46">
               <li><strong>Pick a new time</strong> — we will prioritise finding you a pro for it.</li>
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
           subject: `CUSTOMER NOTIFIED — ${esc(b.ref)} still has no pro`,
           html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
             <h2 style="color:#dc2626">Customer told we could not staff their job</h2>
-            <p><strong>${esc(b.ref)}</strong> — ${esc(b.service || '')} on ${esc(b.date)}${b.time ? ' at ' + esc(b.time) : ''} — reached ${CUSTOMER_CUTOFF_HOURS}h out with no accepted Easer.</p>
+            <p><strong>${esc(b.ref)}</strong> — ${esc(b.service || '')} on ${esc(formatAppointmentDate(b.date))}${b.time ? ' at ' + esc(b.time) : ''} — reached ${CUSTOMER_CUTOFF_HOURS}h out with no accepted Easer.</p>
             <p>${esc(b.customer_name || 'The customer')} has been emailed and offered a free reschedule or cancellation. ${esc(formatAddress(b) || '')}</p>
             <p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">Open the dashboard</a></p>
           </div>`,
@@ -145,7 +145,7 @@ export default async function handler(req, res) {
           subject: `URGENT — ${esc(b.ref)} has no pro and is ${Math.round(hoursUntil)}h away`,
           html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
             <h2 style="color:#dc2626">Source a pro now</h2>
-            <p><strong>${esc(b.ref)}</strong> — ${esc(b.service || '')} on ${esc(b.date)}${b.time ? ' at ' + esc(b.time) : ''} — has <strong>no accepted Easer</strong> and is about ${Math.round(hoursUntil)} hour(s) away.</p>
+            <p><strong>${esc(b.ref)}</strong> — ${esc(b.service || '')} on ${esc(formatAppointmentDate(b.date))}${b.time ? ' at ' + esc(b.time) : ''} — has <strong>no accepted Easer</strong> and is about ${Math.round(hoursUntil)} hour(s) away.</p>
             <p>${esc(b.assembler_name ? 'Assigned to ' + b.assembler_name + ' but not accepted.' : 'Nobody is assigned.')}</p>
             <p style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.75rem;color:#991b1b;font-size:14px">
               If this is still unaccepted at ${CUSTOMER_CUTOFF_HOURS}h out, <strong>the customer will be emailed automatically</strong> and offered a free reschedule or cancellation.

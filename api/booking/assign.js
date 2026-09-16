@@ -1,5 +1,5 @@
 ﻿import { getSupabase } from '../_supabase.js';
-import { formatAppointmentDate } from './_appt-date.js';
+import { formatAppointmentDate, formatAppointmentDateShort, formatSlotShort } from './_appt-date.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
@@ -420,7 +420,7 @@ export default async function handler(req, res) {
   // itself when there is no recorded consent, so this call is always safe.
   const smsResult = await sendSms({
     recipient: assembler,
-    body: `New AssembleAtEase job: ${booking.service} on ${formatAppointmentDate(booking.date)}${booking.time ? ' ' + booking.time : ''}. Open your dashboard to accept. Ref ${booking.ref}`,
+    body: `New AssembleAtEase job: ${booking.service} on ${formatAppointmentDateShort(booking.date)}${booking.time ? ', ' + formatSlotShort(booking.time) : ''}. Open your dashboard to accept. Ref ${booking.ref}`,
     meta: {
       bookingId: booking.id,
       notificationType: 'assignment_confirmation',
@@ -527,7 +527,7 @@ export function buildAssignmentEmail({ firstName, service, date, time, estimated
         <tr><td style="padding:6px 0;vertical-align:top;color:#71717a">Location</td><td style="padding:6px 0;vertical-align:top"><strong>${esc(offerLocation)}</strong></td></tr>
       </table>
     </td></tr></table>
-    <p style="margin:0 0 20px;font-size:13px;line-height:1.5;color:#71717a">Full address shows when you accept. Phone and email unlock ${CONTACT_RELEASE_LEAD_HOURS} hours before the job — until then, message the customer in the app.</p>
+    <p style="margin:0 0 20px;font-size:13px;line-height:1.5;color:#71717a">Full address shows when you accept. The customer's phone number unlocks ${CONTACT_RELEASE_LEAD_HOURS} hours before the job — until then, message them in the app.</p>
     <div style="text-align:center;margin-bottom:16px">
       <a href="${acceptUrl}" style="display:inline-block;background:#00BFFF;color:#fff;font-size:14px;font-weight:600;padding:12px 36px;border-radius:6px;text-decoration:none;margin-right:8px">Accept Job</a>
       <a href="${declineUrl}" style="display:inline-block;background:#f4f4f5;color:#71717a;font-size:14px;font-weight:600;padding:12px 36px;border-radius:6px;text-decoration:none;border:1px solid #e4e4e7">Decline</a>

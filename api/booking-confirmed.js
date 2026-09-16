@@ -1,5 +1,5 @@
 ﻿import Stripe from 'stripe';
-import { formatAppointmentDate } from './booking/_appt-date.js';
+import { formatAppointmentDate, formatAppointmentDateShort, formatSlotShort } from './booking/_appt-date.js';
 import { getSupabase } from './_supabase.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from './_email.js';
 import { sendSms } from './_sms.js';
@@ -185,7 +185,7 @@ export default async function handler(req, res) {
   const sName    = esc(name);
   const sService = esc(service);
   const sAddress = esc(formatAddress(address));
-  const sDate    = esc(date);
+  const sDate    = esc(formatAppointmentDate(date));
   const sTime    = esc(time);
   const sDetails = esc(details);
 
@@ -285,7 +285,7 @@ export default async function handler(req, res) {
     // name, ISO date, longest ref) INCLUDING the ' Reply STOP to opt out.'
     // that _sms.js appends. The previous wording ran to 172 and billed as two
     // segments on every booking. scripts/test-sms-message-length.mjs holds it.
-    body: `AssembleAtEase: ${service} booked for ${date}${time ? ` ${time}` : ''}. We'll text when your Easer is on the way. Ref ${ref}`,
+    body: `AssembleAtEase: ${service} booked for ${formatAppointmentDateShort(date)}${time ? ` ${formatSlotShort(time)}` : ''}. We'll text when your Easer is on the way. Ref ${ref}`,
     meta: { bookingId, notificationType: 'booking_confirmed', recipientType: 'customer' },
   }).catch(error => ({ ok: false, error: error?.message || String(error) }));
 

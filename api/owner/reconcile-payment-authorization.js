@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { buildStatusEmail, esc, ownerEmail, sendEmail, verifyOwner, formatAddress } from '../_email.js';
 import { validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
@@ -122,7 +123,7 @@ export default async function handler(req, res) {
       statusColor: '#065f46',
       statusBg: '#d1fae5',
       headline: `Your booking is confirmed, ${esc(booking.customer_name)}!`,
-      bodyHtml: `<p style="line-height:1.7">Your card is safely on file for <strong>${esc(booking.service)}</strong>. Your appointment is scheduled for <strong>${esc(booking.date)}</strong> at <strong>${esc(booking.time)}</strong>. You're only charged after completed work, except for any disclosed cancellation fee.</p><p style="line-height:1.7">Service address: ${esc(formatAddress(booking.address))}</p>`,
+      bodyHtml: `<p style="line-height:1.7">Your card is safely on file for <strong>${esc(booking.service)}</strong>. Your appointment is scheduled for <strong>${esc(formatAppointmentDate(booking.date))}</strong> at <strong>${esc(booking.time)}</strong>. You're only charged after completed work, except for any disclosed cancellation fee.</p><p style="line-height:1.7">Service address: ${esc(formatAddress(booking.address))}</p>`,
     }),
     meta: {
       bookingId: booking.id,

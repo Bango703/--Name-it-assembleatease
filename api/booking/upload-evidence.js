@@ -1,4 +1,5 @@
 import { getSupabase } from '../_supabase.js';
+import { formatAppointmentDate } from './_appt-date.js';
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
@@ -300,7 +301,7 @@ export default async function handler(req, res) {
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
         <h2 style="color:#991b1b">Damage report requires review</h2>
         <p><strong>${esc(booking.assembler_name || 'An Easer')}</strong> reported possible damage on booking <strong>${esc(booking.ref)}</strong>.</p>
-        <p><strong>Service:</strong> ${esc(booking.service || '')}<br/><strong>Appointment:</strong> ${esc(booking.date || '')} ${esc(booking.time || '')}</p>
+        <p><strong>Service:</strong> ${esc(booking.service || '')}<br/><strong>Appointment:</strong> ${esc(formatAppointmentDate(booking.date))} ${esc(booking.time || '')}</p>
         <p><strong>Easer notes:</strong><br/>${esc(cleanNotes)}</p>
         <p>Open the booking timeline and evidence panel before contacting the customer or making a financial decision.</p>
         <p><a href="https://www.assembleatease.com/owner/">Open owner dashboard</a></p>

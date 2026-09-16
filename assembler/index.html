@@ -1013,8 +1013,9 @@
     var dateStr      = effectiveDate ? new Date(effectiveDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
     var timeStr      = effectiveTime || '—';
     var addrStr      = lj.address ? APP.formatPostalAddress(lj.address) : 'Address on file';
-    var customerName = lj.customer_name || lj.customer_email || '';
-    var mapsUrl      = lj.address ? 'https://maps.google.com/q='+encodeURIComponent(lj.address) : '#';
+    var customerName = lj.customer_name || '';
+    // maps.google.com/q= (no '?') returns a 404. Same link format as the Jobs screen.
+    var mapsUrl      = lj.address ? 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(lj.address) : '#';
     var callUrl      = lj.customer_phone ? 'tel:'+lj.customer_phone : '#';
     var showCall     = !!lj.customer_phone;
 

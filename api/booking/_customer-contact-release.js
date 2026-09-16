@@ -5,7 +5,8 @@ import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES } from '../_source-of-truth.js'
 //
 // An Easer gets the customer's NAME, ADDRESS, and JOB DETAILS the moment they
 // accept — they need those to plan the route and understand the work. Their
-// PHONE and EMAIL are held back until shortly before the appointment.
+// PHONE is held back until shortly before the appointment. Their email is
+// never given to an Easer at all (see my-assignments redaction).
 //
 // WHY 24 HOURS, and not a number someone liked the sound of:
 //
@@ -55,10 +56,10 @@ export function effectiveAppointment(booking = {}) {
 }
 
 /**
- * Decide whether customer phone/email may be shown for one booking.
+ * Decide whether the customer's phone may be shown for one booking.
  *
  * `scopeVisible` covers name/address/job details (released at acceptance).
- * `released` covers phone/email (held until the pre-appointment window).
+ * `released` covers the phone (held until the pre-appointment window).
  *
  * @returns {{released:boolean, scopeVisible:boolean, code:string, releasesAt:(string|null), leadHours:number, reason:(string|null)}}
  */
