@@ -50,7 +50,7 @@ assert.equal((html.match(/\$\{/g) || []).length, 0, 'no unrendered placeholder m
 const text = strip(html);
 assert.match(text, /Spring, TX 77389/, 'the city must be in the email');
 assert.doesNotMatch(text, /BURGESS BEND/, 'the street must not be');
-assert.match(text, new RegExp(`unlock ${CONTACT_RELEASE_LEAD_HOURS} hours before the appointment`),
+assert.match(text, new RegExp(`unlock ${CONTACT_RELEASE_LEAD_HOURS} hours before the job`),
   'contact timing must match the real release window');
 assert.doesNotMatch(text, /Customer contact and exact address are shown after acceptance/,
   'the sentence that promised contact at acceptance must not come back');
@@ -89,5 +89,25 @@ for (const rel of CUSTOMER_AND_EASER_EMAILS) {
     `${rel} prints a raw appointment date into an email — use formatAppointmentDate`);
   assert.match(src, /formatAppointmentDate/, `${rel} must format its appointment dates`);
 }
+
+// ── Readable on a phone ─────────────────────────────────────────────────────
+// On a 375px screen the label column leaves about 140px for each value. The
+// Location cell used to hold a 30-word sentence, which stacked into ten lines,
+// and table cells center vertically, so labels drifted to the middle of tall
+// values. The row now holds only the city; the timing sits full-width below.
+const locationCell = html.match(/>Location<\/td><td[^>]*>([\s\S]*?)<\/td>/);
+assert.ok(locationCell, 'the Location row must exist');
+assert.equal(strip(locationCell[1]), 'Spring, TX 77389',
+  'the Location cell must hold only the city — anything longer stacks into a column on a phone');
+const detailCells = html.match(/<td style="padding:6px 0;[^"]*"/g) || [];
+assert.equal(detailCells.length, 10, 'the details table has ten cells');
+for (const cell of detailCells) {
+  assert.match(cell, /vertical-align:top/, 'every details cell must be top-aligned so labels do not float');
+}
+const locationEnd = html.indexOf('>Location</td>');
+const acceptAt = html.indexOf('Accept Job');
+const noteAt = html.indexOf('Full address shows when you accept.');
+assert.ok(noteAt > locationEnd && noteAt < acceptAt,
+  'the timing note must sit below the details box and above the buttons, at full width');
 
 console.log('assignment email accuracy tests: PASS');

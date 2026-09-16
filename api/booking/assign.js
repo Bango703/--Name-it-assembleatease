@@ -518,15 +518,16 @@ export function buildAssignmentEmail({ firstName, service, date, time, estimated
     </div>
     <p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1a1a1a;text-align:center">You've got a new job</p>
     <p style="margin:0 0 24px;font-size:14px;color:#52525b;text-align:center">Hi ${esc(firstName)}, a new job just came in for you. Here are the details.</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:12px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
-        <tr><td style="padding:6px 0;color:#71717a;width:110px">Reference</td><td style="padding:6px 0;font-weight:600">${esc(ref)}</td></tr>
-        <tr><td style="padding:6px 0;color:#71717a">Service</td><td style="padding:6px 0;font-weight:600">${esc(service)}</td></tr>
-        <tr><td style="padding:6px 0;color:#71717a">Date</td><td style="padding:6px 0">${esc(date ? formatAppointmentDate(date) : 'TBD')}${time ? ' at ' + esc(time) : ''}</td></tr>
-        <tr><td style="padding:6px 0;color:#71717a">Estimated earnings</td><td style="padding:6px 0;font-weight:700;color:#059669">${estimatedPayCents > 0 ? '$' + (estimatedPayCents / 100).toFixed(2) : 'Pending custom quote'}</td></tr>
-        <tr><td style="padding:6px 0;color:#71717a">Location</td><td style="padding:6px 0"><strong>${esc(offerLocation)}</strong><br/>The exact address is shown as soon as you accept. The customer's phone and email unlock ${CONTACT_RELEASE_LEAD_HOURS} hours before the appointment — until then you can reach them through the app.</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;color:#71717a;width:110px">Reference</td><td style="padding:6px 0;vertical-align:top;font-weight:600">${esc(ref)}</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;color:#71717a">Service</td><td style="padding:6px 0;vertical-align:top;font-weight:600">${esc(service)}</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;color:#71717a">Date</td><td style="padding:6px 0;vertical-align:top">${esc(date ? formatAppointmentDate(date) : 'TBD')}${time ? ' at ' + esc(time) : ''}</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;color:#71717a">Estimated earnings</td><td style="padding:6px 0;vertical-align:top;font-weight:700;color:#059669">${estimatedPayCents > 0 ? '$' + (estimatedPayCents / 100).toFixed(2) : 'Pending custom quote'}</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;color:#71717a">Location</td><td style="padding:6px 0;vertical-align:top"><strong>${esc(offerLocation)}</strong></td></tr>
       </table>
     </td></tr></table>
+    <p style="margin:0 0 20px;font-size:13px;line-height:1.5;color:#71717a">Full address shows when you accept. Phone and email unlock ${CONTACT_RELEASE_LEAD_HOURS} hours before the job — until then, message the customer in the app.</p>
     <div style="text-align:center;margin-bottom:16px">
       <a href="${acceptUrl}" style="display:inline-block;background:#00BFFF;color:#fff;font-size:14px;font-weight:600;padding:12px 36px;border-radius:6px;text-decoration:none;margin-right:8px">Accept Job</a>
       <a href="${declineUrl}" style="display:inline-block;background:#f4f4f5;color:#71717a;font-size:14px;font-weight:600;padding:12px 36px;border-radius:6px;text-decoration:none;border:1px solid #e4e4e7">Decline</a>
