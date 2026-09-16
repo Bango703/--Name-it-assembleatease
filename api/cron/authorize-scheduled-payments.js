@@ -5,6 +5,7 @@ import { randomToken, sha256 } from '../_payment-security.js';
 import { isAutomaticDispatchZip } from '../_source-of-truth.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
+import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { chicagoTodayIso } from '../booking/_appt-date.js';
 import { logActivity } from '../booking/_activity.js';
 import { logCron } from './_cron-logger.js';
@@ -348,7 +349,7 @@ async function sendAuthorizationSuccess(booking) {
     subject: `Your appointment is ready — ${booking.ref}`,
     replyTo: 'service@assembleatease.com',
     meta: { bookingId: booking.id, notificationType: 'scheduled_payment_authorized', recipientType: 'customer' },
-    html: `<p>Hi ${esc(booking.customer_name)},</p><p>Your card is safely on file for your ${esc(booking.service)} appointment on <strong>${esc(booking.date)}</strong> at <strong>${esc(booking.time)}</strong>.</p><p>Nothing has been charged — you're only charged after the work is complete.</p>`,
+    html: `<p>Hi ${esc(booking.customer_name)},</p><p>Your card is safely on file for your ${esc(booking.service)} appointment on <strong>${esc(formatAppointmentDate(booking.date))}</strong> at <strong>${esc(booking.time)}</strong>.</p><p>Nothing has been charged — you're only charged after the work is complete.</p>`,
   });
 }
 
@@ -381,7 +382,7 @@ async function sendCustomerRecovery(sb, booking) {
     subject: `Confirm your card for ${booking.ref}`,
     replyTo: 'service@assembleatease.com',
     meta: { bookingId: booking.id, notificationType: 'scheduled_payment_action_required', recipientType: 'customer', dedupeWindowMin: 2 },
-    html: `<p>Hi ${esc(booking.customer_name)},</p><p>Your bank needs one more confirmation before your ${esc(booking.service)} appointment on <strong>${esc(booking.date)}</strong>.</p><p><a href="${esc(url)}">Confirm your card securely</a></p><p>No payment is collected until completed work.</p>`,
+    html: `<p>Hi ${esc(booking.customer_name)},</p><p>Your bank needs one more confirmation before your ${esc(booking.service)} appointment on <strong>${esc(formatAppointmentDate(booking.date))}</strong>.</p><p><a href="${esc(url)}">Confirm your card securely</a></p><p>No payment is collected until completed work.</p>`,
   }).catch(error => ({ ok: false, error: error?.message || String(error) }));
 
   const delivered = emailResult?.ok === true && emailResult?.suppressed !== true;
@@ -424,7 +425,7 @@ async function notifyAssignedEaserPaymentHold(sb, booking) {
     subject: `Job on hold — ${booking.ref}`,
     replyTo: 'service@assembleatease.com',
     meta: { bookingId: booking.id, notificationType: 'scheduled_payment_easer_hold', recipientType: 'easer', recipientUserId: booking.assembler_id },
-    html: `<p>Your job <strong>${esc(booking.ref)}</strong> on ${esc(booking.date)} at ${esc(booking.time)} is <strong>on hold</strong>.</p>`
+    html: `<p>Your job <strong>${esc(booking.ref)}</strong> on ${esc(formatAppointmentDate(booking.date))} at ${esc(booking.time)} is <strong>on hold</strong>.</p>`
       + "<p>The customer's payment needs to be confirmed before the work can go ahead. We have contacted them and will let you know as soon as it clears.</p>"
       + '<p><strong>Do not travel to this job until it is confirmed.</strong> Your earnings for it are unchanged; nothing about your account or payouts is affected.</p>',
   }).catch(error => ({ ok: false, error: error?.message || String(error) }));
@@ -437,7 +438,7 @@ async function sendOwnerAlert(booking, message) {
     subject: `Payment action needed — ${booking.ref}`,
     replyTo: booking.customer_email || 'service@assembleatease.com',
     meta: { bookingId: booking.id, notificationType: 'scheduled_payment_owner_action', recipientType: 'owner' },
-    html: `<p><strong>${esc(booking.ref)}</strong></p><p>${esc(message)}</p><p>Customer: ${esc(booking.customer_name)}<br>Appointment: ${esc(booking.date)} at ${esc(booking.time)}</p>`,
+    html: `<p><strong>${esc(booking.ref)}</strong></p><p>${esc(message)}</p><p>Customer: ${esc(booking.customer_name)}<br>Appointment: ${esc(formatAppointmentDate(booking.date))} at ${esc(booking.time)}</p>`,
   });
 }
 

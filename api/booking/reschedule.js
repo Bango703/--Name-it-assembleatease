@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { formatAppointmentDate } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
@@ -270,7 +271,7 @@ export default async function handler(req, res) {
       statusColor: '#0369a1',
       statusBg: '#f0f9ff',
       headline: 'Your appointment has been rescheduled.',
-      bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> appointment is now set for <strong>${esc(date)}</strong> at <strong>${esc(time)}</strong>.</p>
+      bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> appointment is now set for <strong>${esc(formatAppointmentDate(date))}</strong> at <strong>${esc(time)}</strong>.</p>
         <p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">Because this booking was rescheduled, a later cancellation incurs the disclosed reschedule cancellation fee. ${remaining > 0 ? `You can reschedule ${remaining} more time if needed.` : 'This was your final self-service reschedule.'}</p>
         <p style="margin:0"><a href="${esc(nextTrackUrl)}">Open your updated secure tracking link</a></p>`,
     }),
@@ -297,7 +298,7 @@ export default async function handler(req, res) {
     subject: `Rescheduled — ${booking.ref}`,
     replyTo: ownerEmail(),
     html: `<p>Customer rescheduled <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}).</p>
-      <p><strong>Old:</strong> ${esc(oldDate)} at ${esc(oldTime)}<br/><strong>New:</strong> ${esc(date)} at ${esc(time)}</p>
+      <p><strong>Old:</strong> ${esc(oldDate)} at ${esc(oldTime)}<br/><strong>New:</strong> ${esc(formatAppointmentDate(date))} at ${esc(time)}</p>
       ${reconfirmationRequired ? `<p><strong>Owner action:</strong> ${esc(booking.assembler_name || 'The assigned Easer')} must accept the new schedule before travel. Confirm their response or reassign the job.</p>` : ''}
       ${dispatchOfferCleanupError ? '<p><strong>Dispatch action:</strong> Prior offers are technically invalid because the dispatch round changed, but their records could not be marked cancelled. Review dispatch before sending new offers.</p>' : ''}
       <p><a href="${SITE}/owner/">Open Live Ops</a></p>`,
@@ -315,7 +316,7 @@ export default async function handler(req, res) {
         subject: `Action required: job date changed — ${booking.ref}`,
         replyTo: ownerEmail(),
         html: `<p>Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')},</p>
-          <p>The customer moved booking <strong>${esc(booking.ref)}</strong> to <strong>${esc(date)}</strong> at <strong>${esc(time)}</strong>.</p>
+          <p>The customer moved booking <strong>${esc(booking.ref)}</strong> to <strong>${esc(formatAppointmentDate(date))}</strong> at <strong>${esc(time)}</strong>.</p>
           <p>Review and accept the new schedule before starting travel. Any prior offer or acceptance no longer authorizes travel for the old appointment.</p>
           <p><a href="${esc(acceptUrl)}">Review and accept the rescheduled job</a></p>`,
         meta: { bookingId: booking.id, notificationType: 'reschedule_easer_reconfirmation', recipientType: 'easer', recipientUserId: booking.assembler_id, disableDedupe: true },

@@ -85,3 +85,21 @@ export function appointmentTimestampMs(dateStr, timeStr) {
     h, m, 0, 0,
   ) + offsetMs;
 }
+
+// Appointment dates are stored as calendar dates ('2026-09-24') and were being
+// printed straight into customer and Easer emails, so a booking confirmation
+// read "Date 2026-09-24" -- a database value, in a message meant to reassure
+// someone that a stranger is coming to their home.
+//
+// One formatter, so no email invents its own. Parsed at noon UTC like every
+// other calendar date here, which keeps the weekday correct regardless of the
+// reader's timezone. Returns the raw input unchanged if it cannot be parsed:
+// a malformed date should look odd, never silently become a different day.
+export function formatAppointmentDate(dateStr) {
+  const parsed = parseIsoCalendarDate(dateStr);
+  if (!parsed) return String(dateStr || '');
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  }).format(parsed);
+}

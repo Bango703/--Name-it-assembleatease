@@ -1,4 +1,5 @@
 ﻿import Stripe from 'stripe';
+import { formatAppointmentDate } from './booking/_appt-date.js';
 import { getSupabase } from './_supabase.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from './_email.js';
 import { sendSms } from './_sms.js';
@@ -318,7 +319,7 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:110px">Customer</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(name)}</td></tr>
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Address</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(formatAddress(address))}</td></tr>
-      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(date)}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(formatAppointmentDate(date))}</td></tr>
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(time)}</td></tr>
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Payment</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${paymentStatus}</span></td></tr>
       <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Notes</td><td style="padding:10px 0;line-height:1.6">${esc(details) || 'None'}</td></tr>
@@ -347,7 +348,7 @@ export default async function handler(req, res) {
   }
 
   const sb2 = getSupabase();
-  logActivity(sb2, { bookingId, eventType: 'booking_created', actorType: 'customer', actorName: booking.ref ? 'Customer' : 'Unknown', description: `Booking created — ${paymentMethodLabel.toLowerCase()} authorized. ${booking.service} on ${booking.date}.`, metadata: { amount: booking.total_price, paymentMethodType: verifiedPaymentMethodType } });
+  logActivity(sb2, { bookingId, eventType: 'booking_created', actorType: 'customer', actorName: booking.ref ? 'Customer' : 'Unknown', description: `Booking created — ${paymentMethodLabel.toLowerCase()} authorized. ${booking.service} on ${formatAppointmentDate(booking.date)}.`, metadata: { amount: booking.total_price, paymentMethodType: verifiedPaymentMethodType } });
 
   return res.status(200).json({
     success: true,

@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { formatAppointmentDate } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
@@ -119,7 +120,7 @@ export default async function handler(req, res) {
         <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Appointment Details</p>
         <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:20px">
           <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:140px">Service</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(booking.service)}</td></tr>
-          <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(booking.date)}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(formatAppointmentDate(booking.date))}</td></tr>
           <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(booking.time)}</td></tr>
           <tr><td style="padding:10px 0;color:#71717a">Address</td><td style="padding:10px 0">${esc(formatAddress(booking.address))}</td></tr>
         </table>

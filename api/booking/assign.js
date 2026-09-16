@@ -1,4 +1,5 @@
 ﻿import { getSupabase } from '../_supabase.js';
+import { formatAppointmentDate } from './_appt-date.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
@@ -419,7 +420,7 @@ export default async function handler(req, res) {
   // itself when there is no recorded consent, so this call is always safe.
   const smsResult = await sendSms({
     recipient: assembler,
-    body: `New AssembleAtEase job: ${booking.service} on ${booking.date}${booking.time ? ' ' + booking.time : ''}. Open your dashboard to accept. Ref ${booking.ref}`,
+    body: `New AssembleAtEase job: ${booking.service} on ${formatAppointmentDate(booking.date)}${booking.time ? ' ' + booking.time : ''}. Open your dashboard to accept. Ref ${booking.ref}`,
     meta: {
       bookingId: booking.id,
       notificationType: 'assignment_confirmation',
@@ -521,7 +522,7 @@ export function buildAssignmentEmail({ firstName, service, date, time, estimated
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
         <tr><td style="padding:6px 0;color:#71717a;width:110px">Reference</td><td style="padding:6px 0;font-weight:600">${esc(ref)}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a">Service</td><td style="padding:6px 0;font-weight:600">${esc(service)}</td></tr>
-        <tr><td style="padding:6px 0;color:#71717a">Date</td><td style="padding:6px 0">${esc(date || 'TBD')}${time ? ' at ' + esc(time) : ''}</td></tr>
+        <tr><td style="padding:6px 0;color:#71717a">Date</td><td style="padding:6px 0">${esc(date ? formatAppointmentDate(date) : 'TBD')}${time ? ' at ' + esc(time) : ''}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a">Estimated earnings</td><td style="padding:6px 0;font-weight:700;color:#059669">${estimatedPayCents > 0 ? '$' + (estimatedPayCents / 100).toFixed(2) : 'Pending custom quote'}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a">Location</td><td style="padding:6px 0"><strong>${esc(offerLocation)}</strong><br/>The exact address is shown as soon as you accept. The customer's phone and email unlock ${CONTACT_RELEASE_LEAD_HOURS} hours before the appointment — until then you can reach them through the app.</td></tr>
       </table>

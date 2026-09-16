@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { formatAppointmentDate } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { esc, ownerEmail, sendEmail } from '../_email.js';
 import { rateLimit } from '../_ratelimit.js';
@@ -93,7 +94,7 @@ async function preparePayment(req, res, state) {
           email: String(booking.customer_email || '').toLowerCase(),
           appointmentDate: booking.date,
         },
-      }, { idempotencyKey: `owner-rebook-card-setup-${booking.id}-${booking.date}` });
+      }, { idempotencyKey: `owner-rebook-card-setup-${booking.id}-${formatAppointmentDate(booking.date)}` });
       if (!setupIntent.client_secret) throw new Error('SetupIntent client secret missing');
       const unlocked = await rebookPaymentStateStillUnlocked(sb, booking);
       if (!unlocked.ok) {
@@ -346,7 +347,7 @@ async function finalizeFutureCard(req, res, state) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Rebooking card saved - ${booking.ref}`,
       replyTo: booking.customer_email,
-      html: `<p><strong>${esc(booking.ref)}</strong> has a verified payment method saved.</p><p>The ${money(booking.total_price)} authorization is scheduled closer to the ${esc(booking.date)} appointment. Dispatch remains paused until authorization succeeds.</p>`,
+      html: `<p><strong>${esc(booking.ref)}</strong> has a verified payment method saved.</p><p>The ${money(booking.total_price)} authorization is scheduled closer to the ${esc(formatAppointmentDate(booking.date))} appointment. Dispatch remains paused until authorization succeeds.</p>`,
       meta: { bookingId: booking.id, notificationType: 'rebook_card_saved_owner', recipientType: 'owner' },
     }),
   ].map(promise => promise.catch(error => ({ ok: false, error: error?.message || String(error) }))));

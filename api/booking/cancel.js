@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { formatAppointmentDate } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
@@ -638,7 +639,7 @@ export default async function handler(req, res) {
       statusBg: '#f4f4f5',
       headline: `Your booking has been cancelled, ${esc(booking.customer_name)}.`,
       bodyHtml: `
-        <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your booking for <strong>${esc(booking.service)}</strong> on <strong>${esc(booking.date)}</strong> has been cancelled.</p>
+        <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your booking for <strong>${esc(booking.service)}</strong> on <strong>${esc(formatAppointmentDate(booking.date))}</strong> has been cancelled.</p>
         ${refundHtml}
         ${feeHtml}
         ${reasonHtml}

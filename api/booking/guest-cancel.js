@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { formatAppointmentDate } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
@@ -459,7 +460,7 @@ export default async function handler(req, res) {
         statusBg: '#f4f4f5',
         headline: 'Your booking has been cancelled.',
         bodyHtml: `
-          <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your booking for <strong>${esc(booking.service)}</strong> on <strong>${esc(booking.date)}</strong> has been cancelled as requested.</p>
+          <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your booking for <strong>${esc(booking.service)}</strong> on <strong>${esc(formatAppointmentDate(booking.date))}</strong> has been cancelled as requested.</p>
           ${feeHtml}
           <p style="margin:0;font-size:14px;color:#52525b">Ready to rebook? <a href="https://www.assembleatease.com/book" style="color:#00BFFF;font-weight:600">Schedule a new appointment</a> anytime.</p>`,
       }),
@@ -475,7 +476,7 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Customer Cancelled (Guest) — ${booking.ref}`,
       html: `<p>Customer <strong>${esc(booking.customer_name)}</strong> cancelled booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}) via guest track page.</p>
-<p>Job date: ${esc(booking.date)} at ${esc(booking.time)}${feeCaptured > 0 ? ' — Cancellation fee of $' + (feeCaptured / 100).toFixed(2) + ' (' + policy.feePct + '% ' + policy.tier + ' tier) charged.' : ' — No fee charged (24h+ notice).'}</p>
+<p>Job date: ${esc(formatAppointmentDate(booking.date))} at ${esc(booking.time)}${feeCaptured > 0 ? ' — Cancellation fee of $' + (feeCaptured / 100).toFixed(2) + ' (' + policy.feePct + '% ' + policy.tier + ' tier) charged.' : ' — No fee charged (24h+ notice).'}</p>
 ${proTripCutCents > 0 ? '<p style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 14px;color:#1e3a8a"><strong>Pro trip cut owed:</strong> $' + (proTripCutCents / 100).toFixed(2) + ' — a pro was committed/en route. Record a manual payout.</p>' : ''}`,
     });
   } catch (e) { console.error('Owner notify error:', e); }
@@ -502,7 +503,7 @@ ${proTripCutCents > 0 ? '<p style="background:#eff6ff;border:1px solid #bfdbfe;b
             statusBg: '#f4f4f5',
             headline: 'A job on your schedule was cancelled.',
             bodyHtml: `
-              <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">The customer cancelled <strong>${esc(booking.service)}</strong> on <strong>${esc(booking.date)}</strong>${booking.time ? ' at ' + esc(booking.time) : ''}.${wasAccepted ? ' You had accepted this one, so please take it off your plans — no need to travel.' : ''}</p>
+              <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">The customer cancelled <strong>${esc(booking.service)}</strong> on <strong>${esc(formatAppointmentDate(booking.date))}</strong>${booking.time ? ' at ' + esc(booking.time) : ''}.${wasAccepted ? ' You had accepted this one, so please take it off your plans — no need to travel.' : ''}</p>
               ${proTripCutCents > 0 ? '<p style="margin:0 0 16px;font-size:14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:12px 16px;color:#1e3a8a">Because you were already committed, a trip payment of <strong>$' + (proTripCutCents / 100).toFixed(2) + '</strong> is owed to you and will be included in your next payout.</p>' : ''}
               <p style="margin:0;font-size:14px;color:#52525b">New offers will come through as they become available.</p>`,
           }),

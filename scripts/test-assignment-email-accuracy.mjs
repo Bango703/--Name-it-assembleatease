@@ -69,4 +69,25 @@ for (const rel of ['api/booking.js', 'api/booking-confirmed.js', 'api/assembler/
     `${rel} must not pin the window — it drifts the moment the policy changes`);
 }
 
+// ── No email a customer or a pro reads may print a database date ──────────
+// "Date 2026-09-24" is a column value, in a message whose job is to reassure
+// someone that a stranger is coming to their home.
+assert.match(text, /Thursday, September 24, 2026/, 'the date must read like a date');
+assert.doesNotMatch(text, /2026-09-24/, 'no ISO date may survive into a sent email');
+
+const CUSTOMER_AND_EASER_EMAILS = [
+  'api/booking/assign.js', 'api/booking/_dispatch-internal.js', 'api/booking/confirm.js',
+  'api/booking/cancel.js', 'api/booking/customer-cancel.js', 'api/booking/guest-cancel.js',
+  'api/booking/reschedule.js', 'api/booking/rebook-payment.js', 'api/booking-confirmed.js',
+  'api/cron/reminders.js', 'api/assembler/stripe-webhook.js',
+  'api/cron/authorize-scheduled-payments.js', 'api/owner/crew.js',
+];
+for (const rel of CUSTOMER_AND_EASER_EMAILS) {
+  const src = await read(rel);
+  const raw = [...src.matchAll(/\$\{esc\((?:booking\.)?date(?: \|\| [^)]*)?\)\}/g)];
+  assert.deepEqual(raw.map(m => m[0]), [],
+    `${rel} prints a raw appointment date into an email — use formatAppointmentDate`);
+  assert.match(src, /formatAppointmentDate/, `${rel} must format its appointment dates`);
+}
+
 console.log('assignment email accuracy tests: PASS');
