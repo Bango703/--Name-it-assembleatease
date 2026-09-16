@@ -216,7 +216,7 @@ assert.ok((acceptSource.match(/isBookingPaymentReadyForDispatch\(booking\)/g) ||
 // returns 409 from the payment verdict.
 assert.ok(assignSource.includes('!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual'),
   'assignment payment truth keeps exactly its two documented exemptions');
-assert.match(assignSource, /const paymentBlock = describeDispatchPaymentBlock\(booking\);[\s\S]{0,200}?res\.status\(409\)/,
+assert.match(assignSource, /const paymentBlock = describeDispatchPaymentBlock\(booking[^)]*\);[\s\S]{0,200}?res\.status\(409\)/,
   'assignment must still fail closed on payment truth, with the server reason');
 assert.match(
   assignSource,
