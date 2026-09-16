@@ -292,7 +292,7 @@ assert.match(assignSource, /code: 'OWNER_EASER_REQUIRED'/);
 // refusal can name its cause. The exemptions and the fail-closed 409 are what
 // this guard protects, not the spelling of the condition.
 assert.match(assignSource, /!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual/);
-assert.match(assignSource, /const paymentBlock = describeDispatchPaymentBlock\(booking\);[\s\S]{0,200}?res\.status\(409\)/);
+assert.match(assignSource, /const paymentBlock = describeDispatchPaymentBlock\(booking[^)]*\);[\s\S]{0,200}?res\.status\(409\)/);
 assert.match(acceptSource, /ownerEaserLiveManual[\s\S]*isOwnerManualLiveFlow\(booking, actorProfile\)/);
 assert.match(statusSource, /ownerEaserLiveManual[\s\S]*isOwnerManualLiveFlow\(booking, profile\)/);
 

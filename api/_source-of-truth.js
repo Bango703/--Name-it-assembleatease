@@ -1,5 +1,9 @@
 // Phase 1 foundation: central business constants shared across API handlers.
 
+// The scheduled-authorization lead time is owned by _booking-window.js; the
+// refusal message quotes it rather than restating the number (Article 2).
+import { SCHEDULED_AUTHORIZATION_LEAD_DAYS } from './booking/_booking-window.js';
+
 export const BOOKING_STATUS = Object.freeze({
   PENDING: 'pending',
   CONFIRMED: 'confirmed',
@@ -49,6 +53,30 @@ export const DISPATCH_PAYMENT_STATUSES = Object.freeze([
  */
 export function describeDispatchPaymentBlock(booking = {}, {
   vercelEnv = process.env.VERCEL_ENV,
+  // OWNER MANUAL ASSIGNMENT ONLY.
+  //
+  // A booking taken more than IMMEDIATE_AUTHORIZATION_DAYS out is written
+  // 'card_saved': the customer's card is confirmed and on file, and the hold is
+  // deliberately deferred to SCHEDULED_AUTHORIZATION_LEAD_DAYS before the visit
+  // because a Stripe authorization only survives 7 days. That is a SAVED card,
+  // not a missing one — unlike 'pending', 'failed' or 'not_required'.
+  //
+  // Treating it as unpayable meant no advance booking could have an Easer
+  // attached until five days before the job. The owner could not line up supply,
+  // a pro got at most five days' notice, and the customer had already been told
+  // "a pro has already reserved the time" — which nothing in the system could
+  // make true.
+  //
+  // So the OWNER may attach a known Easer to a confirmed saved card. Automatic
+  // dispatch still may not: blasting offers to several pros for a job whose hold
+  // has not been taken is a different risk, and the invariant covering it stays
+  // exactly as it was (DISPATCH_PAYMENT_STATUSES is unchanged).
+  //
+  // Money is unaffected either way. Completion and capture are gated separately
+  // in assembler-complete.js, which refuses anything that is not authorized,
+  // deposit_paid or captured — so a 'card_saved' job can be STAFFED but never
+  // completed or charged until the scheduled authorization actually succeeds.
+  allowSavedCard = false,
 } = {}) {
   if (booking.financial_operation_key
       || booking.financial_operation_type
@@ -95,10 +123,23 @@ export function describeDispatchPaymentBlock(booking = {}, {
   }
 
   const paymentStatus = String(booking.payment_status || '');
+
+  if (paymentStatus === 'card_saved' && allowSavedCard) {
+    if (!booking.stripe_payment_method_id) {
+      return {
+        code: 'SAVED_CARD_MISSING',
+        message: "This booking is marked card saved but carries no saved payment method, so there is nothing to authorize before the visit. Reconcile it against Stripe before assigning.",
+      };
+    }
+    return null;
+  }
+
   if (!DISPATCH_PAYMENT_STATUSES.includes(paymentStatus)) {
     return {
-      code: 'CUSTOMER_PAYMENT_NOT_AUTHORIZED',
-      message: `The customer's card is "${paymentStatus || 'missing'}", not authorized. A card must be authorized (or a deposit paid) before an Easer can be assigned. This is the customer's payment, not the Easer's payout setup.`,
+      code: paymentStatus === 'card_saved' ? 'CARD_SAVED_AWAITING_AUTHORIZATION' : 'CUSTOMER_PAYMENT_NOT_AUTHORIZED',
+      message: paymentStatus === 'card_saved'
+        ? `The customer's card is saved but the hold is not taken until ${SCHEDULED_AUTHORIZATION_LEAD_DAYS} days before the appointment. Automatic dispatch waits for that hold; you can still assign an Easer to this booking yourself.`
+        : `The customer's card is "${paymentStatus || 'missing'}", not authorized. A card must be authorized (or a deposit paid) before an Easer can be assigned. This is the customer's payment, not the Easer's payout setup.`,
     };
   }
 

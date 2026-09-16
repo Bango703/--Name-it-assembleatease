@@ -231,6 +231,7 @@ export async function authorizeScheduledBooking({ sb, stripe, booking, expectedL
     };
     const recoveryResult = await sendCustomerRecovery(sb, recoveryBooking)
       .catch(error => ({ ok: false, error: error?.message || String(error) }));
+    await notifyAssignedEaserPaymentHold(sb, recoveryBooking).catch(() => {});
     await sendOwnerAlert(
       recoveryBooking,
       recoveryResult?.ok
@@ -401,6 +402,32 @@ async function sendCustomerRecovery(sb, booking) {
     return { ok: false, error: 'Secure-link rollback could not be verified.' };
   }
   return { ok: false, error: emailResult?.error || 'Customer payment email was not delivered.' };
+}
+
+// An owner may now attach an Easer to a booking whose hold is still scheduled,
+// so a failed authorization can strand a pro who has already planned their day
+// around the job. The owner alert and the customer recovery email existed; the
+// person who blocked out the time was the one nobody told (Rule 10).
+async function notifyAssignedEaserPaymentHold(sb, booking) {
+  if (!booking.assembler_id) return { ok: true, skipped: 'no_easer_assigned' };
+  let easerEmail = null;
+  try {
+    const { data } = await sb.auth.admin.getUserById(booking.assembler_id);
+    easerEmail = data?.user?.email || null;
+  } catch (lookupError) {
+    console.error('[scheduled-auth] easer lookup failed:', lookupError?.message || lookupError);
+  }
+  if (!easerEmail) return { ok: false, reason: 'easer_email_unresolved' };
+  return sendEmail({
+    to: easerEmail,
+    from: 'AssembleAtEase <booking@assembleatease.com>',
+    subject: `Job on hold — ${booking.ref}`,
+    replyTo: 'service@assembleatease.com',
+    meta: { bookingId: booking.id, notificationType: 'scheduled_payment_easer_hold', recipientType: 'easer', recipientUserId: booking.assembler_id },
+    html: `<p>Your job <strong>${esc(booking.ref)}</strong> on ${esc(booking.date)} at ${esc(booking.time)} is <strong>on hold</strong>.</p>`
+      + "<p>The customer's payment needs to be confirmed before the work can go ahead. We have contacted them and will let you know as soon as it clears.</p>"
+      + '<p><strong>Do not travel to this job until it is confirmed.</strong> Your earnings for it are unchanged; nothing about your account or payouts is affected.</p>',
+  }).catch(error => ({ ok: false, error: error?.message || String(error) }));
 }
 
 async function sendOwnerAlert(booking, message) {

@@ -129,7 +129,10 @@ export default async function handler(req, res) {
   if (!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual) {
     // Say WHICH payment and WHY. The old message named neither, and an owner
     // assigning a payout-ready pro read it as the PRO's payment setup.
-    const paymentBlock = describeDispatchPaymentBlock(booking);
+    // The OWNER is deliberately attaching a known Easer, so a confirmed saved
+    // card counts: the hold is simply scheduled for closer to the visit. The job
+    // still cannot be completed or charged until that hold succeeds.
+    const paymentBlock = describeDispatchPaymentBlock(booking, { allowSavedCard: true });
     if (paymentBlock) {
       return res.status(409).json({
         error: `Cannot assign an Easer yet. ${paymentBlock.message}`,
