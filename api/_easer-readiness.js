@@ -145,6 +145,17 @@ export async function getEaserReadiness(profile = {}, options = {}) {
     phoneAvailable: normalizeUsPhone(profile.phone) !== null,
     applicationFeeStatusKnown,
     applicationFeeSatisfied: isApplicationFeeSatisfied(profile),
+    // The assignment trigger (migration 095) refuses on these five, and this
+    // function did not read any of them. An Easer could therefore pass every
+    // API check and still be rejected by the database, with no missingItems to
+    // explain it — one rule in two places, disagreeing (Articles 1-3).
+    applicationDecisionInFlight: profile.application_decision_key != null,
+    applicationFeeRefundBlocking: (
+      profile.application_fee_refunded === true
+      || Number(profile.application_fee_refunded_cents || 0) !== 0
+      || Number(profile.application_fee_refund_pending_cents || 0) !== 0
+      || profile.application_fee_refund_review_required_at != null
+    ),
     accountClosureStatus,
     accountClosureBlocking: isEaserClosureBlocking(accountClosureStatus),
   };
@@ -193,6 +204,13 @@ export async function getEaserReadiness(profile = {}, options = {}) {
   if (!flags.tierEligible) missingItems.push('Valid Easer tier');
   if (!flags.phoneAvailable) missingItems.push('Valid 10-digit U.S. phone number on file');
   if (requireAvailability && !flags.available) missingItems.push('Online and available');
+  // Named, not generic: these are the two the database used to reject silently.
+  if (flags.applicationFeeRefundBlocking) {
+    missingItems.push('Application fee refund resolved (a refund is recorded, pending, or under review)');
+  }
+  if (flags.applicationDecisionInFlight) {
+    missingItems.push('Application decision finished (one is still in progress)');
+  }
 
   // Payout setup (Stripe Connect) does NOT block job offers. An approved Easer
   // can receive and accept jobs before finishing payout setup; the earnings are
