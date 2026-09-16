@@ -176,4 +176,15 @@ const unreadable = computeLeakageSignals({
 });
 assert.equal(unreadable.easers[0].freeCancelAfterAccept, 0, 'never infer a signal from data we could not read');
 
+// ── 12. No email may promise contact the window will not give ─────────────
+// The assignment email said "Customer contact and exact address are shown after
+// acceptance". Once contact moved to a pre-appointment window that became a
+// promise the platform could not keep for a week (Rule 10, no double-talk).
+const assignSource = await readFile(new URL('../api/booking/assign.js', import.meta.url), 'utf8');
+assert.doesNotMatch(assignSource, /Customer contact and exact address are shown after acceptance/,
+  'the assignment email must not promise contact details at acceptance');
+assert.match(assignSource, /CONTACT_RELEASE_LEAD_HOURS/,
+  'the email must quote the real release window, not restate a number');
+assert.match(assignSource, /unlock \$\{CONTACT_RELEASE_LEAD_HOURS\} hours before the appointment/);
+
 console.log('customer contact release tests: PASS');
