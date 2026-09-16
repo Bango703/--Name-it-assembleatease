@@ -210,7 +210,14 @@ assert.ok((acceptSource.match(/isBookingPaymentReadyForDispatch\(booking\)/g) ||
 // Assignment still fails closed on payment truth. The existing record-only
 // completed-booking link and the singular owner-Easer offline live flow are the
 // only exemptions; the dedicated owner-Easer regression locks the latter down.
-assert.ok(assignSource.includes('!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking)'));
+// The gate now reports WHICH payment problem it hit, so the check reads
+// describeDispatchPaymentBlock instead of the boolean. Same two exemptions,
+// same fail-closed behavior: assert the exemptions AND that a refusal still
+// returns 409 from the payment verdict.
+assert.ok(assignSource.includes('!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual'),
+  'assignment payment truth keeps exactly its two documented exemptions');
+assert.match(assignSource, /const paymentBlock = describeDispatchPaymentBlock\(booking\);[\s\S]{0,200}?res\.status\(409\)/,
+  'assignment must still fail closed on payment truth, with the server reason');
 assert.match(
   assignSource,
   /recordOnlyOwnerManualCompleted = booking\.source === 'owner_manual'[\s\S]*booking\.status === BOOKING_STATUS\.COMPLETED[\s\S]*booking\.payment_status === 'offline_recorded'/,
@@ -362,11 +369,16 @@ assert.ok(dispatchCompact.includes("bookingUpdateQuery.eq('dispatch_attempt', bo
 assert.ok(dispatchCompact.includes(".eq('payment_status', booking.payment_status)"));
 assert.ok(dispatchCompact.includes("bookingUpdateQuery.eq('total_price', booking.total_price)"));
 assert.ok(dispatchCompact.includes("bookingUpdateQuery.eq('stripe_payment_intent_id', booking.stripe_payment_intent_id)"));
-assert.ok(dispatchEndpointSource.includes('if (!isBookingPaymentReadyForDispatch(booking))'));
-assert.ok(dispatchEndpointCompact.indexOf('if (!isBookingPaymentReadyForDispatch(booking))') < dispatchEndpointCompact.indexOf('let forceQuery = sb.from'), 'force dispatch must verify payment before clearing flags/offers');
+// The endpoint now checks payment truth through the verdict that carries a
+// reason. The guarantee under test is unchanged: payment is verified, and it is
+// verified BEFORE force-dispatch clears any flag or offer.
+assert.ok(dispatchEndpointSource.includes('const dispatchPaymentBlock = describeDispatchPaymentBlock(booking);'));
+assert.ok(dispatchEndpointSource.includes('if (dispatchPaymentBlock) {'));
+assert.ok(dispatchEndpointCompact.indexOf('describeDispatchPaymentBlock(booking)') < dispatchEndpointCompact.indexOf('let forceQuery = sb.from'), 'force dispatch must verify payment before clearing flags/offers');
 assert.ok(dispatchEndpointCompact.indexOf(".eq('payment_status', booking.payment_status)") < dispatchEndpointCompact.indexOf('const { error: cancelOfferError }'), 'force dispatch must win a payment snapshot CAS before cancelling offers');
 assert.ok(dispatchControlSource.includes('const paymentHoldResponse'));
 assert.ok((dispatchControlSource.match(/isBookingPaymentReadyForDispatch\(booking\)/g) || []).length >= 3, 'unpause, dry-run, and retry must enforce payment truth');
+assert.ok(dispatchControlSource.includes('describeDispatchPaymentBlock(booking)'), 'the dispatch-control refusal must carry the server reason, not a generic hold message');
 assert.ok(dispatchControlCompact.indexOf('if (!isBookingPaymentReadyForDispatch(booking)) return paymentHoldResponse();') < dispatchControlCompact.indexOf('let retryQuery = sb.from'), 'retry must verify payment before mutating state');
 assert.ok(dispatchControlCompact.indexOf(".eq('payment_status', booking.payment_status)") < dispatchControlCompact.indexOf('const { error: retryOfferError }'), 'retry must win a payment snapshot CAS before cancelling offers');
 assert.ok(autoDispatchSource.includes(".in('payment_status', DISPATCH_PAYMENT_STATUSES)"));

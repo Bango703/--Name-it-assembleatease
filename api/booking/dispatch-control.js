@@ -2,7 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner, ownerEmail, esc } from '../_email.js';
 import { dispatchBooking } from './_dispatch-internal.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch, describeDispatchPaymentBlock } from '../_source-of-truth.js';
 
 /**
  * POST /api/booking/dispatch-control
@@ -66,10 +66,15 @@ export default async function handler(req, res) {
     code: 'DISPATCH_STATE_CHANGED',
   });
 
-  const paymentHoldResponse = () => res.status(409).json({
-    error: 'Payment is not verified for dispatch. Reconcile Stripe before resuming or sending offers.',
-    code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
-  });
+  const paymentHoldResponse = (booking = {}) => {
+    const block = describeDispatchPaymentBlock(booking)
+      || { code: 'DISPATCH_PAYMENT_NOT_VERIFIED', message: "The customer's payment could not be verified." };
+    return res.status(409).json({
+      error: `Cannot dispatch this booking yet. ${block.message}`,
+      code: block.code,
+      paymentStatus: booking.payment_status || null,
+    });
+  };
 
   // ── PAUSE ─────────────────────────────────────────────────────────────────
   if (action === 'pause') {
@@ -88,7 +93,7 @@ export default async function handler(req, res) {
 
   // ── UNPAUSE ───────────────────────────────────────────────────────────────
   if (action === 'unpause') {
-    if (!isBookingPaymentReadyForDispatch(booking)) return paymentHoldResponse();
+    if (!isBookingPaymentReadyForDispatch(booking)) return paymentHoldResponse(booking);
     const updateResult = await updateDispatchState({ dispatch_paused: false });
     if (!updateResult.ok) return dispatchStateChanged(updateResult);
     logActivity(sb, {
@@ -145,9 +150,9 @@ export default async function handler(req, res) {
 
   // ── DRY RUN ───────────────────────────────────────────────────────────────
   if (action === 'dry_run') {
-    if (!isBookingPaymentReadyForDispatch(booking)) return paymentHoldResponse();
+    if (!isBookingPaymentReadyForDispatch(booking)) return paymentHoldResponse(booking);
     const result = await dispatchBooking(bookingId, { dryRun: true });
-    if (result.code === 'DISPATCH_PAYMENT_NOT_VERIFIED') return paymentHoldResponse();
+    if (result.code === 'DISPATCH_PAYMENT_NOT_VERIFIED') return paymentHoldResponse(booking);
     return res.status(200).json({ ok: true, action: 'dry_run', ...result });
   }
 
@@ -159,7 +164,7 @@ export default async function handler(req, res) {
     if (booking.status !== BOOKING_STATUS.CONFIRMED) {
       return res.status(400).json({ error: `Booking is not confirmed (status: ${booking.status})` });
     }
-    if (!isBookingPaymentReadyForDispatch(booking)) return paymentHoldResponse();
+    if (!isBookingPaymentReadyForDispatch(booking)) return paymentHoldResponse(booking);
 
     // Cancel any open offers first
     // Reset dispatch state so the engine can re-run
@@ -199,7 +204,7 @@ export default async function handler(req, res) {
 
     // Trigger immediate dispatch
     const result = await dispatchBooking(bookingId);
-    if (result.code === 'DISPATCH_PAYMENT_NOT_VERIFIED') return paymentHoldResponse();
+    if (result.code === 'DISPATCH_PAYMENT_NOT_VERIFIED') return paymentHoldResponse(booking);
     console.log(`dispatch-control: retry for ${booking.ref}`, result);
 
     logActivity(sb, {

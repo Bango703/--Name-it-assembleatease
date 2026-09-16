@@ -4,7 +4,7 @@ import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, describeDispatchPaymentBlock, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
@@ -126,11 +126,17 @@ export default async function handler(req, res) {
   // Stripe payment gate does not apply. Everyone else, and every online booking,
   // still requires verified payment before assignment.
   const ownerEaserLiveManual = ownerManualConfirmed && ownerEaserManual;
-  if (!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking)) {
-    return res.status(409).json({
-      error: 'Payment is not verified for assignment. Reconcile Stripe before assigning an Easer.',
-      code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
-    });
+  if (!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual) {
+    // Say WHICH payment and WHY. The old message named neither, and an owner
+    // assigning a payout-ready pro read it as the PRO's payment setup.
+    const paymentBlock = describeDispatchPaymentBlock(booking);
+    if (paymentBlock) {
+      return res.status(409).json({
+        error: `Cannot assign an Easer yet. ${paymentBlock.message}`,
+        code: paymentBlock.code,
+        paymentStatus: booking.payment_status || null,
+      });
+    }
   }
   let assemblerTier = normalizeAssemblerTier(assembler.tier) || 'starter';
   if (!recordOnlyOwnerManualCompleted) {

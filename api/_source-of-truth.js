@@ -29,33 +29,107 @@ export const DISPATCH_PAYMENT_STATUSES = Object.freeze([
   'deposit_paid',
 ]);
 
-export function isBookingPaymentReadyForDispatch(booking = {}, {
+/**
+ * WHY the customer's payment is not dispatch-ready, or null when it is.
+ *
+ * This gate refuses for seven distinct reasons and for a long time said only
+ * "Payment is not verified for assignment". An owner hit it while assigning a
+ * pro whose payouts were fine, read it as the PRO's payment setup, and went
+ * looking in entirely the wrong place. Article 14: a refusal states its reason
+ * to the human who hit it. Article 16: never a generic message where a specific
+ * one exists.
+ *
+ * Every message names the CUSTOMER's payment explicitly, because the ambiguity
+ * is exactly what misdirected the owner.
+ *
+ * isBookingPaymentReadyForDispatch is defined in terms of this function, so the
+ * check and the explanation are physically incapable of disagreeing (Article 1).
+ *
+ * @returns {{code:string, message:string}|null}
+ */
+export function describeDispatchPaymentBlock(booking = {}, {
   vercelEnv = process.env.VERCEL_ENV,
 } = {}) {
   if (booking.financial_operation_key
       || booking.financial_operation_type
-      || booking.financial_operation_started_at
-      || booking.financial_reconciliation_required_at
-      || booking.cancellation_reconciliation_required_at) return false;
+      || booking.financial_operation_started_at) {
+    const op = String(booking.financial_operation_type || 'a payment operation').replace(/_/g, ' ');
+    return {
+      code: 'PAYMENT_OPERATION_IN_PROGRESS',
+      message: `A ${op} is already running on this booking. Wait for it to finish, then try again.`,
+    };
+  }
+  if (booking.financial_reconciliation_required_at) {
+    return {
+      code: 'FINANCIAL_RECONCILIATION_REQUIRED',
+      message: "This booking's payment needs reconciling against Stripe before anyone can be assigned. Open the booking and clear the reconciliation hold.",
+    };
+  }
+  if (booking.cancellation_reconciliation_required_at) {
+    return {
+      code: 'CANCELLATION_RECONCILIATION_REQUIRED',
+      message: "This booking's cancellation needs reconciling against Stripe before anyone can be assigned. Open the booking and clear the reconciliation hold.",
+    };
+  }
+
   const disputeStatus = String(booking.stripe_dispute_status || '').toLowerCase();
-  if (booking.stripe_dispute_id && !['won', 'warning_closed', 'prevented'].includes(disputeStatus)) return false;
+  if (booking.stripe_dispute_id && !['won', 'warning_closed', 'prevented'].includes(disputeStatus)) {
+    return {
+      code: 'PAYMENT_DISPUTED',
+      message: `The customer disputed this charge (dispute status: ${disputeStatus || 'open'}). Resolve the dispute in Stripe before assigning an Easer.`,
+    };
+  }
+
   const totalCents = Number(booking.total_price || 0);
   if (!Number.isInteger(totalCents) || totalCents <= 0) {
-    return totalCents === 0
+    const simulated = totalCents === 0
       && vercelEnv !== 'production'
       && booking.confirmed_by === 'owner_zero_dollar_simulation';
+    if (simulated) return null;
+    return {
+      code: 'BOOKING_TOTAL_INVALID',
+      message: totalCents === 0
+        ? 'This booking has a $0 total, so there is no customer payment to verify. Price the booking before assigning an Easer.'
+        : 'This booking has no valid total, so the customer payment cannot be verified. Price the booking before assigning an Easer.',
+    };
   }
 
   const paymentStatus = String(booking.payment_status || '');
-  if (!DISPATCH_PAYMENT_STATUSES.includes(paymentStatus)) return false;
-  if (paymentStatus === 'authorized') return !!booking.stripe_payment_intent_id;
+  if (!DISPATCH_PAYMENT_STATUSES.includes(paymentStatus)) {
+    return {
+      code: 'CUSTOMER_PAYMENT_NOT_AUTHORIZED',
+      message: `The customer's card is "${paymentStatus || 'missing'}", not authorized. A card must be authorized (or a deposit paid) before an Easer can be assigned. This is the customer's payment, not the Easer's payout setup.`,
+    };
+  }
+
+  if (paymentStatus === 'authorized') {
+    if (!booking.stripe_payment_intent_id) {
+      return {
+        code: 'PAYMENT_INTENT_MISSING',
+        message: "This booking is marked authorized but carries no Stripe PaymentIntent, so the customer's payment cannot be verified. Reconcile it against Stripe before assigning.",
+      };
+    }
+    return null;
+  }
 
   const depositCents = Number(booking.deposit_amount || 0);
-  return paymentStatus === 'deposit_paid'
-    && Number.isInteger(depositCents)
-    && depositCents > 0
-    && depositCents <= totalCents
-    && !!(booking.stripe_deposit_intent_id || booking.stripe_payment_intent_id);
+  if (!Number.isInteger(depositCents) || depositCents <= 0 || depositCents > totalCents) {
+    return {
+      code: 'DEPOSIT_AMOUNT_INVALID',
+      message: "This booking is marked deposit paid, but the deposit amount is missing or larger than the total, so the customer's payment cannot be verified.",
+    };
+  }
+  if (!booking.stripe_deposit_intent_id && !booking.stripe_payment_intent_id) {
+    return {
+      code: 'DEPOSIT_INTENT_MISSING',
+      message: "This booking is marked deposit paid but carries no Stripe intent, so the customer's payment cannot be verified. Reconcile it against Stripe before assigning.",
+    };
+  }
+  return null;
+}
+
+export function isBookingPaymentReadyForDispatch(booking = {}, options = {}) {
+  return describeDispatchPaymentBlock(booking, options) === null;
 }
 
 export const ACTIVE_BOOKING_STATUSES = Object.freeze([
