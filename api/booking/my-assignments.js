@@ -17,6 +17,7 @@ import {
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 import { loadCrew } from './_crew.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
+import { evaluateCustomerContactRelease } from './_customer-contact-release.js';
 
 const EASER_JOB_STAGES = Object.freeze(['en_route', 'arrived', 'in_progress']);
 
@@ -93,21 +94,36 @@ export function deriveOfferLocation(address) {
   return `${safeCity}, TX ${zip}`;
 }
 
-export function redactAssignmentCustomerData(bookings = []) {
+export function redactAssignmentCustomerData(bookings = [], nowMs = Date.now()) {
   return bookings.map(booking => {
-    const hasOpenReturnVisit = booking.status === BOOKING_STATUS.COMPLETED
-      && booking.return_visit_required === true;
-    const maySeeOperationalContact = Boolean(
-      booking.assembler_accepted_at
-      && (ACTIVE_BOOKING_STATUSES.includes(booking.status) || hasOpenReturnVisit)
-    );
-    if (!maySeeOperationalContact) {
+    // One verdict decides both layers, so the phone can never be visible on a
+    // job whose scope is hidden, and the two can never drift apart.
+    const release = evaluateCustomerContactRelease(booking, nowMs);
+
+    // Layer 1 — job scope. Released at acceptance: the pro cannot plan a route
+    // or understand the work without it.
+    if (!release.scopeVisible) {
       booking.customer_name = null;
-      booking.customer_phone = null;
-      booking.customer_email = null;
       booking.address = null;
       booking.details = null;
     }
+
+    // Layer 2 — direct contact channels. Held until the pre-appointment window
+    // closes the customer's free-cancellation exit. See _customer-contact-release.
+    if (!release.released) {
+      booking.customer_phone = null;
+      booking.customer_email = null;
+    }
+
+    // Article 16: a field the pro cannot see must say why and when, never just
+    // come back blank. The UI renders this verdict; it does not compute one.
+    booking._contact_release = {
+      released: release.released,
+      code: release.code,
+      releasesAt: release.releasesAt,
+      leadHours: release.leadHours,
+    };
+
     if (!ACTIVE_BOOKING_STATUSES.includes(booking.status)) booking.assignment_token = null;
     return booking;
   });

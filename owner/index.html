@@ -536,6 +536,7 @@
         <!-- Failures the platform diagnosed itself. Hidden when there are none,
              so a quiet system stays quiet and a real one is impossible to miss. -->
         <div id="ops-selfdiag" style="display:none;margin-bottom:1.25rem"></div>
+        <div id="ops-trust-signal" style="display:none;margin-bottom:1.25rem"></div>
         <div id="ops-alerts-bar" style="margin-bottom:1.25rem"></div>
 
         <!-- Summary chips -->
@@ -4863,6 +4864,47 @@ window.intelQuick = intelQuick;
     el.style.display = '';
   }
 
+  // Off-platform leakage watch.
+  //
+  // The contact window makes a pre-job side deal harder; this is how the owner
+  // finds out whether one happened anyway. The pattern is narrow: a pro accepts,
+  // then the customer cancels while cancelling is still free.
+  //
+  // Deliberately worded as a question, never an accusation. Customers cancel for
+  // ordinary reasons, and at this job volume a single cancellation means nothing
+  // — so the sample size is shown every time the rate is, and nothing is flagged
+  // below the floor the server sets.
+  function renderTrustSignals(d) {
+    var el = document.getElementById('ops-trust-signal');
+    if (!el) return;
+    var t = d && d.trustSignals;
+    if (!t || !t.easers || !t.easers.length || !t.totalFreeCancelAfterAccept) {
+      el.style.display = 'none'; el.innerHTML = ''; return;
+    }
+    var flagged = t.easers.filter(function(e) { return e.flagged; });
+    // Nothing above the floor is not a finding worth a panel.
+    if (!flagged.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+    var html = '<div style="border:1px solid #fde68a;background:#fffbeb;border-radius:10px;padding:0.9rem 1rem">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:0.5rem">'
+      + '<strong style="color:#92400e;font-size:0.85rem">Worth a look: jobs cancelled free after a pro accepted</strong>'
+      + '<span style="font-size:0.72rem;color:#b45309;white-space:nowrap">last ' + Number(t.windowDays) + ' days</span></div>';
+    flagged.forEach(function(e) {
+      html += '<div style="font-size:0.78rem;line-height:1.6;padding:0.35rem 0;border-top:1px solid #fde68a">'
+        + '<strong>' + esc(e.easerName) + '</strong> &middot; '
+        + '<span style="color:#92400e">' + e.freeCancelAfterAccept + ' of ' + e.accepted + ' accepted jobs (' + e.ratePct + '%)</span>'
+        + (e.refs && e.refs.length ? '<br><span style="font-family:monospace;font-size:0.68rem;color:var(--muted)">' + e.refs.map(esc).join(' · ') + '</span>' : '')
+        + '</div>';
+    });
+    html += '<div style="font-size:0.72rem;color:#b45309;padding-top:0.5rem;border-top:1px solid #fde68a;line-height:1.55">'
+      + 'This is a signal, not a conclusion — customers cancel for ordinary reasons. '
+      + 'Flagged at ' + Number(t.flagRatePct) + '%+ once a pro has at least ' + Number(t.minSample) + ' accepted jobs. '
+      + 'Worth asking the customer what changed before drawing any conclusion about the pro.</div>';
+    html += '</div>';
+    el.innerHTML = html;
+    el.style.display = '';
+  }
+
   function arrivalBadge(b) {
     var a = b && b._arrival;
     if (!a) return '';
@@ -7794,6 +7836,7 @@ window.intelQuick = intelQuick;
     // Failures the platform recorded about itself, above the operational alerts:
     // a broken pipe outranks a busy one. Never allowed to break the render.
     try { renderSelfDiagnosed(d); } catch (e) { /* diagnostics must not blank Live Ops */ }
+    try { renderTrustSignals(d); } catch (e) { /* diagnostics must not blank Live Ops */ }
 
     // Alert bar
     var alertsEl = document.getElementById('ops-alerts-bar');

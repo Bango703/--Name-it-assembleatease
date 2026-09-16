@@ -6,6 +6,7 @@ import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../
 import { chicagoTodayIso } from '../booking/_appt-date.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
 import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
+import { computeLeakageSignals } from '../booking/_leakage-signal.js';
 
 export function classifyRuntimeFailures(rows = [], activeAfter) {
   const activeAfterMs = new Date(activeAfter).getTime();
@@ -752,10 +753,16 @@ export default async function handler(req, res) {
   // resolved problem stops shouting.
   const selfDiagnosed = await loadSelfDiagnosedFailures(sb, new Date(now.getTime() - 72 * 3600000).toISOString());
 
+  // Trust signal, not a verdict: which pros accept a job and then see it
+  // cancelled while cancelling is still free. Read-only, and always shipped
+  // with its sample size so a small number cannot be mistaken for a finding.
+  const trustSignals = computeLeakageSignals({ bookings, easers, nowMs: now.getTime() });
+
   return res.status(200).json({
     generatedAt: now.toISOString(),
     selfDiagnosed,
     businessDate: todayStr,
+    trustSignals,
     summary: {
       // Exclude 'pending' (awaiting payment) from Active Jobs count so the
       // chip matches what's actually shown in the Active Jobs panel.
