@@ -9,6 +9,7 @@ const [
   earningsApi,
   earningsMapper,
   assignmentsApi,
+  contactReleaseModule,
   payoutApi,
   homeUi,
   jobsUi,
@@ -19,6 +20,7 @@ const [
   read('api/assembler/earnings.js'),
   read('api/assembler/_earnings.js'),
   read('api/booking/my-assignments.js'),
+  read('api/booking/_customer-contact-release.js'),
   read('api/booking/payout.js'),
   read('assembler/index.html'),
   read('assembler/my-assignments.html'),
@@ -55,7 +57,12 @@ assert.match(earningsApi, /row\.returnVisitRequired === true/);
 assert.match(payoutApi, /code: 'RETURN_VISIT_OPEN'/);
 
 assert.match(assignmentsApi, /booking\._return_visit_open/);
-assert.match(assignmentsApi, /ACTIVE_BOOKING_STATUSES\.includes\(booking\.status\) \|\| hasOpenReturnVisit/);
+// The "active status, or an open return visit" rule now lives in the module that
+// owns customer-contact release, and my-assignments delegates to it. Assert both
+// halves: that the rule still exists where it moved, AND that the assignments API
+// still routes through it — so neither side can drop the gate on its own.
+assert.match(contactReleaseModule, /!ACTIVE_BOOKING_STATUSES\.includes\(booking\.status\) && !hasOpenReturnVisit/);
+assert.match(assignmentsApi, /evaluateCustomerContactRelease\(booking, nowMs\)/);
 assert.match(jobsUi, /function isFullyCompleted\(b\)/);
 assert.match(jobsUi, /label: 'Return Visit Open'/);
 assert.match(homeUi, /APP\.privateFetch\(currentUserId, '\/api\/assembler\/earnings'/);

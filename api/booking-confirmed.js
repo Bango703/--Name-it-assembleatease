@@ -244,6 +244,9 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
       <strong style="color:#1a1a1a">Need to reschedule or cancel?</strong> Do it yourself anytime from <strong>Track or manage your booking</strong> below — no need to email us. Rescheduling is free. Cancel at least 24 hours ahead at no charge; inside 24 hours a small late-cancel fee may apply under the cancellation policy.
     </td></tr></table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
+      <strong style="color:#1a1a1a">What your booking includes.</strong> A reviewed pro, a tracked appointment, and AssembleAtEase standing behind the work &mdash; if something isn&rsquo;t right, we make it right. These protections come with booking through AssembleAtEase and don&rsquo;t apply to work arranged privately with a pro.
+    </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
       <a href="${esc(guestTrackUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Track or manage your booking</a>
     </td></tr></table>

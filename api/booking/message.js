@@ -8,6 +8,8 @@ import {
   respondWithEaserAccessError,
 } from '../_easer-access.js';
 import { customerOwnsBooking } from './_customer-booking-auth.js';
+import { evaluateCustomerContactRelease } from './_customer-contact-release.js';
+import { inspectRelayMessage } from './_relay-contact-guard.js';
 import {
   OPERATION_CASE_SEVERITIES,
   OPERATION_CASE_SOURCES,
@@ -226,7 +228,9 @@ export default async function handler(req, res) {
     if (!easerAccess.ok) return respondWithEaserAccessError(res, easerAccess);
     authenticatedUser = easerAccess.user;
     resolvedSender = 'assembler';
-    resolvedRecipient = 'owner';
+    // Default stays the owner support channel, so every existing caller keeps
+    // its behavior. Only an explicit customer target opens the relay.
+    resolvedRecipient = target === 'customer' ? 'customer' : 'owner';
   } else {
     const authenticated = await authenticateBearerUser(req);
     if (!authenticated.ok) {
@@ -258,6 +262,28 @@ export default async function handler(req, res) {
   }
   if (resolvedSender === 'owner' && target === 'assembler' && !booking.assembler_id) {
     return res.status(409).json({ error: 'No Easer is assigned to this booking' });
+  }
+
+  // ── Easer → customer relay ────────────────────────────────────────────────
+  // The pre-appointment window withholds the customer's phone and email, so a
+  // pro still needs a way to ask an access question. This is that way — and it
+  // is checked, because an unchecked relay would simply carry the phone number
+  // the window is holding back.
+  if (resolvedSender === 'assembler' && resolvedRecipient === 'customer') {
+    if (supportType) {
+      return res.status(400).json({ error: 'Support requests go to the AssembleAtEase team, not to the customer.' });
+    }
+    // Same verdict the dashboard renders — one owner for this rule.
+    const release = evaluateCustomerContactRelease(booking);
+    if (!release.scopeVisible) {
+      return res.status(409).json({
+        error: 'You can message the customer once you have accepted this job and while it is still active.',
+      });
+    }
+    const inspection = inspectRelayMessage(messageText);
+    if (!inspection.ok) {
+      return res.status(422).json({ error: inspection.error, code: inspection.code });
+    }
   }
 
   // Insert message
@@ -412,6 +438,52 @@ export default async function handler(req, res) {
           disableDedupe: true,
         },
       });
+    } else if (resolvedSender === 'assembler' && resolvedRecipient === 'customer') {
+      // Relay from the assigned pro, delivered BY the platform. The pro's own
+      // address is never exposed and replies come back to AssembleAtEase, so
+      // the conversation stays on-platform and auditable in both directions.
+      const relayFirstName = String(booking.assembler_name || '').trim().split(/\s+/)[0] || 'Your pro';
+      const relayHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
+    <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
+    <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
+  </td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
+    <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#1a1a1a">Message from ${esc(relayFirstName)}, your assigned pro</p>
+    <p style="margin:0 0 20px;font-size:13px;color:#71717a">Ref: ${esc(booking.ref)} &bull; ${esc(booking.service)}</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:16px 18px">
+      <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
+    </td></tr></table>
+    <p style="margin:20px 0 0;font-size:13px;color:#52525b">Reply to this email and we'll pass it straight to ${esc(relayFirstName)}.</p>
+  </td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
+    Your booking, guarantee, and payment protection are handled by AssembleAtEase &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
+  </td></tr></table>
+</div></body></html>`;
+      notificationResult = await sendEmail({
+        to: booking.customer_email,
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: `Message about your ${booking.service || 'booking'} — ${booking.ref}`,
+        html: relayHtml,
+        replyTo: ownerEmail(),
+        meta: {
+          bookingId: booking.id,
+          notificationType: 'easer_customer_relay',
+          recipientType: 'customer',
+          disableDedupe: true,
+        },
+      });
+      // Owner visibility (Rule 8): every relayed message is on the timeline, so
+      // the pro-to-customer channel is never an unobserved back room.
+      await logActivity(sb, {
+        bookingId: booking.id,
+        eventType: 'easer_customer_relay_sent',
+        actorType: 'easer',
+        actorName: booking.assembler_name || 'Easer',
+        description: `${relayFirstName} sent the customer a message through the platform relay`,
+        metadata: { messageId: message.id },
+      }).catch(() => {});
     } else if (resolvedSender === 'assembler') {
       // Notify owner about assembler message
       const ownerSubject = supportDefinition

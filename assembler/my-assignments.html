@@ -417,6 +417,8 @@
   var _damageInFlight = false;
   var _supportContext = null;
   var _selectedSupportType = '';
+  // True while the composer is addressed to the CUSTOMER rather than support.
+  var _relayToCustomer = false;
   var _supportRequestInFlight = false;
   var _detailReturnFocus = null;
 
@@ -581,6 +583,20 @@
     const d = new Date(str.includes('T') ? str : str + 'T12:00:00');
     if (isNaN(d)) return str;
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  // Renders the server's contact-release verdict. Never computed here: the
+  // server decides, the card only says what it decided and when it changes.
+  function contactUnlockLabel(release) {
+    if (!release || !release.releasesAt) return null;
+    const d = new Date(release.releasesAt);
+    if (isNaN(d)) return null;
+    const sameYear = d.getFullYear() === new Date().getFullYear();
+    return d.toLocaleString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric',
+      year: sameYear ? undefined : 'numeric',
+      hour: 'numeric', minute: '2-digit',
+    });
   }
 
   function formatMoneyCents(cents) {
@@ -1549,11 +1565,19 @@
       var sendButton = document.getElementById('asgn-msg-send');
       sendButton.disabled = true;
       try {
-        await postSupportMessage(body, _selectedSupportType || null);
-        input.value = '';
-        _selectedSupportType = '';
-        showSupportStatus('Message sent. Support has the job details and will follow up here.', 'success');
+        if (_relayToCustomer) {
+          await postCustomerRelay(body);
+          input.value = '';
+          showSupportStatus('Sent to the customer. Their reply comes back here.', 'success');
+        } else {
+          await postSupportMessage(body, _selectedSupportType || null);
+          input.value = '';
+          _selectedSupportType = '';
+          showSupportStatus('Message sent. Support has the job details and will follow up here.', 'success');
+        }
       } catch (error) {
+        // Show the server's own reason — the relay explains exactly what it
+        // rejected, and replacing that with something generic hides the rule.
         showSupportStatus(error.message || 'Message could not be sent. Please try again.', 'error');
       } finally {
         sendButton.disabled = false;
@@ -1625,6 +1649,7 @@
   function renderSupportWorkflow(type) {
     if (!_supportContext) return;
     _selectedSupportType = type || '';
+    _relayToCustomer = false;
     showSupportStatus('', 'info');
     var workflow = document.getElementById('support-workflow');
     var conversation = document.getElementById('support-conversation');
@@ -1760,6 +1785,18 @@
     return data;
   }
 
+  async function postCustomerRelay(body) {
+    var response = await fetch('/api/booking/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+      body: JSON.stringify({ bookingId: selectedBookingId, body: body, sender: 'assembler', target: 'customer' }),
+    });
+    var data = await response.json().catch(function() { return {}; });
+    if (!response.ok || data.error) throw new Error(data.error || 'Message could not be sent.');
+    await refreshThread(selectedBookingId);
+    return data;
+  }
+
   async function submitStructuredSupport(button, message, supportType, successMessage) {
     if (_supportRequestInFlight) return;
     _supportRequestInFlight = true;
@@ -1846,17 +1883,37 @@
     const payoutPill = !isCompleted && payEst
       ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.35rem 0.9rem;font-size:0.95rem;margin-bottom:0.75rem"><strong style="color:var(--pro-teal)">' + payEst + '</strong><span style="color:var(--pro-muted);font-size:0.72rem">' + (accepted ? 'Your payout' : 'Estimated payout') + '</span></div>'
       : '';
-    const customerContact = (accepted && !isCompleted && (b.customer_name || b.customer_phone))
-      ? '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:1rem;padding:0.7rem 0.85rem;border:1px solid var(--pro-border);border-radius:12px;background:#fff">'
-        + '<div style="min-width:0">'
-          + '<div style="font-size:0.66rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--pro-muted)">Customer</div>'
-          + '<div style="font-size:0.95rem;font-weight:700;color:var(--pro-text);overflow-wrap:anywhere">' + esc(b.customer_name || '—') + '</div>'
-          + (b.customer_email ? '<div style="font-size:0.72rem;color:var(--pro-muted);overflow-wrap:anywhere;margin-top:1px">' + esc(b.customer_email) + '</div>' : '')
+    // Phone and email are released by the server shortly before the appointment.
+    // Until then the card must say so plainly and offer the working channel —
+    // a blank field with no explanation is an Article 16 defect.
+    const contactHeld = accepted && !isCompleted
+      && b._contact_release && b._contact_release.released === false
+      && b._contact_release.code === 'pending_lead_time';
+    const unlockAt = contactHeld ? contactUnlockLabel(b._contact_release) : null;
+    const contactActions = b.customer_phone
+      ? '<div style="display:flex;gap:0.4rem;flex-shrink:0">'
+          + '<a href="tel:' + esc(b.customer_phone) + '" style="display:inline-flex;align-items:center;background:var(--pro-teal);color:#fff;font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;text-decoration:none">Call</a>'
+          + '<a href="sms:' + esc(b.customer_phone) + '" style="display:inline-flex;align-items:center;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;text-decoration:none;border:1px solid rgba(0,191,255,0.4)">Text</a>'
         + '</div>'
-        + (b.customer_phone ? '<div style="display:flex;gap:0.4rem;flex-shrink:0">'
-            + '<a href="tel:' + esc(b.customer_phone) + '" style="display:inline-flex;align-items:center;background:var(--pro-teal);color:#fff;font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;text-decoration:none">Call</a>'
-            + '<a href="sms:' + esc(b.customer_phone) + '" style="display:inline-flex;align-items:center;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;text-decoration:none;border:1px solid rgba(0,191,255,0.4)">Text</a>'
-          + '</div>' : '')
+      : (contactHeld
+          ? '<button type="button" class="asgn-contact-relay" data-booking-id="' + esc(b.id) + '" style="display:inline-flex;align-items:center;flex-shrink:0;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;border:1px solid rgba(0,191,255,0.4);cursor:pointer;font-family:inherit">Message</button>'
+          : '');
+    const customerContact = (accepted && !isCompleted && (b.customer_name || b.customer_phone || contactHeld))
+      ? '<div style="margin-bottom:1rem;padding:0.7rem 0.85rem;border:1px solid var(--pro-border);border-radius:12px;background:#fff">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem">'
+          + '<div style="min-width:0">'
+            + '<div style="font-size:0.66rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--pro-muted)">Customer</div>'
+            + '<div style="font-size:0.95rem;font-weight:700;color:var(--pro-text);overflow-wrap:anywhere">' + esc(b.customer_name || '—') + '</div>'
+            + (b.customer_email ? '<div style="font-size:0.72rem;color:var(--pro-muted);overflow-wrap:anywhere;margin-top:1px">' + esc(b.customer_email) + '</div>' : '')
+          + '</div>'
+          + contactActions
+        + '</div>'
+        + (contactHeld
+            ? '<div style="display:flex;align-items:flex-start;gap:7px;margin-top:0.6rem;padding-top:0.6rem;border-top:1px solid var(--pro-border);font-size:0.72rem;color:var(--pro-muted);line-height:1.5">'
+              + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+              + '<span>Direct phone and email unlock <strong style="color:var(--pro-text)">' + esc(unlockAt || 'closer to the appointment') + '</strong>. Need something before then? Use <strong style="color:var(--pro-text)">Message</strong> — it reaches the customer right away.</span>'
+            + '</div>'
+            : '')
         + '</div>'
       : '';
 
@@ -2210,6 +2267,23 @@
         copyBookingReference(this.getAttribute('data-booking-ref'), this);
       });
     }
+
+    // "Message" on a job whose phone has not unlocked yet. Opens the same
+    // composer addressed to the customer instead of to support.
+    var relayButton = document.querySelector('#asgn-modal-body .asgn-contact-relay');
+    if (relayButton) {
+      relayButton.addEventListener('click', function() {
+        _relayToCustomer = true;
+        _selectedSupportType = '';
+        setSupportPanelOpen(true);
+        showSupportStatus('Your message goes to the customer through AssembleAtEase. Contact details and payment arrangements stay on the platform.', 'info');
+        showSupportConversation('Ask the customer about access, parking, or the job');
+      });
+    }
+
+    // Every modal open starts addressed to support until the Easer chooses
+    // otherwise, so a stale relay mode can never misroute the next message.
+    _relayToCustomer = false;
 
     openAssignmentModal();
     // Keep exceptions subordinate to the normal job flow. Existing messages
