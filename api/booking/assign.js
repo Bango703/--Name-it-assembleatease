@@ -7,6 +7,7 @@ import { logActivity } from './_activity.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, describeDispatchPaymentBlock, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { describeAssignmentGuardFailure } from './_assignment-guard-reasons.js';
+import { CONTACT_RELEASE_LEAD_HOURS } from './_customer-contact-release.js';
 import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
@@ -520,7 +521,7 @@ export function buildAssignmentEmail({ firstName, service, date, time, estimated
         <tr><td style="padding:6px 0;color:#71717a">Service</td><td style="padding:6px 0;font-weight:600">${esc(service)}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a">Date</td><td style="padding:6px 0">${esc(date || 'TBD')}${time ? ' at ' + esc(time) : ''}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a">Estimated earnings</td><td style="padding:6px 0;font-weight:700;color:#059669">${estimatedPayCents > 0 ? '$' + (estimatedPayCents / 100).toFixed(2) : 'Pending custom quote'}</td></tr>
-        <tr><td style="padding:6px 0;color:#71717a">Location</td><td style="padding:6px 0">Customer contact and exact address are shown after acceptance.</td></tr>
+        <tr><td style="padding:6px 0;color:#71717a">Location</td><td style="padding:6px 0">The exact address is shown as soon as you accept. The customer's phone and email unlock ${CONTACT_RELEASE_LEAD_HOURS} hours before the appointment — until then you can reach them through the app.</td></tr>
       </table>
     </td></tr></table>
     <div style="text-align:center;margin-bottom:16px">
