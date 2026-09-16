@@ -474,9 +474,16 @@ if (!robots.includes('Allow: /assembler/apply') || !robots.includes('Disallow: /
   throw new Error('robots.txt should allow /assembler/apply while blocking private /assembler/ routes');
 }
 
+// A leading underscore means internal, the same way it does for every _module.js
+// in api/. Scratch harnesses and partials live at the repo root too, and they are
+// not customer-facing pages: holding one to the meta-description/canonical/og
+// contract fails the whole gate over a file no visitor can reach. Anything that
+// IS public and underscore-named would still be caught here via sitemapFiles.
+const isInternalHtml = (name) => name.startsWith('_');
+
 const publicHtmlFiles = [
-  ...readdirSync('.').filter((name) => name.endsWith('.html')),
-  ...readdirSync('blog').filter((name) => name.endsWith('.html')).map((name) => `blog/${name}`),
+  ...readdirSync('.').filter((name) => name.endsWith('.html') && !isInternalHtml(name)),
+  ...readdirSync('blog').filter((name) => name.endsWith('.html') && !isInternalHtml(name)).map((name) => `blog/${name}`),
   ...sitemapFiles,
 ];
 const uniquePublicHtmlFiles = [...new Set(publicHtmlFiles)];
