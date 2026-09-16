@@ -191,6 +191,7 @@ const readyProfile = {
   tier: 'starter',
   is_available: true,
   phone: '+1 737 555 0100',
+  sms_consent_at: '2026-07-12T12:00:00.000Z',
 };
 const manualReady = await getEaserReadiness(readyProfile, { connectRequired: false });
 assert.equal(manualReady.isReady, true, 'Manual payout launch must not require Stripe Connect');

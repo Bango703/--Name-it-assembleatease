@@ -154,6 +154,20 @@ assert.match(ownerReadiness, /smsEligibility\(profile\)/,
 assert.match(ownerReadiness, /jobTexts: jobTextStatus\(profile\)/);
 assert.match(ownerReadiness, /replied STOP/, 'The owner must see WHY someone is unreachable');
 
+// Job offers require texting to be enabled, and the owner roster must show the
+// same server-derived state rather than relying on a phone number alone.
+const readinessSource = await read('api/_easer-readiness.js');
+assert.match(readinessSource, /jobTextsEnabled: Boolean\(/);
+assert.match(readinessSource, /missingItems\.push\('Job texts enabled'\)/);
+const ownerPage = await read('owner/index.html');
+assert.match(ownerPage, /SMS Job Offers/);
+assert.match(ownerPage, /data-send-sms-optin/);
+assert.match(ownerPage, /key: 'sms_job_texts'/);
+const ownerAnnouncement = await read('api/owner/announcement-adoption.js');
+assert.match(ownerAnnouncement, /key === 'sms_job_texts'/);
+assert.match(ownerAnnouncement, /sms_consent_at/);
+assert.match(ownerAnnouncement, /sms_opted_out_at/);
+
 
 // --------------------------------------------- applying enrols the applicant --
 // Job dispatch happens by text, so it is no longer an optional box almost nobody

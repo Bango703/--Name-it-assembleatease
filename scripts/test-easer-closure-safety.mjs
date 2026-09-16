@@ -17,6 +17,7 @@ const readyProfile = {
   application_status: 'approved',
   tier: 'starter',
   phone: '512-555-0100',
+  sms_consent_at: '2026-07-13T12:00:00.000Z',
   is_available: true,
   identity_verified: true,
   contractor_agreement_signed_at: '2026-07-13T12:00:00.000Z',

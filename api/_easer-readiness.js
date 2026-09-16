@@ -143,6 +143,11 @@ export async function getEaserReadiness(profile = {}, options = {}) {
     tierEligible: ACTIVE_EASER_TIERS.includes(tier),
     available: profile.is_available === true,
     phoneAvailable: normalizeUsPhone(profile.phone) !== null,
+    jobTextsEnabled: Boolean(
+      normalizeUsPhone(profile.phone)
+      && profile.sms_consent_at
+      && !profile.sms_opted_out_at
+    ),
     applicationFeeStatusKnown,
     applicationFeeSatisfied: isApplicationFeeSatisfied(profile),
     // The assignment trigger (migration 095) refuses on these five, and this
@@ -203,6 +208,7 @@ export async function getEaserReadiness(profile = {}, options = {}) {
   if (!flags.ownerApproved) missingItems.push('Owner approved');
   if (!flags.tierEligible) missingItems.push('Valid Easer tier');
   if (!flags.phoneAvailable) missingItems.push('Valid 10-digit U.S. phone number on file');
+  if (!flags.jobTextsEnabled) missingItems.push('Job texts enabled');
   if (requireAvailability && !flags.available) missingItems.push('Online and available');
   // Named, not generic: these are the two the database used to reject silently.
   if (flags.applicationFeeRefundBlocking) {

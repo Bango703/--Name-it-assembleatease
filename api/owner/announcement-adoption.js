@@ -1,6 +1,11 @@
 import { getSupabase } from '../_supabase.js';
-import { verifyOwner } from '../_email.js';
+import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { loadActiveAnnouncements, ruleFor } from '../_announcements.js';
+
+function actionUrl(announcement) {
+  const path = String(announcement?.action_url || '/assembler/profile');
+  return path.startsWith('http') ? path : `https://www.assembleatease.com${path}`;
+}
 
 // Owner view of Easer required-action campaigns (e.g. payout setup):
 //   GET  → adoption stats ("X of Y done") + pending Easers with reminder state.
@@ -14,8 +19,28 @@ export default async function handler(req, res) {
     const key = String(req.body?.key || '').trim();
     const easerId = String(req.body?.easerId || '').trim();
     if (!key || !easerId) return res.status(400).json({ error: 'key and easerId are required' });
-    const { data: ann, error: annErr } = await sb.from('easer_announcements').select('id').eq('key', key).maybeSingle();
+    const { data: ann, error: annErr } = await sb.from('easer_announcements').select('*').eq('key', key).maybeSingle();
     if (annErr || !ann) return res.status(404).json({ error: 'Announcement not found' });
+    if (key === 'sms_job_texts') {
+      const { data: easer, error: easerErr } = await sb.from('profiles')
+        .select('id, full_name, email, sms_consent_at, sms_opted_out_at, status, application_status')
+        .eq('id', easerId).eq('role', 'assembler').maybeSingle();
+      if (easerErr || !easer) return res.status(404).json({ error: 'Easer not found' });
+      if (easer.sms_opted_out_at) return res.status(409).json({ error: 'This Easer opted out of text messages. Do not re-contact them for SMS consent.' });
+      if (easer.sms_consent_at) return res.status(409).json({ error: 'This Easer already has job texts enabled.' });
+      if (!easer.email) return res.status(409).json({ error: 'This Easer has no email address for the opt-in instructions.' });
+      const firstName = String(easer.full_name || 'Easer').split(/\s+/)[0];
+      const emailResult = await sendEmail({
+        to: easer.email,
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: 'Turn on AssembleAtEase job texts',
+        replyTo: ownerEmail(),
+        html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#0a1628"><h2 style="color:#0a1628">Turn on job texts, ${esc(firstName)}</h2><p style="font-size:15px;line-height:1.6;color:#334155">Job offers and arrival reminders are sent by text. Open your profile and turn on job texts so you can receive new offers.</p><p style="margin:22px 0"><a href="${esc(actionUrl(ann))}" style="display:inline-block;background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:12px 22px;border-radius:8px">Turn on job texts</a></p><p style="font-size:12px;color:#64748b">Message and data rates may apply. Reply STOP to any text to turn messages off.</p></div>`,
+        meta: { notificationType: 'easer_required_action_sms_job_texts', recipientType: 'easer', recipientUserId: easer.id, disableDedupe: true },
+      });
+      if (!emailResult?.ok || emailResult?.suppressed) return res.status(503).json({ error: 'The opt-in email could not be sent.' });
+      return res.status(200).json({ ok: true, message: 'Opt-in email sent.' });
+    }
     const { error: upErr } = await sb.from('easer_announcement_deliveries')
       .update({ last_reminded_at: null, reminder_count: 0, updated_at: new Date().toISOString() })
       .eq('announcement_id', ann.id)

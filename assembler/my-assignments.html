@@ -382,6 +382,7 @@
         <div id="support-status" role="status" aria-live="polite" style="display:none;font-size:0.76rem;line-height:1.5;margin:0.65rem 0"></div>
         <div id="support-conversation" style="display:none">
           <div class="msg-thread" id="asgn-msg-thread" style="display:none"></div>
+          <div id="asgn-customer-photos" style="display:none;margin:0 0 .75rem;padding:.7rem 0;border-top:1px solid var(--pro-border);font-size:.76rem;color:var(--pro-muted)"></div>
           <div class="msg-input-row">
             <textarea id="asgn-msg-input" rows="2" maxlength="2000" placeholder="Add details for support"></textarea>
             <button type="button" class="btn btn-teal" id="asgn-msg-send" aria-label="Send message to support" style="min-width:60px;border-radius:10px">
@@ -1617,6 +1618,25 @@
       thread.style.display = 'block';
       thread.innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Could not load messages.</div>';
     }
+    loadCustomerPhotosForEaser(bId);
+  }
+
+  async function loadCustomerPhotosForEaser(bId) {
+    var panel = document.getElementById('asgn-customer-photos');
+    if (!panel || !bId) return;
+    try {
+      var response = await fetch('/api/booking/customer-photos?bookingId=' + encodeURIComponent(bId), { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+      var data = await response.json();
+      if (!response.ok || !Array.isArray(data.photos) || !data.photos.length) { panel.style.display = 'none'; return; }
+      panel.textContent = '';
+      var title = document.createElement('div'); title.textContent = 'Customer photos'; title.style.cssText = 'font-weight:700;margin-bottom:.45rem;color:var(--pro-text)'; panel.appendChild(title);
+      var grid = document.createElement('div'); grid.style.cssText = 'display:flex;gap:.45rem;flex-wrap:wrap';
+      data.photos.forEach(function(photo) {
+        if (!photo.signed_url) return;
+        var image = document.createElement('img'); image.src = photo.signed_url; image.alt = 'Private customer photo'; image.loading = 'lazy'; image.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:7px;border:1px solid var(--pro-border-md);cursor:pointer'; image.onclick = function() { window.open(photo.signed_url, '_blank', 'noopener'); }; grid.appendChild(image);
+      });
+      panel.appendChild(grid); panel.style.display = '';
+    } catch (_) { panel.style.display = 'none'; }
   }
 
   function setSupportPanelOpen(open) {
