@@ -281,7 +281,12 @@ for (const routeSource of [assignSource, acceptSource]) {
   assert.match(routeSource, /is\('financial_operation_type', null\)/);
   assert.match(routeSource, /is\('financial_operation_started_at', null\)/);
 }
-assert.match(assignSource, /EASER_ASSIGNMENT_READINESS_CHANGED/);
+// The database guard refuses for ten different reasons and raised all of them
+// as one catch-all code, which reported a customer-payment hold as an Easer
+// readiness change. The guarantee under test is that a rejected assignment
+// still fails closed with a 409 and a reason the owner can act on.
+assert.match(assignSource, /const reason = describeAssignmentGuardFailure\(updateErr\);/);
+assert.match(assignSource, /return res\.status\(409\)\.json\(\{[\s\S]{0,240}?code: reason\.code,/);
 // Assert the FIELDS, not their order in one string. This matched the literal
 // projection and broke the moment SMS consent columns were added between
 // `phone` and `status` — a column addition is not a regression, and a test

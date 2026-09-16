@@ -6,6 +6,7 @@ import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, describeDispatchPaymentBlock, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
+import { describeAssignmentGuardFailure } from './_assignment-guard-reasons.js';
 import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
@@ -285,14 +286,23 @@ export default async function handler(req, res) {
   if (updateErr) {
     console.error('Assign booking error:', updateErr);
     const guardConflict = ['23503', '23514', '40001'].includes(updateErr.code)
-      || /Easer|assignment|readiness|eligible|closure|available/i.test(updateErr.message || '');
-    return res.status(guardConflict ? 409 : 500).json({
-      error: guardConflict
-        ? (recordOnlyOwnerManualCompleted
+      || /Easer|assignment|readiness|eligible|closure|available|payment/i.test(updateErr.message || '');
+    if (guardConflict) {
+      // The database guard refuses for ten different reasons and raises all of
+      // them as 23514. Reporting one sentence for all ten told an owner their
+      // pro's readiness had changed when the real cause was the customer's
+      // scheduled card hold (Article 16).
+      const reason = describeAssignmentGuardFailure(updateErr);
+      return res.status(409).json({
+        error: recordOnlyOwnerManualCompleted && !reason.matched
           ? 'The completed owner booking changed before linking. Refresh and try again.'
-          : 'The booking or Easer readiness changed before assignment. Refresh and try again.')
-        : 'Failed to assign booking',
-      code: guardConflict ? 'EASER_ASSIGNMENT_READINESS_CHANGED' : 'BOOKING_ASSIGNMENT_FAILED',
+          : reason.message,
+        code: reason.code,
+      });
+    }
+    return res.status(500).json({
+      error: 'Failed to assign booking',
+      code: 'BOOKING_ASSIGNMENT_FAILED',
     });
   }
   if (!assignedRows?.length) {
