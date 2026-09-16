@@ -1,4 +1,5 @@
 ﻿import { getSupabase } from '../_supabase.js';
+import { formatAppointmentDate } from './_appt-date.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
@@ -501,7 +502,7 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:16px"><tr><td style="padding:16px 18px">
       <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
     </td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a">Service: ${esc(booking.service)} &bull; Customer: ${esc(booking.customer_name)} &bull; Appointment: ${esc(booking.date || '')} ${esc(booking.time || '')} &bull; Status: ${esc(booking.status || '')}</p>
+    <p style="margin:0;font-size:13px;color:#71717a">Service: ${esc(booking.service)} &bull; Customer: ${esc(booking.customer_name)} &bull; Appointment: ${esc(formatAppointmentDate(booking.date))} ${esc(booking.time || '')} &bull; Status: ${esc(booking.status || '')}</p>
   </td></tr></table>
 </div></body></html>`,
         replyTo: ownerEmail(),

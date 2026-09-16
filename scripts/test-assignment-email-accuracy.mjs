@@ -50,7 +50,9 @@ assert.equal((html.match(/\$\{/g) || []).length, 0, 'no unrendered placeholder m
 const text = strip(html);
 assert.match(text, /Spring, TX 77389/, 'the city must be in the email');
 assert.doesNotMatch(text, /BURGESS BEND/, 'the street must not be');
-assert.match(text, new RegExp(`unlock ${CONTACT_RELEASE_LEAD_HOURS} hours before the job`),
+assert.doesNotMatch(text, /phone and email|email unlock/i,
+  'the email must not promise the customer email -- an Easer never receives it');
+assert.match(text, new RegExp(`phone number unlocks ${CONTACT_RELEASE_LEAD_HOURS} hours before the job`),
   'contact timing must match the real release window');
 assert.doesNotMatch(text, /Customer contact and exact address are shown after acceptance/,
   'the sentence that promised contact at acceptance must not come back');
@@ -82,6 +84,37 @@ const CUSTOMER_AND_EASER_EMAILS = [
   'api/cron/reminders.js', 'api/assembler/stripe-webhook.js',
   'api/cron/authorize-scheduled-payments.js', 'api/owner/crew.js',
 ];
+// The list above was a list, and a list is how dates were missed: a template
+// that printed `sDate`, `b.date` or `updates.date` sat outside it and kept
+// showing 2026-09-24 in real inboxes, including an email subject line. So scan
+// every API module for an appointment date printed without the formatter.
+const { readdirSync, statSync } = await import('node:fs');
+const { join, relative, sep } = await import('node:path');
+const { fileURLToPath } = await import('node:url');
+function walk(dir) {
+  const out = [];
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) { if (name !== 'migrations') out.push(...walk(full)); }
+    else if (name.endsWith('.js')) out.push(full);
+  }
+  return out;
+}
+// A multi-booking owner list keeps a sortable ISO column on purpose.
+const ISO_ALLOWED = new Set(['api/cron/reminders.js']);
+const repoRoot = fileURLToPath(new URL('../', import.meta.url));
+const rawDate = /esc\((?:b|booking|row|job)\.date\b|esc\(date\)|esc\(updates\.date/;
+const offenders = [];
+for (const file of walk(join(repoRoot, 'api'))) {
+  const rel = relative(repoRoot, file).split(sep).join('/');
+  if (ISO_ALLOWED.has(rel)) continue;
+  const src = (await readFile(file, 'utf8')).split('\n');
+  src.forEach((line, i) => {
+    if (rawDate.test(line) && !line.includes('formatAppointmentDate')) offenders.push(`${rel}:${i + 1}`);
+  });
+}
+assert.deepEqual(offenders, [], 'appointment dates printed without formatAppointmentDate');
+
 for (const rel of CUSTOMER_AND_EASER_EMAILS) {
   const src = await read(rel);
   const raw = [...src.matchAll(/\$\{esc\((?:booking\.)?date(?: \|\| [^)]*)?\)\}/g)];

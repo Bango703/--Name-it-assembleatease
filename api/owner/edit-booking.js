@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
-import { appointmentTimestampMs } from '../booking/_appt-date.js';
+import { appointmentTimestampMs, formatAppointmentDate } from '../booking/_appt-date.js';
 import { validateBookingWindowDate } from '../booking/_booking-window.js';
 
 const SITE = process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com';
@@ -232,7 +232,7 @@ export default async function handler(req, res) {
             <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Your Quote</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:20px">
               <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:140px">Service</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(booking.service)}</td></tr>
-              <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(booking.date || 'TBD')}</td></tr>
+              <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(booking.date ? formatAppointmentDate(booking.date) : 'TBD')}</td></tr>
               <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Address</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">${esc(booking.address ? formatAddress(booking.address) : 'TBD')}</td></tr>
               <tr><td style="padding:10px 0;color:#71717a">Quote Total</td><td style="padding:10px 0;font-weight:800;font-size:18px;color:#065f46">$${esc(quoteDollars)}</td></tr>
             </table>
@@ -250,7 +250,7 @@ export default async function handler(req, res) {
         if (!customerResult?.ok) notificationFailures.push({ recipient: 'customer', error: customerResult?.error || 'Delivery failed' });
       } else {
         const changed = [];
-        if (date && date !== booking.date) changed.push('Date updated to <strong>' + esc(date) + '</strong>');
+        if (date && date !== booking.date) changed.push('Date updated to <strong>' + esc(formatAppointmentDate(date)) + '</strong>');
         if (time && time !== booking.time) changed.push('Time updated to <strong>' + esc(time) + '</strong>');
         if (address && address !== booking.address) changed.push('Address updated to <strong>' + esc(formatAddress(address)) + '</strong>');
         if (service && service !== booking.service) changed.push('Service updated to <strong>' + esc(service) + '</strong>');
@@ -304,7 +304,7 @@ export default async function handler(req, res) {
         subject: `Action required: job schedule changed - ${booking.ref}`,
         replyTo: ownerEmail(),
         html: `<p>Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')},</p>
-          <p>Booking <strong>${esc(booking.ref)}</strong> is now scheduled for <strong>${esc(updates.date || booking.date)}</strong> at <strong>${esc(updates.time || booking.time)}</strong>.</p>
+          <p>Booking <strong>${esc(booking.ref)}</strong> is now scheduled for <strong>${esc(formatAppointmentDate(updates.date || booking.date))}</strong> at <strong>${esc(updates.time || booking.time)}</strong>.</p>
           <p>Review the updated schedule and accept it before starting travel.</p>
           <p><a href="${esc(acceptUrl)}">Review and accept the updated job</a></p>`,
         meta: { bookingId: booking.id, notificationType: 'owner_edit_easer_reconfirmation', recipientType: 'easer', recipientUserId: booking.assembler_id, disableDedupe: true },

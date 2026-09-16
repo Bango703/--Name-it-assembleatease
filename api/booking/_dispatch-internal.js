@@ -1,5 +1,5 @@
 ﻿import { randomUUID } from 'crypto';
-import { formatAppointmentDate } from './_appt-date.js';
+import { formatAppointmentDate, formatAppointmentDateShort, formatSlotShort } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc, ownerEmail } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
@@ -439,7 +439,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     // is accepted in the app.
     const smsResult = await sendSms({
       recipient: easer,
-      body: `New AssembleAtEase job: ${booking.service || 'Service'}${booking.date ? ' ' + booking.date : ''}${booking.time ? ' at ' + booking.time : ''}. ${smsPay}Open the app to accept. Ref ${booking.ref}`,
+      body: `New AssembleAtEase job: ${booking.service || 'Service'}${booking.date ? ' ' + formatAppointmentDateShort(booking.date) : ''}${booking.time ? ' at ' + formatSlotShort(booking.time) : ''}. ${smsPay}Open the app to accept. Ref ${booking.ref}`,
       meta: {
         bookingId,
         notificationType: 'dispatch_offer',

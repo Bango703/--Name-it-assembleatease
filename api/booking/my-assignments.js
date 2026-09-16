@@ -162,11 +162,15 @@ export function redactAssignmentCustomerData(bookings = [], nowMs = Date.now()) 
       booking.details = null;
     }
 
-    // Layer 2 — direct contact channels. Held until the pre-appointment window
-    // closes the customer's free-cancellation exit. See _customer-contact-release.
+    // The customer's email never reaches an Easer. Nothing an Easer does needs
+    // it -- messages go through the in-app relay -- so it is not selected above,
+    // and it is cleared here too in case any caller passes a full booking row.
+    booking.customer_email = null;
+
+    // Layer 2 — the phone. Held until the pre-appointment window closes the
+    // customer's free-cancellation exit. See _customer-contact-release.
     if (!release.released) {
       booking.customer_phone = null;
-      booking.customer_email = null;
     }
 
     // Article 16: a field the pro cannot see must say why and when, never just
@@ -235,7 +239,7 @@ export default async function handler(req, res) {
   // ── 1. Bookings assigned to this Easer ──────────────────────────────────
   let query = sb
     .from('bookings')
-    .select('id, ref, source, service, customer_name, customer_phone, customer_email, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, easer_bonus_cents, easer_bonus_reason, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, expected_bank_arrival_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, same_day_fee_cents, same_day_easer_bonus_cents');
+    .select('id, ref, source, service, customer_name, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, easer_bonus_cents, easer_bonus_reason, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, expected_bank_arrival_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, same_day_fee_cents, same_day_easer_bonus_cents');
 
   query = crewBookingIds.length
     ? query.or(`assembler_id.eq.${user.id},id.in.(${crewBookingIds.join(',')})`)

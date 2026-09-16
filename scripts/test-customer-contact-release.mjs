@@ -92,7 +92,7 @@ const [held, live] = redactAssignmentCustomerData(
   APPT - 120 * HOUR,
 );
 assert.equal(held.customer_phone, null, 'server must not transmit the phone before the window');
-assert.equal(held.customer_email, null, 'server must not transmit the email before the window');
+assert.equal(held.customer_email, null, 'the customer email never reaches an Easer');
 assert.equal(held.customer_name, 'Dana R', 'name stays — it is not a contact channel');
 assert.equal(held.address, '1 Real St, Austin, TX 78701', 'address stays — the pro plans a route with it');
 assert.equal(held.details, 'Two dressers');
@@ -102,7 +102,9 @@ assert.equal(live._contact_release.leadHours, CONTACT_RELEASE_LEAD_HOURS);
 
 const [released] = redactAssignmentCustomerData([accepted()], APPT - 2 * HOUR);
 assert.equal(released.customer_phone, '512-555-0100');
-assert.equal(released.customer_email, 'dana@example.com');
+// The phone unlocks; the email never does. An Easer has no use for it --
+// messages go through the in-app relay -- so it is not sent at all.
+assert.equal(released.customer_email, null, 'the customer email never reaches an Easer, even after the phone unlocks');
 
 // ── 10. The UI must render the verdict, never recompute it (Article 4) ─────
 const ui = await readFile(new URL('../assembler/my-assignments.html', import.meta.url), 'utf8');
@@ -185,6 +187,6 @@ assert.doesNotMatch(assignSource, /Customer contact and exact address are shown 
   'the assignment email must not promise contact details at acceptance');
 assert.match(assignSource, /CONTACT_RELEASE_LEAD_HOURS/,
   'the email must quote the real release window, not restate a number');
-assert.match(assignSource, /unlock \$\{CONTACT_RELEASE_LEAD_HOURS\} hours before the job/);
+assert.match(assignSource, /unlocks \$\{CONTACT_RELEASE_LEAD_HOURS\} hours before the job/);
 
 console.log('customer contact release tests: PASS');

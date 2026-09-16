@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logCron } from './_cron-logger.js';
@@ -106,7 +107,7 @@ export default async function handler(req, res) {
         subject: `Action Required: Booking ${b.ref} needs reassignment`,
         html: `<p>Booking <strong>${esc(b.ref)}</strong> (${esc(b.service)} for ${esc(b.customer_name)}) was not accepted by the assigned assembler within 24 hours.</p>
 <p>The customer booking remains confirmed and is now flagged for manual reassignment. Please log in and assign a replacement as soon as possible.</p>
-<p>Job date: <strong>${esc(b.date)}</strong> at ${esc(b.time)}</p>`,
+<p>Job date: <strong>${esc(formatAppointmentDate(b.date))}</strong> at ${esc(b.time)}</p>`,
         replyTo: ownerEmail(),
       });
 

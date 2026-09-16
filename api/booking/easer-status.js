@@ -2,6 +2,7 @@
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
 import { sendEmail, ownerEmail, esc, buildStatusEmail, formatAddress } from '../_email.js';
 import { sendSms } from '../_sms.js';
+import { formatSlotShort } from './_appt-date.js';
 import { logActivity } from './_activity.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 import { geocodeAddress, distanceMetres, locationConsentOk } from '../_geocode.js';
@@ -263,7 +264,7 @@ export default async function handler(req, res) {
 
   let customerSmsNotice = { ok: true, skipped: 'stage_not_texted' };
   const customerSmsBodies = {
-    en_route: `${easerFirstName} is on the way to your AssembleAtEase appointment${appointmentTime ? ` and should arrive around ${appointmentTime}` : ''}. Ref ${booking.ref}`,
+    en_route: `${easerFirstName} is on the way to your AssembleAtEase appointment${appointmentTime ? ` and should arrive around ${formatSlotShort(appointmentTime)}` : ''}. Ref ${booking.ref}`,
     arrived: `${easerFirstName} has arrived for your AssembleAtEase appointment. Ref ${booking.ref}`,
   };
   if (customerSmsBodies[stage]) {

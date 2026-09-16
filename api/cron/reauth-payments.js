@@ -1,4 +1,5 @@
 ﻿import Stripe from 'stripe';
+import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { reserveBookingFinancialOperation } from '../booking/_financial-operation.js';
@@ -867,7 +868,7 @@ async function sendAuthenticationRequiredAlert(booking) {
     to: ownerEmail(),
     from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `ACTION REQUIRED: Card re-auth failed for ${booking.ref} — customer authentication required`,
-    html: `<p>The payment re-authorization for booking <strong>${esc(booking.ref)}</strong> (${esc(booking.customer_name)}, ${esc(booking.service)}, ${esc(booking.date)}) requires customer authentication.</p><p>The original authorization remains linked. Contact the customer before it expires.</p>`,
+    html: `<p>The payment re-authorization for booking <strong>${esc(booking.ref)}</strong> (${esc(booking.customer_name)}, ${esc(booking.service)}, ${esc(formatAppointmentDate(booking.date))}) requires customer authentication.</p><p>The original authorization remains linked. Contact the customer before it expires.</p>`,
     replyTo: 'service@assembleatease.com',
     meta: { bookingId: booking.id, notificationType: 'payment_reauth_authentication_required', recipientType: 'owner' },
   });
