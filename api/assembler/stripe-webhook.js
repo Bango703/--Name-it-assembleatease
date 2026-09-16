@@ -7,6 +7,7 @@ import { claimStripeWebhookEvent, finalizeStripeWebhookEvent, writeFinancialAudi
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
 import { isAutomaticDispatchZip } from '../_source-of-truth.js';
+import { CANCELLATION_POLICY } from '../_source-of-truth.js';
 import {
   buildIdentityResumeUrl,
   ensureIdentityResumeToken,
@@ -2703,7 +2704,7 @@ function buildBookingConfirmEmail(booking, totalDisplay) {
       <a href="${esc(manageUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:700;padding:12px 32px;border-radius:6px;text-decoration:none">Manage your booking</a>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
-      <strong style="color:#1a1a1a">Need to reschedule or cancel?</strong> Do it yourself anytime from <strong>Manage your booking</strong> above — no need to email us. Rescheduling is free. Cancel at least 24 hours ahead for a full release; inside 24 hours a small late-cancel fee may apply since a pro has reserved the time.
+      <strong style="color:#1a1a1a">Need to reschedule or cancel?</strong> Do it yourself anytime from <strong>Manage your booking</strong> above — no need to email us. Rescheduling is free. Cancel at least ${CANCELLATION_POLICY.freeWindowHours} hours ahead for a full release; inside ${CANCELLATION_POLICY.freeWindowHours} hours a small late-cancel fee may apply once a pro has accepted your job.
     </td></tr></table>
     <p style="margin:0;font-size:13px;color:#71717a">Questions? Contact us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
   </td></tr></table>

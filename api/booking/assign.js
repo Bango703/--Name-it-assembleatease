@@ -8,6 +8,7 @@ import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, describeDispatchPaymentBlock, co
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { describeAssignmentGuardFailure } from './_assignment-guard-reasons.js';
 import { CONTACT_RELEASE_LEAD_HOURS } from './_customer-contact-release.js';
+import { deriveOfferLocation } from './my-assignments.js';
 import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
@@ -392,6 +393,7 @@ export default async function handler(req, res) {
       // duplicate. Reassigning the same booking after a release hit it too.
       subject: `You've got a new job — ${esc(booking.service)} (${esc(booking.ref)})`,
       html: buildAssignmentEmail({
+        offerLocation: deriveOfferLocation(booking.address),
         firstName,
         service: booking.service,
         date: booking.date,
@@ -505,7 +507,7 @@ export default async function handler(req, res) {
   });
 }
 
-export function buildAssignmentEmail({ firstName, service, date, time, estimatedPayCents, acceptUrl, declineUrl, ref }) {
+export function buildAssignmentEmail({ firstName, service, date, time, estimatedPayCents, acceptUrl, declineUrl, ref, offerLocation}) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:32px 24px">
@@ -521,7 +523,7 @@ export function buildAssignmentEmail({ firstName, service, date, time, estimated
         <tr><td style="padding:6px 0;color:#71717a">Service</td><td style="padding:6px 0;font-weight:600">${esc(service)}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a">Date</td><td style="padding:6px 0">${esc(date || 'TBD')}${time ? ' at ' + esc(time) : ''}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a">Estimated earnings</td><td style="padding:6px 0;font-weight:700;color:#059669">${estimatedPayCents > 0 ? '$' + (estimatedPayCents / 100).toFixed(2) : 'Pending custom quote'}</td></tr>
-        <tr><td style="padding:6px 0;color:#71717a">Location</td><td style="padding:6px 0">The exact address is shown as soon as you accept. The customer's phone and email unlock ${CONTACT_RELEASE_LEAD_HOURS} hours before the appointment — until then you can reach them through the app.</td></tr>
+        <tr><td style="padding:6px 0;color:#71717a">Location</td><td style="padding:6px 0"><strong>${esc(offerLocation)}</strong><br/>The exact address is shown as soon as you accept. The customer's phone and email unlock ${CONTACT_RELEASE_LEAD_HOURS} hours before the appointment — until then you can reach them through the app.</td></tr>
       </table>
     </td></tr></table>
     <div style="text-align:center;margin-bottom:16px">

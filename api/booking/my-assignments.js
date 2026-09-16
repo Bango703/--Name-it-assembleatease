@@ -10,6 +10,7 @@ import {
   BOOKING_STATUS,
   DISPATCH_OFFER_STATUS,
   ACTIVE_BOOKING_STATUSES,
+  isTexasZip,
   VISIBLE_ASSIGNMENT_STATUSES,
   computeBookingSplitFromSnapshot,
   SALES_TAX_RATE,
@@ -21,23 +22,6 @@ import { evaluateCustomerContactRelease } from './_customer-contact-release.js';
 
 const EASER_JOB_STAGES = Object.freeze(['en_route', 'arrived', 'in_progress']);
 
-const SAFE_OFFER_CITIES = new Map([
-  ['austin', 'Austin'],
-  ['bee cave', 'Bee Cave'],
-  ['buda', 'Buda'],
-  ['cedar park', 'Cedar Park'],
-  ['dripping springs', 'Dripping Springs'],
-  ['georgetown', 'Georgetown'],
-  ['hutto', 'Hutto'],
-  ['kyle', 'Kyle'],
-  ['lakeway', 'Lakeway'],
-  ['leander', 'Leander'],
-  ['manor', 'Manor'],
-  ['pflugerville', 'Pflugerville'],
-  ['round rock', 'Round Rock'],
-  ['sunset valley', 'Sunset Valley'],
-  ['west lake hills', 'West Lake Hills'],
-]);
 
 const INTERNAL_FINANCIAL_FIELDS = [
   'amount_charged',
@@ -68,12 +52,45 @@ const INTERNAL_FINANCIAL_FIELDS = [
   'easer_estimated_due_snapshot',
 ];
 
+// Recognised Texas city names. This is a PRIVACY ALLOWLIST, not a service-area
+// list: the address field is free text, and the segment before the state can be
+// anything the customer typed — "Private Person", a business, a name. Echoing it
+// back to a pro who has not accepted the job would leak exactly what the offer
+// stage is meant to withhold, which is why this list exists at all.
+const RECOGNISED_CITIES = new Set([
+  'austin', 'bee cave', 'buda', 'cedar park', 'dripping springs', 'georgetown',
+  'hutto', 'kyle', 'lakeway', 'leander', 'manor', 'pflugerville', 'round rock',
+  'sunset valley', 'west lake hills', 'del valle', 'elgin', 'wimberley',
+  'san marcos', 'taylor', 'bastrop',
+  'houston', 'spring', 'katy', 'the woodlands', 'sugar land', 'pearland',
+  'conroe', 'pasadena', 'baytown', 'league city', 'cypress', 'humble', 'tomball',
+  'dallas', 'fort worth', 'plano', 'frisco', 'irving', 'arlington', 'garland',
+  'mckinney', 'allen', 'denton', 'richardson', 'mesquite', 'grand prairie',
+  'san antonio', 'new braunfels', 'schertz', 'converse', 'boerne', 'seguin',
+  'lubbock', 'midland', 'odessa', 'amarillo', 'el paso', 'waco', 'temple',
+  'killeen', 'tyler', 'bryan', 'college station', 'abilene', 'san angelo',
+  'corpus christi', 'brownsville', 'mcallen', 'edinburg', 'laredo', 'beaumont',
+]);
+
+// What a pro needs before accepting is "how far is this?", and the ZIP answers
+// that on its own. The street is still withheld until acceptance.
+//
+// This used to check the city against a 15-entry Austin allowlist and return
+// "Austin-area service zone" for everything else. Once bookings went statewide
+// that became actively WRONG rather than merely vague: a Spring booking (a
+// Houston suburb) and a Lubbock booking both announced themselves as Austin, so
+// a pro judging a drive off it was being misled.
+//
+// Now the ZIP is always shown when it is a real Texas ZIP, and the city name is
+// added only when it is one we recognise — so an unrecognised city degrades to
+// "TX 77389", which is still enough to judge the drive, rather than either
+// echoing free text or naming a metro the job is not in.
 export function deriveOfferLocation(address) {
   const parts = String(address || '')
     .split(',')
     .map(part => part.trim())
     .filter(Boolean);
-  if (!parts.length) return 'Austin-area service zone';
+  if (!parts.length) return 'Texas service area';
 
   if (/^(?:USA|US|United States)$/i.test(parts.at(-1))) parts.pop();
 
@@ -89,9 +106,10 @@ export function deriveOfferLocation(address) {
     city = String(parts.at(-3) || '').trim();
   }
 
-  const safeCity = SAFE_OFFER_CITIES.get(city.toLowerCase());
-  if (!safeCity || !zip) return 'Austin-area service zone';
-  return `${safeCity}, TX ${zip}`;
+  if (!isTexasZip(zip)) return 'Texas service area';
+  if (!RECOGNISED_CITIES.has(city.toLowerCase())) return `TX ${zip}`;
+  const titled = city.toLowerCase().replace(/(?:^|[\s-])[a-z]/g, c => c.toUpperCase());
+  return `${titled}, TX ${zip}`;
 }
 
 export function redactAssignmentCustomerData(bookings = [], nowMs = Date.now()) {

@@ -2,6 +2,7 @@
 import { getSupabase } from './_supabase.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from './_email.js';
 import { sendSms } from './_sms.js';
+import { CANCELLATION_POLICY } from './_source-of-truth.js';
 import { guardCustomerFacing } from './_customer-error-alert.js';
 import { rateLimit } from './_ratelimit.js';
 import { dispatchBooking } from './booking/_dispatch-internal.js';
@@ -242,7 +243,7 @@ export default async function handler(req, res) {
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${customerPaymentHeading}</strong> — ${paymentLine}</td></tr>
     </table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
-      <strong style="color:#1a1a1a">Need to reschedule or cancel?</strong> Do it yourself anytime from <strong>Track or manage your booking</strong> below — no need to email us. Rescheduling is free. Cancel at least 24 hours ahead at no charge; inside 24 hours a small late-cancel fee may apply under the cancellation policy.
+      <strong style="color:#1a1a1a">Need to reschedule or cancel?</strong> Do it yourself anytime from <strong>Track or manage your booking</strong> below — no need to email us. Rescheduling is free. Cancel at least ${CANCELLATION_POLICY.freeWindowHours} hours ahead at no charge; inside ${CANCELLATION_POLICY.freeWindowHours} hours a small late-cancel fee may apply once a pro has accepted your job.
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
       <strong style="color:#1a1a1a">What your booking includes.</strong> A reviewed pro, a tracked appointment, and AssembleAtEase standing behind the work &mdash; if something isn&rsquo;t right, we make it right. These protections come with booking through AssembleAtEase and don&rsquo;t apply to work arranged privately with a pro.
