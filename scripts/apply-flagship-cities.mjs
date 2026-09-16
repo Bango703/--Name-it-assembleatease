@@ -29,7 +29,6 @@ function loadCities() {
   const end = src.indexOf(marker, start);
   if (start === -1 || end === -1) throw new Error('Could not locate the CITIES roster in generate-location-pages.js');
   const block = src.slice(start, end + marker.length);
-  // eslint-disable-next-line no-new-func
   return new Function(`${block}\nreturn CITIES;`)();
 }
 
