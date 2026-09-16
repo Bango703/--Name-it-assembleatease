@@ -27,11 +27,18 @@
     if (button) button.setAttribute('aria-label', total ? 'Notifications, ' + total + ' unread' : 'Notifications');
   }
 
+  // Every page ships the list with inline "Loading..." styling (centered and
+  // padded). Drop it with the placeholder so loaded rows use the list's layout.
+  function resetList(list) {
+    list.removeAttribute('style');
+    list.className = 'easer-notification-list';
+    list.textContent = '';
+  }
+
   function render(items) {
     var list = document.getElementById('notif-list');
     if (!list) return;
-    list.textContent = '';
-    list.className = 'easer-notification-list';
+    resetList(list);
 
     if (!items.length) {
       var empty = document.createElement('div');
@@ -104,8 +111,7 @@
     } catch (error) {
       var list = document.getElementById('notif-list');
       if (list) {
-        list.className = 'easer-notification-list';
-        list.textContent = '';
+        resetList(list);
         var retry = document.createElement('button');
         retry.type = 'button';
         retry.className = 'easer-notification-retry';

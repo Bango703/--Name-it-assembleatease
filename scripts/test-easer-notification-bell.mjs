@@ -9,7 +9,8 @@ import { readFile } from 'node:fs/promises';
 // Article 16 defect it carried: it zeroed the badge BEFORE the mark-read write,
 // so a failed request showed "all caught up" while the server still held the
 // notifications unread. This test runs the shipped script against a minimal
-// DOM and a scripted API to prove the badge only moves on server truth.
+// DOM and a scripted API to prove the badge only moves on server truth, and
+// that loaded rows drop the pages' centered "Loading..." styling.
 
 function element(id) {
   const el = {
@@ -27,6 +28,7 @@ function element(id) {
     set textContent(value) { this._text = String(value); this.children = []; },
     appendChild(child) { this.children.push(child); return child; },
     setAttribute(name, value) { this.attributes[name] = String(value); },
+    removeAttribute(name) { delete this.attributes[name]; },
     addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); },
   };
   return el;
@@ -40,6 +42,8 @@ function installPage() {
     'notif-panel': element('notif-panel'),
   };
   nodes['notif-panel'].style.display = 'none';
+  // Every page ships the list with this inline "Loading..." styling.
+  nodes['notif-list'].attributes.style = 'text-align:center;padding:1.5rem 0;color:var(--e-muted);font-size:0.875rem';
   const docListeners = {};
   globalThis.document = {
     getElementById: id => nodes[id] || null,
@@ -83,6 +87,9 @@ async function importFresh() {
   assert.equal(page.nodes['notif-list'].children.length, 2, 'both notifications render');
   assert.equal(page.nodes['notif-list'].children[0].href, '/assembler/my-assignments?job=bk1',
     'each notification opens its job');
+  assert.equal(page.nodes['notif-list'].attributes.style, undefined,
+    'the centered, padded placeholder styling is dropped once rows load');
+  assert.equal(page.nodes['notif-list'].className, 'easer-notification-list');
   assert.deepEqual(calls, ['GET']);
 }
 
@@ -145,8 +152,22 @@ async function importFresh() {
   assert.match(page.nodes['notif-list'].children[0].className, /is-unread/, 'items stay marked unread');
 }
 
-// ── 4. Both Easer pages load it, and it exists ─────────────────────────────
-for (const rel of ['assembler/index.html', 'assembler/my-assignments.html']) {
+// ── 4. A failed load offers a retry, laid out by the list's own styles ─────
+{
+  const page = installPage();
+  globalThis.fetch = async () => ({ ok: false, json: async () => ({ error: 'unavailable' }) });
+  await importFresh();
+  await page.fire('DOMContentLoaded');
+  await settle();
+  const list = page.nodes['notif-list'];
+  assert.equal(list.children.length, 1, 'a failed load shows a single retry control');
+  assert.equal(list.children[0].className, 'easer-notification-retry');
+  assert.equal(list.children[0].textContent, 'Notifications unavailable. Tap to retry.');
+  assert.equal(list.attributes.style, undefined, 'the placeholder styling is dropped on failure too');
+}
+
+// ── 5. Every Easer page with the bell loads it, and it exists ──────────────
+for (const rel of ['assembler/index.html', 'assembler/my-assignments.html', 'assembler/payouts.html', 'assembler/profile.html']) {
   const html = await readFile(new URL(`../${rel}`, import.meta.url), 'utf8');
   assert.match(html, /<script src="\.\.\/assets\/js\/easer-notifications\.js/, `${rel} must load the bell script`);
 }
