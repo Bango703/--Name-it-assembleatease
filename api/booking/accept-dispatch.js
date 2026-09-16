@@ -4,7 +4,7 @@ import { sendEmail, ownerEmail, esc, buildStatusEmail } from '../_email.js';
 import { guestManageUrl } from '../_payment-security.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch, describeDispatchPaymentBlock } from '../_source-of-truth.js';
 import { buildRequestId, hashIdentifier, getDeploymentMetadata, normalizeReasonCode, redactString } from '../_observability.js';
 import { getEaserReadiness, publicReadinessError, publicMissingItems } from '../_easer-readiness.js';
 import { isLegacyAssignmentTokenFresh } from './_dispatch-safety.js';
@@ -363,9 +363,6 @@ export default async function handler(req, res) {
   // assigned to (payment collected offline). Everyone else needs verified payment.
   const ownerEaserLiveManual = isOwnerManualLiveFlow(booking, actorProfile)
     && booking.assembler_id === assemblerId;
-  if (!ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking)) {
-    return res.status(409).json({ error: 'This job is temporarily on hold and cannot be accepted.', code: 'DISPATCH_PAYMENT_NOT_VERIFIED' });
-  }
 
   const isDispatch   = booking.dispatch_token && booking.dispatch_token === token;
   const isAssignment = booking.assignment_token && booking.assignment_token === token
@@ -374,6 +371,24 @@ export default async function handler(req, res) {
   if (!isDispatch && !isAssignment) {
     return res.status(403).json({ error: 'Invalid or expired offer token' });
   }
+
+  // Accepting is the other half of staffing, not the start of work. PR #163 let
+  // the owner attach an Easer to an advance booking carrying a confirmed saved
+  // card, but acceptance still demanded the scheduled hold -- so the pro could
+  // be assigned and then told the job was "on hold" when they tried to accept,
+  // and stale-booking would unassign them 24 hours later. Half a fix.
+  //
+  // Scoped to the ASSIGNMENT path deliberately: auto-dispatch never offers a
+  // card_saved booking, and isAssignment already proves this is the pro the
+  // owner chose. Money is untouched -- migration 095 still refuses the move to
+  // en_route/arrived/in_progress, and capture is gated in assembler-complete.
+  const acceptPaymentBlock = ownerEaserLiveManual
+    ? null
+    : describeDispatchPaymentBlock(booking, { allowSavedCard: isAssignment });
+  if (acceptPaymentBlock) {
+    return res.status(409).json({ error: acceptPaymentBlock.message, code: acceptPaymentBlock.code });
+  }
+
   if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at) {
     return res.status(409).json({ error: 'This job is temporarily unavailable. Refresh and try again.' });
   }

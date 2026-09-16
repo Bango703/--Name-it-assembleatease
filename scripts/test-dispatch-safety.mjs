@@ -206,7 +206,14 @@ for (const field of [
 }
 assert.ok(acceptSource.includes('buildEaserFeeSnapshot(booking, easer'));
 assert.ok(assignSource.includes('buildEaserFeeSnapshot(booking, assembler'));
-assert.ok((acceptSource.match(/isBookingPaymentReadyForDispatch\(booking\)/g) || []).length >= 2, 'both offer and legacy acceptance paths must preflight payment truth');
+// Both acceptance paths still preflight payment truth. The legacy/assignment
+// path now asks through describeDispatchPaymentBlock so the refusal can name
+// its cause and so the pro the OWNER assigned can accept a confirmed
+// saved-card job; the offer path is unchanged and still demands the hold.
+const acceptPaymentChecks = (acceptSource.match(/isBookingPaymentReadyForDispatch\(booking\)|describeDispatchPaymentBlock\(booking/g) || []).length;
+assert.ok(acceptPaymentChecks >= 2, 'both offer and legacy acceptance paths must preflight payment truth');
+assert.match(acceptSource, /isBookingPaymentReadyForDispatch\(booking\)/, 'the dispatch-offer path keeps the strict gate');
+assert.match(acceptSource, /allowSavedCard: isAssignment/, 'the saved-card allowance is scoped to the assignment path only');
 // Assignment still fails closed on payment truth. The existing record-only
 // completed-booking link and the singular owner-Easer offline live flow are the
 // only exemptions; the dedicated owner-Easer regression locks the latter down.
