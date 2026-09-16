@@ -185,6 +185,6 @@ assert.doesNotMatch(assignSource, /Customer contact and exact address are shown 
   'the assignment email must not promise contact details at acceptance');
 assert.match(assignSource, /CONTACT_RELEASE_LEAD_HOURS/,
   'the email must quote the real release window, not restate a number');
-assert.match(assignSource, /unlock \$\{CONTACT_RELEASE_LEAD_HOURS\} hours before the appointment/);
+assert.match(assignSource, /unlock \$\{CONTACT_RELEASE_LEAD_HOURS\} hours before the job/);
 
 console.log('customer contact release tests: PASS');
