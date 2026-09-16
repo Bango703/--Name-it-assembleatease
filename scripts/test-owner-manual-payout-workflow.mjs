@@ -288,7 +288,11 @@ assert.match(assignSource, /ownerEaserLiveManual = ownerManualConfirmed && owner
 assert.match(assignSource, /\.select\('id, role,[^']*is_owner/);
 assert.match(assignSource, /recordOnlyOwnerManualCompleted && !ownerEaserManual/);
 assert.match(assignSource, /code: 'OWNER_EASER_REQUIRED'/);
-assert.match(assignSource, /!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual && !isBookingPaymentReadyForDispatch\(booking\)/);
+// Payment truth is now checked through describeDispatchPaymentBlock so the
+// refusal can name its cause. The exemptions and the fail-closed 409 are what
+// this guard protects, not the spelling of the condition.
+assert.match(assignSource, /!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual/);
+assert.match(assignSource, /const paymentBlock = describeDispatchPaymentBlock\(booking\);[\s\S]{0,200}?res\.status\(409\)/);
 assert.match(acceptSource, /ownerEaserLiveManual[\s\S]*isOwnerManualLiveFlow\(booking, actorProfile\)/);
 assert.match(statusSource, /ownerEaserLiveManual[\s\S]*isOwnerManualLiveFlow\(booking, profile\)/);
 

@@ -2,7 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { dispatchBooking } from './_dispatch-internal.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, describeDispatchPaymentBlock } from '../_source-of-truth.js';
 
 /**
  * POST /api/booking/dispatch
@@ -42,10 +42,12 @@ export default async function handler(req, res) {
   if (booking.assembler_id) {
     return res.status(400).json({ error: 'Booking is already assigned to an Easer' });
   }
-  if (!isBookingPaymentReadyForDispatch(booking)) {
+  const dispatchPaymentBlock = describeDispatchPaymentBlock(booking);
+  if (dispatchPaymentBlock) {
     return res.status(409).json({
-      error: 'Payment is not verified for dispatch. Reconcile Stripe before sending offers.',
-      code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
+      error: `Cannot send offers yet. ${dispatchPaymentBlock.message}`,
+      code: dispatchPaymentBlock.code,
+      paymentStatus: booking.payment_status || null,
     });
   }
 
