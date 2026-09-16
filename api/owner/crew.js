@@ -1,4 +1,5 @@
 import { getSupabase } from '../_supabase.js';
+import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendSms } from '../_sms.js';
 import { sendPushToUser } from '../_push.js';
@@ -239,7 +240,7 @@ export default async function handler(req, res) {
       <h2 style="color:#00BFFF">You're on a job</h2>
       <p>Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')}, you've been added to booking <strong>${esc(booking.ref)}</strong>.</p>
       <p><strong>Service:</strong> ${esc(booking.service || 'Service')}<br>
-      <strong>When:</strong> ${esc(booking.date || 'TBD')}${booking.time ? ' at ' + esc(booking.time) : ''}<br>
+      <strong>When:</strong> ${esc(booking.date ? formatAppointmentDate(booking.date) : 'TBD')}${booking.time ? ' at ' + esc(booking.time) : ''}<br>
       <strong>Working with:</strong> ${esc(booking.assembler_name || 'the lead Easer')}<br>
       <strong>Your estimated earnings:</strong> $${(helperDue / 100).toFixed(2)}</p>
       <p style="font-size:14px;color:#52525b">${esc(booking.assembler_name || 'The lead Easer')} is the lead on this job and marks it complete. Open your dashboard for the address and job details.</p>
@@ -271,7 +272,7 @@ export default async function handler(req, res) {
       subject: `A second pro is joining your appointment — ${esc(booking.ref)}`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
         <h2 style="color:#00BFFF">A second pro is joining your appointment</h2>
-        <p>Hi ${esc((booking.customer_name || '').split(' ')[0] || 'there')}, we've added <strong>${esc(easer.full_name || 'a second pro')}</strong> to your ${esc(booking.service || 'appointment')} on <strong>${esc(booking.date || 'your scheduled date')}</strong>${booking.time ? ' at ' + esc(booking.time) : ''}.</p>
+        <p>Hi ${esc((booking.customer_name || '').split(' ')[0] || 'there')}, we've added <strong>${esc(easer.full_name || 'a second pro')}</strong> to your ${esc(booking.service || 'appointment')} on <strong>${esc(booking.date ? formatAppointmentDate(booking.date) : 'your scheduled date')}</strong>${booking.time ? ' at ' + esc(booking.time) : ''}.</p>
         <p>They'll be working alongside ${esc(booking.assembler_name || 'your Easer')}. <strong>Your price hasn't changed.</strong></p>
         <p style="font-size:14px;color:#52525b">Questions? Call or text us at <a href="tel:+19792325139" style="color:#00BFFF;text-decoration:none">(979) 232-5139</a>.</p>
       </div>`,

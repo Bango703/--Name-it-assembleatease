@@ -1,4 +1,5 @@
 ﻿import Stripe from 'stripe';
+import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { guestManageUrl } from '../_payment-security.js';
@@ -2463,7 +2464,7 @@ function buildCustomerReceiptEmail(booking, amountDisplay) {
       <table width="100%">
         <tr><td style="padding:5px 0;color:#71717a;width:120px">Reference</td><td style="padding:5px 0;font-weight:600">${esc(booking.ref)}</td></tr>
         <tr><td style="padding:5px 0;color:#71717a">Service</td><td style="padding:5px 0">${esc(booking.service)}</td></tr>
-        <tr><td style="padding:5px 0;color:#71717a">Date</td><td style="padding:5px 0">${esc(booking.date || 'Completed')}</td></tr>
+        <tr><td style="padding:5px 0;color:#71717a">Date</td><td style="padding:5px 0">${esc(booking.date ? formatAppointmentDate(booking.date) : 'Completed')}</td></tr>
       </table>
     </td></tr></table>
     <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">A receipt was also sent to your card on file via Stripe. Questions? Contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
@@ -2695,7 +2696,7 @@ function buildBookingConfirmEmail(booking, totalDisplay) {
       <table width="100%">
         <tr><td style="color:#71717a;padding:6px 0;border-bottom:1px solid #f0f0f0;width:120px">Ref</td><td style="font-weight:700;padding:6px 0;border-bottom:1px solid #f0f0f0">${esc(booking.ref)}</td></tr>
         <tr><td style="color:#71717a;padding:6px 0;border-bottom:1px solid #f0f0f0">Service</td><td style="font-weight:600;padding:6px 0;border-bottom:1px solid #f0f0f0">${esc(booking.service)}</td></tr>
-        <tr><td style="color:#71717a;padding:6px 0;border-bottom:1px solid #f0f0f0">Date</td><td style="font-weight:700;padding:6px 0;border-bottom:1px solid #f0f0f0">${esc(booking.date)}</td></tr>
+        <tr><td style="color:#71717a;padding:6px 0;border-bottom:1px solid #f0f0f0">Date</td><td style="font-weight:700;padding:6px 0;border-bottom:1px solid #f0f0f0">${esc(formatAppointmentDate(booking.date))}</td></tr>
         <tr><td style="color:#71717a;padding:6px 0;border-bottom:1px solid #f0f0f0">Time</td><td style="font-weight:700;padding:6px 0;border-bottom:1px solid #f0f0f0">${esc(booking.time)}</td></tr>
         <tr><td style="color:#71717a;padding:6px 0">Address</td><td style="padding:6px 0">${esc(formatAddress(booking.address))}</td></tr>
       </table>

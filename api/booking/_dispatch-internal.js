@@ -1,4 +1,5 @@
 ﻿import { randomUUID } from 'crypto';
+import { formatAppointmentDate } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc, ownerEmail } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
@@ -198,7 +199,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     // Apply the hard daily cap with accurate data
     eligible = eligible.filter(e => e.active_jobs_today < MAX_DAILY_JOBS);
     if (!eligible.length) {
-      return { dispatched: 0, message: `All eligible Easers are at the ${MAX_DAILY_JOBS}-job daily limit for ${booking.date}` };
+      return { dispatched: 0, message: `All eligible Easers are at the ${MAX_DAILY_JOBS}-job daily limit for ${formatAppointmentDate(booking.date)}` };
     }
   }
 
@@ -583,7 +584,7 @@ function buildOfferEmail(easer, booking, city, offerUrl, expiresAt) {
       <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:1.1rem;margin-bottom:1.25rem">
         <p style="margin:0 0 8px;font-size:1.05rem;font-weight:700;color:#111">${esc(booking.service)}</p>
         <p style="margin:0 0 4px;font-size:0.875rem;color:#374151">Location: ${esc(city)}</p>
-        <p style="margin:0 0 4px;font-size:0.875rem;color:#374151">Date: ${esc(booking.date || 'TBD')}${booking.time ? ' · ' + esc(booking.time) : ''}</p>
+        <p style="margin:0 0 4px;font-size:0.875rem;color:#374151">Date: ${esc(booking.date ? formatAppointmentDate(booking.date) : 'TBD')}${booking.time ? ' · ' + esc(booking.time) : ''}</p>
         <p style="margin:8px 0 0;font-size:0.95rem;font-weight:${booking.total_price > 0 ? '700' : '500'};color:#00BFFF">Est. pay: ${payEstimate}</p>
       </div>
       <div style="background:#fef9ec;border:1px solid #fbbf24;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.25rem">

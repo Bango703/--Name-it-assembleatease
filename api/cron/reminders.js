@@ -1,4 +1,5 @@
 ﻿import { getSupabase } from '../_supabase.js';
+import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { logCron } from './_cron-logger.js';
 import { appointmentTimestampMs } from '../booking/_appt-date.js';
@@ -203,7 +204,7 @@ function buildReminderEmail({ customerFirst, booking }) {
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:24px">
         <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:140px">Booking ref</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:13px">${esc(booking.ref)}</td></tr>
         <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Service</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(booking.service)}</td></tr>
-        <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(booking.date)}</td></tr>
+        <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(formatAppointmentDate(booking.date))}</td></tr>
         ${booking.time ? `<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(booking.time)}</td></tr>` : ''}
         ${booking.address ? `<tr><td style="padding:10px 0;color:#71717a">Address</td><td style="padding:10px 0">${esc(formatAddress(booking.address))}</td></tr>` : ''}
       </table>
