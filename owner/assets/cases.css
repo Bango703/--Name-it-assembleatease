@@ -559,3 +559,40 @@
     padding: 0.9rem;
   }
 }
+
+/* Cases on the owner's own test bookings: hidden by default, and the list says so. */
+.cases-test-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  padding: 0.7rem 0.9rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.cases-test-toggle {
+  border: 1px solid var(--border-md);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--teal);
+  font: inherit;
+  font-weight: 700;
+  padding: 0.2rem 0.7rem;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.cases-test-toggle:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.cases-badge.cases-badge-test {
+  margin-left: 0.35rem;
+  background: var(--elevated);
+  color: var(--soft);
+  border: 1px solid var(--border-md);
+}

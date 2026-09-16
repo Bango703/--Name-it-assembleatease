@@ -6,6 +6,8 @@
     selectedId: null,
     loading: false,
     pendingCaseId: null,
+    includeTest: false,
+    hiddenTestCases: 0,
   };
 
   var TYPE_LABELS = {
@@ -67,8 +69,10 @@
       params.set('status', valueOf('cases-status-filter') || 'active');
       params.set('caseType', valueOf('cases-type-filter') || 'all');
       params.set('severity', valueOf('cases-severity-filter') || 'all');
+      if (state.includeTest) params.set('includeTest', '1');
       var data = await request('/api/owner/cases?' + params.toString());
       state.cases = data.cases || [];
+      state.hiddenTestCases = Number(data.hiddenTestCases || 0);
       renderSummary(data.summary || {});
       renderList();
       updateBadge(data.summary || {});
@@ -124,8 +128,17 @@
     var count = document.getElementById('cases-list-count');
     if (!list) return;
     if (count) count.textContent = String(state.cases.length);
+    // Never hide something without saying so (Article 16).
+    var hidden = state.hiddenTestCases;
+    var testNote = state.includeTest
+      ? '<div class="cases-test-note">Showing cases from test bookings. '
+        + '<button type="button" class="cases-test-toggle" data-cases-test-toggle="hide">Hide them</button></div>'
+      : (hidden
+        ? '<div class="cases-test-note">' + hidden + ' case' + (hidden === 1 ? '' : 's') + ' from test bookings hidden. '
+          + '<button type="button" class="cases-test-toggle" data-cases-test-toggle="show">Show</button></div>'
+        : '');
     if (!state.cases.length) {
-      list.innerHTML = '<div class="cases-empty">No cases match these filters.</div>';
+      list.innerHTML = '<div class="cases-empty">No cases match these filters.</div>' + testNote;
       return;
     }
     list.innerHTML = state.cases.map(function(item) {
@@ -134,11 +147,12 @@
         '<div class="cases-list-top">' +
           '<span class="cases-list-ref">' + esc(item.ref) + '</span>' +
           '<span class="cases-badge status-' + attr(item.status) + '">' + esc(item.statusLabel) + '</span>' +
+          (item.booking && item.booking.isTest ? '<span class="cases-badge cases-badge-test">Test</span>' : '') +
         '</div>' +
         '<div class="cases-list-subject">' + esc(item.subject) + '</div>' +
         '<div class="cases-list-meta">' + esc(item.typeLabel) + ' &middot; ' + esc(contact) + '<br>' + esc(relativeTime(item.updatedAt)) + '</div>' +
       '</button>';
-    }).join('');
+    }).join('') + testNote;
   }
 
   function renderDetail(item, events) {
@@ -549,6 +563,12 @@
       if (typeof window.openOwnerBookingRecord === 'function') {
         window.openOwnerBookingRecord(bookingButton.dataset.openCaseBooking, bookingButton.dataset.bookingTab || null);
       }
+      return;
+    }
+    var testToggle = event.target.closest('[data-cases-test-toggle]');
+    if (testToggle) {
+      state.includeTest = testToggle.dataset.casesTestToggle === 'show';
+      load();
       return;
     }
     var row = event.target.closest('[data-case-id]');
