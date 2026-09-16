@@ -2194,7 +2194,12 @@
           });
           const d = await r.json();
           if (!r.ok || d.error) {
-            const msg = r.status === 409 ? 'This job was just accepted by another Easer.' : (d.error || 'Could not accept — please try again.');
+            // Show the server's reason. This used to assert "accepted by another"
+            // Easer" for EVERY 409, so a payment hold, a closure hold and a real
+            // race all read as someone else taking the job -- a cause the browser
+            // had invented and could not know (Article 16). The server already
+            // says which one it was.
+            const msg = d.error || 'Could not accept — please try again.';
             APP.showAlert('page-alert', msg, 'error');
             acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Job'; return;
           }
