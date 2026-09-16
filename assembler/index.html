@@ -133,6 +133,10 @@
     .eh-upcoming-when{font-size:0.72rem;font-weight:700;color:var(--e-teal);text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
     .eh-upcoming-service{font-size:0.875rem;font-weight:500;color:var(--e-text)}
     .eh-upcoming-addr{font-size:0.72rem;color:var(--e-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    /* A job assigned to this Easer that still needs their acceptance. Sits under
+       Upcoming, which has no Accept button, so without this it reads as confirmed. */
+    .eh-upcoming-needs{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:2px 8px;border-radius:999px;background:var(--e-teal-dim);color:var(--e-teal-dark);font-size:0.66rem;font-weight:700;letter-spacing:0.02em}
+    .eh-upcoming-needs svg{flex-shrink:0}
 
     /* Waiting state */
     .eh-waiting-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
@@ -567,11 +571,22 @@
         var upcomingTime = b.return_visit_required ? b.return_visit_time : b.time;
         var dateStr=fmtDate(upcomingDate);
         var when=(b.return_visit_required ? 'Return: ' : '') + dateStr + (upcomingTime ? ' · ' + upcomingTime : '');
-        return '<a class="eh-upcoming-card" href="/assembler/my-assignments" aria-label="Open ' + esc(APP.formatServiceLabel(b.service)) + ' job details">'
+        // The street is withheld until this Easer accepts, so fall back to the
+        // city the server sent -- the same line the assignment email shows.
+        // _needs_acceptance is the server's verdict; this page only renders it.
+        var needsAcceptance = b._needs_acceptance === true;
+        var place = b.address ? APP.formatPostalAddress(b.address) : (b._offer_location || 'Address TBD');
+        var serviceLabel = APP.formatServiceLabel(b.service);
+        var cardHref = needsAcceptance ? '/assembler/my-assignments?job=' + encodeURIComponent(b.id) : '/assembler/my-assignments';
+        var cardLabel = needsAcceptance ? 'Review and accept ' + serviceLabel + ' job' : 'Open ' + serviceLabel + ' job details';
+        return '<a class="eh-upcoming-card" href="' + esc(cardHref) + '" aria-label="' + esc(cardLabel) + '">'
           +'<div style="flex:1;min-width:0">'
             +'<div class="eh-upcoming-when">'+esc(when)+'</div>'
-            +'<div class="eh-upcoming-service">'+esc(APP.formatServiceLabel(b.service))+'</div>'
-            +'<div class="eh-upcoming-addr">'+esc(b.address?APP.formatPostalAddress(b.address):'Address TBD')+'</div>'
+            +'<div class="eh-upcoming-service">'+esc(serviceLabel)+'</div>'
+            +'<div class="eh-upcoming-addr">'+esc(place)+'</div>'
+            +(needsAcceptance
+              ? '<span class="eh-upcoming-needs"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Tap to accept</span>'
+              : '')
           +'</div>'
           +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--e-border-md)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
         +'</a>';

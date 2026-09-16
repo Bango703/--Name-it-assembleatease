@@ -902,7 +902,12 @@
       const stageMeta = openReturnVisit
         ? { cls: 'bk-accepted', label: 'Return Visit Open' }
         : (STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : { cls:'bk-dispatched', label:'Pending' }));
-      const address = b.assembler_accepted_at && b.address && !isCompleted ? formatJobAddress(b.address) : '';
+      // Before acceptance the street is withheld, so show the service area the
+      // server sent -- the same line as the home screen and the assignment email.
+      // This card used to print no location at all for any unaccepted job.
+      const address = b.assembler_accepted_at && b.address && !isCompleted
+        ? formatJobAddress(b.address)
+        : (!b.assembler_accepted_at && !isCompleted && b._offer_location ? b._offer_location : '');
       const statusText = isPendingOffer ? 'Offer' : stageMeta.label;
       const payoutLabel = payStr ? payStr + (isCompleted ? ' earned' : ' payout') : '';
       const cardLabel = 'Open ' + serviceName + (workload ? ', ' + workload : '') + ' details';

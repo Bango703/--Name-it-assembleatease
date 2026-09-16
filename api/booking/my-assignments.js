@@ -112,6 +112,42 @@ export function deriveOfferLocation(address) {
   return `${titled}, TX ${zip}`;
 }
 
+/**
+ * Everything an Easer needs to decide on a job they have been assigned but have
+ * not yet accepted -- without the street address, which waits for acceptance.
+ *
+ * This used to run only when the booking had an open dispatch_offers row. An
+ * OWNER-assigned job never has one: assign.js creates none and cancels any that
+ * are open. So a job the owner handed a pro arrived with no street (correctly
+ * withheld) and no city either, and the home screen printed "Address TBD" while
+ * the assignment email for the same job said "Spring, TX 77389".
+ *
+ * The city now comes from the same deriveOfferLocation the email uses, so the
+ * email, the home screen and the jobs screen cannot disagree. Token, expiry and
+ * score still come only from a real offer, because only a real offer has them.
+ *
+ * _needs_acceptance is the server's verdict that this job is still waiting on
+ * this pro. The home screen renders it; it does not work it out (Article 4).
+ * Without it the job sat under "Upcoming" looking exactly like a confirmed one,
+ * and cron/stale-booking takes it back 24 hours after assignment.
+ */
+export function enrichUnacceptedAssignments(bookings = [], offerMap = {}) {
+  for (const b of bookings) {
+    if (b.assembler_accepted_at) continue;
+    if (ACTIVE_BOOKING_STATUSES.includes(b.status)) {
+      b._offer_location = deriveOfferLocation(b.address);
+    }
+    b._needs_acceptance = b.status === BOOKING_STATUS.CONFIRMED;
+    const offer = offerMap[b.id];
+    if (offer) {
+      b._offer_expires_at = offer.expires_at;
+      b._offer_token      = offer.token;
+      b._offer_score      = offer.dispatch_score;
+    }
+  }
+  return bookings;
+}
+
 export function redactAssignmentCustomerData(bookings = [], nowMs = Date.now()) {
   return bookings.map(booking => {
     // One verdict decides both layers, so the phone can never be visible on a
@@ -290,15 +326,9 @@ export default async function handler(req, res) {
     }
   });
 
-  // Enrich already-assigned bookings that haven't been accepted yet (legacy path)
-  (assignedBookings || []).forEach(b => {
-    if (!b.assembler_accepted_at && offerMap[b.id]) {
-      b._offer_location    = deriveOfferLocation(b.address);
-      b._offer_expires_at = offerMap[b.id].expires_at;
-      b._offer_token      = offerMap[b.id].token;
-      b._offer_score      = offerMap[b.id].dispatch_score;
-    }
-  });
+  // Enrich assigned bookings this Easer has not accepted yet. Must run before
+  // redactAssignmentCustomerData, which withholds the street address.
+  enrichUnacceptedAssignments(assignedBookings || [], offerMap);
 
   // Can this Easer refuse the job? An owner-assigned job has NO dispatch_offers
   // row (assign.js stores its token on the booking and nulls dispatch_token), so
