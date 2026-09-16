@@ -37,6 +37,7 @@ async function loadCaseList({ sb, res, query }) {
   const statusFilter = normalize(query.status);
   const typeFilter = normalize(query.caseType);
   const severityFilter = normalize(query.severity);
+  const includeTest = ['1', 'true', 'yes'].includes(normalize(query.includeTest));
 
   if (statusFilter && statusFilter !== 'active' && statusFilter !== 'all' && !isOperationCaseStatus(statusFilter)) {
     return res.status(400).json({ error: 'Invalid case status filter' });
@@ -62,7 +63,10 @@ async function loadCaseList({ sb, res, query }) {
     loadEaserMap(sb, allCases),
     loadNotificationMap(sb, allCases),
   ]);
-  const filtered = allCases.filter((row) => {
+  // Hidden from the list AND the summary: the nav badge and stat tiles read
+  // the summary, so hiding only the list would print "3 open" above a list of one.
+  const { visible: visibleCases, hiddenTestCases } = visibleOperationCases(allCases, bookingMap, { includeTest });
+  const filtered = visibleCases.filter((row) => {
     if (statusFilter === 'active' && !ACTIVE_STATUSES.has(row.status)) return false;
     if (statusFilter && statusFilter !== 'active' && statusFilter !== 'all' && row.status !== statusFilter) return false;
     if (typeFilter && typeFilter !== 'all' && row.case_type !== typeFilter) return false;
@@ -71,8 +75,9 @@ async function loadCaseList({ sb, res, query }) {
   });
 
   return res.status(200).json({
-    summary: summarizeOperationCases(allCases),
-    filters: { status: statusFilter || 'active', caseType: typeFilter || 'all', severity: severityFilter || 'all' },
+    summary: summarizeOperationCases(visibleCases),
+    hiddenTestCases,
+    filters: { status: statusFilter || 'active', caseType: typeFilter || 'all', severity: severityFilter || 'all', includeTest },
     cases: filtered.map((row) => formatOperationCase(row, {
       booking: bookingMap.get(row.booking_id) || null,
       easer: easerMap.get(row.easer_id) || null,
@@ -119,7 +124,7 @@ async function loadBookingMap(sb, cases) {
   if (!ids.length) return new Map();
   const { data, error } = await sb
     .from('bookings')
-    .select('id, ref, service, status, payment_status, payout_status, damage_review_status')
+    .select('id, ref, service, status, payment_status, payout_status, damage_review_status, is_test_booking')
     .in('id', ids);
   if (error) {
     console.error('Operations case booking linkage load failed:', error);
@@ -133,6 +138,7 @@ async function loadBookingMap(sb, cases) {
     paymentStatus: row.payment_status,
     payoutStatus: row.payout_status,
     damageReviewStatus: row.damage_review_status || null,
+    isTest: row.is_test_booking === true,
   }]));
 }
 
@@ -201,6 +207,24 @@ export function summarizeOperationCases(rows = []) {
     waitingEaser: rows.filter((row) => row.status === 'waiting_easer').length,
     resolved: rows.filter((row) => row.status === 'resolved' || row.status === 'closed').length,
   };
+}
+
+/**
+ * Which cases the owner sees by default.
+ *
+ * Cases raised against the owner's own test bookings (bookings.is_test_booking,
+ * migration 094) are left out unless includeTest is set. The test flag is the
+ * platform's one definition of "test" -- no email or keyword guessing, so a real
+ * customer's case can never be hidden by a heuristic.
+ *
+ * A failed booking lookup yields an empty map, so nothing is hidden: a real case
+ * must never vanish because a lookup failed.
+ */
+export function visibleOperationCases(cases = [], bookingMap = new Map(), { includeTest = false } = {}) {
+  const visible = includeTest
+    ? cases
+    : cases.filter((row) => bookingMap.get(row.booking_id)?.isTest !== true);
+  return { visible, hiddenTestCases: cases.length - visible.length };
 }
 
 export function formatOperationCase(row, context = {}) {
