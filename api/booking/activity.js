@@ -17,7 +17,7 @@ export default async function handler(req, res) {
         .eq('booking_id', bookingId)
         .order('created_at', { ascending: true }),
       sb.from('notification_log')
-        .select('id, channel, notification_type, recipient_type, recipient_email, subject, status, error_text, sent_at, last_provider_event_at')
+        .select('id, channel, notification_type, recipient_type, recipient_email, subject, status, error_text, provider_id, sent_at, last_provider_event_at, last_provider_event_type')
         .eq('booking_id', bookingId)
         .order('sent_at', { ascending: true }),
     ]);
@@ -29,8 +29,8 @@ export default async function handler(req, res) {
       id:          n.id,
       booking_id:  bookingId,
       event_type:  notificationEventType(n.status),
-      actor_type:  n.channel,           // 'email' | 'push'
-      actor_name:  n.channel === 'email' ? 'Email' : 'Push',
+      actor_type:  n.channel,           // 'email' | 'sms' | 'push'
+      actor_name:  channelLabel(n.channel),
       description: formatNotifDescription(n),
       metadata:    {
         status: n.status,
@@ -38,6 +38,8 @@ export default async function handler(req, res) {
         notificationType: n.notification_type,
         recipientType: n.recipient_type,
         recipientEmail: n.recipient_email,
+        providerId: n.provider_id,
+        providerEventType: n.last_provider_event_type,
         ownerAction: notificationNeedsAttention(n.status) ? 'Confirm the booking state, then contact the intended recipient using the booking record.' : null,
       },
       created_at:  n.last_provider_event_at || n.sent_at,
@@ -120,7 +122,7 @@ function formatNotifDescription(n) {
   };
   const label = typeLabels[n.notification_type] || n.notification_type;
   const to    = recipientLabels[n.recipient_type] || n.recipient_type || '';
-  const via   = n.channel === 'push' ? 'push notification' : 'email';
+  const via   = channelLabel(n.channel);
 
   if (notificationNeedsAttention(n.status)) {
     return `${label} ${via} to ${to} ${String(n.status || 'failed').toUpperCase()} — ${n.error_text || 'follow-up required'}`;
@@ -131,8 +133,15 @@ function formatNotifDescription(n) {
   const recipient = n.recipient_email || to;
   if (n.status === 'delivered') return `${label} delivered via ${via} to ${recipient}`;
   if (n.status === 'queued') return `${label} queued for ${recipient}`;
-  if (n.status === 'provider_accepted') return `${label} accepted by the email provider for ${recipient}`;
-  return `${label} sent via ${via} to ${recipient}`;
+  if (n.status === 'provider_accepted') return `${label} accepted by Telnyx for ${recipient}`;
+  if (n.status === 'sent') return `${label} sent via ${via} to ${recipient}`;
+  return `${label} ${String(n.status || 'recorded').replaceAll('_', ' ')} via ${via} to ${recipient}`;
+}
+
+function channelLabel(channel) {
+  if (channel === 'sms') return 'SMS';
+  if (channel === 'push') return 'push notification';
+  return 'email';
 }
 
 function notificationNeedsAttention(status) {

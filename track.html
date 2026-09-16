@@ -79,6 +79,16 @@
 .price-breakdown-value{color:var(--ink);text-align:right;white-space:nowrap}
 .price-breakdown-value.strong{font-weight:700}
 .booking-card-actions{padding:1.5rem 2rem;display:flex;flex-direction:column;gap:0.75rem}
+.booking-communication{margin-top:1rem;padding:1.25rem;background:#fff;border:1.5px solid var(--border);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.06);display:none}
+.booking-communication h2{font-family:var(--font-display);font-size:1.25rem;color:var(--ink);margin:0 0 .35rem}
+.booking-communication-copy{font-size:.82rem;color:var(--muted);line-height:1.5;margin:0 0 1rem}
+.customer-thread{max-height:280px;overflow:auto;margin-bottom:1rem}
+.customer-message{padding:.65rem .8rem;border-radius:12px;margin-bottom:.55rem;max-width:88%;font-size:.84rem;line-height:1.5;white-space:pre-wrap}
+.customer-message.customer{margin-left:auto;background:#e0f7ff;color:#164e63}.customer-message.owner{background:var(--off-white);color:var(--ink);border:1px solid var(--border)}
+.customer-message-meta{display:block;font-size:.68rem;color:var(--muted);margin-top:.25rem}
+.customer-compose textarea{width:100%;box-sizing:border-box;min-height:76px;padding:.7rem;border:1.5px solid var(--border);border-radius:10px;font:inherit;resize:vertical}
+.customer-photos{display:flex;gap:.5rem;flex-wrap:wrap;margin:.8rem 0}.customer-photos img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+.customer-communication-actions{display:flex;gap:.55rem;align-items:center;flex-wrap:wrap;margin-top:.55rem}.customer-communication-status{font-size:.78rem;color:var(--muted);line-height:1.4}
 .btn-cancel-booking{width:100%;padding:0.85rem;background:#fef2f2;color:#991b1b;border:1.5px solid #fecaca;border-radius:10px;font-family:var(--font-body);font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px}
 .btn-cancel-booking:hover{background:#fee2e2;border-color:#fca5a5}
 .btn-cancel-booking:disabled{opacity:0.5;cursor:not-allowed}
@@ -375,6 +385,23 @@
         </a>
       </div>
     </div>
+
+    <section class="booking-communication" id="bookingCommunication" aria-labelledby="bookingCommunicationTitle">
+      <h2 id="bookingCommunicationTitle">Message about your booking</h2>
+      <p class="booking-communication-copy">Send a note to the AssembleAtEase team. Your message and any photos stay private to your booking.</p>
+      <div class="customer-thread" id="customerThread" aria-live="polite"></div>
+      <div class="customer-photos" id="customerPhotos"></div>
+      <div class="customer-compose">
+        <label for="customerMessage" class="detail-label" style="display:block;margin-bottom:.35rem">Your message</label>
+        <textarea id="customerMessage" maxlength="2000" placeholder="Tell us what you need help with"></textarea>
+        <div class="customer-communication-actions">
+          <input id="customerPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none"/>
+          <button type="button" class="btn-portal" id="customerPhotoPick" style="width:auto;padding:.65rem .8rem">Add photo</button>
+          <button type="button" class="btn btn-cyan" id="customerMessageSend" style="padding:.68rem .9rem">Send message</button>
+          <span class="customer-communication-status" id="customerCommunicationStatus" role="status"></span>
+        </div>
+      </div>
+    </section>
 
     <p class="track-help">
       Need help? Call us at <a href="tel:+19792325139">(979) 232-5139</a> or <a href="/contact">send a message</a>.
@@ -929,8 +956,87 @@ function renderBooking(b) {
   // Show result section, scroll to it
   const resultEl = document.getElementById('trackResult');
   resultEl.classList.add('show');
+  loadCustomerCommunication();
   setTimeout(() => resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 }
+
+function setCustomerCommunicationStatus(message, isError) {
+  var el = document.getElementById('customerCommunicationStatus');
+  if (el) { el.textContent = message || ''; el.style.color = isError ? '#991b1b' : 'var(--muted)'; }
+}
+
+function renderCustomerCommunication(messages, photos) {
+  var section = document.getElementById('bookingCommunication');
+  if (!section || !currentBooking || !currentMutationToken) return;
+  section.style.display = '';
+  var thread = document.getElementById('customerThread');
+  thread.textContent = '';
+  (messages || []).forEach(function(message) {
+    var bubble = document.createElement('div');
+    bubble.className = 'customer-message ' + (message.sender === 'customer' ? 'customer' : 'owner');
+    bubble.textContent = message.body || '';
+    var meta = document.createElement('span');
+    meta.className = 'customer-message-meta';
+    meta.textContent = (message.sender === 'customer' ? 'You' : message.sender === 'assembler' ? 'Your service pro' : 'AssembleAtEase') + ' · ' + new Date(message.created_at).toLocaleString();
+    bubble.appendChild(meta); thread.appendChild(bubble);
+  });
+  if (!messages || !messages.length) {
+    var empty = document.createElement('div'); empty.className = 'customer-communication-status'; empty.textContent = 'No messages yet.'; thread.appendChild(empty);
+  }
+  var photosEl = document.getElementById('customerPhotos'); photosEl.textContent = '';
+  (photos || []).forEach(function(photo) {
+    if (!photo.signed_url) return;
+    var image = document.createElement('img'); image.src = photo.signed_url; image.alt = 'Photo attached to this booking'; image.loading = 'lazy'; photosEl.appendChild(image);
+  });
+}
+
+async function loadCustomerCommunication() {
+  if (!currentBooking || !currentEmail || !currentRef || !currentMutationToken) return;
+  try {
+    var query = '?ref=' + encodeURIComponent(currentRef) + '&email=' + encodeURIComponent(currentEmail) + '&token=' + encodeURIComponent(currentMutationToken);
+    var results = await Promise.all([
+      fetch('/api/booking/message' + query),
+      fetch('/api/booking/customer-photos' + query),
+    ]);
+    if (!results[0].ok || !results[1].ok) throw new Error('Communication unavailable');
+    var messageData = await results[0].json(); var photoData = await results[1].json();
+    renderCustomerCommunication(messageData.messages || [], photoData.photos || []);
+  } catch (_) { setCustomerCommunicationStatus('Messages are temporarily unavailable. Please try again.', true); }
+}
+
+(function bindCustomerCommunication() {
+  var send = document.getElementById('customerMessageSend');
+  var pick = document.getElementById('customerPhotoPick');
+  var input = document.getElementById('customerPhoto');
+  if (pick && input) pick.addEventListener('click', function() { input.click(); });
+  if (input) input.addEventListener('change', function() {
+    var file = input.files && input.files[0];
+    if (file && file.size > 5 * 1024 * 1024) { input.value = ''; setCustomerCommunicationStatus('Images must be no larger than 5 MB.', true); return; }
+    setCustomerCommunicationStatus(file ? file.name + ' selected. Send the message to upload it.' : '', false);
+  });
+  if (send) send.addEventListener('click', async function() {
+    if (!currentBooking || !currentMutationToken) return;
+    var text = (document.getElementById('customerMessage').value || '').trim();
+    var file = input && input.files && input.files[0];
+    if (!text && !file) { setCustomerCommunicationStatus('Write a message or choose a photo first.', true); return; }
+    send.disabled = true; setCustomerCommunicationStatus('Sending…', false);
+    try {
+      if (text) {
+        var messageResponse = await fetch('/api/booking/message', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ref:currentRef, email:currentEmail, token:currentMutationToken, body:text }) });
+        if (!messageResponse.ok) throw new Error('Message could not be sent.');
+      }
+      if (file) {
+        var reader = new FileReader();
+        var dataUrl = await new Promise(function(resolve, reject) { reader.onload = function(){ resolve(reader.result); }; reader.onerror = reject; reader.readAsDataURL(file); });
+        var photoResponse = await fetch('/api/booking/customer-photos', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ref:currentRef, email:currentEmail, token:currentMutationToken, fileBase64:dataUrl, mimeType:file.type }) });
+        if (!photoResponse.ok) throw new Error('Photo could not be uploaded.');
+      }
+      document.getElementById('customerMessage').value = ''; if (input) input.value = '';
+      setCustomerCommunicationStatus('Sent.', false); await loadCustomerCommunication();
+    } catch (error) { setCustomerCommunicationStatus(error.message || 'Could not send. Please try again.', true); }
+    finally { send.disabled = false; }
+  });
+})();
 
 // ── Cancel modal ───────────────────────────────────────────
 function openCancelModal() {

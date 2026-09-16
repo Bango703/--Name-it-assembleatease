@@ -201,6 +201,7 @@ const readyProfile = {
   identity_verified: true,
   is_available: true,
   phone: '512-555-0100',
+  sms_consent_at: '2026-07-13T00:00:00.000Z',
   application_fee_paid: false,
   application_fee_waived: false,
   fee_waived_by_owner: false,
@@ -314,11 +315,11 @@ for (const [name, source] of [
 }
 assert.match(messageApi, /bk\.assembler_id !== easerAccess\.user\.id/);
 assert.match(messageApi, /select\('id, booking_id, sender, sender_user_id, recipient_type, recipient_user_id, body, created_at, read_at'\)/);
-assert.match(messageApi, /sender_user_id\.eq\.\$\{easerAccess\.user\.id\},recipient_user_id\.eq\.\$\{easerAccess\.user\.id\}/);
+assert.match(messageApi, /sender_user_id\.eq\.\$\{easerAccess\.user\.id\},recipient_user_id\.eq\.\$\{easerAccess\.user\.id\}(,sender\.eq\.customer)?/);
 assert.doesNotMatch(messageApi, /sender\.eq\.assembler,recipient_type\.eq\.assembler/);
 assert.match(messageApi, /sender_user_id:\s*authenticatedUser\?\.id \|\| null/);
 assert.match(messageApi, /recipient_type:\s*resolvedRecipient/);
-assert.match(messageApi, /recipient_user_id:\s*resolvedSender === 'owner' && resolvedRecipient === 'assembler'[\s\S]*?booking\.assembler_id/);
+assert.match(messageApi, /recipient_user_id:\s*\(resolvedSender === 'owner' && resolvedRecipient === 'assembler'\)[\s\S]*?\|\| \(resolvedSender === 'customer' && resolvedRecipient === 'assembler'\)[\s\S]*?booking\.assembler_id/);
 assert.match(messageApi, /message\.recipient_user_id === easerAccess\.user\.id/);
 assert.match(messageApi, /readQuery = readQuery\.eq\('recipient_user_id', easerAccess\.user\.id\)/);
 assert.match(messageApi, /\.eq\('recipient_type', readRecipient\)/);

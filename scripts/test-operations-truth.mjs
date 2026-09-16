@@ -12,6 +12,7 @@ const baseProfile = {
   application_status: 'approved',
   tier: 'starter',
   phone: '7375550100',
+  sms_consent_at: '2026-07-12T12:00:00.000Z',
   is_available: true,
   identity_verified: true,
   contractor_agreement_signed_at: '2026-07-12T12:00:00.000Z',

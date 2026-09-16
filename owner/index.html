@@ -1000,6 +1000,7 @@
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">ID Verification</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Connect Status</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Payouts Enabled</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">SMS Job Offers</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Jobs</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Rating</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Applied</th>
@@ -4170,6 +4171,30 @@ window.intelQuick = intelQuick;
     if (selectedId !== bookingId) return;
     isActiveTab = document.getElementById('tab-evidence').style.display !== 'none';
     _renderEvidence(bookingId, _evidenceCache[bookingId], contentEl, warningEl, badgeEl, isActiveTab);
+    window.loadCustomerPhotos(bookingId);
+  };
+
+  window.loadCustomerPhotos = async function loadCustomerPhotos(bookingId) {
+    var contentEl = document.getElementById('evidence-content');
+    if (!bookingId || !contentEl || selectedId !== bookingId) return;
+    var response = await fetch('/api/booking/customer-photos?bookingId=' + encodeURIComponent(bookingId), { headers: headers() });
+    var data = await response.json().catch(function() { return {}; });
+    if (!response.ok || !Array.isArray(data.photos) || !data.photos.length) return;
+    var panel = document.createElement('div');
+    panel.id = 'customer-photo-panel';
+    panel.style.cssText = 'margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)';
+    panel.innerHTML = '<div style="font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:.6rem">Customer Photos (Private)</div>';
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:flex;gap:.55rem;flex-wrap:wrap';
+    data.photos.forEach(function(photo) {
+      if (!photo.signed_url) return;
+      var image = document.createElement('img');
+      image.src = photo.signed_url; image.alt = 'Private customer photo'; image.loading = 'lazy';
+      image.style.cssText = 'width:92px;height:92px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer';
+      image.onclick = function() { window.open(photo.signed_url, '_blank', 'noopener'); };
+      grid.appendChild(image);
+    });
+    panel.appendChild(grid); contentEl.appendChild(panel);
   };
 
   // Promote (or withdraw) the Customer-Facing Final Photo. The server decides
@@ -10055,6 +10080,11 @@ window.intelQuick = intelQuick;
     }
     return boolBadge(!!a.stripe_connect_payouts_enabled);
   }
+  function smsStatusBadge(a) {
+    if (a.readiness && a.readiness.jobTextsEnabled) return '<span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px;white-space:nowrap">ON</span>';
+    var label = a.sms_opted_out_at ? 'STOPPED' : (a.phone ? 'OFF' : 'NO PHONE');
+    return '<span title="' + esc(a.sms_opted_out_at ? 'Easer opted out of job texts' : 'Easer must enable job texts before receiving offers') + '" style="display:inline-block;background:#fee2e2;color:#991b1b;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px;white-space:nowrap">' + label + '</span>';
+  }
 
   // Suspended, deactivated and rejected accounts are HISTORY, not roster. They
   // each have their own tab, so nothing becomes unreachable — but they must not
@@ -10129,7 +10159,7 @@ window.intelQuick = intelQuick;
     }
 
     var tbody = document.getElementById('asm-tbody');
-    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="10" style="padding:2rem;text-align:center;color:var(--muted)">No Easers found</td></tr>'; return; }
+    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="11" style="padding:2rem;text-align:center;color:var(--muted)">No Easers found</td></tr>'; return; }
     var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
 
     tbody.innerHTML = filtered.map(function(a) {
@@ -10176,6 +10206,7 @@ window.intelQuick = intelQuick;
         + '<td style="' + rs + '">' + idVerificationBadge(a) + '</td>'
         + '<td style="' + rs + '">' + connectBadge(a) + '</td>'
         + '<td style="' + rs + '">' + payoutCapabilityBadge(a) + '</td>'
+        + '<td style="' + rs + '">' + smsStatusBadge(a) + '</td>'
         + '<td style="' + rs + '">' + (a.completed_jobs||0) + '</td>'
         + '<td style="' + rs + '">' + (a.rating ? Number(a.rating).toFixed(1) : '—') + '</td>'
         + '<td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
@@ -10185,6 +10216,18 @@ window.intelQuick = intelQuick;
   }
 
   document.getElementById('asm-tbody').addEventListener('click', async function(e) {
+    var smsOptInBtn = e.target.closest('[data-send-sms-optin]');
+    if (smsOptInBtn) {
+      smsOptInBtn.disabled = true; smsOptInBtn.textContent = 'Sending...';
+      try {
+        var response = await fetch('/api/owner/announcement-adoption', { method:'POST', headers:headers(), body:JSON.stringify({ action:'resend', key: 'sms_job_texts', easerId:smsOptInBtn.dataset.sendSmsOptin }) });
+        var data = await response.json().catch(function(){ return {}; });
+        if (!response.ok) throw new Error(data.error || 'Opt-in email could not be sent.');
+        toast('SMS opt-in email sent.', 'success');
+      } catch (err) { toast(err.message || 'Opt-in email could not be sent.', 'error'); }
+      finally { smsOptInBtn.disabled = false; smsOptInBtn.textContent = 'Send opt-in email'; }
+      return;
+    }
     var approveBtn = e.target.closest('[data-approve]');
     if (approveBtn) {
       var aId = approveBtn.dataset.approve;
@@ -10320,6 +10363,7 @@ window.intelQuick = intelQuick;
       ['Code of Conduct Accepted', readinessChip(!!r.codeOfConductAccepted)],
       ['Application Fee Satisfied', readinessChip(!!r.applicationFeeSatisfied)],
       ['Valid Phone On File', readinessChip(!!r.phoneAvailable)],
+      ['Job Texts Enabled', r.jobTextsEnabled ? readinessChip(true) : '<span style="color:#991b1b;font-weight:700">' + esc((r.jobTexts && r.jobTexts.label) || 'Off') + '</span>'],
       ['Tier Eligible', readinessChip(!!r.tierEligible)],
       ['Identity Verified', readinessChip(!!r.identityVerified)],
       ['Owner Approved', readinessChip(!!r.ownerApproved)],
@@ -10420,6 +10464,7 @@ window.intelQuick = intelQuick;
 
     // TIER ACTIONS (active status)
     if (a.status === 'active' && !closureHeld) {
+      if (!a.sms_consent_at && !a.sms_opted_out_at && a.email) actionBtns += '<button class="btn btn-teal" data-send-sms-optin="' + a.id + '">Send opt-in email</button> ';
       if (!['starter','professional','elite'].includes(a.tier)) actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'starter\')">Assign Starter Tier</button> ';
       if (a.tier === 'starter') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'professional\')">Promote to Professional</button> ';
       if (a.tier === 'professional') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'elite\')">Promote to Elite</button> <button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'starter\')">Demote to Starter</button> ';

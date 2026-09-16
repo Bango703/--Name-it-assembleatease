@@ -12,7 +12,7 @@ const ready = extra => ({
   contractor_agreement_signed_at: '2026-08-16T00:00:00Z',
   contractor_agreement_version: CONTRACTOR_AGREEMENT_VERSION,
   code_of_conduct_agreed_at: '2026-08-16T00:00:00Z',
-  phone: '512-555-0100', is_available: true, tier: 'starter',
+  phone: '512-555-0100', sms_consent_at: '2026-08-16T00:00:00Z', is_available: true, tier: 'starter',
   application_fee_paid: true, ...extra,
 });
 

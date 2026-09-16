@@ -73,6 +73,7 @@ const readyProfile = {
   application_fee_paid: true,
   payment_confirmed: true,
   phone: '5125550147',
+  sms_consent_at: '2026-08-20T00:00:00Z',
   is_available: true,
 };
 const ready = await getEaserReadiness(readyProfile, { connectRequired: false });

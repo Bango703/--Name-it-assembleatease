@@ -1,7 +1,10 @@
 ﻿import { getSupabase } from '../_supabase.js';
+import { rateLimit } from '../_ratelimit.js';
 import { formatAppointmentDate } from './_appt-date.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
+import { safeTokenHashMatch } from '../_payment-security.js';
+import { bookingEmailMatches } from './_guest-booking-auth.js';
 import { logActivity } from './_activity.js';
 import {
   authenticateBearerUser,
@@ -54,19 +57,46 @@ const EASER_SUPPORT_TYPES = Object.freeze({
 });
 
 export default async function handler(req, res) {
+  const ip = String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+  if (!(await rateLimit(ip, 'booking'))) {
+    return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+  }
+
   // GET — owner or the active, approved Easer assigned to the booking.
   if (req.method === 'GET') {
-    const { bookingId, ref } = req.query || {};
-    if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref query param required' });
+    const { bookingId, ref, email, token } = req.query || {};
+    const guestRequest = Boolean(email || token);
+    if (!bookingId && !ref && !guestRequest) return res.status(400).json({ error: 'bookingId or ref query param required' });
     const sb = getSupabase();
     const ownerRequest = verifyOwner(req);
+    if (guestRequest) {
+      if (ownerRequest || bookingId || !email || !ref || !token) {
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+      const { data: guestBooking } = await sb.from('bookings')
+        .select('id, ref, customer_email, guest_mutation_token_hash')
+        .eq('ref', String(ref).trim().toUpperCase())
+        .maybeSingle();
+      if (!guestBooking
+          || !bookingEmailMatches(guestBooking, email)
+          || !safeTokenHashMatch(token, guestBooking.guest_mutation_token_hash)) {
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+      const { data: guestMessages, error: guestMessageError } = await sb.from('messages')
+        .select('id, booking_id, sender, sender_user_id, recipient_type, recipient_user_id, body, created_at, read_at')
+        .eq('booking_id', guestBooking.id)
+        .or('sender.eq.customer,recipient_type.eq.customer')
+        .order('created_at', { ascending: true });
+      if (guestMessageError) return res.status(500).json({ error: 'Failed to fetch messages' });
+      return res.status(200).json({ messages: guestMessages || [] });
+    }
     let easerAccess = null;
     if (!ownerRequest) {
       easerAccess = await requireAssignedWorkEaser(req, { supabase: sb });
       if (!easerAccess.ok) return respondWithEaserAccessError(res, easerAccess);
     }
 
-    let bq = sb.from('bookings').select('id, assembler_id');
+    let bq = sb.from('bookings').select('id, assembler_id, assembler_accepted_at');
     if (bookingId) bq = bq.eq('id', bookingId); else bq = bq.eq('ref', ref);
     const { data: bk, error: bkErr } = await bq.maybeSingle();
     if (bkErr) return res.status(500).json({ error: 'Failed to verify booking access' });
@@ -74,7 +104,7 @@ export default async function handler(req, res) {
     // A helper on the crew can message about the job they are working. Kept as a
     // 404 rather than a 403 for anyone else, so this never confirms a booking
     // exists to someone with no claim on it.
-    if (!ownerRequest && bk.assembler_id !== easerAccess.user.id) {
+    if (!ownerRequest && (bk.assembler_id !== easerAccess.user.id || !bk.assembler_accepted_at)) {
       const { data: crewRow } = await sb
         .from('booking_crew')
         .select('id')
@@ -93,7 +123,7 @@ export default async function handler(req, res) {
       // only rows could disclose the prior Easer's thread. Legacy rows with no
       // user identity intentionally remain owner-only.
       messagesQuery = messagesQuery.or(
-        `sender_user_id.eq.${easerAccess.user.id},recipient_user_id.eq.${easerAccess.user.id}`,
+        `sender_user_id.eq.${easerAccess.user.id},recipient_user_id.eq.${easerAccess.user.id},sender.eq.customer`,
       );
     }
     const { data: msgs, error: msgsErr } = await messagesQuery
@@ -200,7 +230,7 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { bookingId, ref, body: msgBody, sender, target, supportType: rawSupportType } = req.body || {};
+  const { bookingId, ref, email, token, body: msgBody, sender, target, supportType: rawSupportType } = req.body || {};
   if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref is required' });
   const messageText = typeof msgBody === 'string' ? msgBody.trim() : '';
   if (!messageText) return res.status(400).json({ error: 'Message body is required' });
@@ -217,6 +247,7 @@ export default async function handler(req, res) {
   let resolvedSender;
   let resolvedRecipient;
   let authenticatedUser = null;
+  let guestBooking = null;
   if (sender === 'owner') {
     if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
     resolvedSender = 'owner';
@@ -232,6 +263,22 @@ export default async function handler(req, res) {
     // Default stays the owner support channel, so every existing caller keeps
     // its behavior. Only an explicit customer target opens the relay.
     resolvedRecipient = target === 'customer' ? 'customer' : 'owner';
+  } else if (email || token) {
+    if (bookingId || !email || !ref || !token) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+    const { data: matchedBooking } = await sb.from('bookings')
+      .select('id, ref, customer_email, guest_mutation_token_hash')
+      .eq('ref', String(ref).trim().toUpperCase())
+      .maybeSingle();
+    if (!matchedBooking
+        || !bookingEmailMatches(matchedBooking, email)
+        || !safeTokenHashMatch(token, matchedBooking.guest_mutation_token_hash)) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+    guestBooking = matchedBooking;
+    resolvedSender = 'customer';
+    resolvedRecipient = 'owner';
   } else {
     const authenticated = await authenticateBearerUser(req);
     if (!authenticated.ok) {
@@ -252,14 +299,21 @@ export default async function handler(req, res) {
   if (fetchErr) return res.status(500).json({ error: 'Failed to verify booking access' });
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
+  if (guestBooking && guestBooking.id !== booking.id) {
+    return res.status(404).json({ error: 'Booking not found' });
+  }
+
   if (resolvedSender === 'assembler'
       && (!booking.assembler_id || booking.assembler_id !== authenticatedUser.id)) {
     return res.status(404).json({ error: 'Booking not found' });
   }
-  if (resolvedSender === 'customer') {
+  if (resolvedSender === 'customer' && !guestBooking) {
     if (!customerOwnsBooking(booking, authenticatedUser)) {
       return res.status(404).json({ error: 'Booking not found' });
     }
+  }
+  if (resolvedSender === 'customer' && booking.assembler_id && booking.assembler_accepted_at) {
+    resolvedRecipient = 'assembler';
   }
   if (resolvedSender === 'owner' && target === 'assembler' && !booking.assembler_id) {
     return res.status(409).json({ error: 'No Easer is assigned to this booking' });
@@ -295,7 +349,8 @@ export default async function handler(req, res) {
       sender: resolvedSender,
       sender_user_id: authenticatedUser?.id || null,
       recipient_type: resolvedRecipient,
-      recipient_user_id: resolvedSender === 'owner' && resolvedRecipient === 'assembler'
+      recipient_user_id: (resolvedSender === 'owner' && resolvedRecipient === 'assembler')
+        || (resolvedSender === 'customer' && resolvedRecipient === 'assembler')
         ? booking.assembler_id
         : null,
       body: messageText,
@@ -548,6 +603,39 @@ export default async function handler(req, res) {
           disableDedupe: true,
         },
       });
+      if (booking.assembler_id && booking.assembler_accepted_at) {
+        const { data: easerProfile } = await sb.from('profiles')
+          .select('email, full_name')
+          .eq('id', booking.assembler_id)
+          .eq('role', 'assembler')
+          .maybeSingle();
+        if (easerProfile?.email) {
+          const easerNotice = await sendEmail({
+            to: easerProfile.email,
+            from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
+            subject: 'Customer message — ' + booking.ref,
+            html: `<p style="font-family:Arial,sans-serif;color:#1a1a1a">A customer sent a message about booking <strong>${esc(booking.ref)}</strong>.</p><p style="font-family:Arial,sans-serif;color:#1a1a1a;line-height:1.6">${sBody}</p><p style="font-family:Arial,sans-serif;color:#71717a">Open your assigned job in the Easer dashboard to reply through AssembleAtEase.</p>`,
+            replyTo: ownerEmail(),
+            meta: {
+              bookingId: booking.id,
+              notificationType: 'customer_message',
+              recipientType: 'easer',
+              recipientUserId: booking.assembler_id,
+              disableDedupe: true,
+            },
+          });
+          if (easerNotice?.ok !== true || easerNotice?.suppressed === true) {
+            await logActivity(sb, {
+              bookingId: booking.id,
+              eventType: 'message_notification_failed',
+              actorType: 'system',
+              actorName: 'notifications',
+              description: `Customer message ${message.id} was saved and owner-notified, but the Easer notification failed.`,
+              metadata: { messageId: message.id, recipientType: 'assembler', error: easerNotice?.error || easerNotice?.reason || 'unknown' },
+            }).catch(() => {});
+          }
+        }
+      }
     }
     if (notificationResult?.ok !== true || notificationResult?.suppressed === true) {
       throw new Error(notificationResult?.error || notificationResult?.reason || 'Message notification was not delivered');
