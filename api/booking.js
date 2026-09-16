@@ -14,6 +14,8 @@ import {
 import { logActivity } from './booking/_activity.js';
 import { appointmentTimestampMs } from './booking/_appt-date.js';
 import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './booking/_booking-window.js';
+import { SCHEDULED_AUTHORIZATION_LEAD_DAYS } from './booking/_booking-window.js';
+import { CANCELLATION_POLICY } from './_source-of-truth.js';
 import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 import { assertGuestTokenConfiguration, deriveGuestMutationToken, guestMutationTokenHash, randomToken } from './_payment-security.js';
 import { parseServiceLocation } from './_booking-location.js';
@@ -792,7 +794,7 @@ export default async function handler(req, res) {
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1e40af">Action Required</p>
-    <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">${quoteRequested ? `Review the project notes, prepare a final quote, and contact <strong>${sName}</strong> before scheduling or authorizing any amount.` : (scheduledAuthorization ? `Plan coverage for this appointment. The customer card is saved, but dispatch stays paused until payment is authorized five days before the visit.` : `Contact <strong>${sName}</strong> at <a href="tel:${sPhone}" style="color:#1e40af">${sPhone}</a> or <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> to confirm this appointment.`)}</p>
+    <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">${quoteRequested ? `Review the project notes, prepare a final quote, and contact <strong>${sName}</strong> before scheduling or authorizing any amount.` : (scheduledAuthorization ? `Plan coverage for this appointment. The customer card is saved, but dispatch stays paused until payment is authorized ${SCHEDULED_AUTHORIZATION_LEAD_DAYS} days before the visit.` : `Contact <strong>${sName}</strong> at <a href="tel:${sPhone}" style="color:#1e40af">${sPhone}</a> or <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> to confirm this appointment.`)}</p>
     </td></tr></table>
   </td></tr></table>
 
@@ -840,12 +842,12 @@ export default async function handler(req, res) {
       ` : `
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Email confirmation</strong> — We'll follow up to confirm date, time, and scope.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a reviewed local pro arrives with the tools needed for the job.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${scheduledAuthorization ? 'Card saved for later' : (clientSecret ? 'Card safely on file' : 'Payment reviewed after confirmation')}</strong> &mdash; ${scheduledAuthorization ? 'We will set up your card five days before the appointment. If your bank needs anything else, we will send a secure link.' : (clientSecret ? 'Your card is safely on file — you are only charged after the job is complete.' : 'If payment is needed, we will send secure payment steps before the work is scheduled.')}</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${scheduledAuthorization ? 'Card saved for later' : (clientSecret ? 'Card safely on file' : 'Payment reviewed after confirmation')}</strong> &mdash; ${scheduledAuthorization ? `We will set up your card ${SCHEDULED_AUTHORIZATION_LEAD_DAYS} days before the appointment. If your bank needs anything else, we will send a secure link.` : (clientSecret ? 'Your card is safely on file — you are only charged after the job is complete.' : 'If payment is needed, we will send secure payment steps before the work is scheduled.')}</td></tr>
       `}
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
-      <strong>Need to change plans?</strong> Reply to this email. Cancel at least 24 hours before your appointment for a full release of any hold. Inside 24 hours, a late-cancel fee may apply because a pro has already reserved the time.
+      <strong>Need to change plans?</strong> Reply to this email. Cancel at least ${CANCELLATION_POLICY.freeWindowHours} hours before your appointment for a full release of any hold. Inside ${CANCELLATION_POLICY.freeWindowHours} hours, a late-cancel fee may apply once a pro has accepted your job.
     </td></tr></table>
 
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">

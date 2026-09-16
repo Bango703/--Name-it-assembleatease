@@ -220,8 +220,16 @@ assert.equal(isActiveApprovedEaserProfile({ ...currentAgreementProfile, contract
 
 assert.equal(deriveOfferLocation('123 Main Street Apt 4, Austin, TX 78701, USA'), 'Austin, TX 78701');
 assert.equal(deriveOfferLocation('123 Main Street, Round Rock, TX, 78664'), 'Round Rock, TX 78664');
-assert.equal(deriveOfferLocation('123 Main Street, Private Person, TX 78701'), 'Austin-area service zone');
-assert.equal(deriveOfferLocation('123 Main Street, Austin, TX'), 'Austin-area service zone');
+// The address field is free text, so the segment before the state can be a
+// person's name. It must never be echoed to a pro who has not accepted. The
+// ZIP still is, because that is what answers "how far is this?" and it
+// identifies a service area rather than a household.
+const unrecognisedCity = deriveOfferLocation('123 Main Street, Private Person, TX 78701');
+assert.equal(unrecognisedCity, 'TX 78701');
+assert.doesNotMatch(unrecognisedCity, /Private|Person/i, 'free-text city must never be echoed pre-acceptance');
+// No usable ZIP means no location claim at all -- never a metro it is not in.
+assert.equal(deriveOfferLocation('123 Main Street, Austin, TX'), 'Texas service area');
+assert.doesNotMatch(deriveOfferLocation('5 Oak Dr, Lubbock, TX 79401'), /Austin/, 'a far-market job must never be labelled Austin');
 assert.doesNotMatch(deriveOfferLocation('123 Main Street Apt 4, Austin, TX 78701'), /123|Main|Apt/i);
 
 const load = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
