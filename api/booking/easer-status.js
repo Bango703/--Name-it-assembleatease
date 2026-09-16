@@ -222,7 +222,7 @@ export default async function handler(req, res) {
       subject: `Your Easer is on the way — ${esc(booking.ref)}`,
       statusLabel: 'On the way', statusColor: '#1d4ed8', statusBg: '#dbeafe',
       headline: 'Your Easer is on the way.',
-      intro: `${esc(easerFirstName)} is heading to you now and should arrive around ${esc(appointmentTime || 'the scheduled time')}.`,
+      intro: `${esc(easerFirstName)} is heading to you now.${appointmentTime ? ` Your arrival window is ${esc(appointmentTime)}.` : ''}`,
       reach: true,
     },
     arrived: {
@@ -264,7 +264,7 @@ export default async function handler(req, res) {
 
   let customerSmsNotice = { ok: true, skipped: 'stage_not_texted' };
   const customerSmsBodies = {
-    en_route: `${easerFirstName} is on the way to your AssembleAtEase appointment${appointmentTime ? ` and should arrive around ${formatSlotShort(appointmentTime)}` : ''}. Ref ${booking.ref}`,
+    en_route: `${easerFirstName} is on the way to your AssembleAtEase appointment.${appointmentTime ? ` Arrival window: ${formatSlotShort(appointmentTime)}.` : ''} Ref ${booking.ref}`,
     arrived: `${easerFirstName} has arrived for your AssembleAtEase appointment. Ref ${booking.ref}`,
   };
   if (customerSmsBodies[stage]) {
