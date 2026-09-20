@@ -261,7 +261,10 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
   assert.equal(row.dispatch_status, null);
   assert.equal(row.dispatch_paused, false);
   assert.ok(spy.names().includes('easerCleared'), 'the Easer who was told to stand down is told it cleared');
-  assert.ok(spy.names().includes('customerAuthorized'));
+  // The customer already had one email about this payment. A hold going through
+  // is not news she must act on, and the owner asked for no further email on a
+  // booking that had six in five days.
+  assert.ok(!spy.names().includes('customerAuthorized'), 'the customer is not emailed again when it clears');
   const filters = log.selectFilters[0].map(([column, value]) => `${column}=${value}`);
   assert.ok(filters.includes('payment_status=pending'), 'the sweep looks for exactly the state the old code left behind');
   assert.ok(filters.includes('dispatch_status=payment_hold'));

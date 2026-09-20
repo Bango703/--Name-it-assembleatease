@@ -434,7 +434,10 @@ export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivem
     description: 'A hold created by an earlier run was confirmed on this run; the card is authorized for capture after the visit.',
     metadata: { paymentIntentId: intent.id, appointmentDate: booking.date, recovered: true },
   }).catch(() => {});
-  await notify.customerAuthorized(booking).catch(() => {});
+  // The customer is deliberately NOT emailed here. A booking reaches this path
+  // only after we already wrote to her once about this payment, and a hold
+  // quietly going through is not news she has to act on — her appointment
+  // simply stands. The Easer IS told, because he was told to stand down.
   await notify.easerCleared(sb, booking).catch(() => {});
   if (automaticDispatch && !booking.assembler_id) {
     await dispatchBooking(booking.id).catch(error => console.error('[scheduled-auth] dispatch failed:', error?.message || error));
