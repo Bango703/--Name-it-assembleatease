@@ -151,7 +151,14 @@ export async function authorizeScheduledBooking({ sb, stripe, booking, expectedL
       customer: customerId,
       payment_method: paymentMethodId,
       capture_method: 'manual',
-      setup_future_usage: 'off_session',
+      // NO setup_future_usage here. Stripe refuses to confirm a PaymentIntent
+      // with off_session=true when setup_future_usage is set -- "the customer
+      // needs to be on-session to perform the steps which may be required to
+      // set up the PaymentMethod for future usage" -- so every scheduled hold
+      // created this way was rejected at the confirm step, every time, and the
+      // customer was then emailed that her bank wanted another confirmation.
+      // Nothing needs setting up: the card was already saved and attached to
+      // this customer by the SetupIntent taken at booking.
       payment_method_types: ['card'],
       receipt_email: booking.customer_email,
       statement_descriptor_suffix: 'ASSEMBLEATEASE',
@@ -375,6 +382,58 @@ export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivem
     intent = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
   } catch (error) {
     return { authorized: false, reason: 'stripe_lookup_failed' };
+  }
+
+  // A hold created with setup_future_usage can never be confirmed off-session:
+  // Stripe rejects the combination outright, so retrying it daily would fail
+  // daily. Cancel it, put the booking back in the queue, and let the normal
+  // path create a clean one.
+  if (intent.status === 'requires_confirmation' && intent.setup_future_usage) {
+    const cancelled = await cancelIntent(stripe, intent, expectedLivemode, `scheduled-auth-unconfirmable-${booking.id}-${intent.id}`);
+    if (!cancelled) return { authorized: false, reason: 'unconfirmable_hold_cancel_failed' };
+    const { data: resetRows, error: resetError } = await sb.from('bookings').update({
+      payment_status: 'card_saved',
+      stripe_payment_intent_id: null,
+      dispatch_status: null,
+    })
+      .eq('id', booking.id)
+      .eq('status', 'confirmed')
+      .eq('payment_status', 'pending')
+      .eq('stripe_payment_intent_id', intent.id)
+      .select('id');
+    if (resetError || !resetRows?.length) return { authorized: false, reason: 'unconfirmable_hold_reset_failed' };
+
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'scheduled_authorization_hold_recreated',
+      actorType: 'system',
+      actorName: 'scheduled payment',
+      description: 'A hold that Stripe could not confirm off-session was cancelled; a clean one is being placed on the same saved card.',
+      metadata: { cancelledPaymentIntentId: intent.id, appointmentDate: booking.date },
+    }).catch(() => {});
+
+    const retry = await authorizeScheduledBooking({
+      sb,
+      stripe,
+      booking: {
+        ...booking,
+        payment_status: 'card_saved',
+        stripe_payment_intent_id: null,
+        dispatch_status: null,
+        financial_operation_key: null,
+        financial_operation_type: null,
+        financial_operation_started_at: null,
+      },
+      expectedLivemode,
+      // Same rule as the rest of this path: the customer already had one email
+      // about this payment and does not need another because it worked.
+      notify: { ...notify, customerAuthorized: async () => ({ ok: true, skipped: 'recovery_no_customer_email' }) },
+    });
+    if (retry.ok && retry.authorized) {
+      await notify.easerCleared(sb, booking).catch(() => {});
+      return { authorized: true };
+    }
+    return { authorized: false, reason: retry.reason || 'hold_recreate_failed' };
   }
 
   let confirmError = null;

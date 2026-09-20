@@ -110,8 +110,8 @@ function fakeDb(booking) {
 }
 
 // ── A Stripe that answers exactly how the scenario says ─────────────────────
-function fakeStripe({ confirm, retrieveStatus = 'requires_confirmation', lastPaymentError = null, existingStatus = null }) {
-  const calls = { creates: 0, confirms: 0, retrieves: 0, cancels: 0 };
+function fakeStripe({ confirm, retrieveStatus = 'requires_confirmation', lastPaymentError = null, existingStatus = null, existingSetupFutureUsage = null }) {
+  const calls = { creates: 0, confirms: 0, retrieves: 0, cancels: 0, createParams: [] };
   const intent = status => ({
     id: 'pi_test',
     amount: AMOUNT,
@@ -127,14 +127,19 @@ function fakeStripe({ confirm, retrieveStatus = 'requires_confirmation', lastPay
   return {
     calls,
     paymentIntents: {
-      async create() { calls.creates += 1; return intent('requires_confirmation'); },
+      async create(params) { calls.creates += 1; calls.createParams.push(params); return intent('requires_confirmation'); },
       async confirm() {
         calls.confirms += 1;
         const answer = typeof confirm === 'function' ? confirm(calls.confirms) : confirm;
         if (answer instanceof Error || answer?.throws) throw (answer.throws || answer);
         return intent(answer);
       },
-      async retrieve() { calls.retrieves += 1; return intent(existingStatus || retrieveStatus); },
+      async retrieve() {
+        calls.retrieves += 1;
+        const found = intent(existingStatus || retrieveStatus);
+        if (existingSetupFutureUsage) found.setup_future_usage = existingSetupFutureUsage;
+        return found;
+      },
       async cancel() { calls.cancels += 1; return { ...intent('canceled'), status: 'canceled' }; },
     },
   };
@@ -292,7 +297,58 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
   assert.deepEqual(spy.names(), [], 'and nobody is emailed twice');
 }
 
-// ── 7. The verdict table itself ─────────────────────────────────────────────
+// ── 7. The hold Stripe will actually accept ─────────────────────────────────
+// The live failure on 2026-09-19: the hold was created with
+// setup_future_usage: 'off_session' and then confirmed with off_session: true.
+// Stripe refuses that pair outright -- "the customer needs to be on-session" --
+// so EVERY scheduled hold was rejected at the confirm step and every customer
+// was then told their bank wanted another confirmation. The card is already
+// saved and attached by the SetupIntent taken at booking; nothing needs setting
+// up again.
+{
+  const { sb } = fakeDb(baseBooking());
+  const stripe = fakeStripe({ confirm: 'requires_capture' });
+  const spy = spyNotifiers();
+  await authorizeScheduledBooking({
+    sb, stripe, booking: baseBooking(), expectedLivemode: true, todayIso: '2026-09-19', notify: spy.notify,
+  });
+  const created = stripe.calls.createParams[0];
+  assert.equal(created.setup_future_usage, undefined,
+    'a hold that will be confirmed off-session must not ask Stripe to set the card up again');
+  assert.equal(created.capture_method, 'manual', 'it is still a hold, not a charge');
+  assert.equal(created.customer, 'cus_test');
+  assert.equal(created.payment_method, 'pm_test');
+}
+
+// ── 8. A hold created the old way is cancelled and replaced ─────────────────
+{
+  const stranded = baseBooking({
+    payment_status: 'pending',
+    dispatch_status: 'payment_hold',
+    stripe_payment_intent_id: 'pi_test',
+  });
+  const { sb, row } = fakeDb(stranded);
+  const stripe = fakeStripe({
+    confirm: 'requires_capture',
+    existingStatus: 'requires_confirmation',
+    existingSetupFutureUsage: 'off_session',
+  });
+  const spy = spyNotifiers();
+
+  const result = await recoverUnconfirmedHolds({
+    sb, stripe, expectedLivemode: true, todayIso: '2026-09-19', notify: spy.notify,
+  });
+
+  assert.equal(result.authorized, 1, 'the booking ends up authorized');
+  assert.equal(stripe.calls.cancels, 1, 'the unconfirmable hold is cancelled, not retried forever');
+  assert.equal(stripe.calls.creates, 1, 'and a clean one is created');
+  assert.equal(stripe.calls.createParams[0].setup_future_usage, undefined, 'without the parameter that broke it');
+  assert.equal(row.payment_status, 'authorized');
+  assert.ok(spy.names().includes('easerCleared'), 'the Easer is told it cleared');
+  assert.ok(!spy.names().includes('customerAuthorized'), 'and the customer is still not emailed again');
+}
+
+// ── 9. The verdict table itself ─────────────────────────────────────────────
 {
   const cases = [
     [{ intentStatus: 'requires_capture' }, 'authorized', false],
@@ -310,6 +366,20 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
     assert.ok(outcome.ownerReason, 'every verdict states a reason for the owner');
   }
   assert.equal(classifyAuthorizationOutcome({ intentStatus: 'requires_confirmation' }).retryable, true);
+
+  // Stripe answering "no, not like that" is our bug, and must not be described
+  // as a request that never arrived.
+  const rejected = classifyAuthorizationOutcome({
+    intentStatus: 'requires_confirmation',
+    confirmError: Object.assign(new Error('You cannot confirm with `off_session=true` when `setup_future_usage` is also set'), {
+      type: 'StripeInvalidRequestError',
+    }),
+  });
+  assert.equal(rejected.kind, 'platform_retry');
+  assert.equal(rejected.notifyCustomer, false, 'a parameter mistake never reaches the customer');
+  assert.match(rejected.ownerReason, /Stripe rejected our confirmation request/);
+  assert.match(rejected.ownerReason, /platform fault, not the customer's card/);
+  assert.doesNotMatch(rejected.ownerReason, /did not reach Stripe/);
 }
 
 console.log('Scheduled authorization truth tests: PASS');

@@ -31,6 +31,13 @@ function isIssuerError(error) {
   return CARD_ERROR_TYPES.has(error.type) || CARD_ERROR_TYPES.has(error.rawType);
 }
 
+// Stripe received the request and refused it: wrong parameters, not a wrong
+// card. Always a fault on this side.
+function isRequestRejection(error) {
+  if (!error) return false;
+  return error.type === 'StripeInvalidRequestError' || error.rawType === 'invalid_request_error';
+}
+
 function errorDetail(error) {
   if (!error) return null;
   // Both codes, because they answer different questions: `code` is the class of
@@ -103,9 +110,15 @@ export function classifyAuthorizationOutcome({ intentStatus, lastPaymentError = 
       notifyEaser: false,
       retryable: true,
       code: 'CONFIRMATION_NOT_SENT',
-      ownerReason: confirmError
-        ? `The hold was created but our confirmation did not reach Stripe (${errorDetail(confirmError) || confirmError.type || 'no response'}). The booking stays queued and retries automatically.`
-        : 'The hold was created but never confirmed. The booking stays queued and retries automatically.',
+      // Two different failures live here and must not be described the same
+      // way: Stripe never answered, or Stripe answered "no, not like that".
+      // The second is our bug, and saying "did not reach Stripe" about it sent
+      // the owner looking at the network instead of the code.
+      ownerReason: isRequestRejection(confirmError)
+        ? `Stripe rejected our confirmation request: ${errorDetail(confirmError)}. This is a platform fault, not the customer's card. The booking stays queued.`
+        : confirmError
+          ? `The hold was created but our confirmation did not reach Stripe (${errorDetail(confirmError) || confirmError.type || 'no response'}). The booking stays queued and retries automatically.`
+          : 'The hold was created but never confirmed. The booking stays queued and retries automatically.',
       customerHeadline: null,
     };
   }
