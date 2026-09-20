@@ -64,7 +64,7 @@ const MESSAGES = {
   booking_confirmed:
     `AssembleAtEase: ${service} booked for ${date} ${time}. We'll text when your Easer is on the way. Ref ${ref}`,
   en_route:
-    `${easerFirstName} is on the way to your AssembleAtEase appointment and should arrive around ${time}. Ref ${ref}`,
+    `${easerFirstName} is on the way to your AssembleAtEase appointment. Arrival window: ${time}. Ref ${ref}`,
   arrived:
     `${easerFirstName} has arrived for your AssembleAtEase appointment. Ref ${ref}`,
 };
@@ -112,13 +112,22 @@ const shipped = {
   'api/booking/_dispatch-internal.js': [/formatAppointmentDateShort\(booking\.date\)/, /formatSlotShort\(booking\.time\)/],
   'api/booking/assign.js': [/on \$\{formatAppointmentDateShort\(booking\.date\)\}/, /formatSlotShort\(booking\.time\)/],
   'api/booking-confirmed.js': [/booked for \$\{formatAppointmentDateShort\(date\)\}/, /formatSlotShort\(time\)/],
-  'api/booking/easer-status.js': [/should arrive around \$\{formatSlotShort\(appointmentTime\)\}/],
+  'api/booking/easer-status.js': [/Arrival window: \$\{formatSlotShort\(appointmentTime\)\}/],
   'api/owner/crew.js': [/formatAppointmentDateShort\(booking\.date\)/],
 };
 for (const [rel, patterns] of Object.entries(shipped)) {
   const body = readFileSync(new URL('../' + rel, import.meta.url), 'utf8');
   for (const pattern of patterns) assert.match(body, pattern, `${rel} no longer matches the template measured here`);
 }
+
+// "Should arrive around 8 AM-10 AM" read as an arrival promise nobody computed.
+// The on-the-way text and email state the booked window as a fact instead.
+const statusSource = readFileSync(new URL('../api/booking/easer-status.js', import.meta.url), 'utf8');
+assert.doesNotMatch(statusSource, /should arrive around/,
+  'easer-status.js promises an arrival time again; state the booked window instead');
+assert.match(statusSource, /Your arrival window is \$\{esc\(appointmentTime\)\}/,
+  'the on-the-way email states the booked window');
+
 const smsSource = readFileSync(new URL('../api/_sms.js', import.meta.url), 'utf8');
 assert.match(smsSource, /const text = toGsm7\(String\(body \|\| ''\)\)\.trim\(\);/,
   '_sms.js must convert to GSM-7 before sending');
