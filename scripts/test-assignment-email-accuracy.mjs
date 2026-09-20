@@ -104,13 +104,26 @@ function walk(dir) {
 const ISO_ALLOWED = new Set(['api/cron/reminders.js']);
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 const rawDate = /esc\((?:b|booking|row|job)\.date\b|esc\(date\)|esc\(updates\.date/;
+// The field is not always reached through a booking: accept-dispatch.js picked
+// the date into `appointmentDate` (return visits use a different column) and
+// printed that, so the customer's "Your Easer is confirmed" email said
+// "on 2026-09-24" while every other email said "Thursday, September 24, 2026".
+// Any variable whose name ends in "date" counts, unless it was assigned from
+// formatAppointmentDate.
+const rawDateVariable = /esc\(([A-Za-z_$][\w$]*[Dd]ate)\)/;
 const offenders = [];
 for (const file of walk(join(repoRoot, 'api'))) {
   const rel = relative(repoRoot, file).split(sep).join('/');
   if (ISO_ALLOWED.has(rel)) continue;
-  const src = (await readFile(file, 'utf8')).split('\n');
-  src.forEach((line, i) => {
-    if (rawDate.test(line) && !line.includes('formatAppointmentDate')) offenders.push(`${rel}:${i + 1}`);
+  const text = await readFile(file, 'utf8');
+  const formatted = new Set(
+    [...text.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*formatAppointmentDate/g)].map(m => m[1]),
+  );
+  text.split('\n').forEach((line, i) => {
+    if (line.includes('formatAppointmentDate')) return;
+    if (rawDate.test(line)) { offenders.push(`${rel}:${i + 1}`); return; }
+    const variable = line.match(rawDateVariable);
+    if (variable && !formatted.has(variable[1])) offenders.push(`${rel}:${i + 1} (${variable[1]})`);
   });
 }
 assert.deepEqual(offenders, [], 'appointment dates printed without formatAppointmentDate');

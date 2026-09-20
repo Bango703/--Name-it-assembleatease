@@ -8,7 +8,7 @@ import { normalizeOwnerOfflinePaymentMethod, offlineMethodFeeCents } from './_of
 import { isMissingServiceLocationColumn, parseServiceLocation } from '../_booking-location.js';
 import { buildCustomerConsentRecord, validateCustomerLegalConsent } from '../_legal-consent.js';
 import { chicagoDateIso, getServiceCallZone, isAutomaticDispatchZip } from '../_source-of-truth.js';
-import { appointmentTimestampMs } from '../booking/_appt-date.js';
+import { appointmentTimestampMs, formatAppointmentDate } from '../booking/_appt-date.js';
 import { validateBookingWindowDate } from '../booking/_booking-window.js';
 import { sendRebookPaymentEmail } from '../booking/_rebook-payment-email.js';
 import { normalizeRebookSourceId, validateOwnerRebookSource } from './_rebook.js';
@@ -444,7 +444,7 @@ export default async function handler(req, res) {
     from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `${rebookSource ? 'Rebooking prepared' : 'Owner booking created'} — ${ref} — ${money(finalCents)}`,
     html: `<p>You created ${rebookSource ? `a pending replacement booking <strong>${esc(ref)}</strong> from cancelled booking <strong>${esc(rebookSource.ref)}</strong>` : `a manual booking <strong>${esc(ref)}</strong>`} for <strong>${esc(customerName)}</strong>.</p>
-      <p>${esc(cleanService)} · ${esc(cleanDate)}${cleanTime ? ` · ${esc(cleanTime)}` : ''}<br>${esc(cleanAddress)}</p>
+      <p>${esc(cleanService)} · ${esc(formatAppointmentDate(cleanDate))}${cleanTime ? ` · ${esc(cleanTime)}` : ''}<br>${esc(cleanAddress)}</p>
       ${cleanDetails ? `<p><strong>Job details:</strong> ${esc(cleanDetails)}</p>` : ''}
       <p>Total ${money(finalCents)} (subtotal ${money(subtotalCents)} + tax ${money(taxCents)}). Payment: ${rebookSource ? 'awaiting the customer payment method and Stripe authorization' : (method ? esc(PAYMENT_METHOD_LABELS[method]) : 'to be collected')}.</p>
       ${cleanNote ? `<p><em>${esc(cleanNote)}</em></p>` : ''}
@@ -489,7 +489,7 @@ export default async function handler(req, res) {
       ${rebookSource ? `<p style="margin:0 0 16px;font-size:14px;background:#f8fafc;border:1px solid #dbe3ea;border-radius:6px;padding:12px 16px;color:#334155">This is a new appointment replacing cancelled booking <strong>${esc(rebookSource.ref)}</strong>. No payment or authorization from the cancelled booking was reused.</p>` : ''}
       <table style="width:100%;font-size:14px;border-collapse:collapse;margin:14px 0">
         <tr><td style="padding:6px 0;color:#52525b">Service</td><td style="padding:6px 0;text-align:right"><strong>${esc(cleanService)}</strong></td></tr>
-        <tr><td style="padding:6px 0;color:#52525b">Date</td><td style="padding:6px 0;text-align:right">${esc(cleanDate)}${cleanTime ? ` · ${esc(cleanTime)}` : ''}</td></tr>
+        <tr><td style="padding:6px 0;color:#52525b">Date</td><td style="padding:6px 0;text-align:right">${esc(formatAppointmentDate(cleanDate))}${cleanTime ? ` · ${esc(cleanTime)}` : ''}</td></tr>
         <tr><td style="padding:6px 0;color:#52525b">Address</td><td style="padding:6px 0;text-align:right">${esc(cleanAddress)}</td></tr>
         ${cleanDetails ? `<tr><td style="padding:6px 0;color:#52525b">Job details</td><td style="padding:6px 0;text-align:right">${esc(cleanDetails)}</td></tr>` : ''}
         <tr><td style="padding:8px 0;color:#52525b;border-top:1px solid #eee"><strong>Agreed total</strong></td><td style="padding:8px 0;text-align:right;border-top:1px solid #eee"><strong>${money(finalCents)}</strong> <span style="color:#52525b;font-weight:400">(tax included)</span></td></tr>
