@@ -404,10 +404,15 @@ export default async function handler(req, res) {
         declineUrl,
         ref: booking.ref,
       }),
-      // An assignment is a discrete operational event, not a reminder. An Easer
-      // must always be told about a job they have been given (Rule 10), so this
-      // one is never collapsed into an earlier send.
-      meta: { bookingId: booking.id, notificationType: 'assignment_confirmation', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
+      // An assignment is a discrete operational event, not a reminder, so an
+      // Easer must always be told about a job they have been given (Rule 10) —
+      // but an owner who assigns, releases and re-assigns the same person to
+      // the same job sends that person the identical email again. AAE-DVSNHXE4OO
+      // did it four times in ten hours. The dedupe key is the recipient plus the
+      // exact subject, which carries the booking ref, so a genuinely new
+      // assignment always sends and only an identical repeat inside the hour is
+      // dropped. Push still fires either way.
+      meta: { bookingId: booking.id, notificationType: 'assignment_confirmation', recipientType: 'easer', recipientUserId: assemblerId, dedupeWindowMin: 60 },
     });
   } catch (e) {
     console.error('Assignment email error:', e);

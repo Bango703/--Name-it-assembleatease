@@ -3804,11 +3804,19 @@ window.intelQuick = intelQuick;
       // absorb the reduction. Rendering the stored value made this panel claim
       // a commission the platform no longer took, while the financial dashboard
       // (which derives) showed the truth. Two screens, one job, two numbers.
+      // The derived fee is net charged minus tax minus Easer cost, and an
+      // uncharged booking counts its full total as charged with an Easer cost of
+      // zero — so AAE-DVSNHXE4OO printed "Platform Fee $394.00" (its entire
+      // subtotal) beside "Total Charged: Not recorded" and "Easer Earnings: Not
+      // finalized". Gate it exactly like Platform Gross already is: no finalized
+      // Easer earnings, no fee figure.
       field('Platform Fee', !b.assembler_id
         ? '<span style="color:var(--muted)">Not calculated — assign the owner-Easer</span>'
-        : (financial.platformFeeCents != null
-          ? fmt$(financial.platformFeeCents)
-          : (b.platform_fee != null ? fmt$(b.platform_fee) : '<span style="color:var(--muted)">Not finalized</span>'))),
+        : b.assembler_due == null
+          ? '<span style="color:var(--muted)">Not finalized — set when the job completes</span>'
+          : (financial.platformFeeCents != null
+            ? fmt$(financial.platformFeeCents)
+            : (b.platform_fee != null ? fmt$(b.platform_fee) : '<span style="color:var(--muted)">Not finalized</span>'))),
       field('Easer Earnings', !b.assembler_id
         ? '<span style="color:var(--muted)">Not calculated — assign the owner-Easer</span>'
         : (b.assembler_due != null ? fmt$(b.assembler_due) : '<span style="color:var(--muted)">Not finalized</span>')),
@@ -5048,7 +5056,7 @@ window.intelQuick = intelQuick;
     function renderOwnerActionCollection(notices, btns) {
       var actionPriority = [
         'manual-refund-recovery', 'refund-recovery', 'stripe-dispute-review',
-        'damage-review', 'reconcile-payment', 'send-payment', 'quote',
+        'damage-review', 'retry-authorization', 'reconcile-payment', 'send-payment', 'quote',
         'record-manual-payment', 'collect-payment', 'complete-return-visit',
         'complete', 'dispatch', 'payout-review', 'payout',
         'request-review', 'request-evidence'
@@ -5058,6 +5066,7 @@ window.intelQuick = intelQuick;
         'refund-recovery': 'Continue the existing refund recovery. The server will recheck aggregate Stripe truth before changing money state.',
         'stripe-dispute-review': 'Refresh Stripe dispute truth before any refund, dispatch, or Easer payment decision.',
         'damage-review': 'Review the saved evidence and record the outcome before releasing any Easer payment.',
+        'retry-authorization': 'Finish the card hold this booking already has on file. Nothing is captured, and the customer is not asked for anything.',
         'reconcile-payment': 'Verify the linked Stripe authorization before confirming or dispatching this booking.',
         'send-payment': 'Send the existing secure payment continuation to the customer. This does not charge the customer by itself.',
         'quote': 'Set the server-controlled quote and send it to the customer for approval before scheduling work.',
@@ -5309,6 +5318,15 @@ window.intelQuick = intelQuick;
       if (b.payment_status === 'card_saved') {
         // A future booking with a saved card is intentionally confirmed but
         // remains dispatch-paused until the scheduled authorization succeeds.
+      } else if (b.payment_status === 'pending' && b.dispatch_status === 'payment_hold'
+          && b.stripe_payment_intent_id && b.stripe_payment_method_id) {
+        // The card is saved and a hold exists that never completed. This is not
+        // a customer who failed to pay, and the red "mismatch" banner sent the
+        // owner looking for one (AAE-DVSNHXE4OO, 2026-09-19). Say what is true
+        // and offer the action that actually finishes it.
+        notices.push('<div style="flex-basis:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.8rem;color:#92400e;font-size:0.78rem;line-height:1.5"><strong>The hold has not completed.</strong> The customer\'s card is saved and nothing is wrong with it unless Stripe says so. It retries automatically before the visit; <strong>Retry authorization</strong> runs it now. Only send the secure link if the retry reports that the bank wants the customer.</div>');
+        btns.push('<button class="btn btn-teal" data-action="retry-authorization" data-id="' + b.id + '">Retry authorization</button>');
+        btns.push('<button class="btn" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
       } else if (b.payment_status !== 'authorized') {
         notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Confirmed/payment mismatch:</strong> do not dispatch. Verify the linked Stripe authorization and repair both states together.</div>');
         if (b.stripe_payment_intent_id && ['pending', 'failed'].includes(b.payment_status) && b.dispatch_status === 'payment_hold') {
@@ -5679,6 +5697,29 @@ window.intelQuick = intelQuick;
       } finally {
         btn.disabled = false;
         btn.textContent = originalRecoveryText;
+      }
+    } else if (action === 'retry-authorization') {
+      if (!confirm('Finish the card hold for this booking now? This places the hold Stripe already has on file. Nothing is captured, and the customer is not asked for anything.')) return;
+      btn.disabled = true;
+      var retryText = btn.textContent;
+      btn.textContent = 'Placing hold...';
+      try {
+        var retryResponse = await fetch('/api/owner/retry-authorization', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ bookingId: id }),
+        });
+        var retryData = await retryResponse.json().catch(function(){ return {}; });
+        // Article 16: the server's own words, whichever way it went.
+        if (!retryResponse.ok || retryData.error) throw new Error(retryData.error || 'The hold could not be finished');
+        toast(retryData.message || 'The hold is authorized', 'success');
+        load();
+        loadTimeline(id);
+      } catch (retryError) {
+        toast(retryError.message || 'The hold could not be finished', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = retryText;
       }
     } else if (action === 'reconcile-payment') {
       if (!confirm('Verify this booking against live Stripe and repair it to Confirmed + Authorized? No charge or capture will be created.')) return;
@@ -7207,6 +7248,19 @@ window.intelQuick = intelQuick;
         return 'Partial payment recorded — ' + fmt$(receivedCents) + ' received; ' + fmt$(remainingCents) + ' remaining';
       }
       return 'No customer payment recorded in AAE';
+    }
+    // A confirmed booking sitting on an unconfirmed hold is not a customer who
+    // never paid: the card is saved and on file, and the hold attempt did not
+    // complete. Saying "no payment authorization is confirmed" sent the owner
+    // hunting for a customer problem that did not exist (AAE-DVSNHXE4OO,
+    // 2026-09-19), so say what is actually true and what happens next.
+    if (status === 'pending'
+        && booking && booking.status === 'confirmed'
+        && booking.dispatch_status === 'payment_hold'
+        && booking.stripe_payment_method_id) {
+      return booking.stripe_payment_intent_id
+        ? 'Card saved; the hold has not completed yet and retries automatically'
+        : 'Card saved; no hold has been placed yet';
     }
     var labels = {
       pending: 'No payment authorization or charge is confirmed',
