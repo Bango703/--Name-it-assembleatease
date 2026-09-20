@@ -2,6 +2,7 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc, buildStatusEmail } from '../_email.js';
 import { guestManageUrl } from '../_payment-security.js';
+import { formatAppointmentDate } from './_appt-date.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch, describeDispatchPaymentBlock } from '../_source-of-truth.js';
@@ -491,6 +492,58 @@ export default async function handler(req, res) {
   return res.status(200).json({ ok: true, message: 'Job accepted! It will appear in your My Assignments.', ref: booking.ref, notification });
 }
 
+/**
+ * The customer's "an Easer is coming" email, in one place because it is sent
+ * twice in a life some bookings have: AAE-DVSNHXE4OO told the customer "Your
+ * Easer is confirmed" at 11:47, then sent the identical subject at 12:31 naming
+ * a different person, with nothing to say the first had dropped the job. A
+ * second copy of the same sentence reads as a system repeating itself; a change
+ * of Easer is news, and should say so.
+ */
+export function buildCustomerEaserEmail({
+  booking, easerFirstName, appointmentDate, appointmentTime, appointmentDescription, manageUrl, easerChanged = false,
+}) {
+  const firstName = String(booking.customer_name || '').split(' ')[0];
+  const when = `<strong>${esc(formatAppointmentDate(appointmentDate))}</strong> at <strong>${esc(appointmentTime || 'the scheduled time')}</strong>`;
+  const opening = easerChanged
+    ? `Hi ${esc(firstName)}, there is a change to your booking: <strong>${esc(easerFirstName)}</strong> is now handling ${esc(appointmentDescription)} on ${when}. Everything else stays the same.`
+    : `Hi ${esc(firstName)}, good news — <strong>${esc(easerFirstName)}</strong> will be handling ${esc(appointmentDescription)} on ${when}. We'll let you know as soon as they're on the way.`;
+  return {
+    subject: easerChanged
+      ? `Your Easer has changed — ${esc(booking.ref)}`
+      : `Your Easer is confirmed — ${esc(booking.ref)}`,
+    html: buildStatusEmail({
+      customerName: firstName,
+      ref: booking.ref,
+      status: 'Confirmed',
+      statusColor: '#065f46',
+      statusBg: '#d1fae5',
+      headline: easerChanged ? 'Your Easer has changed.' : 'Your Easer is confirmed.',
+      bodyHtml: `<p style="margin:0;font-size:15px;color:#52525b;line-height:1.7">${opening}</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="${esc(manageUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">View or manage your booking</a></td></tr></table>
+        <p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Need to reschedule or cancel? You can do it yourself anytime from the button above. Questions? Call or text us at <a href="tel:+19792325139" style="color:#00BFFF;text-decoration:none">(979) 232-5139</a>.</p>`,
+    }),
+  };
+}
+
+// Has this customer already been told that someone is coming? The notification
+// log is the record of what we actually sent, so it answers the question
+// without a second field to keep in step.
+async function customerAlreadyToldOfEaser(sb, bookingId) {
+  try {
+    const { data } = await sb.from('notification_log')
+      .select('id')
+      .eq('booking_id', bookingId)
+      .eq('notification_type', 'job_accepted')
+      .eq('recipient_type', 'customer')
+      .limit(1);
+    return Array.isArray(data) && data.length > 0;
+  } catch (error) {
+    // Reading the log must never stop the customer being told.
+    return false;
+  }
+}
+
 async function sendNotifications(sb, booking, easer, assemblerId) {
   const bookingId = booking.id;
   const results = [];
@@ -501,23 +554,23 @@ async function sendNotifications(sb, booking, easer, assemblerId) {
     ? `your return appointment to complete ${booking.return_visit_remaining_scope || 'the remaining work'}`
     : `your ${booking.service}`;
 
-  // Customer: "Your Easer is confirmed"
+  // Customer: "Your Easer is confirmed", or "has changed" if we already told them
   if (booking.customer_email) {
+    const easerChanged = await customerAlreadyToldOfEaser(sb, bookingId);
+    const email = buildCustomerEaserEmail({
+      booking,
+      easerFirstName,
+      appointmentDate,
+      appointmentTime,
+      appointmentDescription,
+      manageUrl: guestManageUrl(booking),
+      easerChanged,
+    });
     const result = await sendEmail({
       to:   booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: `Your Easer is confirmed — ${esc(booking.ref)}`,
-      html: buildStatusEmail({
-        customerName: (booking.customer_name || '').split(' ')[0],
-        ref: booking.ref,
-        status: 'Confirmed',
-        statusColor: '#065f46',
-        statusBg: '#d1fae5',
-        headline: 'Your Easer is confirmed.',
-        bodyHtml: `<p style="margin:0;font-size:15px;color:#52525b;line-height:1.7">Hi ${esc((booking.customer_name || '').split(' ')[0])}, good news — <strong>${esc(easerFirstName)}</strong> will be handling ${esc(appointmentDescription)} on <strong>${esc(appointmentDate)}</strong> at <strong>${esc(appointmentTime || 'the scheduled time')}</strong>. We'll let you know as soon as they're on the way.</p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="${esc(guestManageUrl(booking))}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">View or manage your booking</a></td></tr></table>
-        <p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Need to reschedule or cancel? You can do it yourself anytime from the button above. Questions? Call or text us at <a href="tel:+19792325139" style="color:#00BFFF;text-decoration:none">(979) 232-5139</a>.</p>`,
-      }),
+      subject: email.subject,
+      html: email.html,
       replyTo: ownerEmail(),
       meta: { bookingId, notificationType: 'job_accepted', recipientType: 'customer' },
     }).catch(err => ({ ok: false, error: err?.message || String(err) }));
@@ -533,7 +586,7 @@ async function sendNotifications(sb, booking, easer, assemblerId) {
       <h2 style="color:#00BFFF">Job Accepted</h2>
       <p><strong>${esc(easer.full_name)}</strong> (${esc(easer.tier)}${hasEffectiveEaserMembership(easer) ? ' · Member' : ''}) accepted booking <strong>${esc(booking.ref)}</strong>.</p>
       <p><strong>Service:</strong> ${esc(booking.service)}<br>
-      <strong>${booking.return_visit_required ? 'Return date' : 'Date'}:</strong> ${esc(appointmentDate)} at ${esc(appointmentTime||'TBD')}<br>
+      <strong>${booking.return_visit_required ? 'Return date' : 'Date'}:</strong> ${esc(formatAppointmentDate(appointmentDate))} at ${esc(appointmentTime||'TBD')}<br>
       <strong>Customer:</strong> ${esc(booking.customer_name)}</p>
       <p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">View in owner dashboard</a></p>
     </div>`,
