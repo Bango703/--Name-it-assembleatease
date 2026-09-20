@@ -84,13 +84,22 @@ const intent = {
   capture_method: 'manual', livemode: false, status: 'requires_confirmation',
   metadata: { bookingId: booking.id, bookingRef: booking.ref, type: 'customer_booking', scheduledAuthorization: 'true', appointmentDate: booking.date },
 };
+const createKeys = [];
 const stripe = {
   paymentIntents: {
     async create(params, options) {
       assert.equal(params.amount, booking.total_price);
       assert.equal(params.capture_method, 'manual');
       assert.equal(params.customer, booking.stripe_customer_id);
-      assert.equal(options.idempotencyKey, `scheduled-auth-create-${booking.id}-${booking.date}-${booking.total_price}`);
+      // The key follows the request rather than just the booking: a fixed
+      // booking+date+amount key froze the shape of the first hold ever created
+      // for a booking, so a corrected request came back as "keys for idempotent
+      // requests can only be used with the same parameters" and the booking
+      // could not be repaired. Same parameters still produce the same key.
+      assert.match(options.idempotencyKey, new RegExp(`^scheduled-auth-create-${booking.id}-${booking.date}-[0-9a-f]{16}$`));
+      createKeys.push(options.idempotencyKey);
+      assert.equal(params.setup_future_usage, undefined,
+        'a hold confirmed off-session must not also ask Stripe to set the card up');
       return structuredClone(intent);
     },
     async confirm(id, params) {
@@ -110,6 +119,7 @@ const outcome = await authorizeScheduledBooking({
   todayIso: '2026-08-15',
 });
 assert.deepEqual(outcome, { ok: true, authorized: true });
+assert.equal(createKeys.length, 1, 'one hold, one key');
 assert.equal(sb.state.booking.payment_status, 'authorized');
 assert.equal(sb.state.booking.stripe_payment_intent_id, 'pi_scheduled');
 assert.equal(sb.state.booking.dispatch_paused, false);

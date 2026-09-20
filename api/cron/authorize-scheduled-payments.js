@@ -144,8 +144,7 @@ export async function authorizeScheduledBooking({ sb, stripe, booking, expectedL
   }
 
   let intent;
-  try {
-    intent = await stripe.paymentIntents.create({
+  const createParams = {
       amount,
       currency: 'usd',
       customer: customerId,
@@ -170,7 +169,18 @@ export async function authorizeScheduledBooking({ sb, stripe, booking, expectedL
         scheduledAuthorization: 'true',
         appointmentDate: booking.date,
       },
-    }, { idempotencyKey: `scheduled-auth-create-${booking.id}-${booking.date}-${amount}` });
+  };
+  try {
+    // The key follows the request. Stripe refuses a key replayed with different
+    // parameters, so a fixed booking+date+amount key meant the first hold this
+    // code ever created for a booking froze its shape: after the
+    // setup_future_usage fix above, re-creating a cancelled hold came back as
+    // "keys for idempotent requests can only be used with the same parameters"
+    // and the booking could not be repaired at all. Hashing the parameters
+    // keeps a genuine retry idempotent while letting a corrected request through.
+    intent = await stripe.paymentIntents.create(createParams, {
+      idempotencyKey: `scheduled-auth-create-${booking.id}-${booking.date}-${sha256(JSON.stringify(createParams)).slice(0, 16)}`,
+    });
   } catch (error) {
     await markReconciliation(sb, booking, operationKey, 'Scheduled Stripe authorization creation could not be confirmed.');
     await notify.owner(booking,'Stripe authorization creation could not be confirmed. Reconcile before dispatch.').catch(() => {});
@@ -186,7 +196,9 @@ export async function authorizeScheduledBooking({ sb, stripe, booking, expectedL
     return { ok: false, reason: 'payment_intent_validation_failed', actionRequired: true };
   }
 
-  const attempt = await confirmWithRetry(stripe, intent.id, `scheduled-auth-confirm-${booking.id}-${booking.date}-${amount}`);
+  // Keyed on the intent, not the booking: a replacement hold is a different
+  // request and must not replay the answer given to the one it replaced.
+  const attempt = await confirmWithRetry(stripe, intent.id, `scheduled-auth-confirm-${booking.id}-${intent.id}`);
   const confirmError = attempt.error;
   if (attempt.intent) {
     intent = attempt.intent;
@@ -440,7 +452,7 @@ export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivem
   if (intent.status === 'requires_confirmation') {
     const validation = validateScheduledIntent(intent, { booking, amount, customerId, paymentMethodId, expectedLivemode });
     if (!validation.ok) return { authorized: false, reason: `stripe_mismatch:${validation.errors.join(',')}` };
-    const attempt = await confirmWithRetry(stripe, intent.id, `scheduled-auth-recover-${booking.id}-${booking.date}-${amount}`);
+    const attempt = await confirmWithRetry(stripe, intent.id, `scheduled-auth-recover-${booking.id}-${intent.id}`);
     confirmError = attempt.error;
     if (attempt.intent) {
       intent = attempt.intent;
