@@ -1,7 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, buildStatusEmail, esc } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
-import { chicagoTodayIso } from '../booking/_appt-date.js';
+import { chicagoTodayIso, formatAppointmentDate } from '../booking/_appt-date.js';
 
 function cleanLine(value, max) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, max);
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
           statusBg: '#dbeafe',
           headline: 'Your return appointment is confirmed',
           bodyHtml: `<p style="margin:0 0 14px;font-size:14px;color:#52525b;line-height:1.7">We completed <strong>${esc(completed)}</strong>.</p>
-            <p style="margin:0 0 14px;font-size:14px;color:#52525b;line-height:1.7">We will return on <strong>${esc(returnDate)}${returnTime ? ` at ${esc(returnTime)}` : ''}</strong> to complete <strong>${esc(remaining)}</strong>.</p>
+            <p style="margin:0 0 14px;font-size:14px;color:#52525b;line-height:1.7">We will return on <strong>${esc(formatAppointmentDate(returnDate))}${returnTime ? ` at ${esc(returnTime)}` : ''}</strong> to complete <strong>${esc(remaining)}</strong>.</p>
             <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Reply here or call <a href="tel:+19792325139">(979) 232-5139</a>.</p>`,
         }),
         replyTo: ownerEmail(),
