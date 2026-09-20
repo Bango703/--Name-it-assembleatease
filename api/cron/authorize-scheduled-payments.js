@@ -83,9 +83,11 @@ export default async function handler(req, res) {
   });
 }
 
-// Every message this job can send, in one place so a test can watch them and a
-// reader can see exactly who hears about what.
-const DEFAULT_NOTIFIERS = {
+// Every message this job can send, in one place so a test can watch them, a
+// reader can see exactly who hears about what, and a caller can silence one of
+// them deliberately — e.g. clearing a booking by hand when the owner judges the
+// customer has already had enough email about it.
+export const DEFAULT_NOTIFIERS = {
   customerRecovery: sendCustomerRecovery,
   customerAuthorized: sendAuthorizationSuccess,
   easerHold: notifyAssignedEaserPaymentHold,
