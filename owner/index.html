@@ -3701,7 +3701,7 @@ window.intelQuick = intelQuick;
         + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + esc(b.assembler_tier) : '') + '</div>' : '')
         + (b.has_unread_customer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Customer message</div>' : '')
         + (b.has_unread_easer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Easer message</div>' : '')
-        + (b.needs_manual_dispatch && !isTerminalBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#ef4444;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block"></span>Needs manual assignment</div>' : '')
+        + (b.needs_manual_dispatch && !b.assembler_id && !isTerminalBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#ef4444;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block"></span>Needs manual assignment</div>' : '')
         + '<div class="card-meta">'
           + '<span>' + esc(b.ref) + '</span>'
           + '<span class="meta-dot"></span>'
@@ -3944,7 +3944,7 @@ window.intelQuick = intelQuick;
       }
       ctrls += '<button class="btn btn-red" onclick="dispatchControl(\'' + bookingId + '\',\'cancel\')" style="font-size:0.78rem">Cancel Offers</button>';
     }
-    if (booking && booking.needs_manual_dispatch && !isTerminalBooking(booking) && !ownerManualOffline) {
+    if (booking && booking.needs_manual_dispatch && !booking.assembler_id && !isTerminalBooking(booking) && !ownerManualOffline) {
       ctrls = '<span style="color:#ef4444;font-size:0.78rem;font-weight:600">Needs Manual Assignment</span> ' + ctrls;
     }
     if (ctrlEl) ctrlEl.innerHTML = ctrls;

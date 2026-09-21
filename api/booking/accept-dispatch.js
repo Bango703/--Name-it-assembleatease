@@ -439,6 +439,10 @@ export default async function handler(req, res) {
     dispatch_status: 'accepted',
     dispatch_token: null,
     assignment_token: null,
+    // An Easer accepting IS the resolution of manual assignment. expire-offers can
+    // flag a booking manual while a live offer is still acceptable, so without this
+    // the owner card keeps reading "Needs manual assignment" on an assigned job.
+    needs_manual_dispatch: false,
     ...feeSnapshot.updates,
   };
   if (isDispatch) {
