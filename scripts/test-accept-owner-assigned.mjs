@@ -45,4 +45,25 @@ assert.doesNotMatch(ui, /r\.status === 409 \? 'This job was just accepted by ano
 assert.match(ui, /const msg = d\.error \|\| 'Could not accept/,
   'the accept failure must surface the server message');
 
+// ── Accepting a job resolves the manual-assignment flag ────────────────────
+// AAE-DVSNHXE4OO sat on the owner board reading "Needs manual assignment" with
+// an Easer already on it. expire-offers had flagged it manual, then the Easer
+// accepted a still-live offer — and the accept route, alone among the write
+// paths, never cleared the flag. Every other path (assign, dispatch, drop-job,
+// release-assignment, reschedule, cancel, _dispatch-safety) clears it.
+assert.match(acceptSrc, /needs_manual_dispatch: false/,
+  'accepting a job must clear needs_manual_dispatch — an accepted job is not awaiting assignment');
+
+// ── The owner board must not label an assigned job as unassigned ───────────
+// Article 16: the flag alone is not proof. ops-alert already pairs it with
+// assembler_id; both owner render sites now ask the same question.
+const ownerUi = await read('owner/index.html');
+for (const [pattern, where] of [
+  [/b\.needs_manual_dispatch && !b\.assembler_id/, 'the booking card badge'],
+  [/booking\.needs_manual_dispatch && !booking\.assembler_id/, 'the dispatch-log control bar'],
+]) {
+  assert.match(ownerUi, pattern,
+    `${where} must check assembler_id before claiming a job needs manual assignment`);
+}
+
 console.log('owner-assigned acceptance tests: PASS');
