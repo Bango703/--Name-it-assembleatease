@@ -3205,33 +3205,38 @@ window.intelQuick = intelQuick;
     // Surface payable and held Easer earnings immediately. The owner should
     // not have to discover payout work by opening Financials first.
     loadPayoutLedger();
+    // A badge that fails to load must not look like a clear queue. Live Ops
+    // already prints "!" when its check cannot verify state; these four hid
+    // themselves instead, so a failed fetch was indistinguishable from "nothing
+    // needs you" (Article 16 — never assert what has not been verified).
+    function paintNavBadge(id, count) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (count > 0) { el.textContent = String(count); el.title = ''; el.style.display = ''; }
+      else el.style.display = 'none';
+    }
+    function navBadgeUnknown(id, label) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = '!';
+      el.title = label + ' could not be loaded — this is not a count of zero.';
+      el.style.display = '';
+    }
     // Nav badge: pending Easer applications
     fetch('/api/assembler/list', { headers: headers() })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        var ct = Number((d.stats || {}).pending || 0);
-        var $navApps = document.getElementById('nav-pending-apps');
-        if (ct > 0) { $navApps.textContent = ct; $navApps.style.display = ''; }
-        else $navApps.style.display = 'none';
-      }).catch(function(){});
+      .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
+      .then(function(d) { paintNavBadge('nav-pending-apps', Number((d.stats || {}).pending || 0)); })
+      .catch(function(){ navBadgeUnknown('nav-pending-apps', 'Pending Easer applications'); });
     // Nav badge: pending waitlist entries
     fetch('/api/owner/waitlist?status=pending', { headers: headers() })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        var pending = ((d.stats || {}).pending) || 0;
-        var $navWl = document.getElementById('nav-waitlist');
-        if (pending > 0) { $navWl.textContent = pending; $navWl.style.display = ''; }
-        else $navWl.style.display = 'none';
-      }).catch(function(){});
+      .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
+      .then(function(d) { paintNavBadge('nav-waitlist', Number((d.stats || {}).pending || 0)); })
+      .catch(function(){ navBadgeUnknown('nav-waitlist', 'Easer waitlist'); });
     // Nav badge: demand records that require owner assignment or follow-up.
     fetch('/api/owner/market-demand', { headers: headers() })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        var count = ((d.summary || {}).ownerActionRequired) || 0;
-        var $navMd = document.getElementById('nav-market-demand');
-        if (count > 0) { $navMd.textContent = count; $navMd.style.display = ''; }
-        else $navMd.style.display = 'none';
-      }).catch(function(){});
+      .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
+      .then(function(d) { paintNavBadge('nav-market-demand', Number((d.summary || {}).ownerActionRequired || 0)); })
+      .catch(function(){ navBadgeUnknown('nav-market-demand', 'Market demand follow-ups'); });
     // Cases is a separate owner module. Delay one tick so the deferred module
     // is ready even when an existing owner session opens immediately.
     setTimeout(function() {
@@ -3425,11 +3430,17 @@ window.intelQuick = intelQuick;
       && !booking.financial_reconciliation_required_at
       && Number.isFinite(Number((booking.financial_summary || {}).platformGrossCents));
   }
+  // Business metrics exclude the owner's own test bookings, the way the daily
+  // and weekly summary emails have since migration 094. The rows stay visible
+  // in the list with a TEST pill — excluded from counting, never hidden.
+  function isTestBooking(b) { return !!b && b.is_test_booking === true; }
+  function realBookings() { return allBookings.filter(function(b){ return !isTestBooking(b); }); }
+
   function updateStats() {
     const counts = { pending: 0, confirmed: 0, completed: 0 };
     let profit = 0;
     let unresolvedCompleted = 0;
-    allBookings.forEach(function(b) {
+    realBookings().forEach(function(b) {
       // Count pipeline statuses as Confirmed — they are active/accepted jobs
       var cat = PIPELINE_STATUSES.includes(b.status) ? 'confirmed' : b.status;
       if (counts[cat] !== undefined) counts[cat]++;
@@ -3446,7 +3457,13 @@ window.intelQuick = intelQuick;
     document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
     document.querySelector('#stat-confirmed .stat-value').textContent = counts.confirmed;
     document.querySelector('#stat-completed .stat-value').textContent = counts.completed;
-    document.querySelector('#stat-total .stat-value').textContent = allBookings.length;
+    var realCount = realBookings().length;
+    var testCount = allBookings.length - realCount;
+    var totalEl = document.querySelector('#stat-total .stat-value');
+    totalEl.textContent = realCount;
+    totalEl.title = testCount > 0
+      ? testCount + ' test booking' + (testCount === 1 ? '' : 's') + ' excluded from every figure on this board.'
+      : '';
     var revenueEl = document.querySelector('#stat-revenue .stat-value');
     var revenueLabel = document.querySelector('#stat-revenue .stat-label');
     if (revenueEl) {
@@ -3698,6 +3715,7 @@ window.intelQuick = intelQuick;
       return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '" style="position:relative">'
         + '<div class="card-top"><h4>' + esc(b.customer_name) + '</h4>' + bookingBadge(b) + '</div>'
         + '<div class="card-desc">' + esc(cardQuoteStage ? quoteServiceLabel(b) : (b.service || '—')) + '</div>'
+        + (isTestBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--muted);font-weight:600;margin-top:2px;letter-spacing:0.06em">TEST BOOKING — excluded from all figures</div>' : '')
         + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + esc(b.assembler_tier) : '') + '</div>' : '')
         + (b.has_unread_customer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Customer message</div>' : '')
         + (b.has_unread_easer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Easer message</div>' : '')
@@ -7963,11 +7981,16 @@ window.intelQuick = intelQuick;
     var alertsEl = document.getElementById('ops-alerts-bar');
     if (d.alerts && d.alerts.length) {
       alertsEl.innerHTML = d.alerts.slice(0, 6).map(function(a) {
-        var actionLabels = { dispatch:'Dispatch', redispatch:'Re-dispatch', reassign:'View Booking', contact_easer:'Contact Easer', review_timeline:'Review Timeline', review_damage_evidence:'Review and Close Alert' };
+        var actionLabels = { dispatch:'Dispatch', redispatch:'Re-dispatch', reassign:'View Booking', contact_easer:'Contact Easer', review_timeline:'Review Timeline', review_damage_evidence:'Review and Close Alert', enable_job_texts:'Send Job-Text Opt-In' };
         var encodedRecipient = encodeURIComponent(a.recipientEmail || '');
         var safeAction = actionLabels[a.action] ? a.action : '';
         var safeBookingId = /^[0-9a-f-]{36}$/i.test(String(a.bookingId || '')) ? a.bookingId : '';
-        var actionBtn = safeAction ? '<button onclick="opsAction(\'' + safeAction + '\',\'' + safeBookingId + '\',\'' + encodedRecipient + '\')" class="btn" style="font-size:0.7rem;padding:2px 10px;margin-left:auto;flex-shrink:0">' + actionLabels[safeAction] + '</button>' : '';
+        var safeEaserId = /^[0-9a-f-]{36}$/i.test(String(a.easerId || '')) ? a.easerId : '';
+        // The job-texts alert carries the Easer, not the booking: the fix is
+        // sending that person the opt-in, which is what clears the alert.
+        var actionArg = safeAction === 'enable_job_texts' ? safeEaserId : safeBookingId;
+        if (safeAction === 'enable_job_texts' && !safeEaserId) safeAction = '';
+        var actionBtn = safeAction ? '<button onclick="opsAction(\'' + safeAction + '\',\'' + actionArg + '\',\'' + encodedRecipient + '\')" class="btn" style="font-size:0.7rem;padding:2px 10px;margin-left:auto;flex-shrink:0">' + actionLabels[safeAction] + '</button>' : '';
         var safeSeverity = ['critical','high','medium','low'].includes(String(a.severity || '').toLowerCase())
           ? String(a.severity).toLowerCase()
           : 'medium';
@@ -8218,6 +8241,26 @@ window.intelQuick = intelQuick;
       await window.dispatchWithConfirm(bookingId);
       return;
     }
+    if (action === 'enable_job_texts') {
+      // Job texts are mandatory to receive work and consent must come from the
+      // Easer (TCPA), so the only thing the owner can do is ask. This is the
+      // same sms_job_texts opt-in the announcement campaign sends.
+      var easerId = bookingId;
+      if (!/^[0-9a-f-]{36}$/i.test(String(easerId || ''))) { toast('No Easer is attached to this alert.', 'error'); return; }
+      try {
+        var resp = await fetch('/api/owner/announcement-adoption', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+          body: JSON.stringify({ action: 'resend', key: 'sms_job_texts', easerId: easerId })
+        });
+        var body = await resp.json().catch(function(){ return {}; });
+        if (!resp.ok) { toast(body.error || 'The opt-in email could not be sent.', 'error'); return; }
+        toast(body.message || 'Opt-in email sent.', 'success');
+      } catch (e) {
+        toast('The opt-in email could not be sent.', 'error');
+      }
+      return;
+    }
     if (action === 'contact_easer') {
       var recipient = decodeURIComponent(encodedRecipient || '');
       if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) window.location.href = 'mailto:' + recipient;
@@ -8443,7 +8486,7 @@ window.intelQuick = intelQuick;
   var allCustomers = [];
   function buildCustomers() {
     var map = {};
-    allBookings.forEach(function(b){
+    realBookings().forEach(function(b){
       var key = (b.customer_email||'').toLowerCase();
       if(!key) key = 'booking:' + b.id;
       if(!map[key]){

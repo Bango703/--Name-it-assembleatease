@@ -52,7 +52,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to load financial dashboard data' });
   }
 
-  const financeRows = finance.rows || [];
+  // The daily and weekly summary emails already exclude test bookings
+  // (migration 094). This view did not, so the owner's revenue figure and his
+  // summary email were reporting two different businesses. Excluded, not
+  // hidden: the count is returned so nothing disappears without saying so.
+  const allFinanceRows = finance.rows || [];
+  const financeRows = allFinanceRows.filter(row => !row.isTestBooking);
+  const excludedTestBookings = allFinanceRows.length - financeRows.length;
   const rows = financeRows.filter(row => row.status === 'completed');
   const cancellationRows = financeRows.filter(row => row.cancellationEarnings);
   const bookingIds = rows.map(row => row.bookingId).filter(Boolean);
@@ -177,6 +183,7 @@ export default async function handler(req, res) {
   return res.status(200).json({
     period,
     range,
+    excludedTestBookings,
     assumptions: {
       ...DEFAULT_ASSUMPTIONS,
       cacCents,
