@@ -776,7 +776,7 @@
       return;
     }
     if (currentReadiness.isReady !== true) {
-      APP.showAlert('page-alert', 'Complete your readiness actions before going Online: ' + (currentReadiness.missingItems || []).join(', '), 'error');
+      APP.showAlert('page-alert', 'You can’t go Online yet. Still needed: ' + (currentReadiness.missingItems || []).join(', '), 'error');
       return;
     }
     available = true;

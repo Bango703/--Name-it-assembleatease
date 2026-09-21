@@ -517,7 +517,10 @@ export default async function handler(req, res) {
       severity: activeAssignment ? 'critical' : 'high',
       ref: activeAssignment?.ref || '',
       bookingId: activeAssignment?.id || '',
-      message: `${easer.full_name || 'An Easer'} ${activeAssignment ? `is assigned to ${activeAssignment.ref} but` : 'is marked online but'} is not ready for jobs: ${(easer.readiness?.missingItems || ['readiness could not be verified']).join(', ')}.`,
+      // missingItems are named as the REQUIREMENT, not the failure, so they
+      // follow "Still missing:" — "is not ready for jobs: Job texts enabled"
+      // reads as though the enabled texts were the problem (Article 14).
+      message: `${easer.full_name || 'An Easer'} ${activeAssignment ? `is assigned to ${activeAssignment.ref} but` : 'is marked online but'} cannot receive jobs. Still missing: ${(easer.readiness?.missingItems || ['readiness could not be verified']).join(', ')}.`,
       action: activeAssignment ? 'review_timeline' : null,
     });
   });

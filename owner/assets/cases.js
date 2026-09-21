@@ -51,7 +51,12 @@
       badge.title = 'Cases requiring owner action';
       badge.style.display = count > 0 ? '' : 'none';
     } catch (error) {
-      badge.style.display = 'none';
+      // Hiding the badge on failure reads as "no cases need you" — a claim this
+      // function just failed to verify. Live Ops prints "!" for the same reason
+      // (Article 16).
+      badge.textContent = '!';
+      badge.title = 'Cases could not be loaded — this is not a count of zero.';
+      badge.style.display = '';
     }
   }
 
