@@ -3430,11 +3430,17 @@ window.intelQuick = intelQuick;
       && !booking.financial_reconciliation_required_at
       && Number.isFinite(Number((booking.financial_summary || {}).platformGrossCents));
   }
+  // Business metrics exclude the owner's own test bookings, the way the daily
+  // and weekly summary emails have since migration 094. The rows stay visible
+  // in the list with a TEST pill — excluded from counting, never hidden.
+  function isTestBooking(b) { return !!b && b.is_test_booking === true; }
+  function realBookings() { return allBookings.filter(function(b){ return !isTestBooking(b); }); }
+
   function updateStats() {
     const counts = { pending: 0, confirmed: 0, completed: 0 };
     let profit = 0;
     let unresolvedCompleted = 0;
-    allBookings.forEach(function(b) {
+    realBookings().forEach(function(b) {
       // Count pipeline statuses as Confirmed — they are active/accepted jobs
       var cat = PIPELINE_STATUSES.includes(b.status) ? 'confirmed' : b.status;
       if (counts[cat] !== undefined) counts[cat]++;
@@ -3451,7 +3457,13 @@ window.intelQuick = intelQuick;
     document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
     document.querySelector('#stat-confirmed .stat-value').textContent = counts.confirmed;
     document.querySelector('#stat-completed .stat-value').textContent = counts.completed;
-    document.querySelector('#stat-total .stat-value').textContent = allBookings.length;
+    var realCount = realBookings().length;
+    var testCount = allBookings.length - realCount;
+    var totalEl = document.querySelector('#stat-total .stat-value');
+    totalEl.textContent = realCount;
+    totalEl.title = testCount > 0
+      ? testCount + ' test booking' + (testCount === 1 ? '' : 's') + ' excluded from every figure on this board.'
+      : '';
     var revenueEl = document.querySelector('#stat-revenue .stat-value');
     var revenueLabel = document.querySelector('#stat-revenue .stat-label');
     if (revenueEl) {
@@ -3703,6 +3715,7 @@ window.intelQuick = intelQuick;
       return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '" style="position:relative">'
         + '<div class="card-top"><h4>' + esc(b.customer_name) + '</h4>' + bookingBadge(b) + '</div>'
         + '<div class="card-desc">' + esc(cardQuoteStage ? quoteServiceLabel(b) : (b.service || '—')) + '</div>'
+        + (isTestBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--muted);font-weight:600;margin-top:2px;letter-spacing:0.06em">TEST BOOKING — excluded from all figures</div>' : '')
         + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + esc(b.assembler_tier) : '') + '</div>' : '')
         + (b.has_unread_customer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Customer message</div>' : '')
         + (b.has_unread_easer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Easer message</div>' : '')
@@ -8473,7 +8486,7 @@ window.intelQuick = intelQuick;
   var allCustomers = [];
   function buildCustomers() {
     var map = {};
-    allBookings.forEach(function(b){
+    realBookings().forEach(function(b){
       var key = (b.customer_email||'').toLowerCase();
       if(!key) key = 'booking:' + b.id;
       if(!map[key]){

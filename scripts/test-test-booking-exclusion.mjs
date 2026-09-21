@@ -60,3 +60,33 @@ for (const file of ['api/cron/daily-summary.js', 'api/cron/weekly-summary.js']) 
 
 console.log(`PASS internal bookings: flag defaults to real, ${refs.length} rows flagged not deleted, `
   + 'every summary query excludes them, filters correctly placed');
+
+// ── The owner's own views must agree with his summary emails ───────────────
+// Migration 094 excluded test bookings from the daily and weekly summaries and
+// stopped there. The dashboard kept counting them, so revenue on screen and
+// revenue in the inbox described two different businesses.
+{
+  const ledger = await readFile(new URL('../api/owner/_finance-ledger.js', import.meta.url), 'utf8');
+  assert.match(ledger, /is_test_booking/,
+    'the finance ledger must carry the test flag so consumers can decide');
+  assert.match(ledger, /isTestBooking: b\.is_test_booking === true/,
+    'the flag must reach the finance row');
+
+  const dash = await readFile(new URL('../api/owner/financial-dashboard.js', import.meta.url), 'utf8');
+  assert.match(dash, /filter\(row => !row\.isTestBooking\)/,
+    'business metrics must exclude test bookings');
+  assert.match(dash, /excludedTestBookings/,
+    'the excluded count must be reported — excluded, never silently hidden');
+
+  const earnings = await readFile(new URL('../api/assembler/earnings.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(earnings, /isTestBooking/,
+    'an Easer\'s earnings must reflect the work they did, flagged or not');
+
+  const owner = await readFile(new URL('../owner/index.html', import.meta.url), 'utf8');
+  assert.match(owner, /function realBookings\(\)/, 'the board needs one place that drops test rows');
+  assert.match(owner, /realBookings\(\)\.forEach/, 'stat tiles must count real bookings only');
+  assert.match(owner, /TEST BOOKING — excluded from all figures/,
+    'a test booking stays visible in the list, marked — excluded from counting, never hidden');
+}
+
+console.log('PASS owner dashboard and financials exclude test bookings, and say so');
