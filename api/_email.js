@@ -261,10 +261,17 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
     return { ok: true, suppressed: true, reason: suppressionReason, logged: logResult.ok, logError: logResult.error };
   }
 
-  // Every email leaves here inside the same frame. Callers that already built a
-  // full document are untouched; a bare fragment gets the header and footer
-  // instead of arriving as unbranded raw text.
-  const body = { from, to: Array.isArray(to) ? to : [to], subject, html: ensureEmailShell(html, recipientType) };
+  // Every email leaves here inside the same frame, with an inbox preview line
+  // and a text/plain alternative. Callers that already built a full document
+  // keep their markup; a bare fragment gets the header and footer instead of
+  // arriving as unbranded raw text.
+  const body = {
+    from,
+    to: Array.isArray(to) ? to : [to],
+    subject,
+    html: ensureEmailShell(html, recipientType, meta.preheader),
+    text: htmlToText(html),
+  };
   if (replyTo) body.reply_to = replyTo;
   // One-click unsubscribe is used only when a caller supplies a tokenized HTTPS
   // endpoint that can honor the POST. Non-essential bulk mail may expose the
@@ -550,8 +557,53 @@ function emailFooter(recipientType) {
   </td></tr></table>`;
 }
 
-const EMAIL_DOC_OPEN = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">`;
+const EMAIL_DOC_OPEN = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">`;
+
+/* The inbox preview line. Without one, Gmail shows whatever text comes first —
+ * which, now that every email has a logo, is the logo's alt text. The trailing
+ * entities stop the client from dragging footer text into the preview. */
+function preheaderBlock(text) {
+  const line = String(text || '').trim();
+  if (!line) return '';
+  return `\n<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;height:0;width:0">${esc(line)}${'&#8204;&nbsp;'.repeat(60)}</div>`;
+}
+
+/* First real sentence of the email, used as the preview line when the caller
+ * does not supply one. */
+export function derivePreheader(html, limit = 140) {
+  const text = htmlToText(html).split('\n').map(s => s.trim()).filter(Boolean)[0] || '';
+  if (text.length <= limit) return text;
+  return text.slice(0, limit - 1).replace(/\s+\S*$/, '') + '…';
+}
+
+const ENTITIES = {
+  '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&apos;': "'",
+  '&nbsp;': ' ', '&bull;': '·', '&mdash;': '—', '&ndash;': '–', '&rsquo;': '’',
+  '&lsquo;': '‘', '&ldquo;': '“', '&rdquo;': '”', '&hellip;': '…', '&#8204;': '',
+};
+
+/* A text/plain alternative. HTML-only mail scores worse with spam filters and
+ * reads badly on watches and screen readers, and until now every email this
+ * platform sent was HTML-only. */
+export function htmlToText(html) {
+  return String(html || '')
+    .replace(/<head[\s\S]*?<\/head>/gi, '')
+    .replace(/<(style|script)[\s\S]*?<\/\1>/gi, '')
+    .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_m, href, label) => {
+      const text = label.replace(/<[^>]+>/g, '').trim();
+      const url = href.replace(/^mailto:/i, '');
+      if (!text) return url;
+      return text === url ? text : `${text} (${url})`;
+    })
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|tr|h[1-6]|li|table)>/gi, '\n')
+    .replace(/<li\b[^>]*>/gi, '- ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&#?\w+;/g, m => (m in ENTITIES ? ENTITIES[m] : m))
+    .split('\n').map(line => line.replace(/[ \t]+/g, ' ').trim()).join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 /* A caller that already built a whole document keeps it. Everything else is a
  * fragment and gets the frame — which is how 33 senders were shipping bare <p>
@@ -560,10 +612,12 @@ export function isFullEmailDocument(html) {
   return /<!DOCTYPE|<html[\s>]/i.test(String(html || ''));
 }
 
-export function ensureEmailShell(html, recipientType) {
+export function ensureEmailShell(html, recipientType, preheader) {
   const raw = String(html || '');
   if (isFullEmailDocument(raw)) return raw;
-  return `${EMAIL_DOC_OPEN}
+  const preview = preheader === undefined ? derivePreheader(raw) : preheader;
+  return `${EMAIL_DOC_OPEN}${preheaderBlock(preview)}
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
 ${EMAIL_HEADER}
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px;font-size:15px;line-height:1.7;color:#3f3f46">
 ${raw}
@@ -572,9 +626,10 @@ ${emailFooter(recipientType)}
 </div></body></html>`;
 }
 
-export function buildStatusEmail({ customerName, ref, status, statusColor, statusBg, headline, bodyHtml }) {
+export function buildStatusEmail({ customerName, ref, status, statusColor, statusBg, headline, bodyHtml, preheader }) {
   const sName = esc(customerName);
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+  const preview = preheader === undefined ? derivePreheader(bodyHtml) : preheader;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">${preheaderBlock(preview)}
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
 ${EMAIL_HEADER}
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">

@@ -125,7 +125,7 @@ function buildEvidenceRequestEmail({ firstName, ref, service, date }) {
     </td></tr></table>
     <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Please open your Easer dashboard, find this job under <strong>Completed</strong>, and upload at least one photo showing the finished work.</p>
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:4px 0 20px">
-      <a href="https://www.assembleatease.com/assembler/my-assignments.html" style="display:inline-block;background:#059669;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Open My Assignments</a>
+      <a href="https://www.assembleatease.com/assembler/my-assignments.html" style="display:inline-block;background:#00BFFF;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Open My Assignments</a>
     </td></tr></table>
     <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
   </td></tr></table>
