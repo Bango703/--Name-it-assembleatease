@@ -261,7 +261,10 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
     return { ok: true, suppressed: true, reason: suppressionReason, logged: logResult.ok, logError: logResult.error };
   }
 
-  const body = { from, to: Array.isArray(to) ? to : [to], subject, html };
+  // Every email leaves here inside the same frame. Callers that already built a
+  // full document are untouched; a bare fragment gets the header and footer
+  // instead of arriving as unbranded raw text.
+  const body = { from, to: Array.isArray(to) ? to : [to], subject, html: ensureEmailShell(html, recipientType) };
   if (replyTo) body.reply_to = replyTo;
   // One-click unsubscribe is used only when a caller supplies a tokenized HTTPS
   // endpoint that can honor the POST. Non-essential bulk mail may expose the
@@ -521,14 +524,59 @@ export function verifyOwner(req) {
 /**
  * Build a styled status email for customers.
  */
+/* ── The one email frame ────────────────────────────────────────────────────
+ * Header and footer live here so every email looks like it came from the same
+ * company. The wordmark is TEXT under the logo on purpose: Gmail and Outlook
+ * block remote images by default, and a header that collapses to nothing when
+ * images are off is not branding.
+ */
+const EMAIL_HEADER = `  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
+    <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
+    <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
+  </td></tr></table>`;
+
+/* The opt-out line is for people who could reasonably want out. The owner
+ * cannot unsubscribe from his own operational alerts, so telling him he can
+ * would be noise. */
+function emailFooter(recipientType) {
+  const optOut = recipientType === 'owner'
+    ? ''
+    : `\n    <p style="margin:0;font-size:10px;color:#c4c4c4">This is a transactional email related to your booking. To opt out of non-essential emails, <a href="${SITE}/contact?subject=Email+Preferences" style="color:#a1a1aa;text-decoration:underline">contact us here</a>.</p>`;
+  return `  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
+    <img src="${LOGO}" alt="AssembleAtEase" width="28" height="28" style="border-radius:50%;display:inline-block"/>
+    <p style="margin:8px 0 4px;font-size:12px;font-weight:600;color:#71717a">AssembleAtEase</p>
+    <p style="margin:0 0 8px;font-size:11px;color:#a1a1aa;line-height:1.5">Professional Assembly &amp; Handyman Services<br/>Serving customers across Texas &bull; (979) 232-5139</p>
+    <p style="margin:0 0 6px;font-size:11px;color:#a1a1aa"><a href="${SITE}" style="color:#71717a;text-decoration:none">assembleatease.com</a> &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>${optOut}
+  </td></tr></table>`;
+}
+
+const EMAIL_DOC_OPEN = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">`;
+
+/* A caller that already built a whole document keeps it. Everything else is a
+ * fragment and gets the frame — which is how 33 senders were shipping bare <p>
+ * tags with no logo, no footer and no opt-out line. */
+export function isFullEmailDocument(html) {
+  return /<!DOCTYPE|<html[\s>]/i.test(String(html || ''));
+}
+
+export function ensureEmailShell(html, recipientType) {
+  const raw = String(html || '');
+  if (isFullEmailDocument(raw)) return raw;
+  return `${EMAIL_DOC_OPEN}
+${EMAIL_HEADER}
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px;font-size:15px;line-height:1.7;color:#3f3f46">
+${raw}
+  </td></tr></table>
+${emailFooter(recipientType)}
+</div></body></html>`;
+}
+
 export function buildStatusEmail({ customerName, ref, status, statusColor, statusBg, headline, bodyHtml }) {
   const sName = esc(customerName);
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
-    <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
-    <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
-  </td></tr></table>
+${EMAIL_HEADER}
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">${headline}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin:20px 0"><tr><td style="padding:18px 20px">
@@ -542,13 +590,7 @@ export function buildStatusEmail({ customerName, ref, status, statusColor, statu
       <a href="mailto:service@assembleatease.com" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Contact Us</a>
     </td></tr></table>
   </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
-    <img src="${LOGO}" alt="AssembleAtEase" width="28" height="28" style="border-radius:50%;display:inline-block"/>
-    <p style="margin:8px 0 4px;font-size:12px;font-weight:600;color:#71717a">AssembleAtEase</p>
-    <p style="margin:0 0 8px;font-size:11px;color:#a1a1aa;line-height:1.5">Professional Assembly &amp; Handyman Services<br/>Serving customers across Texas &bull; (979) 232-5139</p>
-    <p style="margin:0 0 6px;font-size:11px;color:#a1a1aa"><a href="${SITE}" style="color:#71717a;text-decoration:none">assembleatease.com</a> &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>
-    <p style="margin:0;font-size:10px;color:#c4c4c4">This is a transactional email related to your booking. To opt out of non-essential emails, <a href="${SITE}/contact?subject=Email+Preferences" style="color:#a1a1aa;text-decoration:underline">contact us here</a>.</p>
-  </td></tr></table>
+${emailFooter('customer')}
 </div></body></html>`;
 }
 
