@@ -657,8 +657,13 @@ async function lookupBooking(e) {
       });
       const linkData = await linkResponse.json();
       if (!linkResponse.ok) throw new Error(linkData.error || 'Could not request a secure link.');
-      infoEl.textContent = linkData.message;
+      infoEl.textContent = autoLookupPending
+        ? 'That link has expired, so we have emailed you a fresh one. You can also get straight in with a code below.'
+        : linkData.message;
       infoEl.style.display = 'block';
+      // A dead end is what sent people hunting for the code box themselves.
+      // Offer the second door here, with their email already filled in.
+      offerCodeEntry(email);
       autoLookupPending = false;
       return;
     }
@@ -688,6 +693,18 @@ async function lookupBooking(e) {
 // Customer proves they own the inbox with a 6-digit code, then jumps straight in.
 // The token returned per booking is an ordinary mutation token, so view /
 // reschedule / cancel still run through the same rule-enforcing endpoints.
+// A lookup that cannot authenticate leaves the customer with nothing to do.
+// Put them one tap from the code path instead of making them find it.
+function offerCodeEntry(email) {
+  try {
+    var input = document.getElementById('tc-email');
+    if (input && email && !input.value) input.value = email;
+    var card = document.querySelector('.track-code-alt');
+    if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (input && input.focus) input.focus({ preventScroll: true });
+  } catch (_) { /* the code panel is always on the page; this is only a nudge */ }
+}
+
 function tcReset() {
   document.getElementById('tcStepCode').style.display = 'none';
   document.getElementById('tcChooser').style.display = 'none';

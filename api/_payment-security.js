@@ -39,19 +39,37 @@ export function guestMutationTokenHash(booking) {
 }
 
 // Build the customer's self-serve "manage booking" link for Track My Booking.
-// When the deterministic token still matches the stored hash (i.e. it has NOT
-// been rotated by a reschedule/recovery), embed it so the customer can reschedule
-// or cancel in ONE click — no email round-trip. If it was rotated, fall back to a
-// tokenless track link (status view + "request a secure link"), never a stale one.
+// When a live token is available, embed it so the customer can view, reschedule
+// or cancel in ONE click — no email round-trip. Never embeds a stale token.
+//
+// Two ways a live token is available:
+//   1. `plainToken` — a caller that JUST rotated the token passes the new one.
+//      Without this, every email sent after a rotation was tokenless FOR THE
+//      REST OF THE BOOKING'S LIFE, because the deterministic token can never
+//      match a random hash again. The customer clicked link after link and got
+//      a dead end each time.
+//   2. The deterministic token still matches the stored hash, i.e. nothing has
+//      rotated it yet.
+//
+// With neither, the link carries ref and email only. /api/booking/track refuses
+// that — by design, it is not an authenticated view — so track.html treats a
+// tokenless arrival as "send me a fresh link or let me use a code" rather than
+// showing a dead form.
 // Requires booking { id, ref, customer_email, guest_mutation_token_hash }.
-export function guestManageUrl(booking, site = 'https://www.assembleatease.com') {
+export function guestManageUrl(booking, site = 'https://www.assembleatease.com', plainToken = null) {
   const ref = String(booking?.ref || '');
   const email = String(booking?.customer_email || '');
   const base = `${site}/track?ref=${encodeURIComponent(ref)}`;
+  const withToken = token => `${base}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`;
   try {
+    // A token handed to us is only trusted if it really is the stored one.
+    if (plainToken && email && booking?.guest_mutation_token_hash
+        && safeTokenHashMatch(plainToken, booking.guest_mutation_token_hash)) {
+      return withToken(plainToken);
+    }
     const token = deriveGuestMutationToken({ bookingId: booking.id, ref, email });
     if (booking.guest_mutation_token_hash && sha256(token) === booking.guest_mutation_token_hash) {
-      return `${base}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`;
+      return withToken(token);
     }
   } catch (_) { /* fall through to tokenless link */ }
   return email ? `${base}&email=${encodeURIComponent(email)}` : base;
