@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   const { data, error } = await sb
     .from('profiles')
-    .select('id, role, full_name, email, phone, city, status, application_status, tier, rating, completed_jobs, is_available, identity_verified, is_owner, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, stripe_connect_account_id')
+    .select('id, role, full_name, email, phone, city, status, application_status, tier, rating, completed_jobs, is_available, identity_verified, is_owner, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, sms_consent_at, sms_opted_out_at, stripe_connect_account_id')
     .eq('role', 'assembler')
     .order('tier', { ascending: false })
     .order('rating', { ascending: false, nullsFirst: false });

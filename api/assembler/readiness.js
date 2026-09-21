@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: profile, error } = await sb
     .from('profiles')
-    .select('id, role, status, application_status, tier, is_available, phone, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, stripe_connect_account_id')
+    .select('id, role, status, application_status, tier, is_available, phone, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, sms_consent_at, sms_opted_out_at, stripe_connect_account_id')
     .eq('id', authenticated.user.id)
     .maybeSingle();
 

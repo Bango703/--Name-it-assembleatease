@@ -3205,33 +3205,38 @@ window.intelQuick = intelQuick;
     // Surface payable and held Easer earnings immediately. The owner should
     // not have to discover payout work by opening Financials first.
     loadPayoutLedger();
+    // A badge that fails to load must not look like a clear queue. Live Ops
+    // already prints "!" when its check cannot verify state; these four hid
+    // themselves instead, so a failed fetch was indistinguishable from "nothing
+    // needs you" (Article 16 — never assert what has not been verified).
+    function paintNavBadge(id, count) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (count > 0) { el.textContent = String(count); el.title = ''; el.style.display = ''; }
+      else el.style.display = 'none';
+    }
+    function navBadgeUnknown(id, label) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = '!';
+      el.title = label + ' could not be loaded — this is not a count of zero.';
+      el.style.display = '';
+    }
     // Nav badge: pending Easer applications
     fetch('/api/assembler/list', { headers: headers() })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        var ct = Number((d.stats || {}).pending || 0);
-        var $navApps = document.getElementById('nav-pending-apps');
-        if (ct > 0) { $navApps.textContent = ct; $navApps.style.display = ''; }
-        else $navApps.style.display = 'none';
-      }).catch(function(){});
+      .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
+      .then(function(d) { paintNavBadge('nav-pending-apps', Number((d.stats || {}).pending || 0)); })
+      .catch(function(){ navBadgeUnknown('nav-pending-apps', 'Pending Easer applications'); });
     // Nav badge: pending waitlist entries
     fetch('/api/owner/waitlist?status=pending', { headers: headers() })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        var pending = ((d.stats || {}).pending) || 0;
-        var $navWl = document.getElementById('nav-waitlist');
-        if (pending > 0) { $navWl.textContent = pending; $navWl.style.display = ''; }
-        else $navWl.style.display = 'none';
-      }).catch(function(){});
+      .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
+      .then(function(d) { paintNavBadge('nav-waitlist', Number((d.stats || {}).pending || 0)); })
+      .catch(function(){ navBadgeUnknown('nav-waitlist', 'Easer waitlist'); });
     // Nav badge: demand records that require owner assignment or follow-up.
     fetch('/api/owner/market-demand', { headers: headers() })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        var count = ((d.summary || {}).ownerActionRequired) || 0;
-        var $navMd = document.getElementById('nav-market-demand');
-        if (count > 0) { $navMd.textContent = count; $navMd.style.display = ''; }
-        else $navMd.style.display = 'none';
-      }).catch(function(){});
+      .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
+      .then(function(d) { paintNavBadge('nav-market-demand', Number((d.summary || {}).ownerActionRequired || 0)); })
+      .catch(function(){ navBadgeUnknown('nav-market-demand', 'Market demand follow-ups'); });
     // Cases is a separate owner module. Delay one tick so the deferred module
     // is ready even when an existing owner session opens immediately.
     setTimeout(function() {
@@ -7963,11 +7968,16 @@ window.intelQuick = intelQuick;
     var alertsEl = document.getElementById('ops-alerts-bar');
     if (d.alerts && d.alerts.length) {
       alertsEl.innerHTML = d.alerts.slice(0, 6).map(function(a) {
-        var actionLabels = { dispatch:'Dispatch', redispatch:'Re-dispatch', reassign:'View Booking', contact_easer:'Contact Easer', review_timeline:'Review Timeline', review_damage_evidence:'Review and Close Alert' };
+        var actionLabels = { dispatch:'Dispatch', redispatch:'Re-dispatch', reassign:'View Booking', contact_easer:'Contact Easer', review_timeline:'Review Timeline', review_damage_evidence:'Review and Close Alert', enable_job_texts:'Send Job-Text Opt-In' };
         var encodedRecipient = encodeURIComponent(a.recipientEmail || '');
         var safeAction = actionLabels[a.action] ? a.action : '';
         var safeBookingId = /^[0-9a-f-]{36}$/i.test(String(a.bookingId || '')) ? a.bookingId : '';
-        var actionBtn = safeAction ? '<button onclick="opsAction(\'' + safeAction + '\',\'' + safeBookingId + '\',\'' + encodedRecipient + '\')" class="btn" style="font-size:0.7rem;padding:2px 10px;margin-left:auto;flex-shrink:0">' + actionLabels[safeAction] + '</button>' : '';
+        var safeEaserId = /^[0-9a-f-]{36}$/i.test(String(a.easerId || '')) ? a.easerId : '';
+        // The job-texts alert carries the Easer, not the booking: the fix is
+        // sending that person the opt-in, which is what clears the alert.
+        var actionArg = safeAction === 'enable_job_texts' ? safeEaserId : safeBookingId;
+        if (safeAction === 'enable_job_texts' && !safeEaserId) safeAction = '';
+        var actionBtn = safeAction ? '<button onclick="opsAction(\'' + safeAction + '\',\'' + actionArg + '\',\'' + encodedRecipient + '\')" class="btn" style="font-size:0.7rem;padding:2px 10px;margin-left:auto;flex-shrink:0">' + actionLabels[safeAction] + '</button>' : '';
         var safeSeverity = ['critical','high','medium','low'].includes(String(a.severity || '').toLowerCase())
           ? String(a.severity).toLowerCase()
           : 'medium';
@@ -8216,6 +8226,26 @@ window.intelQuick = intelQuick;
     if (action === 'dispatch' || action === 'redispatch') {
       // Confirm before sending real notifications
       await window.dispatchWithConfirm(bookingId);
+      return;
+    }
+    if (action === 'enable_job_texts') {
+      // Job texts are mandatory to receive work and consent must come from the
+      // Easer (TCPA), so the only thing the owner can do is ask. This is the
+      // same sms_job_texts opt-in the announcement campaign sends.
+      var easerId = bookingId;
+      if (!/^[0-9a-f-]{36}$/i.test(String(easerId || ''))) { toast('No Easer is attached to this alert.', 'error'); return; }
+      try {
+        var resp = await fetch('/api/owner/announcement-adoption', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+          body: JSON.stringify({ action: 'resend', key: 'sms_job_texts', easerId: easerId })
+        });
+        var body = await resp.json().catch(function(){ return {}; });
+        if (!resp.ok) { toast(body.error || 'The opt-in email could not be sent.', 'error'); return; }
+        toast(body.message || 'Opt-in email sent.', 'success');
+      } catch (e) {
+        toast('The opt-in email could not be sent.', 'error');
+      }
       return;
     }
     if (action === 'contact_easer') {

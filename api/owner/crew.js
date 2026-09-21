@@ -109,7 +109,7 @@ export default async function handler(req, res) {
 
   const { data: easer, error: easerErr } = await sb
     .from('profiles')
-    .select('id, full_name, email, phone, sms_consent_at, sms_opted_out_at, role, status, application_status, tier, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, payment_confirmed, account_closure_status, is_available, has_membership, stripe_connect_account_id')
+    .select('id, full_name, email, phone, sms_consent_at, sms_opted_out_at, role, status, application_status, tier, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, payment_confirmed, account_closure_status, application_decision_key, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, is_available, has_membership, stripe_connect_account_id')
     .eq('id', easerId)
     .single();
   if (easerErr || !easer) return res.status(404).json({ error: 'Easer not found' });

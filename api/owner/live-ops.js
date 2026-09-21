@@ -200,7 +200,14 @@ export default async function handler(req, res) {
       .order('financial_reconciliation_required_at', { ascending: true })
       .limit(50),
     sb.from('profiles')
-      .select('id, full_name, email, tier, rating, completed_jobs, is_available, has_membership, city, phone, status, application_status, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, stripe_connect_account_id')
+      // getEaserReadiness reads these off the row it is handed — it never
+      // refetches. Omitting a column it reads does not fail; it silently
+      // computes that requirement as UNMET. sms_consent_at was missing here,
+      // so Live Ops reported every Easer as blocked on "Job texts enabled"
+      // whether or not they had consented, while dispatch and assign (which do
+      // select it) saw the truth. test-readiness-select-parity.mjs now keeps
+      // this list and the readiness module in step.
+      .select('id, full_name, email, tier, rating, completed_jobs, is_available, has_membership, city, phone, status, application_status, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, payment_confirmed, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, sms_consent_at, sms_opted_out_at, stripe_connect_account_id')
       .eq('role', 'assembler'),
     sb.from('dispatch_offers')
       .select('id, booking_id, easer_id, notification_sent, expires_at')
@@ -512,13 +519,26 @@ export default async function handler(req, res) {
 
   unreadyOperationalEasers.forEach(easer => {
     const activeAssignment = operationalBookings.find(booking => booking.assembler_id === easer.id) || null;
+    // Job texts are mandatory to receive work, and the remedy already exists:
+    // the sms_job_texts opt-in email. When that is the blocker and the Easer has
+    // not opted out, the alert carries the fix instead of only the diagnosis.
+    const missingItems = easer.readiness?.missingItems || [];
+    const blockedOnJobTexts = missingItems.includes('Job texts enabled')
+      && !easer.sms_opted_out_at
+      && !!easer.email;
     alerts.push({
       type: 'easer_readiness_mismatch',
       severity: activeAssignment ? 'critical' : 'high',
       ref: activeAssignment?.ref || '',
       bookingId: activeAssignment?.id || '',
-      message: `${easer.full_name || 'An Easer'} ${activeAssignment ? `is assigned to ${activeAssignment.ref} but` : 'is marked online but'} is not ready for jobs: ${(easer.readiness?.missingItems || ['readiness could not be verified']).join(', ')}.`,
-      action: activeAssignment ? 'review_timeline' : null,
+      easerId: blockedOnJobTexts ? easer.id : '',
+      // missingItems are named as the REQUIREMENT, not the failure, so they
+      // follow "Still missing:" — "is not ready for jobs: Job texts enabled"
+      // reads as though the enabled texts were the problem (Article 14).
+      message: `${easer.full_name || 'An Easer'} ${activeAssignment ? `is assigned to ${activeAssignment.ref} but` : 'is marked online but'} cannot receive jobs. Still missing: ${(missingItems.length ? missingItems : ['readiness could not be verified']).join(', ')}.`,
+      // The remedy outranks the diagnosis: sending the opt-in is what clears
+      // this alert, where opening the timeline only shows it again.
+      action: blockedOnJobTexts ? 'enable_job_texts' : (activeAssignment ? 'review_timeline' : null),
     });
   });
 
