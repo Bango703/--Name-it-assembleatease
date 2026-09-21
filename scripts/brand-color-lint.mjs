@@ -41,7 +41,11 @@ const RETIRED = ['#0094c6'];
 
 function walk(dir, exts, acc = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (['node_modules', '.git', 'scratchpad', '__pycache__'].includes(e.name) || e.name.startsWith('_')) continue;
+    // Underscore-prefixed DIRECTORIES stay private. Underscore-prefixed FILES
+    // are this repo's convention for shared modules (api/_email.js), and the
+    // email templates inside them went unlinted for exactly that reason.
+    if (['node_modules', '.git', 'scratchpad', '__pycache__'].includes(e.name)) continue;
+    if (e.isDirectory() && e.name.startsWith('_')) continue;
     const p = path.join(dir, e.name);
     if (e.isDirectory()) walk(p, exts, acc);
     else if (exts.some((x) => e.name.endsWith(x))) acc.push(p);
@@ -68,7 +72,17 @@ function hueSat(hex) {
   return { h: Math.round(hue), s: +s.toFixed(2), l: +l.toFixed(2) };
 }
 
-const files = walk(ROOT, ['.css', '.html']);
+const files = walk(ROOT, ['.css', '.html', '.js', '.mjs']);
+
+// Rule 3 applies to email templates, which live in .js under api/. A filled
+// button with white text is a primary call to action and must be brand blue.
+// Status pills (tinted background, dark text) keep their semantic colors.
+const CTA_RE = /background:(#[0-9A-Fa-f]{6});color:#(?:fff|ffffff)\b/g;
+const CTA_ALLOWED = new Set([
+  '#00BFFF', // brand
+  '#0099CC', // brand dark
+  '#DC2626', // destructive/urgent owner actions only (Stripe dispute response)
+]);
 const hardFails = [];
 const appBlueInventory = new Map(); // hex -> count (warning only)
 
@@ -77,6 +91,9 @@ const hexRe = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
 
 for (const file of files) {
   const rel = path.relative(ROOT, file).split(path.sep).join('/');
+  // This file names the retired hexes in order to ban them; it must not flag
+  // itself for containing them.
+  if (rel === 'scripts/brand-color-lint.mjs') continue;
   const txt = fs.readFileSync(file, 'utf8');
 
   // Rule 1 — brand tokens must stay in the blue hue band (reject teal-green / grey drift).
@@ -88,6 +105,17 @@ for (const file of files) {
     const tooGrey = !TINT_TOKENS.has(token) && s < BRAND_SAT_MIN;
     if (outOfBand || tooGrey) {
       hardFails.push(`${rel}: ${token} is ${m[2]} (hue ${h}, sat ${s}) — outside the brand blue band. Teal-green/grey drift; use a sky-blue (hue ~193–195).`);
+    }
+  }
+
+  // Rule 3 — email call-to-action buttons must carry the brand.
+  if (rel.startsWith('api/')) {
+    for (const m of txt.matchAll(CTA_RE)) {
+      const hex = m[1].toUpperCase();
+      if (CTA_ALLOWED.has(hex)) continue;
+      const { h } = hueSat(hex);
+      const why = h >= 90 && h <= 165 ? ' Green is not in this brand.' : '';
+      hardFails.push(`${rel}: email button background ${m[1]} is not the brand blue.${why} Use #00BFFF.`);
     }
   }
 

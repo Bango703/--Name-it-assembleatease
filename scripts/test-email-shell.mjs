@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { buildStatusEmail, ensureEmailShell, isFullEmailDocument } from '../api/_email.js';
+import { buildStatusEmail, ensureEmailShell, isFullEmailDocument, htmlToText, derivePreheader } from '../api/_email.js';
 
 const read = rel => readFile(new URL(`../${rel}`, import.meta.url), 'utf8');
 
@@ -36,8 +36,32 @@ assert.doesNotMatch(ensureEmailShell(fragment, 'owner'), /opt out/,
 
 // ── sendEmail is the enforcement point, not each caller ────────────────────
 const emailSrc = await read('api/_email.js');
-assert.match(emailSrc, /html: ensureEmailShell\(html, recipientType\)/,
+assert.match(emailSrc, /html: ensureEmailShell\(html, recipientType, meta\.preheader\)/,
   'sendEmail must frame the html it sends — per-caller discipline is what failed');
+assert.match(emailSrc, /text: htmlToText\(html\)/,
+  'every email needs a text/plain alternative; HTML-only mail scores worse and reads badly on watches and screen readers');
+
+// ── The inbox preview line ─────────────────────────────────────────────────
+// Without a preheader, Gmail previews whatever text comes first — which, now
+// that every email carries a logo, is the logo's alt text.
+assert.match(wrapped, /display:none;max-height:0/, 'the framed email carries a hidden preheader');
+assert.ok(wrapped.indexOf('Your job') < wrapped.indexOf('alt="AssembleAtEase"'),
+  'the preview line must come before the logo, or the client previews the alt text instead');
+assert.equal(derivePreheader('<p>First line here.</p><p>Second line.</p>'), 'First line here.',
+  'the preview line is the first real sentence of the email');
+assert.ok(derivePreheader('<p>' + 'x'.repeat(400) + '</p>').length <= 140,
+  'the preview line must stay short enough for the inbox to show it');
+assert.equal(ensureEmailShell(fragment, 'easer', '').includes('display:none;max-height:0'), false,
+  'an explicit empty preheader means the caller wants none');
+
+// ── The text alternative carries the same facts ────────────────────────────
+const text = htmlToText('<p>Job <strong>AAE-1</strong> is confirmed.</p><p><a href="https://example.com/x">Open My Assignments</a></p>');
+assert.match(text, /Job AAE-1 is confirmed\./, 'the text part keeps the sentence');
+assert.match(text, /Open My Assignments \(https:\/\/example\.com\/x\)/,
+  'a link must survive as label plus URL — a text reader cannot click markup');
+assert.doesNotMatch(text, /<[a-z]/i, 'no markup may leak into the text part');
+assert.equal(htmlToText('<style>p{color:red}</style><p>Body &amp; more</p>'), 'Body & more',
+  'style blocks are dropped and entities are decoded');
 
 // ── One frame, not two copies of it ────────────────────────────────────────
 // buildStatusEmail and the fragment shell must share a header and footer, or
