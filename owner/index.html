@@ -1044,7 +1044,10 @@
 
           <!-- AI Chat -->
           <div class="detail-panel open" style="display:flex;flex-direction:column">
-            <div class="detail-section-title" style="margin-bottom:0.75rem">Ask the AI</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.75rem">
+              <div class="detail-section-title" style="margin:0">Ask the AI</div>
+              <button type="button" onclick="clearIntelChat()" class="btn" style="font-size:0.68rem;padding:2px 9px">New chat</button>
+            </div>
             <div id="intel-chat-msgs" style="flex:1;min-height:120px;max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.75rem">
               <div style="font-size:0.8rem;color:var(--muted);line-height:1.5">Ask about your business, get a draft email, analyze trends, or request specific actions.</div>
             </div>
@@ -1056,8 +1059,8 @@
               <button onclick="intelQuick('Which service makes me the most money?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Most profitable service</button>
             </div>
             <div style="display:flex;gap:0.4rem">
-              <input id="intel-chat-input" type="text" placeholder="Ask anything about your business…" style="flex:1;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;padding:0.5rem 0.75rem;font-family:inherit;font-size:0.82rem;color:var(--text);outline:none" onkeydown="if(event.key==='Enter')sendIntelChat()"/>
-              <button onclick="sendIntelChat()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:0.5rem 0.9rem;cursor:pointer;font-size:0.82rem;font-weight:600">Send</button>
+              <input id="intel-chat-input" type="text" maxlength="2000" placeholder="Ask anything about your business…" style="flex:1;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;padding:0.5rem 0.75rem;font-family:inherit;font-size:0.82rem;color:var(--text);outline:none" onkeydown="if(event.key==='Enter')sendIntelChat()"/>
+              <button id="intel-chat-send" type="button" onclick="sendIntelChat()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:0.5rem 0.9rem;cursor:pointer;font-size:0.82rem;font-weight:600">Send</button>
             </div>
           </div>
 
@@ -1638,10 +1641,22 @@ async function runIntelligence() {
   }
 }
 
+// Keep a bounded conversation in memory only; reload and New chat clear it.
+var _intelHistory = [];
+var _intelChatPending = false;
+var _intelChatVersion = 0;
+var _intelChatController = null;
+
 async function sendIntelChat() {
+  if (_intelChatPending) return;
   var input = document.getElementById('intel-chat-input');
   var msg = input.value.trim();
   if (!msg) return;
+  var version = _intelChatVersion;
+  var sendButton = document.getElementById('intel-chat-send');
+  _intelChatPending = true;
+  _intelChatController = new AbortController();
+  if (sendButton) sendButton.disabled = true;
   input.value = '';
   var msgs = document.getElementById('intel-chat-msgs');
   msgs.innerHTML += '<div style="background:var(--teal);color:#fff;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;line-height:1.5;align-self:flex-end;margin-left:auto;max-width:85%">' + intelEsc(msg) + '</div>';
@@ -1651,27 +1666,62 @@ async function sendIntelChat() {
     var r = await fetch('/api/owner/monitor', {
       method: 'POST',
       headers: window._ownerHeaders(),
-      body: JSON.stringify({ message: msg })
+      signal: _intelChatController.signal,
+      body: JSON.stringify({ message: msg, history: _intelHistory })
     });
     var d = await r.json();
+    if (version !== _intelChatVersion) return;
+    if (!r.ok || d.error) throw new Error(d.error || 'Request failed. Please try again.');
+    if (typeof d.reply !== 'string' || !d.reply.trim()) throw new Error('No answer returned. Please try again.');
     var t = document.getElementById('intel-thinking');
     if (t) t.remove();
-    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--soft);line-height:1.65;max-width:90%;white-space:pre-wrap">' + intelEsc(d.reply||'No response.') + '</div>';
+    // Record the exchange only once the server answered, so a failed request
+    // does not leave a question in the history with no reply after it.
+    _intelHistory.push({ role: 'user', content: msg.slice(0, 2000) });
+    _intelHistory.push({ role: 'assistant', content: d.reply.slice(0, 2000) });
+    if (_intelHistory.length > 10) _intelHistory = _intelHistory.slice(-10);
+    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--soft);line-height:1.65;max-width:90%;white-space:pre-wrap">' + intelEsc(d.reply) + '</div>';
   } catch(e) {
+    if (version !== _intelChatVersion) return;
     var t2 = document.getElementById('intel-thinking');
     if (t2) t2.remove();
-    msgs.innerHTML += '<div style="color:#ef4444;font-size:0.8rem;padding:0.5rem">Request failed.</div>';
+    msgs.innerHTML += '<div style="color:#ef4444;font-size:0.8rem;padding:0.5rem">' + intelEsc(e.message || 'Request failed. Please try again.') + '</div>';
+    if (!input.value) input.value = msg;
+  } finally {
+    if (version === _intelChatVersion) {
+      _intelChatPending = false;
+      _intelChatController = null;
+      if (sendButton) sendButton.disabled = false;
+    }
   }
   msgs.scrollTop = msgs.scrollHeight;
 }
 
 function intelQuick(msg) {
+  if (_intelChatPending) return;
   document.getElementById('intel-chat-input').value = msg;
   sendIntelChat();
 }
 
+function clearIntelChat() {
+  _intelChatVersion += 1;
+  if (_intelChatController) _intelChatController.abort();
+  _intelChatController = null;
+  _intelChatPending = false;
+  _intelHistory = [];
+  var input = document.getElementById('intel-chat-input');
+  if (input) input.value = '';
+  var sendButton = document.getElementById('intel-chat-send');
+  if (sendButton) sendButton.disabled = false;
+  var msgs = document.getElementById('intel-chat-msgs');
+  if (msgs) {
+    msgs.innerHTML = '<div style="font-size:0.8rem;color:var(--muted);line-height:1.5">Ask about your business, get a draft email, analyze trends, or request specific actions.</div>';
+  }
+}
+
 window.runIntelligence = runIntelligence;
 window.sendIntelChat = sendIntelChat;
+window.clearIntelChat = clearIntelChat;
 window.intelQuick = intelQuick;
 </script>
 
