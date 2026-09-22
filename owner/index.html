@@ -5536,6 +5536,14 @@ window.intelQuick = intelQuick;
       renderOwnerActionCollection(notices, btns);
       return;
     }
+    // A customer who cannot find their confirmation could not be helped from
+    // here: there is a resend for quotes, reviews, payment links and payout
+    // reminders, but none for the booking itself, and no tracking link anywhere
+    // on this board. Offered while the booking is live — once it is cancelled
+    // or declined there is nothing left to track.
+    if (!['cancelled', 'declined'].includes(b.status) && b.customer_email) {
+      btns.push('<button class="btn" data-action="resend-booking-details" data-id="' + b.id + '">Resend Details &amp; Track Link</button>');
+    }
     if (b.is_test_booking === true) {
       notices.push('<div style="flex-basis:100%;background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.8rem;color:var(--muted);font-size:0.78rem;line-height:1.5"><strong>Internal test booking.</strong> On the record, excluded from every figure on this dashboard and from the summary emails.</div>');
       btns.push('<button class="btn" data-action="unmark-test" data-id="' + b.id + '">Put Back Into Business</button>');
@@ -5562,6 +5570,32 @@ window.intelQuick = intelQuick;
     $reasonText.style.display = '';
     $reasonText.value = '';
     $reasonText.placeholder = 'Reason (optional)';
+  }
+
+  // The tracking link, where the owner can read it out or copy it while the
+  // customer is still on the phone. Shown next to the booking actions rather
+  // than in a modal, so it stays put while they talk.
+  function showTrackLink(url, sentTo) {
+    var host = document.getElementById('detail-actions');
+    if (!host) return;
+    var existing = document.getElementById('track-link-box');
+    if (existing) existing.remove();
+    var box = document.createElement('div');
+    box.id = 'track-link-box';
+    box.style.cssText = 'flex-basis:100%;background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.7rem 0.85rem;margin-top:0.5rem';
+    box.innerHTML = '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:700;margin-bottom:4px">'
+      + (sentTo ? 'Emailed to ' + esc(sentTo) + ' &middot; tracking link' : 'Tracking link')
+      + '</div><div style="font-size:0.78rem;word-break:break-all;color:var(--text);line-height:1.5" id="track-link-url"></div>'
+      + '<button type="button" class="btn" style="margin-top:0.5rem;font-size:0.72rem;padding:3px 12px" id="track-link-copy">Copy link</button>';
+    box.querySelector('#track-link-url').textContent = url;
+    host.appendChild(box);
+    box.querySelector('#track-link-copy').addEventListener('click', function() {
+      var btn = this;
+      navigator.clipboard.writeText(url).then(function() {
+        btn.textContent = 'Copied';
+        setTimeout(function(){ btn.textContent = 'Copy link'; }, 2000);
+      }).catch(function() { toast('Select the link and copy it manually.', 'error'); });
+    });
   }
 
   function closeReasonModal() {
@@ -5647,6 +5681,23 @@ window.intelQuick = intelQuick;
       if (editNotifyBox) editNotifyBox.checked = !recordOnlyEdit;
       document.getElementById('eb-error').style.display = 'none';
       document.getElementById('edit-booking-modal').classList.add('open');
+    } else if (action === 'resend-booking-details') {
+      try {
+        var rbdResp = await fetch('/api/owner/resend-booking-details', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+          body: JSON.stringify({ bookingId: id })
+        });
+        var rbdBody = await rbdResp.json().catch(function(){ return {}; });
+        // Even when the send fails the link is worth having — the owner is
+        // usually on the phone with the customer when they press this.
+        if (rbdBody.trackUrl) showTrackLink(rbdBody.trackUrl, rbdResp.ok ? rbdBody.sentTo : null);
+        if (!rbdResp.ok) { toast(rbdBody.error || 'The details could not be sent.', 'error'); return; }
+        toast('Booking details sent to ' + (rbdBody.sentTo || 'the customer') + '.', 'success');
+      } catch (e) {
+        toast('The details could not be sent.', 'error');
+      }
+      return;
     } else if (action === 'mark-test' || action === 'unmark-test') {
       var markingTest = action === 'mark-test';
       if (markingTest && !confirm('Mark this booking as an internal test?\n\nIt stays on the record and on this list, but stops counting in your figures, your summary emails and market demand. You can put it back at any time.')) return;
