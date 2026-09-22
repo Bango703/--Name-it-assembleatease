@@ -702,6 +702,15 @@
           <div class="stat neutral"><div class="stat-value" id="cases-stat-waiting">&mdash;</div><div class="stat-label">Waiting on Reply</div></div>
         </div>
 
+        <!-- Cases on a test booking already hide with it. The ones with no
+             booking — a support request or voice callback fired during testing
+             — have nothing to inherit from, so they need finding by hand. -->
+        <div style="margin:0 0 0.75rem">
+          <button type="button" class="btn" style="font-size:0.78rem;padding:4px 14px"
+            onclick="window.OwnerCases&amp;&amp;window.OwnerCases.findTestCases()">Find test cases</button>
+          <div id="cases-test-sweep" style="margin-top:0.6rem"></div>
+        </div>
+
         <div class="cases-grid">
           <section class="cases-panel" aria-label="Case list">
             <div class="cases-panel-header">

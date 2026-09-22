@@ -83,3 +83,31 @@ for (const selector of ['.cases-test-note', '.cases-test-toggle', '.cases-test-t
 }
 
 console.log('owner cases test-booking visibility tests: PASS');
+
+// ── Test cases with no booking had nowhere to inherit a flag from ──────────
+// visibleOperationCases hides a case when ITS BOOKING is flagged. A case with
+// booking_id = null — a support request, a voice callback, a contact form fired
+// during testing — has no booking, so it stayed in the owner's queue for good.
+{
+  const sweep = await readFile(new URL('../api/owner/test-cases.js', import.meta.url), 'utf8');
+  assert.match(sweep, /verifyOwner\(req\)/, 'owner only');
+  assert.match(sweep, /req\.method !== 'GET'/, 'detection must be read-only — it closes nothing');
+  assert.doesNotMatch(sweep, /\.update\(|\.delete\(/,
+    'this endpoint must never mutate; closing goes through the audited case-action path');
+  assert.match(sweep, /signals\.push/,
+    'every suspect must carry the reason it is suspected');
+  assert.match(sweep, /caveat:/,
+    'the owner is about to close in bulk and must be told these are suspected, not confirmed');
+
+  const ui = await readFile(new URL('../owner/assets/cases.js', import.meta.url), 'utf8');
+  assert.match(ui, /api\/owner\/case-action/,
+    'the sweep must close through case-action, keeping expectedStatus, confirmation and audit');
+  assert.match(ui, /expectedStatus: box\.getAttribute\('data-sweep-status'\)/,
+    'each close must carry the status it expects, so a case that moved is not clobbered');
+  assert.match(ui, /checked data-sweep-id/,
+    'suspects are ticked by default but every one can be unticked before closing');
+  assert.match(ui, /can be reopened/,
+    'the confirmation must say the cases are recoverable');
+}
+
+console.log('PASS test cases without a booking can be found and closed, with reasons shown');

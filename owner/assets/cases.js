@@ -128,6 +128,83 @@
     badge.style.display = count > 0 ? '' : 'none';
   }
 
+  // ── Clearing out cases left behind by testing ──────────────────────────────
+  // Cases attached to a booking inherit is_test_booking and disappear with it.
+  // Cases with NO booking — a support request, a voice callback, a contact form
+  // fired while testing — have nothing to inherit from, so they sit in the queue
+  // for good. This finds the likely ones, shows WHY each is suspected, and lets
+  // the owner untick anything real before closing. Closing runs through
+  // case-action, the same audited transition as closing one by hand.
+  async function findTestCases() {
+    var host = document.getElementById('cases-test-sweep');
+    if (!host) return;
+    host.innerHTML = '<div class="cases-loading">Looking for cases left over from testing...</div>';
+    try {
+      var data = await request('/api/owner/test-cases');
+      var suspects = data.suspects || [];
+      if (!suspects.length) {
+        host.innerHTML = '<div class="cases-test-note">Nothing here looks like a test case. All '
+          + Number(data.activeCount || 0) + ' active case(s) look real.</div>';
+        return;
+      }
+      host.innerHTML = '<div class="cases-sweep-box">'
+        + '<div class="cases-sweep-head">' + suspects.length + ' case'
+        + (suspects.length === 1 ? '' : 's') + ' look like testing</div>'
+        + '<p class="cases-sweep-caveat">' + esc(data.caveat || '') + '</p>'
+        + suspects.map(function(s) {
+          return '<label class="cases-sweep-row">'
+            + '<input type="checkbox" checked data-sweep-id="' + attr(s.id) + '" data-sweep-status="' + attr(s.status) + '">'
+            + '<span><strong>' + esc(s.ref || '') + '</strong> &middot; ' + esc(s.subject || '(no subject)')
+            + (s.bookingRef ? ' <span class="cases-sweep-dim">on ' + esc(s.bookingRef) + '</span>' : '')
+            + '<br><span class="cases-sweep-why">' + esc(s.signals.join('; ')) + '</span></span>'
+            + '</label>';
+        }).join('')
+        + '<button type="button" class="cases-test-toggle" id="cases-sweep-close">Close the ticked cases</button>'
+        + '</div>';
+      document.getElementById('cases-sweep-close').addEventListener('click', closeSweptCases);
+    } catch (error) {
+      host.innerHTML = '<div class="cases-error">' + esc(error.message || 'Could not check for test cases.') + '</div>';
+    }
+  }
+
+  async function closeSweptCases() {
+    var boxes = Array.prototype.slice.call(document.querySelectorAll('[data-sweep-id]:checked'));
+    if (!boxes.length) return;
+    if (!confirm('Close ' + boxes.length + ' case' + (boxes.length === 1 ? '' : 's') + '?\n\nThey stay on the record and can be reopened.')) return;
+    var btn = document.getElementById('cases-sweep-close');
+    if (btn) { btn.disabled = true; btn.textContent = 'Closing...'; }
+    var closed = 0;
+    var failed = [];
+    for (var i = 0; i < boxes.length; i++) {
+      var box = boxes[i];
+      try {
+        // Through case-action so every close keeps its confirmation, its
+        // expected-status check and its audit entry.
+        await request('/api/owner/case-action', {
+          method: 'POST',
+          body: JSON.stringify({
+            caseId: box.getAttribute('data-sweep-id'),
+            expectedStatus: box.getAttribute('data-sweep-status'),
+            action: 'close',
+            confirmed: true,
+            note: 'Closed as a test case during an owner sweep.',
+          }),
+        });
+        closed += 1;
+      } catch (error) {
+        failed.push(error.message || 'one case could not be closed');
+      }
+    }
+    var host = document.getElementById('cases-test-sweep');
+    if (host) {
+      host.innerHTML = '<div class="cases-test-note">Closed ' + closed + ' case' + (closed === 1 ? '' : 's') + '.'
+        + (failed.length ? ' ' + failed.length + ' could not be closed: ' + esc(failed[0]) : '')
+        + '</div>';
+    }
+    load();
+    loadBadge();
+  }
+
   function renderList() {
     var list = document.getElementById('cases-list');
     var count = document.getElementById('cases-list-count');
@@ -601,5 +678,6 @@
     refresh: load,
     select: select,
     open: load,
+    findTestCases: findTestCases,
   };
 })();
