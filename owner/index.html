@@ -5544,6 +5544,12 @@ window.intelQuick = intelQuick;
     if (!['cancelled', 'declined'].includes(b.status) && b.customer_email) {
       btns.push('<button class="btn" data-action="resend-booking-details" data-id="' + b.id + '">Resend Details &amp; Track Link</button>');
     }
+    // A customer who mistyped their address at checkout was unreachable for
+    // good: every email went to someone else's inbox, the tracking link was
+    // derived from the wrong address, and nothing on this board could fix it.
+    if (!['cancelled', 'declined'].includes(b.status)) {
+      btns.push('<button class="btn" data-action="fix-customer-email" data-id="' + b.id + '">Fix Customer Email</button>');
+    }
     if (b.is_test_booking === true) {
       notices.push('<div style="flex-basis:100%;background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.8rem;color:var(--muted);font-size:0.78rem;line-height:1.5"><strong>Internal test booking.</strong> On the record, excluded from every figure on this dashboard and from the summary emails.</div>');
       btns.push('<button class="btn" data-action="unmark-test" data-id="' + b.id + '">Put Back Into Business</button>');
@@ -5681,6 +5687,29 @@ window.intelQuick = intelQuick;
       if (editNotifyBox) editNotifyBox.checked = !recordOnlyEdit;
       document.getElementById('eb-error').style.display = 'none';
       document.getElementById('edit-booking-modal').classList.add('open');
+    } else if (action === 'fix-customer-email') {
+      var emailBooking = allBookings.find(function(item){ return item.id == id; });
+      var currentEmail = (emailBooking && emailBooking.customer_email) || '(none on file)';
+      var nextEmail = prompt('Correct the customer email for this booking.\n\nOn file: ' + currentEmail + '\n\nAnything already sent to the old address stays sent, and links issued to it stop working.', (emailBooking && emailBooking.customer_email) || '');
+      if (nextEmail === null) return;
+      nextEmail = String(nextEmail).trim();
+      if (!nextEmail) { toast('No email entered. Nothing was changed.', 'error'); return; }
+      try {
+        var fceResp = await fetch('/api/owner/correct-customer-email', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+          body: JSON.stringify({ bookingId: id, email: nextEmail })
+        });
+        var fceBody = await fceResp.json().catch(function(){ return {}; });
+        if (!fceResp.ok) { toast(fceBody.error || 'The email could not be corrected.', 'error'); return; }
+        await loadBookings(true);
+        await window.openPayoutBooking(id, 'booking');
+        if (fceBody.unchanged) { toast('That is already the address on file.', 'success'); return; }
+        toast('Email corrected to ' + fceBody.email + '. Send them their details next.', 'success');
+      } catch (e) {
+        toast('The email could not be corrected.', 'error');
+      }
+      return;
     } else if (action === 'resend-booking-details') {
       try {
         var rbdResp = await fetch('/api/owner/resend-booking-details', {
