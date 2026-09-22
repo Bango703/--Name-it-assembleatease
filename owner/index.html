@@ -488,9 +488,9 @@
     <div class="sidebar-section">
       <div class="sidebar-label">Operations</div>
       <ul class="sidebar-nav">
-        <li><a data-view="liveops"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="15" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="5" y1="9" x2="5" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/></svg></span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
+        <li><a class="active" data-view="liveops"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="15" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="5" y1="9" x2="5" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/></svg></span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
         <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" title="Active jobs scheduled today" style="display:none;background:#64748b">0</span></a></li>
-        <li><a class="active" data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span><span class="nav-count" id="nav-messages" title="Unread customer or Easer messages" style="display:none;background:#dc2626">0</span></a></li>
+        <li><a data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span><span class="nav-count" id="nav-messages" title="Unread customer or Easer messages" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="cases"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 5V3h8v2"/><path d="M9 11h6M9 15h4"/></svg></span> Cases <span class="nav-count" id="nav-cases" title="Cases requiring owner action" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="voice-calls"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h4l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z"/></svg></span> Phone Calls <span class="nav-count" id="nav-voice-calls" title="Call activity requiring review" style="display:none">0</span></a></li>
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
@@ -520,7 +520,7 @@
         <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open navigation">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
-        <div class="topbar-title">Bookings</div>
+        <div class="topbar-title">Live Operations</div>
       </div>
       <div class="topbar-right">
         <button class="btn" id="export-csv-btn" style="font-size:0.78rem">Financial Report</button>
@@ -533,7 +533,7 @@
 
       <!-- ─── BOOKINGS VIEW ─── -->
       <!-- ─── LIVE OPS VIEW ─── -->
-      <div id="liveops-view" style="display:none">
+      <div id="liveops-view">
 
         <!-- Alert bar -->
         <!-- Failures the platform diagnosed itself. Hidden when there are none,
@@ -718,7 +718,7 @@
         </div>
       </div>
 
-      <div id="bookings-view">
+      <div id="bookings-view" style="display:none">
         <div class="stats-row" id="stats-row">
           <div class="stat amber" id="stat-pending"><div class="stat-value">—</div><div class="stat-label">Pending</div></div>
           <div class="stat teal" id="stat-confirmed"><div class="stat-value">—</div><div class="stat-label">Confirmed</div></div>
@@ -3197,6 +3197,13 @@ window.intelQuick = intelQuick;
   function showDashboard() {
     $gate.style.display = 'none';
     $layout.classList.remove('hidden');
+    // The landing view polls for itself; clicking into it is no longer the only
+    // way it ever loads. Deferred by a tick because a saved session calls this
+    // function while the script is still executing, before _liveOpsTimer and
+    // the Live Ops element references below have been assigned — starting the
+    // interval then would hand its id to a variable that is about to be reset
+    // to null, and nothing could ever stop it.
+    setTimeout(function () { if (currentView === 'liveops') startLiveOps(); }, 0);
     loadBookings();
     if (_bookingsTimer) clearInterval(_bookingsTimer);
     _bookingsTimer = setInterval(loadBookings, 60000);
@@ -7860,7 +7867,12 @@ window.intelQuick = intelQuick;
   });
 
   // ─── View switching ───
-  var currentView = 'bookings';
+  // Live Ops is where the day starts: alerts, what needs action, the jobs that
+  // are actually live, today's schedule, who is free. Bookings is the record
+  // book — you go there to look something up, not to find out what is
+  // happening. The dashboard used to open on the record book (Rule 8: the
+  // dashboard must answer "what does Travis do next?" without being asked).
+  var currentView = 'liveops';
   var $bookingsView   = document.getElementById('bookings-view');
   var $casesView      = document.getElementById('cases-view');
   var $voiceCallsView = document.getElementById('voice-calls-view');
