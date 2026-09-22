@@ -78,7 +78,9 @@ console.log('track link friction: PASS — live links work, rotation is survivab
     'rotation must be compare-and-set');
   assert.match(endpoint, /guestManageUrl\(\s*\{ \.\.\.booking, guest_mutation_token_hash: tokenHash \}, SITE, plainToken/,
     'the fresh token must reach the link builder');
-  assert.match(endpoint, /trackUrl,\n\s+\}\);/,
+  // Line-ending agnostic on purpose: this repo checks out CRLF on Windows, and
+  // the first version of this matched a bare newline and broke on it.
+  assert.match(endpoint, /res\.status\(503\)\.json\(\{[\s\S]{0,400}trackUrl/,
     'a failed send must still return the link — the owner is on the phone');
   assert.match(endpoint, /booking_details_resent/, 'the resend belongs on the timeline');
   // The original confirmation describes the booking as it was that day. Sending
@@ -94,3 +96,31 @@ console.log('track link friction: PASS — live links work, rotation is survivab
 }
 
 console.log('owner resend: PASS — details and a working link, from the booking');
+
+// ── A mistyped address at checkout must be correctable ─────────────────────
+// edit-booking covers date, time, address and service. The customer's email is
+// not a detail of the job — it is the identity the guest side authenticates
+// against — so it was editable nowhere, and a typo made the customer
+// permanently unreachable.
+{
+  const fixEmail = await read('api/owner/correct-customer-email.js');
+  assert.match(fixEmail, /verifyOwner\(req\)/, 'owner only');
+  assert.match(fixEmail, /guest_mutation_token_hash: guestMutationTokenHash/,
+    'the token is derived from the address, so it must be re-derived in the same write or every link stays broken');
+  assert.match(fixEmail, /\.eq\('customer_email', booking\.customer_email\)/,
+    'compare-and-set against the address we read');
+  assert.match(fixEmail, /assemblecash_ledger/,
+    'AssembleCash is keyed by customer_email; a spelling fix must not strand a balance');
+  assert.match(fixEmail, /ASSEMBLECASH_PRESENT/,
+    'and it must refuse with a reason the owner can act on');
+  assert.match(fixEmail, /customer_email_corrected/, 'the change belongs on the timeline');
+  assert.match(fixEmail, /previousEmail \|\| '\(none\)'/,
+    'the timeline records what it changed FROM, or the trail is unreadable');
+
+  const owner = await read('owner/index.html');
+  assert.match(owner, /data-action="fix-customer-email"/, 'the board must offer it');
+  assert.match(owner, /links issued to it stop working/,
+    'the owner must be told what correcting the address costs before they do it');
+}
+
+console.log('owner email correction: PASS — fixable, token re-derived, money refused');
