@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { classifyPage, PAGE_TYPE_RULES } from './lib/page-governance.mjs';
 
 const ROOT = join(fileURLToPath(new URL('..', import.meta.url)));
 const BASE_URL = 'https://www.assembleatease.com';
@@ -13,15 +14,31 @@ const SERVICE_PREFIXES = [
   'playset-assembly',
 ];
 const SERVICE_CONTENT_RULES = {
-  'furniture-assembly': { heading: 'Furniture assembly planning', terms: ['furniture assembly service', 'furniture installation', 'IKEA assembly', 'bed assembly', 'crib assembly', 'dresser assembly', 'wardrobe assembly', 'sofa assembly', 'desk assembly'] },
-  'tv-mounting': { heading: 'TV mounting planning', terms: ['TV mounting service', 'TV wall mounting', 'TV installation', 'soundbar mounting', 'cord concealment'] },
+  // Check useful scope information without requiring a repeated SEO synonym list.
+  'furniture-assembly': { heading: 'Furniture assembly planning', topics: [
+    ['furniture item examples', /\b(?:beds?|dressers?|wardrobes?|desks?)\b/i],
+    ['item identification', /\b(?:model|brand|product link)\b/i],
+    ['item quantity', /\b(?:items?|quantity|count)\b/i],
+    ['building access', /\b(?:access|parking|stairs|entry|loading)\b/i],
+    ['assembly preparation', /\b(?:room|boxes|hardware|instructions)\b/i],
+  ] },
+  'tv-mounting': { heading: 'TV mounting planning', topics: [
+    ['TV size', /\b(?:screen|TV) size\b/i],
+    ['mount requirements', /\bmount\b/i],
+    ['wall surface', /\b(?:wall material|wall surface|drywall|brick|stone|tile)\b/i],
+    ['soundbar scope', /\bsoundbars?\b/i],
+    ['cable scope', /\b(?:cable|cord)\b/i],
+  ] },
   'smart-home-installation': { heading: 'Smart home installation planning', terms: ['smart home installation service', 'video doorbell installation', 'smart thermostat installation', 'security camera setup', 'smart lock installation'] },
   'fitness-equipment-assembly': { heading: 'Fitness equipment assembly planning', terms: ['fitness equipment assembly service', 'gym equipment assembly', 'treadmill assembly', 'elliptical assembly', 'squat rack assembly', 'home gyms'] },
   'office-furniture-assembly': { heading: 'Office furniture assembly planning', terms: ['office furniture assembly service', 'installation', 'standing desk assembly', 'conference table assembly', 'workstation setups'] },
   'playset-assembly': { heading: 'Playset and outdoor assembly planning', terms: ['playset assembly service', 'playset installation', 'swing set assembly', 'trampoline assembly', 'playground assembly', 'gazebo', 'shed assembly', 'outdoor furniture assembly'] },
 };
 const SERVICE_PAGE_RE = new RegExp(`^(${SERVICE_PREFIXES.join('|')})-([a-z-]+)-tx\\.html$`);
-const EXCLUDED_DIRS = new Set(['.git', '.vercel', 'api', 'assets', 'business-artifacts', 'functions', 'images', 'node_modules', 'output', 'tmp']);
+const EXCLUDED_DIRS = new Set(['.git', '.vercel', '_local_artifacts', 'api', 'assets', 'business-artifacts', 'functions', 'images', 'node_modules', 'output', 'tmp']);
+// These public utilities are deliberately absent from search, along with the
+// private portals identified by the existing page-governance classification.
+const NON_SEARCH_ROUTES = new Set(['/404', '/review', '/track']);
 const RETIRED_ROUTES = ['/repairs', '/junk', '/blog/junk-removal-cost-austin', '/blog/home-repairs-diy-vs-hire-austin'];
 const ENTITY_PROFILES = [
   'https://www.google.com/maps?cid=7847022131459448801',
@@ -46,6 +63,45 @@ function listHtmlFiles(dir = ROOT) {
 
 function extractOne(html, pattern) {
   return html.match(pattern)?.[1]?.replace(/\s+/g, ' ').trim() || '';
+}
+
+function attributes(tag) {
+  return Object.fromEntries([...tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g)]
+    .map((match) => [match[1].toLowerCase(), match[2] ?? match[3] ?? match[4]]));
+}
+
+function robotRulesForGooglebot(source) {
+  const groups = [];
+  let group = null;
+  for (const line of source.split(/\r?\n/)) {
+    const match = line.replace(/#.*/, '').trim().match(/^([\w-]+):\s*(.*)$/);
+    if (!match) continue;
+    const directive = match[1].toLowerCase();
+    const value = match[2].trim();
+    if (directive === 'user-agent') {
+      if (!group || group.hasRules) {
+        group = { agents: [], rules: [], hasRules: false };
+        groups.push(group);
+      }
+      group.agents.push(value.toLowerCase());
+    } else if (group && ['allow', 'disallow'].includes(directive)) {
+      group.hasRules = true;
+      if (value) group.rules.push({ allow: directive === 'allow', pattern: value });
+    }
+  }
+  const specific = groups.filter((entry) => entry.agents.includes('googlebot'));
+  return (specific.length ? specific : groups.filter((entry) => entry.agents.includes('*')))
+    .flatMap((entry) => entry.rules);
+}
+
+function blockedByRobots(pathname, rules) {
+  const matches = rules.filter(({ pattern }) => {
+    const end = pattern.endsWith('$') ? '$' : '';
+    const body = end ? pattern.slice(0, -1) : pattern;
+    const expression = body.split('*').map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*');
+    return new RegExp(`^${expression}${end}`).test(pathname);
+  }).sort((a, b) => b.pattern.length - a.pattern.length || Number(b.allow) - Number(a.allow));
+  return matches.length > 0 && !matches[0].allow;
 }
 
 function visibleText(value) {
@@ -113,7 +169,7 @@ const serviceRoutes = new Set(serviceFiles.map(routeForFile));
 const sitemap = readFileSync(join(ROOT, 'sitemap.xml'), 'utf8');
 const robots = readFileSync(join(ROOT, 'robots.txt'), 'utf8');
 const vercelConfig = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
-const sitemapUrls = [...sitemap.matchAll(/<loc>(https:\/\/www\.assembleatease\.com[^<]*)<\/loc>/g)].map((match) => match[1]);
+const sitemapUrls = [...sitemap.matchAll(/<loc>\s*([^<]*?)\s*<\/loc>/g)].map((match) => match[1].replaceAll('&amp;', '&'));
 const sitemapSet = new Set(sitemapUrls);
 const sitemapLastmods = new Map(
   [...sitemap.matchAll(/<url>\s*<loc>(https:\/\/www\.assembleatease\.com[^<]*)<\/loc>\s*<lastmod>([^<]+)<\/lastmod>/g)]
@@ -123,10 +179,47 @@ const inboundLinks = new Map([...serviceRoutes].map((route) => [route, new Set()
 const records = [];
 const cityServices = new Map();
 const localContextsByService = new Map(SERVICE_PREFIXES.map((prefix) => [prefix, new Map()]));
+const googlebotRules = robotRulesForGooglebot(robots);
+const htmlByRoute = new Map(htmlFiles.map((file) => [routeForFile(file), file]));
+let intentionalExclusions = 0;
 
 if (sitemapUrls.length !== sitemapSet.size) issues.push('sitemap.xml contains duplicate URLs.');
 if (!sitemap.trimEnd().endsWith('</urlset>')) issues.push('sitemap.xml does not end with </urlset>.');
+if (!robots.split(/\r?\n/).some((line) => line.trim() === `Sitemap: ${BASE_URL}/sitemap.xml`)) issues.push('robots.txt is missing the canonical sitemap declaration.');
 if (/^\s*Disallow:\s*\/auth\//im.test(robots)) issues.push('robots.txt blocks /auth/, preventing crawlers from observing auth-page noindex directives.');
+
+// Audit the complete submitted inventory, including core, hiring and policy
+// pages. A local pass establishes eligibility, never actual Google indexing.
+for (const url of sitemapUrls) {
+  let parsed;
+  try { parsed = new URL(url); } catch { issues.push(`sitemap.xml contains an invalid URL: ${url}.`); continue; }
+  if (parsed.origin !== BASE_URL || parsed.search || parsed.hash) issues.push(`sitemap.xml must contain canonical, query-free URLs on ${BASE_URL}: ${url}.`);
+  if (!htmlByRoute.has(parsed.pathname)) issues.push(`sitemap.xml references missing HTML page ${url}.`);
+  if (blockedByRobots(parsed.pathname, googlebotRules)) issues.push(`sitemap.xml contains a URL blocked for Googlebot by robots.txt: ${url}.`);
+  if ((vercelConfig.redirects || []).some((redirect) => redirect.source === parsed.pathname)) issues.push(`sitemap.xml contains a redirect source: ${url}.`);
+}
+
+for (const file of htmlFiles) {
+  const page = relative(ROOT, file).replaceAll('\\', '/');
+  const route = routeForFile(file);
+  const expectedUrl = `${BASE_URL}${route}`;
+  const html = readFileSync(file, 'utf8').replace(/<!--([\s\S]*?)-->/g, '');
+  const metaTags = [...html.matchAll(/<meta\b[^>]*>/gi)].map((match) => attributes(match[0]));
+  const noindex = metaTags.some((tag) => ['robots', 'googlebot'].includes(tag.name?.toLowerCase()) && /\b(?:noindex|none)\b/i.test(tag.content || ''));
+  const canonicalTags = [...html.matchAll(/<link\b[^>]*>/gi)].map((match) => attributes(match[0])).filter((tag) => tag.rel?.toLowerCase() === 'canonical');
+  const visibility = PAGE_TYPE_RULES[classifyPage(page)]?.visibility || 'unknown';
+  const excluded = visibility.startsWith('private_') || NON_SEARCH_ROUTES.has(route);
+  if (excluded) {
+    intentionalExclusions += 1;
+    if (sitemapSet.has(expectedUrl)) issues.push(`${page}: private or utility page must stay out of sitemap.xml.`);
+    if (!noindex) issues.push(`${page}: private or utility page is missing its intentional noindex directive.`);
+    continue;
+  }
+  if (visibility === 'unknown') issues.push(`${page}: classify this page in page governance before choosing search visibility.`);
+  if (!sitemapSet.has(expectedUrl)) issues.push(`${page}: public page is missing from sitemap.xml.`);
+  if (noindex) issues.push(`${page}: public page is marked noindex.`);
+  if (canonicalTags.length !== 1 || canonicalTags[0]?.href !== expectedUrl) issues.push(`${page}: public page must have exactly one self-referencing canonical.`);
+}
 
 for (const file of htmlFiles.filter((candidate) => relative(ROOT, candidate).replaceAll('\\', '/').startsWith('auth/'))) {
   if (!/<meta\s+name="robots"\s+content="noindex, nofollow"\s*\/?>/i.test(readFileSync(file, 'utf8'))) {
@@ -190,11 +283,12 @@ for (const file of serviceFiles) {
   const faqSchemas = schemasByType('FAQPage');
   const serviceSchema = serviceSchemas[0];
   const cityName = serviceSchema?.areaServed?.name || '';
-  const contextMarker = `Planning your ${cityName} appointment:`;
-  const localContext = visibleText(extractOne(
+  const planningContent = visibleText(extractOne(html, /<h2\b[^>]*>[^<]* planning in [^<]*<\/h2>([\s\S]*?)<\/div>/i));
+  const legacyLocalContext = visibleText(extractOne(
     html,
     /<strong[^>]*>Planning your [^<]+ appointment:<\/strong>\s*([^<]+)<\/p>/i,
   ));
+  const localContext = legacyLocalContext || planningContent;
   const normalizedLocalContext = localContext.toLowerCase().replaceAll(cityName.toLowerCase(), '{city}');
   const contextPages = localContextsByService.get(servicePrefix).get(normalizedLocalContext) || [];
   contextPages.push(page);
@@ -244,12 +338,16 @@ for (const file of serviceFiles) {
   if (!h1.includes(cityName)) issues.push(`${page}: H1 does not include schema city ${cityName || '(missing)'}.`);
   if (!title.includes(cityName)) issues.push(`${page}: title does not include schema city ${cityName || '(missing)'}.`);
   if (!description.includes(cityName)) issues.push(`${page}: description does not include schema city ${cityName || '(missing)'}.`);
-  if (!html.includes(contextMarker)) issues.push(`${page}: missing city-specific appointment guidance.`);
+  if (!planningContent) issues.push(`${page}: missing service appointment guidance.`);
+  if (planningContent.split(/\s+/).filter(Boolean).length < 75) issues.push(`${page}: service planning guidance needs useful scope and preparation details.`);
   if (localContext.split(/\s+/).filter(Boolean).length < 25) issues.push(`${page}: city appointment context is too thin.`);
   const contentRule = SERVICE_CONTENT_RULES[servicePrefix];
   if (!body.includes(`${contentRule.heading} in ${cityName}`)) issues.push(`${page}: missing researched service planning heading.`);
-  for (const term of contentRule.terms) {
+  for (const term of contentRule.terms || []) {
     if (!body.toLowerCase().includes(term.toLowerCase())) issues.push(`${page}: missing researched service intent "${term}".`);
+  }
+  for (const [topic, pattern] of contentRule.topics || []) {
+    if (!pattern.test(body)) issues.push(`${page}: missing practical service information about ${topic}.`);
   }
   if (citySlug !== 'austin' && new RegExp(`Done in ${cityName}`, 'i').test(html)) {
     issues.push(`${page}: claims the example project was completed in the target city.`);
@@ -346,7 +444,8 @@ for (const [route, sources] of inboundLinks) {
 }
 
 for (const url of sitemapUrls) {
-  const pathname = new URL(url).pathname;
+  let pathname;
+  try { pathname = new URL(url).pathname; } catch { continue; } // Reported in the full inventory check above.
   if (SERVICE_PREFIXES.some((prefix) => pathname.startsWith(`/${prefix}-`)) && !serviceRoutes.has(pathname)) {
     issues.push(`sitemap.xml references missing service page ${url}.`);
   }
@@ -371,4 +470,5 @@ const inboundCounts = [...inboundLinks.values()].map((sources) => sources.size);
 console.log(`SEO audit passed: ${serviceFiles.length} service pages across ${cityServices.size} cities.`);
 console.log(`Blog SEO passed: ${blogFiles.length - 1} articles plus the guide index.`);
 console.log(`Sitemap URLs: ${sitemapUrls.length}; service URLs: ${serviceRoutes.size}.`);
+console.log(`Local indexability passed for all ${sitemapUrls.length} sitemap URLs; ${intentionalExclusions} private/utility pages intentionally excluded. This does not confirm Google indexing.`);
 console.log(`Inbound links per service page: min ${Math.min(...inboundCounts)}, max ${Math.max(...inboundCounts)}.`);

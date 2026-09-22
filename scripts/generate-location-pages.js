@@ -13,7 +13,7 @@ import { governanceConfig } from './lib/site-governance.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const TODAY = '2026-07-16';
+const TODAY = new Date().toISOString().slice(0, 10);
 const FLAGSHIP_AUSTIN_PAGES = new Set(governanceConfig.services.flagshipAustinPages || []);
 const MAX_COMMON_JOBS = 4;
 function esc(str) {
@@ -209,7 +209,7 @@ const STATEWIDE_MARKETS = [
     bookingGuidance: 'For Houston appointments, include gate or building access, parking instructions, stairs or elevator details, and whether boxed items are already in the assembly room. For larger home or office setups, list every item so the correct appointment can be assigned.',
   },
   {
-    name: 'San Antonio', slug: 'san-antonio', nearby: ['New Braunfels', 'Austin', 'Temple', 'Killeen'],
+    name: 'San Antonio', slug: 'san-antonio', nearby: ['New Braunfels'],
     bookingGuidance: 'For San Antonio bookings, include gated-community access, parking details, stairs, and the room where each item is located. Outdoor projects should include the surface type and a clear photo of the assembly area.',
   },
   {
@@ -1065,6 +1065,22 @@ ${buildPublicCookieConsentBlock()}
 let generated = 0;
 let skippedFlagships = 0;
 const sitemapEntries = [];
+const sitemapPath = join(ROOT, 'sitemap.xml');
+let sitemap = readFileSync(sitemapPath, 'utf8');
+// Regeneration is not a content modification date. Preserve existing valid
+// dates; maintain them explicitly when a page's substantive content changes.
+const existingLastmods = new Map();
+for (const match of sitemap.matchAll(/<url>\s*([\s\S]*?)<\/url>/g)) {
+  const url = match[1].match(/<loc>([^<]+)<\/loc>/)?.[1];
+  if (!url) continue;
+  const value = match[1].match(/<lastmod>([^<]+)<\/lastmod>/)?.[1];
+  const day = value?.slice(0, 10);
+  const valid = value && /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))?$/.test(value)
+    && !Number.isNaN(Date.parse(value))
+    && !Number.isNaN(Date.parse(day))
+    && new Date(day).toISOString().slice(0, 10) === day;
+  existingLastmods.set(url, valid ? value : null);
+}
 const TOTAL_LOCATION_PAGE_COUNT = SERVICES.reduce(
   (count, service) => count + CITIES.filter((city) => citySupportsService(city, service.slug)).length,
   0,
@@ -1080,7 +1096,9 @@ for (const service of SERVICES) {
     if (!citySupportsService(city, service.slug)) continue;
     const pageSlug = `${service.slug}-${city.slug}-tx`;
     const filename = `${pageSlug}.html`;
-    sitemapEntries.push(`  <url><loc>https://www.assembleatease.com/${pageSlug}</loc><lastmod>${TODAY}</lastmod><priority>0.8</priority></url>`);
+    const pageUrl = `https://www.assembleatease.com/${pageSlug}`;
+    const lastmod = existingLastmods.has(pageUrl) ? existingLastmods.get(pageUrl) : TODAY;
+    sitemapEntries.push(`  <url><loc>${pageUrl}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<priority>0.8</priority></url>`);
     if (FLAGSHIP_AUSTIN_PAGES.has(filename)) {
       skippedFlagships++;
       process.stdout.write(`\r  Kept flagship ${skippedFlagships}/${FLAGSHIP_AUSTIN_PAGES.size}: ${filename}                    `);
@@ -1096,11 +1114,11 @@ for (const service of SERVICES) {
 console.log(`\n  Wrote ${generated} city pages. Kept ${skippedFlagships} Austin flagship pages for the flagship builder.`);
 
 // ── UPDATE SITEMAP ─────────────────────────────────────────────────────────
-const sitemapPath = join(ROOT, 'sitemap.xml');
-let sitemap = readFileSync(sitemapPath, 'utf8');
-
 // Remove any previously generated location page entries (idempotent re-runs)
-sitemap = sitemap.replace(/\s*<url><loc>https:\/\/www\.assembleatease\.com\/(furniture-assembly|tv-mounting|smart-home-installation|fitness-equipment-assembly|playset-assembly|office-furniture-assembly)-[a-z-]+-tx<\/loc>[^<]*<lastmod>[^<]*<\/lastmod>[^<]*<priority>[^<]*<\/priority><\/url>/g, '');
+sitemap = sitemap.replace(/\s*<url>[\s\S]*?<\/url>/g, (entry) => {
+  const url = entry.match(/<loc>([^<]+)<\/loc>/)?.[1] || '';
+  return /^https:\/\/www\.assembleatease\.com\/(furniture-assembly|tv-mounting|smart-home-installation|fitness-equipment-assembly|playset-assembly|office-furniture-assembly)-[a-z-]+-tx$/.test(url) ? '' : entry;
+});
 
 // Insert before closing </urlset>
 sitemap = sitemap.replace('</urlset>', `${sitemapEntries.join('\n')}\n</urlset>`);
