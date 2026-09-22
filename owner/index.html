@@ -5468,6 +5468,30 @@ window.intelQuick = intelQuick;
         notices.push('<div style="flex-basis:100%;font-size:0.74rem;color:var(--red)">An Easer payment already exists. Review the financial timeline and any clawback requirement; do not attempt another payment.</div>');
       }
     }
+    // Marking a booking internal is the only way to keep it off the business
+    // figures. Until this button existed the flag could only be set by hand-
+    // written SQL, so every test booking counted as real revenue and real
+    // demand. Reversible from the same place.
+    //
+    // Never offered while money is held or being reconciled: those states
+    // deliberately replace the whole action list with the one safe move, and
+    // reclassifying a booking mid-reconciliation is not it. The check is
+    // written out rather than calling a helper so renderActions stays
+    // self-contained for the harness in test-reward-reconciliation-safety.mjs.
+    var reclassifyBlocked = !!(b.financial_operation_key
+      || b.financial_reconciliation_required_at
+      || b.cancellation_reconciliation_required_at
+      || stripeDisputeHold);
+    if (reclassifyBlocked) {
+      renderOwnerActionCollection(notices, btns);
+      return;
+    }
+    if (b.is_test_booking === true) {
+      notices.push('<div style="flex-basis:100%;background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.8rem;color:var(--muted);font-size:0.78rem;line-height:1.5"><strong>Internal test booking.</strong> On the record, excluded from every figure on this dashboard and from the summary emails.</div>');
+      btns.push('<button class="btn" data-action="unmark-test" data-id="' + b.id + '">Put Back Into Business</button>');
+    } else {
+      btns.push('<button class="btn" data-action="mark-test" data-id="' + b.id + '">Mark As Test Booking</button>');
+    }
     renderOwnerActionCollection(notices, btns);
   }
 
@@ -5573,6 +5597,24 @@ window.intelQuick = intelQuick;
       if (editNotifyBox) editNotifyBox.checked = !recordOnlyEdit;
       document.getElementById('eb-error').style.display = 'none';
       document.getElementById('edit-booking-modal').classList.add('open');
+    } else if (action === 'mark-test' || action === 'unmark-test') {
+      var markingTest = action === 'mark-test';
+      if (markingTest && !confirm('Mark this booking as an internal test?\n\nIt stays on the record and on this list, but stops counting in your figures, your summary emails and market demand. You can put it back at any time.')) return;
+      try {
+        var markResp = await fetch('/api/owner/mark-test-booking', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+          body: JSON.stringify({ bookingId: id, isTest: markingTest })
+        });
+        var markBody = await markResp.json().catch(function(){ return {}; });
+        if (!markResp.ok) { toast(markBody.error || 'The booking could not be updated.', 'error'); return; }
+        toast(markingTest ? 'Marked as a test booking. It no longer counts in your figures.' : 'Back in the business. It counts again.', 'success');
+        await loadBookings(true);
+        await window.openPayoutBooking(id, 'booking');
+      } catch (e) {
+        toast('The booking could not be updated.', 'error');
+      }
+      return;
     } else if (action === 'record-manual-payment') {
       var manualPaymentBooking = allBookings.find(function(item){ return item.id == id; });
       if (!manualPaymentBooking) return;

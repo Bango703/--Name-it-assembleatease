@@ -90,3 +90,28 @@ console.log(`PASS internal bookings: flag defaults to real, ${refs.length} rows 
 }
 
 console.log('PASS owner dashboard and financials exclude test bookings, and say so');
+
+// ── The owner can set the flag without a database ──────────────────────────
+// Migration 094 set six rows by ref and nothing in the application could ever
+// write is_test_booking again. Every test booking made since counted as real
+// revenue and real demand, and the only remedy was hand-written SQL —
+// precisely what Article 9 says the owner must never need.
+{
+  const endpoint = await readFile(new URL('../api/owner/mark-test-booking.js', import.meta.url), 'utf8');
+  assert.match(endpoint, /verifyOwner\(req\)/, 'only the owner may reclassify a booking');
+  assert.match(endpoint, /typeof isTest !== 'boolean'/, 'the intent must be explicit, never inferred');
+  assert.match(endpoint, /settledMoney/,
+    'a booking that moved real money must not be markable as a test — that would delete settled revenue from the figures');
+  assert.match(endpoint, /\.eq\('is_test_booking', booking\.is_test_booking === true\)/,
+    'the write must be compare-and-set, not a clobber');
+  assert.match(endpoint, /booking_marked_test|booking_marked_real/,
+    'every flip belongs on the timeline, so a number that moves can be explained');
+  assert.doesNotMatch(endpoint, /\.delete\(\)/,
+    'flagged, never deleted — the row keeps its payment and audit history');
+
+  const owner = await readFile(new URL('../owner/index.html', import.meta.url), 'utf8');
+  assert.match(owner, /data-action="mark-test"/, 'the board must offer the action');
+  assert.match(owner, /data-action="unmark-test"/, 'and it must be reversible from the same place');
+}
+
+console.log('PASS the owner can mark a booking internal without touching the database');
