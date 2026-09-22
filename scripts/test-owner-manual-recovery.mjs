@@ -13,6 +13,7 @@ const [
   evidenceApi,
   assemblersApi,
   liveOpsApi,
+  activeJobsApi,
   opsAlertApi,
   ownerUi,
 ] = await Promise.all([
@@ -26,6 +27,7 @@ const [
   readFile(new URL('../api/owner/upload-completion-evidence.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/booking/assemblers.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/owner/live-ops.js', import.meta.url), 'utf8'),
+  readFile(new URL('../api/owner/_active-jobs.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/cron/ops-alert.js', import.meta.url), 'utf8'),
   readFile(new URL('../owner/index.html', import.meta.url), 'utf8'),
 ]);
@@ -101,7 +103,12 @@ assert.match(assemblersApi, /ownerEaser/);
 assert.doesNotMatch(assemblersApi, /\.eq\('identity_verified', true\)/);
 
 assert.match(liveOpsApi, /status\.neq\.completed,return_visit_required\.eq\.true/);
-assert.match(liveOpsApi, /booking\.status !== 'completed' \|\| booking\.return_visit_required === true/);
+// A completed booking stays operational while a return visit is open. The rule
+// moved into api/owner/_active-jobs.js so the Live Ops count and the Live Ops
+// list share one definition; the invariant itself is unchanged.
+assert.match(activeJobsApi, /status !== 'completed' \|\| booking\.return_visit_required === true/);
+assert.match(liveOpsApi, /import \{[\s\S]*?isOperationalBooking[\s\S]*?\} from '\.\/_active-jobs\.js'/);
+assert.match(liveOpsApi, /bookings\.filter\(isOperationalBooking\)/);
 assert.match(opsAlertApi, /and\(status\.eq\.completed,return_visit_required\.eq\.true\)/);
 
 assert.match(ownerUi, /Complete Return Visit &amp; Job/);

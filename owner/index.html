@@ -8092,26 +8092,43 @@ window.intelQuick = intelQuick;
       unassignedEl.innerHTML = html;
     }
 
-    // Active jobs (en route, arrived, in progress, accepted)
+    // Active jobs. The server decides which bookings are active and what stage
+    // each one is at; this only renders that list. Rebuilding the list here from
+    // enRoute + arrived + inProgress + awaitingAcceptance is what put "1 Active
+    // Jobs" above "No active jobs right now": a confirmed, staffed, accepted job
+    // was in none of those arrays, and the owner had to open Bookings to find it.
     var activeEl = document.getElementById('ops-active');
-    var active = (d.enRoute || []).concat(d.arrived || []).concat(d.inProgress || []).concat(d.awaitingAcceptance || []);
+    var active = d.activeJobs || [];
     if (!active.length) {
       activeEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No active jobs right now</div>';
     } else {
+      var stageLabels = {
+        in_progress: 'In Progress', arrived: 'Arrived', en_route: 'En Route',
+        scheduled: 'Scheduled', awaiting_accept: 'Awaiting Accept',
+        needs_easer: 'Needs Easer', return_visit: 'Return Visit',
+      };
+      var stageColors = {
+        in_progress: '#059669', arrived: '#00BFFF', en_route: '#7c3aed',
+        scheduled: '#0a7ea3', awaiting_accept: '#6b7280',
+        needs_easer: '#d97706', return_visit: '#7c3aed',
+      };
       activeEl.innerHTML = active.map(function(b) {
-        var stage = b.job_started_at ? 'In Progress' : b.checked_in_at ? 'Arrived' : b.en_route_at ? 'En Route' : easerHasAccepted(b) ? 'Accepted' : 'Awaiting Accept';
-        var stageColors = { 'In Progress':'#059669','Arrived':'#00BFFF','En Route':'#7c3aed','Accepted':'#00BFFF','Awaiting Accept':'#6b7280' };
+        var stage = stageLabels[b._stage] || 'Active';
+        var color = stageColors[b._stage] || '#6b7280';
         // Did they actually get there? The server decides; this only renders it.
         var arrivalLine = arrivalBadge(b);
-        var color = stageColors[stage] || '#6b7280';
+        var when = (b._stage_date ? formatDate(b._stage_date) : 'No date') + (b._stage_time ? ' &bull; ' + esc(b._stage_time) : '');
+        var who = b.assembler_name ? esc(b.assembler_name) : 'Unassigned';
         return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
-          + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+          + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">'
           + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
-          + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.assembler_name||'Easer')+' &bull; '+esc(b.customer_name||'Customer')+'</div></div>'
+          + '<div style="font-size:0.78rem;color:var(--muted)">'+who+' &bull; '+esc(b.customer_name||'Customer')+'</div>'
+          + '<div style="font-size:0.75rem;color:var(--muted);margin-top:1px">'+esc(b.ref)+' &bull; '+when+'</div></div>'
           + arrivalLine
-          + '<span style="background:rgba('+hexToRgb(color)+',0.1);color:'+color+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px">'+stage+'</span>'
+          + '<span style="background:rgba('+hexToRgb(color)+',0.1);color:'+color+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">'+stage+'</span>'
           + '</div>'
           + (b.address ? '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">'+esc(b.address)+'</div>' : '')
+          + '<button onclick="opsAction(\'review_timeline\',\''+b.id+'\')" class="btn" style="margin-top:0.45rem;font-size:0.75rem">Open Booking</button>'
           + '</div>';
       }).join('');
     }

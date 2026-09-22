@@ -188,6 +188,19 @@ When **auditing**, respond with: (1) Executive Summary, (2) PASS/WARNING/FAIL Ma
 
 When **fixing**, respond with: (1) What changed, (2) Why it changed, (3) Files changed, (4) What was not changed, (5) Validation performed, (6) Remaining warnings, (7) Whether it is safe to deploy.
 
+### Rule 16 — STOP CREATING FRICTION
+
+**Never make a customer or an Easer do extra work to cover for a platform failure.** Retry, self-heal, and involve a person only when the outside world — a bank, a carrier — genuinely demands it. Then say which one, in their words.
+
+Owner instruction, 2026-09-19, after booking `AAE-DVSNHXE4OO` emailed the customer *"your bank needs one more confirmation"* and told the assigned Easer *"do not travel"*. Her card was saved and valid; the bank had never been asked. Our own confirm call had been rejected by Stripe for sending two incompatible parameters, the error was swallowed, and the code blamed her bank. Three people were given work to do because one request was written wrong.
+
+Apply it like this:
+
+- Before adding any step for a customer or an Easer — a confirmation, a link, a re-entry, a wait — ask what it protects. If it protects against **our** error, fix the error and retry silently.
+- A failure state that cannot retry itself is friction by design. Keep the failed thing inside the queue that would pick it up again.
+- Never describe a platform failure as the person's problem to solve, and never send a second message that only repeats the first (Article 16 governs the wording; this rule governs whether to send at all).
+- Fewer steps, fewer screens, fewer decisions — in booking, payment, dispatch, messaging, and onboarding alike.
+
 ### Final rule
 
 Think like Travis is about to accept his first real customer tomorrow. Protect customer trust, Easer trust, platform money, owner visibility, and operational survival. Do not just make the code work — **make the business work.**
@@ -256,6 +269,10 @@ Changes here require audit-before-code and explicit intent in the request:
 | `npm run governance:truth` | Articles 1–4: duplicate truth, drifted mirrors, acceptance decided twice |
 | `scripts/audit-source-of-truth.mjs` | Service catalog, status mirror, readiness gates, fee/agreement match, server-reason passthrough |
 | `scripts/check-status-constraint-drift.mjs` | Article 7: code writing values the DB rejects |
+| `scripts/test-live-ops-active-jobs.mjs` | A dashboard count is the length of the list it summarizes, decided server-side |
+| `scripts/test-scheduled-authorization-truth.mjs` | A payment failure is described by Stripe's answer, and ours never reaches the customer (Rule 16) |
+| `scripts/test-notification-volume.mjs` | No email nobody needed: no repeated subject, no identical assignment inside the hour |
+| `scripts/test-owner-retry-authorization.mjs` | The owner can finish a stuck hold from the dashboard, and the money panel states only what it knows |
 | `npm run test:launch` | Article 8: the regression gate |
 
 **Wire every new invariant into a guard.** An article without a script is a wish.
@@ -483,6 +500,12 @@ Do not stuff "Austin" or any city everywhere. City name belongs only in: title/m
 ### No double-talk
 
 Never show the same thing multiple ways under different labels. Bad double-talk: customer total shown as Easer earnings; a "booking confirmed" email while the dashboard says awaiting acceptance; "READY FOR JOBS" while another field says missing required item; platform revenue including tax. **One source of truth must lead every view.**
+
+**A count and the list it summarizes are one thing, not two.** A number on a dashboard is a promise that the rows exist and can be opened. So the server decides membership and ships the list; the count is that list's length; the browser renders it and never rebuilds its own version with a filter of its own.
+
+> Live Ops, 2026-09-22: the chip read **"1 Active Jobs"** directly above the panel's **"No active jobs right now"**. Both came from one payload. The server counted every operational booking except `pending`; the browser built the panel from `enRoute + arrived + inProgress + awaitingAcceptance`. A booking that was confirmed, staffed and accepted — the healthiest state a job reaches before the day itself — was in neither set, so the owner's only live job was counted by the chip, shown by nothing, and had to be hunted down on another page. The rule now lives in `api/owner/_active-jobs.js`, and `test-live-ops-active-jobs` fails if the panel ever filters for itself again.
+
+The same test applies to every tile, badge and chip: if a number cannot be opened into the exact rows it counted, it is not information — it is a second opinion.
 
 ### Financial display
 
