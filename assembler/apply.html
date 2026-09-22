@@ -565,6 +565,22 @@
       background: #fee2e2;
       color: #b91c1c;
     }
+    /* Was four inline declarations on the element. Moved here so the phone
+       layout below can restyle it — inline styles cannot be overridden. */
+    .sms-notice {
+      margin-bottom: 0.75rem;
+      padding: 0.8rem 0.9rem;
+      border: 1px solid rgba(0,191,255,0.35);
+      border-radius: 10px;
+      background: #eefaff;
+    }
+    .sms-notice-title {
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: #0a1628;
+      margin-bottom: 0.25rem;
+    }
+
     .card-element-wrap {
       min-height: 46px;
       padding: 0.82rem 0.85rem;
@@ -857,6 +873,34 @@
       .success-wrap { width: min(100% - 1rem, 720px); }
       .success-box { padding: 1.4rem; }
       .form-control { font-size:16px; }
+
+      /* Everything you agree to before submitting was four separately outlined
+         cards stacked on each other — inside a section, inside a panel, so
+         three borders deep. On a phone that reads as clutter, not structure:
+         every block shouts "I am a separate thing" and none of them rank.
+         One surface, hairline rules between, colour kept only where it means
+         something (the red warning still does). Border, fill and radius are
+         spent on the group, not on each line inside it. */
+      .section .conduct-check,
+      .section .fee-row,
+      .section .sms-notice {
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        padding: 0.95rem 0;
+        margin-bottom: 0;
+      }
+      .section .fee-callout { gap: 0; margin-bottom: 0; }
+      .section .fee-row + .fee-row,
+      .section .sms-notice,
+      .section #fee-consent-section {
+        border-top: 1px solid var(--apply-border);
+      }
+      /* The warning keeps its meaning without keeping its box. */
+      .section .fee-row.warning { color: #991b1b; }
+      .section .fee-note { margin-top: 0.6rem; }
+      /* Consent checkboxes stay tappable once their padding is gone. */
+      .section .conduct-check input { margin-top: 0.3rem; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1172,8 +1216,8 @@
                and still a SERVER-recorded timestamp — see api/assembler/apply.js.
                STOP always works and is honoured at the carrier. Anyone who opts out
                later can turn texts back on from their profile. -->
-          <div id="sms-notice" style="margin-bottom:0.75rem;padding:0.8rem 0.9rem;border:1px solid rgba(0,191,255,0.35);border-radius:10px;background:#eefaff">
-            <div style="font-weight:700;font-size:0.88rem;color:#0a1628;margin-bottom:0.25rem">Job offers are sent by text</div>
+          <div id="sms-notice" class="sms-notice">
+            <div class="sms-notice-title">Job offers are sent by text</div>
             <div class="conduct-check-text">
               By submitting this application you agree to receive job offers, crew assignments and arrival reminders by text at the number above. These are how work reaches you. Message and data rates may apply and message frequency varies. Reply STOP to any message to turn texts off, or HELP for help — you can turn them back on later from your profile.
             </div>
@@ -1352,7 +1396,12 @@
     var cardSection = document.getElementById('card-section');
     var button = document.getElementById('submit-btn');
 
+    var chargeRow = document.getElementById('fee-charge-row');
     if (paidRequired) {
+      // Three rows, three distinct facts: the amount, when it is taken, and
+      // what happens to it if the application is rejected.
+      chargeRow.style.display = '';
+      refundCopy.style.display = '';
       pill.textContent = 'Application fee: ' + amountDisplay;
       programCopy.innerHTML = '<strong>One-time Easer application fee: ' + amountDisplay + '.</strong> This exact amount is set and verified by the AssembleAtEase server.';
       chargeCopy.innerHTML = '<strong>Payment is collected only after your authorization.</strong> Identity verification and application approval remain required, and submitting does not guarantee work.';
@@ -1362,10 +1411,16 @@
       consentSection.style.display = '';
       button.textContent = 'Continue to ' + amountDisplay + ' Secure Payment';
     } else {
+      // With no fee there is one fact, and it was being told three times:
+      // "no application fee", then "no payment collected", then "no charge, so
+      // no refund". Saying it repeatedly reads as hedging, not reassurance.
+      // One row states it; the row about approval comes out because the
+      // applicant already ticks a box that says the same thing, and the refund
+      // line comes out because there is nothing to refund.
       pill.textContent = 'Founding Easer: fee waived';
-      programCopy.innerHTML = '<strong>Founding Easer Program.</strong> No application fee is required for this launch spot — confirmed when you apply.';
-      chargeCopy.innerHTML = '<strong>No payment collected.</strong> Identity verification and application approval are still required before any jobs are offered.';
-      refundCopy.textContent = 'This Founding Easer application has no application charge, so no application-fee refund applies.';
+      programCopy.innerHTML = '<strong>Founding Easer Program.</strong> No application fee for this launch spot — nothing is charged now or later for applying.';
+      chargeRow.style.display = 'none';
+      refundCopy.style.display = 'none';
       consentSection.style.display = 'none';
       document.getElementById('fee-consent').checked = false;
       cardSection.style.display = 'none';
