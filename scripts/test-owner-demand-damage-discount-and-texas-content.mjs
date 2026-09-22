@@ -140,4 +140,41 @@ assert.match(texasGuide, /availability.*service address/i);
 assert.doesNotMatch(texasGuide, /nationwide (?:booking|service|coverage)/i);
 assert.match(sitemap, /blog\/texas-furniture-assembly-home-setup-guide/);
 
+// ── Market Demand counted work that was not waiting on the owner ──────────
+// needs_manual_dispatch can be true on a booking that already has an Easer:
+// expire-offers sets it after max attempts, and a live offer stays acceptable
+// after that. ops-alert.js has always paired the flag with assembler_id; the
+// demand count did not, so the "Manual Assignment" tile and the nav badge both
+// counted jobs nobody had to assign.
+{
+  const assigned = formatBookingSignal({
+    id: 'b1', ref: 'AAE-A1', status: 'confirmed', service: 'Assembly',
+    needs_manual_dispatch: true, assembler_id: 'easer-1',
+    service_city: 'Austin', service_state: 'TX', service_zip: '78701',
+  });
+  assert.equal(assigned.needsManualDispatch, false,
+    'a job with an Easer on it is not waiting for the owner to assign one');
+
+  const unassigned = formatBookingSignal({
+    id: 'b2', ref: 'AAE-A2', status: 'confirmed', service: 'Assembly',
+    needs_manual_dispatch: true, assembler_id: null,
+    service_city: 'Austin', service_state: 'TX', service_zip: '78701',
+  });
+  assert.equal(unassigned.needsManualDispatch, true,
+    'a flagged job with no Easer is exactly what the count is for');
+
+  const rows = buildMarketRows([assigned, unassigned], new Map());
+  const austin = rows.find(row => row.city === 'Austin');
+  assert.equal(austin.manualDispatchCount, 1,
+    'per-market manual dispatch must count only the unassigned one');
+
+  const demandSrc = marketApi;
+  assert.match(demandSrc, /'assembler_id', 'is_test_booking'/,
+    'the demand query must select what its counts depend on');
+  assert.match(demandSrc, /booking\.is_test_booking !== true/,
+    "the owner's own test bookings are not market demand");
+  assert.match(demandSrc, /new Set\(allBookings\.map/,
+    'conversion must still see a test booking as converted, or its request reads as unserved demand');
+}
+
 console.log('Owner demand, damage, discount, finance clarity, and statewide content checks: PASS');
