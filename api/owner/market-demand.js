@@ -16,7 +16,8 @@ const BOOKING_SELECT = [
   'id', 'ref', 'source', 'status', 'payment_status', 'customer_name',
   'customer_email', 'customer_phone', 'service', 'date', 'time', 'address',
   'service_city', 'service_state', 'service_zip', 'total_price',
-  'needs_manual_dispatch', 'booking_attribution', 'created_at',
+  'needs_manual_dispatch', 'assembler_id', 'is_test_booking',
+  'booking_attribution', 'created_at',
 ].join(', ');
 
 const BOOKING_SELECT_WITHOUT_ATTRIBUTION = BOOKING_SELECT.replace(', booking_attribution', '');
@@ -24,7 +25,8 @@ const BOOKING_SELECT_WITHOUT_ATTRIBUTION = BOOKING_SELECT.replace(', booking_att
 const LEGACY_BOOKING_SELECT = [
   'id', 'ref', 'source', 'status', 'payment_status', 'customer_name',
   'customer_email', 'customer_phone', 'service', 'date', 'time', 'address',
-  'total_price', 'needs_manual_dispatch', 'booking_attribution', 'created_at',
+  'total_price', 'needs_manual_dispatch', 'assembler_id', 'is_test_booking',
+  'booking_attribution', 'created_at',
 ].join(', ');
 
 const LEGACY_BOOKING_SELECT_WITHOUT_ATTRIBUTION = LEGACY_BOOKING_SELECT.replace(', booking_attribution', '');
@@ -56,9 +58,16 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to load booking demand' });
   }
 
-  const bookings = bookingsResult.data || [];
+  // The owner's own test bookings are not market demand. They were inflating
+  // request counts, market rows, potential revenue and the conversion rate —
+  // the same gap migration 094 closed for the summary emails and nowhere else.
+  const allBookings = bookingsResult.data || [];
+  const bookings = allBookings.filter(booking => booking.is_test_booking !== true);
+  const excludedTestBookings = allBookings.length - bookings.length;
   const requests = requestsResult.data || [];
-  const bookedIds = new Set(bookings.map(booking => booking.id));
+  // Conversion still has to see a test booking as "converted", or a request
+  // that became one would be counted as demand nobody served.
+  const bookedIds = new Set(allBookings.map(booking => booking.id));
   const unbookedRequests = requests.filter(request => !request.converted_booking_id || !bookedIds.has(request.converted_booking_id));
   // Collapse duplicate booking attempts from the same customer for the same job — a
   // customer retrying after a declined card creates a NEW booking each time, which
@@ -121,6 +130,7 @@ export default async function handler(req, res) {
       unbookedDemand: requestSignals.length,
       manualDispatchDemand,
       ownerActionRequired: manualDispatchDemand + newRequestCount,
+      excludedTestBookings,
       marketConversionRate: requests.length ? (requests.length - unbookedRequests.length) / requests.length : 0,
       easerSupplyByMarket: Array.from(marketSupply.values()).reduce((sum, market) => sum + market.approvedEasers, 0),
       onlineReadyEasers: Array.from(marketSupply.values()).reduce((sum, market) => sum + market.onlineReadyEasers, 0),
@@ -195,7 +205,12 @@ function formatBookingSignal(booking) {
     requestedDate: booking.date,
     desiredTime: booking.time,
     estimatedRevenue: positiveCents(booking.total_price),
-    needsManualDispatch: booking.needs_manual_dispatch === true,
+    // A job with an Easer on it is not waiting for the owner to assign one. The
+    // flag alone is not proof: expire-offers can set it while a live offer is
+    // still acceptable, so a booking can carry it AND an Easer. ops-alert.js
+    // has always paired the two; this count did not.
+    assemblerId: booking.assembler_id || null,
+    needsManualDispatch: booking.needs_manual_dispatch === true && !booking.assembler_id,
     createdAt: booking.created_at,
   };
 }
