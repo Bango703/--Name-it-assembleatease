@@ -11,10 +11,11 @@
 // Usage:
 //   node scripts/apply-flagship-cities.mjs            # all cities except Austin
 //   node scripts/apply-flagship-cities.mjs dallas houston   # only these
+//   node scripts/apply-flagship-cities.mjs houston --service=furniture-assembly
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SERVICES, applyFlagshipToPage, assertVisibleStartPrice } from './build-flagship-service-pages.mjs';
+import { selectServices, applyFlagshipToPage, assertVisibleStartPrice } from './build-flagship-service-pages.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -60,7 +61,9 @@ function locationLinksFor(city) {
   return { links: out, linksAreNearby: false };
 }
 
-const requested = new Set(process.argv.slice(2).map((s) => s.toLowerCase()));
+const args = process.argv.slice(2);
+const selectedServices = selectServices(args);
+const requested = new Set(args.filter((arg) => !arg.startsWith('--service=')).map((s) => s.toLowerCase()));
 // Austin is owned by build-flagship-service-pages.mjs; never transform it here.
 const targets = CITIES.filter((c) => c.slug !== 'austin' && (!requested.size || requested.has(c.slug)));
 
@@ -68,7 +71,7 @@ if (!targets.length) {
   throw new Error(requested.size ? `No matching cities for: ${[...requested].join(', ')}` : 'No cities to process.');
 }
 
-for (const cfg of SERVICES) assertVisibleStartPrice(cfg);
+for (const cfg of selectedServices) assertVisibleStartPrice(cfg);
 
 let built = 0;
 let missing = 0;
@@ -83,7 +86,7 @@ for (const city of targets) {
     landmark: city.landmark,
     bookingGuidance: city.bookingGuidance,
   };
-  for (const cfg of SERVICES) {
+  for (const cfg of selectedServices) {
     const file = join(ROOT, `${cfg.prefix}-${city.slug}-tx.html`);
     if (!existsSync(file)) { missing += 1; console.warn(`  skip (missing): ${cfg.prefix}-${city.slug}-tx.html`); continue; }
     const html = applyFlagshipToPage(readFileSync(file, 'utf8'), cfg, ctx);

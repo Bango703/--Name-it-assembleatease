@@ -62,6 +62,64 @@ const SERVICE_PLANNING = {
   },
 };
 
+// Practical service details for the four priority markets. These are preparation
+// instructions, not claims of completed local jobs or guaranteed availability.
+const METRO_SERVICE_GUIDES = {
+  austin: {
+    'furniture-assembly': {
+      summary: 'Planning a bedroom, apartment, or home-office setup in Austin? Add each bed, dresser, nightstand, desk, or shelving unit to the booking separately. Include the product link or model so a storage bed, drawer-heavy dresser, or modular wardrobe is scoped as the piece you actually bought.',
+      preparation: 'For a move-in, choose a visit after the full delivery is expected. Include any loading-zone instructions, stairs, elevator reservation, and the room for each item. Keep the hardware and instructions with their matching boxes, and make space for assembly in the final room.',
+      faq: { q: 'Can I book several furniture items for an Austin move-in?', a: 'Yes. Add each item and its quantity to the same booking, including the model or product link. Check that all packages will be available before the appointment. Share access instructions and the final room for each piece; delivery delays or extra items can change the work needed.' },
+    },
+    'tv-mounting': {
+      summary: 'For TV mounting in an Austin apartment or home, select the screen size and share the TV model, wall-mount model, wall material, and desired location. A standard wall installation, fireplace position, soundbar, and cable concealment are different parts of the scope; include the options you want before choosing the appointment.',
+      preparation: 'If you rent, check permission to drill and any move-out repair requirements first. A photo showing the full wall, nearby outlets, and media console helps explain the setup. Have your compatible mount and its hardware ready, and include building access or parking instructions.',
+      guide: { href: '/blog/tv-mounting-in-apartment-austin-texas', label: 'Read the Austin apartment TV mounting checklist' },
+      faq: { q: 'What should I check before mounting a TV in an Austin rental?', a: 'Check your lease or ask the property manager about drilling, wall restrictions, and move-out repairs. Include those requirements, the TV and mount models, and a photo of the intended wall in your request. Do not assume cable concealment or fireplace work is included in a standard mount.' },
+    },
+  },
+  dallas: {
+    'furniture-assembly': {
+      summary: 'Book Dallas furniture assembly by the exact item: a bed frame, dresser, desk, bookcase, or wardrobe. For IKEA and other modular furniture, include the series, dimensions, number of frames, drawers, and doors. A product link is more useful than a general description such as bedroom set.',
+      preparation: 'For an apartment or condo appointment, include the loading entrance, parking instructions, elevator reservation, and floor. If several rooms are involved, match each boxed item to its final room and note any pieces that require wall anchoring under the manufacturer instructions.',
+      faq: { q: 'How should I describe a wardrobe or multi-item furniture booking in Dallas?', a: 'List each item and quantity, with the product link or model. For a modular wardrobe, include frame count, dimensions, doors, drawers, and interior fittings. Note the final room, wall-anchoring requirements, and building access so the scope reflects the complete setup.' },
+    },
+    'tv-mounting': {
+      summary: 'Plan a Dallas TV mounting visit around the screen, mount, and wall together. Share the TV size and model, the fixed, tilt, or full-motion mount you have, and whether the wall is drywall, masonry, tile, or another surface. Include soundbars, shelves, or additional TVs as separate items.',
+      preparation: 'For a condo or apartment, check building permission and access requirements before booking. Include a wall photo, the outlet position, media-console height, and your preferred viewing position. If the wall material or mount compatibility is unknown, describe that before the appointment.',
+      faq: { q: 'Can I include more than one TV in a Dallas appointment?', a: 'Add every TV separately with its size, mount, wall material, and room location. Include soundbars or cable-management options for the relevant TV. Different walls and mounting heights can require different work, even when the screens are the same size.' },
+    },
+  },
+  houston: {
+    'furniture-assembly': {
+      summary: 'For furniture assembly in Houston, choose each bed, dresser, desk, dining table, or storage item and include its model or product link. For a townhome or multi-level setup, identify the final floor and room for every piece so the request describes the complete job.',
+      preparation: 'Tell us where the boxes will be when the visit begins and whether any heavy items need to travel upstairs. Do not assume delivery or moving is included in assembly. Include gate instructions, parking, elevator access where relevant, and enough clear space in the room to build and position each piece.',
+      faq: { q: 'Does a Houston furniture assembly booking include moving boxes upstairs?', a: 'Describe any stairs or heavy-box handling in the booking; do not assume it is included in standard assembly. Share the item models, where the boxes are, and the final room before the visit so handling needs and service scope can be confirmed.' },
+    },
+    'tv-mounting': {
+      summary: 'For a Houston TV mounting request, include the TV size, model, wall-mount model, wall surface, and the room or floor. Standard drywall mounting, above-fireplace work, soundbars, and cable concealment require different details. Select the relevant work for each TV instead of describing all of it as one basic mount.',
+      preparation: 'Photograph the full wall and nearby outlets, including any tile, brick, or fireplace surround. Identify where streaming devices, a soundbar, and other cables will sit. Share parking and access instructions, and have the compatible mount and supplied hardware ready before the appointment.',
+      faq: { q: 'What details are needed for a Houston fireplace TV installation?', a: 'Include a photo of the fireplace and surrounding wall, the wall material, TV and mount models, desired height, and nearby outlets. Fireplace placement and cable routing need a scope check before the visit; do not assume they are part of standard wall mounting.' },
+    },
+  },
+  'san-antonio': {
+    'furniture-assembly': {
+      summary: 'Book San Antonio furniture assembly for the exact bed, dresser, desk, table, or storage unit you need built. Share the brand, model or product link, item count, and final room. Include drawers, storage compartments, and wardrobe fittings so the request captures the complete piece.',
+      preparation: 'For a gated property or apartment, include entry, parking, stairs, and elevator details. Check the manufacturer instructions for furniture that needs wall anchoring, and mention the wall surface or rental restrictions. Keep all packages, instructions, and hardware together in a clear work area.',
+      faq: { q: 'What should I include for a dresser or wardrobe assembly in San Antonio?', a: 'Share the model or product link, dimensions, drawer or door count, and the final room. Mention any required wall anchoring and the wall surface if known. If you rent, check permission for anchoring. Include stairs and where the boxes are located so the visit can be scoped accurately.' },
+    },
+    'tv-mounting': {
+      summary: 'Plan TV mounting in San Antonio with the screen size, TV model, mount model, and wall material ready. Identify brick, stone, tile, a fireplace position, or any uncertain wall construction before the visit. Soundbar mounting and cable concealment should be included as their own requested options.',
+      preparation: 'A full-wall photo showing outlets and furniture helps explain the intended placement. If you rent, check permission to drill. Include gated-community or building entry instructions, parking, and the floor; have the mount and compatible hardware available for the appointment.',
+      faq: { q: 'Can I request TV mounting on a brick or stone wall in San Antonio?', a: 'Describe the surface and include a clear wall photo, TV model, and mount model before booking. Masonry, tile, and fireplace installations require a different scope from standard drywall mounting. Cable routing and suitable hardware also need to match the actual wall.' },
+    },
+  },
+};
+
+function metroServiceGuide(cfg, city) {
+  return METRO_SERVICE_GUIDES[city.citySlug]?.[cfg.prefix];
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -90,6 +148,12 @@ function splitHeroTitle(heroTitle) {
 // neighbors while others link to major Texas markets for crawl discovery; the
 // wording must distinguish those cases instead of calling distant cities nearby.
 function locationFaq(city) {
+  if (city.citySlug === 'san-antonio') {
+    return {
+      q: 'Can I request service outside San Antonio?',
+      a: 'New Braunfels is another listed service area near San Antonio. Other Texas service areas are listed on our Locations page. Enter your service address during booking to check current availability for your location, service, and appointment.',
+    };
+  }
   const names = city.nearby.map((c) => c.name);
   const list = names.length > 1
     ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
@@ -109,7 +173,7 @@ function locationFaq(city) {
 function costFaq(cfg, city) {
   return {
     q: `What does ${cfg.faqNoun} cost in ${city.name}?`,
-    a: `Common ${cfg.faqNoun} pricing starts at ${cfg.fromPrice}. The page shows typical jobs and price ranges; choose the matching service and add the exact item, installation, access, and site details so the scope can be confirmed before the appointment.`,
+    a: `Common ${cfg.faqNoun} pricing starts at ${cfg.fromPrice}. The page shows typical jobs and price ranges; choose the matching service and add the exact item, installation, access, and site details so the scope can be confirmed before the appointment.${metroServiceGuide(cfg, city) ? ' Your selected options and final total are shown in booking before you confirm.' : ''}`,
   };
 }
 
@@ -125,7 +189,8 @@ function neutralizeNote(noteStrong, city) {
 // Austin keeps its exact approved FAQs (the reference pages are never modified);
 // every other city swaps the 4th FAQ for its own real neighbors.
 function serviceFaqs(cfg, city) {
-  return [...cfg.faqs.slice(0, 3), costFaq(cfg, city), locationFaq(city)];
+  const localGuide = metroServiceGuide(cfg, city);
+  return [...cfg.faqs.slice(0, 3), ...(localGuide ? [localGuide.faq] : []), costFaq(cfg, city), locationFaq(city)];
 }
 
 function decodeHtmlText(value) {
@@ -410,6 +475,8 @@ function buildBody(cfg, city) {
     || `Include the item count, access details, stairs, room location, and scheduling constraints when booking in ${city.name}.`;
   const servicePlanning = SERVICE_PLANNING[cfg.prefix];
   if (!servicePlanning) throw new Error(`Missing service planning content for ${cfg.prefix}.`);
+  const localGuide = metroServiceGuide(cfg, city);
+  const planningGuide = localGuide?.guide || (city.name === 'Austin' ? servicePlanning.austinGuide : null);
   const marketContext = city.bio
     ? `${city.bio}${city.landmark ? ` Addresses around ${city.landmark} can have different parking, entry, and item-move requirements.` : ''}`
     : bookingGuidance;
@@ -492,10 +559,9 @@ ${menu}
     <div class="fa-head fa-head--center" style="margin-bottom:1.5rem">
       <div class="fa-kicker">${escapeHtml(city.name)} service guide</div>
       <h2 class="fa-h2">${escapeHtml(servicePlanning.heading)} in ${escapeHtml(city.name)}</h2>
-      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(servicePlanning.summary)}</p>
-      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(servicePlanning.requestTypes)}</p>
-${city.name === 'Austin' && servicePlanning.austinGuide ? `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><a href="${servicePlanning.austinGuide.href}">${escapeHtml(servicePlanning.austinGuide.label)}</a> before choosing your items.</p>\n` : ''}      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Planning your ${escapeHtml(city.name)} appointment:</strong> ${escapeHtml(marketContext)}${city.bio ? ` ${escapeHtml(bookingGuidance)}` : ''}</p>
-    </div>
+      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(localGuide?.summary || servicePlanning.summary)}</p>
+      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(localGuide?.preparation || servicePlanning.requestTypes)}</p>
+${planningGuide ? `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><a href="${planningGuide.href}">${escapeHtml(planningGuide.label)}</a>.</p>\n` : ''}${localGuide ? '' : `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Planning your ${escapeHtml(city.name)} appointment:</strong> ${escapeHtml(marketContext)}${city.bio ? ` ${escapeHtml(bookingGuidance)}` : ''}</p>\n`}    </div>
     <div class="fa-mini-facts">
       <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Trusted local pros</strong><span>Assigned and confirmed before the visit.</span></div>
       <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Careful setup</strong><span>Built, mounted, or installed with the finish details checked.</span></div>
@@ -791,9 +857,10 @@ export function applyFlagshipToPage(html, cfg, city) {
 // Direct run = regenerate the 6 Austin flagship pages. Importing this module
 // (from the city generator) reuses the builders WITHOUT running this loop.
 function generateAustinFlagshipPages() {
-  for (const cfg of SERVICES) assertVisibleStartPrice(cfg);
+  const selectedServices = selectServices(process.argv.slice(2));
+  for (const cfg of selectedServices) assertVisibleStartPrice(cfg);
   let count = 0;
-  for (const cfg of SERVICES) {
+  for (const cfg of selectedServices) {
     const file = `${cfg.slug}.html`;
     const html = applyFlagshipToPage(readFileSync(file, 'utf8'), cfg, AUSTIN);
     writeFileSync(file, html);
@@ -801,6 +868,14 @@ function generateAustinFlagshipPages() {
     console.log(`built ${file}`);
   }
   console.log(`Done: ${count} pages.`);
+}
+
+// Repeat --service=<prefix> to regenerate only the reviewed service pages.
+export function selectServices(args) {
+  const selected = args.filter((arg) => arg.startsWith('--service=')).map((arg) => arg.slice('--service='.length));
+  const unknown = selected.filter((prefix) => !SERVICES.some((cfg) => cfg.prefix === prefix));
+  if (unknown.length) throw new Error(`Unknown service: ${unknown.join(', ')}`);
+  return selected.length ? SERVICES.filter((cfg) => selected.includes(cfg.prefix)) : SERVICES;
 }
 
 export { SERVICES, AUSTIN, FA_STYLE, buildBody, buildServiceSchema, buildBreadcrumbSchema, buildFaqSchema, assertVisibleStartPrice, pageSlug };

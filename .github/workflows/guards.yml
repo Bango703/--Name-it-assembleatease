@@ -66,6 +66,11 @@ jobs:
       - name: Source-of-truth audit
         run: node scripts/audit-source-of-truth.mjs
 
+      - name: Public page indexability and sitemap dates
+        run: |
+          npm run seo:audit
+          node scripts/test-location-sitemap-lastmod.mjs
+
       # ── Article 7: code writing a value the database will reject.
       - name: Status/constraint drift
         run: node scripts/check-status-constraint-drift.mjs
