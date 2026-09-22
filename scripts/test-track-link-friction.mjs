@@ -62,3 +62,35 @@ assert.match(track, /That link has expired, so we have emailed you a fresh one/,
   'the customer must be told the link expired — not shown a bare form');
 
 console.log('track link friction: PASS — live links work, rotation is survivable, dead ends offer the code');
+
+// ── The owner can put the link in the customer's hands ─────────────────────
+// A customer who cannot find their confirmation had no remedy on the board:
+// resend existed for quotes, reviews, payment links and payout reminders, but
+// not for the booking itself, and no tracking link was visible anywhere.
+{
+  const endpoint = await read('api/owner/resend-booking-details.js');
+  assert.match(endpoint, /verifyOwner\(req\)/, 'owner only');
+  assert.match(endpoint, /safeTokenHashMatch\(plainToken, tokenHash\)/,
+    'reuse the live token when there is one');
+  assert.match(endpoint, /randomToken\(32\)/,
+    'mint a working one when the stored token was rotated, so the link is never dead');
+  assert.match(endpoint, /\.eq\('guest_mutation_token_hash', booking\.guest_mutation_token_hash\)/,
+    'rotation must be compare-and-set');
+  assert.match(endpoint, /guestManageUrl\(\s*\{ \.\.\.booking, guest_mutation_token_hash: tokenHash \}, SITE, plainToken/,
+    'the fresh token must reach the link builder');
+  assert.match(endpoint, /trackUrl,\n\s+\}\);/,
+    'a failed send must still return the link — the owner is on the phone');
+  assert.match(endpoint, /booking_details_resent/, 'the resend belongs on the timeline');
+  // The original confirmation describes the booking as it was that day. Sending
+  // it again can state things that are no longer true.
+  assert.doesNotMatch(endpoint, /Nothing is charged today/,
+    'this sends current state, not a replay of the original confirmation');
+
+  const owner = await read('owner/index.html');
+  assert.match(owner, /data-action="resend-booking-details"/, 'the board must offer it');
+  assert.match(owner, /function showTrackLink/, 'and show the link for reading out or copying');
+  assert.match(owner, /\['cancelled', 'declined'\]\.includes\(b\.status\)/,
+    'not offered on a booking with nothing left to track');
+}
+
+console.log('owner resend: PASS — details and a working link, from the booking');
