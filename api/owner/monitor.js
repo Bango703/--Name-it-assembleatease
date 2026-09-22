@@ -34,7 +34,19 @@ export default async function handler(req, res) {
     });
   }
 
-  const bookings = bookingsRes.data || [];
+  // Staff test bookings are not business results, and this panel gives them to
+  // a model that then advises on them. On 2026-09-22 the briefing opened with
+  // "completion rate critically low at 27%... revenue death" and told the owner
+  // to spend the next hour investigating ten cancellations. Six of those ten
+  // were his own test bookings (all cancelled), and "Furniture Assembly
+  // dominates at 7 bookings — your strongest service" described one real
+  // booking and six tests. The real numbers were 9 bookings, 4 cancellations,
+  // 44% completion. The finance ledger, the financial dashboard and Easer
+  // earnings already honour this flag (migration 094); the intelligence panel
+  // was the surface still counting them.
+  const allBookingRows = bookingsRes.data || [];
+  const bookings = allBookingRows.filter(booking => booking.is_test_booking !== true);
+  const testBookingCount = allBookingRows.length - bookings.length;
   const reviews  = reviewsRes.data || [];
 
   // ── Compute platform health signals ─────────────────────────────
@@ -132,6 +144,8 @@ export default async function handler(req, res) {
   const platformData = {
     snapshot: {
       totalBookings: bookings.length,
+      // Stated, not silently dropped: the owner can see what was left out.
+      excludedOwnerTestBookings: testBookingCount,
       pending: pending.length,
       confirmed: confirmed.length,
       completed: completed.length,
@@ -154,11 +168,19 @@ export default async function handler(req, res) {
       returnVisitsOpenRefs: returnVisits.map(b => b.ref).join(', ') || 'none',
     },
     financials: {
-      grossRevenueDollars: (gross / 100).toFixed(2),
-      stripeFeeDollars: (stripeFees / 100).toFixed(2),
-      netRevenueDollars: (netRevenue / 100).toFixed(2),
-      avgJobValueDollars: completedPaymentRows.length ? ((completedGross / completedPaymentRows.length) / 100).toFixed(2) : 0,
-      completionRate: bookings.length ? Math.round(completed.length / bookings.length * 100) + '%' : '0%',
+      // Named for what they are. "netRevenueDollars" beside a Stripe fee read
+      // as gross minus fees, so the briefing announced "24.5% going to payment
+      // processing, which is high" — Stripe took 2.9%. The gap is the Easers'
+      // pay, which is a cost of delivering the work, not a processing fee.
+      customerMoneyCollectedDollars: (gross / 100).toFixed(2),
+      stripeProcessingFeesDollars: (stripeFees / 100).toFixed(2),
+      platformNetDollars: (netRevenue / 100).toFixed(2),
+      avgCompletedJobValueDollars: completedPaymentRows.length ? ((completedGross / completedPaymentRows.length) / 100).toFixed(2) : 0,
+      // Of the jobs that actually reached an outcome. Dividing by every booking
+      // ever taken counts a job scheduled for next week as a failure today.
+      completionRateOfFinishedJobs: (completed.length + cancelled.length)
+        ? Math.round(completed.length / (completed.length + cancelled.length) * 100) + '%'
+        : 'no finished jobs yet',
       financeSource: 'ledger_first',
       legacyRows: financeRecon?.legacyRows ?? null,
       reconciliationMismatches: financeRecon?.mismatchedCount ?? null,
@@ -203,7 +225,20 @@ CRITICAL FORMATTING RULES — you must follow these exactly:
 - For alerts, tell the owner EXACTLY what to do
 - For growth, think like a business scaling from 1 city to nationwide
 - Keep responses under 250 words unless writing a draft email
-- Never say "I notice" or "I'd suggest" — just state it`;
+- Never say "I notice" or "I'd suggest" — just state it
+- Use only the numbers given. Do not derive a ratio, percentage or trend that is
+  not in the data, and never explain a gap between two figures you were not told
+  the relationship between — say what is missing instead
+- Every figure here excludes the owner's own test bookings, so treat it as real
+  customer activity
+
+What the money figures mean, so you never have to guess:
+- customerMoneyCollectedDollars: what customers actually paid, in total
+- stripeProcessingFeesDollars: what the card processor charged on that
+- platformNetDollars: what AssembleAtEase keeps after paying the Easers and the
+  processor. The gap between collected and net is mostly the Easers' pay, which
+  is the cost of doing the work, not a fee or a loss
+- The service pros are called Easers. Never write it any other way`;
 
   if (message != null && (typeof message !== 'string' || message.trim().length > 2000)) {
     return res.status(400).json({ error: 'Message must be plain text no longer than 2,000 characters.' });
@@ -244,8 +279,8 @@ Use the actual numbers from the data. Be direct.`;
       `3. Owner-manual jobs awaiting assignment: ${platformData.alerts.ownerManualNeedsAssignmentCount}`,
       '',
       'REVENUE:',
-      `1. Gross: $${platformData.financials.grossRevenueDollars}`,
-      `2. Net: $${platformData.financials.netRevenueDollars}`,
+      `1. Customer money collected: $${platformData.financials.customerMoneyCollectedDollars}`,
+      `2. Platform kept after Easer pay and fees: $${platformData.financials.platformNetDollars}`,
       '',
       'ACTION:',
       '1. Review pending payouts and stale pending jobs in owner dashboard.',
