@@ -7,6 +7,12 @@ import { chicagoTodayIso } from '../booking/_appt-date.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
 import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
 import { computeLeakageSignals } from '../booking/_leakage-signal.js';
+import {
+  buildActiveJobs,
+  isOperationalBooking,
+  operationalDate,
+  operationalTime,
+} from './_active-jobs.js';
 
 export function classifyRuntimeFailures(rows = [], activeAfter) {
   const activeAfterMs = new Date(activeAfter).getTime();
@@ -268,15 +274,10 @@ export default async function handler(req, res) {
   [...(bookingsRes.data || []), ...(financialHoldsRes.data || [])]
     .forEach(booking => bookingMap.set(booking.id, booking));
   const bookings = [...bookingMap.values()];
-  const operationalBookings = bookings.filter(booking =>
-    !['cancelled', 'declined'].includes(booking.status)
-      && (booking.status !== 'completed' || booking.return_visit_required === true));
-  const operationalDate = booking => booking.return_visit_required
-    ? booking.return_visit_date
-    : booking.date;
-  const operationalTime = booking => booking.return_visit_required
-    ? booking.return_visit_time
-    : booking.time;
+  // Which bookings are operational, and which date matters for one, are the
+  // same questions the active-jobs list answers. They live in _active-jobs.js
+  // so this file and that list cannot drift apart.
+  const operationalBookings = bookings.filter(isOperationalBooking);
   const easers = await Promise.all((easersRes.data || []).map(async easer => ({
     ...easer,
     has_membership: hasEffectiveEaserMembership(easer),
@@ -386,6 +387,10 @@ export default async function handler(req, res) {
   const arrived = operationalBookings.filter(b => b.status === 'arrived');
 
   const inProgress = operationalBookings.filter(b => b.status === 'in_progress');
+
+  // The list Live Ops shows AND counts. One rule, in _active-jobs.js, so the
+  // chip and the panel can never again describe different sets of jobs.
+  const activeJobs = buildActiveJobs(operationalBookings);
 
   const pendingRows = operationalBookings.filter(b => b.status === 'pending');
   const pendingPayment = pendingRows.filter(b => ['pending', 'failed'].includes(String(b.payment_status || '')));
@@ -784,9 +789,9 @@ export default async function handler(req, res) {
     businessDate: todayStr,
     trustSignals,
     summary: {
-      // Exclude 'pending' (awaiting payment) from Active Jobs count so the
-      // chip matches what's actually shown in the Active Jobs panel.
-      totalActive: operationalBookings.filter(b => b.status !== 'pending').length,
+      // The count IS the length of the list the panel renders. Not a parallel
+      // filter that agrees with it today and drifts tomorrow.
+      totalActive: activeJobs.length,
       pendingPayment: pendingPayment.length,
       quoteNeedsPricing: quoteNeedsPricing.length,
       quoteAwaitingApproval: quoteAwaitingApproval.length,
@@ -822,6 +827,7 @@ export default async function handler(req, res) {
       const order = { critical: 0, high: 1, medium: 2, low: 3 };
       return order[a.severity] - order[b.severity];
     }),
+    activeJobs,
     unassigned,
     ownerManualNeedsAssignment,
     ownerManualReconciliation,
