@@ -4,10 +4,14 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
-const [book, apply, owner] = await Promise.all([
+const [book, apply, owner, ownerCss] = await Promise.all([
   read('book.html'),
   read('assembler/apply.html'),
   read('owner/index.html'),
+  // The owner dashboard's styles moved out of an inline <style> block into
+  // owner/assets/owner.css on 2026-09-23. Markup assertions read the document;
+  // style assertions read the stylesheet.
+  read('owner/assets/owner.css'),
 ]);
 
 // Customer: value first, truthful plan, and no fabricated pressure.
@@ -65,6 +69,6 @@ assert.match(owner, /data-action="cancel"/);
 // Mobile containment for every new component.
 assert.match(book, /@media \(max-width:520px\)[\s\S]*\.job-plan-meta\{grid-template-columns:1fr\}/);
 assert.match(apply, /@media \(max-width: 980px\)[\s\S]*\.easer-value-preview \{ grid-template-columns: 1fr; \}/);
-assert.match(owner, /\.owner-next-action\{align-items:stretch;flex-direction:column\}/);
+assert.match(ownerCss, /\.owner-next-action\{align-items:stretch;flex-direction:column\}/);
 
 console.log('Behavioral UX flow checks passed');
