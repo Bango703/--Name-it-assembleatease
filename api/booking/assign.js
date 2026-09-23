@@ -1,5 +1,5 @@
 ﻿import { getSupabase } from '../_supabase.js';
-import { formatAppointmentDate, formatAppointmentDateShort, formatSlotShort } from './_appt-date.js';
+import { formatAppointmentDate, formatAppointmentDateShort, formatSlotShort, appointmentTimestampMs, chicagoTodayIso } from './_appt-date.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
@@ -516,7 +516,37 @@ export default async function handler(req, res) {
   });
 }
 
-export function buildAssignmentEmail({ firstName, service, date, time, estimatedPayCents, acceptUrl, declineUrl, ref, offerLocation}) {
+// Three lines in this email used to state rules that are wrong for a job
+// happening today, which is exactly when an Easer most needs them right:
+//
+//   "respond within 24 hours"      — on a job starting in three hours, the job
+//                                    happens first. stale-booking only releases
+//                                    an unaccepted assignment after 24h, so the
+//                                    deadline it implies does not exist here.
+//   "phone unlocks 24h before"     — for a same-day job that mark has already
+//                                    passed; the number is there on acceptance.
+//   "Wednesday, September 23"      — when that is today.
+//
+// So the copy now reads the appointment instead of assuming one is far away.
+export function buildAssignmentEmail({ firstName, service, date, time, estimatedPayCents, acceptUrl, declineUrl, ref, offerLocation, nowMs = Date.now() }) {
+  const appointmentMs = date ? appointmentTimestampMs(date, time) : null;
+  const hoursUntil = Number.isFinite(appointmentMs) ? (appointmentMs - nowMs) / 3600000 : null;
+  const isSoon = hoursUntil != null && hoursUntil <= CONTACT_RELEASE_LEAD_HOURS;
+  const isToday = hoursUntil != null && hoursUntil >= 0 && hoursUntil <= 24
+    && chicagoTodayIso(new Date(nowMs)) === chicagoTodayIso(new Date(appointmentMs));
+
+  const dateLine = !date
+    ? 'TBD'
+    : `${isToday ? 'Today' : esc(formatAppointmentDate(date))}${time ? ' at ' + esc(time) : ''}`;
+
+  const contactLine = isSoon
+    ? "Full address and the customer's phone number are yours the moment you accept."
+    : `Full address shows when you accept. The customer's phone number unlocks ${CONTACT_RELEASE_LEAD_HOURS} hours before the job — until then, message them in the app.`;
+
+  const urgencyLine = isSoon
+    ? 'This job is close. Please accept or decline now so the office can cover it if you cannot.'
+    : "Please respond within 24 hours. If you don't respond, the assignment is released and returns to the office.";
+
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:32px 24px">
@@ -530,17 +560,17 @@ export function buildAssignmentEmail({ firstName, service, date, time, estimated
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
         <tr><td style="padding:6px 0;vertical-align:top;color:#71717a;width:110px">Reference</td><td style="padding:6px 0;vertical-align:top;font-weight:600">${esc(ref)}</td></tr>
         <tr><td style="padding:6px 0;vertical-align:top;color:#71717a">Service</td><td style="padding:6px 0;vertical-align:top;font-weight:600">${esc(service)}</td></tr>
-        <tr><td style="padding:6px 0;vertical-align:top;color:#71717a">Date</td><td style="padding:6px 0;vertical-align:top">${esc(date ? formatAppointmentDate(date) : 'TBD')}${time ? ' at ' + esc(time) : ''}</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;color:#71717a">Date</td><td style="padding:6px 0;vertical-align:top">${dateLine}</td></tr>
         <tr><td style="padding:6px 0;vertical-align:top;color:#71717a">Estimated earnings</td><td style="padding:6px 0;vertical-align:top;font-weight:700;color:#059669">${estimatedPayCents > 0 ? '$' + (estimatedPayCents / 100).toFixed(2) : 'Pending custom quote'}</td></tr>
         <tr><td style="padding:6px 0;vertical-align:top;color:#71717a">Location</td><td style="padding:6px 0;vertical-align:top"><strong>${esc(offerLocation)}</strong></td></tr>
       </table>
     </td></tr></table>
-    <p style="margin:0 0 20px;font-size:13px;line-height:1.5;color:#71717a">Full address shows when you accept. The customer's phone number unlocks ${CONTACT_RELEASE_LEAD_HOURS} hours before the job — until then, message them in the app.</p>
+    <p style="margin:0 0 20px;font-size:13px;line-height:1.5;color:#71717a">${contactLine}</p>
     <div style="text-align:center;margin-bottom:16px">
       <a href="${acceptUrl}" style="display:inline-block;background:#00BFFF;color:#fff;font-size:14px;font-weight:600;padding:12px 36px;border-radius:6px;text-decoration:none;margin-right:8px">Accept Job</a>
       <a href="${declineUrl}" style="display:inline-block;background:#f4f4f5;color:#71717a;font-size:14px;font-weight:600;padding:12px 36px;border-radius:6px;text-decoration:none;border:1px solid #e4e4e7">Decline</a>
     </div>
-    <p style="margin:0;font-size:12px;color:#a1a1aa;text-align:center">Please respond within 24 hours. If you don't respond, the job may be reassigned.</p>
+    <p style="margin:0;font-size:12px;color:#a1a1aa;text-align:center">${urgencyLine}</p>
   </td></tr></table>
   <p style="text-align:center;font-size:11px;color:#a1a1aa;margin-top:16px">AssembleAtEase &bull; Texas Professional Network</p>
 </div></body></html>`;

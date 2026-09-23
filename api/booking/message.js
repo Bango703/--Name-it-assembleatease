@@ -414,7 +414,12 @@ export default async function handler(req, res) {
   let notificationFailure = null;
   try {
     const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
-    const sBody = esc(messageText);
+    // esc() makes the text safe but leaves the line breaks, and HTML collapses
+    // those to a single space — so every message the owner typed with
+    // paragraphs arrived as one run-on block. The breaks are turned into <br>
+    // AFTER escaping, so nothing typed can inject markup, and <br> rather than
+    // white-space:pre-wrap because Outlook's Word engine ignores pre-wrap.
+    const sBody = esc(messageText).replace(/\r\n|\r|\n/g, '<br>');
 
     if (resolvedSender === 'owner' && target === 'assembler') {
       // Notify assigned Easer

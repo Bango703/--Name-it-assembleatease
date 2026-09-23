@@ -6354,6 +6354,37 @@ function goToStep4Contact() {
 
 
 
+// Pure formatters for the step-5 summary rows. They used to live INSIDE
+// goToStep5Payment, so saveDtEdit and saveContactEdit — both declared at this
+// outer level — threw "Can't find variable: renderSummaryDateTime" the moment
+// an owner edited the date or the contact details. Two latent ReferenceErrors,
+// one of which reached Live Ops. They depend only on esc and
+// formatUsPhoneForDisplay, both defined out here, so out here is where they go.
+function renderSummaryContact(first, last, email, phone) {
+
+  return '<span class="summary-contact-details">'
+
+    + '<span>' + esc(first + ' ' + last) + '</span>'
+
+    + '<span>' + esc(email) + '</span>'
+
+    + '<span>' + esc(formatUsPhoneForDisplay(phone)) + '</span>'
+
+    + '</span>';
+
+}
+function renderSummaryDateTime(dateLabel, timeLabel) {
+
+  return '<span class="summary-datetime-details">'
+
+    + '<span>' + esc(dateLabel) + '</span>'
+
+    + '<span>' + esc(timeLabel) + '</span>'
+
+    + '</span>';
+
+}
+
 async function goToStep5Payment() {
 
   var first = document.getElementById('s4-first').value.trim();
@@ -6428,31 +6459,7 @@ async function goToStep5Payment() {
 
   }
 
-  function renderSummaryContact(first, last, email, phone) {
 
-    return '<span class="summary-contact-details">'
-
-      + '<span>' + esc(first + ' ' + last) + '</span>'
-
-      + '<span>' + esc(email) + '</span>'
-
-      + '<span>' + esc(formatUsPhoneForDisplay(phone)) + '</span>'
-
-      + '</span>';
-
-  }
-
-  function renderSummaryDateTime(dateLabel, timeLabel) {
-
-    return '<span class="summary-datetime-details">'
-
-      + '<span>' + esc(dateLabel) + '</span>'
-
-      + '<span>' + esc(timeLabel) + '</span>'
-
-      + '</span>';
-
-  }
 
 
 
