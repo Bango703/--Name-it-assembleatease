@@ -85,6 +85,21 @@
   function show(el, cls, html){ el.className = 'msg ' + cls; el.innerHTML = html; }
 
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function broadcastResultHtml(result) {
+    return 'Sent: <strong>' + esc(result.sent || 0) + '</strong>. '
+      + 'Already sent: ' + esc(result.alreadySent || 0) + '. '
+      + 'Queued: ' + esc(result.deferred || 0) + '. '
+      + 'Failed or needs review: ' + esc(result.failed || 0) + '. '
+      + 'Not processed: ' + esc(result.notSent || 0) + '. '
+      + 'Opted-out skipped: ' + esc(result.suppressed || 0) + '. '
+      + (result.deferred ? 'Queued emails have not been sent yet.' : 'Delivery is tracked separately from submission.');
+  }
+  function broadcastTestText(result, email) {
+    if (result.deferred) return 'Test email queued; it has not been sent yet.';
+    if (result.alreadySent) return 'This test email was already sent. No duplicate was sent.';
+    if (result.sent && result.sentTo) return 'Test sent to ' + result.sentTo + '. Check your inbox (and spam).';
+    return result.message || 'Test failed to send.';
+  }
   // Owner types plain text; convert safely to HTML: escape, linkify URLs, keep line breaks.
   function bodyToHtml(text){
     var safe = esc(text);
@@ -145,7 +160,7 @@
     this.disabled = true;
     try{
       var d = await api(payload({ testEmail: te }));
-      show($('out'), d.ok?'ok':'err', d.ok ? ('Test sent to '+esc(te)+'. Check your inbox (and spam).') : 'Test failed to send.');
+      show($('out'), d.deferred ? 'info' : d.ok ? 'ok' : 'err', esc(broadcastTestText(d, te)));
     }catch(e){ show($('out'),'err', esc(e.message)); }
     finally{ this.disabled = false; }
   });
@@ -163,7 +178,7 @@
     if (!window.confirm('Send this email to '+d.recipientCount+' '+aud+'? This cannot be undone.')){ this.disabled=false; return; }
     try{
       var res = await api(payload({}));
-      show($('out'),'ok','Sent to <strong>'+res.sent+'</strong> of '+res.recipientCount+'. '+(res.failed?res.failed+' failed. ':'')+(res.suppressed?res.suppressed+' opted-out skipped.':''));
+      show($('out'), res.failed ? 'err' : res.deferred ? 'info' : 'ok', broadcastResultHtml(res));
     }catch(e){ show($('out'),'err', esc(e.message)); }
     finally{ this.disabled = false; }
   });

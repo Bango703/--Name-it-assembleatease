@@ -150,6 +150,11 @@ export default async function handler(req, res) {
     reschedule_count: priorReschedules + 1,
     guest_mutation_token_hash: nextGuestMutationTokenHash,
     reminder_sent: false,
+    arrival_nudge_count: 0,
+    arrival_nudge_sent_at: null,
+    unassigned_escalated_at: null,
+    unassigned_customer_notified_at: null,
+    unassigned_escalation_stage: null,
   };
   if (booking.status === BOOKING_STATUS.CONFIRMED) {
     Object.assign(update, {

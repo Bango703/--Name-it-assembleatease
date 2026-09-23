@@ -1,329 +1,226 @@
-﻿import { getSupabase } from '../_supabase.js';
-import { formatAppointmentDate, formatAppointmentDateShort, formatSlotShort } from '../booking/_appt-date.js';
-import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
-import { sendSms } from '../_sms.js';
+import { getSupabase } from '../_supabase.js';
+import { formatAppointmentDate, formatSlotShort, notificationAppointmentTimestampMs, appointmentTimeZone, localCalendarDate } from '../booking/_appt-date.js';
+import { sendEmail, ownerEmail, esc, formatAddress, ensureEmailShell } from '../_email.js';
+import { sendSms, smsEligibility } from '../_sms.js';
 import { logCron } from './_cron-logger.js';
-import { appointmentTimestampMs } from '../booking/_appt-date.js';
+import { BOOKING_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
+import { isOwnerManualLiveFlow } from '../_owner-easer.js';
+import { operationalDate, operationalTime } from '../owner/_active-jobs.js';
+import { guestManageUrl } from '../_payment-security.js';
+import { notificationEventKey, notificationLocalHour } from '../_notification-policy.js';
 
-const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
+const SITE = 'https://www.assembleatease.com';
+const FOUR_HOURS = 4 * 3600000;
+const BOOKING_SELECT = 'id, ref, service, customer_name, customer_email, customer_phone, sms_consent_at, sms_opted_out_at, date, time, address, service_city, service_zip, status, reminder_sent, assembler_id, assembler_name, assembler_accepted_at, assigned_at, created_at, rescheduled_at, is_test_booking, source, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_payment_method_id, confirmed_by, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at, stripe_dispute_id, stripe_dispute_status, return_visit_required, return_visit_date, return_visit_time, return_visit_scheduled_at, return_visit_remaining_scope, guest_mutation_token_hash';
 
-/**
- * GET /api/cron/reminders
- * Runs hourly via Vercel cron.
- * Sends a 24-hour appointment reminder email to customers whose confirmed booking
- * is within the next 25 hours and has not yet received a reminder.
- *
- * Requires the `reminder_sent` boolean column on the bookings table.
- * If the column does not exist, run:
- *   ALTER TABLE bookings ADD COLUMN reminder_sent boolean DEFAULT false;
- */
+function calendarOffset(date, days) {
+  return new Date(Date.parse(`${date}T12:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
+}
+
+function exact(query, key, value) {
+  return value == null ? query.is(key, null) : query.eq(key, value);
+}
+
+export function reminderAppointment(booking) {
+  return { ...booking, date: operationalDate(booking), time: operationalTime(booking),
+    rescheduled_at: booking.return_visit_required ? booking.return_visit_scheduled_at : booking.rescheduled_at };
+}
+
+// The calendar day is the job's local day, never the server's UTC day. Routine
+// reminders do not turn a late confirmation into a second immediate message.
+export function reminderPurpose(booking, now = new Date(), recipientType = 'customer') {
+  if (booking.is_test_booking === true) return null;
+  const activeReturn = booking.return_visit_required === true;
+  if (activeReturn) {
+    if (![BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.EN_ROUTE, BOOKING_STATUS.ARRIVED, BOOKING_STATUS.IN_PROGRESS].includes(booking.status)) return null;
+  } else if (booking.status !== BOOKING_STATUS.CONFIRMED) return null;
+  const appointment = reminderAppointment(booking);
+  const appointmentMs = notificationAppointmentTimestampMs(appointment);
+  if (appointmentMs == null || appointmentMs <= now.getTime()) return null;
+  if (recipientType === 'easer' && (!booking.assembler_id || !booking.assembler_accepted_at)) return null;
+  const latestChange = Math.max(...[booking.created_at, booking.rescheduled_at, activeReturn && booking.return_visit_scheduled_at,
+    recipientType === 'easer' && booking.assembler_accepted_at].map(value => Date.parse(value) || 0));
+  if (now.getTime() - latestChange < FOUR_HOURS) return null;
+  const timeZone = appointmentTimeZone(appointment);
+  const today = localCalendarDate(now, timeZone);
+  const hour = notificationLocalHour(now, timeZone);
+  if (appointment.date === calendarOffset(today, 1) && hour >= 9 && hour < 20) return 'day_before';
+  if (appointment.date !== today || hour < 8 || hour >= 20) return null;
+  const dueAt = appointmentMs - 2 * 3600000;
+  // An early appointment gets the prior-day email, not a quiet-hours SMS
+  // shifted into its arrival window. Hourly scans may send up to 59m late.
+  const dueHour = notificationLocalHour(new Date(dueAt), timeZone);
+  return dueHour >= 8 && dueHour < 20 && now.getTime() >= dueAt && now.getTime() < dueAt + 3600000 ? 'day_of' : null;
+}
+
+function legacySince(booking, recipientType) {
+  const appointment = reminderAppointment(booking);
+  const priorDay = calendarOffset(appointment.date, -1);
+  const dayStart = notificationAppointmentTimestampMs({ ...appointment, date: priorDay, time: '12:00 AM' });
+  return new Date(Math.max(dayStart || 0, ...[booking.created_at, booking.rescheduled_at, booking.return_visit_scheduled_at,
+    recipientType === 'easer' && booking.assembler_accepted_at].map(value => Date.parse(value) || 0))).toISOString();
+}
+
+function notificationMeta(booking, recipientType, recipientId, purpose, now) {
+  const appointment = reminderAppointment(booking);
+  const timeZone = appointmentTimeZone(appointment);
+  const appointmentMs = notificationAppointmentTimestampMs(appointment);
+  const expiry = purpose === 'day_before'
+    ? notificationAppointmentTimestampMs({ ...appointment, date: localCalendarDate(now, timeZone), time: '8:00 PM' })
+    : appointmentMs - 3600000;
+  return {
+    bookingId: booking.id,
+    notificationType: recipientType === 'easer' ? 'easer_reminder' : 'reminder',
+    recipientType,
+    ...(recipientType === 'easer' ? { recipientUserId: recipientId } : {}),
+    notificationKey: notificationEventKey(appointment, `appointment-${purpose}`, `${recipientType}:${recipientId}:${recipientType === 'easer' ? booking.assembler_accepted_at : ''}`),
+    timeZone, routine: true, eventAt: new Date(appointmentMs).toISOString(),
+    expiresAt: new Date(expiry).toISOString(), legacySince: legacySince(booking, recipientType),
+  };
+}
+
+export function buildReminderEmail({ booking, recipientType = 'customer', firstName = 'there' }) {
+  const appointment = reminderAppointment(booking);
+  const timezone = appointmentTimeZone(appointment) === 'America/Denver' ? 'Mountain Time' : 'Central Time';
+  const isEaser = recipientType === 'easer';
+  const url = isEaser ? `${SITE}/assembler/my-assignments` : guestManageUrl(booking);
+  const title = booking.return_visit_required ? 'Your upcoming return appointment' : isEaser ? 'Your upcoming job' : 'Your upcoming appointment';
+  const detailRow = (label, value) => `<tr><td style="padding:9px 0;vertical-align:top;color:#71717a;width:110px">${label}</td><td style="padding:9px 0;vertical-align:top;font-weight:600">${esc(value)}</td></tr>`;
+  return ensureEmailShell(`<h1 style="margin:0 0 18px;font-size:22px;line-height:1.3;color:#1a1a1a">${title}</h1>
+    <p style="margin:0 0 18px">Hi ${esc(firstName)}, review the latest details for your ${booking.return_visit_required ? 'return appointment' : isEaser ? 'accepted job' : 'scheduled appointment'} below.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin:0 0 22px">
+      ${detailRow('Booking ref', booking.ref)}${detailRow('Service', booking.service || 'Service')}
+      ${detailRow('Date', formatAppointmentDate(appointment.date))}
+      ${detailRow('Arrival window', `${formatSlotShort(appointment.time)} ${timezone}`)}
+      ${!isEaser && booking.address ? detailRow('Address', formatAddress(booking.address)) : ''}
+      ${booking.return_visit_required && booking.return_visit_remaining_scope ? detailRow('Remaining work', booking.return_visit_remaining_scope) : ''}
+    </table>
+    <p style="margin:0 0 20px;text-align:center"><a href="${esc(url)}" style="display:inline-block;background:#00BFFF;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600">${isEaser ? 'View job details' : 'View your booking'}</a></p>
+    <p style="margin:0;font-size:14px;color:#52525b">${isEaser ? 'Tap On My Way before you leave and Arrived once you are on site. If your plans change, contact us from your dashboard.' : 'Need to change your appointment? Open your booking to review the available options and cancellation terms.'}</p>`, recipientType, `${formatAppointmentDate(appointment.date)}. Arrival window: ${formatSlotShort(appointment.time)} ${timezone}.`);
+}
+
+export function buildDayOfReminderSms(booking, recipientType) {
+  const appointment = reminderAppointment(booking);
+  const zone = appointmentTimeZone(appointment) === 'America/Denver' ? 'MT' : 'CT';
+  const shortUrl = recipientType === 'easer' ? 'assembleatease.com/assembler/my-assignments' : 'assembleatease.com/track';
+  return `AssembleAtEase: ${booking.ref} today, ${formatSlotShort(appointment.time)} ${zone}. Details: ${shortUrl}`;
+}
+
+async function currentAppointment(sb, booking) {
+  const { data, error } = await sb.from('bookings').select(BOOKING_SELECT).eq('id', booking.id).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  for (const key of ['status', 'date', 'time', 'rescheduled_at', 'assembler_id', 'assembler_accepted_at', 'payment_status', 'return_visit_required', 'return_visit_date', 'return_visit_time', 'return_visit_scheduled_at']) {
+    if ((data[key] ?? null) !== (booking[key] ?? null)) return null;
+  }
+  return data;
+}
+
+/** Hourly scan. One prior-day email and one timely, consented day-of SMS.
+ * Durable event keys, delivery outcomes and recipient spacing live in the
+ * shared sender; reminder_sent is only a compatibility display projection. */
 export default async function handler(req, res) {
-  // Only allow Vercel cron or internal calls
-  const authHeader = req.headers.authorization;
   const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== 'Bearer ' + cronSecret) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const t = Date.now();
+  if (!cronSecret || req.headers.authorization !== 'Bearer ' + cronSecret) return res.status(401).json({ error: 'Unauthorized' });
+  const startedAt = Date.now();
+  const now = new Date();
   const sb = getSupabase();
-
-  // Find confirmed bookings with a date within the next 25 hours
-  // and where reminder_sent is false (or null/missing)
-  const now     = new Date();
-  const in25h   = new Date(now.getTime() + 25 * 60 * 60 * 1000);
-
-  // ISO date strings (YYYY-MM-DD) for date comparison
-  const todayStr  = now.toISOString().slice(0, 10);
-  const futureStr = in25h.toISOString().slice(0, 10);
-
-  const { data: bookings, error } = await sb
-    .from('bookings')
-    .select('id, ref, service, customer_name, customer_email, date, time, address, status, reminder_sent, assembler_id, assembler_name, assembler_accepted_at')
-    .eq('status', 'confirmed')
-    .eq('reminder_sent', false)
-    .gte('date', todayStr)
-    .lte('date', futureStr);
-
-  if (error) {
-    console.error('Reminder cron query error:', error);
-    return res.status(500).json({ error: 'Failed to query bookings' });
-  }
-
   let sent = 0;
   let reconciled = 0;
+  let deferred = 0;
+  let expiringAuthsWarned = 0;
   const errors = [];
-
-  for (const booking of bookings || []) {
-    try {
-      // Double-check the booking date is actually within 25 hours
-      // (date column is YYYY-MM-DD — combined with time or assumed 9am)
-      const bookingDatetimeMs = appointmentTimestampMs(booking.date, booking.time || '9:00 AM');
-      if (bookingDatetimeMs == null) {
-        errors.push({ ref: booking.ref, error: 'Unrecognized appointment time' });
-        continue;
-      }
-      const msUntil = bookingDatetimeMs - now.getTime();
-      if (msUntil < 0 || msUntil > 25 * 60 * 60 * 1000) {
-        // Outside window — skip
-        continue;
-      }
-
-      const customerFirst = (booking.customer_name || 'there').split(' ')[0];
-      const html = buildReminderEmail({ customerFirst, booking });
-
-      const emailResult = await sendEmail({
-        to: booking.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: `Reminder: Your appointment is tomorrow — ${booking.ref}`,
-        html,
-        replyTo: 'service@assembleatease.com',
-        meta: {
-          bookingId: booking.id,
-          notificationType: 'reminder',
-          recipientType: 'customer',
-          disableDailyCap: true,
-        },
-      });
-      if (!emailResult?.ok) {
-        errors.push({ ref: booking.ref, error: emailResult?.error || 'Reminder delivery failed' });
-        continue;
-      }
-      if (emailResult.logged === false) {
-        errors.push({ ref: booking.ref, error: emailResult.logError || 'Reminder delivered but notification log failed' });
-      }
-
-      // Mark only after Resend accepted the message, or a prior confirmed send
-      // caused deduplication after an earlier flag-write failure.
-      let reminderFlagQuery = sb
-        .from('bookings')
-        .update({ reminder_sent: true })
-        .eq('id', booking.id)
-        .eq('status', booking.status)
-        .eq('date', booking.date)
-        .eq('reminder_sent', false);
-      reminderFlagQuery = booking.time == null
-        ? reminderFlagQuery.is('time', null)
-        : reminderFlagQuery.eq('time', booking.time);
-      const { error: flagErr, data: flaggedRows } = await reminderFlagQuery.select('id');
-      if (flagErr) {
-        errors.push({ ref: booking.ref, error: 'Reminder delivered but sent flag failed: ' + flagErr.message });
-        continue;
-      }
-      if (!flaggedRows?.length) {
-        errors.push({
-          ref: booking.ref,
-          error: 'Reminder was delivered for the prior appointment state; the booking changed before its reminder flag was saved.',
-        });
-        continue;
-      }
-
-      if (emailResult.suppressed) reconciled++;
-      else sent++;
-    } catch (e) {
-      console.error(`Reminder error for booking ${booking.ref}:`, e);
-      errors.push({ ref: booking.ref, error: e?.message || String(e) });
-    }
-  }
-
-  const { data: easerBookings, error: easerBookingsError } = await sb
-    .from('bookings')
-    .select('id, ref, service, date, time, status, assembler_id, assembler_name, assembler_accepted_at')
-    .eq('status', 'confirmed')
-    .not('assembler_id', 'is', null)
-    .not('assembler_accepted_at', 'is', null)
-    .gte('date', todayStr)
-    .lte('date', futureStr);
-  if (easerBookingsError) {
-    errors.push({ ref: null, error: 'Easer reminder query failed: ' + easerBookingsError.message });
-  } else {
-    for (const booking of easerBookings || []) {
-      const bookingDatetimeMs = appointmentTimestampMs(booking.date, booking.time || '9:00 AM');
-      if (bookingDatetimeMs == null) continue;
-      const msUntil = bookingDatetimeMs - now.getTime();
-      if (msUntil < 0 || msUntil > 25 * 60 * 60 * 1000) continue;
+  const fromDate = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
+  const throughDate = new Date(now.getTime() + 2 * 86400000).toISOString().slice(0, 10);
+  try {
+    const { data: bookings, error } = await sb.from('bookings').select(BOOKING_SELECT)
+      .in('status', [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.EN_ROUTE, BOOKING_STATUS.ARRIVED, BOOKING_STATUS.IN_PROGRESS])
+      .or(`and(date.gte.${fromDate},date.lte.${throughDate}),and(return_visit_required.eq.true,return_visit_date.gte.${fromDate},return_visit_date.lte.${throughDate})`)
+      .order('date', { ascending: true }).limit(300);
+    if (error) throw error;
+    for (const candidate of bookings || []) {
+      if (!reminderPurpose(candidate, now, 'customer') && !reminderPurpose(candidate, now, 'easer')) continue;
       try {
-        await sendEaserReminder({ sb, booking });
-      } catch (e) {
-        errors.push({ ref: booking.ref, error: e?.message || String(e) });
-      }
+        const booking = await currentAppointment(sb, candidate);
+        if (!booking) continue;
+        let easer = null;
+        if (booking.assembler_id) {
+          const { data, error: profileError } = await sb.from('profiles')
+            .select('id, role, is_owner, full_name, email, phone, sms_consent_at, sms_opted_out_at')
+            .eq('id', booking.assembler_id).eq('role', 'assembler').maybeSingle();
+          if (profileError) errors.push({ ref: booking.ref, error: `Easer reminder lookup failed: ${profileError.message}` });
+          else easer = data;
+        }
+        const financialHold = booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at
+          || booking.financial_reconciliation_required_at || booking.cancellation_reconciliation_required_at;
+        if (financialHold || (!isBookingPaymentReadyForDispatch(booking) && !isOwnerManualLiveFlow(booking, easer || {}))) continue;
+
+        // A customer channel failure must never prevent the Easer's independent
+        // reminder. SMS consent is rechecked by the shared sender at delivery.
+        for (const recipientType of ['customer', 'easer']) {
+          const purpose = reminderPurpose(booking, now, recipientType);
+          if (!purpose || (recipientType === 'easer' && !easer)) continue;
+          const person = recipientType === 'easer' ? easer : { email: booking.customer_email, phone: booking.customer_phone, full_name: booking.customer_name, sms_consent_at: booking.sms_consent_at, sms_opted_out_at: booking.sms_opted_out_at };
+          const recipientId = recipientType === 'easer' ? person.id : String(person.email || person.phone || '').trim().toLowerCase();
+          const meta = notificationMeta(booking, recipientType, recipientId, purpose, now);
+          let result;
+          try {
+            if (purpose === 'day_before') {
+              if (!person.email) continue;
+              result = await sendEmail({ to: person.email, from: 'AssembleAtEase <booking@assembleatease.com>',
+                subject: `Reminder: Your ${booking.return_visit_required ? 'return appointment' : recipientType === 'easer' ? 'AssembleAtEase job' : 'appointment'} is tomorrow — ${booking.ref}`,
+                html: buildReminderEmail({ booking, recipientType, firstName: (person.full_name || 'there').split(' ')[0] }),
+                replyTo: 'service@assembleatease.com', meta });
+            } else {
+              if (!smsEligibility(person).ok) continue;
+              result = await sendSms({ recipient: person,
+                body: buildDayOfReminderSms(booking, recipientType), meta });
+            }
+          } catch (error) { result = { ok: false, error: error?.message || String(error) }; }
+          if (!result?.ok) {
+            if (result?.deferred) deferred++;
+            else errors.push({ ref: booking.ref, recipientType, error: result?.error || result?.skipped || 'Reminder not sent' });
+            continue;
+          }
+          if (result.suppressed) reconciled++; else sent++;
+          if (result.logged === false) errors.push({ ref: booking.ref, error: result.logError || 'Provider accepted reminder but delivery log failed' });
+          if (recipientType === 'customer' && purpose === 'day_before' && booking.reminder_sent !== true) {
+            let update = sb.from('bookings').update({ reminder_sent: true }).eq('id', booking.id);
+            for (const key of ['status', 'date', 'time', 'rescheduled_at', 'reminder_sent', 'return_visit_required', 'return_visit_date', 'return_visit_time', 'return_visit_scheduled_at']) update = exact(update, key, booking[key]);
+            const { data: flaggedRows, error: flagError } = await update.select('id');
+            if (flagError) errors.push({ ref: booking.ref, error: `Reminder accepted but display flag could not be saved: ${flagError.message}` });
+            else if (!flaggedRows?.length) {
+              const latest = await currentAppointment(sb, booking);
+              if (latest?.reminder_sent !== true) errors.push({ ref: booking.ref, error: 'Reminder was accepted for the prior appointment; the current booking display was left unchanged.' });
+            }
+          }
+        }
+      } catch (error) { errors.push({ ref: candidate.ref, error: error?.message || String(error) }); }
     }
-  }
 
-  // ── Stripe authorization expiry warning (day 5 of 7-day hold) ──────────────
-  // Find confirmed bookings with payment authorized 5-6 days ago — approaching expiry
-  const day5ago = new Date(now.getTime() - 5 * 86400000).toISOString();
-  const day6ago = new Date(now.getTime() - 6 * 86400000).toISOString();
-
-  const { data: expiringAuths } = await sb
-    .from('bookings')
-    .select('id, ref, service, customer_name, date, amount_charged, total_price')
-    .eq('status', 'confirmed')
-    .eq('payment_status', 'authorized')
-    .gte('payment_authorized_at', day6ago)
-    .lte('payment_authorized_at', day5ago)
-    .limit(20);
-
-  if (expiringAuths && expiringAuths.length > 0) {
-    const rows = expiringAuths.map(b =>
-      `<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:13px">${esc(b.ref)}</td>` +
-      `<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:13px">${esc(b.service)}</td>` +
-      `<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:13px">${esc(b.date || '—')}</td>` +
-      `<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:13px">${esc(b.customer_name)}</td></tr>`
-    ).join('');
-
-    try {
-      const warningResult = await sendEmail({
-        to: ownerEmail(),
-        from: 'AssembleAtEase System <booking@assembleatease.com>',
-        subject: `Action Required: ${expiringAuths.length} card authorization(s) expiring within 48 hours`,
-        html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,sans-serif">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #fcd34d"><tr><td style="padding:24px">
-    <p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#92400e">Card Authorizations Expiring Soon</p>
-    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">The following ${expiringAuths.length} booking(s) have card authorizations that will expire within ~48 hours (Stripe holds last 7 days). You must complete or cancel these jobs before the authorization expires, or the payment cannot be captured.</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:6px;overflow:hidden">
-      <tr style="background:#fafafa"><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Ref</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Service</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Date</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Customer</th></tr>
-      ${rows}
-    </table>
-    <p style="margin:16px 0 0;font-size:13px;color:#71717a">Log in to the <a href="https://www.assembleatease.com/owner" style="color:#00BFFF">owner dashboard</a> to take action.</p>
-  </td></tr></table>
-</div></body></html>`,
-        meta: {
-          notificationType: 'cron_alert',
-          recipientType: 'owner',
-          disableDedupe: true,
-        },
+    // The age of our authorization record is a review trigger, not Stripe's
+    // exact capture deadline. Financial execution is untouched by this cron.
+    const { data: authorizations, error: authError } = await sb.from('bookings')
+      .select('id, ref, service, customer_name, date, payment_authorized_at, is_test_booking')
+      .eq('status', BOOKING_STATUS.CONFIRMED).eq('payment_status', 'authorized')
+      .lte('payment_authorized_at', new Date(now.getTime() - 5 * 86400000).toISOString())
+      .order('payment_authorized_at', { ascending: true }).limit(100);
+    if (authError) errors.push({ ref: null, error: `Authorization review query failed: ${authError.message}` });
+    const aged = (authorizations || []).filter(b => b.is_test_booking !== true);
+    if (aged.length) {
+      const rows = aged.map(b => `<li>${esc(b.ref)}: ${esc(b.service || 'Service')}, ${esc(formatAppointmentDate(b.date))}; authorized ${esc(formatAppointmentDate(String(b.payment_authorized_at).slice(0, 10)))}</li>`).join('');
+      const result = await sendEmail({ to: ownerEmail(), from: 'AssembleAtEase System <booking@assembleatease.com>',
+        subject: `Review needed: ${aged.length} aging card authorization(s)`,
+        html: ensureEmailShell(`<h1 style="font-size:22px">Review aging card authorizations</h1><p>These bookings have authorization records at least five days old. Review each PaymentIntent in Stripe for its current status and actual capture deadline, then follow up on any job that needs action.</p><ul>${rows}</ul><p>Authorization age alone does not establish an expiry date. Do not mark a job complete or cancel it solely to move a payment.</p><p><a href="${SITE}/owner/">Open the owner dashboard</a></p>`, 'owner'),
+        meta: { notificationType: 'authorization_age_review', recipientType: 'owner', notificationKey: `authorization-age-review:${localCalendarDate(now, 'America/Chicago')}`, routine: false },
       });
-      if (!warningResult?.ok) errors.push({ ref: null, error: warningResult?.error || 'Authorization warning delivery failed' });
-    } catch (e) { console.error('Auth expiry warning email error:', e); }
+      if (result?.ok && !result.suppressed) expiringAuthsWarned = aged.length;
+      else if (!result?.ok && !result?.deferred) errors.push({ ref: null, error: result?.error || 'Authorization review email not sent' });
+    }
+    await logCron('reminders', { status: errors.length ? 'error' : 'ok', records: sent + expiringAuthsWarned, errorText: errors.length ? JSON.stringify(errors).slice(0, 1000) : null, duration: Date.now() - startedAt });
+    return res.status(200).json({ ok: errors.length === 0, sent, reconciled, deferred, expiringAuthsWarned, errors });
+  } catch (error) {
+    await logCron('reminders', { status: 'error', records: sent, errorText: error?.message || String(error), duration: Date.now() - startedAt });
+    return res.status(500).json({ error: 'Reminder scan failed' });
   }
-
-  await logCron('reminders', { status: errors.length ? 'warning' : 'ok', records: sent + reconciled, error: errors.length ? JSON.stringify(errors).slice(0, 1000) : null, duration: Date.now() - t });
-  return res.status(200).json({ ok: true, sent, reconciled, expiringAuthsWarned: expiringAuths?.length || 0, errors: errors.length ? errors : undefined });
-}
-
-async function sendEaserReminder({ sb, booking }) {
-  if (!booking.assembler_id || !booking.assembler_accepted_at) return;
-
-  const { data: prior, error: priorError } = await sb
-    .from('notification_log')
-    .select('id, channel')
-    .eq('booking_id', booking.id)
-    .eq('recipient_user_id', booking.assembler_id)
-    .eq('notification_type', 'easer_reminder')
-    .in('status', ['provider_accepted', 'sent', 'delivered', 'delivery_delayed'])
-    .limit(1);
-  if (priorError) throw priorError;
-  const emailAlreadySent = prior?.some(row => row.channel === 'email');
-  const smsAlreadySent = prior?.some(row => row.channel === 'sms');
-
-  const { data: easer, error: easerError } = await sb
-    .from('profiles')
-    .select('id, full_name, email, phone, sms_consent_at, sms_opted_out_at')
-    .eq('id', booking.assembler_id)
-    .eq('role', 'assembler')
-    .maybeSingle();
-  if (easerError) throw easerError;
-  if (!easer) return;
-
-  const firstName = (easer.full_name || 'there').split(' ')[0];
-  const appointmentLabel = `${formatAppointmentDateShort(booking.date)}${booking.time ? ` at ${formatSlotShort(booking.time)}` : ''}`;
-  const subject = `Reminder: Your AssembleAtEase job is tomorrow — ${booking.ref}`;
-  const emailResult = emailAlreadySent
-    ? { ok: true, skipped: 'already_sent' }
-    : easer.email
-    ? await sendEmail({
-      to: easer.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject,
-      html: buildEaserReminderEmail({ firstName, booking }),
-      replyTo: 'service@assembleatease.com',
-      meta: {
-        bookingId: booking.id,
-        notificationType: 'easer_reminder',
-        recipientType: 'easer',
-        recipientUserId: easer.id,
-        disableDedupe: true,
-      },
-    })
-    : { ok: false, skipped: 'missing_easer_email' };
-
-  const smsResult = smsAlreadySent
-    ? { ok: true, skipped: 'already_sent' }
-    : await sendSms({
-      recipient: easer,
-      body: `Reminder: your AssembleAtEase job is ${appointmentLabel}. Open your dashboard for details. Ref ${booking.ref}`,
-      meta: {
-        bookingId: booking.id,
-        notificationType: 'easer_reminder',
-        recipientType: 'easer',
-        recipientUserId: easer.id,
-      },
-    });
-
-  if (!emailResult?.ok && !smsResult?.ok && !smsResult?.skipped) {
-    throw new Error(emailResult?.error || smsResult?.error || 'Easer reminder delivery failed');
-  }
-}
-
-function buildEaserReminderEmail({ firstName, booking }) {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
-    <p style="margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#71717a">Job reminder</p>
-    <p style="margin:0 0 20px;font-size:22px;font-weight:700;color:#1a1a1a">Your job is tomorrow, ${esc(firstName)}</p>
-    <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.7">This is a reminder for your accepted AssembleAtEase job. Open your dashboard before you leave so you have the latest job details.</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:20px">
-      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:120px">Booking ref</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-family:monospace">${esc(booking.ref)}</td></tr>
-      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Service</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(booking.service || 'Service')}</td></tr>
-      <tr><td style="padding:10px 0;color:#71717a">When</td><td style="padding:10px 0;font-weight:700">${esc(formatAppointmentDate(booking.date))}${booking.time ? ` at ${esc(formatSlotShort(booking.time))}` : ''}</td></tr>
-    </table>
-    <p style="margin:0;font-size:13px;color:#52525b;line-height:1.6">Please review the job in your dashboard and tap Arrived when you are on site.</p>
-  </td></tr></table>
-</div></body></html>`;
-}
-
-function buildReminderEmail({ customerFirst, booking }) {
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"/></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7">
-    <tr><td style="padding:20px 24px;text-align:center">
-      <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
-      <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
-    </td></tr>
-  </table>
-
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7">
-    <tr><td style="padding:28px 24px">
-      <p style="margin:0 0 20px;font-size:20px;font-weight:700;color:#1a1a1a">Your appointment is tomorrow, ${esc(customerFirst)}!</p>
-      <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.7">Just a friendly reminder that your service appointment is coming up. Here are your booking details:</p>
-
-      <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:24px">
-        <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:140px">Booking ref</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:13px">${esc(booking.ref)}</td></tr>
-        <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Service</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(booking.service)}</td></tr>
-        <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(formatAppointmentDate(booking.date))}</td></tr>
-        ${booking.time ? `<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(booking.time)}</td></tr>` : ''}
-        ${booking.address ? `<tr><td style="padding:10px 0;color:#71717a">Address</td><td style="padding:10px 0">${esc(formatAddress(booking.address))}</td></tr>` : ''}
-      </table>
-
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px">
-        <tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
-          Need to reschedule? Reply to this email at least 24 hours before your appointment and we'll do our best to accommodate you.
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px">
-    <tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
-      AssembleAtEase &bull; Serving customers across Texas &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
-    </td></tr>
-  </table>
-
-</div>
-</body></html>`;
 }

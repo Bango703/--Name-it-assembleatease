@@ -1,6 +1,10 @@
 import { upsertContact, addNote } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { formatUsPhone, normalizeUsPhone } from './_phone.js';
+import { sendEmail, ownerEmail, esc as escapeHtml } from './_email.js';
+import { createHash } from 'node:crypto';
+
+const esc = value => escapeHtml(String(value || ''));
 
 /**
  * POST /api/business-inquiry
@@ -29,12 +33,17 @@ export default async function handler(req, res) {
   }
   const displayPhone = formatUsPhone(cleanPhone);
 
-  const KEY = process.env.RESEND_API_KEY;
-  const TO  = process.env.NOTIFY_EMAIL || 'service@assembleatease.com';
-  const ref = 'B2B-' + Date.now().toString(36).toUpperCase();
+  const TO = ownerEmail();
+  // Retries of the same form during a day reuse one reference and channel key.
+  // A different scope/contact is a new inquiry, even for the same company.
+  const inquiryKey = createHash('sha256').update(JSON.stringify([
+    new Date().toISOString().slice(0, 10),
+    ...[name, company, email, cleanPhone, location, timeline, type, frequency, details]
+      .map(value => String(value || '').trim().toLowerCase()),
+  ])).digest('hex');
+  const ref = 'B2B-' + inquiryKey.slice(0, 12).toUpperCase();
   const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
   const SITE = 'https://www.assembleatease.com';
-  const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
   // Is this likely recurring revenue? Flag it for the owner.
   const recurring = /recurring|ongoing|multi|monthly|weekly|each|every|units|turn|move-?in/i.test(`${frequency} ${type} ${details}`);
@@ -91,35 +100,36 @@ export default async function handler(req, res) {
   </td></tr></table>
 </div></body></html>`;
 
-  if (!KEY) { console.error('RESEND_API_KEY not set'); return res.status(500).json({ error: 'Email service not configured' }); }
-
   try {
-    const ownerResp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const ownerResp = await sendEmail({
         from: 'AssembleAtEase Business <contact@assembleatease.com>',
-        to: [TO],
+        to: TO,
         subject: `New Business Lead - ${company}${recurring ? ' (recurring?)' : ''}`,
         html: ownerHtml,
-        reply_to: email,
-      }),
+        replyTo: email,
+        meta: {
+          notificationType: 'business_inquiry_owner', recipientType: 'owner',
+          notificationKey: `business-inquiry:${inquiryKey}:owner`,
+        },
     });
-    if (!ownerResp.ok) { console.error('Resend owner error:', await ownerResp.text()); return res.status(500).json({ error: 'Failed to send' }); }
+    if (!ownerResp?.ok) {
+      console.error('Business inquiry owner email failed:', ownerResp?.reason || ownerResp?.error);
+      return res.status(503).json({ error: 'Your request could not be sent yet. Please try again shortly.', ref });
+    }
 
     // Partnership-grade auto-response to the business (non-blocking on failure)
-    const bizResp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const bizResp = await sendEmail({
         from: 'AssembleAtEase <contact@assembleatease.com>',
-        to: [email],
+        to: email,
         subject: `We received your request - ${company}`,
         html: bizHtml,
-        reply_to: TO,
-      }),
+        replyTo: TO,
+        meta: {
+          notificationType: 'business_inquiry_received', recipientType: 'customer',
+          notificationKey: `business-inquiry:${inquiryKey}:customer`,
+        },
     });
-    if (!bizResp.ok) console.error('Resend business error:', await bizResp.text());
+    if (!bizResp?.ok) console.error('Business inquiry acknowledgement failed:', bizResp?.reason || bizResp?.error);
 
     // HubSpot — tag as a business lead with structured detail
     if (process.env.HUBSPOT_ACCESS_TOKEN) {

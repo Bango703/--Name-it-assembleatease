@@ -5,14 +5,35 @@ export function parseIsoCalendarDate(dateStr) {
   return parsed;
 }
 
-export function chicagoTodayIso(now = new Date()) {
+export function localCalendarDate(now = new Date(), timeZone = 'America/Chicago') {
   const values = {};
   new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
   }).formatToParts(now).forEach((part) => {
     if (part.type !== 'literal') values[part.type] = part.value;
   });
   return `${values.year}-${values.month}-${values.day}`;
+}
+
+export function chicagoTodayIso(now = new Date()) {
+  return localCalendarDate(now, 'America/Chicago');
+}
+
+// Existing financial callers keep their Chicago default. Notifications honor
+// an explicit job timezone and the El Paso location evidence when present.
+export function appointmentTimeZone(booking = {}) {
+  const explicit = booking.service_timezone || booking.time_zone || booking.timezone;
+  if (['America/Chicago', 'America/Denver'].includes(explicit)) return explicit;
+  const zip = String(booking.service_zip || booking.zip || booking.zip_code || '').trim();
+  const city = String(booking.service_city || booking.city || '').trim().toLowerCase();
+  if (/^799\d{2}$/.test(zip) || city === 'el paso' || /\bel paso\s*,?\s*(?:tx|texas)\b/i.test(booking.address || '')) return 'America/Denver';
+  return 'America/Chicago';
+}
+
+export function notificationAppointmentTimestampMs(booking = {}) {
+  if (!booking.time) return null;
+  const fullTime = String(booking.time).replace(/(?<![\d:])(\b\d{1,2})\s*(AM|PM)\b/gi, '$1:00 $2');
+  return appointmentTimestampMs(booking.date, fullTime, appointmentTimeZone(booking));
 }
 
 /**
@@ -24,7 +45,7 @@ export function chicagoTodayIso(now = new Date()) {
  * @param {string} timeStr — booking.time: e.g. '9:00 AM - 11:00 AM' or '9:00 AM'
  * @returns {number|null}  — UTC ms timestamp, or null if input is unparseable
  */
-export function appointmentTimestampMs(dateStr, timeStr) {
+export function appointmentTimestampMs(dateStr, timeStr, timeZone = 'America/Chicago') {
   if (!parseIsoCalendarDate(dateStr)) return null;
 
   // ── Parse appointment hour/minute ──────────────────────────────────────────
@@ -50,7 +71,7 @@ export function appointmentTimestampMs(dateStr, timeStr) {
   // timezone offset (avoids date-boundary issues at extreme offsets).
   const probe = new Date(dateStr + 'T12:00:00Z');
   const fmt = new Intl.DateTimeFormat('en', {
-    timeZone: 'America/Chicago',
+    timeZone,
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
     hour12: false,

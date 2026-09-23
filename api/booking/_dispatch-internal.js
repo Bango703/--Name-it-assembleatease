@@ -328,6 +328,8 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     dispatch_status:     'offered',
     dispatch_offered_to: top.map(e => e.id), // keep for backwards compat
     needs_manual_dispatch: false,             // clear manual flag on retry
+    arrival_nudge_count: 0,
+    arrival_nudge_sent_at: null,
   })
     .eq('id', bookingId)
     .is('assembler_id', null)
@@ -422,7 +424,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
         replyTo:  'service@assembleatease.com',
         // A dispatch offer is time-boxed and job-specific — never collapse one
         // into an earlier offer. Retries after expiry are legitimate re-offers.
-        meta:     { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer', recipientUserId: easer.id, disableDedupe: true },
+        meta:     { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer', recipientUserId: easer.id, notificationKey: `dispatch-offer:${bookingId}:${easer.id}:${expiresAt}`, expiresAt },
       });
     } catch (err) {
       console.error('Dispatch email error:', easer.email, err.message);
@@ -445,6 +447,8 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
         notificationType: 'dispatch_offer',
         recipientType: 'easer',
         recipientUserId: easer.id,
+        notificationKey: `dispatch-offer:${bookingId}:${easer.id}:${expiresAt}`,
+        expiresAt,
       },
     });
 

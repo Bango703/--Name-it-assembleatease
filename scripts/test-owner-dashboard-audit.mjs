@@ -99,7 +99,8 @@ const payoutMutation = ownerUi.slice(
 assert.match(payoutMutation, /await loadBookings\(true\);\s*await loadPayoutLedger\(\);\s*if \(selectedId\) selectBooking\(selectedId\);\s*loadLiveOps\(\);/);
 assert.doesNotMatch(ownerUi, /id="test-push-btn"/);
 assert.doesNotMatch(ownerUi, /deleteReview\(/);
-assert.match(ownerUi, /s\.onlineReadyEasers \|\| 0/);
+assert.match(ownerUi, /s\.readyEasers \|\| 0/);
+assert.match(ownerUi, /mdSupplyCount\('Availability on', supply\.online/);
 assert.doesNotMatch(ownerUi, /id="fin-assumption-reserve">2%/);
 assert.match(ownerUi, /Add to Buffer Queue/);
 assert.match(ownerUi, /Confirm Buffer queue/);

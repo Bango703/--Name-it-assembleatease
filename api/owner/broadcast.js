@@ -2,6 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { normalizeEmail, unsubscribeUrl, broadcastFooter } from '../_broadcast.js';
 import { governedSend, describeGovernedRun, remainingDailyBudget } from '../_send-governor.js';
+import { createHash } from 'node:crypto';
 
 // Give the send loop headroom (Pro plans honor this).
 export const config = { maxDuration: 60 };
@@ -31,7 +32,7 @@ function buildBroadcastHtml(bodyHtml, email) {
 
 // Returns the shape the governor understands: `status` lets a 429 be retried
 // instead of being recorded as a permanent failure and silently dropped.
-async function sendOne(email, subject, bodyHtml) {
+async function sendOne(email, subject, bodyHtml, { notificationKey, test = false, audience } = {}) {
   try {
     const result = await sendEmail({
       to: email,
@@ -40,14 +41,18 @@ async function sendOne(email, subject, bodyHtml) {
       html: buildBroadcastHtml(bodyHtml, email),
       replyTo: ownerEmail(),
       meta: {
-        notificationType: 'broadcast',
+        notificationType: test ? 'broadcast_test' : 'broadcast',
         recipientType: 'customer',
-        disableDedupe: true,
+        notificationKey,
+        routine: !test,
+        broadcastAudience: audience,
         listUnsubscribe: unsubscribeUrl(email),
       },
     });
     return {
-      ok: !!(result?.ok && !result?.suppressed),
+      ok: !!result?.ok,
+      suppressed: !!result?.suppressed,
+      deferred: !!(result?.deferred || (result?.retryScheduled && result?.logged)),
       status: result?.status || null,
       error: result?.error || null,
     };
@@ -73,16 +78,28 @@ export default async function handler(req, res) {
   }
 
   const sb = getSupabase();
+  const notificationKey = 'broadcast:' + createHash('sha256').update(JSON.stringify([
+    new Date().toISOString().slice(0, 10), audience, subject, bodyHtml, Boolean(testEmail),
+  ])).digest('hex');
 
   // ── Test send: one email to the owner's chosen address, nothing logged as a broadcast ──
   if (testEmail) {
     if (!EMAIL_RE.test(testEmail)) return res.status(400).json({ error: 'Enter a valid test email.' });
-    const ok = await sendOne(testEmail, `[TEST] ${subject}`, bodyHtml);
+    const result = await sendOne(testEmail, `[TEST] ${subject}`, bodyHtml, { notificationKey, test: true, audience });
+    const sent = result.ok && !result.suppressed ? 1 : 0;
+    const failed = !result.ok && !result.deferred ? 1 : 0;
     await sb.from('email_broadcasts').insert({
       audience: AUDIENCES.has(audience) ? audience : 'past_customers',
-      subject, recipient_count: 1, sent_count: ok ? 1 : 0, failed_count: ok ? 0 : 1, is_test: true,
+      subject, recipient_count: 1, sent_count: sent, failed_count: failed,
+      deferred_count: result.deferred ? 1 : 0, already_sent_count: result.suppressed ? 1 : 0, is_test: true,
     }).then(() => {}, () => {});
-    return res.status(ok ? 200 : 502).json({ ok, test: true, sentTo: testEmail });
+    return res.status(result.deferred ? 202 : result.ok ? 200 : 502).json({
+      ok: result.ok || result.deferred, test: true, sent, failed,
+      deferred: result.deferred ? 1 : 0, alreadySent: result.suppressed ? 1 : 0,
+      ...(sent || result.suppressed ? { sentTo: testEmail } : {}),
+      message: result.deferred ? 'Test email queued; it has not been sent yet.'
+        : result.suppressed ? 'This test email was already sent.' : result.ok ? 'Test email sent.' : 'Test email could not be sent.',
+    });
   }
 
   // ── Resolve the audience ──
@@ -143,7 +160,7 @@ export default async function handler(req, res) {
   // ── Paced, capped, retried send ──
   const run = await governedSend(
     recipients,
-    (email) => sendOne(email, subject, bodyHtml),
+    (email) => sendOne(email, subject, bodyHtml, { notificationKey, audience }),
     { sb, maxPerRun: MAX_RECIPIENTS, label: `broadcast:${audience}` },
   );
   const sent = run.sent;
@@ -153,6 +170,7 @@ export default async function handler(req, res) {
     audience, subject,
     recipient_count: recipients.length,
     sent_count: sent, failed_count: failed, suppressed_count: suppressedCount,
+    deferred_count: run.deferred, already_sent_count: run.alreadySent,
     is_test: false, created_by: 'owner',
   }).then(() => {}, () => {});
 
@@ -160,6 +178,7 @@ export default async function handler(req, res) {
     ok: true, audience,
     recipientCount: recipients.length,
     sent, failed, suppressed: suppressedCount,
+    deferred: run.deferred, alreadySent: run.alreadySent,
     notSent: run.skipped,
     stoppedBy: run.stoppedBy,
     summary: describeGovernedRun(run),

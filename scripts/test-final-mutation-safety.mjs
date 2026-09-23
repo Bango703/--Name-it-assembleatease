@@ -73,11 +73,14 @@ for (const stateColumn of ['guest_mutation_token_hash', 'assembler_accepted_at',
   assert.match(reschedule, new RegExp(`\\['${stateColumn}', booking\\.${stateColumn}\\]`), `reschedule must CAS ${stateColumn}`);
 }
 
-assert.match(reminders, /\.eq\('status', booking\.status\)/);
-assert.match(reminders, /\.eq\('date', booking\.date\)/);
-assert.match(reminders, /\.eq\('reminder_sent', false\)/);
-assert.match(reminders, /booking\.time == null[\s\S]*\.is\('time', null\)[\s\S]*\.eq\('time', booking\.time\)/);
-assert.match(reminders, /if \(!flaggedRows\?\.length\)/);
+assert.match(reminders, /value == null \? query\.is\(key, null\) : query\.eq\(key, value\)/);
+const reminderFlagCas = section(reminders, "if (recipientType === 'customer'", '\n        }');
+for (const field of ['status', 'date', 'time', 'rescheduled_at', 'reminder_sent', 'return_visit_required', 'return_visit_date', 'return_visit_time']) {
+  assert.ok(reminderFlagCas.includes(`'${field}'`), `reminder display update must pin ${field}`);
+}
+assert.match(reminderFlagCas, /update = exact\(update, key, booking\[key\]\)/);
+assert.match(reminderFlagCas, /if \(!flaggedRows\?\.length\)/);
+assert.doesNotMatch(reminders, /\.eq\('reminder_sent', false\)/, 'the compatibility flag cannot hide another channel or appointment version');
 
 const promotionMutation = section(tierCheck, 'if (di > ci)', '} else if (di < ci)');
 assert.match(promotionMutation, /\.update\(\{ tier: deserved,/);

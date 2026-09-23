@@ -3,17 +3,19 @@ import { sendEmail, ownerEmail } from '../_email.js';
 import { issueReviewToken } from '../_review-token.js';
 import { buildReviewEmail, completionPhotoUrl, bookingsWithOpenCase } from '../_review-email.js';
 import { minSendIntervalMs, remainingDailyBudget } from '../_send-governor.js';
+import { broadcastFooter, unsubscribeUrl } from '../_broadcast.js';
+import { canSendPostjobMessage, loadPostjobSuppressions } from '../_postjob-notifications.js';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Up-to-3 spaced review requests. The customer gets a first ask, then at most two
+// Up-to-2 spaced review requests. The customer gets a first ask, then one final
 // gentle follow-ups — but ONLY while no review has been logged AND no dispute/case
 // is open. As soon as a row exists in `reviews` for the booking, the sequence
 // stops. Requests are spaced, never back-to-back. The owner can always override
 // and send manually (api/review-request.js), even during a dispute.
 const FIRST_DELAY_DAYS = 2;      // request #1: 2 days after completion
-const FOLLOWUP_GAPS    = [3, 4]; // #2: 3 days after #1  ·  #3: 4 days after #2  (→ ~day 2 / 5 / 9)
-const MAX_REQUESTS     = 3;
+const FOLLOWUP_GAPS    = [5];    // #2: at least 5 days after #1 (normally day 7)
+const MAX_REQUESTS     = 2;
 const MAX_AGE_DAYS     = 30;     // stop chasing a booking older than this
 
 export default async function handler(req, res) {
@@ -42,12 +44,12 @@ export default async function handler(req, res) {
   }
 
   // Candidates: completed within the age window, not yet at the request cap.
-  const COLS_BASE = 'id, ref, service, customer_email, completed_at, review_requested_at, assembler_id, assembler_name, job_started_at, evidence_requested_at, source, payment_status, status, return_visit_required';
+  const COLS_BASE = 'id, ref, service, customer_email, completed_at, review_requested_at, assembler_id, assembler_name, job_started_at, evidence_requested_at, source, payment_status, status, return_visit_required, is_test_booking';
   const cutoff = new Date(now - MAX_AGE_DAYS * 86400000).toISOString();
 
   // Deploy-order-safe: review_request_count (migration 064) may not be applied yet.
   // Try with it; if the column is missing, fall back to single-send behavior so the
-  // cron never errors — the 3-send cadence activates automatically once 064 is run.
+  // cron never errors — the 2-send cadence activates automatically once 064 is run.
   let hasCount = true;
   let { data: bookings, error } = await sb
     .from('bookings')
@@ -93,16 +95,21 @@ export default async function handler(req, res) {
   if (openCase === null) {
     return res.status(200).json({ sent: 0, skipped: 'open_case_lookup_failed' });
   }
+  let suppressed;
+  try {
+    suppressed = await loadPostjobSuppressions(sb);
+  } catch (error) {
+    console.error('Review preferences lookup failed:', error.message);
+    return res.status(503).json({ error: 'Email preferences could not be verified; no requests were sent.' });
+  }
 
   let sent = 0;
-  const breakdown = { 1: 0, 2: 0, 3: 0 };
+  const breakdown = { 1: 0, 2: 0 };
 
   for (const b of bookings) {
     try {
       if (reviewed.has(b.id)) continue;               // customer already reviewed → stop
-      if (openCase.has(b.id)) continue;               // open dispute/case → owner handles it
-      if (b.return_visit_required === true) continue; // work isn't truly finished — don't ask yet
-      if (!b.customer_email) continue;
+      if (!canSendPostjobMessage(b, { openCases: openCase, suppressed })) continue;
 
       // How many have we already sent? Without the counter column (064 not applied),
       // degrade to single-send: send once, then stop.
@@ -116,12 +123,12 @@ export default async function handler(req, res) {
       if (count === 0) {
         due = new Date(b.completed_at).getTime() <= now - FIRST_DELAY_DAYS * 86400000;
       } else {
-        const gapDays = FOLLOWUP_GAPS[count - 1];   // count 1 → 3 days, count 2 → 4 days
+        const gapDays = FOLLOWUP_GAPS[count - 1];
         due = lastSent != null && lastSent <= now - gapDays * 86400000;
       }
       if (!due) continue;
 
-      const step = count + 1;                        // 1, 2, or 3
+      const step = count + 1;                        // 1 or 2
       const reviewToken = issueReviewToken({ bookingId: b.id, ref: b.ref, email: b.customer_email });
       const url = `https://www.assembleatease.com/review?ref=${encodeURIComponent(b.ref)}&email=${encodeURIComponent(b.customer_email)}&token=${encodeURIComponent(reviewToken)}`;
       const photoUrl = await completionPhotoUrl(sb, b);
@@ -136,15 +143,19 @@ export default async function handler(req, res) {
         to: b.customer_email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject,
-        html,
+        html: html.replace('</body>', `${broadcastFooter(b.customer_email)}</body>`),
         replyTo: ownerEmail(),
         meta: {
           bookingId: b.id,
           notificationType: `review_request_${step}`,
           recipientType: 'customer',
-          disableDedupe: true,   // each of the 3 is a distinct, intentional send
+          notificationKey: `review:${b.id}:${step}`,
+          routine: true,
+          priority: 'bulk',
+          listUnsubscribe: unsubscribeUrl(b.customer_email),
         },
       });
+      if (emailResult?.deferred) continue;
       if (!emailResult?.ok) throw new Error(emailResult?.error || 'Review email delivery failed');
 
       const upd = hasCount

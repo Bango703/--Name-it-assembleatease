@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'crypto';
 import { getSupabase } from './_supabase.js';
+import { prepareNotification, settleNotification } from './_notification-policy.js';
 import { createHmac, randomBytes } from 'crypto';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -9,16 +10,6 @@ const DEDUPE_WINDOWS_MIN = {
   standard: 30,
   bulk: 24 * 60,
 };
-const BULK_DAILY_CAP = 2;
-const EMAIL_DEDUPE_STATUSES = [
-  'queued',
-  'provider_accepted',
-  'sent',
-  'delivered',
-  'delivery_delayed',
-  'suppressed',
-];
-
 const CRITICAL_NOTIFICATION_TYPES = new Set([
   'booking_confirmed',
   'assignment_confirmation',
@@ -34,6 +25,7 @@ const CRITICAL_NOTIFICATION_TYPES = new Set([
 
 const BULK_NOTIFICATION_TYPES = new Set([
   'review_request',
+  'followup',
   'reminder',
   'daily_summary',
   'weekly_summary',
@@ -89,280 +81,67 @@ function normalizeEmail(addr) {
   return String(addr || '').trim().toLowerCase();
 }
 
-async function insertNotificationLog(sb, payload) {
-  try {
-    let { data, error } = await sb.from('notification_log').insert(payload).select('id').maybeSingle();
-    // Migration 053 adds operation_case_id. Preserve logging for every older
-    // notification during a safe code-before-schema deployment window.
-    if (error && Object.prototype.hasOwnProperty.call(payload, 'operation_case_id')
-        && (error.code === '42703' || error.code === 'PGRST204' || /operation_case_id/i.test(error.message || ''))) {
-      const legacyPayload = { ...payload };
-      delete legacyPayload.operation_case_id;
-      ({ data, error } = await sb.from('notification_log').insert(legacyPayload).select('id').maybeSingle());
-    }
-    if (error) throw error;
-    return { ok: true, id: data?.id || null, error: null };
-  } catch (err) {
-    console.error('notification_log insert failed:', err?.message || err);
-    return { ok: false, id: null, error: err?.message || String(err) };
-  }
-}
-
-// Delivery-truth columns arrive with migration 068. They are enrichment: the
-// send status is the fact that matters, and a missing timestamp column must
-// never cost us the status.
-const OPTIONAL_DELIVERY_COLUMNS = ['provider_accepted_at'];
-
-function isMissingColumnError(error, columns) {
-  if (!error) return false;
-  if (error.code === '42703' || error.code === 'PGRST204') return true;
-  const message = String(error.message || '');
-  return columns.some(col => message.includes(col));
-}
-
-async function finalizeNotificationLog(sb, queuedLog, payload) {
-  if (queuedLog?.id) {
-    try {
-      let { error } = await sb.from('notification_log').update(payload).eq('id', queuedLog.id);
-
-      // THIS FALLBACK EXISTS BECAUSE ITS ABSENCE BROKE PRODUCTION.
-      // insertNotificationLog already tolerates migration 053's column being
-      // absent; finalize did not tolerate 068's. From 2026-08-27 11:51 CDT every
-      // email delivered normally and every one of them was recorded as 'queued',
-      // because PostgREST rejected the whole UPDATE over provider_accepted_at.
-      // The owner dashboard reported ~12 hours of successful mail as unsent —
-      // including an Easer assignment the owner then believed had failed.
-      //
-      // The status is the fact. Retry without the enrichment rather than lose it.
-      if (isMissingColumnError(error, OPTIONAL_DELIVERY_COLUMNS)
-          && OPTIONAL_DELIVERY_COLUMNS.some(col => col in payload)) {
-        const corePayload = { ...payload };
-        for (const col of OPTIONAL_DELIVERY_COLUMNS) delete corePayload[col];
-        ({ error } = await sb.from('notification_log').update(corePayload).eq('id', queuedLog.id));
-        if (!error) {
-          return { ok: true, id: queuedLog.id, error: null, degraded: 'delivery_columns_absent' };
-        }
-      }
-
-      if (error) throw error;
-      return { ok: true, id: queuedLog.id, error: null };
-    } catch (error) {
-      console.error('notification_log finalize failed:', error?.message || error);
-      return { ok: false, id: queuedLog.id, error: error?.message || String(error) };
-    }
-  }
-  return insertNotificationLog(sb, payload);
-}
-
 async function reconcileEarlyProviderEvent(sb, providerId) {
   if (!providerId) return;
-  const { error } = await sb.rpc('reconcile_resend_delivery_events_v1', { p_provider_id: providerId });
-  if (error && !['42883', 'PGRST202'].includes(error.code)) {
-    console.error('email provider event reconciliation failed:', error.message || error);
-  }
+  try {
+    const { error } = await sb.rpc('reconcile_resend_delivery_events_v1', { p_provider_id: providerId });
+    if (error && !['42883', 'PGRST202'].includes(error.code)) console.error('email provider reconciliation failed:', error.message);
+  } catch (error) { console.error('email provider reconciliation unavailable:', error?.message); }
 }
 
-async function getSuppressionReason(sb, { recipientEmail, subject, notificationType, priority, meta }) {
-  if (meta?.disableDedupe) return null;
-
-  const dedupeWindowMin = Number.isFinite(Number(meta?.dedupeWindowMin))
-    ? Number(meta.dedupeWindowMin)
-    : DEDUPE_WINDOWS_MIN[priority];
-  const dedupeSince = new Date(Date.now() - dedupeWindowMin * 60000).toISOString();
-
-  const { data: recent } = await sb
-    .from('notification_log')
-    .select('id')
-    .eq('channel', 'email')
-    .eq('recipient_email', recipientEmail)
-    .eq('notification_type', notificationType)
-    .eq('subject', subject)
-    .in('status', EMAIL_DEDUPE_STATUSES)
-    .gte('sent_at', dedupeSince)
-    .limit(1);
-
-  if (recent?.length) {
-    return `duplicate_within_${dedupeWindowMin}m`;
-  }
-
-  if (priority === 'bulk' && !meta?.disableDailyCap) {
-    const dayStart = new Date();
-    dayStart.setHours(0, 0, 0, 0);
-    const dayCap = Number.isFinite(Number(meta?.dailyCap)) ? Number(meta.dailyCap) : BULK_DAILY_CAP;
-
-    const { count } = await sb
-      .from('notification_log')
-      .select('id', { count: 'exact', head: true })
-      .eq('channel', 'email')
-      .eq('recipient_email', recipientEmail)
-      .eq('notification_type', notificationType)
-      .in('status', ['provider_accepted', 'sent', 'delivered', 'delivery_delayed'])
-      .gte('sent_at', dayStart.toISOString());
-
-    if ((count || 0) >= dayCap) {
-      return `daily_cap_reached_${dayCap}`;
-    }
-  }
-
-  return null;
-}
-
-/**
- * Send a transactional email via Resend and log the attempt to notification_log.
- *
- * meta (optional) — context for the log row:
- *   bookingId       UUID   — links the log entry to a booking
- *   notificationType TEXT  — e.g. 'dispatch_offer', 'job_accepted', 'completion'
- *   recipientType   TEXT   — 'customer' | 'easer' | 'owner'
- *   recipientUserId UUID   — Supabase user ID if known
- */
+/** One shared, durable delivery path. An accepted send is not proof of inbox
+ * delivery. A deferred/failed send is never reported as a successful duplicate. */
 export async function sendEmail({ to, from, subject, html, replyTo, meta = {} }) {
   const KEY = process.env.RESEND_API_KEY;
-  if (!KEY) throw new Error('Missing RESEND_API_KEY');
-
-  const recipient = Array.isArray(to) ? to[0] : to;
-  const recipientEmail = normalizeEmail(recipient);
+  if (!KEY) return { ok: false, error: 'Email provider is not configured.' };
+  const recipientEmail = normalizeEmail(Array.isArray(to) ? to[0] : to);
+  if (!recipientEmail) return { ok: false, error: 'Missing recipient email' };
+  if (Array.isArray(to) && to.length > 1) return { ok: false, error: 'Send one recipient per notification so delivery and preferences remain attributable.' };
   const notificationType = inferNotificationType(subject, meta.notificationType);
   const priority = meta.priority || inferPriority(notificationType);
-  const explicitRecipientType = String(meta.recipientType || '').trim().toLowerCase();
-  const recipientType = ['customer', 'easer', 'owner'].includes(explicitRecipientType)
-    ? explicitRecipientType
-    : (recipientEmail === normalizeEmail(ownerEmail()) ? 'owner' : 'unknown');
-
-  if (recipientType === 'unknown') {
-    console.warn(`[email] Missing recipientType for ${notificationType} to ${recipientEmail}`);
-  }
-
-  if (!recipientEmail) return { ok: false, error: 'Missing recipient email' };
-
-  const sb = getSupabase();
-  const suppressionReason = await getSuppressionReason(sb, {
-    recipientEmail,
-    subject,
-    notificationType,
-    priority,
-    meta,
-  });
-
-  if (suppressionReason) {
-    const logResult = await insertNotificationLog(sb, {
-      channel: 'email',
-      booking_id: meta.bookingId || null,
-      operation_case_id: meta.operationCaseId || null,
-      notification_type: notificationType,
-      recipient_type: recipientType,
-      recipient_email: recipientEmail,
-      recipient_user_id: meta.recipientUserId || null,
-      subject,
-      status: 'suppressed',
-      provider_id: null,
-      error_text: suppressionReason,
-    });
-    return { ok: true, suppressed: true, reason: suppressionReason, logged: logResult.ok, logError: logResult.error };
-  }
-
-  // Every email leaves here inside the same frame, with an inbox preview line
-  // and a text/plain alternative. Callers that already built a full document
-  // keep their markup; a bare fragment gets the header and footer instead of
-  // arriving as unbranded raw text.
-  const body = {
-    from,
-    to: Array.isArray(to) ? to : [to],
-    subject,
-    html: ensureEmailShell(html, recipientType, meta.preheader),
-    text: htmlToText(html),
-  };
+  const explicitType = String(meta.recipientType || '').toLowerCase();
+  const recipientType = ['customer', 'easer', 'owner'].includes(explicitType) ? explicitType
+    : recipientEmail === normalizeEmail(ownerEmail()) ? 'owner' : 'unknown';
+  const context = { ...meta, notificationType, recipientType,
+    dedupeWindowMin: meta.dedupeWindowMin ?? DEDUPE_WINDOWS_MIN[priority] };
+  const body = { from, to: [recipientEmail], subject,
+    html: ensureEmailShell(html, recipientType, meta.preheader), text: htmlToText(html) };
   if (replyTo) body.reply_to = replyTo;
-  // One-click unsubscribe is used only when a caller supplies a tokenized HTTPS
-  // endpoint that can honor the POST. Non-essential bulk mail may expose the
-  // existing preferences links without falsely claiming one-click support.
-  const oneClickUnsubscribe = typeof meta.listUnsubscribe === 'string'
-    && /^https:\/\//.test(meta.listUnsubscribe);
-  if (oneClickUnsubscribe) {
-    body.headers = {
-      'List-Unsubscribe': `<${meta.listUnsubscribe}>, <mailto:service@assembleatease.com?subject=unsubscribe>`,
-      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-    };
+  if (typeof meta.listUnsubscribe === 'string' && /^https:\/\//.test(meta.listUnsubscribe)) {
+    body.headers = { 'List-Unsubscribe': `<${meta.listUnsubscribe}>, <mailto:service@assembleatease.com?subject=unsubscribe>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
   } else if (priority === 'bulk') {
-    body.headers = {
-      'List-Unsubscribe': '<mailto:service@assembleatease.com?subject=unsubscribe>, <https://www.assembleatease.com/contact?subject=Email%20Preferences>',
-    };
+    body.headers = { 'List-Unsubscribe': '<mailto:service@assembleatease.com?subject=unsubscribe>, <https://www.assembleatease.com/contact?subject=Email%20Preferences>' };
   }
-
-  let providerId = null;
-  let status = 'provider_accepted';
-  let errorText = null;
-  const queuedLog = await insertNotificationLog(sb, {
-    channel: 'email',
-    booking_id: meta.bookingId || null,
-    operation_case_id: meta.operationCaseId || null,
-    notification_type: notificationType,
-    recipient_type: recipientType,
-    recipient_email: recipientEmail,
-    recipient_user_id: meta.recipientUserId || null,
-    subject,
-    status: 'queued',
-    provider_id: null,
-    error_text: null,
-  });
-
+  const sb = getSupabase();
+  const prepared = await prepareNotification(sb, { channel: 'email', recipient: recipientEmail, subject, meta: context,
+    payload: { kind: 'email', body, original: { to: recipientEmail, from, subject, html, replyTo } } });
+  if (!prepared.claim) return prepared;
+  const claim = prepared.claim;
+  // Always reuse the frozen provider request with its key, even if the caller
+  // rebuilds a signed link or template while retrying an uncertain request.
+  let status = 'provider_accepted', providerId = null, errorText = null, retryable = false;
   try {
     const resp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      method: 'POST', signal: AbortSignal.timeout(20000),
+      headers: { Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json', 'Idempotency-Key': claim.key },
+      body: JSON.stringify(claim.payload.body),
     });
+    const response = await resp.json().catch(() => ({}));
     if (!resp.ok) {
-      errorText = await resp.text();
       status = 'failed';
-      console.error('Resend error:', errorText);
-    } else {
-      const data = await resp.json().catch(() => ({}));
-      providerId = data?.id || null;
-    }
-  } catch (fetchErr) {
-    errorText = fetchErr.message;
-    status = 'failed';
-    console.error('Resend fetch error:', fetchErr.message);
+      errorText = response.message || `Email provider rejected the send (HTTP ${resp.status}).`;
+      retryable = resp.status === 429 || resp.status >= 500 || (resp.status === 409 && response.name === 'concurrent_idempotent_requests');
+    } else if (!response.id) {
+      status = 'failed'; errorText = 'Email provider response had no message reference.'; retryable = true;
+    } else providerId = response.id;
+  } catch (error) {
+    status = 'failed'; errorText = error?.message || 'Email request timed out.'; retryable = true;
   }
-
-  // Non-blocking log — never let logging failure break the caller. "Accepted"
-  // is deliberately distinct from a later provider-confirmed delivery event.
-  const finalPayload = {
-    status,
-    provider_id: providerId,
-    error_text: errorText,
-    provider_accepted_at: status === 'provider_accepted' ? new Date().toISOString() : null,
-  };
-  const logResult = await finalizeNotificationLog(sb, queuedLog, queuedLog?.id
-    ? finalPayload
-    : {
-        channel: 'email',
-        booking_id: meta.bookingId || null,
-        operation_case_id: meta.operationCaseId || null,
-        notification_type: notificationType,
-        recipient_type: recipientType,
-        recipient_email: recipientEmail,
-        recipient_user_id: meta.recipientUserId || null,
-        subject,
-        ...finalPayload,
-      });
-
-  if (status === 'provider_accepted' && providerId) {
-    await reconcileEarlyProviderEvent(sb, providerId);
-  }
-
-  if (status === 'failed') return { ok: false, error: errorText, logged: logResult.ok, logError: logResult.error };
-  return {
-    ok: true,
-    providerAccepted: true,
-    deliveryStatus: 'provider_accepted',
-    providerId,
-    notificationType,
-    priority,
-    logged: logResult.ok,
-    logError: logResult.error,
-  };
+  const logged = await settleNotification(sb, claim, { status, providerId, error: errorText, retryable });
+  if (providerId) await reconcileEarlyProviderEvent(sb, providerId);
+  return status === 'provider_accepted'
+    ? { ok: true, providerAccepted: true, deliveryStatus: status, providerId, notificationType, priority, logged: logged.ok, logError: logged.error }
+    : { ok: false, error: errorText, retryScheduled: logged.ok && retryable && claim.attempt < 4, logged: logged.ok, logError: logged.error };
 }
 
 export function ownerEmail() {

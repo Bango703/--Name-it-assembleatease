@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { notificationOwnerAction } from '../_notification-display.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
@@ -84,11 +85,13 @@ export function classifyCronFailures(rows = []) {
 }
 
 function notificationFailureTitle(row = {}) {
+  const channel = row.channel === 'sms' ? 'SMS' : row.channel === 'push' ? 'Push notification' : 'Email';
   const labels = {
     bounced: 'Email bounced',
     complained: 'Recipient marked email as spam',
-    delivery_delayed: 'Email delivery delayed',
-    failed: 'Email failed',
+    delivery_delayed: `${channel} delivery delayed`,
+    failed: `${channel} failed`,
+    uncertain: 'Notification delivery needs review',
   };
   return labels[row.status] || `${row.channel || 'Notification'} needs attention`;
 }
@@ -232,7 +235,7 @@ export default async function handler(req, res) {
     // always existed; the delivery-event detail is additive and read elsewhere.
     sb.from('notification_log')
       .select('id, booking_id, channel, notification_type, recipient_type, recipient_email, recipient_user_id, subject, status, error_text, sent_at')
-      .in('status', ['failed', 'bounced', 'complained', 'delivery_delayed'])
+      .in('status', ['failed', 'bounced', 'complained', 'delivery_delayed', 'uncertain'])
       .gte('sent_at', twentyFourHoursAgo)
       .order('sent_at', { ascending: false })
       .limit(8),
@@ -303,7 +306,7 @@ export default async function handler(req, res) {
     recipientType: row.recipient_type || null,
     notificationType: row.notification_type || null,
     notificationStatus: row.status || null,
-    ownerAction: 'Review the booking timeline and contact the recipient using the booking record. Do not assume delivery.',
+    ownerAction: notificationOwnerAction(row.status),
   }));
   const { active: cronErrors, resolved: resolvedCronErrors } = classifyCronFailures(cronErrorsRes.data);
   const latestDamageActivityByBooking = new Map();

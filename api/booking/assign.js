@@ -184,6 +184,8 @@ export default async function handler(req, res) {
     Object.assign(baseUpdates, {
       assignment_token: assignmentToken,
       assembler_accepted_at: null,
+      arrival_nudge_count: 0,
+      arrival_nudge_sent_at: null,
       dispatch_token: null,
       dispatch_status: 'assigned_pending_acceptance',
       dispatch_paused: true,
@@ -431,6 +433,7 @@ export default async function handler(req, res) {
       notificationType: 'assignment_confirmation',
       recipientType: 'easer',
       recipientUserId: assemblerId,
+      dedupeWindowMin: 60,
     },
   }).catch(e => ({ ok: false, error: e?.message || String(e) }));
 
