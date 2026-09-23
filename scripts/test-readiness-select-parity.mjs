@@ -56,6 +56,19 @@ async function walk(dir, acc = []) {
   return acc;
 }
 
+// ── The shared projection must carry everything readiness reads ────────────
+// api/_easer-readiness-select.js is the canonical column list for callers that
+// cannot load a whole profile. It is the right answer to this class of bug —
+// one list, imported — and it only works while it stays in parity with the
+// module that consumes it.
+const { EASER_READINESS_FIELDS: READINESS_FIELDS } = await import('../api/_easer-readiness-select.js');
+{
+  const shared = new Set(READINESS_FIELDS);
+  const absent = [...readColumns].filter(col => !shared.has(col) && !OPTIONAL.has(col));
+  assert.deepEqual(absent, [],
+    `EASER_READINESS_FIELDS is missing ${absent.join(', ')} — every caller using it computes that requirement as UNMET.`);
+}
+
 const files = await walk('api/');
 const failures = [];
 
@@ -64,17 +77,40 @@ for (const rel of files) {
   const src = await read(rel);
   if (!src.includes('getEaserReadiness')) continue;
 
-  // Each profiles SELECT in this file. A caller may also hand readiness a row
-  // fetched elsewhere; those selects live in the file that fetched it.
-  const selects = [...src.matchAll(/from\(\s*['"]profiles['"]\s*\)\s*(?:\r?\n\s*)*\.select\(\s*(['"`])([\s\S]*?)\1/g)]
-    .map(m => m[2]);
+  // Every candidate column list in the file, however it is written.
+  //
+  // The first version of this test only matched a string literal sitting
+  // directly after .from('profiles'). api/owner/market-demand.js builds its
+  // projection as a named constant and passes the table as a variable, so it
+  // was invisible here — and it was missing sms_consent_at, which is exactly
+  // the bug this test exists to catch. Found by a reviewer, not by the test.
+  const selects = [
+    // .select('a, b, c') anywhere in the file
+    ...[...src.matchAll(/\.select\(\s*(['"`])([\s\S]*?)\1/g)].map(m => m[2]),
+    // const NAME = 'a, b, c'  /  const NAME = ['a','b'].join(', ')
+    ...[...src.matchAll(/const\s+\w*SELECT\w*\s*=\s*\[([\s\S]*?)\]\s*\.join/g)].map(m => m[1]),
+    ...[...src.matchAll(/const\s+\w*SELECT\w*\s*=\s*(['"`])([\s\S]*?)\1/g)].map(m => m[2]),
+  ].map(chunk => chunk
+    // A spread of the shared projection contributes every field it holds.
+    .replace(/\.\.\.EASER_READINESS_FIELDS/g, READINESS_FIELDS.join(', '))
+    .replace(/['"`\n]/g, ' '));
   if (!selects.length) continue;
 
-  // The widest select in the file is the one that feeds readiness; narrow ones
-  // (an id-only existence check, a candidate prefilter) are not readiness rows.
-  const widest = selects.reduce((a, b) => (b.length > a.length ? b : a), '');
+  // Only projections that are plainly of a PROFILE. Matching every .select( in
+  // the file flagged api/booking/_crew.js, which selects from booking_crew and
+  // is handed a readiness result as an argument — it never loads a profile at
+  // all. A profile projection names several readiness columns; a booking or
+  // crew projection names none.
+  const profileSelects = selects.filter((chunk) => {
+    const cols = new Set(chunk.split(',').map(s => s.trim()));
+    return [...readColumns].filter(col => cols.has(col)).length >= 3;
+  });
+  if (!profileSelects.length) continue;
+
+  // The widest is the one that feeds readiness; narrow ones (an id-only
+  // existence check, a candidate prefilter) are not readiness rows.
+  const widest = profileSelects.reduce((a, b) => (b.length > a.length ? b : a), '');
   if (widest.includes('*')) continue;
-  if (widest.split(',').length < 8) continue;
 
   const selected = new Set(widest.split(',').map(s => s.trim()));
   const missing = [...readColumns]
