@@ -4,7 +4,7 @@ import { notificationOwnerAction } from '../_notification-display.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
-import { chicagoTodayIso } from '../booking/_appt-date.js';
+import { chicagoTodayIso, appointmentTimestampMs } from '../booking/_appt-date.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
 import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
 import { computeLeakageSignals } from '../booking/_leakage-signal.js';
@@ -197,7 +197,7 @@ export default async function handler(req, res) {
   const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
 
   const bookingProjection = 'id, ref, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, damage_review_status, damage_claim_opened_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
-  const [bookingsRes, financialHoldsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes, damageReportsRes] = await Promise.all([
+  const [bookingsRes, financialHoldsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes, damageReportsRes, customerThreadRes] = await Promise.all([
     sb.from('bookings')
       .select(bookingProjection)
       .not('status', 'in', '("cancelled","declined")')
@@ -249,6 +249,14 @@ export default async function handler(req, res) {
       .eq('event_type', 'damage_claim_reported')
       .order('created_at', { ascending: false })
       .limit(100),
+    // Customer threads, to find a question the Easer asked and nobody answered.
+    // Only the two senders that matter: the Easer asking and the customer
+    // replying. Owner messages are not the thing being waited on.
+    sb.from('messages')
+      .select('booking_id, sender, recipient_type, created_at')
+      .in('sender', ['assembler', 'customer'])
+      .order('created_at', { ascending: true })
+      .limit(1000),
   ]);
 
   const essentialErrors = [
@@ -521,6 +529,56 @@ export default async function handler(req, res) {
         ? `${booking.ref} has a malformed financial reconciliation hold with no complete operation lock. Do not dispatch, charge, refund, complete, or pay out until it is repaired.`
         : `${booking.ref} has an unresolved ${String(booking.financial_operation_type).replace(/_/g, ' ')} operation. Do not dispatch, charge, refund, complete, or pay out until its exact Stripe/database state is reconciled.`,
       detail: booking.financial_reconciliation_reason || 'A financial operation did not reach a safely verified final state.',
+      action: 'review_timeline',
+    });
+  });
+
+  // ── A question the Easer asked that nobody answered ──────────────────────
+  // An Easer asked a customer for a photo of the item and got no reply; the job
+  // reached the day before anyone noticed. The relay now also texts the
+  // customer, but a text they ignore is still silence, and silence before a
+  // visit is the owner's problem to catch.
+  //
+  // Unanswered means: the last thing in the thread is the Easer talking to the
+  // customer. A customer reply is recorded with sender 'customer' (it routes to
+  // the owner, not the Easer), so any customer message after that relay closes
+  // it. The grace period keeps a question asked five minutes ago off the board.
+  const RELAY_GRACE_MS = 3 * 60 * 60 * 1000;
+  const threadRows = customerThreadRes?.error ? [] : (customerThreadRes.data || []);
+  const lastRelayByBooking = new Map();
+  const lastCustomerReplyByBooking = new Map();
+  for (const row of threadRows) {
+    const at = new Date(row.created_at).getTime();
+    if (!Number.isFinite(at)) continue;
+    if (row.sender === 'assembler' && row.recipient_type === 'customer') {
+      lastRelayByBooking.set(row.booking_id, at);
+    } else if (row.sender === 'customer') {
+      lastCustomerReplyByBooking.set(row.booking_id, at);
+    }
+  }
+
+  operationalBookings.forEach(booking => {
+    const relayAt = lastRelayByBooking.get(booking.id);
+    if (!relayAt) return;
+    const replyAt = lastCustomerReplyByBooking.get(booking.id) || 0;
+    if (replyAt > relayAt) return;
+    if (now.getTime() - relayAt < RELAY_GRACE_MS) return;
+
+    const apptMs = appointmentTimestampMs(
+      booking.return_visit_required ? booking.return_visit_date : booking.date,
+      booking.return_visit_required ? booking.return_visit_time : booking.time,
+    );
+    const hoursUntil = apptMs == null ? null : (apptMs - now.getTime()) / 3600000;
+    // Only worth the owner's attention while there is still time to act on it.
+    if (hoursUntil == null || hoursUntil < 0 || hoursUntil > 48) return;
+
+    const waitingHours = Math.round((now.getTime() - relayAt) / 3600000);
+    alerts.push({
+      type: 'customer_relay_unanswered',
+      severity: hoursUntil <= 24 ? 'high' : 'medium',
+      ref: booking.ref,
+      bookingId: booking.id,
+      message: `${booking.assembler_name || 'The assigned Easer'} asked ${booking.customer_name || 'the customer'} a question about ${booking.ref} ${waitingHours}h ago and has had no reply. The appointment is ${hoursUntil <= 1 ? 'within the hour' : `in ${Math.round(hoursUntil)}h`}.`,
       action: 'review_timeline',
     });
   });
