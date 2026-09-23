@@ -562,11 +562,25 @@ export function isTexasZip(zip) {
     || (numericPrefix >= TEXAS_ZIP_PREFIX_RANGE.min && numericPrefix <= TEXAS_ZIP_PREFIX_RANGE.max);
 }
 
-export const AUTOMATIC_DISPATCH_ZIP_PREFIXES = Object.freeze(['787']);
+// '787' is Austin. '782' is San Antonio proper and most of Bexar County, opened
+// on 2026-09-23 once two ready Easers lived in that market.
+//
+// NOT '780' or '781', deliberately. Those prefixes reach far past the San
+// Antonio commute shed: 78040-78046 is LAREDO, about 150 miles away. Adding
+// '780' would have made a Laredo booking auto-offer to a San Antonio Easer,
+// which is the exact harm the note below describes. The metro towns that do
+// belong are listed by ZIP instead, the same way Austin's suburbs are.
+export const AUTOMATIC_DISPATCH_ZIP_PREFIXES = Object.freeze(['782', '787']);
 export const AUTOMATIC_DISPATCH_ZIPS = Object.freeze([
+  // Austin suburbs
   '78610', '78613', '78626', '78628', '78630', '78633', '78634',
   '78640', '78641', '78645', '78646', '78653', '78660', '78664',
   '78665', '78680', '78681', '78682', '78683', '78691',
+  // San Antonio metro towns outside the 782 prefix
+  '78006', '78015',           // Boerne
+  '78108',                    // Cibolo
+  '78130', '78132',           // New Braunfels
+  '78148', '78154',           // Universal City, Schertz
 ]);
 // Instant booking is open statewide: any valid Texas ZIP may book. This is safe
 // only because auto-dispatch is deliberately NOT statewide — see
