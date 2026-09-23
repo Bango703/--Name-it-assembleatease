@@ -290,6 +290,26 @@ The rules that follow from it:
 - A confident wrong answer costs more than a slow one, because the owner acts on
   it.
 
+### AGENTS.md — the other instruction file, and what only it holds
+
+`AGENTS.md` is the brief for Codex and for the audit agent in
+`.github/agents/`. **This file governs; where the two disagree, this one wins.**
+
+It is not redundant, and it must not be collapsed into a pointer to this file,
+because three things live there and nowhere else:
+
+- **The External-Facing Copy Boundary** — what a customer or Easer may be shown,
+  and the internal labels that must never reach them.
+  `scripts/test-external-copy-boundary.mjs` reads it out of that file on every
+  `npm run test:launch`.
+- **Working rules** absent from this document: no emojis anywhere, Buffer as the
+  only social publishing hub, never push or deploy or touch live data without
+  explicit approval, audit before fixing.
+- **The auditor brief**: the review perspectives and per-area checklists.
+
+A new rule about how the platform is built belongs here. A new rule about
+external copy or about auditing belongs there.
+
 ### Critical modules (Article 10)
 
 Changes here require audit-before-code and explicit intent in the request:
