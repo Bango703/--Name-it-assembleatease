@@ -73,6 +73,11 @@ const MESSAGES = {
     `${easerFirstName} is on the way to your AssembleAtEase appointment. Arrival window: ${time}. Ref ${ref}`,
   arrived:
     `${easerFirstName} has arrived for your AssembleAtEase appointment. Ref ${ref}`,
+  // The doorbell for an Easer's relayed question. The message itself stays in
+  // the email: it can be long, it can be personal, and a tokenized tracking
+  // link would not fit a single segment on its own.
+  easer_customer_relay:
+    `AssembleAtEase: ${easerFirstName} sent a question about your job ${ref}. Check your email to reply.`,
 };
 
 // The GSM 03.38 basic set plus its extension characters.

@@ -3,6 +3,7 @@ import { rateLimit } from '../_ratelimit.js';
 import { formatAppointmentDate } from './_appt-date.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
+import { sendSms } from '../_sms.js';
 import { safeTokenHashMatch } from '../_payment-security.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
 import { logActivity } from './_activity.js';
@@ -530,15 +531,47 @@ export default async function handler(req, res) {
           disableDedupe: true,
         },
       });
+      // A text saying an email is waiting. An Easer asked a customer for a
+      // photo of the item, the relay went out by email only, and the customer
+      // never opened it — the job reached the day before anyone noticed.
+      // Customers get texts for exactly three things today (booking confirmed,
+      // on the way, arrived) and a question from their Easer was not one of
+      // them, though it is the one that needs an answer before the visit.
+      //
+      // The message body is NOT in the text. It can be long, it can be
+      // personal, and a tokenized tracking link alone would blow the
+      // single-segment budget. The text is a doorbell; the email is the room.
+      const relaySmsResult = await sendSms({
+        recipient: {
+          phone: booking.customer_phone,
+          sms_consent_at: booking.sms_consent_at,
+          sms_opted_out_at: booking.sms_opted_out_at,
+        },
+        body: `AssembleAtEase: ${relayFirstName} sent a question about your job ${booking.ref}. Check your email to reply.`,
+        meta: {
+          bookingId: booking.id,
+          notificationType: 'easer_customer_relay',
+          recipientType: 'customer',
+        },
+      }).catch(error => ({ ok: false, error: error?.message || String(error) }));
+
       // Owner visibility (Rule 8): every relayed message is on the timeline, so
-      // the pro-to-customer channel is never an unobserved back room.
+      // the pro-to-customer channel is never an unobserved back room. The text
+      // outcome rides along, because "we emailed and texted them" and "we
+      // emailed them and the text was refused" are different facts.
       await logActivity(sb, {
         bookingId: booking.id,
         eventType: 'easer_customer_relay_sent',
         actorType: 'easer',
         actorName: booking.assembler_name || 'Easer',
         description: `${relayFirstName} sent the customer a message through the platform relay`,
-        metadata: { messageId: message.id },
+        metadata: {
+          messageId: message.id,
+          emailDelivery: notificationResult?.ok === true ? 'accepted' : 'not_accepted',
+          smsDelivery: relaySmsResult?.ok === true
+            ? 'accepted'
+            : (relaySmsResult?.skipped || relaySmsResult?.reason || 'not_accepted'),
+        },
       }).catch(() => {});
     } else if (resolvedSender === 'assembler') {
       // Notify owner about assembler message
