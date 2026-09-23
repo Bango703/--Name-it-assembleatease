@@ -4,7 +4,35 @@ These instructions apply to the whole `Handyman-marketplace` repository.
 
 AssembleAtEase is preparing to launch real customers in Austin, Texas. Treat this platform like real money, real customers, real contractors, real payments, and real legal risk are involved.
 
-## Shipped features (2026-06) — know these before editing
+## How this file relates to CLAUDE.md — read this first
+
+**`CLAUDE.md` is the constitution and it governs.** Where the two disagree, CLAUDE.md
+wins. It carries the Board, the Panel, the 17 Articles, the critical-modules list and
+the enforcement commands, and it is the file that gets updated.
+
+This file is not a summary of that one. It holds three things that live **here and
+nowhere else**, which is why it must not be reduced to a pointer:
+
+- **The External-Facing Copy Boundary** below. `scripts/test-external-copy-boundary.mjs`
+  reads it from this file on every `npm run test:launch`, and the rule appears in no
+  other document.
+- **Core Rules** below — no emojis, Buffer as the only social hub, never push or deploy
+  or touch live data without explicit approval, audit before fixing. None of these are
+  in CLAUDE.md.
+- **The auditor brief** from "Role" onward, which `.github/agents/assembleatease-premium-audit.agent.md`
+  runs against.
+
+So: read CLAUDE.md for how to change the platform, and this file for the copy
+boundary, the working rules above, and the audit brief. If you add a rule that
+belongs to the platform rather than to auditing or external copy, put it in
+CLAUDE.md, not here.
+
+## Shipped features — a 2026-06 snapshot, not a source of truth
+
+Point-in-time notes from June 2026, kept for orientation. They are **not
+authoritative and may have drifted**: verify against the code before relying on any
+line here. Bundles live in `assets/js/booking-source-of-truth.js`, AssembleCash in
+`api/_assemblecash.js` and migrations 025/026/028, memberships in migration 027.
 
 - **Room-Ready Bundles** — curated multi-item setups in `assets/js/booking-source-of-truth.js` (`bundles[]`); `/book?bundle=<slug>` pre-fills the cart, priced by the existing engine (no package markup). Page `/bundles`.
 - **AssembleCash** — future-booking credit (NOT cash, no withdrawal). Earn 5% after a completed+captured job; redeem up to $20/booking via a one-time email code; 180-day expiry; reverses on refund. `api/_assemblecash.js` (atomic `reserveRedemption` → `assemblecash_try_redeem` RPC), `api/assemblecash/*`, migrations 025/026/028. Balance on `/track`; page `/assemblecash`.
