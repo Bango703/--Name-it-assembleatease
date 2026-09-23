@@ -869,17 +869,20 @@
         <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Online booking is active across Texas. Central Texas can use automatic dispatch; other Texas bookings require owner-managed Easer assignment. Markets outside Texas remain demand collection only.</p>
         <div class="stats-row" id="md-stats-row">
           <div class="stat teal"><div class="stat-value" id="md-active">—</div><div class="stat-label">Demand Signals</div></div>
-          <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Real Bookings</div></div>
+          <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Recorded Bookings</div></div>
           <div class="stat neutral"><div class="stat-value" id="md-requests">—</div><div class="stat-label">Unbooked Requests</div></div>
           <div class="stat teal"><div class="stat-value" id="md-conversion">—</div><div class="stat-label">Manual Assignment</div></div>
-          <div class="stat orange"><div class="stat-value" id="md-supply">—</div><div class="stat-label">Job-Ready Easers</div></div>
+          <div class="stat orange"><div class="stat-value" id="md-supply">—</div><div class="stat-label">Eligible Easers</div></div>
           <div class="stat neutral"><div class="stat-value" id="md-approved-supply">—</div><div class="stat-label">Approved Easers</div></div>
           <div class="stat neutral"><div class="stat-value" id="md-potential">—</div><div class="stat-label">Priced Demand</div></div>
         </div>
 
+        <p id="md-snapshot-status" role="status" style="font-size:0.78rem;color:var(--muted);margin:0 0 0.5rem">Market data has not been loaded.</p>
+        <p style="font-size:0.78rem;color:var(--muted);line-height:1.5;margin:0 0 1rem">Counts overlap: approved accounts include eligible Easers. Eligible means current readiness checks passed. Availability on means eligible with availability enabled; this does not confirm a free appointment slot or current app use. Each area uses the existing configured ZIP region, not a verified driving radius.</p>
+        <div id="md-reconciliation" style="display:flex;flex-wrap:wrap;gap:0.75rem;font-size:0.78rem;margin:0 0 1rem"></div>
         <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1.5rem" class="content-grid">
           <div class="detail-panel open">
-            <div class="detail-section-title">Top Demand Markets</div>
+            <div class="detail-section-title">All Market Areas</div>
             <!-- Scrolls inside its panel. This list renders EVERY market with demand and
                  had no height cap, so it grew the whole page as coverage widened while the
                  Demand Activity table beside it already scrolled at 60vh. Same convention
@@ -891,8 +894,9 @@
             <div class="detail-section-title">Activation Rules</div>
             <div style="display:grid;gap:0.65rem;margin-top:0.85rem;font-size:0.82rem;color:var(--soft);line-height:1.55">
               <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Booking Open</strong><br>Texas customers can book and save or authorize a card. This does not prove local Easer coverage.</div>
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Coverage Needed</strong><br>A real booking exists but no job-ready Easer is recorded in that market. Assign coverage before committing a pro.</div>
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Ready</strong><br>At least three job-ready Easers are recorded. Statewide jobs still remain owner-assigned unless the ZIP is approved for automatic dispatch.</div>
+              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Coverage Needed</strong><br>No eligible Easer is recorded in this verified service area. Verify travel coverage before committing a pro.</div>
+              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Ready</strong><br>At least three eligible Easers are recorded in this service area. Confirm their availability, service skills and travel coverage for the specific appointment.</div>
+              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Location Review / Coverage Unverified</strong><br>A missing, invalid or unrecognized location cannot prove area coverage. Review the recorded city and ZIP. Supply unavailable means the Easer source could not be read, not that there are no Easers.</div>
             </div>
           </div>
 
@@ -999,6 +1003,7 @@
           <button class="tab" data-tier="deactivated">Deactivated</button>
           <button class="tab" data-tier="rejected">Rejected</button>
         </div>
+        <p style="font-size:0.78rem;color:var(--muted);line-height:1.5">Active means the account is approved. Job readiness also requires the current onboarding steps and availability. Tier is the stored platform level; identity verification and payout capability are separate.</p>
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem" id="asm-table">
             <thead>
@@ -2839,7 +2844,7 @@ window.intelQuick = intelQuick;
           html += '<div style="max-height:180px;overflow:auto;border-top:1px solid rgba(0,191,255,0.2);padding-top:0.4rem;margin-top:0.3rem">';
           a.pendingEasers.forEach(function(p) {
             html += '<div style="display:flex;justify-content:space-between;gap:0.5rem;align-items:center;padding:0.25rem 0;font-size:0.76rem">'
-              + '<span>' + esc(p.name || p.email || 'Easer') + '<span style="color:var(--muted)"> · ' + (p.reminderCount || 0) + ' reminder(s)</span></span>'
+              + '<span>' + esc(p.name || p.email || 'Easer') + '<span style="color:var(--muted)"> · ' + (p.reminderCount || 0) + ' reminder(s)</span>' + (p.pendingChannels && p.pendingChannels.length ? '<br><span style="color:var(--muted)">Pending: ' + esc(p.pendingChannels.join(', ')) + '</span>' : '') + (p.uncertainChannels && p.uncertainChannels.length ? '<br><span style="color:var(--amber)">Delivery needs review: ' + esc(p.uncertainChannels.join(', ')) + '</span>' : '') + '</span>'
               + '<button type="button" class="btn" style="padding:0.2rem 0.55rem;font-size:0.7rem" onclick="resendPayoutReminder(\'' + esc(a.key) + '\',\'' + esc(p.id) + '\',this)">Resend</button>'
               + '</div>';
           });
@@ -2851,13 +2856,20 @@ window.intelQuick = intelQuick;
     } catch (e) { card.style.display = 'none'; }
   }
   async function resendPayoutReminder(key, easerId, btn) {
-    if (btn) { btn.disabled = true; btn.textContent = 'Queued'; }
+    if (btn && btn.disabled) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Queuing...'; }
     try {
-      await fetch('/api/owner/announcement-adoption', {
+      var response = await fetch('/api/owner/announcement-adoption', {
         method: 'POST', headers: headers(),
         body: JSON.stringify({ action: 'resend', key: key, easerId: easerId }),
       });
-    } catch (e) { if (btn) { btn.disabled = false; btn.textContent = 'Resend'; } }
+      var result = await response.json().catch(function(){ return {}; });
+      if (!response.ok) throw new Error(result.error || 'Reminder could not be queued.');
+      if (btn) btn.textContent = 'Queued';
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Resend'; }
+      toast(e.message || 'Reminder could not be queued.', 'error');
+    }
   }
 
   // ── Content Kit (one Blog -> ready-to-paste social posts) ──────────────
@@ -3299,10 +3311,11 @@ window.intelQuick = intelQuick;
       .then(function(d) { paintNavBadge('nav-waitlist', Number((d.stats || {}).pending || 0)); })
       .catch(function(){ navBadgeUnknown('nav-waitlist', 'Easer waitlist'); });
     // Nav badge: demand records that require owner assignment or follow-up.
-    fetch('/api/owner/market-demand', { headers: headers() })
+    var marketBadgeRequest = Number(_marketDemandRequest) || 0;
+    fetch('/api/owner/market-demand', { headers: headers(), cache: 'no-store' })
       .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
-      .then(function(d) { paintNavBadge('nav-market-demand', Number((d.summary || {}).ownerActionRequired || 0)); })
-      .catch(function(){ navBadgeUnknown('nav-market-demand', 'Market demand follow-ups'); });
+      .then(function(d) { if (marketBadgeRequest === (Number(_marketDemandRequest) || 0)) paintNavBadge('nav-market-demand', Number((d.summary || {}).ownerActionRequired || 0)); })
+      .catch(function(){ if (marketBadgeRequest === (Number(_marketDemandRequest) || 0)) navBadgeUnknown('nav-market-demand', 'Market demand follow-ups'); });
     // Cases is a separate owner module. Delay one tick so the deferred module
     // is ready even when an existing owner session opens immediately.
     setTimeout(function() {
@@ -3381,6 +3394,8 @@ window.intelQuick = intelQuick;
   function logout(expired) {
     ownerSessionToken = '';
     if (_bookingsTimer) { clearInterval(_bookingsTimer); _bookingsTimer = null; }
+    stopMarketDemand();
+    _marketDemandRequest += 1;
     if (expired) toast('Session expired — please log in again', 'error');
     setTimeout(function() {
       $layout.classList.add('hidden');
@@ -4184,7 +4199,7 @@ window.intelQuick = intelQuick;
       el.innerHTML = timelineWarning + '<div style="padding-left:18px;border-left:2px solid var(--border)">'
         + items.map(function(a) {
           var isNotif = a._source === 'notification';
-          var isFailed = isNotif && ['failed','bounced','complained','delivery_delayed'].includes(a._status);
+          var isFailed = isNotif && ['failed','bounced','complained','delivery_delayed','uncertain'].includes(a._status);
           var dotColor = isNotif
             ? (isFailed ? '#ef4444' : '#94a3b8')
             : (dotColors[a.event_type] || '#6b7280');
@@ -4196,6 +4211,7 @@ window.intelQuick = intelQuick;
           return '<div class="timeline-item">'
             + '<span style="' + dotStyle + '"></span>'
             + '<div style="' + descStyle + '">' + esc(a.description) + '</div>'
+            + (isNotif && a.metadata && a.metadata.ownerAction ? '<div style="font-size:0.74rem;color:var(--soft);margin-top:3px">' + esc(a.metadata.ownerAction) + '</div>' : '')
             + '<div class="timeline-meta">' + esc(a.actor_name || a.actor_type || '') + ' &middot; ' + time + '</div>'
             + '</div>';
         }).join('')
@@ -5638,6 +5654,7 @@ window.intelQuick = intelQuick;
 
   window.openDamageReview = openDamageReviewModal;
 
+  var bookingDetailsRequestIds = {};
   $detailAct.addEventListener('click', async function(e) {
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -5720,20 +5737,37 @@ window.intelQuick = intelQuick;
       }
       return;
     } else if (action === 'resend-booking-details') {
+      if (btn.disabled) return;
+      btn.disabled = true;
       try {
+        var contextResp = await fetch('/api/owner/resend-booking-details?bookingId=' + encodeURIComponent(id), { headers: headers() });
+        var sendContext = await contextResp.json().catch(function(){ return {}; });
+        if (!contextResp.ok) { toast(sendContext.error || 'Recent notices could not be checked. Refresh before sending again.', 'error'); return; }
+        var sendTime = function(value) { return value ? new Date(value).toLocaleString('en-US', { timeZone: 'America/Chicago', timeZoneName: 'short' }) : 'None recorded'; };
+        var recentNotices = (sendContext.recentNotifications || []).map(function(item) {
+          return String(item.type || 'Notice').replace(/_/g, ' ') + ' / ' + (item.channel || 'email') + ' / ' + (item.status || 'unknown') + ' / ' + sendTime(item.createdAt);
+        }).join('\n');
+        var lastNotice = 'Details last sent: ' + sendTime(sendContext.lastDetailsSentAt) + '\nDetails last delivered: ' + sendTime(sendContext.lastDetailsDeliveredAt);
+        if (!confirm(lastNotice + '\n\nRecent customer notices:\n' + (recentNotices || 'None recorded') + '\n\nSend one booking-details email now?')) return;
+        // Keep the same identity after a timeout; retrying the same deliberate
+        // action must not create a second email if the first reached Resend.
+        if (!bookingDetailsRequestIds[id]) bookingDetailsRequestIds[id] = crypto.randomUUID();
         var rbdResp = await fetch('/api/owner/resend-booking-details', {
           method: 'POST',
           headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
-          body: JSON.stringify({ bookingId: id })
+          body: JSON.stringify({ bookingId: id, requestId: bookingDetailsRequestIds[id] })
         });
         var rbdBody = await rbdResp.json().catch(function(){ return {}; });
         // Even when the send fails the link is worth having — the owner is
         // usually on the phone with the customer when they press this.
         if (rbdBody.trackUrl) showTrackLink(rbdBody.trackUrl, rbdResp.ok ? rbdBody.sentTo : null);
         if (!rbdResp.ok) { toast(rbdBody.error || 'The details could not be sent.', 'error'); return; }
-        toast('Booking details sent to ' + (rbdBody.sentTo || 'the customer') + '.', 'success');
+        delete bookingDetailsRequestIds[id];
+        toast(rbdBody.alreadySent ? 'Booking details were already sent. No duplicate email was sent.' : 'Booking details sent to ' + (rbdBody.sentTo || 'the customer') + '.', 'success');
       } catch (e) {
         toast('The details could not be sent.', 'error');
+      } finally {
+        btn.disabled = false;
       }
       return;
     } else if (action === 'mark-test' || action === 'unmark-test') {
@@ -7383,7 +7417,7 @@ window.intelQuick = intelQuick;
       elite:        ['et-elite',        'Elite'],
     };
     var v = map[tier] || ['et-starter', tier];
-    return '<span class="sb ' + v[0] + '">' + esc(v[1]) + '</span>';
+    return '<span class="sb ' + v[0] + '" title="Stored platform tier; separate from identity, job readiness, and payout status">' + esc(v[1]) + '</span>';
   }
 
   function verificationBadge(a) {
@@ -8096,6 +8130,7 @@ window.intelQuick = intelQuick;
       e.preventDefault();
       var view = link.dataset.view;
       if (view === currentView) return;
+      stopMarketDemand();
       currentView = view;
       document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.remove('active'); });
       link.classList.add('active');
@@ -8105,7 +8140,7 @@ window.intelQuick = intelQuick;
       else if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; stopLiveOps(); }
       else if (view === 'cases')        { $casesView.style.display='';       $topbarTitle.textContent='Cases'; stopLiveOps(); if (window.OwnerCases) window.OwnerCases.load(); }
       else if (view === 'voice-calls')  { $voiceCallsView.style.display='';  $topbarTitle.textContent='Phone Calls'; stopLiveOps(); if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.load(); }
-      else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); loadMarketDemand(); }
+      else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); startMarketDemand(); }
       else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; stopLiveOps(); loadWaitlist(); }
       else if (view === 'assemblers')  { $assemblersView.style.display='';  $topbarTitle.textContent='Easers'; loadAssemblerList(); }
       // marketplace removed
@@ -8359,9 +8394,9 @@ window.intelQuick = intelQuick;
           + '<span style="flex:0 0 96px;text-align:right;font-size:0.7rem;color:' + labelColor + ';font-weight:600;white-space:nowrap">' + label + '</span>'
           + '</div>';
       }).join('');
-      if (d.offlineCount > 0) {
-        easersEl.innerHTML += '<div style="font-size:0.78rem;color:var(--muted);padding:0.5rem 0;border-top:1px solid var(--border);margin-top:2px">' + d.offlineCount + ' Easer' + (d.offlineCount > 1 ? 's' : '') + ' offline</div>';
-      }
+    }
+    if (d.offlineCount > 0) {
+      easersEl.innerHTML += '<div style="font-size:0.78rem;color:var(--muted);padding:0.5rem 0;border-top:1px solid var(--border);margin-top:2px">' + d.offlineCount + ' Easer' + (d.offlineCount > 1 ? 's' : '') + ' unavailable or not yet eligible</div>';
     }
 
     // Today schedule
@@ -9904,22 +9939,77 @@ window.intelQuick = intelQuick;
   };
 
   // ─── Market Demand ───
+  var _marketDemandTimer = null;
+  var _marketDemandRequest = 0;
+  var _marketDemandHasSnapshot = false;
+  var _marketDemandGeneratedAt = null;
+
+  function marketSnapshotStatus(message, stale) {
+    var status = document.getElementById('md-snapshot-status');
+    var parsed = new Date(_marketDemandGeneratedAt || '');
+    var stamp = Number.isNaN(parsed.getTime()) ? '' : ' Snapshot: ' + parsed.toLocaleString('en-US', { timeZone: 'America/Chicago', timeZoneName: 'short' }) + '.';
+    status.textContent = message + stamp;
+    status.style.color = stale ? 'var(--red)' : 'var(--muted)';
+  }
+
+  function stopMarketDemand() {
+    if (_marketDemandTimer) clearInterval(_marketDemandTimer);
+    _marketDemandTimer = null;
+  }
+
+  function startMarketDemand() {
+    stopMarketDemand();
+    loadMarketDemand();
+    _marketDemandTimer = setInterval(function() {
+      if (currentView === 'market-demand' && ownerSessionToken && !document.hidden) loadMarketDemand();
+    }, 30000);
+  }
+
+  function refreshMarketAfterEaserChange() {
+    // Invalidate an in-flight pre-mutation read, including one from a hidden view.
+    _marketDemandRequest += 1;
+    if (_marketDemandHasSnapshot) marketSnapshotStatus('Easer data changed. Previous snapshot needs refreshing.', true);
+    if (currentView === 'market-demand' && ownerSessionToken) return loadMarketDemand();
+  }
+
+  window.addEventListener('focus', function() {
+    if (currentView === 'market-demand' && ownerSessionToken && !document.hidden) loadMarketDemand();
+  });
+  document.addEventListener('visibilitychange', function() {
+    if (currentView === 'market-demand' && ownerSessionToken && !document.hidden) loadMarketDemand();
+  });
+
   async function loadMarketDemand() {
-    mdSetLoading();
+    var request = ++_marketDemandRequest;
+    if (!_marketDemandHasSnapshot) mdSetLoading();
+    marketSnapshotStatus(_marketDemandHasSnapshot ? 'Refreshing. Showing the previous snapshot.' : 'Loading market data.', false);
     try {
-      var r = await fetch('/api/owner/market-demand', { headers: headers() });
+      var r = await fetch('/api/owner/market-demand', { headers: headers(), cache: 'no-store' });
       var d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Failed to load market demand');
+      if (request !== _marketDemandRequest) return;
+      if (!r.ok || d.error) throw new Error(d.error || 'Failed to load market demand');
       renderMarketDemand(d);
+      _marketDemandHasSnapshot = true;
+      _marketDemandGeneratedAt = d.generatedAt || null;
+      var partial = d.supplyAvailable === false || d.waitlistAvailable === false || Object.values(d.sourceStatus || {}).includes('unavailable');
+      marketSnapshotStatus(partial ? 'Partial snapshot. See source warnings; missing data is not zero.' : 'Market snapshot loaded. Refreshes every 30 seconds while visible.', partial);
       var badge = document.getElementById('nav-market-demand');
       var ct = ((d.summary || {}).ownerActionRequired) || 0;
       if (badge) {
-        if (ct > 0) { badge.textContent = ct; badge.style.display = ''; }
+        badge.title = '';
+        if ((d.sourceStatus || {}).requests === 'unavailable') { badge.textContent = '!'; badge.title = 'Request follow-up count could not be verified'; badge.style.display = ''; }
+        else if (ct > 0) { badge.textContent = ct; badge.style.display = ''; }
         else badge.style.display = 'none';
       }
     } catch(e) {
-      document.getElementById('md-top-markets').innerHTML = '<div style="color:var(--red);font-size:0.85rem">Failed to load demand from bookings and market requests.</div>';
-      document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1rem;color:var(--red)">Failed to load demand activity.</td></tr>';
+      if (request !== _marketDemandRequest) return;
+      marketSnapshotStatus(_marketDemandHasSnapshot ? 'Refresh failed. Showing the previous snapshot; current counts are unverified.' : 'Market data unavailable. Counts are unknown; retry Refresh.', true);
+      if (!_marketDemandHasSnapshot) {
+        document.getElementById('md-top-markets').innerHTML = '<div style="color:var(--red);font-size:0.85rem">Market data could not be loaded. This is not a count of zero.</div>';
+        document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1rem;color:var(--red)">Demand activity unavailable.</td></tr>';
+      }
+      var badge = document.getElementById('nav-market-demand');
+      if (badge) { badge.textContent = '!'; badge.title = 'Market data could not be refreshed'; badge.style.display = ''; }
     }
   }
 
@@ -9927,20 +10017,26 @@ window.intelQuick = intelQuick;
     ['md-active','md-emerging','md-requests','md-conversion','md-supply','md-approved-supply','md-potential'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.textContent = '—';
+      var prior = el && el.parentNode.querySelector('.md-summary-rows');
+      if (prior) prior.remove();
     });
     document.getElementById('md-top-markets').innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Loading demand markets...</div>';
+    document.getElementById('md-reconciliation').innerHTML = '';
     document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1rem;color:var(--muted)">Loading market requests...</td></tr>';
   }
 
   function renderMarketDemand(data) {
     var s = data.summary || {};
-    document.getElementById('md-active').textContent = s.demandSignals || 0;
+    var supplyAvailable = data.supplyAvailable !== false;
+    var requestsAvailable = (data.sourceStatus || {}).requests !== 'unavailable';
+    var expanded = new Set(Array.from(document.querySelectorAll('#market-demand-view details[open][data-md-key]')).map(function(item) { return item.dataset.mdKey; }));
+    document.getElementById('md-active').textContent = requestsAvailable ? s.demandSignals || 0 : 'Unknown';
     document.getElementById('md-emerging').textContent = s.bookedDemand || 0;
-    document.getElementById('md-requests').textContent = s.unbookedDemand || 0;
+    document.getElementById('md-requests').textContent = requestsAvailable ? s.unbookedDemand || 0 : 'Unknown';
     document.getElementById('md-conversion').textContent = s.manualDispatchDemand || 0;
-    document.getElementById('md-supply').textContent = s.onlineReadyEasers || 0;
-    document.getElementById('md-approved-supply').textContent = s.easerSupplyByMarket || 0;
-    document.getElementById('md-potential').textContent = s.totalPotentialRevenue == null
+    document.getElementById('md-supply').textContent = supplyAvailable ? s.readyEasers || 0 : 'Unknown';
+    document.getElementById('md-approved-supply').textContent = supplyAvailable ? s.easerSupplyByMarket || 0 : 'Unknown';
+    document.getElementById('md-potential').textContent = !requestsAvailable ? 'Unknown' : s.totalPotentialRevenue == null
       ? '—'
       : fmt$(s.totalPotentialRevenue);
     if (data.setupNeeded) {
@@ -9948,7 +10044,8 @@ window.intelQuick = intelQuick;
       document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1.25rem;color:var(--muted);text-align:center">Market demand tracking is not enabled yet.</td></tr>';
       return;
     }
-    renderMarketRows(data.topMarkets || []);
+    renderMarketRows(data.markets || [], data);
+    renderMarketSummaryLinks(data.summaryRows || {}, data);
     if (Array.isArray(data.topAcquisitionSources) && data.topAcquisitionSources.length) {
       document.getElementById('md-top-markets').insertAdjacentHTML(
         'afterbegin',
@@ -9958,39 +10055,123 @@ window.intelQuick = intelQuick;
       );
     }
     renderMarketRequests(data.requests || []);
+    document.querySelectorAll('#market-demand-view details[data-md-key]').forEach(function(item) { if (expanded.has(item.dataset.mdKey)) item.open = true; });
     if (Array.isArray(data.warnings) && data.warnings.length) {
       document.getElementById('md-top-markets').insertAdjacentHTML(
         'afterbegin',
         '<div style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:8px;padding:0.75rem 0.85rem;margin-bottom:0.75rem;font-size:0.8rem;line-height:1.5">'
           + esc(data.warnings.join(' '))
-          + ' Demand counts remain available, but supply totals should not be treated as complete.</div>'
+          + ' Counts use the available sources. Unavailable sources must not be treated as zero.</div>'
       );
     }
   }
 
-  function renderMarketRows(markets) {
+  function mdCountRows(label, rows, kind) {
+    var items = rows.map(function(row) {
+      if (kind === 'supply' || kind === 'waitlist') {
+        var title = kind === 'supply' && row.recordType !== 'waitlist'
+          ? '<button type="button" class="btn" data-demand-easer="' + esc(row.id) + '">' + esc(row.name || 'Unnamed Easer') + '</button>'
+          : esc(row.name || 'Waitlist entry');
+        var location = [row.city, row.state, row.zip].filter(Boolean).join(', ');
+        var detail = [row.status, row.applicationStatus && 'Application: ' + row.applicationStatus].filter(Boolean).join(' · ');
+        var eligibility = row.eligible === true ? 'Readiness checks passed' : row.eligible === false ? 'Not yet eligible' : '';
+        var availability = typeof row.isAvailable === 'boolean' ? 'Availability switched ' + (row.isAvailable ? 'on' : 'off') : '';
+        var blockers = Array.isArray(row.missingItems) && row.missingItems.length ? 'Needs: ' + row.missingItems.join('; ') : '';
+        return '<li style="margin-bottom:0.55rem">' + title + ' ' + esc(detail)
+          + '<div>Recorded location: ' + esc(location || 'Not provided') + '</div>'
+          + (row.marketLabel ? '<div>Area: ' + esc(row.marketLabel) + '</div>' : '')
+          + (eligibility || availability ? '<div>' + esc([eligibility, availability].filter(Boolean).join(' · ')) + '</div>' : '')
+          + (blockers ? '<div>' + esc(blockers) + '</div>' : '')
+          + (row.locationIssue ? '<div style="color:var(--red)">' + esc(row.locationIssue) + '</div>' : '') + '</li>';
+      }
+      return '<li>' + (row.bookingId ? '<button type="button" class="btn" data-demand-booking="' + esc(row.bookingId) + '">' + esc(row.requestRef || row.id) + '</button>' : esc(row.requestRef || row.id)) + ' ' + esc(row.requestedService || '') + ' &middot; ' + esc(row.requestedDate || 'Date not set') + '</li>';
+    }).join('');
+    var key = label + '|' + rows.map(function(row) { return row.id || row.bookingId || row.requestRef || ''; }).join('|');
+    return '<details data-md-key="' + esc(key) + '" style="min-width:0;max-width:100%"><summary style="cursor:pointer;overflow-wrap:anywhere">' + esc(label) + ': ' + rows.length + '</summary><ul style="padding-left:1rem;max-height:180px;overflow:auto;overflow-wrap:anywhere">' + (items || '<li>None in this snapshot</li>') + '</ul></details>';
+  }
+
+  function mdSupplyCount(label, rows, waitlist, available) {
+    if (available === false) return '<div>' + esc(label) + ': Unknown <span style="color:var(--muted)">(source unavailable)</span></div>';
+    return mdCountRows(label, rows, waitlist ? 'waitlist' : 'supply');
+  }
+
+  function mdDemandCount(label, rows, available) {
+    return '<div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.55rem 0.65rem;min-width:0;font-size:0.75rem">' + (available === false ? esc(label) + ': Unknown (request source unavailable)' : mdCountRows(label, rows, 'demand')) + '</div>';
+  }
+
+  function renderMarketSummaryLinks(rows, data) {
+    data = data || {};
+    [['md-active','demand'], ['md-emerging','bookings'], ['md-requests','unbooked'], ['md-conversion','manualAssignment'], ['md-supply','ready'], ['md-approved-supply','approved'], ['md-potential','priced']].forEach(function(item) {
+      var host = document.getElementById(item[0]).parentNode;
+      var prior = host.querySelector('.md-summary-rows');
+      if (prior) prior.remove();
+      var list = document.createElement('div');
+      list.className = 'md-summary-rows';
+      list.style.cssText = 'font-size:0.72rem;margin-top:0.5rem';
+      list.innerHTML = ['demand','unbooked','priced'].includes(item[1]) && (data.sourceStatus || {}).requests === 'unavailable'
+        ? 'Complete count unavailable: request source could not be read.'
+        : ['ready','approved'].includes(item[1])
+        ? mdSupplyCount('View records', rows[item[1]] || [], false, data.supplyAvailable !== false)
+        : mdCountRows('View records', rows[item[1]] || [], 'demand');
+      host.appendChild(list);
+    });
+    document.getElementById('md-reconciliation').innerHTML = mdSupplyCount('All Easer profiles', rows.allEasers || [], false, data.supplyAvailable !== false)
+      + mdSupplyCount('Pending applications', rows.pending || [], false, data.supplyAvailable !== false)
+      + mdSupplyCount('Location records to review', rows.reviewRecords || [], false, data.supplyAvailable !== false && data.waitlistAvailable !== false)
+      + mdSupplyCount('Waitlist', rows.waitlist || [], true, data.waitlistAvailable !== false);
+  }
+
+  document.getElementById('market-demand-view').addEventListener('click', async function(event) {
+    var booking = event.target.closest('[data-demand-booking]');
+    if (booking) { await window.openDemandBooking(booking.dataset.demandBooking); return; }
+    var easer = event.target.closest('[data-demand-easer]');
+    if (!easer) return;
+    easer.disabled = true;
+    try {
+      if (await loadAssemblerList() === false) { toast('Current Easer details could not be verified. Retry Refresh.', 'error'); return; }
+      var profile = allAssemblerProfiles.find(function(row) { return row.id === easer.dataset.demandEaser; });
+      if (profile) showAssemblerDetail(profile);
+      else toast('This Easer record could not be loaded. Refresh the market snapshot.', 'error');
+    } finally { easer.disabled = false; }
+  });
+
+  function renderMarketRows(markets, data) {
+    data = data || {};
     var el = document.getElementById('md-top-markets');
     if (!markets.length) {
-      el.innerHTML = '<div class="empty-state" style="padding:2rem 1rem"><div class="empty-state-title">No emerging-market demand yet</div><div class="empty-state-desc">Out-of-market service requests will appear here.</div></div>';
+      el.innerHTML = '<div class="empty-state" style="padding:2rem 1rem"><div class="empty-state-title">No market records available</div><div class="empty-state-desc">Booking demand and Easer locations will appear here when recorded. Check source status above.</div></div>';
       return;
     }
     el.innerHTML = markets.map(function(m) {
-      var services = (m.topServices || []).map(function(s){ return esc(s.service) + ' (' + s.count + ')'; }).join(', ') || 'No services yet';
-      var ratio = Number(m.demandToSupplyRatio || 0).toFixed(m.approvedEasers ? 1 : 0);
+      var services = (m.topServices || []).map(function(s){ return esc(s.service) + ' (' + s.count + ')'; }).join(', ') || 'No requests recorded yet';
+      var supply = m.supplyRows || {};
+      var available = data.supplyAvailable !== false && m.approvedEasers !== null;
+      var waitlistAvailable = data.waitlistAvailable !== false && m.waitlistEasers !== null;
+      var requestsAvailable = (data.sourceStatus || {}).requests !== 'unavailable';
       return '<div style="border:1px solid var(--border);border-radius:10px;padding:0.9rem 1rem;margin-bottom:0.7rem;background:var(--surface)">'
         + '<div class="md-market-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.8rem;margin-bottom:0.55rem">'
-        + '<div><div style="font-size:0.96rem;font-weight:800;color:var(--text)">' + esc(m.market) + '</div>'
-        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.15rem">' + (m.isActiveMarket ? 'Texas booking market' : 'Demand-only market') + '</div></div>'
-        + mdStatusPill(m.activationStatus)
+        + '<div style="min-width:0;overflow-wrap:anywhere"><div style="font-size:0.96rem;font-weight:800;color:var(--text)">' + esc(m.marketLabel || m.market) + '</div>'
+        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.15rem">' + (m.coverageKnown ? 'Configured ZIP service area' : m.marketKey === 'location-review' ? 'Records needing location review' : 'Recorded location; service area unverified') + '</div></div>'
+        + mdStatusPill(available ? m.activationStatus : 'SUPPLY UNAVAILABLE')
         + '</div>'
         + '<div class="md-metrics-grid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0.6rem;margin-bottom:0.65rem">'
-        + mdMiniMetric('All Demand', m.requestCount)
-        + mdMiniMetric('Bookings', m.bookedCount || 0)
-        + mdMiniMetric('Unbooked', m.unbookedCount || 0)
-        + mdMiniMetric('Priced', m.potentialRevenue == null ? 'Not priced' : fmt$(m.potentialRevenue))
+        + mdDemandCount('All Demand', m.demandRows || [], requestsAvailable)
+        + mdDemandCount('Bookings', m.bookedRows || [])
+        + mdDemandCount('Unbooked', m.unbookedRows || [], requestsAvailable)
+        + mdMiniMetric('Priced', !requestsAvailable ? 'Unknown' : m.potentialRevenue == null ? 'Not priced' : fmt$(m.potentialRevenue))
         + '</div>'
-        + '<div style="font-size:0.78rem;color:var(--soft);line-height:1.55"><strong style="color:var(--text)">Top services:</strong> ' + services + '</div>'
-        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem">ZIPs: ' + ((m.requestedZips || []).join(', ') || '—') + ' &bull; Ready Easers: ' + (m.approvedEasers || 0) + ' &bull; Online now: ' + (m.onlineReadyEasers || 0) + ' &bull; Applications: ' + (m.easerApplications || 0) + ' &bull; Waitlist: ' + (m.waitlistEasers || 0) + '</div>'
+        + '<div style="font-size:0.78rem;color:var(--soft);line-height:1.55"><strong style="color:var(--text)">Most requested services:</strong> ' + services + '</div>'
+        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem">Requested ZIPs: ' + esc((m.requestedZips || []).join(', ') || 'None recorded') + '</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:0.6rem;font-size:0.75rem;margin-top:0.5rem">'
+        + mdSupplyCount('Approved', supply.approved || [], false, available)
+        + mdSupplyCount('Eligible Easers', supply.ready || [], false, available)
+        + mdSupplyCount('Availability on', supply.online || [], false, available)
+        + mdSupplyCount('Pending applications', supply.pending || [], false, available)
+        + mdSupplyCount('Waitlist', supply.waitlist || [], true, waitlistAvailable)
+        + mdSupplyCount('All Easer profiles', supply.all || [], false, available)
+        + mdSupplyCount('Location records to review', supply.reviewRecords || [], false, available && waitlistAvailable)
+        + '</div><div style="font-size:0.7rem;color:var(--muted);margin-top:0.4rem">Each profile is counted once in its recorded ZIP service area. Confirm travel coverage for each job.</div>'
+        + (m.locationIssue ? '<div style="font-size:0.75rem;color:var(--red);margin-top:0.4rem">' + esc(m.locationIssue) + '</div>' : '')
         + '</div>';
     }).join('');
   }
@@ -10022,6 +10203,7 @@ window.intelQuick = intelQuick;
   }
 
   window.openOwnerBookingRecord = async function(bookingId, tabName) {
+    stopMarketDemand();
     currentView = 'bookings';
     document.querySelectorAll('.sidebar-nav a').forEach(function(link) { link.classList.toggle('active', link.dataset.view === 'bookings'); });
     hideAllViews();
@@ -10211,6 +10393,7 @@ window.intelQuick = intelQuick;
       wlAddMsg('ok', 'Added to the waitlist. ' + note);
       wlAddReset();
       await loadWaitlist();
+      refreshMarketAfterEaserChange();
     } catch (err) {
       wlAddMsg('err', 'Network error — nothing was added. Check your connection and try again.');
     } finally {
@@ -10230,6 +10413,7 @@ window.intelQuick = intelQuick;
         if (data.error) { toast(data.error, 'error'); return; }
         toast(wEntry ? 'Invitation sent to ' + wEntry.name : 'Invite sent', 'success');
         loadWaitlist();
+        refreshMarketAfterEaserChange();
       } catch { toast('Failed to send invite', 'error'); }
       return;
     }
@@ -10241,7 +10425,7 @@ window.intelQuick = intelQuick;
         var r2 = await fetch('/api/owner/waitlist', { method:'POST', headers:headers(), body:JSON.stringify({ action:'reject', id:rejectBtn.dataset.wlReject }) });
         var data2 = await r2.json();
         if (data2.error) { toast(data2.error, 'error'); return; }
-        toast('Entry rejected', 'success'); loadWaitlist();
+        toast('Entry rejected', 'success'); loadWaitlist(); refreshMarketAfterEaserChange();
       } catch { toast('Failed to reject', 'error'); }
       return;
     }
@@ -10254,7 +10438,7 @@ window.intelQuick = intelQuick;
         var r3 = await fetch('/api/owner/waitlist', { method:'POST', headers:headers(), body:JSON.stringify({ action:'delete', id:deleteBtn2.dataset.wlDelete }) });
         var data3 = await r3.json();
         if (data3.error) { toast(data3.error, 'error'); return; }
-        toast(name + ' deleted from waitlist', 'success'); loadWaitlist();
+        toast(name + ' deleted from waitlist', 'success'); loadWaitlist(); refreshMarketAfterEaserChange();
       } catch { toast('Failed to delete', 'error'); }
     }
   });
@@ -10307,8 +10491,9 @@ window.intelQuick = intelQuick;
   }
 
   async function reloadAssemblersAndMaybeRefreshDetail(assemblerId, reopenDetail) {
-    await Promise.all([loadAssemblerList(), loadAssemblers()]);
+    var refreshed = await Promise.all([loadAssemblerList(), loadAssemblers(), refreshMarketAfterEaserChange()]);
     if (!reopenDetail) return;
+    if (refreshed[0] === false) { toast('Easer updated, but refreshed profile details could not be verified.', 'error'); return; }
     var updated = allAssemblerProfiles.find(function(x) { return x.id === assemblerId; });
     if (updated) {
       showAssemblerDetail(updated);
@@ -10336,8 +10521,10 @@ window.intelQuick = intelQuick;
       if (stats.pending > 0) { $navApps.textContent = stats.pending; $navApps.style.display = ''; }
       else $navApps.style.display = 'none';
       renderAssemblerTable();
+      return true;
     } catch(e) {
       document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="10" style="padding:2rem;text-align:center;color:var(--red)">Failed to load Easers</td></tr>';
+      return false;
     }
   }
 
@@ -10385,7 +10572,9 @@ window.intelQuick = intelQuick;
     if (!asmConnectRequired) {
       return '<span style="display:inline-block;background:#e0f2fe;color:#0369a1;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px;white-space:nowrap">MANUAL PAYOUT</span>';
     }
-    return boolBadge(!!a.stripe_connect_payouts_enabled);
+    return a.stripe_connect_payouts_enabled
+      ? '<span class="sb vr-verified" title="Payout capability only; not evidence that an Easer was paid">Enabled</span>'
+      : '<span class="sb vr-pending" title="Payout capability is not enabled">Not enabled</span>';
   }
   function smsStatusBadge(a) {
     if (a.readiness && a.readiness.jobTextsEnabled) return '<span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px;white-space:nowrap">ON</span>';
@@ -10508,8 +10697,8 @@ window.intelQuick = intelQuick;
           + '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(a.email) + '</span>'
           + (!hasValidUsPhone(a.phone) ? ' <span style="font-size:0.68rem;color:#ef4444;font-weight:600">Valid phone required</span>' : '')
           + '</td>'
-        + '<td style="' + rs + '">' + statusBadge(a.status) + '</td>'
-        + '<td style="' + rs + '">' + tierBadge(a.tier) + '</td>'
+        + '<td style="' + rs + '">' + statusBadge(a.status) + (a.status === 'active' ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">' + (a.readiness && a.readiness.isReady ? 'Ready for jobs' : 'Readiness action needed') + '</div>' : '') + '</td>'
+        + '<td style="' + rs + '">' + tierBadge(a.tier) + (a.tier_grace_started_at ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">Grace since ' + esc(formatDate(a.tier_grace_started_at)) + '</div>' : '') + '</td>'
         + '<td style="' + rs + '">' + idVerificationBadge(a) + '</td>'
         + '<td style="' + rs + '">' + connectBadge(a) + '</td>'
         + '<td style="' + rs + '">' + payoutCapabilityBadge(a) + '</td>'
@@ -10551,7 +10740,7 @@ window.intelQuick = intelQuick;
         } else {
           toast(approvalState + ' Welcome email sent.', 'success');
         }
-        loadAssemblerList(); loadAssemblers();
+        await reloadAssemblersAndMaybeRefreshDetail(aId, false);
       } catch { toast('Failed to approve', 'error'); approveBtn.disabled = false; approveBtn.textContent = 'Approve'; }
       return;
     }
@@ -10565,7 +10754,7 @@ window.intelQuick = intelQuick;
         var d2 = await r2.json();
         if (d2.error) { toast(d2.error, 'error'); return; }
         toast('ID marked as verified — you can now approve this Easer', 'success');
-        loadAssemblerList();
+        await reloadAssemblersAndMaybeRefreshDetail(aId2, false);
       } catch { toast('Failed', 'error'); }
       finally { markIdBtn.disabled = false; markIdBtn.textContent = 'Mark ID Verified'; }
       return;
@@ -10591,7 +10780,7 @@ window.intelQuick = intelQuick;
         var dw = await rw.json().catch(function(){ return {}; });
         if (!rw.ok) { toast(dw.error || 'Could not waitlist this application.', 'error'); return; }
         toast('Moved to the waitlist', 'success');
-        await loadAssemblers();
+        await reloadAssemblersAndMaybeRefreshDetail(waitlistAsmBtn.dataset.waitlistAsm, false);
       } catch (err) {
         toast('Network error — nothing changed.', 'error');
       } finally {
@@ -10620,7 +10809,7 @@ window.intelQuick = intelQuick;
         var r3 = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:deleteAsmBtn.dataset.deleteAsm, action:'delete' }) });
         var d3 = await r3.json();
         if (d3.error) { toast(d3.error, 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.textContent = 'Archive'; return; }
-        toast(d3.warning ? 'Application archived, but auth access needs manual follow-up' : 'Application archived', d3.warning ? 'error' : 'success'); loadAssemblerList();
+        toast(d3.warning ? 'Application archived, but auth access needs manual follow-up' : 'Application archived', d3.warning ? 'error' : 'success'); await reloadAssemblersAndMaybeRefreshDetail(deleteAsmBtn.dataset.deleteAsm, false);
       } catch { toast('Failed to archive', 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.textContent = 'Archive'; }
     }
   });
@@ -10854,6 +11043,7 @@ window.intelQuick = intelQuick;
       '<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Account Status</div>' + statusBadge(a.status) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Tier</div>' + tierBadge(a.tier) + '</div>'
+        + (a.tier_grace_started_at ? '<div style="font-size:0.75rem;color:var(--muted);max-width:300px">Tier grace started ' + esc(formatDate(a.tier_grace_started_at)) + '. The stored tier remains in effect while the performance program allows recovery.</div>' : '')
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">ID Verification</div>' + idVerificationBadge(a) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Connect Status</div>' + connectBadge(a) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">' + (asmConnectRequired ? 'Payouts Enabled' : 'Payout Mode') + '</div>' + payoutCapabilityBadge(a) + '</div>'
@@ -11285,7 +11475,7 @@ window.intelQuick = intelQuick;
       if (d.error) { errEl.textContent=d.error; errEl.style.display=''; return; }
       document.getElementById('add-easer-modal').classList.remove('open');
       toast(name + ' added — welcome email sent with ID verification + password setup links', 'success');
-      loadAssemblerList();
+      await reloadAssemblersAndMaybeRefreshDetail(null, false);
     } catch { errEl.textContent='Failed. Check your connection.'; errEl.style.display=''; }
     finally { btn.disabled=false; btn.textContent='Add Easer & Send Welcome Email'; }
   });

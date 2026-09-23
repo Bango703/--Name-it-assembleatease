@@ -56,7 +56,7 @@ async function enrich(sb, calls) {
     const notifications = notices?.filter(n => linked?.some(c => c.id === n.operation_case_id));
     call.notificationState = !linked?.length ? (cases === null ? 'unavailable' : 'not_applicable')
       : notices === null ? 'unavailable' : !notifications.length ? 'not_logged'
-      : notifications.some(n => n.bounced_at || n.complained_at || n.provider_failed_at || ['failed', 'bounced', 'complained', 'delivery_delayed'].includes(n.status)) ? 'needs_attention'
+      : notifications.some(n => n.bounced_at || n.complained_at || n.provider_failed_at || ['failed', 'bounced', 'complained', 'delivery_delayed', 'uncertain'].includes(n.status)) ? 'needs_attention'
       : notifications.some(n => n.delivered_at) ? 'delivered' : 'delivery_unconfirmed';
     // Caller ID never proves identity, a booking, callback permission, or consent.
     call.identityVerified = false;

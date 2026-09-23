@@ -7,25 +7,19 @@ import { loadCustomerFacingCompletionPhoto } from './booking/_completion-evidenc
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
-// Three escalating-but-respectful variants. Step is 1-based. intro(b, pro).
+// First request and one final follow-up. Step is 1-based. intro(b, pro).
 export const STEP_COPY = {
   1: {
     subject: (b) => `How did your ${b.service} go? — ${b.ref}`,
     headline: 'How was your experience?',
     intro: (b, pro) => `Your <strong>${esc(b.service)}</strong>${pro ? ` with ${esc(pro)}` : ''} is complete. Tap a star below to rate it — your booking details are already filled in.`,
-    note: `Not happy with something? Just reply to this email within 48 hours and we&rsquo;ll make it right.`,
+    note: `Have a question about the work? Reply to this email so we can help with the next steps.`,
   },
   2: {
-    subject: (b) => `Quick favor — rate your ${b.service}?`,
-    headline: 'Still have 30 seconds?',
-    intro: (b, pro) => `We&rsquo;d still love to hear how your <strong>${esc(b.service)}</strong>${pro ? ` with ${esc(pro)}` : ''} went. It takes about 30 seconds — just tap a star below.`,
-    note: `Something not right? Reply here and we&rsquo;ll take care of it.`,
-  },
-  3: {
-    subject: (b) => `Last chance to rate your ${b.service}`,
-    headline: 'One last ask',
-    intro: (b, pro) => `This is the last time we&rsquo;ll ask &mdash; promise. A quick rating of your <strong>${esc(b.service)}</strong> helps ${pro ? esc(pro) : 'your pro'} and other Texas neighbors know what to expect. One tap is all it takes.`,
-    note: `Prefer not to? No problem &mdash; you won&rsquo;t hear from us about this again.`,
+    subject: (b) => `A final invitation to review your ${b.service}`,
+    headline: 'Share your experience',
+    intro: (b, pro) => `If you would like to leave feedback on your <strong>${esc(b.service)}</strong>${pro ? ` with ${esc(pro)}` : ''}, use the link below. This is our final automatic review reminder for this booking.`,
+    note: `Your review is optional. For help with the work, you can reply to this email.`,
   },
 };
 

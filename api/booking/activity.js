@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { notificationNeedsAttention, notificationEventType, notificationOwnerAction } from '../_notification-display.js';
 
 export default async function handler(req, res) {
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -40,7 +41,7 @@ export default async function handler(req, res) {
         recipientEmail: n.recipient_email,
         providerId: n.provider_id,
         providerEventType: n.last_provider_event_type,
-        ownerAction: notificationNeedsAttention(n.status) ? 'Confirm the booking state, then contact the intended recipient using the booking record.' : null,
+        ownerAction: notificationOwnerAction(n.status),
       },
       created_at:  n.last_provider_event_at || n.sent_at,
       _source:     'notification',
@@ -87,7 +88,7 @@ function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
 }
 
-function formatNotifDescription(n) {
+export function formatNotifDescription(n) {
   const typeLabels = {
     booking_created:          'Booking created',
     booking_confirmed:        'Booking confirmation email',
@@ -95,19 +96,21 @@ function formatNotifDescription(n) {
     owner_booking_created_notice: 'Owner booking operations notice',
     return_visit_customer:      'Return visit confirmation email',
     booking_status_correction:  'Booking status correction email',
-    dispatch_offer:           'Job offer sent to Easer',
+    dispatch_offer:           'Easer job offer',
     assignment_confirmation:  'Assignment confirmation to Easer',
-    job_accepted:             'Easer confirmed — customer notified',
-    en_route:                 'Easer on the way — customer notified',
-    arrived:                  'Easer arrived — customer notified',
-    in_progress:              'Job started — customer notified',
-    completion:               'Completion receipt sent',
-    payment_receipt:          'Payment receipt sent',
-    owner_manual_refund:      'Manual Stripe refund confirmation sent',
-    cancellation:             'Cancellation notification sent',
-    review_request:           'Review request sent',
-    reminder:                 'Appointment reminder sent',
-    payout_summary:           'Payout summary sent',
+    job_accepted:             'Easer confirmation notice',
+    en_route:                 'Easer on-the-way notice',
+    arrived:                  'Easer arrival notice',
+    in_progress:              'Job-start notice',
+    completion:               'Completion receipt',
+    payment_receipt:          'Payment receipt',
+    owner_manual_refund:      'Manual Stripe refund confirmation',
+    cancellation:             'Cancellation notification',
+    review_request:           'Review request',
+    reminder:                 'Appointment reminder',
+    easer_reminder:           'Easer appointment reminder',
+    appointment_day_of:       'Day-of appointment reminder',
+    payout_summary:           'Payout summary',
     reschedule_customer:      'Reschedule confirmation to customer',
     reschedule_owner:         'Reschedule alert to owner',
     reschedule_easer_reconfirmation: 'Reschedule acceptance request to Easer',
@@ -124,6 +127,9 @@ function formatNotifDescription(n) {
   const to    = recipientLabels[n.recipient_type] || n.recipient_type || '';
   const via   = channelLabel(n.channel);
 
+  if (n.status === 'uncertain') return `${label} via ${via} to ${to}: delivery outcome unknown — check provider before resending`;
+  if (n.status === 'deferred') return `${label} via ${via} to ${to}: waiting for a delivery or retry window; sending not confirmed`;
+  if (n.status === 'cancelled') return `${label} via ${via} to ${to}: further notification delivery cancelled — ${n.error_text || 'expired or stale'}`;
   if (notificationNeedsAttention(n.status)) {
     return `${label} ${via} to ${to} ${String(n.status || 'failed').toUpperCase()} — ${n.error_text || 'follow-up required'}`;
   }
@@ -133,7 +139,7 @@ function formatNotifDescription(n) {
   const recipient = n.recipient_email || to;
   if (n.status === 'delivered') return `${label} delivered via ${via} to ${recipient}`;
   if (n.status === 'queued') return `${label} queued for ${recipient}`;
-  if (n.status === 'provider_accepted') return `${label} accepted by Telnyx for ${recipient}`;
+  if (n.status === 'provider_accepted') return `${label} accepted by the ${via} provider for ${recipient}; delivery not yet confirmed`;
   if (n.status === 'sent') return `${label} sent via ${via} to ${recipient}`;
   return `${label} ${String(n.status || 'recorded').replaceAll('_', ' ')} via ${via} to ${recipient}`;
 }
@@ -142,15 +148,4 @@ function channelLabel(channel) {
   if (channel === 'sms') return 'SMS';
   if (channel === 'push') return 'push notification';
   return 'email';
-}
-
-function notificationNeedsAttention(status) {
-  return ['failed', 'bounced', 'complained', 'delivery_delayed'].includes(String(status || ''));
-}
-
-function notificationEventType(status) {
-  if (notificationNeedsAttention(status)) return 'notification_failed';
-  if (status === 'suppressed') return 'notification_suppressed';
-  if (status === 'delivered') return 'notification_delivered';
-  return 'notification_sent';
 }

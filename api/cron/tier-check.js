@@ -140,20 +140,21 @@ function tierEmail(kind, name, tier) {
   };
 }
 
-async function sendTierEmail(p, kind, tier) {
-  if (!p.email) return;
+async function sendTierEmail(p, kind, tier, eventAt) {
+  if (!p.email) return { ok: false, error: 'recipient_email_missing' };
   try {
     const { subject, html } = tierEmail(kind, p.full_name, tier);
-    await sendEmail({
+    return await sendEmail({
       to: p.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject,
       html,
       replyTo: ownerEmail(),
-      meta: { notificationType: `easer_tier_${kind}`, recipientType: 'easer', recipientUserId: p.id, disableDedupe: true },
+      meta: { notificationType: `easer_tier_${kind}`, recipientType: 'easer', recipientUserId: p.id, notificationKey: `tier:${p.id}:${kind}:${tier}:${eventAt}`, routine: true },
     });
   } catch (e) {
     console.error(`[tier-check] ${kind} email failed for ${p.id}:`, e.message || e);
+    return { ok: false, error: e.message || 'tier_email_failed' };
   }
 }
 
@@ -176,7 +177,7 @@ async function sendOwnerReliabilityAlert(p, opts) {
     action = 'Reach out to see if they still want jobs. If not, suspend them so dispatch stops routing to them.';
   }
   try {
-    await sendEmail({
+    return await sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase System <booking@assembleatease.com>',
       subject: `Reliability review — ${p.full_name || 'Easer'}`,
@@ -191,19 +192,20 @@ async function sendOwnerReliabilityAlert(p, opts) {
           ${dash}
         </div>`),
       replyTo: ownerEmail(),
-      meta: { notificationType: `easer_reliability_${opts.kind}`, recipientType: 'owner', recipientUserId: p.id, disableDedupe: true },
+      meta: { notificationType: `easer_reliability_${opts.kind}`, recipientType: 'owner', recipientUserId: p.id, notificationKey: `reliability:${p.id}:${opts.kind}:${opts.kind === 'no_show' ? opts.noShows : p.acceptance_alert_at || 'initial'}` },
     });
   } catch (e) {
     console.error(`[tier-check] owner reliability alert failed for ${p.id}:`, e.message || e);
+    return { ok: false, error: e.message || 'reliability_email_failed' };
   }
 }
 
 // Coach the Easer BEFORE low acceptance costs them a tier — retention + fairness.
 async function sendCoachingEmail(p, acceptance) {
-  if (!p.email) return;
+  if (!p.email) return { ok: false, error: 'recipient_email_missing' };
   const first = esc(String(p.full_name || 'there').split(' ')[0] || 'there');
   try {
-    await sendEmail({
+    return await sendEmail({
       to: p.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Keep getting the best AssembleAtEase jobs',
@@ -218,11 +220,34 @@ async function sendCoachingEmail(p, acceptance) {
           <p style="margin:22px 0 4px"><a href="${JOBS_URL}" style="display:inline-block;background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:12px 22px;border-radius:999px">See your jobs</a></p>
         </div>`),
       replyTo: ownerEmail(),
-      meta: { notificationType: 'easer_coaching', recipientType: 'easer', recipientUserId: p.id, disableDedupe: true },
+      meta: { notificationType: 'easer_coaching', recipientType: 'easer', recipientUserId: p.id, notificationKey: `coaching:${p.id}:${p.coaching_email_at || 'initial'}`, routine: true },
     });
   } catch (e) {
     console.error(`[tier-check] coaching email failed for ${p.id}:`, e.message || e);
+    return { ok: false, error: e.message || 'coaching_email_failed' };
   }
+}
+
+// Tier changes are business state; delivery is recorded separately. A queued or
+// rejected email must not consume a reminder's successful-delivery marker.
+function recordNotification(results, p, kind, outcome) {
+  const status = outcome?.ok ? (outcome.suppressed ? 'already_sent' : 'sent')
+    : outcome?.deferred || (outcome?.retryScheduled && outcome?.logged) ? 'queued' : 'failed';
+  const counter = { sent: 'notificationsSent', already_sent: 'notificationsAlreadySent', queued: 'notificationsQueued', failed: 'notificationsFailed' }[status];
+  results[counter]++;
+  results.notifications.push({ easerId: p.id, kind, status, ...(status === 'failed' ? { error: outcome?.error || outcome?.reason || 'send_failed' } : {}) });
+  return Boolean(outcome?.ok);
+}
+
+async function saveNotificationMarker(sb, p, field, value, results) {
+  let query = sb.from('profiles').update({ [field]: value }).eq('id', p.id);
+  query = p[field] == null ? query.is(field, null) : query.eq(field, p[field]);
+  const { data: rows, error } = await query.select('id');
+  if (error) {
+    results.notificationMarkerFailures++;
+    results.notifications.push({ easerId: p.id, kind: field, status: 'marker_failed', error: error.message || 'marker_update_failed' });
+  }
+  return !error && Boolean(rows?.length);
 }
 
 export default async function handler(req, res) {
@@ -286,7 +311,8 @@ export default async function handler(req, res) {
   }
 
   // ── Tier engine: promote / hold / demote each active Easer ────────────────
-  const results = { promoted: 0, graceStarted: 0, demoted: 0, graceCleared: 0, ownerAlerts: 0, coachingEmails: 0 };
+  const results = { promoted: 0, graceStarted: 0, demoted: 0, graceCleared: 0, ownerAlerts: 0, coachingEmails: 0,
+    notificationsSent: 0, notificationsAlreadySent: 0, notificationsQueued: 0, notificationsFailed: 0, notificationMarkerFailures: 0, notifications: [] };
   const { data: easers, error: loadErr } = await sb
     .from('profiles')
     .select('id, full_name, email, tier, completed_jobs, rating, acceptance_rate, identity_verified, tier_grace_started_at, no_show_count, completion_rate, reliability_alert_count, acceptance_alert_at, coaching_email_at')
@@ -321,7 +347,7 @@ export default async function handler(req, res) {
       const { data: rows } = await sb.from('profiles')
         .update({ tier: deserved, tier_updated_at: nowIso, tier_grace_started_at: null })
         .eq('id', p.id).eq('status', 'active').eq('tier', current).select('id');
-      if (rows?.length) { results.promoted++; await sendTierEmail(p, 'promoted', deserved); }
+      if (rows?.length) { results.promoted++; recordNotification(results, p, 'promoted', await sendTierEmail(p, 'promoted', deserved, nowIso)); }
     } else if (di < ci) {
       // BELOW current tier — 30-day grace, then step down ONE tier.
       const graceStart = p.tier_grace_started_at ? new Date(p.tier_grace_started_at).getTime() : null;
@@ -329,13 +355,13 @@ export default async function handler(req, res) {
         const { data: rows } = await sb.from('profiles')
           .update({ tier_grace_started_at: nowIso })
           .eq('id', p.id).eq('status', 'active').eq('tier', current).is('tier_grace_started_at', null).select('id');
-        if (rows?.length) { results.graceStarted++; await sendTierEmail(p, 'grace', current); }
+        if (rows?.length) { results.graceStarted++; recordNotification(results, p, 'grace', await sendTierEmail(p, 'grace', current, nowIso)); }
       } else if (nowMs - graceStart >= GRACE_DAYS * 86400000) {
         const newTier = TIER_ORDER[ci - 1];
         const { data: rows } = await sb.from('profiles')
           .update({ tier: newTier, tier_updated_at: nowIso, tier_grace_started_at: null })
           .eq('id', p.id).eq('status', 'active').eq('tier', current).select('id');
-        if (rows?.length) { results.demoted++; await sendTierEmail(p, 'demoted', newTier); }
+        if (rows?.length) { results.demoted++; recordNotification(results, p, 'demoted', await sendTierEmail(p, 'demoted', newTier, nowIso)); }
       }
     } else if (p.tier_grace_started_at) {
       // Back at/above their tier — clear any grace flag, no email.
@@ -349,33 +375,37 @@ export default async function handler(req, res) {
       const acc = p.acceptance_rate == null ? null : Number(p.acceptance_rate);
       if (noShows >= NO_SHOW_ALERT_AT && noShows > Number(p.reliability_alert_count || 0)) {
         // Repeat no-shows — worst outcome for the brand. Alert once per new no-show.
-        await sendOwnerReliabilityAlert(p, { kind: 'no_show', noShows, completionRate });
-        await sb.from('profiles').update({ reliability_alert_count: noShows }).eq('id', p.id);
-        results.ownerAlerts++;
+        const outcome = await sendOwnerReliabilityAlert(p, { kind: 'no_show', noShows, completionRate });
+        if (recordNotification(results, p, 'no_show', outcome)
+          && await saveNotificationMarker(sb, p, 'reliability_alert_count', noShows, results)) results.ownerAlerts++;
       } else if (acc != null && acc < ACCEPT_FLOOR) {
         // Chronic decliner — alert owner, but not more than every OWNER_REALERT_DAYS.
         const last = p.acceptance_alert_at ? new Date(p.acceptance_alert_at).getTime() : 0;
         if (nowMs - last >= OWNER_REALERT_DAYS * 86400000) {
-          await sendOwnerReliabilityAlert(p, { kind: 'chronic_decline', acceptance: acc });
-          await sb.from('profiles').update({ acceptance_alert_at: nowIso }).eq('id', p.id);
-          results.ownerAlerts++;
+          const outcome = await sendOwnerReliabilityAlert(p, { kind: 'chronic_decline', acceptance: acc });
+          if (recordNotification(results, p, 'chronic_decline', outcome)
+            && await saveNotificationMarker(sb, p, 'acceptance_alert_at', outcome.sentAt || nowIso, results)) results.ownerAlerts++;
         }
       }
       // Coach the Easer while acceptance is slipping but before it hits the floor.
       if (acc != null && acc >= COACH_BAND_LOW && acc < COACH_BAND_HIGH) {
         const lastCoach = p.coaching_email_at ? new Date(p.coaching_email_at).getTime() : 0;
         if (nowMs - lastCoach >= COACH_COOLDOWN_DAYS * 86400000) {
-          await sendCoachingEmail(p, acc);
-          await sb.from('profiles').update({ coaching_email_at: nowIso }).eq('id', p.id);
-          results.coachingEmails++;
+          const outcome = await sendCoachingEmail(p, acc);
+          if (recordNotification(results, p, 'coaching', outcome)
+            && await saveNotificationMarker(sb, p, 'coaching_email_at', outcome.sentAt || nowIso, results)) results.coachingEmails++;
         }
       }
     } catch (relErr) {
       console.error('[tier-check] reliability enforcement error for', p.id, relErr.message || relErr);
+      results.notificationMarkerFailures++;
+      results.notifications.push({ easerId: p.id, kind: 'reliability', status: 'marker_failed', error: relErr.message || 'reliability_enforcement_failed' });
     }
   }
 
   console.log('Tier-check complete:', results);
-  await logCron('tier-check', { status: 'ok', records: results.promoted + results.demoted + results.ownerAlerts });
+  await logCron('tier-check', { status: results.notificationsFailed || results.notificationMarkerFailures ? 'error' : 'ok',
+    records: results.promoted + results.demoted + results.ownerAlerts,
+    note: `${results.notificationsSent} sent, ${results.notificationsAlreadySent} previously sent, ${results.notificationsQueued} queued, ${results.notificationsFailed} failed, ${results.notificationMarkerFailures} marker failures` });
   return res.status(200).json({ ok: true, ...results });
 }

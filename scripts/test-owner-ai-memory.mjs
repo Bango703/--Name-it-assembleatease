@@ -4,6 +4,8 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import { buildOwnerJobContext } from '../api/owner/_monitor-jobs.js';
+import { appointmentTimeZone, localCalendarDate } from '../api/booking/_appt-date.js';
 
 const [endpoint, dashboard] = await Promise.all([
   readFile(new URL('../api/owner/monitor.js', import.meta.url), 'utf8'),
@@ -16,7 +18,7 @@ const handlerScript = endpoint
   .replace(/^export /gm, '')
   + '\nglobalThis.testHandler = handler; globalThis.testSanitize = sanitizeChatHistory;';
 
-function apiHarness({ key = 'isolated-test-key', content, aiError } = {}) {
+function apiHarness({ key = 'isolated-test-key', content, aiError, bookingRows = [], financeRows = [], at = null } = {}) {
   const state = { databaseReads: 0, requests: [] };
   const zeroTotals = {
     totalCharged: 0, pendingPayouts: 0, totalPlatformRevenue: 0,
@@ -24,19 +26,22 @@ function apiHarness({ key = 'isolated-test-key', content, aiError } = {}) {
     heldPayouts: 0,
   };
   const context = vm.createContext({
+    Date: at ? class extends Date { constructor(...args) { super(...(args.length ? args : [at])); } static now() { return Date.parse(at); } } : Date,
     process: { env: { ANTHROPIC_API_KEY: key } },
     console: { error() {} },
     verifyOwner: req => req.owner === true,
     getSupabase: () => ({
-      from() {
+      from(table) {
         state.databaseReads++;
-        return { select: () => ({ order: async () => ({ data: [], error: null }) }) };
+        return { select: () => ({ order: async () => ({ data: table === 'bookings' ? bookingRows : [], error: null }) }) };
       },
     }),
-    loadLedgerFirstFinanceRows: async () => ({ rows: [], reconciliation: {} }),
+    loadLedgerFirstFinanceRows: async () => ({ rows: financeRows, reconciliation: {} }),
     summarizeFinanceRows: () => zeroTotals,
     chicagoTodayIso: () => '2026-09-22',
     isOwnerManualOfflineBooking: () => false,
+    buildOwnerJobContext,
+    appointmentTimeZone, localCalendarDate,
     Anthropic: class {
       messages = {
         create: async options => {
@@ -61,6 +66,30 @@ function apiHarness({ key = 'isolated-test-key', content, aiError } = {}) {
       return response;
     },
   };
+}
+
+// The future booking that the old context omitted now reaches the model itself,
+// including its date, assignment and canonical estimate. No paid LLM call.
+{
+  const api = apiHarness({ at:'2026-09-23T15:00:00Z', bookingRows:[{
+    id:'job-sept24', ref:'AAE-FIXTURE24', status:'confirmed', date:'2026-09-24', time:'8 AM-10 AM',
+    service:'Outdoor & Playsets', payment_status:'authorized', assembler_id:'easer-fixture',
+    assembler_name:'Fixture Easer', assembler_accepted_at:'2026-09-22T15:00:00Z', total_price:10825,
+    tax_amount:825, easer_fee_snapshot_easer_id:'easer-fixture', easer_fee_pct_snapshot:30,
+    easer_estimated_due_snapshot:7000, easer_fee_snapshot_at:'2026-09-22T15:00:00Z',
+  }] });
+  const response = await api.call({ body:{ message:'How much will the business profit on the 24th?' } });
+  assert.equal(response.statusCode,200);
+  const prompt = api.state.requests[0].system;
+  assert.match(prompt, /AAE-FIXTURE24/);
+  assert.match(prompt, /2026-09-24/);
+  assert.match(prompt, /platformAfterProcessingEstimateDollars/);
+  assert.match(prompt, /2026-09-23T15:00:00\.000Z/);
+  assert.match(prompt, /America\/Chicago/);
+  assert.match(prompt, /not that no job exists/);
+  assert.equal(response.body.data.upcomingJobs.jobs[0].financials.actual,null);
+  assert.equal(api.state.requests[0].model,'claude-haiku-4-5-20251001');
+  assert.equal(api.state.requests[0].max_tokens,600);
 }
 
 // The server controls the roles and size even when the browser sends bad data.

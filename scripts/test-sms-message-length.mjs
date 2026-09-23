@@ -23,6 +23,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { toGsm7 } from '../api/_sms.js';
 import { formatAppointmentDateShort, formatSlotShort } from '../api/booking/_appt-date.js';
+import { buildDayOfReminderSms } from '../api/cron/reminders.js';
+import { buildArrivalNudgeSms } from '../api/cron/easer-arrival-nudge.js';
 
 const OPT_OUT = ' Reply STOP to opt out.';
 const GSM7_LIMIT = 160;
@@ -60,7 +62,11 @@ const MESSAGES = {
   crew_added:
     `You've been added to an AssembleAtEase job: ${service} ${date}. $${(helperDue / 100).toFixed(2)} est. Open the app for details. Ref ${ref}`,
   arrival_nudge:
-    `AssembleAtEase: tap Arrived on ${ref} so the office knows you're on site.`,
+    buildArrivalNudgeSms(ref),
+  customer_day_of_reminder:
+    buildDayOfReminderSms({ ref, time: longestSlot }, 'customer'),
+  easer_day_of_reminder:
+    buildDayOfReminderSms({ ref, time: longestSlot }, 'easer'),
   booking_confirmed:
     `AssembleAtEase: ${service} booked for ${date} ${time}. We'll text when your Easer is on the way. Ref ${ref}`,
   en_route:
@@ -137,4 +143,4 @@ assert.equal(toGsm7('8:00 AM \u2013 10:00 AM'), '8:00 AM - 10:00 AM');
 assert.equal(toGsm7('it\u2019s \u201Cready\u201D\u2026'), 'it\'s "ready"...');
 assert.equal(toGsm7('plain text stays plain'), 'plain text stays plain');
 
-console.log('\nPASS all 7 SMS templates fit one GSM-7 segment at worst case');
+console.log(`\nPASS all ${Object.keys(MESSAGES).length} SMS templates fit one GSM-7 segment at worst case`);

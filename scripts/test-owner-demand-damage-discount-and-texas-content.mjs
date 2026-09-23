@@ -87,7 +87,7 @@ assert.match(marketApi, /unlocatedCount/);
 assert.match(bookingApi, /service_city: serviceLocation\.city/);
 assert.match(ownerBookingApi, /service_zip: serviceLocation\.zip/);
 assert.match(ownerUi, /Demand Signals/);
-assert.match(ownerUi, /Real Bookings/);
+assert.match(ownerUi, /Recorded Bookings/);
 assert.match(ownerUi, /openDemandBooking/);
 
 assert.match(damageUpload, /createOperationCase/);

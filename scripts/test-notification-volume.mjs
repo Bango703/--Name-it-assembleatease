@@ -77,5 +77,7 @@ assert.match(assignmentMeta, /dedupeWindowMin:\s*60/, 'one hour, keyed on recipi
 // Push is a different channel and still fires every time, so an Easer is never
 // left unaware of a job they have been given (Rule 10).
 assert.match(assignSource, /sendPushToUser\(assemblerId/, 'push still fires on every assignment');
+const smsAssignment = assignSource.slice(assignSource.indexOf('const smsResult = await sendSms'), assignSource.indexOf('// Push notification'));
+assert.match(smsAssignment, /dedupeWindowMin:\s*60/, 'the identical assignment SMS has the same one-hour repeat protection');
 
 console.log('Notification volume tests: PASS');

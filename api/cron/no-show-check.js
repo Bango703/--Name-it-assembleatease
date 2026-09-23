@@ -1,16 +1,18 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
-import { appointmentTimestampMs, formatAppointmentDate } from '../booking/_appt-date.js';
+import { notificationAppointmentTimestampMs, formatAppointmentDate } from '../booking/_appt-date.js';
 import { logCron } from './_cron-logger.js';
 import { formatUsPhone } from '../_phone.js';
+import { BOOKING_STATUS } from '../_source-of-truth.js';
 
 /**
  * GET /api/cron/no-show-check  — runs every 30 min.
  *
  * Detects likely Easer no-shows: a booking an Easer ACCEPTED but that never
  * progressed to 'arrived'/'in_progress' by well past its appointment start.
- * Alerts the owner ONCE (deduped via an activity_logs 'no_show_flagged' event)
+ * Alerts the owner once per appointment/acceptance (deduped by successful
+ * notification records and a durable provider-send event key)
  * so the owner can call the Easer or re-dispatch. Intentionally does NOT
  * auto-re-dispatch — a late Easer is not always a no-show, and sending a
  * second Easer risks two pros at one home. Owner stays in control (launch mode).
@@ -33,8 +35,8 @@ export default async function handler(req, res) {
   // sitting in confirmed/en_route — never marked arrived/in_progress/completed.
   const { data: candidates, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_email, customer_phone, address, date, time, status, assembler_id, assembler_name, assembler_accepted_at')
-    .in('status', ['confirmed', 'en_route'])
+    .select('id, ref, service, customer_name, customer_email, customer_phone, address, service_zip, service_city, date, time, status, assembler_id, assembler_name, assembler_accepted_at, return_visit_required')
+    .in('status', [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.EN_ROUTE])
     .not('assembler_accepted_at', 'is', null)
     .gte('date', lookbackDate)
     .limit(100);
@@ -64,24 +66,32 @@ export default async function handler(req, res) {
   }
 
   let flagged = 0;
+  let failed = 0;
+  let deferred = 0;
   const flaggedRefs = [];
 
   for (const b of candidates || []) {
-    const apptMs = appointmentTimestampMs(b.date, b.time);
+    if (b.return_visit_required === true) continue;
+    const apptMs = notificationAppointmentTimestampMs(b);
     if (apptMs == null) continue;                          // unparseable time → skip (conservative)
     if (now < apptMs + GRACE_MINUTES * 60000) continue;    // not past grace yet
 
-    // Fire exactly once per booking: skip if we already flagged it.
+    // A legacy activity marker was written even after a failed send. Only a
+    // successful owner email for this appointment/acceptance can stop retries.
     try {
       const { data: prior } = await sb
-        .from('activity_logs')
+        .from('notification_log')
         .select('id')
         .eq('booking_id', b.id)
-        .eq('event_type', 'no_show_flagged')
+        .eq('channel', 'email')
+        .eq('notification_type', 'no_show_alert')
+        .eq('recipient_type', 'owner')
+        .in('status', ['provider_accepted', 'sent', 'delivered', 'delivery_delayed'])
+        .gte('sent_at', new Date(Math.max(apptMs, Date.parse(b.assembler_accepted_at) || 0)).toISOString())
         .limit(1);
       if (prior && prior.length) continue;
     } catch (e) {
-      // activity_logs unavailable — fall back to email-system dedup below.
+      // Log lookup unavailable: the shared sender still reserves the event.
       console.warn('no-show dedup check skipped:', e.message);
     }
 
@@ -92,7 +102,23 @@ export default async function handler(req, res) {
     const customerPhone = formatUsPhone(b.customer_phone);
 
     try {
-      await sendEmail({
+      // Recheck the appointment/assignment immediately before the send. A scan
+      // is only a snapshot: arrival, cancellation or reassignment may have won.
+      const { data: current, error: currentError } = await sb.from('bookings')
+        .select('id')
+        .eq('id', b.id)
+        .in('status', [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.EN_ROUTE])
+        .eq('assembler_id', b.assembler_id)
+        .eq('assembler_accepted_at', b.assembler_accepted_at)
+        .eq('date', b.date)
+        .eq('time', b.time)
+        .is('checked_in_at', null)
+        .or('return_visit_required.is.null,return_visit_required.eq.false')
+        .maybeSingle();
+      if (currentError) throw currentError;
+      if (!current) continue;
+      const notificationKey = ['no-show', b.id, b.date, b.time, b.assembler_id, b.assembler_accepted_at].join(':');
+      const result = await sendEmail({
         to: ownerEmail(),
         from: 'AssembleAtEase System <booking@assembleatease.com>',
         subject: `Possible no-show — ${b.ref} (${easer})`,
@@ -116,25 +142,38 @@ export default async function handler(req, res) {
   </td></tr></table>
 </div></body></html>`,
         replyTo: ownerEmail(),
-        meta: { bookingId: b.id, notificationType: 'no_show_alert', recipientType: 'owner' },
+        meta: { bookingId: b.id, notificationType: 'no_show_alert', recipientType: 'owner', notificationKey, routine: false },
       });
 
-      logActivity(sb, {
+      if (!result?.ok) {
+        if (result?.deferred) { deferred++; continue; }
+        failed++;
+        await logActivity(sb, {
+          bookingId: b.id, eventType: 'no_show_alert_failed', actorType: 'system', actorName: 'no_show_check',
+          description: 'Possible no-show needs attention; owner email delivery was not confirmed. Review the delivery log.',
+          metadata: { notificationKey, error: result?.error || result?.reason || 'send_failed', assemblerId: b.assembler_id },
+        });
+        continue;
+      }
+      if (result.suppressed) continue;
+
+      await logActivity(sb, {
         bookingId: b.id,
         eventType: 'no_show_flagged',
         actorType: 'system',
         actorName: 'no_show_check',
-        description: `Possible no-show: ${b.assembler_name || 'Easer'} accepted but job still ${b.status} ${minsLate} min past appointment start. Owner alerted.`,
-        metadata: { minsLate, status: b.status, assemblerId: b.assembler_id },
+        description: `Possible no-show: ${b.assembler_name || 'Easer'} accepted but job still ${b.status} ${minsLate} min past appointment start. Owner email accepted for delivery.`,
+        metadata: { minsLate, status: b.status, assemblerId: b.assembler_id, notificationKey },
       });
 
       flagged++;
       flaggedRefs.push(b.ref);
     } catch (e) {
+      failed++;
       console.error('no-show alert error for ' + b.ref + ':', e);
     }
   }
 
-  await logCron('no-show-check', { status: 'ok', records: flagged, duration: Date.now() - t });
-  return res.status(200).json({ flagged, refs: flaggedRefs });
+  await logCron('no-show-check', { status: failed ? 'error' : 'ok', records: flagged, errorText: failed ? `${failed} owner notice(s) failed; retry required` : null, duration: Date.now() - t });
+  return res.status(200).json({ flagged, failed, deferred, refs: flaggedRefs });
 }

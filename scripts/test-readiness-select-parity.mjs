@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
+import { EASER_READINESS_FIELDS } from '../api/_easer-readiness-select.js';
+import { EASER_SUPPLY_SELECT } from '../api/owner/market-demand.js';
 
 // getEaserReadiness reads its fields off the profile row it is HANDED. It never
 // refetches. So a caller that forgets a column does not get an error — it gets a
@@ -23,6 +25,14 @@ const readColumns = new Set(
 );
 // Read through helpers rather than `profile.` directly.
 readColumns.add('account_closure_status');
+for (const rel of ['api/_easer-application-fee.js', 'api/_easer-closure.js']) {
+  const helper = await read(rel);
+  for (const match of helper.matchAll(/\bprofile\.([a-z_]+)/g)) readColumns.add(match[1]);
+}
+assert.deepEqual([...readColumns].filter(column => !EASER_READINESS_FIELDS.includes(column)), [],
+  'The canonical narrow readiness projection must cover every dependency, including delegated fee/closure fields');
+assert.deepEqual(EASER_READINESS_FIELDS.filter(column => !EASER_SUPPLY_SELECT.split(',').map(v => v.trim()).includes(column)), [],
+  'Constant-based market supply SELECT must include the complete readiness projection');
 
 assert.ok(readColumns.has('sms_consent_at'), 'sanity: readiness reads sms_consent_at');
 assert.ok(readColumns.size > 15, `sanity: expected a real column list, got ${readColumns.size}`);

@@ -1,5 +1,6 @@
 import { getSupabase } from './_supabase.js';
 import { normalizeUsPhone } from './_phone.js';
+import { prepareNotification, settleNotification } from './_notification-policy.js';
 
 /**
  * THE SMS sender. Every text the platform sends goes through here.
@@ -116,53 +117,57 @@ export async function sendSms({ recipient, body, meta = {} }) {
   // omit it by sending a longer body.
   const withOptOut = /\breply\s+stop\b/i.test(text) ? text : `${text} Reply STOP to opt out.`;
 
-  let providerId = null;
-  let status = 'provider_accepted';
-  let errorText = null;
-
+  const payload = {
+    from: (process.env.TELNYX_FROM_NUMBER || '').trim(),
+    to: eligible.phone,
+    text: withOptOut,
+  };
+  const profileId = (process.env.TELNYX_MESSAGING_PROFILE_ID || '').trim();
+  if (profileId) payload.messaging_profile_id = profileId;
+  const prepared = await prepareNotification(sb, {
+    channel: 'sms', recipient: eligible.phone, subject: withOptOut.slice(0, 160), meta,
+    payload: { kind: 'sms', body: payload, original: { body }, recipientId: recipient.id || null },
+  });
+  if (!prepared.claim) return prepared;
+  const claim = prepared.claim;
+  let providerId = null, status = 'provider_accepted', errorText = null, retryable = false;
   try {
-    const payload = {
-      from: (process.env.TELNYX_FROM_NUMBER || '').trim(),
-      to: eligible.phone,
-      text: withOptOut,
-    };
-    const profileId = (process.env.TELNYX_MESSAGING_PROFILE_ID || '').trim();
-    if (profileId) payload.messaging_profile_id = profileId;
-
     const resp = await fetch(TELNYX_API, {
-      method: 'POST',
+      method: 'POST', signal: AbortSignal.timeout(20000),
       headers: {
         Authorization: `Bearer ${(process.env.TELNYX_API_KEY || '').trim()}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(claim.payload.body),
     });
-
     const raw = await resp.text();
     let parsed = null;
     try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = null; }
-
     if (!resp.ok) {
-      status = 'failed';
-      errorText = (parsed?.errors || [])
-        .map(e => e?.detail || e?.title)
-        .filter(Boolean)
-        .join('; ') || `HTTP ${resp.status}`;
+      // Retry only an explicit rate-limit rejection. A server error could
+      // arrive after acceptance; without proven provider idempotency, hold it.
+      status = resp.status >= 500 ? 'uncertain' : 'failed';
+      retryable = resp.status === 429;
+      errorText = (parsed?.errors || []).map(e => e?.detail || e?.title)
+        .filter(Boolean).join('; ') || `HTTP ${resp.status}`;
     } else {
       providerId = parsed?.data?.id || null;
+      if (!providerId) {
+        status = 'uncertain';
+        errorText = 'SMS provider returned no message reference; verify delivery before retrying.';
+      }
     }
   } catch (err) {
-    status = 'failed';
-    errorText = err?.message || String(err);
+    status = 'uncertain';
+    errorText = `SMS delivery outcome unknown; verify provider before retrying. ${err?.message || String(err)}`;
   }
-
-  await logSms(sb, { meta, to: eligible.phone, body: withOptOut, status, errorText, providerId });
-
-  if (status === 'failed') {
-    console.error('[sms] send failed:', meta.notificationType, errorText);
-    return { ok: false, error: errorText };
+  const logged = await settleNotification(sb, claim, { status, providerId, error: errorText, retryable });
+  if (status !== 'provider_accepted') {
+    console.error('[sms] send not confirmed:', meta.notificationType, errorText);
+    return { ok: false, uncertain: status === 'uncertain', error: errorText,
+      retryScheduled: logged.ok && retryable && claim.attempt < 4, logged: logged.ok };
   }
-  return { ok: true, providerId };
+  return { ok: true, providerAccepted: true, deliveryStatus: status, providerId, logged: logged.ok, logError: logged.error };
 }
 
 /**

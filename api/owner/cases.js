@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { notificationNeedsAttention, notificationOwnerAction } from '../_notification-display.js';
 import {
   availableOperationCaseActions,
   isMissingOperationCasesError,
@@ -181,12 +182,14 @@ async function loadNotificationMap(sb, cases) {
     const summary = map.get(row.operation_case_id) || emptyNotificationSummary();
     summary.attempts += 1;
     if (['failed', 'bounced', 'complained', 'delivery_delayed'].includes(row.status)) summary.failed += 1;
+    if (notificationNeedsAttention(row.status)) summary.needsAttention += 1;
     if (!summary.latest) summary.latest = {
       type: row.notification_type,
       recipientType: row.recipient_type,
       status: row.status,
       error: row.error_text || null,
       sentAt: row.sent_at,
+      ownerAction: notificationOwnerAction(row.status),
     };
     map.set(row.operation_case_id, summary);
   }
@@ -288,7 +291,7 @@ function formatCaseEvent(row) {
 }
 
 function emptyNotificationSummary() {
-  return { attempts: 0, failed: 0, latest: null };
+  return { attempts: 0, failed: 0, needsAttention: 0, latest: null };
 }
 
 function caseLoadError(res, error) {

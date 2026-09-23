@@ -75,6 +75,10 @@
   ],
   "crons": [
     {
+      "path": "/api/cron/notification-retries",
+      "schedule": "*/10 * * * *"
+    },
+    {
       "path": "/api/cron/expire-offers",
       "schedule": "*/10 * * * *"
     },

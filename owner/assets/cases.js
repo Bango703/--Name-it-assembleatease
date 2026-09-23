@@ -319,7 +319,7 @@
           metaItemHtml('Easer', easerHtml) +
           bookingHtml +
           metaItem('Updated', formatDate(item.updatedAt)) +
-          metaItemHtml('Notifications', '<span class="cases-badge' + (notification.failed ? ' notification-failed' : '') + '">' + esc(latestNotification) + '</span><br>' + notification.attempts + ' attempt' + (notification.attempts === 1 ? '' : 's')) +
+          metaItemHtml('Notifications', '<span class="cases-badge' + ((notification.needsAttention || notification.failed) ? ' notification-failed' : '') + '">' + esc(latestNotification) + '</span><br>' + notification.attempts + ' attempt' + (notification.attempts === 1 ? '' : 's') + (notification.latest && notification.latest.ownerAction ? '<br>' + esc(notification.latest.ownerAction) : '')) +
           metaItem('Source', sourceLabel(item.source)) +
         '</div>' +
       '</div>' +

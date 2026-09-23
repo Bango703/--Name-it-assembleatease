@@ -122,6 +122,8 @@ export async function governedSend(recipients, sendOne, options = {}) {
     attempted: 0,
     sent: 0,
     failed: 0,
+    deferred: 0,
+    alreadySent: 0,
     retried: 0,
     skipped: Math.max(0, list.length - allowed),
     stoppedBy: null,
@@ -156,11 +158,13 @@ export async function governedSend(recipients, sendOne, options = {}) {
       } catch (err) {
         outcome = { ok: false, error: err?.message || String(err) };
       }
-      if (outcome.ok || !isRetryable(outcome) || attempt === RETRY_BACKOFF_MS.length) break;
+      if (outcome.ok || outcome.deferred || !isRetryable(outcome) || attempt === RETRY_BACKOFF_MS.length) break;
       result.retried++;
       await sleep(RETRY_BACKOFF_MS[attempt]);
     }
-    if (outcome?.ok) result.sent++;
+    if (outcome?.deferred) result.deferred++;
+    else if (outcome?.ok && outcome.suppressed) result.alreadySent++;
+    else if (outcome?.ok) result.sent++;
     else result.failed++;
   }
 
@@ -171,7 +175,9 @@ export async function governedSend(recipients, sendOne, options = {}) {
 // never have to infer from a raw count that a send was cut short.
 export function describeGovernedRun(r) {
   if (!r) return '';
-  const base = `${r.sent} sent, ${r.failed} failed`;
+  const base = `${r.sent} sent, ${r.failed} failed`
+    + (r.deferred ? `, ${r.deferred} queued` : '')
+    + (r.alreadySent ? `, ${r.alreadySent} previously sent` : '');
   if (r.stoppedBy === 'daily_ceiling') {
     return `${base}. ${r.skipped} not sent — the platform 24-hour email ceiling (${r.ceiling}) was reached. They were NOT dropped silently; re-run after the window clears or raise EMAIL_DAILY_CEILING deliberately.`;
   }

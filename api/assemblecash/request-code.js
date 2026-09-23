@@ -2,7 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { rateLimitKey } from '../_ratelimit.js';
 import { isValidPromoEmail } from '../_promotions.js';
-import { normalizeEmail, generateAndStoreCode, ASSEMBLECASH } from '../_assemblecash.js';
+import { normalizeEmail, generateAndStoreCode, hashCode, ASSEMBLECASH } from '../_assemblecash.js';
 
 /**
  * POST /api/assemblecash/request-code  { email }
@@ -38,6 +38,8 @@ export default async function handler(req, res) {
       to: email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Your AssembleCash code: ${code}`,
+      meta: { notificationType: 'assemblecash_access_code', recipientType: 'customer',
+        verificationCodeHash: hashCode(code), expiresAt: new Date(Date.now() + 5 * 60000).toISOString() },
       replyTo: ownerEmail(),
       html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head>
 <body style="margin:0;background:#f4f7f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#0d2430">

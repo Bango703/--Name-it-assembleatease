@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { prepareNotification } from '../api/_notification-policy.js';
 import {
   OPERATION_CASE_STATUSES,
   availableOperationCaseActions,
@@ -209,8 +210,26 @@ assert.match(contactApi, /sourceRef: payload\.requestId \|\| caseRef/);
 assert.match(contactApi, /caseRef = operationCase\.case_ref/);
 assert.match(contactApi, /appendOperationCaseEvent/);
 assert.doesNotMatch(contactApi, /api\.resend\.com/);
-assert.match(emailHelper, /operation_case_id: meta\.operationCaseId \|\| null/);
-assert.match(emailHelper, /delete legacyPayload\.operation_case_id/);
+assert.match(emailHelper, /prepareNotification\(sb/);
+assert.match(emailHelper, /meta: context/);
+// The shared delivery policy now creates the log record atomically. Prove that
+// case linkage reaches that reservation instead of accepting a matching comment
+// or requiring the removed best-effort legacy insert implementation.
+let notificationReservation;
+const notificationResult = await prepareNotification({
+  async rpc(name, args) {
+    assert.equal(name, 'reserve_notification_send_v1');
+    notificationReservation = args;
+    return { data: { action: 'deferred', reason: 'fixture_timing_policy' }, error: null };
+  },
+}, {
+  channel: 'email', recipient: 'customer@example.com', subject: 'Case update',
+  meta: { operationCaseId: validUuid, notificationType: 'case_update', recipientType: 'customer' },
+  payload: { kind: 'email' },
+});
+assert.equal(notificationReservation.p_log.operation_case_id, validUuid);
+assert.equal(notificationResult.ok, false);
+assert.equal(notificationResult.deferred, true);
 assert.match(contactUi, /contactSubmissionId/);
 assert.match(contactUi, /requestId:contactSubmissionId/);
 
