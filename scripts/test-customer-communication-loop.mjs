@@ -70,4 +70,20 @@ assert.match(easer, /customer-photos\?bookingId/);
     'only raised while there is still time to act on it');
 }
 
+// ── A typed message must arrive shaped the way it was written ──────────────
+// esc() leaves line breaks alone and HTML collapses them, so every message the
+// owner typed with paragraphs arrived as one run-on block. Reported as
+// "no matter how i type message it always sends jammed up".
+{
+  const relay = await read('api/booking/message.js');
+  // Plain substring checks on purpose: the thing under test is itself a regex,
+  // and asserting a regex with a regex is how the first version of this broke.
+  assert.ok(relay.includes('esc(messageText).replace('),
+    'line breaks must be converted AFTER escaping, so nothing typed can inject markup');
+  assert.ok(relay.includes("'<br>'"),
+    'line breaks must become <br>; Outlook ignores white-space:pre-wrap');
+  assert.ok(!relay.includes('esc(messageText.replace'),
+    'escape first, then add the breaks, or the breaks are escaped into visible text');
+}
+
 console.log('Customer communication loop regression tests passed.');

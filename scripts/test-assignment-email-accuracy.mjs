@@ -40,11 +40,16 @@ const feePct = getPlatformFeePct(false);
 const subtotal = 39400;
 const tax = 3251;
 const split = computeBookingSplitFromSnapshot({ totalPriceCents: subtotal + tax, taxCents: tax, feePct });
+// nowMs is pinned. Without it this fixture drifted into "the job is today" as
+// real time passed the appointment date, and the email's wording depends on
+// how far away the job is.
+const FAR_FUTURE_NOW = new Date('2026-09-01T09:00:00-05:00').getTime();
 const html = buildAssignmentEmail({
   firstName: 'Travis', service: 'Outdoor & Playsets', date: '2026-09-24',
   time: '8:00 AM – 10:00 AM', estimatedPayCents: split.assemblerDueCents,
   acceptUrl: 'https://x/a', declineUrl: 'https://x/d', ref: 'AAE-DVSNHXE4OO',
   offerLocation: deriveOfferLocation('14 BURGESS BEND WAY, SPRING, TX 77389'),
+  nowMs: FAR_FUTURE_NOW,
 });
 assert.equal((html.match(/\$\{/g) || []).length, 0, 'no unrendered placeholder may reach a real inbox');
 const text = strip(html);
@@ -57,6 +62,34 @@ assert.match(text, new RegExp(`phone number unlocks ${CONTACT_RELEASE_LEAD_HOURS
 assert.doesNotMatch(text, /Customer contact and exact address are shown after acceptance/,
   'the sentence that promised contact at acceptance must not come back');
 assert.match(text, /\$275\.80/, 'earnings must be the canonical 70% of the pre-tax subtotal');
+
+// ── The email must not state tomorrow's rules on today's job ───────────────
+// An Easer was assigned a job starting in three hours and told to "respond
+// within 24 hours" and that the phone "unlocks 24 hours before" — a mark that
+// had already passed. Both read as false to the person holding the job.
+{
+  const soonNow = new Date('2026-09-24T05:00:00-05:00').getTime(); // 3h before
+  const soon = strip(buildAssignmentEmail({
+    firstName: 'Travis', service: 'Outdoor & Playsets', date: '2026-09-24',
+    time: '8:00 AM – 10:00 AM', estimatedPayCents: split.assemblerDueCents,
+    acceptUrl: 'https://x/a', declineUrl: 'https://x/d', ref: 'AAE-DVSNHXE4OO',
+    offerLocation: deriveOfferLocation('14 BURGESS BEND WAY, SPRING, TX 77389'),
+    nowMs: soonNow,
+  }));
+  assert.match(soon, /Today at 8:00 AM/, 'a job today says today, not its calendar date');
+  assert.match(soon, /phone number are yours the moment you accept/,
+    'inside the release window the number is already available — do not promise it later');
+  assert.doesNotMatch(soon, new RegExp(`unlocks ${CONTACT_RELEASE_LEAD_HOURS} hours before`),
+    'that mark has already passed for a same-day job');
+  assert.doesNotMatch(soon, /respond within 24 hours/,
+    'the job happens before the 24 hours do');
+  assert.match(soon, /accept or decline now/, 'say what the Easer should actually do');
+}
+
+// Far out, the standing rules are the true ones and must stay.
+assert.match(text, /respond within 24 hours/, 'a distant job keeps the 24-hour response rule');
+assert.doesNotMatch(text, /may be reassigned/,
+  'stale-booking releases the assignment back to the office; it does not hand it to someone else');
 
 // ── Customer emails must not assert a cancellation cause that may be false ─
 // computeCancellationFee returns $0 unless an Easer ACCEPTED, so "because a pro
