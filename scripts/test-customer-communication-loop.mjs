@@ -44,4 +44,30 @@ assert.match(owner, /customer-photos\?bookingId/);
 assert.match(owner, /Customer Photos \(Private\)/);
 assert.match(easer, /customer-photos\?bookingId/);
 
+// ── An Easer's question must reach the customer, and be chased if ignored ──
+// An Easer asked for a photo of the item, the relay went out by email only, the
+// customer never opened it, and the job reached the day before anyone noticed.
+{
+  const relay = await read('api/booking/message.js');
+  assert.match(relay, /sendSms\(\{/, 'the relay must also text the customer');
+  assert.match(relay, /sms_consent_at: booking\.sms_consent_at/,
+    'the text goes only where consent was given at checkout');
+  assert.match(relay, /sms_opted_out_at: booking\.sms_opted_out_at/,
+    'and never after an opt-out');
+  assert.doesNotMatch(relay, /body: `AssembleAtEase: \$\{relayFirstName\} sent a question[^`]*\$\{sBody\}/,
+    'the message body stays in the email; the text is only a doorbell');
+  assert.match(relay, /smsDelivery:/,
+    'the timeline must record the text outcome separately from the email');
+
+  const liveOps = await read('api/owner/live-ops.js');
+  assert.match(liveOps, /customer_relay_unanswered/,
+    'an unanswered question before a visit must reach the owner');
+  assert.match(liveOps, /RELAY_GRACE_MS/,
+    'a question asked minutes ago is not yet unanswered');
+  assert.match(liveOps, /if \(replyAt > relayAt\) return;/,
+    'any customer reply after the question closes it');
+  assert.match(liveOps, /hoursUntil > 48/,
+    'only raised while there is still time to act on it');
+}
+
 console.log('Customer communication loop regression tests passed.');
