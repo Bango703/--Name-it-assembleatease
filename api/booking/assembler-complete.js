@@ -6,7 +6,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot, SALES_TAX_RATE } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot, SALES_TAX_RATE, PAYOUT_HOLD_HOURS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
@@ -452,7 +452,7 @@ export default async function handler(req, res) {
         statusBg: '#d1fae5',
         headline: `Your job is complete, ${esc((booking.customer_name || '').split(' ')[0])}.`,
         bodyHtml: `
-          <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> has been completed. Thank you for choosing AssembleAtEase!</p>
+          <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> has been completed. Thank you for choosing AssembleAtEase.</p>
           ${photoBlock}
           ${receiptBlock}
           ${buildReviewCta()}
@@ -470,22 +470,35 @@ export default async function handler(req, res) {
         to: asmProfile.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Job complete — here's what you earned (${booking.ref})`,
-        html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
-    <p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#065f46">&#10003; Job Marked Complete</p>
-    <p style="margin:0 0 20px;font-size:14px;color:#52525b">Booking <strong>${esc(booking.ref)}</strong> &mdash; ${esc(booking.service)}</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:16px"><tr><td style="padding:16px 20px">
-      <p style="margin:0 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#166534">Payout Amount</p>
-      <p style="margin:0;font-size:24px;font-weight:700;color:#065f46">$${(assemblerDue/100).toFixed(2)}</p>
-      <p style="margin:6px 0 0;font-size:13px;color:#166534">Status: Pending</p>
+        // A FRAGMENT, not a full document. This email used to start with
+        // <!DOCTYPE html>, which makes sendEmail's shared frame skip it — so the
+        // one email an Easer gets about their money arrived with no logo, no
+        // footer and no contact block, while the owner's notice beside it got
+        // the full frame. Handing over a fragment puts it back in the house
+        // style and keeps the branding in one place.
+        html: `
+    <p style="margin:0 0 6px;font-size:13px;color:#71717a">${esc(booking.ref)} &bull; ${esc(booking.service)}</p>
+    <p style="margin:0 0 22px;font-size:20px;font-weight:700;color:#1a1a1a">Nice work. Here is what you earned.</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-bottom:18px"><tr><td style="padding:20px 22px;text-align:center">
+      <p style="margin:0 0 2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#166534">Your payout</p>
+      <p style="margin:0;font-size:30px;font-weight:700;color:#065f46;letter-spacing:-0.02em">$${(assemblerDue / 100).toFixed(2)}</p>
+      ${sameDay.bonusCents > 0 ? `<p style="margin:8px 0 0;font-size:13px;color:#166534">Includes a $${(sameDay.bonusCents / 100).toFixed(2)} same-day bonus</p>` : ''}
     </td></tr></table>
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin-bottom:14px"><tr><td style="padding:12px 16px;font-size:13px;color:#0c4a6e;line-height:1.6">
-      Your payout is now <strong>Pending</strong>. Track its current status on your Earnings page. We will email you when it is complete.
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:20px">
+      <tr><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Status today</td><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;font-weight:600;text-align:right">Pending</td></tr>
+      <tr><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Released</td><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;font-weight:600;text-align:right">${PAYOUT_HOLD_HOURS} hours after completion</td></tr>
+      <tr><td style="padding:9px 0;color:#71717a">Paid by</td><td style="padding:9px 0;font-weight:600;text-align:right">${isStripeConnectEnabled() ? 'Direct deposit' : 'AssembleAtEase, arranged with you'}</td></tr>
+    </table>
+
+    <p style="margin:0 0 18px;font-size:13.5px;color:#52525b;line-height:1.7">We email you when it is sent.</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:6px"><tr><td style="text-align:center;padding:4px 0">
+      <a href="https://www.assembleatease.com/assembler/payouts.html" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">See my earnings</a>
     </td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Contact <a href="mailto:${ownerEmail()}" style="color:#00BFFF">${ownerEmail()}</a>.</p>
-  </td></tr></table>
-</div></body></html>`,
+
+    <p style="margin:16px 0 0;font-size:13px;color:#71717a;line-height:1.6">Something look wrong? Reply to this email and we will check it.</p>`,
       });
     }
   } catch (e) { console.error('Assembler payout email error:', e); }

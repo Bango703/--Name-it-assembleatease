@@ -175,8 +175,28 @@ assert.match(assignmentsApi, /New job offers are temporarily paused/);
 
 assert.match(statusApi, /return res\.status\(200\)\.json\(\{ ok: true, stage, label \}\)/);
 assert.doesNotMatch(completionApi, /reconciliationRequired|destinationAccount|Total charged to customer|Platform fee \(/);
-assert.match(completionApi, /Payout Amount/);
-assert.match(completionApi, /Status: Pending/);
+// The Easer sees their own number and its state, never the customer's price or
+// the platform's cut — that boundary is the doesNotMatch above and it holds.
+assert.match(completionApi, /Your payout/);
+assert.match(completionApi, /Status today[\s\S]{0,240}Pending/);
+// And it must say WHEN. "Pending" with no timeframe was the Easer's first
+// question after every job; the hold is a real number, so quote it.
+assert.match(completionApi, /\$\{PAYOUT_HOLD_HOURS\} hours after completion/);
+assert.match(completionApi, /We email you when it is sent/);
+// It is a fragment so it inherits the shared frame. A full document would skip
+// it, which is how this email ended up with no logo and no footer.
+{
+  // Look at what the template STARTS with, not the surrounding prose: the
+  // comment above it mentions <!DOCTYPE html> precisely because that is the
+  // thing being avoided, and the first version of this assertion caught the
+  // comment instead of the code.
+  const from = completionApi.indexOf("here's what you earned");
+  assert.ok(from > 0, 'the payout email must still be findable');
+  const opener = completionApi.indexOf('html: `', from);
+  assert.ok(opener > from, 'the payout email must pass an html template');
+  assert.doesNotMatch(completionApi.slice(opener, opener + 60), /<!DOCTYPE/,
+    'the payout email must be a fragment so it inherits the shared frame');
+}
 
 const dropResponse = dropApi.slice(dropApi.lastIndexOf('return res.status(200).json'));
 assert.match(dropResponse, /You will not receive further updates for this assignment/);
