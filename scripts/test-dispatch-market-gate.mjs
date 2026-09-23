@@ -29,6 +29,7 @@ import {
   SERVICE_MARKETS,
   marketForZip,
   isSameServiceMarket,
+  isAutomaticDispatchZip,
 } from '../api/_source-of-truth.js';
 
 let failures = 0;
@@ -125,4 +126,48 @@ if (failures) {
   console.log(failures + ' FAILED');
   process.exit(1);
 }
+// ── San Antonio opened for auto-dispatch on 2026-09-23 ─────────────────────
+// Two ready Easers live in that market, which is the condition the widening
+// note requires. The danger in widening is not the market check — that is
+// already enforced — it is the ZIP prefix used to open it.
+check('San Antonio proper auto-dispatches', () => {
+  assert.equal(isAutomaticDispatchZip('78209'), true);
+  assert.equal(isAutomaticDispatchZip('78258'), true);
+});
+
+check('the metro towns named by ZIP auto-dispatch', () => {
+  for (const zip of ['78006', '78015', '78108', '78130', '78132', '78148', '78154']) {
+    assert.equal(isAutomaticDispatchZip(zip), true, `${zip} should auto-dispatch`);
+  }
+});
+
+// The whole reason '780' is not a prefix. Laredo is 78040-78046 and roughly 150
+// miles from San Antonio; opening the prefix would have auto-offered a Laredo
+// job to a San Antonio Easer.
+check('LAREDO never auto-dispatches', () => {
+  for (const zip of ['78040', '78041', '78043', '78045', '78046']) {
+    assert.equal(isAutomaticDispatchZip(zip), false, `${zip} is Laredo and must stay manual`);
+  }
+});
+
+check('Kerrville was not opened by accident', () => {
+  assert.equal(isAutomaticDispatchZip('78028'), false);
+});
+
+check('Austin and its suburbs are unchanged', () => {
+  assert.equal(isAutomaticDispatchZip('78759'), true);
+  assert.equal(isAutomaticDispatchZip('78660'), true);
+});
+
+// KNOWN AND DELIBERATELY NOT FIXED HERE: SERVICE_MARKETS.san_antonio contains
+// '780', so isSameServiceMarket treats a Laredo booking and a San Antonio Easer
+// as one market. Auto-dispatch can no longer act on it, but an owner pressing
+// Dispatch Now on a Laredo job still would. Narrowing that list touches the
+// market grouping the 2026-09-23 market-area work just rebuilt, so it is a
+// separate change. This assertion records the state as it is, so tightening it
+// later is a deliberate edit rather than a surprise.
+check('Laredo still shares a market with San Antonio (known, tracked)', () => {
+  assert.equal(isSameServiceMarket('78040', '78209'), true);
+});
+
 console.log('all dispatch market gate checks passed');

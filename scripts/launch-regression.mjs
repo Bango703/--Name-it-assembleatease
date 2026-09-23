@@ -51,12 +51,19 @@ assert.equal(isActiveInstantBookingZip('77002'), true, 'Houston books (then wait
 assert.equal(isActiveInstantBookingZip('79901'), true, 'El Paso books (then waits for owner assignment)');
 assert.equal(isActiveInstantBookingZip('88510'), true, 'El Paso 885 ZIPs book');
 assert.equal(isActiveInstantBookingZip('90210'), false, 'A non-Texas ZIP must never take a booking');
-// The load-bearing safety guarantee: only Austin auto-dispatches. If this ever
-// widens to match statewide booking, far-market jobs would blast to Austin
-// Easers. Everything outside Austin must require owner-managed assignment.
+// The load-bearing safety guarantee: auto-dispatch is NOT statewide. It covers
+// only markets with ready local Easers, so a far-market job can never blast to
+// an Easer hours away. Austin from the start; San Antonio added 2026-09-23 once
+// two ready Easers lived there. Everywhere else still waits for the owner.
 assert.equal(isAutomaticDispatchZip('78701'), true, 'Austin auto-dispatches');
 assert.equal(isAutomaticDispatchZip('78664'), true, 'Austin metro list auto-dispatches');
-assert.equal(isAutomaticDispatchZip('78205'), false, 'San Antonio must wait for owner assignment');
+assert.equal(isAutomaticDispatchZip('78205'), true, 'San Antonio auto-dispatches (opened 2026-09-23)');
+assert.equal(isAutomaticDispatchZip('78006'), true, 'Boerne is in the San Antonio metro list');
+// Laredo shares San Antonio's 780 prefix and is ~150 miles away, which is why
+// the market was opened by the 782 prefix plus named metro ZIPs rather than by
+// opening 780 wholesale.
+assert.equal(isAutomaticDispatchZip('78040'), false, 'Laredo must wait for owner assignment');
+assert.equal(isAutomaticDispatchZip('78045'), false, 'Laredo must wait for owner assignment');
 assert.equal(isAutomaticDispatchZip('75201'), false, 'Dallas must wait for owner assignment');
 assert.equal(isAutomaticDispatchZip('77002'), false, 'Houston must wait for owner assignment');
 assert.equal(isAutomaticDispatchZip('79901'), false, 'El Paso must wait for owner assignment');
