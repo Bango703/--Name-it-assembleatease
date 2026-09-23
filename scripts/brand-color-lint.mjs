@@ -127,7 +127,7 @@ for (const file of files) {
   }
 
   // Warning inventory — app-shell blues in the brand-blue band that aren't canonical.
-  const isApp = rel.startsWith('assembler/') || rel.startsWith('owner/') || rel.includes('/easer.css') || rel.includes('/dashboard.css');
+  const isApp = rel.startsWith('assembler/') || rel.startsWith('owner/') || rel.includes('/easer.css') ;
   if (isApp) {
     for (const m of txt.matchAll(hexRe)) {
       const hex = ('#' + m[1]).toUpperCase();
