@@ -219,7 +219,7 @@ Think like Travis is about to accept his first real customer tomorrow. Protect c
 > decides **what is structurally allowed to exist.** A change that violates it is wrong
 > even if it works, even if it ships, and even if a seat approved it.
 
-### The 15 Articles
+### The 17 Articles
 
 1. **One owner for every business rule.** A rule lives in exactly one module.
 2. **One source of truth for every authoritative datum.**
@@ -252,6 +252,43 @@ booking status that meant nothing of the kind.
 - Never invent a cause. Show the server's reason, or say the reason is unknown.
 - Never show a raw API instruction, stack trace, or parser error to the owner.
 - A generic message where a specific one exists is a **P1 defect**, not polish.
+
+### Article 17 — Know, or find out. Never guess.
+
+Article 16 binds the UI. This one binds whoever is working in this repo, agent or
+human. **If a claim can be checked here, check it before saying it.** grep it,
+read the file, diff the two pages, count the matches. An answer that sounds right
+is not an answer.
+
+Three from 2026-09-22, all in one session:
+
+- **Four Live Ops alerts** said four Easers could not receive jobs, blocked on
+  job texts. The plausible reading was that none of them had consented. Reading
+  the code instead showed `api/owner/live-ops.js` never selected
+  `sms_consent_at`, and `getEaserReadiness` reads its fields off the row it is
+  handed, so that requirement computed as unmet for **every** Easer regardless of
+  consent. The alerts were false. Acting on the plausible reading would have sent
+  the owner chasing four people about consent they may already have given.
+  `scripts/test-readiness-select-parity.mjs` now holds that class shut.
+- **"How does marketing look for San Antonio?"** was answered "you have San
+  Antonio URLs, not San Antonio marketing", from looking at one page. Wrong: 192
+  files reference San Antonio, six service pages exist, each with `Service` and
+  `areaServed` schema and localized FAQ. The owner pushed back and the correction
+  came from counting. One example is not a measurement.
+- **"You broke the layout when you added that photo."** The answer required
+  checking rather than apologising or denying: no commit in seven days added an
+  image, and the change was sitting in 58 uncommitted files from another session.
+
+The rules that follow from it:
+
+- Count before characterising. One file is an anecdote.
+- "Probably", "should be", "I believe" about this codebase means the work is not
+  finished. Go and look.
+- When something genuinely cannot be checked from here (live rows, a rendered
+  page on a real device, production data), say which part is unverified and why,
+  and never dress inference as fact.
+- A confident wrong answer costs more than a slow one, because the owner acts on
+  it.
 
 ### Critical modules (Article 10)
 
