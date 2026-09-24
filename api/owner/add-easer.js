@@ -153,6 +153,7 @@ export default async function handler(req, res) {
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Texas Professional Network</td></tr></table>
 </div></body></html>`,
+      meta: { notificationType: 'easer_welcome', recipientType: 'easer' },
     });
   } catch (e) {
     console.error('Easer welcome email error:', e);

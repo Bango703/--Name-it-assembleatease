@@ -28,6 +28,19 @@ assert.ok(isFullEmailDocument(fullDoc), 'buildStatusEmail returns a full documen
 assert.equal(ensureEmailShell(fullDoc, 'customer'), fullDoc,
   'an email that already has a shell must pass through byte-for-byte');
 
+// ── A bespoke full document still owes the reader a footer ────────────────
+// Six hand-rolled customer/Easer emails shipped with no phone number, no
+// contact address and no opt-out, because pass-through passed the footer
+// through too. Their layout is theirs; the footer is the house's.
+const bespoke = '<!DOCTYPE html><html><head></head><body><div>Your code is 123456.</div></body></html>';
+const framed = ensureEmailShell(bespoke, 'customer');
+assert.match(framed, /232-5139/, 'an external full document must still carry the contact footer');
+assert.ok(framed.indexOf('232-5139') < framed.lastIndexOf('</body>'),
+  'the footer belongs inside the document, not trailing after </body>');
+assert.equal(ensureEmailShell(bespoke, 'owner'), bespoke,
+  'the owner keeps byte-for-byte pass-through; these are operator alerts');
+assert.match(framed, /opt out/, 'and the opt-out line travels with it');
+
 // ── The opt-out line goes to people who can actually opt out ───────────────
 assert.match(ensureEmailShell(fragment, 'customer'), /opt out/,
   'customers must be told how to opt out of non-essential email');
@@ -36,9 +49,12 @@ assert.doesNotMatch(ensureEmailShell(fragment, 'owner'), /opt out/,
 
 // ── sendEmail is the enforcement point, not each caller ────────────────────
 const emailSrc = await read('api/_email.js');
-assert.match(emailSrc, /html: ensureEmailShell\(html, recipientType, meta\.preheader\)/,
+// Assert the behaviour, not the identifier. Pinning the exact variable name
+// broke this test the moment a CAN-SPAM footer had to be appended before
+// framing, which was a correct change failing on a cosmetic assertion.
+assert.match(emailSrc, /html: ensureEmailShell\(\w+, recipientType, meta\.preheader\)/,
   'sendEmail must frame the html it sends — per-caller discipline is what failed');
-assert.match(emailSrc, /text: htmlToText\(html\)/,
+assert.match(emailSrc, /text: htmlToText\(\w+\)/,
   'every email needs a text/plain alternative; HTML-only mail scores worse and reads badly on watches and screen readers');
 
 // ── The inbox preview line ─────────────────────────────────────────────────

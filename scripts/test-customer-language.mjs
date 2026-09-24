@@ -135,7 +135,36 @@ for (const file of await jsFiles(join(ROOT, 'api'))) {
   const src = await readFile(file, 'utf8');
   for (const call of src.matchAll(SENDERS)) {
     const block = callSource(src, src.indexOf('(', call.index));
+    const recipientExpr = (block.match(/\b(?:to|recipient)\s*:\s*([^,\n]+)/) || [])[1] || '';
+    const goesToOwner = /ownerEmail\(\)/.test(recipientExpr);
+    // Labelled at all, versus labelled with a value we can classify here. A
+    // dynamic `recipientType: recipient.type` is a real label — the send is
+    // attributable at runtime — it simply cannot be sorted into customer or
+    // Easer copy rules from source, so it is exempt from those, not from this.
+    const labelled = /recipientType\s*:/.test(block);
     const who = block.match(/recipientType:\s*'([a-z_]+)'/);
+
+    // Not every match is a send site. The shared modules ARE the send function,
+    // and several callers inject it (`email = options => sendEmail(options)`)
+    // or fan out a payload built elsewhere. Those forward someone else's meta;
+    // the label belongs at the real call, which this loop reaches separately.
+    const forwards = !recipientExpr
+      || /^\s*(options|message|payload|body)\s*$/.test(recipientExpr)
+      || /=>\s*send/.test(src.slice(Math.max(0, call.index - 60), call.index));
+    const sharedModule = /[\\/]_[a-z-]+\.js$/.test(file);
+    // A meta built above the call (`meta` shorthand, or `meta: someVar`) is
+    // still a label; it just is not written inline.
+    const metaByReference = /\bmeta\s*[,}]/.test(block) || /meta:\s*[A-Za-z_$][\w$]*\s*[,}]/.test(block);
+
+    // An unlabelled send is not merely badly logged — it is INVISIBLE to every
+    // check below, because they all key on recipientType. That is how
+    // "Your existing payment authorization has not changed; capture occurs
+    // only after completion" sat in a customer email while this guard passed.
+    // Anything not addressed to the owner must say who it is for.
+    if (!labelled && !goesToOwner && !forwards && !sharedModule && !metaByReference) {
+      failures.push(`${relative(ROOT, file)}:${src.slice(0, call.index).split('\n').length} sends to "${recipientExpr.trim()}" with no recipientType — an unlabelled send escapes every copy rule here`);
+      continue;
+    }
     if (!who || !['customer', 'easer'].includes(who[1])) continue;
     // Only string literals; identifiers and object keys are not copy.
     const literals = block.match(/`[^`]*`|'[^']*'|"[^"]*"/g) || [];

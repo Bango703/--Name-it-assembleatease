@@ -113,6 +113,7 @@ export default async function handler(req, res) {
       subject: 'Your Booking Request — ' + booking.ref,
       html,
       replyTo: ownerEmail(),
+      meta: { bookingId: booking.id, notificationType: 'booking_declined', recipientType: 'customer' },
     });
   } catch (emailErr) {
     console.error('Decline email error:', emailErr);

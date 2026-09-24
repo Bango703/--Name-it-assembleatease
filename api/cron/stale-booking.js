@@ -109,6 +109,7 @@ export default async function handler(req, res) {
 <p>The customer booking remains confirmed and is now flagged for manual reassignment. Please log in and assign a replacement as soon as possible.</p>
 <p>Job date: <strong>${esc(formatAppointmentDate(b.date))}</strong> at ${esc(b.time)}</p>`,
         replyTo: ownerEmail(),
+        meta: { bookingId: b.id, notificationType: 'booking_needs_reassignment', recipientType: 'owner' },
       });
 
       // Reassure customer there is no disruption
@@ -122,12 +123,13 @@ export default async function handler(req, res) {
     <p style="margin:0 0 8px;font-size:18px;font-weight:700">Hi ${esc((b.customer_name||'').split(' ')[0])},</p>
     <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">We're making a quick adjustment to your upcoming booking (<strong>${esc(b.ref)}</strong>) and are assigning a new Easer. Your appointment date and time remain unchanged.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#166534;line-height:1.6">
-      Your booking remains secure and confirmed.<br/>You will receive an updated Easer confirmation after reassignment.<br/>Your existing payment authorization has not changed; capture occurs only after completion.
+      Your booking is still confirmed.<br/>We will email you once your new Easer is set.<br/>The hold on your card is unchanged. You are charged after the work is done.
     </td></tr></table>
     <p style="margin:0;font-size:13px;color:#71717a">Questions? Reply to this email or call us at (979) 232-5139.</p>
   </td></tr></table>
 </div></body></html>`,
         replyTo: ownerEmail(),
+        meta: { bookingId: b.id, notificationType: 'booking_reassignment_notice', recipientType: 'customer' },
       });
 
       autoRequeued++;
