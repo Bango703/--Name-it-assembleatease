@@ -135,6 +135,7 @@ export default async function handler(req, res) {
       subject: 'Booking Confirmed — ' + booking.ref,
       html,
       replyTo: ownerEmail(),
+      meta: { bookingId: booking.id, notificationType: 'booking_confirmed', recipientType: 'customer' },
     });
   } catch (emailErr) {
     console.error('Confirm email error:', emailErr);

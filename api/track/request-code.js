@@ -54,6 +54,7 @@ export default async function handler(req, res) {
   </div>
   <p style="text-align:center;margin:14px 0 0;font-size:12px;color:#9aa7ad">AssembleAtEase &middot; (979) 232-5139</p>
 </div></body></html>`,
+      meta: { notificationType: 'track_access_code', recipientType: 'customer' },
     });
   } catch (e) {
     console.error('Track code email error:', e && (e.message || e));

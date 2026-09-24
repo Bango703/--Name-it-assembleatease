@@ -223,6 +223,7 @@ export default async function handler(req, res) {
     <p style="font-size:13px;color:#71717a;line-height:1.6">Log in to the Stripe dashboard to manually capture or re-attempt payment. If the card was declined, contact the customer directly at <a href="mailto:${esc(booking.customer_email)}" style="color:#00BFFF">${esc(booking.customer_email)}</a>.</p>
   </td></tr></table>
 </div></body></html>`,
+          meta: { bookingId: booking.id, notificationType: 'payment_capture_failed', recipientType: 'owner' },
         });
       } catch (alertErr) { console.error('Capture failure alert error:', alertErr); }
 

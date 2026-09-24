@@ -280,6 +280,7 @@ export default async function handler(req, res) {
           subject: 'You are invited to join AssembleAtEase',
           replyTo: 'service@assembleatease.com',
           html: buildInviteEmail(firstName, inviteUrl, entry.city, entry.state),
+          meta: { notificationType: 'waitlist_invite', recipientType: 'easer' },
         });
       } catch (emailErr) {
         console.error('Invite email error:', emailErr);

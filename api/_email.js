@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'crypto';
 import { getSupabase } from './_supabase.js';
 import { prepareNotification, settleNotification } from './_notification-policy.js';
+import { unsubscribeUrl, broadcastFooter, normalizeEmail as normalizeSuppressionEmail } from './_broadcast.js';
 import { createHmac, randomBytes } from 'crypto';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -21,6 +22,31 @@ const CRITICAL_NOTIFICATION_TYPES = new Set([
   'payment_failed',
   'capture_failed',
   'dispatch_offer',
+]);
+
+/**
+ * Mail a person did not ask for on this occasion. CAN-SPAM applies: it needs a
+ * one-click unsubscribe, a physical postal address, and it must never reach
+ * someone already on the opt-out list.
+ *
+ * email_suppressions existed and was honoured in exactly ONE place —
+ * api/owner/broadcast.js — so every other re-engagement send could email a
+ * person who had already unsubscribed. The check belongs here, in the one
+ * function they all go through, not in each caller that remembers.
+ *
+ * Transactional mail is deliberately absent. Someone who opts out of marketing
+ * must still receive their own booking confirmation and receipts.
+ */
+const MARKETING_NOTIFICATION_TYPES = new Set([
+  'customer_rebook_invite',
+  'rebook_payment_method_requested',
+  'rebook_card_saved',
+  'review_request',
+  'followup',
+  'waitlist_invite',
+  'broadcast',
+  'broadcast_test',
+  'announcement',
 ]);
 
 const BULK_NOTIFICATION_TYPES = new Set([
@@ -104,15 +130,51 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
     : recipientEmail === normalizeEmail(ownerEmail()) ? 'owner' : 'unknown';
   const context = { ...meta, notificationType, recipientType,
     dedupeWindowMin: meta.dedupeWindowMin ?? DEDUPE_WINDOWS_MIN[priority] };
+  const isMarketing = MARKETING_NOTIFICATION_TYPES.has(notificationType) && recipientType !== 'owner';
+  const sb = getSupabase();
+
+  // Opt-out is honoured HERE, for every caller. Checked before anything is
+  // built or claimed, so an unsubscribed address costs nothing and leaves no
+  // half-written log row. A failed lookup refuses the send rather than
+  // guessing: mailing someone who opted out cannot be undone.
+  // An unsubscribe link is signed with UNSUBSCRIBE_SECRET (or CRON_SECRET).
+  // With neither set the token is empty and /api/unsubscribe rejects every
+  // click, so the mail would carry an opt-out that silently does nothing.
+  // Refuse to send rather than ship a dead unsubscribe: a misconfigured
+  // environment must not be able to put unopt-outable marketing in an inbox.
+  if (isMarketing && !/&t=.+$/.test(unsubscribeUrl(recipientEmail))) {
+    console.error('[email] marketing send blocked: UNSUBSCRIBE_SECRET/CRON_SECRET is not set, so the unsubscribe link cannot be signed');
+    return { ok: false, error: 'Unsubscribe links cannot be signed in this environment. No marketing email was sent.' };
+  }
+
+  if (isMarketing) {
+    const { data: suppressed, error: suppressErr } = await sb
+      .from('email_suppressions').select('email')
+      .eq('email', normalizeSuppressionEmail(recipientEmail)).maybeSingle();
+    if (suppressErr) return { ok: false, error: 'Could not verify the opt-out list. Nothing was sent.' };
+    if (suppressed) return { ok: true, suppressed: true, reason: 'unsubscribed', notificationType };
+  }
+
+  // Marketing mail carries the two CAN-SPAM must-haves: a physical postal
+  // address and a one-click unsubscribe that opts out this address alone.
+  // The broadcast tool and the follow-up cron already append it themselves, so
+  // only add it when genuinely absent: two unsubscribe links in one email looks
+  // broken and invites the reader to distrust both.
+  const alreadyHasOptOut = /\/api\/unsubscribe/.test(String(html || ''));
+  const bodyHtml = isMarketing && !alreadyHasOptOut
+    ? `${html}${broadcastFooter(recipientEmail)}`
+    : html;
   const body = { from, to: [recipientEmail], subject,
-    html: ensureEmailShell(html, recipientType, meta.preheader), text: htmlToText(html) };
+    html: ensureEmailShell(bodyHtml, recipientType, meta.preheader), text: htmlToText(bodyHtml) };
   if (replyTo) body.reply_to = replyTo;
-  if (typeof meta.listUnsubscribe === 'string' && /^https:\/\//.test(meta.listUnsubscribe)) {
-    body.headers = { 'List-Unsubscribe': `<${meta.listUnsubscribe}>, <mailto:service@assembleatease.com?subject=unsubscribe>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
+  const oneClick = typeof meta.listUnsubscribe === 'string' && /^https:\/\//.test(meta.listUnsubscribe)
+    ? meta.listUnsubscribe
+    : isMarketing ? unsubscribeUrl(recipientEmail) : null;
+  if (oneClick) {
+    body.headers = { 'List-Unsubscribe': `<${oneClick}>, <mailto:service@assembleatease.com?subject=unsubscribe>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
   } else if (priority === 'bulk') {
     body.headers = { 'List-Unsubscribe': '<mailto:service@assembleatease.com?subject=unsubscribe>, <https://www.assembleatease.com/contact?subject=Email%20Preferences>' };
   }
-  const sb = getSupabase();
   const prepared = await prepareNotification(sb, { channel: 'email', recipient: recipientEmail, subject, meta: context,
     payload: { kind: 'email', body, original: { to: recipientEmail, from, subject, html, replyTo } } });
   if (!prepared.claim) return prepared;
@@ -393,7 +455,18 @@ export function isFullEmailDocument(html) {
 
 export function ensureEmailShell(html, recipientType, preheader) {
   const raw = String(html || '');
-  if (isFullEmailDocument(raw)) return raw;
+  // A hand-rolled full document keeps its own layout, but it may not keep
+  // its own idea of a footer. Six of them shipped to customers and Easers
+  // with no phone number, no contact address and no opt-out line, because
+  // pass-through meant pass-through of the footer too. Rewriting six
+  // bespoke templates risks six new layout bugs; giving them the house
+  // footer does not, and it closes the whole class at once.
+  if (isFullEmailDocument(raw)) {
+    if (recipientType === 'owner' || /assembleatease\.com<\/a>|232-5139/.test(raw)) return raw;
+    const close = raw.lastIndexOf('</body>');
+    if (close === -1) return `${raw}${emailFooter(recipientType)}`;
+    return `${raw.slice(0, close)}${emailFooter(recipientType)}${raw.slice(close)}`;
+  }
   const preview = preheader === undefined ? derivePreheader(raw) : preheader;
   return `${EMAIL_DOC_OPEN}${preheaderBlock(preview)}
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">

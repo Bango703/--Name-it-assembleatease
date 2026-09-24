@@ -36,6 +36,7 @@ export default async function handler(req, res) {
           url: '/assembler/my-assignments',
           jobId: 'test-' + Date.now(),
           urgent: false,
+          meta: { notificationType: 'push_test', recipientType: 'easer' },
         });
       } catch(e) {
         errors.push({ uid, error: e.message });

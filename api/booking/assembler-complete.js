@@ -459,6 +459,7 @@ export default async function handler(req, res) {
           <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions about the completed work or receipt? Reply to this email for help from AssembleAtEase.</p>`,
       }),
       replyTo: ownerEmail(),
+      meta: { bookingId: booking.id, notificationType: 'payment_receipt', recipientType: 'customer' },
     });
   } catch (e) { console.error('Assembler-complete customer email error:', e); }
 
@@ -499,6 +500,7 @@ export default async function handler(req, res) {
     </td></tr></table>
 
     <p style="margin:16px 0 0;font-size:13px;color:#71717a;line-height:1.6">Something look wrong? Reply to this email and we will check it.</p>`,
+        meta: { bookingId: booking.id, notificationType: 'completion', recipientType: 'easer', recipientUserId: booking.assembler_id },
       });
     }
   } catch (e) { console.error('Assembler payout email error:', e); }
