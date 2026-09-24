@@ -18,6 +18,8 @@ import {
   CUSTOMER_FORBIDDEN_TERMS,
   visibleCustomerText,
   findCustomerLanguageViolations,
+  findJustifyingCopy,
+  JUSTIFYING_PHRASES,
 } from '../api/_customer-language.js';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -52,6 +54,24 @@ for (const bad of [
   'The assembler will arrive soon.',
 ]) {
   assert.ok(findCustomerLanguageViolations(bad).length > 0, `missed: ${bad}`);
+}
+
+// ── Copy must not argue with the reader ─────────────────────────────────────
+for (const plain of [
+  'Your Easer is on the way.',
+  'We placed a hold on your card. Nothing has been taken.',
+  'Cancelling now carries the reschedule cancellation fee.',
+  'We email you when it is sent.',
+]) {
+  assert.deepEqual(findJustifyingCopy(plain), [], `false positive on plain copy: ${plain}`);
+}
+for (const preachy of [
+  'That window is there so a refund or a dispute is settled before money moves.',
+  'Because this booking was rescheduled, a later cancellation incurs a fee.',
+  'We hold the payout for 24 hours to ensure disputes are settled first.',
+  'Please note that your card will not be charged today.',
+]) {
+  assert.ok(findJustifyingCopy(preachy).length > 0, `missed self-justifying copy: ${preachy}`);
 }
 
 // Interpolations are values, not our words: ${booking.assembler_name} renders a
@@ -116,13 +136,21 @@ for (const file of await jsFiles(join(ROOT, 'api'))) {
   for (const call of src.matchAll(SENDERS)) {
     const block = callSource(src, src.indexOf('(', call.index));
     const who = block.match(/recipientType:\s*'([a-z_]+)'/);
-    if (!who || who[1] !== 'customer') continue;
+    if (!who || !['customer', 'easer'].includes(who[1])) continue;
     // Only string literals; identifiers and object keys are not copy.
     const literals = block.match(/`[^`]*`|'[^']*'|"[^"]*"/g) || [];
+    const line = src.slice(0, call.index).split('\n').length;
     for (const literal of literals) {
-      for (const hit of findCustomerLanguageViolations(literal)) {
-        const line = src.slice(0, call.index).split('\n').length;
-        failures.push(`${relative(ROOT, file)}:${line} says "${hit.term}" to a customer — say ${hit.say}`);
+      // The jargon map is customer-only. An Easer genuinely HAS a payout and is
+      // dispatched to jobs; banning those words for them would be false.
+      if (who[1] === 'customer') {
+        for (const hit of findCustomerLanguageViolations(literal)) {
+          failures.push(`${relative(ROOT, file)}:${line} says "${hit.term}" to a customer — say ${hit.say}`);
+        }
+      }
+      // Arguing the rule is wrong for both. Say what happened and what to do.
+      for (const hit of findJustifyingCopy(literal)) {
+        failures.push(`${relative(ROOT, file)}:${line} explains itself to the ${who[1]} with "${hit.phrase}" — cut the reason, keep the fact: "${hit.sentence}"`);
       }
     }
   }
@@ -141,4 +169,4 @@ for (const page of ['track.html', 'book.html']) {
 
 assert.deepEqual(failures, [], `internal vocabulary reached a customer:\n  ${failures.join('\n  ')}`);
 
-console.log(`PASS customer language: ${CUSTOMER_FORBIDDEN_TERMS.length} terms enforced across customer email, SMS, push and pages`);
+console.log(`PASS customer language: ${CUSTOMER_FORBIDDEN_TERMS.length} banned terms on customer surfaces, ${JUSTIFYING_PHRASES.length} self-justifying phrases on customer and Easer surfaces`);
