@@ -2173,7 +2173,7 @@ async function syncAuthorizedCustomerQuote({ sb, stripe, pi, event }) {
       to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Quote approved and booking confirmed - ${booking.ref}`,
-      html: `<p>Your quote for <strong>${esc(booking.service)}</strong> was approved for <strong>${amountDisplay}</strong>.</p><p>Your card is authorized, not charged. Payment is captured only after completed work, except for disclosed cancellation fees.</p>`,
+      html: `<p>Your quote for <strong>${esc(booking.service)}</strong> was approved for <strong>${amountDisplay}</strong>.</p><p>We have placed a hold on your card. Nothing has been taken. You are charged after the work is done, apart from a cancellation fee if one applies.</p>`,
       replyTo: ownerEmail(),
       meta: { bookingId: booking.id, notificationType: 'quote_approved', recipientType: 'customer' },
     }),

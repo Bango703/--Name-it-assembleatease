@@ -339,7 +339,7 @@ async function finalizeFutureCard(req, res, state) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Your rebooking is scheduled - ${booking.ref}`,
       replyTo: ownerEmail(),
-      html: `<p>Hi ${esc(booking.customer_name)},</p><p>Your payment method is saved for <strong>${esc(booking.service)}</strong> on <strong>${esc(formatRebookDate(booking.date))}</strong>${booking.time ? ` at <strong>${esc(booking.time)}</strong>` : ''}.</p><p>Nothing has been charged. We will authorize the ${money(booking.total_price)} total closer to the appointment and notify you if your bank needs any additional confirmation.</p><p>Booking reference: <strong>${esc(booking.ref)}</strong></p><p><a href="${esc(trackUrl)}">Track or manage your booking</a></p>`,
+      html: `<p>Hi ${esc(booking.customer_name)},</p><p>Your payment method is saved for <strong>${esc(booking.service)}</strong> on <strong>${esc(formatRebookDate(booking.date))}</strong>${booking.time ? ` at <strong>${esc(booking.time)}</strong>` : ''}.</p><p>Nothing has been charged. We will place a hold for ${money(booking.total_price)} closer to your appointment, and let you know if your bank asks you to confirm it.</p><p>Booking reference: <strong>${esc(booking.ref)}</strong></p><p><a href="${esc(trackUrl)}">Track or manage your booking</a></p>`,
       meta: { bookingId: booking.id, notificationType: 'rebook_card_saved', recipientType: 'customer' },
     }),
     sendEmail({
