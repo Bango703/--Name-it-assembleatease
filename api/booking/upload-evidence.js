@@ -1,4 +1,5 @@
 import { getSupabase } from '../_supabase.js';
+import { MAX_UPLOAD_BYTES } from '../_upload-limits.js';
 import { formatAppointmentDate } from './_appt-date.js';
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
@@ -11,7 +12,9 @@ import {
 } from '../_operation-cases.js';
 
 // Raise body-parser limit: base64 of a 5 MB image is ~6.7 MB JSON
-export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
+// The real ceiling is Vercel's 4.5 MB request body, which this setting cannot
+// raise. Kept just above MAX_UPLOAD_BYTES so the two never contradict.
+export const config = { api: { bodyParser: { sizeLimit: '5mb' } } };
 
 const BUCKET = 'booking-evidence';
 
@@ -50,7 +53,7 @@ const VALID_EVIDENCE_TYPES = new Set([
   'completion_photo', 'before_photo', 'damage_claim',
 ]);
 
-const MAX_RAW_BYTES = 5 * 1024 * 1024; // 5 MB decoded limit
+const MAX_RAW_BYTES = MAX_UPLOAD_BYTES;
 
 function evidenceWorkflowError(booking, evidenceType) {
   if (!booking.assembler_accepted_at) {
@@ -183,7 +186,7 @@ export default async function handler(req, res) {
   }
 
   if (buf.length > MAX_RAW_BYTES) {
-    return res.status(400).json({ error: 'File exceeds 5 MB limit' });
+    return res.status(400).json({ error: `File exceeds the ${(MAX_RAW_BYTES / 1048576).toFixed(1)} MB limit` });
   }
 
   if (!matchesMagic(mimeType, buf)) {

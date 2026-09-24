@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
+import { MAX_UPLOAD_BYTES } from '../_upload-limits.js';
 
 /**
  * POST /api/owner/supply-easer-evidence
@@ -39,7 +40,7 @@ const MIME_EXT = {
   'image/heic': 'heic',
   'image/heif': 'heif',
 };
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = MAX_UPLOAD_BYTES;
 
 const MAGIC = {
   'image/jpeg': buf => buf.length > 3 && buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF,

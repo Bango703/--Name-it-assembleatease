@@ -173,6 +173,7 @@
 }
 </style>
 <script src="/assets/js/status-source-of-truth.js" defer></script>
+<script src="/assets/js/image-upload.js" defer></script>
   </head>
 <body>
 
@@ -1028,7 +1029,6 @@ async function loadCustomerCommunication() {
   if (pick && input) pick.addEventListener('click', function() { input.click(); });
   if (input) input.addEventListener('change', function() {
     var file = input.files && input.files[0];
-    if (file && file.size > 5 * 1024 * 1024) { input.value = ''; setCustomerCommunicationStatus('Images must be no larger than 5 MB.', true); return; }
     setCustomerCommunicationStatus(file ? file.name + ' selected. Send the message to upload it.' : '', false);
   });
   if (send) send.addEventListener('click', async function() {
@@ -1043,10 +1043,11 @@ async function loadCustomerCommunication() {
         if (!messageResponse.ok) throw new Error('Message could not be sent.');
       }
       if (file) {
-        var reader = new FileReader();
-        var dataUrl = await new Promise(function(resolve, reject) { reader.onload = function(){ resolve(reader.result); }; reader.onerror = reject; reader.readAsDataURL(file); });
-        var photoResponse = await fetch('/api/booking/customer-photos', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ref:currentRef, email:currentEmail, token:currentMutationToken, fileBase64:dataUrl, mimeType:file.type }) });
-        if (!photoResponse.ok) throw new Error('Photo could not be uploaded.');
+        // Downscaled before sending. A full-resolution phone photo base64-encodes
+        // past the request body limit and never reaches the endpoint.
+        var prepared = await window.AAE_UPLOAD.prepare(file);
+        var photoResponse = await fetch('/api/booking/customer-photos', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ref:currentRef, email:currentEmail, token:currentMutationToken, fileBase64:prepared.dataUrl, mimeType:prepared.mimeType }) });
+        if (!photoResponse.ok) throw new Error(await window.AAE_UPLOAD.describeUploadFailure(photoResponse));
       }
       document.getElementById('customerMessage').value = ''; if (input) input.value = '';
       setCustomerCommunicationStatus('Sent.', false); await loadCustomerCommunication();
