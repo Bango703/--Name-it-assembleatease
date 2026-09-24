@@ -756,6 +756,9 @@
 
   var renderScopeSection = function() { return ''; };
 
+  // The server already masks the surname (redactAssignmentCustomerData).
+  // This stays as the display fallback for a job with no name yet, and is
+  // idempotent on an already-masked name.
   function maskName(n) {
     if (!n) return 'Customer';
     var p = n.trim().split(/\s+/);

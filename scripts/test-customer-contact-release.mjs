@@ -30,7 +30,7 @@ const accepted = extra => ({
   assembler_accepted_at: '2026-10-01T12:00:00Z',
   date: DATE,
   time: TIME,
-  customer_name: 'Dana R',
+  customer_name: 'Dana Rodriguez',
   customer_phone: '512-555-0100',
   customer_email: 'dana@example.com',
   address: '1 Real St, Austin, TX 78701',
@@ -93,7 +93,7 @@ const [held, live] = redactAssignmentCustomerData(
 );
 assert.equal(held.customer_phone, null, 'server must not transmit the phone before the window');
 assert.equal(held.customer_email, null, 'the customer email never reaches an Easer');
-assert.equal(held.customer_name, 'Dana R', 'name stays — it is not a contact channel');
+assert.equal(held.customer_name, 'Dana R.', 'name stays, minus the surname — an Easer needs who is at the door, not who the person is');
 assert.equal(held.address, '1 Real St, Austin, TX 78701', 'address stays — the pro plans a route with it');
 assert.equal(held.details, 'Two dressers');
 assert.equal(held._contact_release.code, CONTACT_RELEASE_CODE.PENDING_LEAD_TIME);
@@ -190,3 +190,32 @@ assert.match(assignSource, /CONTACT_RELEASE_LEAD_HOURS/,
 assert.match(assignSource, /unlocks \$\{CONTACT_RELEASE_LEAD_HOURS\} hours before the job/);
 
 console.log('customer contact release tests: PASS');
+
+// ── An Easer sees a first name and a last initial, never the surname ───────
+// maskName lived inside my-assignments.html, was applied on the job card, and
+// was forgotten on the contact block two screens later — and did not exist at
+// all on the Easer dashboard. Same booking, same Easer, two different answers.
+// Masking now happens at the API, so no view can leak it by omission.
+{
+  const { maskCustomerNameForEaser: mask } = await import('../api/booking/_customer-contact-release.js');
+  assert.equal(mask('Shan Mitchell'), 'Shan M.');
+  assert.equal(mask('Lee Ann Nesloney'), 'Lee N.', 'the LAST word is the surname, not the middle one');
+  assert.equal(mask('Carlos'), 'Carlos', 'a single name has no surname to hide');
+  assert.equal(mask('José García-López'), 'José G.', 'accents and hyphens must not break it');
+  assert.equal(mask('Shan M.'), 'Shan M.', 'masking an already-masked name must not corrupt it');
+  assert.equal(mask('   '), null);
+  assert.equal(mask(null), null);
+
+  const easerApi = await readFile(new URL('../api/booking/my-assignments.js', import.meta.url), 'utf8');
+  assert.match(easerApi, /booking\.customer_name = maskCustomerNameForEaser\(booking\.customer_name\)/,
+    'the Easer endpoint must mask the name it returns');
+
+  // The owner must keep the full name. Masking is scoped to the Easer endpoint.
+  for (const ownerFile of ['api/booking/list.js', 'api/owner/live-ops.js']) {
+    const src = await readFile(new URL('../' + ownerFile, import.meta.url), 'utf8');
+    assert.doesNotMatch(src, /maskCustomerNameForEaser/,
+      `${ownerFile} must NOT mask — the owner dashboard sees everything`);
+  }
+}
+
+console.log('PASS Easer sees first name and last initial; owner sees the full name');

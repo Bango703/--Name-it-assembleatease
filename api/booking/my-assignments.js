@@ -18,7 +18,7 @@ import {
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 import { loadCrew } from './_crew.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
-import { evaluateCustomerContactRelease } from './_customer-contact-release.js';
+import { evaluateCustomerContactRelease, maskCustomerNameForEaser } from './_customer-contact-release.js';
 
 const EASER_JOB_STAGES = Object.freeze(['en_route', 'arrived', 'in_progress']);
 
@@ -160,6 +160,17 @@ export function redactAssignmentCustomerData(bookings = [], nowMs = Date.now()) 
       booking.customer_name = null;
       booking.address = null;
       booking.details = null;
+    }
+
+    // Full first name, last initial. An Easer needs to know who is answering the
+    // door, not who the person is, and the surname is the piece that makes a
+    // customer findable off-platform. Masked HERE rather than in the views: the
+    // helper used to live inside my-assignments.html, was applied on the job
+    // card and forgotten on the contact block two screens later, and did not
+    // exist at all on the dashboard. The owner is unaffected — owner endpoints
+    // read the booking directly.
+    if (booking.customer_name) {
+      booking.customer_name = maskCustomerNameForEaser(booking.customer_name);
     }
 
     // The customer's email never reaches an Easer. Nothing an Easer does needs
