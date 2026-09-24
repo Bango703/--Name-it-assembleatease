@@ -160,6 +160,7 @@ export default async function handler(req, res) {
         eventAt: row.eventAt,
         ref: row.ref,
         completedAt: row.completedAt,
+        jobStartedAt: row.jobStartedAt,
         cancelledAt: row.cancelledAt,
         date: row.date,
         service: row.service || 'Other',

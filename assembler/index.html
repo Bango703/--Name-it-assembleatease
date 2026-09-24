@@ -155,6 +155,7 @@
     .sheet-overlay.open { display: flex !important; }
   </style>
 <script src="/assets/js/status-source-of-truth.js" defer></script>
+<script src="/assets/js/image-upload.js" defer></script>
   </head>
 <body class="easer-booting">
 
@@ -1413,25 +1414,27 @@
     document.getElementById('home-photo-input').addEventListener('change', function(){
       var file = this.files && this.files[0];
       if(!file || !_pendingCompleteBookingId) return;
-      if(file.size > 5 * 1024 * 1024){
-        APP.showAlert('page-alert','Photo must be under 5 MB. Please choose a smaller image.','error');
-        this.value='';
-        return;
-      }
-      _homePhotoFile = file;
+      var homeInputEl = this;
       _homePhotoUploaded = false;
-      var reader = new FileReader();
-      reader.onload = function(ev){
-        _homePhotoDataUrl = ev.target.result;
+      setHomeCompletionStatus('Preparing photo…');
+      // Downscaled before it is ever sent; the original would exceed the
+      // request body limit and be rejected before the endpoint runs.
+      window.AAE_UPLOAD.prepare(file).then(function(prepared){
+        _homePhotoFile = prepared;
+        _homePhotoDataUrl = prepared.dataUrl;
         var img = document.getElementById('home-photo-img');
         var preview = document.getElementById('home-photo-preview');
         if(img) img.src = _homePhotoDataUrl;
         if(preview) preview.style.display = '';
         setHomeCompletionStatus('');
         setHomeSheetOpen('home-complete-sheet',true,'home-complete-yes');
-      };
-      reader.readAsDataURL(file);
-      this.value='';
+      }).catch(function(err){
+        _homePhotoFile = null;
+        _homePhotoDataUrl = null;
+        APP.showAlert('page-alert', err.message, 'error');
+        setHomeCompletionStatus('');
+      });
+      homeInputEl.value='';
     });
 
     document.getElementById('home-complete-yes').addEventListener('click',async function(){
@@ -1446,11 +1449,11 @@
       // Upload photo first if we have one
       if(_homePhotoFile && !_homePhotoUploaded){
         try{
-          var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res((e.target.result+'').split(',')[1]||e.target.result);};r.onerror=rej;r.readAsDataURL(_homePhotoFile);});
-          var up=await fetch('/api/booking/upload-evidence',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},body:JSON.stringify({bookingId:bookingId,fileBase64:base64,mimeType:_homePhotoFile.type,evidenceType:'completion_photo'})});
+          var up=await fetch('/api/booking/upload-evidence',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},body:JSON.stringify({bookingId:bookingId,fileBase64:_homePhotoFile.base64,mimeType:_homePhotoFile.mimeType,evidenceType:'completion_photo'})});
+          if(!up.ok) throw new Error(await window.AAE_UPLOAD.describeUploadFailure(up));
           var uploadBody={};
           try{uploadBody=await up.json();}catch(parseErr){}
-          if(!up.ok||uploadBody.error) throw new Error(uploadBody.error||'Photo upload failed');
+          if(uploadBody.error) throw new Error(uploadBody.error);
           _homePhotoUploaded=true;
         }catch(upErr){
           if(btn){btn.style.pointerEvents='';btn.textContent='Mark Job Complete';}

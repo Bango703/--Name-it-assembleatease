@@ -310,6 +310,9 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
       ref: b.ref,
       createdAt: b.created_at,
       completedAt: b.completed_at,
+      // Paired with completedAt this is how long the work actually took.
+      // Already selected above; it was simply never carried to the dashboard.
+      jobStartedAt: b.job_started_at,
       cancelledAt: b.cancelled_at,
       date: b.date,
       returnVisitRequired: b.return_visit_required === true,

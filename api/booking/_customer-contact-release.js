@@ -112,3 +112,30 @@ export function evaluateCustomerContactRelease(booking = {}, nowMs = Date.now())
     releasesAt: new Date(releasesAtMs).toISOString(),
   };
 }
+
+/**
+ * The customer's name as an Easer may see it: full first name, last initial.
+ *
+ * "Shan Mitchell" → "Shan M."
+ *
+ * An Easer needs to know who is answering the door, not who the person is.
+ * A surname is the piece that makes a customer findable off-platform, and the
+ * Easer's job never requires it.
+ *
+ * This lives beside the release rules because it is the same policy — what an
+ * Easer may see — and it was previously a helper inside one HTML page, applied
+ * on the job card and forgotten on the contact block two screens later. Masking
+ * at the API instead means no view can leak it by omission.
+ *
+ * The owner is unaffected: owner endpoints read the booking directly.
+ *
+ * Idempotent, so masking an already-masked name is safe.
+ */
+export function maskCustomerNameForEaser(name) {
+  const clean = String(name || '').trim();
+  if (!clean) return null;
+  const parts = clean.split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  const initial = parts[parts.length - 1].replace(/[^\p{L}\p{N}]/gu, '').charAt(0);
+  return initial ? `${parts[0]} ${initial.toUpperCase()}.` : parts[0];
+}

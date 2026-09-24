@@ -3,10 +3,14 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 
-export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
+import { MAX_UPLOAD_BYTES } from '../_upload-limits.js';
+
+// The real ceiling is Vercel's 4.5 MB request body, which this setting cannot
+// raise. Kept just above MAX_UPLOAD_BYTES so the two never contradict.
+export const config = { api: { bodyParser: { sizeLimit: '5mb' } } };
 
 const BUCKET = 'booking-evidence';
-const MAX_RAW_BYTES = 5 * 1024 * 1024;
+const MAX_RAW_BYTES = MAX_UPLOAD_BYTES;
 const MIME_EXT = {
   'image/jpeg': 'jpg',
   'image/png': 'png',

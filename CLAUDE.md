@@ -14,7 +14,7 @@ Your job is NOT to rush into coding. Your job is to **audit first, identify busi
 
 ### Expert Review Panel (ALWAYS ON)
 
-Every audit, review, or significant change must be evaluated through the lens of the following fourteen roles. When auditing, state findings from the perspective of whichever roles are relevant; when building, pressure-test the change against all fourteen before shipping. Do not skip a role because it is inconvenient — each one protects a different failure surface.
+Every audit, review, or significant change must be evaluated through the lens of the following fifteen roles. When auditing, state findings from the perspective of whichever roles are relevant; when building, pressure-test the change against all fifteen before shipping. Do not skip a role because it is inconvenient — each one protects a different failure surface.
 
 1. **Product Manager** — Does this serve a real user need, move a real metric (bookings, trust, retention), and fit the "first 25 jobs" stage? Kill scope that doesn't.
 2. **Senior UX Designer** — Is the flow clear, low-friction, trustworthy, mobile-first, and consistent? Where would a user hesitate, misread, or drop off?
@@ -30,19 +30,20 @@ Every audit, review, or significant change must be evaluated through the lens of
 12. **Payments & Financial-Operations Engineer** — Owns that money moves correctly and reconciles: Stripe capture/Connect transfers, disputes/chargebacks, refunds, payout ledgers, tax remittance, idempotency, and financial-audit truth. Never lets DB state disagree with Stripe. Distinct from VP Finance, who owns margin/cash — this seat owns the plumbing.
 13. **Brand & Design-System Engineer** — Owns the single color-token source of truth and the sky-blue **`#00BFFF`** brand (dark `#0099CC`). Enforces one palette / type / spacing system across every zone (marketing, booking, Easer, owner) — no drift, no off-brand or green-hued hexes, no rogue hardcoded colors, no `--teal` aliasing. Guards the logo and imagery rules, and pressure-tests every new page/component against the design system before it ships. Would have caught the `#5eead4` hero drift.
 14. **Service Quality & Standards Engineer** — Owns that the in-home work is actually excellent: completion-evidence verification, rework and damage handling, on-site professionalism standards, and that the re-assembly guarantee is honored. The product IS the work — this seat proves it was done *right*, not just done.
+15. **Content Design & Voice Engineer** — Owns the words the way seat 13 owns the pixels. Maintains `api/_customer-language.js`, the internal-term to customer-word map, and enforces it on every customer-facing string: no status codes, payment-processor mechanics, workflow state names, or column names in front of a customer. Owns register per audience — customer plain, Easer operational, owner technical — and that one thing is called one name across email, SMS, push and screen. Article 16 asks whether a sentence is TRUE; this seat asks whether the reader understands it and knows what to do next. Would have caught "Your card is authorized, not charged" and "Upload failed (server said 502)".
 
-When these fourteen and the Core business priorities below conflict, business survival and customer/Easer/owner trust win over elegance, feature count, or premature scale.
+When these fifteen and the Core business priorities below conflict, business survival and customer/Easer/owner trust win over elegance, feature count, or premature scale.
 
 ### Executive Leadership Board (STRATEGIC LAYER)
 
-Above the fourteen-role review panel sits an executive board. The panel decides whether a change is *done right*; the board decides whether it *should be done at all* and *whether the business is being built correctly*. For any audit, strategic question, roadmap call, pricing/positioning decision, legal/risk question, or "should we build this" moment, reason from the relevant board seats and name them. The board's default bias at this stage: **prove 25 jobs, protect trust and cash, do not scale or over-build before validation.**
+Above the fifteen-role review panel sits an executive board. The panel decides whether a change is *done right*; the board decides whether it *should be done at all* and *whether the business is being built correctly*. For any audit, strategic question, roadmap call, pricing/positioning decision, legal/risk question, or "should we build this" moment, reason from the relevant board seats and name them. The board's default bias at this stage: **prove 25 jobs, protect trust and cash, do not scale or over-build before validation.**
 
 1. **CEO** — Is this the single most important thing for the business right now? Does it move us toward validated demand, survival, and the first 25 jobs? Ruthlessly kill distractions. Distribution beats features.
 2. **COO** — Can we actually operate this at our current size with the owner running it manually? Does it create operational drag, stranded work, or things Travis must remember? Simplicity over automation until proven.
 3. **CTO** — Is the architecture sound, reversible, and source-of-truth-clean? Are we taking on complexity or debt we can't service pre-revenue? No premature scale engineering.
 4. **Chief Product Officer** — Does this serve a real, validated user need and a real metric? Is it completion before expansion? Say no to scope that doesn't earn its place.
 5. **VP of Engineering** — Is it correct, tested from all three roles, race-free, and shippable without breaking the sacred booking/payment path? No unrelated changes bundled.
-6. **VP of Design** — Is it clear, trustworthy, premium-but-fair, mobile-first, and consistent with the sky-blue brand? Would a customer trust this inside their home?
+6. **VP of Design** — Is it clear, trustworthy, premium-but-fair, mobile-first, and consistent with the sky-blue brand? Would a customer trust this inside their home? **Remit covers language as well as visuals** — the words in the product are part of the design, and seat 15 executes against this.
 7. **VP of Marketplace Operations** — Supply/demand balance, Easer readiness, dispatch health, quality control. Is every workflow owner-visible and recoverable? No stranded bookings, no wrong payouts.
 8. **VP of Marketing** — Acquisition, conversion, activation, referral, positioning. Are we differentiated from TaskRabbit/Thumbtack/Angi and driving real distribution, not just adding pages?
 9. **VP of Customer Success** — Will the customer feel informed and unsurprised end-to-end, and come back + refer? Is the post-job experience a referral trigger?
@@ -330,6 +331,9 @@ Changes here require audit-before-code and explicit intent in the request:
 | `scripts/test-scheduled-authorization-truth.mjs` | A payment failure is described by Stripe's answer, and ours never reaches the customer (Rule 16) |
 | `scripts/test-notification-volume.mjs` | No email nobody needed: no repeated subject, no identical assignment inside the hour |
 | `scripts/test-owner-retry-authorization.mjs` | The owner can finish a stuck hold from the dashboard, and the money panel states only what it knows |
+| `scripts/test-customer-language.mjs` | Seat 15: no status code, payment mechanic, workflow state or column name reaches a customer |
+| `scripts/test-upload-limits.mjs` | No upload path invents its own size limit; every screen shrinks the image before sending |
+| `scripts/test-image-resize-browser.mjs` | The resize actually works, measured in a real browser rather than asserted |
 | `npm run test:launch` | Article 8: the regression gate |
 
 **Wire every new invariant into a guard.** An article without a script is a wish.
