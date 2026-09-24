@@ -42,6 +42,15 @@ if (!browser) {
   process.exit(0);
 }
 
+// WebSocket became a global in Node 22; CI still runs 20, where a Chromium IS
+// present so the check above passes and the devtools connection then dies on a
+// ReferenceError. An old runtime is an environment limit, not a broken upload
+// path, so it skips like a missing browser does.
+if (typeof WebSocket === 'undefined') {
+  console.log(`SKIP image resize in-browser check: Node ${process.versions.node} has no global WebSocket (needs 22+)`);
+  process.exit(0);
+}
+
 const moduleSrc = await readFile(new URL('../assets/js/image-upload.js', import.meta.url), 'utf8');
 
 const harness = `<!DOCTYPE html><meta charset="utf-8"><body><pre id="out">pending</pre>
