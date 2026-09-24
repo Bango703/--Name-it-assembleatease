@@ -143,7 +143,11 @@
     return response.json().then(function (data) {
       return (data && data.error) || 'Upload failed. Please try again.';
     }).catch(function () {
-      return 'Upload failed (server said ' + ((response && response.status) || 'nothing') + '). Please try again.';
+      // The status code is for us, not for the person holding the phone. It
+      // goes to the console (and therefore Sentry) while they get something
+      // they can act on.
+      if (window.console && console.warn) console.warn('[upload] failed with status', response && response.status);
+      return 'That photo did not upload. Check your signal and try again.';
     });
   }
 

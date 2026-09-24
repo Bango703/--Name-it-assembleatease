@@ -60,11 +60,13 @@ assert.equal(
   'Start the job first.',
   'a real server error must still reach the user unchanged',
 );
-assert.match(
-  await U.describeUploadFailure({ status: 502, json: () => Promise.reject(new Error('not json')) }),
-  /502/,
-  'an unparseable failure must name its status rather than blame the connection',
-);
+// The customer surface (track.html) shares this helper, so the text may not
+// carry a status code, a workflow state or any other internal term. The status
+// still reaches the console for diagnosis.
+const opaque = await U.describeUploadFailure({ status: 502, json: () => Promise.reject(new Error('not json')) });
+assert.doesNotMatch(opaque, /(50\d|40\d|41\d)/, 'no HTTP status code in text a customer reads');
+assert.doesNotMatch(opaque, /server|payload|base64|endpoint|request body/i, 'no system vocabulary in customer-facing text');
+assert.match(opaque, /try again/i, 'it must still tell them what to do');
 
 // ── 4. Every endpoint reads the shared ceiling ──────────────────────────────
 const ENDPOINTS = [
