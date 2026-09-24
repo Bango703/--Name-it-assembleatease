@@ -277,7 +277,7 @@ export default async function handler(req, res) {
       statusBg: '#f0f9ff',
       headline: 'Your appointment has been rescheduled.',
       bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> appointment is now set for <strong>${esc(formatAppointmentDate(date))}</strong> at <strong>${esc(time)}</strong>.</p>
-        <p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">Because this booking was rescheduled, a later cancellation incurs the disclosed reschedule cancellation fee. ${remaining > 0 ? `You can reschedule ${remaining} more time if needed.` : 'This was your final self-service reschedule.'}</p>
+        <p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">Cancelling now carries the reschedule cancellation fee. ${remaining > 0 ? `You can reschedule ${remaining} more time if needed.` : 'This was your final self-service reschedule.'}</p>
         <p style="margin:0"><a href="${esc(nextTrackUrl)}">Open your updated secure tracking link</a></p>`,
     }),
     meta: { bookingId: booking.id, notificationType: 'reschedule_customer', recipientType: 'customer', disableDedupe: true },
