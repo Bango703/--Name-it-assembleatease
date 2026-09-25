@@ -1,6 +1,7 @@
 ﻿import Stripe from 'stripe';
 import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { getSupabase } from '../_supabase.js';
+import { captureBeforeFromIntent } from '../booking/_authorization-window.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { guestManageUrl } from '../_payment-security.js';
 import { logActivity } from '../booking/_activity.js';
@@ -519,6 +520,7 @@ export default async function handler(req, res) {
           || !isAutomaticDispatchZip(existing.service_zip || '');
         const authorizationUpdate = {
           payment_status: 'authorized',
+          authorization_capture_before: captureBeforeFromIntent(liveAuthorization),
           payment_method_type: paymentMethodType,
           payment_authorized_at: existing.payment_authorized_at || authorizedAt,
           stripe_payment_method_id: paymentMethodId,
@@ -2132,6 +2134,7 @@ async function syncAuthorizedCustomerQuote({ sb, stripe, pi, event }) {
     tax_amount: booking.quote_tax_cents,
     payment_status: 'authorized',
     payment_authorized_at: confirmedAt,
+    authorization_capture_before: captureBeforeFromIntent(pi),
     status: 'confirmed',
     confirmed_at: confirmedAt,
     confirmed_by: 'stripe_quote_webhook',

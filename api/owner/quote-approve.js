@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
+import { captureBeforeFromIntent } from '../booking/_authorization-window.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { guardCustomerFacing } from '../_customer-error-alert.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
@@ -375,11 +376,13 @@ async function finalizeQuote({ req, res, sb, booking, pi, tokenHash }) {
   }
 
   const now = new Date().toISOString();
+  const quoteCaptureDeadline = captureBeforeFromIntent(pi);
   const { data: rows, error: updateErr } = await sb.from('bookings').update({
     total_price: booking.quote_amount_cents,
     tax_amount: booking.quote_tax_cents,
     payment_status: 'authorized',
     payment_authorized_at: now,
+    authorization_capture_before: quoteCaptureDeadline,
     status: BOOKING_STATUS.CONFIRMED,
     confirmed_at: now,
     confirmed_by: 'customer_quote_approval',

@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { getSupabase } from '../_supabase.js';
+import { captureBeforeFromIntent } from '../booking/_authorization-window.js';
 import { buildStatusEmail, esc, ownerEmail, sendEmail, verifyOwner, formatAddress } from '../_email.js';
 import { validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
@@ -65,10 +66,12 @@ export default async function handler(req, res) {
   }
 
   const now = new Date().toISOString();
+  const reconciledCaptureDeadline = captureBeforeFromIntent(intent);
   const { data: repairedRows, error: repairError } = await sb.from('bookings').update({
     status: 'confirmed',
     payment_status: 'authorized',
     payment_authorized_at: booking.payment_authorized_at || now,
+    authorization_capture_before: reconciledCaptureDeadline,
     confirmed_at: booking.confirmed_at || now,
     confirmed_by: 'owner_stripe_reconciliation',
   })

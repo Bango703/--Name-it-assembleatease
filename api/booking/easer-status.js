@@ -5,6 +5,7 @@ import { sendSms } from '../_sms.js';
 import { formatSlotShort } from './_appt-date.js';
 import { logActivity } from './_activity.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
+import { evaluateAuthorizationWindow, AUTHORIZATION_WINDOW } from './_authorization-window.js';
 import { geocodeAddress, distanceMetres, locationConsentOk } from '../_geocode.js';
 import {
   BOOKING_STATUS,
@@ -103,6 +104,36 @@ export default async function handler(req, res) {
   });
   if (!appointmentGate.allowed) {
     return res.status(409).json(appointmentGate);
+  }
+
+  // ── Payment readiness gate ────────────────────────────────────────────────
+  // A job must not start on a hold that will be dead before it finishes. That
+  // is exactly what happened to AAE-DVSNHXE4OO: a Visa merchant-initiated
+  // authorization is valid 4 days 18 hours, the job was 5 days out, and nobody
+  // found out until capture failed on completed work.
+  //
+  // Only blocks when we KNOW the hold cannot cover the job. An unrecorded
+  // deadline — every booking authorized before the deadline was stored — raises
+  // the flag for the owner and the renewal monitor, but does not strand an Easer
+  // on a doorstep over a value we simply never wrote down.
+  if (stage === EASER_STAGE.EN_ROUTE) {
+    const paymentWindow = evaluateAuthorizationWindow(booking);
+    const knownBad = paymentWindow.reason === AUTHORIZATION_WINDOW.EXPIRES_BEFORE_COMPLETION
+      || paymentWindow.reason === AUTHORIZATION_WINDOW.ALREADY_EXPIRED;
+    if (knownBad) {
+      await logActivity(sb, {
+        bookingId,
+        eventType: 'payment_action_required',
+        actorType: 'system',
+        actorName: 'Payment readiness',
+        description: `Start blocked: the customer's payment will not still be valid when this job finishes (${paymentWindow.reason}).`,
+        metadata: { reason: paymentWindow.reason, deadline: booking.authorization_capture_before || null },
+      });
+      return res.status(409).json({
+        error: 'This job cannot start yet. The customer needs to update their payment method first — we have let the office know.',
+        code: 'PAYMENT_ACTION_REQUIRED',
+      });
+    }
   }
   const now = new Date().toISOString();
 

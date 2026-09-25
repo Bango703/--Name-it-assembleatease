@@ -10,6 +10,7 @@ import { dispatchBooking } from './booking/_dispatch-internal.js';
 import { logActivity } from './booking/_activity.js';
 import { safeTokenHashMatch } from './_payment-security.js';
 import { normalizeBookingPaymentMethod } from './booking/_payment-method.js';
+import { fetchCaptureDeadline } from './booking/_authorization-window.js';
 
 /**
  * POST /api/booking-confirmed
@@ -76,9 +77,14 @@ export default async function handler(req, res) {
   if (!booking.stripe_payment_intent_id || !process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({ error: 'Payment verification is unavailable. Your booking has not been confirmed.' });
   }
+  // What Stripe says about when this hold stops being capturable. Read inside
+  // the same block that already verified the intent; null when it cannot be
+  // learned, never a guessed date.
+  let captureDeadline = null;
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
+    captureDeadline = await fetchCaptureDeadline(stripe, booking.stripe_payment_intent_id);
     const metadataMatches = pi.metadata?.bookingId === booking.id
       && pi.metadata?.type === 'customer_booking';
     const amountMatches = pi.currency === 'usd' && pi.amount === Number(booking.total_price || 0);
@@ -115,6 +121,7 @@ export default async function handler(req, res) {
   const updatePayload = {
     payment_status: 'authorized',
     payment_authorized_at: new Date().toISOString(),
+    authorization_capture_before: captureDeadline,
     status: 'confirmed',
     confirmed_at: new Date().toISOString(),
     confirmed_by: 'payment',

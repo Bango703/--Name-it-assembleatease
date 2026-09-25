@@ -4,6 +4,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { reserveBookingFinancialOperation } from '../booking/_financial-operation.js';
 import { logCron } from './_cron-logger.js';
+import { fetchCaptureDeadline, needsAuthorizationRenewal, RENEWAL_LEAD_HOURS } from '../booking/_authorization-window.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const REAUTH_OPERATION_TYPE = 'reauth_payment';
@@ -52,6 +53,9 @@ export default async function handler(req, res) {
   const target = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
   const targetStr = target.toISOString().slice(0, 10);
 
+  // Anything whose authorization dies inside the renewal lead time is due now.
+  const renewalHorizonIso = new Date(now.getTime() + RENEWAL_LEAD_HOURS * 3600000).toISOString();
+
   const { data: bookings, error: queryErr } = await sb
     .from('bookings')
     // The reservation RPC compares the complete financial snapshot. Include
@@ -60,7 +64,10 @@ export default async function handler(req, res) {
     .select('*')
     .eq('status', 'confirmed')
     .eq('payment_status', 'authorized')
-    .or(`date.eq.${targetStr},financial_operation_type.eq.${REAUTH_OPERATION_TYPE}`)
+    // The calendar rule stays exactly as it was. The third clause is the fix:
+    // a hold whose real deadline is close, whatever the appointment date, is
+    // picked up here rather than discovered at capture.
+    .or(`date.eq.${targetStr},financial_operation_type.eq.${REAUTH_OPERATION_TYPE},authorization_capture_before.lte.${renewalHorizonIso}`)
     .limit(50);
 
   if (queryErr) {
@@ -88,6 +95,8 @@ export default async function handler(req, res) {
   const errors = [];
 
   for (const booking of bookings) {
+    // The query is deliberately broad; this is the one place that decides.
+    if (booking.date !== targetStr && !needsAuthorizationRenewal(booking)) continue;
     try {
       const outcome = await processBookingReauthorization({
         sb,
@@ -413,6 +422,7 @@ export async function processBookingReauthorization({ sb, stripe, booking, expec
     operationKey,
     oldPaymentIntentId: currentIntent.id,
     newPaymentIntentId: newIntent.id,
+    captureBefore: await fetchCaptureDeadline(stripe, newIntent.id),
     nowIso,
   });
   if (!linkResult.ok) {
@@ -647,10 +657,13 @@ async function createReauthorizationIntent({
   return { paymentIntent: null, error: new Error('Stripe create outcome is unknown'), ambiguous: true };
 }
 
-async function linkNewReauthorization({ sb, booking, operationKey, oldPaymentIntentId, newPaymentIntentId, nowIso }) {
+async function linkNewReauthorization({ sb, booking, operationKey, oldPaymentIntentId, newPaymentIntentId, nowIso, captureBefore = null }) {
   let query = sb.from('bookings').update({
     stripe_payment_intent_id: newPaymentIntentId,
     payment_authorized_at: nowIso,
+    // The replacement hold has its own deadline. Leaving the previous one in
+    // place would read as verified while describing an intent that is gone.
+    authorization_capture_before: captureBefore,
   })
     .eq('id', booking.id)
     .eq('status', 'confirmed')

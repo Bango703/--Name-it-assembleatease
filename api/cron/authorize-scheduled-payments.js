@@ -5,6 +5,7 @@ import { randomToken, sha256 } from '../_payment-security.js';
 import { isAutomaticDispatchZip } from '../_source-of-truth.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
+import { fetchCaptureDeadline } from '../booking/_authorization-window.js';
 import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { chicagoTodayIso } from '../booking/_appt-date.js';
 import { logActivity } from '../booking/_activity.js';
@@ -229,10 +230,12 @@ export async function authorizeScheduledBooking({ sb, stripe, booking, expectedL
     }
 
     const automaticDispatch = isAutomaticDispatchZip(booking.service_zip || booking.address);
+    const captureDeadline = await fetchCaptureDeadline(stripe, intent.id);
     const { data: rows, error: updateError } = await sb.from('bookings').update({
       stripe_payment_intent_id: intent.id,
       payment_status: 'authorized',
       payment_authorized_at: new Date().toISOString(),
+      authorization_capture_before: captureDeadline,
       dispatch_paused: false,
       needs_manual_dispatch: !automaticDispatch,
       dispatch_status: null,
@@ -480,9 +483,11 @@ export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivem
   if (!finalValidation.ok) return { authorized: false, reason: `authorized_payment_validation_failed:${finalValidation.errors.join(',')}` };
 
   const automaticDispatch = isAutomaticDispatchZip(booking.service_zip || booking.address);
+  const recoveredDeadline = await fetchCaptureDeadline(stripe, intent.id);
   const { data: rows, error: updateError } = await sb.from('bookings').update({
     payment_status: 'authorized',
     payment_authorized_at: new Date().toISOString(),
+    authorization_capture_before: recoveredDeadline,
     dispatch_paused: false,
     dispatch_status: null,
     needs_manual_dispatch: !automaticDispatch && !booking.assembler_id,

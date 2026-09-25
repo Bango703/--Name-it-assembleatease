@@ -5,7 +5,7 @@ import { randomToken, sha256 } from '../_payment-security.js';
 import { logActivity } from '../booking/_activity.js';
 import {
   isRecoverablePaymentIntentStatus,
-  isStandardRecoveryBooking,
+  canRecoverPaymentNow,
   validateBookingPaymentIntent,
 } from '../booking/_pending-payment-recovery.js';
 
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       code: 'FINANCIAL_OPERATION_IN_PROGRESS',
     });
   }
-  if (!isStandardRecoveryBooking(booking)) {
+  if (!canRecoverPaymentNow(booking)) {
     return res.status(409).json({
       error: 'Only an incomplete standard card authorization can receive a payment continuation email.',
       code: 'PAYMENT_RECOVERY_NOT_ALLOWED',
