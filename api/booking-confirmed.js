@@ -55,6 +55,8 @@ export default async function handler(req, res) {
   if (!safeTokenHashMatch(guestMutationToken, booking.guest_mutation_token_hash)) {
     return res.status(403).json({ error: 'Invalid secure booking confirmation token.' });
   }
+  const activeRecovery = ['en_route', 'arrived', 'in_progress'].includes(booking.status)
+    && booking.payment_status === 'failed';
   if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at
       || booking.financial_reconciliation_required_at || booking.cancellation_reconciliation_required_at) {
     return res.status(409).json({
@@ -112,15 +114,17 @@ export default async function handler(req, res) {
   }
 
   // Confirm booking + mark payment authorized. Promotes status so dispatch can run.
-  const updatePayload = {
-    payment_status: 'authorized',
-    payment_authorized_at: new Date().toISOString(),
-    status: 'confirmed',
-    confirmed_at: new Date().toISOString(),
-    confirmed_by: 'payment',
-  };
+  const updatePayload = activeRecovery
+    ? { payment_status: 'authorized', payment_authorized_at: new Date().toISOString() }
+    : {
+      payment_status: 'authorized',
+      payment_authorized_at: new Date().toISOString(),
+      status: 'confirmed',
+      confirmed_at: new Date().toISOString(),
+      confirmed_by: 'payment',
+    };
   updatePayload.payment_method_type = verifiedPaymentMethodType;
-  if (booking.dispatch_status === 'payment_hold') {
+  if (!activeRecovery && booking.dispatch_status === 'payment_hold') {
     const requiresOwnerAssignment = !['austin_core', 'near_suburb'].includes(booking.call_zone);
     updatePayload.dispatch_status = null;
     updatePayload.dispatch_paused = false;
@@ -128,12 +132,15 @@ export default async function handler(req, res) {
   }
   if (verifiedPaymentMethodId) updatePayload.stripe_payment_method_id = verifiedPaymentMethodId;
 
-  const { error: updateErr, data: updatedRows } = await sb
+  let completionUpdate = sb
     .from('bookings')
     .update(updatePayload)
     .eq('id', bookingId)
-    .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id)
-    .in('status', ['pending', 'confirmed'])
+    .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id);
+  completionUpdate = activeRecovery
+    ? completionUpdate.in('status', ['en_route', 'arrived', 'in_progress'])
+    : completionUpdate.in('status', ['pending', 'confirmed']);
+  const { error: updateErr, data: updatedRows } = await completionUpdate
     .in('payment_status', ['pending', 'failed', 'authorized'])
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)
@@ -169,6 +176,17 @@ export default async function handler(req, res) {
   }
 
   booking.payment_status = 'authorized';
+  if (activeRecovery) {
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'payment_authorization_recovered_active_job',
+      actorType: 'customer',
+      actorName: booking.customer_name || 'Customer',
+      description: 'Customer restored payment authorization while the job was active.',
+      metadata: { paymentIntentId: booking.stripe_payment_intent_id, priorStatus: booking.status },
+    }).catch(error => console.error('active payment recovery activity log error:', error?.message || error));
+    return res.status(200).json({ success: true, paymentRecovered: true, activeJob: true });
+  }
   booking.status = 'confirmed';
   if (Object.prototype.hasOwnProperty.call(updatePayload, 'dispatch_paused')) {
     booking.dispatch_paused = updatePayload.dispatch_paused;

@@ -6,7 +6,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot, SALES_TAX_RATE, PAYOUT_HOLD_HOURS } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot, sameDaySplitParts, PAYOUT_HOLD_HOURS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
@@ -22,22 +22,6 @@ import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
-
-// Same-day fee is an ADDITIVE layer — it must never run through the 30/70 base
-// split. These parts EXCLUDE it from the split base (its tax cancels out exactly
-// in the subtraction, so the standard base stays penny-accurate); the fixed Easer
-// rush bonus and platform remainder are added back on top. See _source-of-truth.js.
-function sameDaySplitParts(booking) {
-  const feeCents = Math.max(0, Number(booking?.same_day_fee_cents || 0));
-  const bonusCents = Math.min(feeCents, Math.max(0, Number(booking?.same_day_easer_bonus_cents || 0)));
-  const taxCents = Math.round(feeCents * SALES_TAX_RATE);
-  return {
-    grossCents: feeCents + taxCents,      // remove from amountCharged
-    taxCents,                             // remove from taxCents
-    bonusCents,                           // add to assemblerDue
-    platformExtra: feeCents - bonusCents, // add to platformFee
-  };
-}
 
 /**
  * POST /api/booking/assembler-complete

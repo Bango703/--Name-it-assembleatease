@@ -7,6 +7,7 @@ import { logCron } from './_cron-logger.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const REAUTH_OPERATION_TYPE = 'reauth_payment';
+const REAUTH_BOOKING_STATUSES = ['confirmed', 'en_route', 'arrived', 'in_progress'];
 const REAUTH_RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const CANCELABLE_PAYMENT_INTENT_STATUSES = new Set([
   'requires_payment_method',
@@ -58,9 +59,9 @@ export default async function handler(req, res) {
     // locked prior attempts even after the calendar moves past the target day
     // so a crash after linking can still release the old hold idempotently.
     .select('*')
-    .eq('status', 'confirmed')
+      .in('status', REAUTH_BOOKING_STATUSES)
     .eq('payment_status', 'authorized')
-    .or(`date.eq.${targetStr},financial_operation_type.eq.${REAUTH_OPERATION_TYPE}`)
+    .or(`date.eq.${targetStr},financial_operation_type.eq.${REAUTH_OPERATION_TYPE},payment_authorized_at.lt.${new Date(Date.now() - 5 * 86400000).toISOString()}`)
     .limit(50);
 
   if (queryErr) {
@@ -87,7 +88,12 @@ export default async function handler(req, res) {
   let recovered = 0;
   const errors = [];
 
-  for (const booking of bookings) {
+  for (const booking of bookings || []) {
+    const activeJob = ['en_route', 'arrived', 'in_progress'].includes(booking.status);
+    const dateIsTarget = booking.date === targetStr;
+    const operationInFlight = booking.financial_operation_type === REAUTH_OPERATION_TYPE;
+    const authorizationIsOld = Date.parse(booking.payment_authorized_at || '') <= Date.now() - 5 * 86400000;
+    if (!dateIsTarget && !operationInFlight && !(activeJob && authorizationIsOld)) continue;
     try {
       const outcome = await processBookingReauthorization({
         sb,
@@ -150,6 +156,8 @@ export default async function handler(req, res) {
 }
 
 export async function processBookingReauthorization({ sb, stripe, booking, expectedLivemode, nowIso }) {
+  // The old implementation used .eq('status', 'confirmed') here. Active jobs
+  // now use the same lock and reauthorization path without changing status.
   if (booking.payment_method_type === 'klarna') {
     return { ok: true, changed: false, recovered: false, skipped: true, reason: 'klarna_authorization_valid_28_days' };
   }
@@ -162,7 +170,7 @@ export async function processBookingReauthorization({ sb, stripe, booking, expec
       bookingId: booking.id,
       operationKey,
       operationType: REAUTH_OPERATION_TYPE,
-      expectedStatuses: ['confirmed'],
+      expectedStatuses: REAUTH_BOOKING_STATUSES,
       expectedAssemblerId: booking.assembler_id ?? null,
       expectedDate: booking.date,
       expectedTime: booking.time,
@@ -185,7 +193,7 @@ export async function processBookingReauthorization({ sb, stripe, booking, expec
   };
   const reservedState = await loadCurrentReauthBooking(sb, booking.id);
   const reservationVerified = !reservedState.error
-    && reservedState.booking?.status === 'confirmed'
+    && REAUTH_BOOKING_STATUSES.includes(reservedState.booking?.status)
     && reservedState.booking?.payment_status === 'authorized'
     && reservedState.booking?.date === booking.date
     && reservedState.booking?.time === booking.time
@@ -653,7 +661,7 @@ async function linkNewReauthorization({ sb, booking, operationKey, oldPaymentInt
     payment_authorized_at: nowIso,
   })
     .eq('id', booking.id)
-    .eq('status', 'confirmed')
+    .eq('status', booking.status)
     .eq('payment_status', 'authorized')
     .eq('date', booking.date)
     .eq('stripe_payment_intent_id', oldPaymentIntentId)
@@ -695,7 +703,7 @@ async function releaseExactReauthLock(sb, {
 
   let query = sb.from('bookings').update(payload)
     .eq('id', booking.id)
-    .eq('status', 'confirmed')
+    .eq('status', booking.status)
     .eq('payment_status', 'authorized')
     .eq('date', booking.date)
     .eq('financial_operation_key', operationKey)
@@ -711,7 +719,7 @@ async function releaseExactReauthLock(sb, {
 
   const current = await loadCurrentReauthBooking(sb, booking.id);
   const alreadyReleased = !current.error
-    && current.booking?.status === 'confirmed'
+    && REAUTH_BOOKING_STATUSES.includes(current.booking?.status)
     && current.booking?.payment_status === 'authorized'
     && current.booking?.date === booking.date
     && current.booking?.stripe_payment_intent_id === paymentIntentId
@@ -731,7 +739,7 @@ async function markReauthReconciliation(sb, {
     financial_reconciliation_reason: String(reason || 'reauth_payment_reconciliation_required').slice(0, 500),
   })
     .eq('id', booking.id)
-    .eq('status', 'confirmed')
+    .eq('status', booking.status)
     .eq('payment_status', 'authorized')
     .eq('date', booking.date)
     .eq('financial_operation_key', operationKey)

@@ -347,6 +347,20 @@ export default async function handler(req, res) {
       const stripeAdvanced = afterErrorTruth
         && (afterErrorTruth.stripeRefundedCents > beforeTruth.stripeRefundedCents
           || afterErrorTruth.pendingRefundCents > 0);
+      await writeFinancialAudit(sb, {
+        eventType: 'refund_attempt',
+        eventSource: 'owner_manual_stripe_refund',
+        bookingId: booking.id,
+        idempotencyKey: operationKey,
+        status: stripeAdvanced ? 'unknown' : 'failed',
+        metadata: {
+          ref: booking.ref,
+          amount: amountStillNeeded,
+          targetCumulativeRefundCents: targetRefundCents,
+          providerOutcome: stripeAdvanced ? 'requires_reconciliation' : 'not_succeeded',
+        },
+        error: stripeError?.message || 'Stripe refund request failed',
+      }).catch(auditError => console.error('Owner-manual refund failure audit failed:', auditError?.message || auditError));
       if (!stripeAdvanced && operationReservedHere) {
         await releaseBookingFinancialOperation(sb, {
           bookingId: booking.id,

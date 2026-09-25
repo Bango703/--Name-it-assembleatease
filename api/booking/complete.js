@@ -5,7 +5,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot, PAYOUT_HOLD_HOURS } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot, sameDaySplitParts, PAYOUT_HOLD_HOURS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
@@ -253,12 +253,15 @@ export default async function handler(req, res) {
   // Canonical money split — tax is a pass-through liability and is EXCLUDED from
   // the fee/payout base. AssembleCash is funded by platform margin, so it must
   // never reduce the Easer's payout basis.
+  const sameDay = sameDaySplitParts(booking);
   const split = computeBookingSplitFromSnapshot({
-    amountChargedCents: finalAmountCharged,
-    taxCents: booking.tax_amount || 0,
+    amountChargedCents: finalAmountCharged - sameDay.grossCents,
+    taxCents: (booking.tax_amount || 0) - sameDay.taxCents,
     feePct: feeSnapshot.feePct,
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
   });
+  split.platformFeeCents += sameDay.platformExtra;
+  split.assemblerDueCents += sameDay.bonusCents;
   const PLATFORM_FEE_PCT = split.feePct;
   const platformFee      = split.platformFeeCents;
   const assemblerDue     = split.assemblerDueCents;

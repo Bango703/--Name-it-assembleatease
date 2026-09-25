@@ -397,6 +397,20 @@ export function computeBookingSplitFromSnapshot({
   };
 }
 
+// Same-day service fees are an additive layer. Keep the fee and Easer rush
+// bonus out of the ordinary percentage split, then add each part back once.
+export function sameDaySplitParts(booking = {}) {
+  const feeCents = Math.max(0, Number(booking.same_day_fee_cents || 0));
+  const bonusCents = Math.min(feeCents, Math.max(0, Number(booking.same_day_easer_bonus_cents || 0)));
+  const taxCents = Math.round(feeCents * SALES_TAX_RATE);
+  return {
+    grossCents: feeCents + taxCents,
+    taxCents,
+    bonusCents,
+    platformExtra: feeCents - bonusCents,
+  };
+}
+
 // ─── Cancellation policy ─────────────────────────────────────────────────────
 // Tiered cancellation fee as a % of the PRE-TAX SERVICE SUBTOTAL (labor only —
 // NEVER tax, never the service-call fee). Free with reasonable notice; a fair,
