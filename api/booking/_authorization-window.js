@@ -123,6 +123,34 @@ export function needsAuthorizationRenewal(booking = {}, nowMs = Date.now()) {
 }
 
 /**
+ * PAST_APPOINTMENT_NOT_COMPLETE
+ *
+ * The time the job should have finished has gone and nobody closed it. True
+ * whatever the payment arrangement, because a job that is never closed is an
+ * operational problem on its own: the Easer is unpaid, the customer has no
+ * completion, and no evidence was ever filed.
+ */
+export function pastAppointmentNotComplete(booking = {}, nowMs = Date.now()) {
+  if (['completed', 'cancelled', 'declined', 'refunded'].includes(String(booking.status || ''))) return false;
+  if (booking.completed_at) return false;
+  const end = expectedCompletionMs(booking);
+  return Number.isFinite(end) && end < nowMs;
+}
+
+/**
+ * AUTHORIZED_PAYMENT_STILL_OPEN
+ *
+ * The customer's money is held and has not been taken. Says nothing about
+ * timing on its own — every healthy booking between authorization and
+ * completion is in this state. It is only a problem in company.
+ */
+export function authorizedPaymentStillOpen(booking = {}) {
+  return String(booking.payment_status || '') === 'authorized'
+    && !booking.payment_collected
+    && !booking.completed_at;
+}
+
+/**
  * The four words the owner dashboard shows. No Stripe vocabulary: the dashboard
  * is an operator console, but these are states of the booking, not of an API.
  */

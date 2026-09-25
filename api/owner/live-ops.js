@@ -1,4 +1,9 @@
-import { expectedCompletionMs, captureDeadlineMs } from '../booking/_authorization-window.js';
+import {
+  expectedCompletionMs,
+  captureDeadlineMs,
+  pastAppointmentNotComplete,
+  authorizedPaymentStillOpen,
+} from '../booking/_authorization-window.js';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { notificationOwnerAction } from '../_notification-display.js';
@@ -746,13 +751,10 @@ export default async function handler(req, res) {
   // tell whether the work happened — the Easer may have forgotten to close it,
   // or may never have turned up. The owner decides; this only makes sure the
   // decision is possible before the hold dies.
-  operationalBookings.filter(b => {
-    if (String(b.payment_status || '') !== 'authorized') return false;
-    if (b.completed_at || b.payment_collected) return false;
-    if (['completed', 'cancelled', 'declined', 'refunded'].includes(String(b.status || ''))) return false;
-    const end = expectedCompletionMs(b);
-    return Number.isFinite(end) && end < now_ts;
-  }).forEach(b => {
+  // Two conditions, named because they occur apart. Both together means the
+  // money is at risk; the job one alone still means a job nobody closed.
+  const pastAppointmentOpen = operationalBookings.filter(b => pastAppointmentNotComplete(b, now_ts));
+  pastAppointmentOpen.filter(b => authorizedPaymentStillOpen(b)).forEach(b => {
     const overdueHours = Math.floor((now_ts - expectedCompletionMs(b)) / 3600000);
     const deadline = captureDeadlineMs(b);
     const hoursLeft = deadline == null ? null : Math.floor((deadline - now_ts) / 3600000);
@@ -787,6 +789,30 @@ export default async function handler(req, res) {
       enRouteAt: b.en_route_at || null,
     });
   });
+
+  // PAST_APPOINTMENT_NOT_COMPLETE on its own. An offline or already-collected
+  // booking has no hold about to expire, so it is not urgent in the same way —
+  // but the Easer is unpaid, no evidence was filed, and the customer has no
+  // completion. Silence here is how a job simply gets forgotten.
+  pastAppointmentOpen.filter(b => !authorizedPaymentStillOpen(b)).forEach(b => alerts.push({
+    type: 'past_appointment_not_complete',
+    severity: 'medium',
+    ref: b.ref,
+    bookingId: b.id,
+    message: `${b.ref} — ${b.service} for ${b.customer_name || 'the customer'}`
+      + `${b.assembler_name ? ` with ${b.assembler_name}` : ' with no Easer assigned'}`
+      + ` was due ${Math.floor((now_ts - expectedCompletionMs(b)) / 3600000)}h ago and was never marked complete.`
+      + ' No payment is waiting on it, so nothing is at risk of expiring, but the job is still open.',
+    action: 'review_timeline',
+    overdueHours: Math.floor((now_ts - expectedCompletionMs(b)) / 3600000),
+    jobState: b.status || null,
+    easerName: b.assembler_name || null,
+    easerId: b.assembler_id || null,
+    customerName: b.customer_name || null,
+    startedAt: b.job_started_at || null,
+    arrivedAt: b.checked_in_at || null,
+    enRouteAt: b.en_route_at || null,
+  }));
 
   quoteNeedsPricing.forEach(b => alerts.push({
     type: 'quote_needs_pricing',

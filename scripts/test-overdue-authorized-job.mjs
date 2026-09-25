@@ -19,15 +19,43 @@ const src = await readFile(new URL('../api/owner/live-ops.js', import.meta.url),
 const block = src.slice(src.indexOf('// ── Overdue authorized job'), src.indexOf("quoteNeedsPricing.forEach"));
 assert.ok(block.length > 500, 'the overdue-authorized-job alert must exist');
 
-// ── The four trigger conditions, each one load-bearing ──────────────────────
-assert.match(block, /payment_status \|\| ''\) !== 'authorized'/,
-  'only fires while the money is still merely held');
-assert.match(block, /b\.completed_at \|\| b\.payment_collected/,
-  'a completed or collected booking is not overdue');
-assert.match(block, /\['completed', 'cancelled', 'declined', 'refunded'\]/,
-  'a closed booking is not overdue');
-assert.match(block, /expectedCompletionMs\(b\)[\s\S]{0,80}end < now_ts/,
-  'it must be the expected END of the job that has passed, not the start');
+// ── The two named conditions ────────────────────────────────────────────────
+// PAST_APPOINTMENT_NOT_COMPLETE and AUTHORIZED_PAYMENT_STILL_OPEN occur apart:
+// a job paid offline can be left open with no money at risk, and every healthy
+// booking sits in the second state between authorization and completion. The
+// urgent alert is their conjunction; the job one alone still gets surfaced.
+assert.match(block, /pastAppointmentNotComplete\(b, now_ts\)/,
+  'the job condition must be the shared predicate, not restated inline');
+assert.match(block, /authorizedPaymentStillOpen\(b\)/,
+  'and so must the money condition');
+
+const { pastAppointmentNotComplete, authorizedPaymentStillOpen } =
+  await import('../api/booking/_authorization-window.js');
+const past = { status: 'confirmed', date: '2026-09-24', time: '8:00 AM - 10:00 AM' };
+const NOW = Date.parse('2026-09-26T00:00:00Z');
+assert.equal(pastAppointmentNotComplete(past, NOW), true, 'a job whose time has gone is open');
+assert.equal(pastAppointmentNotComplete({ ...past, completed_at: '2026-09-24T12:00:00Z' }, NOW), false,
+  'a completed job is not');
+assert.equal(pastAppointmentNotComplete({ ...past, status: 'cancelled' }, NOW), false,
+  'nor is a cancelled one');
+assert.equal(pastAppointmentNotComplete(past, Date.parse('2026-09-24T00:00:00Z')), false,
+  'and not before the appointment has passed');
+
+assert.equal(authorizedPaymentStillOpen({ payment_status: 'authorized' }), true);
+assert.equal(authorizedPaymentStillOpen({ payment_status: 'captured' }), false, 'collected money is not open');
+assert.equal(authorizedPaymentStillOpen({ payment_status: 'authorized', payment_collected: true }), false);
+assert.equal(authorizedPaymentStillOpen({ payment_status: 'offline_recorded' }), false,
+  'an offline booking has no hold to lose');
+
+// The job-only alert must exist, and must not claim money is at risk.
+const jobOnly = src.slice(src.indexOf("// PAST_APPOINTMENT_NOT_COMPLETE on its own"), src.indexOf("quoteNeedsPricing.forEach"));
+assert.ok(jobOnly.includes("type: 'past_appointment_not_complete'"), 'the job-only alert must exist');
+assert.match(jobOnly, /!authorizedPaymentStillOpen\(b\)/,
+  'it must be the complement, so one booking never raises both');
+assert.match(jobOnly, /nothing is at risk of expiring/,
+  'and must say plainly that no hold is about to be lost');
+assert.doesNotMatch(jobOnly, /severity: 'critical'/,
+  'without money at stake it must not outrank an expiring hold');
 
 // ── It must never take the money ────────────────────────────────────────────
 for (const forbidden of ['capture(', 'paymentIntents', 'payment_collected: true', 'captureOrRecover']) {
