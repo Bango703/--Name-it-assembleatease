@@ -78,6 +78,12 @@
 .price-breakdown-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:1rem;align-items:start}
 .price-breakdown-value{color:var(--ink);text-align:right;white-space:nowrap}
 .price-breakdown-value.strong{font-weight:700}
+.pay-due{margin-top:1rem;padding-top:0.95rem;border-top:1px solid var(--border)}
+.pay-due-label{color:#b91c1c}
+.pay-due-value{color:#b91c1c}
+.pay-due-btn{margin-top:0.85rem;text-decoration:none}
+.pay-due-line{font-size:0.86rem;color:#b91c1c;font-weight:600;line-height:1.5}
+.price-label.is-due,.price-value.is-due{color:#b91c1c}
 .booking-card-actions{padding:1.5rem 2rem;display:flex;flex-direction:column;gap:0.75rem}
 .booking-communication{margin-top:1rem;padding:1.25rem;background:#fff;border:1.5px solid var(--border);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.06);display:none}
 .booking-communication h2{font-family:var(--font-display);font-size:1.25rem;color:var(--ink);margin:0 0 .35rem}
@@ -362,8 +368,19 @@
           <span class="price-value" id="bPrice"></span>
         </div>
         <div id="priceBreakdown" class="price-breakdown" style="display:none"></div>
-      </div>
-
+        <!-- Shown only when the secure payment page would accept this booking,
+             so a customer who lost the email can still pay from here. -->
+        <div id="payDueBox" class="pay-due" style="display:none">
+          <!-- Only when part is already paid. If the whole total is outstanding
+               the figure above IS the amount due, and repeating it reads as a
+               second charge. -->
+          <div class="booking-total-row" id="payDueRow" style="display:none">
+            <span class="price-label pay-due-label">Amount due</span>
+            <span class="price-value pay-due-value" id="payDueAmount"></span>
+          </div>
+          <div class="pay-due-line">This payment did not go through.</div>
+          <a id="payDueLink" class="btn btn-cyan btn-full pay-due-btn" href="#">Update payment details</a>
+        </div>
       <!-- Cancel fee warning (shown if applicable) -->
       <div class="cancel-fee-warn" id="cancelFeeWarn">
         <strong>Cancellation fee applies</strong>
@@ -846,6 +863,32 @@ function renderBooking(b) {
         + (refunded > 0 ? row('Refunded', -refunded) + row('Net charged after refund', total - refunded, true) : '');
     }
     bd.style.display = '';
+  })();
+  // Payment needed — same destination as the emailed secure link, reached from
+  // the page the customer already has open. The server decides whether this is
+  // possible; the page never guesses from payment_status.
+  (function () {
+    var box = document.getElementById('payDueBox');
+    if (!box) return;
+    if (!b.payment_action_required || !currentMutationToken) { box.style.display = 'none'; return; }
+    var totalCents = Number(displayTotal) || 0;
+    var remaining = Number(b.remaining_balance_cents) || 0;
+    var partlyPaid = remaining > 0 && remaining < totalCents;
+    if (partlyPaid) {
+      // A second figure is real information here: some of it is already paid.
+      document.getElementById('payDueAmount').textContent = formatUsdCents(remaining);
+      document.getElementById('payDueRow').style.display = '';
+    } else {
+      // The whole total is outstanding, so relabel the figure already on the
+      // card rather than printing the same number twice.
+      document.getElementById('payDueRow').style.display = 'none';
+      document.getElementById('bPriceLabel').textContent = 'Amount due';
+      document.getElementById('bPriceLabel').classList.add('is-due');
+      document.getElementById('bPrice').classList.add('is-due');
+    }
+    document.getElementById('payDueLink').href = '/api/booking/payment-recovery?bookingId='
+      + encodeURIComponent(b.id) + '&token=' + encodeURIComponent(currentMutationToken);
+    box.style.display = '';
   })();
   document.getElementById('bCreated').textContent  = 'Booked on ' + formatDate(b.created_at);
   var supportLink = document.getElementById('bookingSupportLink');

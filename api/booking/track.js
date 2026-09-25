@@ -2,6 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { safeTokenHashMatch } from '../_payment-security.js';
+import { canRecoverPaymentNow } from './_pending-payment-recovery.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
 import { loadCustomerFacingCompletionPhoto } from './_completion-evidence.js';
 
@@ -185,6 +186,11 @@ export default async function handler(req, res) {
     refund_amount: booking.refund_amount || 0,
     deposit_amount: booking.deposit_amount || null,
     payment_status: booking.payment_status || null,
+    // A failed card should not be findable only through an email the customer
+    // may have lost. Same predicate the secure page gates on, so the button
+    // can never appear for a booking that page would refuse. No new access:
+    // the link carries the guest token this request already proved.
+    payment_action_required: canRecoverPaymentNow(booking),
     owner_manual_payment: booking.source === 'owner_manual',
     gross_payment_cents: grossPaymentCents,
     amount_collected_cents: amountCollectedCents,

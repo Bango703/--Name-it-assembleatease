@@ -30,6 +30,23 @@ export function isStandardRecoveryBooking(booking = {}) {
   return (initialPayment || confirmedPaymentHold) && !!booking.stripe_payment_intent_id;
 }
 
+/**
+ * The one answer to "can this person pay right now".
+ *
+ * Three surfaces ask it and they must never disagree: the secure page decides
+ * whether to render a card form, the owner's Email Secure Payment Link decides
+ * whether to send, and Track My Booking decides whether to show Amount due. If
+ * they drift, a customer is handed a button that 409s, or is shown nothing on a
+ * booking that owes money.
+ *
+ * Today it is exactly the standard recovery rule. Widening it — to cover a job
+ * already en route or under way, for instance — widens all three at once, which
+ * is the point. Widen HERE, never at a caller.
+ */
+export function canRecoverPaymentNow(booking = {}) {
+  return isStandardRecoveryBooking(booking);
+}
+
 export function hasValidGuestPaymentToken(booking = {}, token) {
   return safeTokenHashMatch(token, booking.guest_mutation_token_hash);
 }

@@ -1,3 +1,9 @@
+import {
+  expectedCompletionMs,
+  captureDeadlineMs,
+  pastAppointmentNotComplete,
+  authorizedPaymentStillOpen,
+} from '../booking/_authorization-window.js';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { notificationOwnerAction } from '../_notification-display.js';
@@ -196,7 +202,7 @@ export default async function handler(req, res) {
   const thirtyMinAgo = new Date(now - 30 * 60 * 1000).toISOString();
   const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
 
-  const bookingProjection = 'id, ref, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, damage_review_status, damage_claim_opened_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
+  const bookingProjection = 'id, ref, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, authorization_capture_before, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, damage_review_status, damage_claim_opened_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
   const [bookingsRes, financialHoldsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes, damageReportsRes, customerThreadRes] = await Promise.all([
     sb.from('bookings')
       .select(bookingProjection)
@@ -733,6 +739,79 @@ export default async function handler(req, res) {
     bookingId: b.id,
     message: `${b.ref} — ${b.payment_status === 'failed' ? 'card authorization failed' : 'card authorization incomplete'} for ${formatAlertAge(now_ts - new Date(b.created_at).getTime())}`,
     action: 'review_timeline',
+  }));
+
+  // ── Overdue authorized job ────────────────────────────────────────────────
+  // The appointment has passed, the job was never closed, and the customer's
+  // money is still only held. Nobody was told. This is the mirror image of the
+  // AAE-DVSNHXE4OO incident: there, capture ran and failed; here, capture never
+  // runs at all and the hold quietly expires with the work unpaid.
+  //
+  // It does NOT capture. Money moves after the work, and from here we cannot
+  // tell whether the work happened — the Easer may have forgotten to close it,
+  // or may never have turned up. The owner decides; this only makes sure the
+  // decision is possible before the hold dies.
+  // Two conditions, named because they occur apart. Both together means the
+  // money is at risk; the job one alone still means a job nobody closed.
+  const pastAppointmentOpen = operationalBookings.filter(b => pastAppointmentNotComplete(b, now_ts));
+  pastAppointmentOpen.filter(b => authorizedPaymentStillOpen(b)).forEach(b => {
+    const overdueHours = Math.floor((now_ts - expectedCompletionMs(b)) / 3600000);
+    const deadline = captureDeadlineMs(b);
+    const hoursLeft = deadline == null ? null : Math.floor((deadline - now_ts) / 3600000);
+    // Once the hold is nearly gone the money is about to be lost outright, so
+    // the alert has to outrank the general "somebody look at this" pile.
+    const severity = hoursLeft == null || hoursLeft <= 24 ? 'critical' : 'high';
+    const holdNote = hoursLeft == null
+      ? 'the payment hold expiry was never recorded'
+      : hoursLeft <= 0
+        ? 'the payment hold has already expired'
+        : `the payment hold expires in ${hoursLeft}h`;
+    alerts.push({
+      type: 'overdue_authorized_job',
+      severity,
+      ref: b.ref,
+      bookingId: b.id,
+      message: `${b.ref} — ${b.service} for ${b.customer_name || 'the customer'}`
+        + `${b.assembler_name ? ` with ${b.assembler_name}` : ' with no Easer assigned'}`
+        + ` was due ${overdueHours}h ago and is still ${String(b.status || 'open').replace(/_/g, ' ')}.`
+        + ` Payment is held, not collected, and ${holdNote}.`
+        + ' Check whether the work happened before deciding — do not charge for a job that did not.',
+      action: 'review_timeline',
+      overdueHours,
+      captureBefore: b.authorization_capture_before || null,
+      hoursUntilHoldExpires: hoursLeft,
+      jobState: b.status || null,
+      easerName: b.assembler_name || null,
+      easerId: b.assembler_id || null,
+      customerName: b.customer_name || null,
+      startedAt: b.job_started_at || null,
+      arrivedAt: b.checked_in_at || null,
+      enRouteAt: b.en_route_at || null,
+    });
+  });
+
+  // PAST_APPOINTMENT_NOT_COMPLETE on its own. An offline or already-collected
+  // booking has no hold about to expire, so it is not urgent in the same way —
+  // but the Easer is unpaid, no evidence was filed, and the customer has no
+  // completion. Silence here is how a job simply gets forgotten.
+  pastAppointmentOpen.filter(b => !authorizedPaymentStillOpen(b)).forEach(b => alerts.push({
+    type: 'past_appointment_not_complete',
+    severity: 'medium',
+    ref: b.ref,
+    bookingId: b.id,
+    message: `${b.ref} — ${b.service} for ${b.customer_name || 'the customer'}`
+      + `${b.assembler_name ? ` with ${b.assembler_name}` : ' with no Easer assigned'}`
+      + ` was due ${Math.floor((now_ts - expectedCompletionMs(b)) / 3600000)}h ago and was never marked complete.`
+      + ' No payment is waiting on it, so nothing is at risk of expiring, but the job is still open.',
+    action: 'review_timeline',
+    overdueHours: Math.floor((now_ts - expectedCompletionMs(b)) / 3600000),
+    jobState: b.status || null,
+    easerName: b.assembler_name || null,
+    easerId: b.assembler_id || null,
+    customerName: b.customer_name || null,
+    startedAt: b.job_started_at || null,
+    arrivedAt: b.checked_in_at || null,
+    enRouteAt: b.en_route_at || null,
   }));
 
   quoteNeedsPricing.forEach(b => alerts.push({

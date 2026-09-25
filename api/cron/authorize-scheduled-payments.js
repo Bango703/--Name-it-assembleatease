@@ -5,6 +5,7 @@ import { randomToken, sha256 } from '../_payment-security.js';
 import { isAutomaticDispatchZip } from '../_source-of-truth.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
+import { fetchCaptureDeadline } from '../booking/_authorization-window.js';
 import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { chicagoTodayIso } from '../booking/_appt-date.js';
 import { logActivity } from '../booking/_activity.js';
@@ -229,10 +230,12 @@ export async function authorizeScheduledBooking({ sb, stripe, booking, expectedL
     }
 
     const automaticDispatch = isAutomaticDispatchZip(booking.service_zip || booking.address);
+    const captureDeadline = await fetchCaptureDeadline(stripe, intent.id);
     const { data: rows, error: updateError } = await sb.from('bookings').update({
       stripe_payment_intent_id: intent.id,
       payment_status: 'authorized',
       payment_authorized_at: new Date().toISOString(),
+      authorization_capture_before: captureDeadline,
       dispatch_paused: false,
       needs_manual_dispatch: !automaticDispatch,
       dispatch_status: null,
@@ -372,7 +375,7 @@ export async function recoverUnconfirmedHolds({ sb, stripe, expectedLivemode, to
   if (error || !stuck?.length) return result;
 
   for (const booking of stuck) {
-    const outcome = await finishUnconfirmedHold({ sb, stripe, booking, expectedLivemode, notify });
+    const outcome = await finishUnconfirmedHold({ sb, stripe, booking, expectedLivemode, todayIso, notify });
     if (outcome.authorized) result.authorized += 1;
     else if (outcome.reason) result.failures.push({ ref: booking.ref, reason: outcome.reason });
   }
@@ -381,7 +384,7 @@ export async function recoverUnconfirmedHolds({ sb, stripe, expectedLivemode, to
 
 // Exported so the owner can run exactly this, for one booking, from the
 // dashboard — the same code path the nightly job takes, not a second opinion.
-export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivemode, notify = DEFAULT_NOTIFIERS }) {
+export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivemode, todayIso = chicagoTodayIso(), notify = DEFAULT_NOTIFIERS }) {
   const amount = Number(booking.total_price || 0);
   const customerId = stringId(booking.stripe_customer_id);
   const paymentMethodId = stringId(booking.stripe_payment_method_id);
@@ -427,6 +430,10 @@ export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivem
     const retry = await authorizeScheduledBooking({
       sb,
       stripe,
+      // Honour the caller's today. Without this the retry re-derives it from
+      // the clock, so a run that straddles midnight can have its two halves
+      // disagree about whether the appointment is still in the future.
+      todayIso,
       booking: {
         ...booking,
         payment_status: 'card_saved',
@@ -480,9 +487,11 @@ export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivem
   if (!finalValidation.ok) return { authorized: false, reason: `authorized_payment_validation_failed:${finalValidation.errors.join(',')}` };
 
   const automaticDispatch = isAutomaticDispatchZip(booking.service_zip || booking.address);
+  const recoveredDeadline = await fetchCaptureDeadline(stripe, intent.id);
   const { data: rows, error: updateError } = await sb.from('bookings').update({
     payment_status: 'authorized',
     payment_authorized_at: new Date().toISOString(),
+    authorization_capture_before: recoveredDeadline,
     dispatch_paused: false,
     dispatch_status: null,
     needs_manual_dispatch: !automaticDispatch && !booking.assembler_id,

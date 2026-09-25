@@ -5,7 +5,7 @@ import { rateLimit } from '../_ratelimit.js';
 import {
   hasValidGuestPaymentToken,
   isRecoverablePaymentIntentStatus,
-  isStandardRecoveryBooking,
+  canRecoverPaymentNow,
   validateBookingPaymentIntent,
 } from './_pending-payment-recovery.js';
 
@@ -144,7 +144,7 @@ async function loadRecoveryState({ bookingId, token, allowAlreadyConfirmed = fal
 
   const fullyConfirmed = booking.status === 'confirmed' && booking.payment_status === 'authorized';
   if (allowAlreadyConfirmed && fullyConfirmed) return { ok: true, alreadyConfirmed: true, booking, sb };
-  if (!isStandardRecoveryBooking(booking)) {
+  if (!canRecoverPaymentNow(booking)) {
     return {
       ok: false,
       status: 409,
