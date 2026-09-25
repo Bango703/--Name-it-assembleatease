@@ -375,7 +375,7 @@ export async function recoverUnconfirmedHolds({ sb, stripe, expectedLivemode, to
   if (error || !stuck?.length) return result;
 
   for (const booking of stuck) {
-    const outcome = await finishUnconfirmedHold({ sb, stripe, booking, expectedLivemode, notify });
+    const outcome = await finishUnconfirmedHold({ sb, stripe, booking, expectedLivemode, todayIso, notify });
     if (outcome.authorized) result.authorized += 1;
     else if (outcome.reason) result.failures.push({ ref: booking.ref, reason: outcome.reason });
   }
@@ -384,7 +384,7 @@ export async function recoverUnconfirmedHolds({ sb, stripe, expectedLivemode, to
 
 // Exported so the owner can run exactly this, for one booking, from the
 // dashboard — the same code path the nightly job takes, not a second opinion.
-export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivemode, notify = DEFAULT_NOTIFIERS }) {
+export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivemode, todayIso = chicagoTodayIso(), notify = DEFAULT_NOTIFIERS }) {
   const amount = Number(booking.total_price || 0);
   const customerId = stringId(booking.stripe_customer_id);
   const paymentMethodId = stringId(booking.stripe_payment_method_id);
@@ -430,6 +430,10 @@ export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivem
     const retry = await authorizeScheduledBooking({
       sb,
       stripe,
+      // Honour the caller's today. Without this the retry re-derives it from
+      // the clock, so a run that straddles midnight can have its two halves
+      // disagree about whether the appointment is still in the future.
+      todayIso,
       booking: {
         ...booking,
         payment_status: 'card_saved',
