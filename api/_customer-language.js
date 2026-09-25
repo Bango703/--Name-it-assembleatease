@@ -56,6 +56,48 @@ export const CUSTOMER_FORBIDDEN_TERMS = Object.freeze([
 ]);
 
 /**
+ * Copy must not argue with the reader.
+ *
+ * A message to a customer or an Easer says what happened and what to do. It
+ * does not explain why the rule exists. "Every payout waits 24 hours after the
+ * job closes. That window is there so a refund, a damage report or a card
+ * dispute is settled before money moves, and it applies to every job" became
+ * one table row and one sentence, and lost nothing. Justifying a rule makes it
+ * sound negotiable or apologetic, and the reader who wants the reasoning asks.
+ *
+ * Scope is notification copy and product screens. Contracts are exempt: the
+ * contractor agreement and the terms need their conditional clauses.
+ */
+export const JUSTIFYING_PHRASES = Object.freeze([
+  /\bso that\b/i,
+  /\bbecause\b/i,
+  /\bthe reason\b/i,
+  /\bin order to\b/i,
+  /\bthat is why\b/i,
+  /\bthis ensures\b/i,
+  /\bto ensure\b/i,
+  /\bis there so\b/i,
+  /\bthat way\b/i,
+  /\bwhich allows\b/i,
+  /\bthis helps\b/i,
+  /\bwe do this\b/i,
+  /\bplease note\b/i,
+  /\bkindly note\b/i,
+]);
+
+/** Sentences in `source` that explain themselves instead of just saying the thing. */
+export function findJustifyingCopy(source) {
+  const found = [];
+  for (const sentence of visibleCustomerText(source).split(/(?<=[.!?])\s+/)) {
+    const words = sentence.trim().split(/\s+/).length;
+    if (words < 5 || words > 60) continue;
+    const hit = JUSTIFYING_PHRASES.find(p => p.test(sentence));
+    if (hit) found.push({ phrase: sentence.match(hit)[0], sentence: sentence.trim() });
+  }
+  return found;
+}
+
+/**
  * Strip everything a customer does not read: template interpolations (those are
  * values, not words we wrote), HTML tags and their attributes, URLs, and inline
  * style blocks. What is left is the sentence in front of the person.

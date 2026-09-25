@@ -18,6 +18,8 @@ import {
   CUSTOMER_FORBIDDEN_TERMS,
   visibleCustomerText,
   findCustomerLanguageViolations,
+  findJustifyingCopy,
+  JUSTIFYING_PHRASES,
 } from '../api/_customer-language.js';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -52,6 +54,24 @@ for (const bad of [
   'The assembler will arrive soon.',
 ]) {
   assert.ok(findCustomerLanguageViolations(bad).length > 0, `missed: ${bad}`);
+}
+
+// ── Copy must not argue with the reader ─────────────────────────────────────
+for (const plain of [
+  'Your Easer is on the way.',
+  'We placed a hold on your card. Nothing has been taken.',
+  'Cancelling now carries the reschedule cancellation fee.',
+  'We email you when it is sent.',
+]) {
+  assert.deepEqual(findJustifyingCopy(plain), [], `false positive on plain copy: ${plain}`);
+}
+for (const preachy of [
+  'That window is there so a refund or a dispute is settled before money moves.',
+  'Because this booking was rescheduled, a later cancellation incurs a fee.',
+  'We hold the payout for 24 hours to ensure disputes are settled first.',
+  'Please note that your card will not be charged today.',
+]) {
+  assert.ok(findJustifyingCopy(preachy).length > 0, `missed self-justifying copy: ${preachy}`);
 }
 
 // Interpolations are values, not our words: ${booking.assembler_name} renders a
@@ -115,15 +135,91 @@ for (const file of await jsFiles(join(ROOT, 'api'))) {
   const src = await readFile(file, 'utf8');
   for (const call of src.matchAll(SENDERS)) {
     const block = callSource(src, src.indexOf('(', call.index));
+    const recipientExpr = (block.match(/\b(?:to|recipient)\s*:\s*([^,\n]+)/) || [])[1] || '';
+    const goesToOwner = /ownerEmail\(\)/.test(recipientExpr);
+    // Labelled at all, versus labelled with a value we can classify here. A
+    // dynamic `recipientType: recipient.type` is a real label — the send is
+    // attributable at runtime — it simply cannot be sorted into customer or
+    // Easer copy rules from source, so it is exempt from those, not from this.
+    const labelled = /recipientType\s*:/.test(block);
     const who = block.match(/recipientType:\s*'([a-z_]+)'/);
-    if (!who || who[1] !== 'customer') continue;
+
+    // Not every match is a send site. The shared modules ARE the send function,
+    // and several callers inject it (`email = options => sendEmail(options)`)
+    // or fan out a payload built elsewhere. Those forward someone else's meta;
+    // the label belongs at the real call, which this loop reaches separately.
+    const forwards = !recipientExpr
+      || /^\s*(options|message|payload|body)\s*$/.test(recipientExpr)
+      || /=>\s*send/.test(src.slice(Math.max(0, call.index - 60), call.index));
+    const sharedModule = /[\\/]_[a-z-]+\.js$/.test(file);
+    // A meta built above the call (`meta` shorthand, or `meta: someVar`) is
+    // still a label; it just is not written inline.
+    const metaByReference = /\bmeta\s*[,}]/.test(block) || /meta:\s*[A-Za-z_$][\w$]*\s*[,}]/.test(block);
+
+    // An unlabelled send is not merely badly logged — it is INVISIBLE to every
+    // check below, because they all key on recipientType. That is how
+    // "Your existing payment authorization has not changed; capture occurs
+    // only after completion" sat in a customer email while this guard passed.
+    // Anything not addressed to the owner must say who it is for.
+    if (!labelled && !goesToOwner && !forwards && !sharedModule && !metaByReference) {
+      failures.push(`${relative(ROOT, file)}:${src.slice(0, call.index).split('\n').length} sends to "${recipientExpr.trim()}" with no recipientType — an unlabelled send escapes every copy rule here`);
+      continue;
+    }
+    if (!who || !['customer', 'easer'].includes(who[1])) continue;
     // Only string literals; identifiers and object keys are not copy.
     const literals = block.match(/`[^`]*`|'[^']*'|"[^"]*"/g) || [];
+    const line = src.slice(0, call.index).split('\n').length;
     for (const literal of literals) {
-      for (const hit of findCustomerLanguageViolations(literal)) {
-        const line = src.slice(0, call.index).split('\n').length;
-        failures.push(`${relative(ROOT, file)}:${line} says "${hit.term}" to a customer — say ${hit.say}`);
+      // The jargon map is customer-only. An Easer genuinely HAS a payout and is
+      // dispatched to jobs; banning those words for them would be false.
+      if (who[1] === 'customer') {
+        for (const hit of findCustomerLanguageViolations(literal)) {
+          failures.push(`${relative(ROOT, file)}:${line} says "${hit.term}" to a customer — say ${hit.say}`);
+        }
       }
+      // Arguing the rule is wrong for both. Say what happened and what to do.
+      for (const hit of findJustifyingCopy(literal)) {
+        failures.push(`${relative(ROOT, file)}:${line} explains itself to the ${who[1]} with "${hit.phrase}" — cut the reason, keep the fact: "${hit.sentence}"`);
+      }
+    }
+  }
+}
+
+// ── Customer pages the SERVER renders ───────────────────────────────────────
+// The first version of this guard checked emails plus track.html and book.html
+// and called that the customer surface. It was not. The secure card page is
+// built as a string inside api/booking/payment-recovery.js, so it was never
+// scanned, and it told people their card would be "authorized now and captured
+// after completed work" and that "a disclosed late-cancellation fee may apply"
+// — on the one page where someone types a card number. Anything served as HTML
+// to a customer counts, wherever it is built.
+for (const file of await jsFiles(join(ROOT, 'api'))) {
+  const src = await readFile(file, 'utf8');
+  if (!/<!doctype html|<!DOCTYPE html/.test(src)) continue;
+  if (!/res\.(?:send|status\(\d+\)\.send)|text\/html/.test(src)) continue;
+  // The owner has his own served pages; they may use the real terms.
+  if (/[\/]owner[\/]/.test(file) && !/quote-approve/.test(file)) continue;
+  // A served page puts half its words in its own <script>: status lines
+  // assigned to textContent and thrown Error messages. visibleCustomerText
+  // strips script blocks, so "Authorizing securely..." and "Authorization
+  // complete" sat on the card page unseen. Pull those strings out too.
+  for (const [, msg] of src.matchAll(/(?:textContent|innerHTML)\s*=\s*'([^']{12,})'/g)) {
+    for (const hit of findCustomerLanguageViolations(msg)) {
+      failures.push(`${relative(ROOT, file)} shows "${hit.term}" in a page message — say ${hit.say}`);
+    }
+  }
+  for (const [, msg] of src.matchAll(/new Error\(\s*'([^']{12,})'\s*\)/g)) {
+    for (const hit of findCustomerLanguageViolations(msg)) {
+      failures.push(`${relative(ROOT, file)} throws "${hit.term}" at a customer — say ${hit.say}`);
+    }
+  }
+  for (const page of src.match(/`[^`]{120,}`/g) || []) {
+    if (!/<!doctype html/i.test(page)) continue;
+    for (const hit of findCustomerLanguageViolations(page)) {
+      failures.push(`${relative(ROOT, file)} serves a page saying "${hit.term}" to a customer — say ${hit.say}`);
+    }
+    for (const hit of findJustifyingCopy(page)) {
+      failures.push(`${relative(ROOT, file)} serves a page that explains itself with "${hit.phrase}" — keep the fact: "${hit.sentence}"`);
     }
   }
 }
@@ -141,4 +237,4 @@ for (const page of ['track.html', 'book.html']) {
 
 assert.deepEqual(failures, [], `internal vocabulary reached a customer:\n  ${failures.join('\n  ')}`);
 
-console.log(`PASS customer language: ${CUSTOMER_FORBIDDEN_TERMS.length} terms enforced across customer email, SMS, push and pages`);
+console.log(`PASS customer language: ${CUSTOMER_FORBIDDEN_TERMS.length} banned terms on customer surfaces, ${JUSTIFYING_PHRASES.length} self-justifying phrases on customer and Easer surfaces`);

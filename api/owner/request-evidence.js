@@ -70,6 +70,7 @@ export default async function handler(req, res) {
         subject: `Action Required: Upload Evidence for Job ${booking.ref}`,
         html: buildEvidenceRequestEmail({ firstName, ref: booking.ref, service: booking.service, date: booking.date }),
         replyTo: ownerEmail(),
+        meta: { bookingId: booking.id, notificationType: 'evidence_requested', recipientType: 'easer', recipientUserId: profile.id },
       });
     } catch (e) {
       console.error('request-evidence email error:', e);

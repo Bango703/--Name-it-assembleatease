@@ -634,6 +634,7 @@ export default async function handler(req, res) {
                 subject: 'Payment Failed — AssembleAtEase Application',
                 html: buildPaymentFailEmail(profile.full_name.split(' ')[0], reason),
                 replyTo: ownerEmail(),
+                meta: { notificationType: 'easer_application_payment_failed', recipientType: 'easer', recipientUserId: profile.id },
               });
             } catch (e) { console.error('Payment failed email error:', e); }
           }
@@ -1390,6 +1391,7 @@ export default async function handler(req, res) {
                 <p>Hi ${esc((p.full_name||'').split(' ')[0])}, you now have priority access to jobs on AssembleAtEase. You'll be notified first for jobs in your area before non-members.</p>
                 <p style="color:#6b7280;font-size:0.875rem">Questions? Email service@assembleatease.com</p>
               </div>`,
+              meta: { notificationType: 'easer_membership_active', recipientType: 'easer', recipientUserId: p.id },
             }).catch(e => console.error('Membership welcome email error:', e));
           }
         }

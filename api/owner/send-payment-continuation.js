@@ -447,6 +447,30 @@ function hasActiveFinancialOperation(booking) {
   );
 }
 
+/**
+ * A FRAGMENT, not a document.
+ *
+ * The hand-rolled version was its own little design system: a text wordmark
+ * where every other email has the logo, its own padding scale, and a
+ * three-line footer in place of the real one. Side by side with a booking
+ * confirmation it read as a different company asking for card details, which
+ * is the last impression a payment email should give.
+ *
+ * As a fragment it inherits the logo, the spacing, the brand colour and the
+ * full footer, and there is nothing left here to drift. The copy says nothing
+ * about timing or the appointment: this email goes out whether the job is next
+ * week, happening now, or already finished.
+ */
 function buildContinuationEmail({ booking, continuationUrl, total, firstName }) {
-  return `<!doctype html><html><body style="margin:0;background:#f4f4f5;font-family:Arial,sans-serif;color:#18181b"><div style="max-width:580px;margin:0 auto;padding:28px 16px"><div style="background:#fff;border:1px solid #e4e4e7;border-radius:12px;padding:28px"><h1 style="margin:0 0 12px;font-size:24px">Continue your booking securely</h1><p style="line-height:1.7">Hi ${esc(firstName)}, your booking request <strong>${esc(booking.ref)}</strong> for <strong>${esc(booking.service)}</strong> is not confirmed because the card authorization was not completed.</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin:18px 0"><div style="font-size:12px;color:#64748b;text-transform:uppercase;font-weight:700">Total to authorize</div><div style="font-size:24px;font-weight:800;margin-top:4px">${esc(total)}</div></div><p style="font-size:14px;line-height:1.6;color:#52525b">Your card will be authorized now and captured after completed work. Cancellation is free until 24 hours before the appointment. A disclosed late-cancellation fee may apply inside 24 hours.</p><p style="text-align:center;margin:24px 0"><a href="${esc(continuationUrl)}" style="display:inline-block;background:#00BFFF;color:#fff;text-decoration:none;padding:13px 24px;border-radius:8px;font-weight:700">Continue secure payment</a></p><p style="font-size:12px;line-height:1.6;color:#71717a">Use this link only for booking ${esc(booking.ref)}. If you did not request this booking, reply to this email or call (979) 232-5139.</p></div></div></body></html>`;
+  return `
+    <p style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1a1a1a">We could not take payment for booking ${esc(booking.ref)}</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Hi ${esc(firstName)}, your card did not go through.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:8px;margin-bottom:22px"><tr><td style="padding:18px 20px">
+      <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#71717a">Total</p>
+      <p style="margin:0;font-size:28px;font-weight:700;color:#1a1a1a">${esc(total)}</p>
+    </td></tr></table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px"><tr><td style="text-align:center">
+      <a href="${esc(continuationUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:14px 32px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:700">Update payment details</a>
+    </td></tr></table>
+    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Did not book this? Reply to this email or call (979) 232-5139.</p>`;
 }
