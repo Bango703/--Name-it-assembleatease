@@ -9324,8 +9324,18 @@ window.intelQuick = intelQuick;
           + '</div>';
         }).join('')
       : '<div style="color:var(--muted);font-size:0.85rem">No completed job in this period has both a start and a completion time.</div>')
-      + (durAll.missing
-        ? '<div style="margin-top:0.35rem;padding-top:0.6rem;border-top:1px solid var(--border);font-size:0.72rem;color:var(--muted);line-height:1.5"><strong>' + durAll.missing + '</strong> completed job' + (durAll.missing === 1 ? '' : 's') + ' not included, with no start time recorded. A job imported as already complete never gets one.</div>'
+      + (durAll.missing || durAll.unverified
+        ? '<div style="margin-top:0.35rem;padding-top:0.6rem;border-top:1px solid var(--border);font-size:0.72rem;color:var(--muted);line-height:1.5">'
+          + (durAll.missing
+            ? '<strong>' + durAll.missing + '</strong> completed job' + (durAll.missing === 1 ? '' : 's') + ' not included, with no start time recorded. A job imported as already complete never gets one.'
+            : '')
+          + (durAll.missing && durAll.unverified ? '<br>' : '')
+          // Excluded jobs are named, not quietly dropped. The owner has to be
+          // able to tell "we have no data" from "we ignored some".
+          + (durAll.unverified
+            ? '<strong>' + durAll.unverified + '</strong> job' + (durAll.unverified === 1 ? '' : 's') + ' not included, left open more than 16 hours. That measures the delay before someone marked it complete, not the work.'
+            : '')
+          + '</div>'
         : '');
 
     var monthlyMap = {};
@@ -9427,7 +9437,14 @@ window.intelQuick = intelQuick;
 
       tbody.innerHTML = easers.map(function(e) {
         var methodLabels = { ach:'ACH / bank transfer', zelle:'Zelle', paypal:'PayPal', check:'Check' };
-        var preferredMethod = methodLabels[e.payout_method_preference] || 'Not selected';
+        // payout_method_preference describes a MANUAL payout only. An Easer on
+        // Connect is paid automatically and never picks one, so a red
+        // "Not selected" beside a live transfer read as a blocker on a payout
+        // that was already on its way.
+        var preferredMethod;
+        if (e.connect_payouts_ready) preferredMethod = 'Stripe Connect (automatic)';
+        else if (e.connect_onboarded) preferredMethod = 'Stripe Connect - payouts not enabled yet';
+        else preferredMethod = methodLabels[e.payout_method_preference] || 'Not selected';
         var jobsNeedingAction = e.unpaid_jobs || [];
         var actionButtons = jobsNeedingAction.slice(0, 3).map(function(job) {
           var isConnectProcessing = job.payout_mode === 'stripe_connect' && job.disposition === 'transferred';
@@ -9455,7 +9472,7 @@ window.intelQuick = intelQuick;
           + '</div>';
         return '<tr style="border-bottom:1px solid var(--border)">'
           + '<td style="padding:0.6rem 0.75rem;font-weight:600;color:var(--text)">' + esc(e.assembler_name) + ' ' + easerTierBadge(e.assembler_tier) + contact + (['requested','reviewing','completed'].includes(e.account_closure_status) ? '<div style="font-size:0.68rem;color:var(--red);margin-top:0.2rem">Closure: ' + esc(e.account_closure_status) + '</div>' : '') + '</td>'
-          + '<td style="padding:0.6rem 0.75rem;font-size:0.76rem;color:' + (e.payout_method_preference ? 'var(--text)' : 'var(--red)') + '">' + esc(preferredMethod) + '</td>'
+          + '<td style="padding:0.6rem 0.75rem;font-size:0.76rem;color:' + (e.connect_payouts_ready || e.payout_method_preference ? 'var(--text)' : 'var(--red)') + '">' + esc(preferredMethod) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--soft)">' + e.jobs + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--text)">' + fmt$(e.total_owed) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--green)">' + fmt$(e.total_paid) + '</td>'
