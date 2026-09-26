@@ -31,6 +31,27 @@ export function isStandardRecoveryBooking(booking = {}) {
 }
 
 /**
+ * A job already under way whose payment still needs fixing.
+ *
+ * The Easer is en route, on site, or working, and the customer's payment has
+ * not come through. Refusing here is the worst of every option: the work is
+ * happening, nobody can pay, and the customer is told the link expired.
+ *
+ * 'authorized' is deliberately NOT in this list. A booking marked authorized
+ * owes nothing, and this predicate feeds Track My Booking and the owner's
+ * Email Secure Payment Link as well as the secure page — including it would
+ * put a payment prompt in front of a customer whose money is already held. The
+ * case it was meant to catch, a local 'authorized' row whose Stripe hold has
+ * actually died, is handled inside payment-recovery.js, which reads the live
+ * intent and can tell the difference.
+ */
+export function isActivePaymentRecoveryBooking(booking = {}) {
+  return ['en_route', 'arrived', 'in_progress'].includes(String(booking.status || ''))
+    && STANDARD_RECOVERY_PAYMENT_STATUSES.includes(String(booking.payment_status || ''))
+    && !!booking.stripe_payment_intent_id;
+}
+
+/**
  * The one answer to "can this person pay right now".
  *
  * Three surfaces ask it and they must never disagree: the secure page decides
@@ -39,16 +60,19 @@ export function isStandardRecoveryBooking(booking = {}) {
  * they drift, a customer is handed a button that 409s, or is shown nothing on a
  * booking that owes money.
  *
- * Today it is exactly the standard recovery rule. Widening it — to cover a job
- * already en route or under way, for instance — widens all three at once, which
- * is the point. Widen HERE, never at a caller.
+ * Widening it — as the active-job rule above does — widens all three at once,
+ * which is the point. Widen HERE, never at a caller.
  */
 export function canRecoverPaymentNow(booking = {}) {
-  return isStandardRecoveryBooking(booking);
+  return isStandardRecoveryBooking(booking) || isActivePaymentRecoveryBooking(booking);
 }
 
 export function hasValidGuestPaymentToken(booking = {}, token) {
   return safeTokenHashMatch(token, booking.guest_mutation_token_hash);
+}
+
+export function hasValidPaymentRecoveryToken(booking = {}, token) {
+  return safeTokenHashMatch(token, booking.payment_recovery_token_hash);
 }
 
 export function validateBookingPaymentIntent(booking = {}, intent = {}, options = {}) {

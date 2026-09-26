@@ -636,10 +636,10 @@ async function sendAuthorizationSuccess(booking) {
 // which one, because "your bank needs one more confirmation" on a card the bank
 // never saw is how this job lost a customer's trust once already.
 async function sendCustomerRecovery(sb, booking, outcome = null) {
-  const previousHash = booking.guest_mutation_token_hash || null;
+  const previousHash = booking.payment_recovery_token_hash || null;
   const token = randomToken(32);
   const nextHash = sha256(token);
-  let tokenQuery = sb.from('bookings').update({ guest_mutation_token_hash: nextHash })
+  let tokenQuery = sb.from('bookings').update({ payment_recovery_token_hash: nextHash })
     .eq('id', booking.id)
     .eq('status', 'confirmed')
     .eq('payment_status', 'pending')
@@ -650,8 +650,8 @@ async function sendCustomerRecovery(sb, booking, outcome = null) {
     .is('financial_reconciliation_required_at', null)
     .is('cancellation_reconciliation_required_at', null);
   tokenQuery = previousHash
-    ? tokenQuery.eq('guest_mutation_token_hash', previousHash)
-    : tokenQuery.is('guest_mutation_token_hash', null);
+    ? tokenQuery.eq('payment_recovery_token_hash', previousHash)
+    : tokenQuery.is('payment_recovery_token_hash', null);
   const { data: tokenRows, error: tokenError } = await tokenQuery.select('id');
   if (tokenError || !tokenRows?.length) {
     return { ok: false, error: tokenError?.message || 'Booking state changed before the secure link was saved.' };
@@ -670,12 +670,12 @@ async function sendCustomerRecovery(sb, booking, outcome = null) {
   const delivered = emailResult?.ok === true && emailResult?.suppressed !== true;
   if (delivered) return { ok: true };
 
-  let rollbackQuery = sb.from('bookings').update({ guest_mutation_token_hash: previousHash })
+  let rollbackQuery = sb.from('bookings').update({ payment_recovery_token_hash: previousHash })
     .eq('id', booking.id)
     .eq('status', 'confirmed')
     .eq('payment_status', 'pending')
     .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id)
-    .eq('guest_mutation_token_hash', nextHash)
+    .eq('payment_recovery_token_hash', nextHash)
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)
     .is('financial_operation_started_at', null);
