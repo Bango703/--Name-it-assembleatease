@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const { data: booking, error: bookingError } = await sb.from('bookings')
-    .select('id, ref, service, status, payment_status, dispatch_status, customer_name, customer_email, total_price, stripe_payment_intent_id, stripe_customer_id, guest_mutation_token_hash, created_at, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
+    .select('id, ref, service, status, payment_status, dispatch_status, customer_name, customer_email, total_price, stripe_payment_intent_id, stripe_customer_id, guest_mutation_token_hash, payment_recovery_token_hash, created_at, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
     .eq('id', bookingId)
     .maybeSingle();
 
@@ -256,11 +256,11 @@ export default async function handler(req, res) {
     booking.payment_status = 'pending';
   }
 
-  const previousGuestTokenHash = booking.guest_mutation_token_hash || null;
+  const previousPaymentTokenHash = booking.payment_recovery_token_hash || null;
   const guestToken = randomToken(32);
   const nextGuestTokenHash = sha256(guestToken);
   let tokenRotation = sb.from('bookings').update({
-    guest_mutation_token_hash: nextGuestTokenHash,
+    payment_recovery_token_hash: nextGuestTokenHash,
   })
     .eq('id', booking.id)
     .eq('status', booking.status)
@@ -271,9 +271,9 @@ export default async function handler(req, res) {
     .is('financial_operation_started_at', null)
     .is('financial_reconciliation_required_at', null)
     .is('cancellation_reconciliation_required_at', null);
-  tokenRotation = booking.guest_mutation_token_hash
-    ? tokenRotation.eq('guest_mutation_token_hash', booking.guest_mutation_token_hash)
-    : tokenRotation.is('guest_mutation_token_hash', null);
+  tokenRotation = previousPaymentTokenHash
+    ? tokenRotation.eq('payment_recovery_token_hash', previousPaymentTokenHash)
+    : tokenRotation.is('payment_recovery_token_hash', null);
   const { data: tokenRows, error: tokenError } = await tokenRotation.select('id');
   if (tokenError || !tokenRows?.length) {
     return res.status(tokenError ? 503 : 409).json({
@@ -283,7 +283,7 @@ export default async function handler(req, res) {
       code: tokenError ? 'PAYMENT_RECOVERY_TOKEN_ROTATION_FAILED' : 'PAYMENT_RECOVERY_STATE_CONFLICT',
     });
   }
-  booking.guest_mutation_token_hash = nextGuestTokenHash;
+  booking.payment_recovery_token_hash = nextGuestTokenHash;
 
   const continuationUrl = `${SITE}/api/booking/payment-recovery?bookingId=${encodeURIComponent(booking.id)}&token=${encodeURIComponent(guestToken)}`;
   const total = `$${(Number(booking.total_price || 0) / 100).toFixed(2)}`;
@@ -306,13 +306,13 @@ export default async function handler(req, res) {
   let tokenRollbackFailed = false;
   if (!emailDelivered) {
     const { data: rollbackRows, error: rollbackError } = await sb.from('bookings').update({
-      guest_mutation_token_hash: previousGuestTokenHash,
+      payment_recovery_token_hash: previousPaymentTokenHash,
     })
       .eq('id', booking.id)
       .eq('status', booking.status)
       .eq('payment_status', booking.payment_status)
       .eq('stripe_payment_intent_id', intent.id)
-      .eq('guest_mutation_token_hash', nextGuestTokenHash)
+      .eq('payment_recovery_token_hash', nextGuestTokenHash)
       .is('financial_operation_key', null)
       .is('financial_operation_type', null)
       .is('financial_operation_started_at', null)
@@ -321,7 +321,7 @@ export default async function handler(req, res) {
       .select('id');
     tokenRollbackFailed = !!rollbackError || !rollbackRows?.length;
     if (!tokenRollbackFailed) {
-      booking.guest_mutation_token_hash = previousGuestTokenHash;
+      booking.payment_recovery_token_hash = previousPaymentTokenHash;
     } else {
       await logPaymentReconciliation(sb, {
         bookingId: booking.id,

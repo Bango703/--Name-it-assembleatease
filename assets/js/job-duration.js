@@ -24,6 +24,22 @@
 (function (global) {
   'use strict';
 
+  /**
+   * Past this, the two stamps are not measuring work.
+   *
+   * completed_at is written when someone taps Mark Complete, which is not the
+   * moment the work ended. AAE-DVSNHXE4OO was worked on Sep 24 and closed on
+   * Sep 26 once a payment problem was sorted out, recording 50h 24m. It was
+   * the only timed Outdoor & Playsets job, so it became the median and the
+   * dashboard started reporting that a playset typically takes fifty hours.
+   *
+   * A real job here runs a slot, not two days; the longest genuine one on
+   * record is nine hours. Sixteen leaves room for a long build while still
+   * catching a span that crossed a night. These are counted and reported as
+   * unverified — never silently dropped, never averaged in.
+   */
+  var MAX_TRUSTWORTHY_JOB_MS = 16 * 60 * 60 * 1000;
+
   function stamp(row, snake, camel) {
     var raw = row && (row[snake] != null ? row[snake] : row[camel]);
     if (raw == null || raw === '') return null;
@@ -68,17 +84,24 @@
   function summarize(bookings) {
     var spans = [];
     var missing = 0;
+    var unverified = 0;
     (bookings || []).forEach(function (booking) {
       var ms = jobDurationMs(booking);
       if (ms == null) { missing += 1; return; }
+      // A span this long measures the delay before someone closed the job, not
+      // the work. Counted, reported, and kept out of the numbers.
+      if (ms > MAX_TRUSTWORTHY_JOB_MS) { unverified += 1; return; }
       spans.push(ms);
     });
-    if (!spans.length) return { count: 0, missing: missing, averageMs: null, medianMs: null, longestMs: null };
+    if (!spans.length) {
+      return { count: 0, missing: missing, unverified: unverified, averageMs: null, medianMs: null, longestMs: null };
+    }
     spans.sort(function (a, b) { return a - b; });
     var total = spans.reduce(function (sum, ms) { return sum + ms; }, 0);
     return {
       count: spans.length,
       missing: missing,
+      unverified: unverified,
       averageMs: Math.round(total / spans.length),
       // The median is the planning number. One job left running overnight before
       // someone remembered to close it would otherwise set the expectation.
@@ -108,6 +131,7 @@
   }
 
   global.AAE_JOB_DURATION = {
+    MAX_TRUSTWORTHY_JOB_MS: MAX_TRUSTWORTHY_JOB_MS,
     jobDurationMs: jobDurationMs,
     formatJobDuration: formatJobDuration,
     summarize: summarize,
