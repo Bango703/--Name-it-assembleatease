@@ -137,4 +137,43 @@ assert.ok(mixedRule && mixedRule[1].includes('#an-job-duration'),
 const inlineMath = owner.match(/completed_at\s*\)?\s*-\s*.*job_started_at|job_started_at\s*\)?\s*-/);
 assert.equal(inlineMath, null, 'duration math belongs in assets/js/job-duration.js, not inline in the dashboard');
 
-console.log('PASS job duration: math, honest gaps, server passthrough, dashboard wiring');
+// ── A job left open is not a long job ───────────────────────────────────────
+// AAE-DVSNHXE4OO was worked Sep 24 and closed Sep 26 once a payment problem
+// was resolved. It recorded 50h 24m, was the only timed Outdoor & Playsets
+// job, and so became the median — the dashboard reported that a playset
+// typically takes fifty hours.
+const HOUR = 3600000;
+const span = h => ({ service: 'Outdoor & Playsets', job_started_at: '2026-09-24T14:12:59Z',
+  completed_at: new Date(Date.parse('2026-09-24T14:12:59Z') + h * HOUR).toISOString() });
+
+const incident = D.summarize([span(50.4)]);
+assert.equal(incident.count, 0, 'a job left open for two days must not be counted as work');
+assert.equal(incident.unverified, 1, 'and must be reported, not silently dropped');
+assert.equal(incident.medianMs, null, 'with nothing trustworthy left there is no typical time');
+
+// A genuinely long build still counts. The longest real job on record is nine
+// hours, so the ceiling must not throw that away.
+const real = D.summarize([span(9)]);
+assert.equal(real.count, 1, 'a nine-hour build is real work');
+assert.equal(real.unverified, 0);
+assert.ok(D.MAX_TRUSTWORTHY_JOB_MS > 9 * HOUR, 'the ceiling must clear the longest genuine job');
+assert.ok(D.MAX_TRUSTWORTHY_JOB_MS <= 24 * HOUR, 'but a span over a day is never one sitting of work');
+
+// One stale job must not drag the median of the good ones.
+const staleMix = D.summarize([span(2), span(3), span(4), span(50.4)]);
+assert.equal(staleMix.count, 3);
+assert.equal(staleMix.unverified, 1);
+assert.equal(staleMix.medianMs, 3 * HOUR, 'the median is of the trustworthy jobs only');
+
+// missing and unverified are different facts and must stay separate: one is
+// "we never had the data", the other is "we had it and it was not work".
+const both = D.summarize([{ service: 'X', completed_at: '2026-09-24T14:00:00Z' }, span(50.4)]);
+assert.equal(both.missing, 1);
+assert.equal(both.unverified, 1);
+
+// The dashboard has to say so. A silently shrinking sample is the same lie in
+// a quieter voice.
+assert.match(owner, /durAll\.unverified/, 'the panel must surface the excluded count');
+assert.match(owner, /left open more than 16 hours/, 'and say why those jobs were excluded');
+
+console.log('PASS job duration: math, honest gaps, jobs left open excluded and reported, server passthrough, dashboard wiring');
