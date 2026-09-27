@@ -1,0 +1,64 @@
+version: 1
+status: inventory
+as_of: '2026-09-24'
+notes:
+  - This registry describes current route ownership; it does not authorize route moves.
+  - Exact endpoint details remain to be expanded from the complete API inventory.
+  - Leading-underscore modules under api are internal helpers, not public routes.
+
+surfaces:
+  public_customer:
+    paths:
+      - root_html_pages
+      - /track
+      - /api/booking
+      - /api/booking/track
+      - /api/booking/message
+      - /api/booking/payment-recovery
+      - /api/booking-confirmed
+  easer:
+    paths:
+      - /assembler
+      - /api/assembler
+      - /api/booking/accept
+      - /api/booking/decline
+      - /api/booking/checkin
+      - /api/booking/assembler-status
+      - /api/booking/assembler-complete
+      - /api/booking/evidence
+  owner:
+    paths:
+      - /owner
+      - /api/owner
+      - /api/booking/assign
+      - /api/booking/complete
+      - /api/owner/financial-dashboard
+      - /api/owner/payouts
+      - /api/owner/send-payment-continuation
+      - /api/owner/reconcile-payment-authorization
+      - /api/owner/call-customer
+  system:
+    paths:
+      - /api/cron/*
+      - /api/assembler/stripe-webhook
+      - /api/webhook/stripe-identity
+      - /api/webhooks/telnyx
+      - /api/webhooks/telnyx-voice
+      - /api/webhooks/telnyx-call-control
+      - /api/webhooks/resend
+
+canonical_ownership:
+  booking: api/booking
+  dispatch: api/booking/_dispatch-internal.js
+  pricing: api/_pricing.js and api/_source-of-truth.js
+  payment: api/booking and api/booking/_stripe-*.js
+  payout: api/cron/release-payouts.js and api/assembler
+  messaging: api/booking/message.js
+  notifications: api/_email.js, api/_sms.js, api/_push.js
+  evidence: api/booking/evidence.js and api/booking/upload-evidence.js
+  audit: api/booking/_activity.js, api/_financial-audit.js, operational_events
+
+verification_needed:
+  - Generate a complete route list from api/**/*.js before route consolidation.
+  - Verify each route's actor permission and resource ownership check.
+  - Identify aliases and duplicate legacy paths before removal.

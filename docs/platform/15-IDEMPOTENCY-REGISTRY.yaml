@@ -1,0 +1,31 @@
+version: 1
+status: target_contract
+as_of: '2026-09-24'
+
+operations:
+  - operation: booking_creation
+    key: booking:create:{clientRequestId}
+  - operation: offer_acceptance
+    key: offer:accept:{offerId}
+  - operation: completion
+    key: completion:{bookingId}:{assignmentVersion}
+  - operation: payment_authorization
+    key: payment:authorize:{bookingId}:{paymentRevision}
+  - operation: payment_capture
+    key: payment:capture:{bookingId}:{paymentRevision}
+  - operation: refund
+    key: refund:{paymentId}:{refundRequestId}
+  - operation: earning_creation
+    key: earning:{bookingId}:{easerId}
+  - operation: payout
+    key: payout:{earningId}:{payoutRevision}
+  - operation: notification
+    key: notification:{eventId}:{channel}
+  - operation: webhook_processing
+    key: webhook:{provider}:{providerEventId}
+
+rules:
+  - The server creates or validates keys; clients cannot choose financial keys freely.
+  - Replays return the original result where safe.
+  - Unknown provider outcomes require reconciliation before retry.
+  - Idempotency records are retained long enough to cover provider replay windows.
