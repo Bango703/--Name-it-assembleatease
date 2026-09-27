@@ -200,10 +200,16 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Second TV (same visit)', price: 69, addon: true, tags: ['convenience'], appliesTo: ['tv'], recoLabel: 'Add a second TV', recoWhy: 'Cheaper than booking another trip' }
       ]},
       { group: 'Wall Type Upgrades', items: [
-        { name: 'Brick or concrete wall', price: 75, addon: true },
+        // Masonry needs a hammer drill, masonry bits, concrete anchors and the
+        // extra labour that goes with them, and it is unforgiving if done
+        // wrong. Was 75, well under the 100-150 the trade charges.
+        { name: 'Brick or concrete wall', price: 110, addon: true },
         { name: 'Tile wall', price: 65, addon: true },
         { name: 'Steel stud / metal framing', price: 55, addon: true },
-        { name: 'Above fireplace mount', price: 85, addon: true }
+        // The hardest mount on the menu: height, heat exposure, stone or brick,
+        // ladder work and awkward cable routing. Was 85, against a trade rate
+        // of 125-200.
+        { name: 'Above fireplace mount', price: 175, addon: true }
       ]},
       { group: 'Cable & Cord Management', items: [
         { name: 'Surface cord cover (raceway, up to 6 ft)', price: 89, tags: ['upgrade'], appliesTo: ['tv'], recoLabel: 'Hide the cords', recoWhy: 'Cleaner finish without opening drywall' },
