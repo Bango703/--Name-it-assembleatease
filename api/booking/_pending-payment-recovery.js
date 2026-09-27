@@ -32,12 +32,20 @@ export function isStandardRecoveryBooking(booking = {}) {
 
 export function isActivePaymentRecoveryBooking(booking = {}) {
   return ['en_route', 'arrived', 'in_progress'].includes(String(booking.status || ''))
-    && ['pending', 'failed'].includes(String(booking.payment_status || ''))
+    && ['pending', 'failed', 'authorized'].includes(String(booking.payment_status || ''))
     && !!booking.stripe_payment_intent_id;
+}
+
+export function canRecoverPaymentNow(booking = {}) {
+  return isStandardRecoveryBooking(booking) || isActivePaymentRecoveryBooking(booking);
 }
 
 export function hasValidGuestPaymentToken(booking = {}, token) {
   return safeTokenHashMatch(token, booking.guest_mutation_token_hash);
+}
+
+export function hasValidPaymentRecoveryToken(booking = {}, token) {
+  return safeTokenHashMatch(token, booking.payment_recovery_token_hash);
 }
 
 export function validateBookingPaymentIntent(booking = {}, intent = {}, options = {}) {

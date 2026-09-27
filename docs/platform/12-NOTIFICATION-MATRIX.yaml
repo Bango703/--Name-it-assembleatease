@@ -1,0 +1,42 @@
+version: 1
+status: inventory_and_target_contract
+as_of: '2026-09-24'
+
+notifications:
+  booking_confirmed:
+    audience: customer
+    channels: [email, sms]
+    consent: transactional_policy
+  assignment_confirmation:
+    audience: easer
+    channels: [email, push, sms]
+    consent: SMS requires recorded consent and no opt-out
+  dispatch_offer:
+    audience: easer
+    channels: [email, push, sms]
+    consent: SMS requires recorded consent and no opt-out
+  easer_reminder:
+    audience: easer
+    channels: [email, sms]
+    consent: SMS requires recorded consent and no opt-out
+  arrival_nudge:
+    audience: easer
+    channels: [push, sms_fallback]
+    consent: SMS requires recorded consent and no opt-out
+  customer_message:
+    audience: owner_and_easer_as_applicable
+    channels: [email, push]
+  payment_recovery:
+    audience: customer
+    channels: [email]
+    copy: customer_safe
+  payout_failed:
+    audience: owner_and_easer
+    channels: [email, in_app]
+
+rules:
+  - Notification policy is separate from domain controllers.
+  - Delivery status is separate from notification intent.
+  - Duplicate sends require a declared dedupe key.
+  - Opt-out beats non-critical SMS sends.
+  - Customer copy must not expose internal provider or workflow terminology.

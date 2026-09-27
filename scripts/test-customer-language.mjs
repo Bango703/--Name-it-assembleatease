@@ -185,6 +185,45 @@ for (const file of await jsFiles(join(ROOT, 'api'))) {
   }
 }
 
+// ── Customer pages the SERVER renders ───────────────────────────────────────
+// The first version of this guard checked emails plus track.html and book.html
+// and called that the customer surface. It was not. The secure card page is
+// built as a string inside api/booking/payment-recovery.js, so it was never
+// scanned, and it told people their card would be "authorized now and captured
+// after completed work" and that "a disclosed late-cancellation fee may apply"
+// — on the one page where someone types a card number. Anything served as HTML
+// to a customer counts, wherever it is built.
+for (const file of await jsFiles(join(ROOT, 'api'))) {
+  const src = await readFile(file, 'utf8');
+  if (!/<!doctype html|<!DOCTYPE html/.test(src)) continue;
+  if (!/res\.(?:send|status\(\d+\)\.send)|text\/html/.test(src)) continue;
+  // The owner has his own served pages; they may use the real terms.
+  if (/[\/]owner[\/]/.test(file) && !/quote-approve/.test(file)) continue;
+  // A served page puts half its words in its own <script>: status lines
+  // assigned to textContent and thrown Error messages. visibleCustomerText
+  // strips script blocks, so "Authorizing securely..." and "Authorization
+  // complete" sat on the card page unseen. Pull those strings out too.
+  for (const [, msg] of src.matchAll(/(?:textContent|innerHTML)\s*=\s*'([^']{12,})'/g)) {
+    for (const hit of findCustomerLanguageViolations(msg)) {
+      failures.push(`${relative(ROOT, file)} shows "${hit.term}" in a page message — say ${hit.say}`);
+    }
+  }
+  for (const [, msg] of src.matchAll(/new Error\(\s*'([^']{12,})'\s*\)/g)) {
+    for (const hit of findCustomerLanguageViolations(msg)) {
+      failures.push(`${relative(ROOT, file)} throws "${hit.term}" at a customer — say ${hit.say}`);
+    }
+  }
+  for (const page of src.match(/`[^`]{120,}`/g) || []) {
+    if (!/<!doctype html/i.test(page)) continue;
+    for (const hit of findCustomerLanguageViolations(page)) {
+      failures.push(`${relative(ROOT, file)} serves a page saying "${hit.term}" to a customer — say ${hit.say}`);
+    }
+    for (const hit of findJustifyingCopy(page)) {
+      failures.push(`${relative(ROOT, file)} serves a page that explains itself with "${hit.phrase}" — keep the fact: "${hit.sentence}"`);
+    }
+  }
+}
+
 // ── Visible copy on the customer pages ──────────────────────────────────────
 // "Secured by Stripe" is deliberately not a banned term: naming the processor
 // is a trust signal the customer benefits from. The mechanics are what they

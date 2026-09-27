@@ -135,6 +135,18 @@
   .fa-share-inner{display:block;padding:1.05rem 1rem}
   .fa-share-actions{justify-content:flex-start;margin-top:0.8rem}
 }
+
+/* Single project gallery */
+.fa-work-single .fa-wrap{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"heading" "photo" "note";gap:1.5rem;max-width:480px}
+.fa-work-single .fa-head{grid-area:heading;margin:0}
+.fa-work-single .fa-shot{grid-area:photo;margin:0;min-width:0}
+.fa-work-single .fa-note{grid-area:note;min-height:0}
+@media(min-width:801px){
+  .fa-work-single .fa-wrap{max-width:1000px;grid-template-columns:minmax(0,0.75fr) minmax(0,1.25fr);grid-template-rows:1fr 1fr;grid-template-areas:"photo heading" "photo note";column-gap:clamp(2rem,4vw,4rem)}
+  .fa-work-single .fa-head{align-self:end}
+  .fa-work-single .fa-note{align-self:start}
+}
+/* End single project gallery */
 </style>
 </head>
 <body>
@@ -198,14 +210,15 @@
 </section>
 
 <!-- OUR WORK -->
-<section class="fa-section" style="background:var(--white)">
+<section class="fa-section fa-work-single" id="recent-work" style="background:var(--white)">
   <div class="fa-wrap">
     <div class="fa-head">
       <div class="fa-kicker">Recent work</div>
       <h2 class="fa-h2">Heavy gear, assembled right.</h2>
-      <p class="fa-lead">Recent job photos for this service.</p>
+      <p class="fa-lead">A completed power rack and cable machine assembly.</p>
     </div>
-    <div class="fa-note"><strong>From a single treadmill to a full home gym.</strong><p>Cardio machines, racks, benches and cable systems, built to spec, leveled, stable, and wiped down before we go.</p></div>
+      <figure class="fa-shot"><div class="frame" style="aspect-ratio:1086/1448"><img src="/images/real-fitness-rogue-rack-angle.jpg" alt="Angled view of a completed red Rogue power rack and cable machine with a workout bench" loading="lazy" width="1086" height="1448" decoding="async"/></div><figcaption class="cap">Power rack and cable machine<small>Completed fitness equipment assembly</small></figcaption></figure>
+      <div class="fa-note"><strong>From a single treadmill to a full home gym.</strong><p>Cardio machines, racks, benches and cable systems, built to spec, leveled, stable, and wiped down before we go.</p></div>
   </div>
 </section>
 

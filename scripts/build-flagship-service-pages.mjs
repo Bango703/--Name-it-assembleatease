@@ -403,6 +403,20 @@ const FA_STYLE = `<style>
 }
 </style>`;
 
+const SINGLE_PROJECT_STYLE = `
+/* Single project gallery */
+.fa-work-single .fa-wrap{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"heading" "photo" "note";gap:1.5rem;max-width:480px}
+.fa-work-single .fa-head{grid-area:heading;margin:0}
+.fa-work-single .fa-shot{grid-area:photo;margin:0;min-width:0}
+.fa-work-single .fa-note{grid-area:note;min-height:0}
+@media(min-width:801px){
+  .fa-work-single .fa-wrap{max-width:1000px;grid-template-columns:minmax(0,0.75fr) minmax(0,1.25fr);grid-template-rows:1fr 1fr;grid-template-areas:"photo heading" "photo note";column-gap:clamp(2rem,4vw,4rem)}
+  .fa-work-single .fa-head{align-self:end}
+  .fa-work-single .fa-note{align-self:start}
+}
+/* End single project gallery */
+`;
+
 const ALL_SERVICES = [
   { label: 'Furniture Assembly', austin: '/furniture-assembly-austin-tx' },
   { label: 'TV Mounting', austin: '/tv-mounting-austin-tx' },
@@ -425,10 +439,19 @@ function gallerySection(cfg, city) {
   const header = `    <div class="fa-head">
       <div class="fa-kicker">Recent work</div>
       <h2 class="fa-h2">${cfg.workHeadline}</h2>
-      <p class="fa-lead">Recent job photos for this service.</p>
+      <p class="fa-lead">${cfg.workIntro || 'Recent job photos for this service.'}</p>
     </div>`;
-  const shot = (g) => `      <figure class="fa-shot"><div class="frame"><img src="/images/${g.src}" alt="${g.alt}" loading="lazy"${g.pos ? ` style="object-position:${g.pos}"` : ''}/></div><figcaption class="cap">${g.cap}<small>${g.sub}</small></figcaption></figure>`;
+  const shot = (g) => `      <figure class="fa-shot"><div class="frame"${g.width && g.height ? ` style="aspect-ratio:${g.width}/${g.height}"` : ''}><img src="/images/${g.src}" alt="${g.alt}" loading="lazy"${g.width && g.height ? ` width="${g.width}" height="${g.height}" decoding="async"` : ''}${g.pos ? ` style="object-position:${g.pos}"` : ''}/></div><figcaption class="cap">${g.cap}<small>${g.sub}</small></figcaption></figure>`;
   const noteCell = `      <div class="fa-note"><strong>${noteStrong}</strong><p>${cfg.noteSpan}</p></div>`;
+  if (cfg.workLayout === 'single-project' && cfg.gallery.length === 1) {
+    return `<section class="fa-section fa-work-single"${cfg.workAnchor ? ` id="${cfg.workAnchor}"` : ''} style="background:var(--white)">
+  <div class="fa-wrap">
+${header}
+${shot(cfg.gallery[0])}
+${noteCell}
+  </div>
+</section>`;
+  }
   let inner;
   if (cfg.gallery.length >= 2) {
     inner = `    <div class="fa-gallery">\n${cfg.gallery.slice(0, 2).map(shot).join('\n')}\n    </div>`;
@@ -437,7 +460,7 @@ function gallerySection(cfg, city) {
   } else {
     inner = `    <div class="fa-note"><strong>${noteStrong}</strong><p>${cfg.noteSpan}</p></div>`;
   }
-  return `<section class="fa-section" style="background:var(--white)">
+  return `<section class="fa-section"${cfg.workAnchor ? ` id="${cfg.workAnchor}"` : ''} style="background:var(--white)">
   <div class="fa-wrap">
 ${header}
 ${inner}
@@ -746,8 +769,13 @@ const SERVICES = [
     heroSub: 'Treadmills, ellipticals, racks and full home gyms, assembled solid, leveled, and wiped down. We bring the tools and break down the boxes so you can start day one.',
     heroPhoto: 'real-fitness-home-gym.jpg', heroAlt: 'Home gym with assembled cardio machines and a power rack',
     workHeadline: 'Heavy gear, assembled right.',
+    workAnchor: 'recent-work',
+    workLayout: 'single-project',
+    workIntro: 'A completed power rack and cable machine assembly.',
     noteStrong: 'From a single treadmill to a full home gym.', noteSpan: 'Cardio machines, racks, benches and cable systems, built to spec, leveled, stable, and wiped down before we go.',
-    gallery: [],
+    gallery: [
+      { src: 'real-fitness-rogue-rack-angle.jpg', alt: 'Angled view of a completed red Rogue power rack and cable machine with a workout bench', cap: 'Power rack and cable machine', sub: 'Completed fitness equipment assembly', width: 1086, height: 1448 },
+    ],
     offers: [
       { n: 'Inversion Table', p: '$139' },
       { n: 'Treadmill Assembly', p: '$219', popular: true },
@@ -824,7 +852,10 @@ const SERVICES = [
 export function applyFlagshipToPage(html, cfg, city) {
   html = html.replace(FLAGSHIP_STYLE_RE, '');
   html = html.replace(CITY_TEMPLATE_STYLE_RE, '');
-  html = html.replace('</head>', `${FA_STYLE}\n</head>`);
+  const style = cfg.workLayout === 'single-project'
+    ? FA_STYLE.replace('</style>', `${SINGLE_PROJECT_STYLE}</style>`)
+    : FA_STYLE;
+  html = html.replace('</head>', `${style}\n</head>`);
 
   const pageTitle = `${cfg.titleLabel || cfg.linkLabel} in ${city.name}, TX — From ${cfg.fromPrice} | AssembleAtEase`;
   html = html.replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`);

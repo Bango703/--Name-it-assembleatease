@@ -28,13 +28,13 @@ export default async function handler(req, res) {
     console.error('Rate limit error (Redis unavailable):', rlErr);
   }
 
-  const { bookingId, guestMutationToken } = req.body || {};
-  if (!bookingId || !guestMutationToken) return res.status(400).json({ error: 'Missing secure booking confirmation credentials' });
+  const { bookingId, guestMutationToken, paymentRecoveryToken } = req.body || {};
+  if (!bookingId || (!guestMutationToken && !paymentRecoveryToken)) return res.status(400).json({ error: 'Missing secure booking confirmation credentials' });
 
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, sms_consent_at, sms_opted_out_at, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_method_type, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, sms_consent_at, sms_opted_out_at, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_method_type, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, payment_recovery_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
     .eq('id', bookingId)
     .single();
 
@@ -52,11 +52,14 @@ export default async function handler(req, res) {
     }
   }
 
-  if (!safeTokenHashMatch(guestMutationToken, booking.guest_mutation_token_hash)) {
+  const validGuestToken = !!guestMutationToken && safeTokenHashMatch(guestMutationToken, booking.guest_mutation_token_hash);
+  const suppliedRecoveryToken = paymentRecoveryToken || guestMutationToken;
+  const validRecoveryToken = !!suppliedRecoveryToken && safeTokenHashMatch(suppliedRecoveryToken, booking.payment_recovery_token_hash);
+  if (!validGuestToken && !validRecoveryToken) {
     return res.status(403).json({ error: 'Invalid secure booking confirmation token.' });
   }
   const activeRecovery = ['en_route', 'arrived', 'in_progress'].includes(booking.status)
-    && booking.payment_status === 'failed';
+    && ['pending', 'failed', 'authorized'].includes(booking.payment_status);
   if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at
       || booking.financial_reconciliation_required_at || booking.cancellation_reconciliation_required_at) {
     return res.status(409).json({
@@ -137,6 +140,9 @@ export default async function handler(req, res) {
     .update(updatePayload)
     .eq('id', bookingId)
     .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id);
+  if (validRecoveryToken && !validGuestToken) {
+    completionUpdate = completionUpdate.eq('payment_recovery_token_hash', booking.payment_recovery_token_hash);
+  }
   completionUpdate = activeRecovery
     ? completionUpdate.in('status', ['en_route', 'arrived', 'in_progress'])
     : completionUpdate.in('status', ['pending', 'confirmed']);
@@ -213,7 +219,9 @@ export default async function handler(req, res) {
   // The request token was verified against the current database hash above.
   // Re-deriving the original deterministic token here would email an invalid
   // link after a secure token rotation (for example, a reschedule or recovery).
-  const guestTrackUrl = `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(guestMutationToken)}`;
+  const guestTrackUrl = validGuestToken
+    ? `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(guestMutationToken)}`
+    : `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}`;
 
   const usesKlarna = verifiedPaymentMethodType === 'klarna';
 

@@ -4058,7 +4058,9 @@ window.intelQuick = intelQuick;
         + thumb
         + '<div class="evidence-card-meta">'
         + '<div class="evidence-card-type">' + esc(label) + '</div>'
-        + '<div><strong>' + esc(ev.uploaded_by_role || 'Uploader') + ':</strong> ' + esc(ev.uploaded_by_name || 'Unknown') + '</div>'
+        + '<div><strong>' + esc(ev.uploaded_by_role || 'Uploader') + ':</strong> ' + esc(ev.uploaded_by_name || 'Unknown')
+        + (ev.uploaded_on_behalf_of_name ? ' <span style="color:var(--muted)">(for ' + esc(ev.uploaded_on_behalf_of_name) + ')</span>' : '')
+        + '</div>'
         + '<div>' + fmtDate(ev.created_at) + '</div>'
         + '<div>' + fmtBytes(ev.file_size_bytes) + '</div>'
         + (ev.notes ? '<div style="margin-top:2px;font-style:italic">' + esc(ev.notes) + '</div>' : '')
@@ -5002,6 +5004,12 @@ window.intelQuick = intelQuick;
         btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">Decline</button>');
         btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel</button>');
       }
+    }
+    if (['en_route', 'arrived', 'in_progress'].includes(b.status)
+        && ['pending', 'failed'].includes(b.payment_status)
+        && b.stripe_payment_intent_id) {
+      notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payment authorization expired:</strong> the customer must restore payment before this job can be completed.</div>');
+      btns.push('<button class="btn btn-teal" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
     }
     if (b.status === 'confirmed') {
       if (b.payment_status === 'card_saved') {

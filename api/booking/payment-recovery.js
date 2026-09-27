@@ -2,15 +2,19 @@ import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { esc } from '../_email.js';
 import { rateLimit } from '../_ratelimit.js';
+import { logActivity } from './_activity.js';
+import { sha256 } from '../_payment-security.js';
 import {
+  canRecoverPaymentNow,
   hasValidGuestPaymentToken,
+  hasValidPaymentRecoveryToken,
   isActivePaymentRecoveryBooking,
   isRecoverablePaymentIntentStatus,
   isStandardRecoveryBooking,
   validateBookingPaymentIntent,
 } from './_pending-payment-recovery.js';
 
-const BOOKING_SELECT = 'id, ref, service, status, payment_status, dispatch_status, customer_name, customer_email, address, total_price, stripe_payment_intent_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at';
+const BOOKING_SELECT = 'id, ref, service, status, payment_status, dispatch_status, customer_name, customer_email, address, total_price, stripe_payment_intent_id, stripe_customer_id, guest_mutation_token_hash, payment_recovery_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at';
 
 export default async function handler(req, res) {
   setSecurityHeaders(res);
@@ -104,12 +108,26 @@ async function startRecovery(req, res) {
   if (intent.status === 'requires_capture') {
     return res.status(200).json({
       alreadyAuthorized: true,
+      activeJob: isActivePaymentRecoveryBooking(booking),
+      bookingId: booking.id,
+      bookingRef: booking.ref,
+    });
+  }
+  if (intent.status === 'canceled') {
+    const replacement = await createReplacementIntent({ sb, booking, deadIntent: intent });
+    if (!replacement.ok) return res.status(replacement.status).json({ error: replacement.error });
+    return res.status(200).json({
+      ready: true,
+      replaced: true,
+      activeJob: isActivePaymentRecoveryBooking(booking),
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
+      clientSecret: replacement.clientSecret,
       bookingId: booking.id,
       bookingRef: booking.ref,
     });
   }
   if (!isRecoverablePaymentIntentStatus(intent.status)) {
-    return res.status(409).json({ error: 'This payment link can no longer be used. Contact AssembleAtEase.' });
+    return res.status(409).json({ error: 'This payment cannot be continued right now. Contact AssembleAtEase.' });
   }
   if (!intent.client_secret) {
     return res.status(409).json({ error: 'This payment link can no longer be used. Contact AssembleAtEase.' });
@@ -117,6 +135,7 @@ async function startRecovery(req, res) {
 
   return res.status(200).json({
     ready: true,
+    activeJob: isActivePaymentRecoveryBooking(booking),
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     clientSecret: intent.client_secret,
     bookingId: booking.id,
@@ -134,7 +153,26 @@ async function loadRecoveryState({ bookingId, token, allowAlreadyConfirmed = fal
     .eq('id', bookingId)
     .maybeSingle();
   if (error) return { ok: false, status: 503, publicError: 'Booking payment state could not be verified.' };
-  if (!booking || !hasValidGuestPaymentToken(booking, token)) return { ok: false, status: 410 };
+  if (!booking) return { ok: false, status: 410 };
+  if (booking.payment_recovery_token_hash) {
+    if (!hasValidPaymentRecoveryToken(booking, token)) return { ok: false, status: 410 };
+  } else {
+    if (!hasValidGuestPaymentToken(booking, token)) return { ok: false, status: 410 };
+    const legacyHash = sha256(token);
+    const { data: initialized, error: initializeError } = await sb.from('bookings')
+      .update({ payment_recovery_token_hash: legacyHash })
+      .eq('id', booking.id)
+      .eq('guest_mutation_token_hash', booking.guest_mutation_token_hash)
+      .is('payment_recovery_token_hash', null)
+      .is('financial_operation_key', null)
+      .is('financial_operation_type', null)
+      .is('financial_operation_started_at', null)
+      .is('financial_reconciliation_required_at', null)
+      .is('cancellation_reconciliation_required_at', null)
+      .select('id');
+    if (initializeError || !initialized?.length) return { ok: false, status: initializeError ? 503 : 410 };
+    booking.payment_recovery_token_hash = legacyHash;
+  }
   if (hasActiveFinancialOperation(booking)) {
     return {
       ok: false,
@@ -145,7 +183,10 @@ async function loadRecoveryState({ bookingId, token, allowAlreadyConfirmed = fal
 
   const fullyConfirmed = booking.status === 'confirmed' && booking.payment_status === 'authorized';
   if (allowAlreadyConfirmed && fullyConfirmed) return { ok: true, alreadyConfirmed: true, booking, sb };
-  if (!isStandardRecoveryBooking(booking) && !isActivePaymentRecoveryBooking(booking)) {
+  const activeJobAlreadyAuthorized = isActiveWorkStatus(booking.status)
+    && booking.payment_status === 'authorized'
+    && !!booking.stripe_payment_intent_id;
+  if (!canRecoverPaymentNow(booking) && !activeJobAlreadyAuthorized) {
     return {
       ok: false,
       status: 409,
@@ -171,10 +212,147 @@ async function loadRecoveryState({ bookingId, token, allowAlreadyConfirmed = fal
     return { ok: false, status: 409, publicError: 'Payment details do not match this booking. Contact AssembleAtEase.' };
   }
 
-  if (intent.status !== 'requires_capture' && !isRecoverablePaymentIntentStatus(intent.status)) {
+  if (intent.status !== 'requires_capture' && intent.status !== 'canceled' && !isRecoverablePaymentIntentStatus(intent.status)) {
     return { ok: false, status: 409, publicError: 'This payment can no longer be continued. Contact AssembleAtEase.' };
   }
   return { ok: true, booking, intent, stripe, sb };
+}
+
+function isActiveWorkStatus(status) {
+  return ['en_route', 'arrived', 'in_progress'].includes(String(status || ''));
+}
+
+async function createReplacementIntent({ sb, booking, deadIntent }) {
+  const amount = Math.round(Number(booking.total_price || 0));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, status: 409, error: 'This booking has no payment amount. Contact AssembleAtEase.' };
+  }
+
+  const operationKey = `payment-recovery-replace:${booking.id}:${deadIntent.id}`;
+  const { data: lockRows, error: lockError } = await sb.from('bookings').update({
+    financial_operation_key: operationKey,
+    financial_operation_type: 'payment_recovery_replacement',
+    financial_operation_started_at: new Date().toISOString(),
+  })
+    .eq('id', booking.id)
+    .eq('status', booking.status)
+    .eq('payment_status', booking.payment_status)
+    .eq('stripe_payment_intent_id', deadIntent.id)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null)
+    .is('financial_reconciliation_required_at', null)
+    .is('cancellation_reconciliation_required_at', null)
+    .select('id');
+  if (lockError) return { ok: false, status: 503, error: 'Payment could not be prepared. Please try again.' };
+  if (!lockRows?.length) return { ok: false, status: 409, error: 'This payment is already being updated. Reload this page in a moment.' };
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const params = {
+    amount,
+    currency: 'usd',
+    ...(booking.stripe_customer_id ? { customer: booking.stripe_customer_id } : {}),
+    capture_method: 'manual',
+    setup_future_usage: 'off_session',
+    payment_method_types: ['card'],
+    receipt_email: booking.customer_email,
+    statement_descriptor_suffix: 'ASSEMBLEATEASE',
+    description: `Payment recovery - ${booking.service} - ${booking.customer_name}`,
+    metadata: {
+      bookingRef: booking.ref,
+      bookingId: booking.id,
+      type: 'customer_booking',
+      replacesPaymentIntentId: deadIntent.id,
+    },
+  };
+
+  let created;
+  try {
+    created = await stripe.paymentIntents.create(params, {
+      idempotencyKey: `recovery-replace-${booking.id}-${deadIntent.id}-${amount}`,
+    });
+  } catch (error) {
+    await releaseReplacementLock(sb, booking.id, operationKey);
+    console.error('[payment-recovery] replacement intent creation failed:', error?.message || error);
+    return { ok: false, status: 502, error: 'We could not start a new payment just now. Please try again in a moment.' };
+  }
+
+  const validation = validateBookingPaymentIntent({ ...booking, stripe_payment_intent_id: created.id }, created);
+  if (!created.client_secret || !validation.ok || !isRecoverablePaymentIntentStatus(created.status)) {
+    await cancelUnlinkedIntent({ stripe, sb, bookingId: booking.id, paymentIntentId: created.id });
+    await releaseReplacementLock(sb, booking.id, operationKey);
+    return { ok: false, status: 502, error: 'We could not start a new payment just now. Please try again in a moment.' };
+  }
+
+  const { data: linked, error: linkError } = await sb.from('bookings').update({
+    stripe_payment_intent_id: created.id,
+    payment_status: 'pending',
+    financial_operation_key: null,
+    financial_operation_type: null,
+    financial_operation_started_at: null,
+  })
+    .eq('id', booking.id)
+    .eq('financial_operation_key', operationKey)
+    .eq('stripe_payment_intent_id', deadIntent.id)
+    .select('id');
+  if (linkError || !linked?.length) {
+    const { data: current } = await sb.from('bookings')
+      .select('stripe_payment_intent_id')
+      .eq('id', booking.id)
+      .maybeSingle();
+    if (current?.stripe_payment_intent_id !== created.id) {
+      await cancelUnlinkedIntent({ stripe, sb, bookingId: booking.id, paymentIntentId: created.id });
+      await releaseReplacementLock(sb, booking.id, operationKey);
+      return { ok: false, status: 503, error: 'Payment could not be saved safely. Contact AssembleAtEase.' };
+    }
+  }
+
+  await logActivity(sb, {
+    bookingId: booking.id,
+    eventType: 'payment_intent_replaced',
+    actorType: 'customer',
+    actorName: booking.customer_name || 'Customer',
+    description: 'A replacement payment authorization was prepared for the customer.',
+    metadata: { previousPaymentIntentId: deadIntent.id, paymentIntentId: created.id },
+  }).catch(() => {});
+  return { ok: true, clientSecret: created.client_secret };
+}
+
+async function releaseReplacementLock(sb, bookingId, operationKey) {
+  const { error } = await sb.from('bookings').update({
+    financial_operation_key: null,
+    financial_operation_type: null,
+    financial_operation_started_at: null,
+  }).eq('id', bookingId).eq('financial_operation_key', operationKey);
+  if (error) console.error('[payment-recovery] replacement lock release failed:', error.message || error);
+}
+
+async function cancelUnlinkedIntent({ stripe, sb, bookingId, paymentIntentId }) {
+  try {
+    const latest = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (latest.status === 'canceled') return true;
+    if (latest.status === 'succeeded') throw new Error('unlinked payment unexpectedly succeeded');
+    const cancelled = await stripe.paymentIntents.cancel(paymentIntentId);
+    if (cancelled?.status !== 'canceled') throw new Error(`Stripe returned ${cancelled?.status || 'unknown'} after cancellation`);
+    return true;
+  } catch (error) {
+    console.error('[payment-recovery] unlinked intent needs reconciliation:', error?.message || error);
+    await sb.from('bookings').update({
+      dispatch_paused: true,
+      needs_manual_dispatch: true,
+      financial_reconciliation_required_at: new Date().toISOString(),
+      financial_reconciliation_reason: 'An unlinked payment authorization could not be confirmed cancelled.',
+    }).eq('id', bookingId).is('financial_reconciliation_required_at', null);
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'payment_recovery_unlinked_intent_reconciliation_required',
+      actorType: 'system',
+      actorName: 'payment-recovery',
+      description: 'A newly created unlinked payment authorization could not be confirmed cancelled and requires owner review.',
+      metadata: { paymentIntentId, error: error?.message || String(error) },
+    }).catch(() => {});
+    return false;
+  }
 }
 
 async function verifyRecoveryStillUnlocked({ sb, booking, intent }) {
@@ -184,7 +362,7 @@ async function verifyRecoveryStillUnlocked({ sb, booking, intent }) {
     .eq('status', booking.status)
     .eq('payment_status', booking.payment_status)
     .eq('stripe_payment_intent_id', intent.id)
-    .eq('guest_mutation_token_hash', booking.guest_mutation_token_hash)
+    .eq('payment_recovery_token_hash', booking.payment_recovery_token_hash)
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)
     .is('financial_operation_started_at', null)
