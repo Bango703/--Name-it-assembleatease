@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "AssembleAtEase - Assembly services marketplace connecting customers with skilled assemblers",
   "scripts": {
-    "test": "node scripts/smoke-check.mjs",
+    "test": "node scripts/test-authorization-lead-time.mjs && node scripts/test-mounting-addon-pricing.mjs && node scripts/smoke-check.mjs",
     "lint": "eslint .",
     "test:booking-add-service": "node scripts/test-booking-add-service-flow.mjs",
     "test:owner-ai": "node scripts/test-ai-intelligence-data.mjs && node scripts/test-owner-ai-memory.mjs",

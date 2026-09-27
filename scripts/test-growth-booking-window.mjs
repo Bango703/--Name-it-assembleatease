@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import {
   BOOKING_WINDOW_DAYS,
+  addIsoDays,
   IMMEDIATE_AUTHORIZATION_DAYS,
+  SCHEDULED_AUTHORIZATION_LEAD_DAYS,
   bookingWindow,
   needsScheduledAuthorization,
   validateBookingWindowDate,
@@ -16,16 +18,23 @@ const source = file => readFile(path.join(root, file), 'utf8');
 const now = new Date('2026-08-01T17:00:00.000Z');
 
 assert.equal(BOOKING_WINDOW_DAYS, 30);
-assert.equal(IMMEDIATE_AUTHORIZATION_DAYS, 6);
+assert.equal(IMMEDIATE_AUTHORIZATION_DAYS, 2);
 assert.deepEqual(bookingWindow(now), {
   firstDate: '2026-08-01',
   lastDate: '2026-08-31',
-  immediateAuthorizationLastDate: '2026-08-07',
+  immediateAuthorizationLastDate: '2026-08-03',
 });
 assert.equal(validateBookingWindowDate('2026-08-31', now).ok, true);
 assert.equal(validateBookingWindowDate('2026-09-01', now).ok, false);
-assert.equal(needsScheduledAuthorization('2026-08-07', now), false);
-assert.equal(needsScheduledAuthorization('2026-08-08', now), true);
+// Derived from the constant, not pinned to a date. This boundary moved when
+// the lead time was cut to fit the Visa 4-day-18-hour window, and a hardcoded
+// date just fails later without saying why. The rule is what matters: the last
+// day inside the window authorizes now, one day past it waits for the cron.
+const lastImmediate = addIsoDays('2026-08-01', IMMEDIATE_AUTHORIZATION_DAYS);
+assert.equal(needsScheduledAuthorization(lastImmediate, now), false,
+  'the last day inside the window must still authorize immediately');
+assert.equal(needsScheduledAuthorization(addIsoDays(lastImmediate, 1), now), true,
+  'one day past it must wait for the scheduled cron');
 
 const booking = {
   id: '11111111-1111-4111-8111-111111111111', ref: 'AAE-FUTURE1',
@@ -35,6 +44,11 @@ const booking = {
   stripe_payment_intent_id: null, service_zip: '77002', assembler_id: null,
   financial_operation_key: null, financial_operation_type: null, financial_operation_started_at: null,
 };
+
+// The day the cron would reach this booking, derived from the lead time.
+// Hardcoding it pinned the fixture to the old 5-day lead, so cutting the
+// lead to fit the Visa window made a valid authorization look impossible.
+const authorizeOn = addIsoDays(booking.date, -SCHEDULED_AUTHORIZATION_LEAD_DAYS);
 
 function matches(row, filters) {
   return filters.every(filter => filter.kind === 'is'
@@ -116,7 +130,7 @@ const outcome = await authorizeScheduledBooking({
   stripe,
   booking,
   expectedLivemode: false,
-  todayIso: '2026-08-15',
+  todayIso: authorizeOn,
 });
 assert.deepEqual(outcome, { ok: true, authorized: true });
 assert.equal(createKeys.length, 1, 'one hold, one key');
@@ -159,7 +173,7 @@ const actionOutcome = await authorizeScheduledBooking({
   },
   booking: actionBooking,
   expectedLivemode: false,
-  todayIso: '2026-08-15',
+  todayIso: authorizeOn,
 });
 if (priorResendKey == null) delete process.env.RESEND_API_KEY;
 else process.env.RESEND_API_KEY = priorResendKey;
