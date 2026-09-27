@@ -20,9 +20,15 @@ import {
   recoverUnconfirmedHolds,
 } from '../api/cron/authorize-scheduled-payments.js';
 import { classifyAuthorizationOutcome } from '../api/booking/_authorization-outcome.js';
+import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../api/booking/_booking-window.js';
 
 const BOOKING_ID = '1a873721-f1a2-44bf-b092-5d1b3398c32b';
 const AMOUNT = 42651;
+// The day the cron reaches this appointment, derived from the lead time.
+// This was pinned to 2026-09-19, the real incident date, back when the lead
+// was five days. Cutting it to fit the Visa 4-day-18-hour window put every
+// case outside the authorization window and the whole file failed.
+const AUTHORIZE_ON = addIsoDays('2026-09-24', -SCHEDULED_AUTHORIZATION_LEAD_DAYS);
 
 function baseBooking(overrides = {}) {
   return {
@@ -173,7 +179,7 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
   const spy = spyNotifiers();
 
   const result = await authorizeScheduledBooking({
-    sb, stripe, booking: baseBooking(), expectedLivemode: true, todayIso: '2026-09-19', notify: spy.notify,
+    sb, stripe, booking: baseBooking(), expectedLivemode: true, todayIso: AUTHORIZE_ON, notify: spy.notify,
   });
 
   assert.equal(stripe.calls.confirms, 2, 'a dropped request is retried before concluding anything');
@@ -195,7 +201,7 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
   const spy = spyNotifiers();
 
   await authorizeScheduledBooking({
-    sb, stripe, booking: baseBooking(), expectedLivemode: true, todayIso: '2026-09-19', notify: spy.notify,
+    sb, stripe, booking: baseBooking(), expectedLivemode: true, todayIso: AUTHORIZE_ON, notify: spy.notify,
   });
 
   assert.ok(spy.names().includes('customerRecovery'), 'a real authentication request does reach the customer');
@@ -217,7 +223,7 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
   const spy = spyNotifiers();
 
   await authorizeScheduledBooking({
-    sb, stripe, booking: baseBooking(), expectedLivemode: true, todayIso: '2026-09-19', notify: spy.notify,
+    sb, stripe, booking: baseBooking(), expectedLivemode: true, todayIso: AUTHORIZE_ON, notify: spy.notify,
   });
 
   assert.equal(stripe.calls.confirms, 1, 'a decline is the issuer answering, so it is not retried');
@@ -236,7 +242,7 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
   const spy = spyNotifiers();
 
   const result = await authorizeScheduledBooking({
-    sb, stripe, booking: baseBooking(), expectedLivemode: true, todayIso: '2026-09-19', notify: spy.notify,
+    sb, stripe, booking: baseBooking(), expectedLivemode: true, todayIso: AUTHORIZE_ON, notify: spy.notify,
   });
 
   assert.equal(result.authorized, true);
@@ -258,7 +264,7 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
   const spy = spyNotifiers();
 
   const result = await recoverUnconfirmedHolds({
-    sb, stripe, expectedLivemode: true, todayIso: '2026-09-19', notify: spy.notify,
+    sb, stripe, expectedLivemode: true, todayIso: AUTHORIZE_ON, notify: spy.notify,
   });
 
   assert.equal(result.authorized, 1, 'the stranded booking is authorized on a later run');
@@ -287,7 +293,7 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
   const spy = spyNotifiers();
 
   const result = await recoverUnconfirmedHolds({
-    sb, stripe, expectedLivemode: true, todayIso: '2026-09-19', notify: spy.notify,
+    sb, stripe, expectedLivemode: true, todayIso: AUTHORIZE_ON, notify: spy.notify,
   });
 
   assert.equal(result.authorized, 0);
@@ -310,7 +316,7 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
   const stripe = fakeStripe({ confirm: 'requires_capture' });
   const spy = spyNotifiers();
   await authorizeScheduledBooking({
-    sb, stripe, booking: baseBooking(), expectedLivemode: true, todayIso: '2026-09-19', notify: spy.notify,
+    sb, stripe, booking: baseBooking(), expectedLivemode: true, todayIso: AUTHORIZE_ON, notify: spy.notify,
   });
   const created = stripe.calls.createParams[0];
   assert.equal(created.setup_future_usage, undefined,
@@ -336,7 +342,7 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
   const spy = spyNotifiers();
 
   const result = await recoverUnconfirmedHolds({
-    sb, stripe, expectedLivemode: true, todayIso: '2026-09-19', notify: spy.notify,
+    sb, stripe, expectedLivemode: true, todayIso: AUTHORIZE_ON, notify: spy.notify,
   });
 
   assert.equal(result.authorized, 1, 'the booking ends up authorized');
