@@ -1,0 +1,38 @@
+version: 1
+status: target_contract
+as_of: '2026-09-24'
+
+queries:
+  - name: get_customer_booking
+    actor: [customer, owner]
+    scope: owned_or_permissioned_booking
+  - name: get_easer_job
+    actor: [easer, owner]
+    scope: assigned_or_permissioned_booking
+  - name: get_owner_booking_detail
+    actor: [owner]
+    scope: permissioned_booking
+  - name: get_dispatch_candidates
+    actor: [owner_dispatch, system_worker]
+    scope: booking_market_and_readiness
+  - name: get_payment_truth
+    actor: [owner_finance, system_worker]
+    scope: payment_and_provider_reconciliation
+  - name: get_easer_earnings
+    actor: [easer, owner_finance]
+    scope: own_or_permissioned_earnings
+  - name: get_payout_status
+    actor: [easer, owner_finance, system_worker]
+    scope: own_or_permissioned_payout
+  - name: get_notification_delivery
+    actor: [owner, system_worker]
+    scope: notification_or_booking
+  - name: get_audit_timeline
+    actor: [owner, owner_support, owner_finance]
+    scope: permissioned_resource
+
+rules:
+  - Queries enforce resource scope server-side.
+  - Customer and Easer queries never expose unrelated records.
+  - Financial queries distinguish provider truth, ledger truth, earning truth, and payout truth.
+  - Query projections must identify their source of truth.

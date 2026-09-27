@@ -1,0 +1,67 @@
+version: 1
+status: inventory_and_target_contract
+as_of: '2026-09-24'
+
+default: deny
+
+resource_rules:
+  customer_booking:
+    customer: own_booking_only
+    easer: assigned_or_offered_scope_only
+    owner: permission_scoped
+    system_worker: registered_command_only
+  customer_contact:
+    customer: own_profile
+    easer: release_policy_and_assignment_required
+    owner: permission_scoped
+  easer_job:
+    easer: assigned_job_only
+    owner: permission_scoped
+    system_worker: registered_command_only
+  payment:
+    customer: own_payment_recovery_only
+    easer: no_financial_mutation
+    owner_finance: financial_permission_required
+    owner_admin: explicit_admin_permission_required
+    system_worker: registered_payment_command_only
+  payout:
+    easer: own_earnings_and_payout_read_only
+    owner_finance: payout_permission_required
+    owner_admin: explicit_admin_permission_required
+    system_worker: registered_payout_command_only
+  evidence:
+    easer: assigned_job_only
+    owner: permission_scoped
+    customer: customer_visible_only
+
+high_risk_actions:
+  - customer_email_change
+  - customer_phone_change
+  - manual_completion_verification
+  - booking_reassignment
+  - price_override
+  - refund
+  - payout_hold
+  - payout_adjustment
+  - easer_suspension
+  - permission_change
+  - financial_adjustment
+  - terms_modification
+
+requirements_for_high_risk_action:
+  - server_derived_actor
+  - explicit_permission
+  - resource_scope_check
+  - reason_required
+  - before_snapshot
+  - after_snapshot
+  - audit_event
+  - idempotency_key_for_state_or_money_mutation
+
+security_invariants:
+  - never trust hidden UI controls as authorization
+  - customer resources require ownership verification
+  - Easer resources require assignment verification
+  - owner finance operations require finance permission
+  - system workers cannot impersonate broad owner access
+  - rejected attempts are auditable without storing secrets

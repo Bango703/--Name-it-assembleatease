@@ -1,0 +1,71 @@
+version: 1
+status: inventory
+as_of: '2026-09-24'
+
+personas:
+  public:
+    description: Unauthenticated visitor or prospective customer.
+    may:
+      - browse public service content
+      - begin a booking request
+      - submit public contact or waitlist requests
+    must_not:
+      - read booking details
+      - mutate a booking without secure customer credentials
+      - access customer, Easer, owner, payment, or evidence records
+  customer:
+    description: Authenticated customer or verified guest booking owner.
+    may:
+      - read owned bookings
+      - update owned booking within policy
+      - message permitted participants
+      - complete payment recovery for an owned booking
+      - submit cancellation, reschedule, support, and review actions
+    must_not:
+      - read another customer's booking
+      - access Easer private contact data
+      - change owner or Easer financial state
+  easer:
+    description: Approved Easer assigned to, or offered, a job.
+    may:
+      - read eligible offers
+      - accept or decline permitted offers
+      - read assigned job scope
+      - update assigned execution state
+      - upload permitted evidence
+      - message permitted participants
+      - read own earnings and payout state
+    must_not:
+      - read unrelated customer data
+      - accept an unrelated assignment
+      - alter payment, payout, or ledger state
+  owner:
+    description: Business operator.
+    may:
+      - operate bookings, dispatch, support, evidence, finance, and quality
+      - perform explicitly permitted recovery and adjustment actions
+      - read audit and operational state
+    must_not:
+      - bypass financial locks or audit requirements
+      - use broad admin access where a scoped permission is required
+  system_worker:
+    description: Authenticated scheduler, webhook, or worker process.
+    may:
+      - perform only its registered command and provider reconciliation
+      - emit registered events and audit records
+    must_not:
+      - use an unrestricted owner identity
+      - mutate unrelated domains without a registered command
+
+owner_roles:
+  - owner
+  - owner_support
+  - owner_dispatch
+  - owner_finance
+  - owner_admin
+
+rules:
+  - authorization is enforced server-side on every request
+  - resource ownership or assignment is checked before reads and writes
+  - deny by default
+  - UI visibility is not authorization

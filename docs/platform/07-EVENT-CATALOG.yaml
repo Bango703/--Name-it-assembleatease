@@ -1,0 +1,42 @@
+version: 1
+status: inventory_and_target_contract
+as_of: '2026-09-24'
+
+envelope:
+  required: [eventId, eventType, eventVersion, occurredAt, aggregateType, aggregateId, actor, correlationId, payload]
+  actor_types: [system, customer, easer, owner]
+  compatibility: Payload shapes are versioned; breaking changes require a new event version.
+
+current_event_families:
+  booking: [booking_created, booking_confirmed, assigned, reassigned, cancelled, completed]
+  dispatch: [dispatched, dispatch_notification_failed, offer_expired, easer_accepted]
+  execution: [en_route, arrived, in_progress, no_show_flagged, arrival_nudge_sent]
+  evidence: [completion_evidence_added, evidence_upload_failed]
+  payment: [payment_authorized, payment_failed, payment_authorization_canceled, capture_failed, payment_recovery_intent_replaced]
+  payout: [payout_review_required, payout_transfer_created, payout_failed]
+  communication: [message_notification_failed, notification_audit_failed, sms_delivery_updated]
+  voice: [telnyx_voice_event, owner_call_started, owner_call_bridged]
+  operations: [runtime_error, ops_alert_sent, notification_audit_failed]
+
+target_event_families:
+  - booking.created
+  - booking.confirmed
+  - booking.assigned
+  - booking.reassigned
+  - payment.authorized
+  - payment.auth_expiring
+  - payment.capture_failed
+  - payment.paid
+  - payout.failed
+  - evidence.required
+  - evidence.accepted
+  - completion.submitted
+  - completion.verified
+  - dispute.created
+  - notification.failed
+
+rules:
+  - External webhook events enter an inbox before domain mutation.
+  - Events are immutable facts; corrections emit new events.
+  - Consumers must be idempotent.
+  - Events must carry booking/resource correlation when applicable.
