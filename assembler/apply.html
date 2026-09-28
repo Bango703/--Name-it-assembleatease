@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <script src="/assets/js/sentry-init.js"></script>
+  <script src="/assets/js/attribution.js"></script>
   <script src="https://js.sentry-cdn.com/d5e773248c17d9f13dcf8b0a5f5dd73f.min.js" crossorigin="anonymous"></script>
   <title>Apply to Become an Easer | AssembleAtEase</title>
   <meta name="robots" content="index, follow" />
@@ -1792,6 +1793,11 @@
         applicationAttemptId: applicationAttemptId,
         applicationFeeConsent: document.getElementById('fee-consent').checked,
         inviteToken: document.getElementById('invite-token').value || null,
+        // Captured on the page the visitor ARRIVED on, which for most people
+        // is a city recruitment page rather than this form. Without it the
+        // only location on an application is the city they typed, and that
+        // records where they live, not which page brought them.
+        attribution: (window.AAE_ATTRIBUTION && window.AAE_ATTRIBUTION.capture('/assembler/apply')) || null,
       }),
     });
     var result = await response.json();
