@@ -111,3 +111,133 @@ console.log('owner cases test-booking visibility tests: PASS');
 }
 
 console.log('PASS test cases without a booking can be found and closed, with reasons shown');
+
+// Execute the shipped detection endpoint against an isolated read-only schema.
+// A misspelled table must fail here just as it does in production; source-text
+// assertions above cannot prove that the handler reads the canonical table.
+const sweepSource = (await read('api/owner/test-cases.js'))
+  .replace(/^import .*;\r?\n/gm, '')
+  .replace('export default async function handler', 'async function handler');
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+const makeCase = (id, patch = {}) => ({ id, case_ref: `CASE-${id}`, case_type: 'support', status: 'open', severity: 'normal',
+  subject: 'Please contact me', description: 'I have a question about my appointment.', booking_id: null,
+  customer_name: 'Customer Person', customer_email: 'customer@example.test', created_by_name: 'Customer Person',
+  created_at: '2026-09-28T12:00:00Z', ...patch });
+const caseColumns = new Set(Object.keys(makeCase('schema')));
+const bookingColumns = new Set(['id', 'ref', 'customer_email', 'is_test_booking']);
+
+async function sweepFixture({ caseRows = [], bookingRows = [], failTable = null } = {}) {
+  const tables = { operations_cases: structuredClone(caseRows), bookings: structuredClone(bookingRows) };
+  const before = structuredClone(tables), reads = [];
+  let connections = 0;
+  const sb = { from(table) {
+    const predicates = [];
+    let columns = [], sort, max = Infinity;
+    const entry = { table };
+    reads.push(entry);
+    const query = {
+      select(value) { columns = value.split(',').map(column => column.trim()); entry.columns = columns; return query; },
+      order(column, { ascending }) { sort = { column, ascending }; return query; },
+      limit(value) { max = value; return query; },
+      in(column, values) { entry.values = [...values]; predicates.push(row => values.includes(row[column])); return query; },
+      update() { assert.fail('Test-case detection must not update any row'); },
+      insert() { assert.fail('Test-case detection must not insert any row'); },
+      delete() { assert.fail('Test-case detection must not delete any row'); },
+      then(resolve, reject) { return Promise.resolve().then(() => {
+        if (!Object.hasOwn(tables, table)) return { data: null, error: { code: '42P01', message: 'Table does not exist' } };
+        const schema = table === 'operations_cases' ? caseColumns : bookingColumns;
+        if (columns.some(column => !schema.has(column))) return { data: null, error: { message: 'Column does not exist' } };
+        // Return data alongside the failure to prove partial reads are rejected.
+        if (table === failTable) return { data: structuredClone(tables[table]), error: { message: 'Read unavailable' } };
+        let rows = tables[table].filter(row => predicates.every(test => test(row)));
+        if (sort) rows = [...rows].sort((a, b) => String(a[sort.column]).localeCompare(String(b[sort.column])) * (sort.ascending ? 1 : -1));
+        return { data: rows.slice(0, max).map(row => Object.fromEntries(columns.map(column => [column, row[column] ?? null]))), error: null };
+      }).then(resolve, reject); },
+    };
+    return query;
+  }, rpc() { assert.fail('Test-case detection must not execute a database RPC'); } };
+  const dependencies = {
+    getSupabase() { connections++; return sb; },
+    verifyOwner: req => req.headers.authorization === 'Bearer offline-owner',
+    ownerEmail: () => ' Owner@Example.test ', console: { error() {} },
+    fetch() { assert.fail('This isolated handler test must never use the network'); },
+  };
+  const handler = await new AsyncFunction(...Object.keys(dependencies), `${sweepSource}\nreturn handler;`)(...Object.values(dependencies));
+  return { tables, before, reads, get connections() { return connections; }, async run({ method = 'GET', authorization = 'Bearer offline-owner' } = {}) {
+    const response = { status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
+    await handler({ method, headers: { authorization } }, response);
+    assert.deepEqual(tables, before, 'every request leaves cases and bookings unchanged');
+    return response;
+  } };
+}
+
+const detectionCases = [
+  makeCase('flagged', { booking_id: 'test-booking' }),
+  makeCase('no-booking-text', { status: 'acknowledged', subject: 'Post-deploy check' }),
+  makeCase('case-owner', { status: 'in_progress', customer_email: ' OWNER@example.test ' }),
+  makeCase('sim-name', { status: 'waiting_customer', customer_name: 'SIM-Customer' }),
+  makeCase('booking-owner', { status: 'waiting_easer', booking_id: 'owner-booking' }),
+  makeCase('unflagged', { booking_id: 'real-booking' }),
+  makeCase('unknown', { booking_id: 'missing-booking' }),
+  makeCase('unknown-with-signal', { booking_id: 'missing-booking', subject: 'QA callback' }),
+  makeCase('closed', { status: 'closed', booking_id: 'inactive-booking', subject: 'test' }),
+  makeCase('resolved', { status: 'resolved', customer_email: 'owner@example.test' }),
+];
+const detectionBookings = [
+  { id: 'test-booking', ref: 'AAE-TEST', customer_email: 'customer@example.test', is_test_booking: true },
+  { id: 'real-booking', ref: 'AAE-REAL', customer_email: 'customer@example.test', is_test_booking: false },
+  { id: 'owner-booking', ref: 'AAE-OWNER', customer_email: 'OWNER@example.test', is_test_booking: false },
+];
+{
+  const f = await sweepFixture({ caseRows: detectionCases, bookingRows: detectionBookings });
+  const result = await f.run();
+  assert.equal(result.code, 200); assert.equal(result.body.ok, true);
+  assert.equal(result.body.activeCount, 8, 'all five active statuses count, terminal cases do not');
+  assert.deepEqual(new Set(result.body.suspects.map(row => row.id)), new Set(['flagged', 'no-booking-text', 'case-owner', 'sim-name', 'booking-owner', 'unknown-with-signal']));
+  const found = new Map(result.body.suspects.map(row => [row.id, row]));
+  assert.deepEqual(found.get('flagged').signals, ['its booking is marked as a test']);
+  assert.equal(found.get('flagged').alreadyHidden, true); assert.equal(found.get('flagged').bookingRef, 'AAE-TEST');
+  assert.deepEqual(found.get('no-booking-text').signals, ["text says 'post-deploy'"]);
+  assert.equal(found.get('no-booking-text').bookingRef, null); assert.equal(found.get('no-booking-text').alreadyHidden, false);
+  assert.deepEqual(found.get('case-owner').signals, ["raised against the owner's own email"]);
+  assert.deepEqual(found.get('sim-name').signals, ['customer name starts with SIM-']);
+  assert.deepEqual(found.get('booking-owner').signals, ["its booking is the owner's own email"]);
+  assert.deepEqual(found.get('unknown-with-signal').signals, ["text says 'QA'"]);
+  assert.equal(found.get('unknown-with-signal').alreadyHidden, false, 'a missing booking cannot establish a test flag');
+  assert.equal(found.get('unknown-with-signal').bookingRef, null);
+  assert.match(result.body.caveat, /suspected.*not confirmed/);
+  assert.deepEqual(f.reads.map(query => query.table), ['operations_cases', 'bookings']);
+  assert.deepEqual(new Set(f.reads[1].values), new Set(['test-booking', 'owner-booking', 'real-booking', 'missing-booking']));
+  assert.equal(f.reads[1].values.length, 4, 'only distinct active linked bookings are queried');
+}
+
+for (const caseRows of [[], [makeCase('ordinary')], [makeCase('closed-only', { status: 'closed', subject: 'test' })]]) {
+  const f = await sweepFixture({ caseRows }); const result = await f.run();
+  assert.equal(result.code, 200); assert.deepEqual(result.body.suspects, []);
+  assert.equal(result.body.activeCount, caseRows.some(row => row.status === 'open') ? 1 : 0);
+  assert.deepEqual(f.reads.map(query => query.table), ['operations_cases'], 'no linked IDs means no booking read');
+}
+{
+  const f = await sweepFixture({ caseRows: [makeCase('unknown-only', { booking_id: 'not-found' })] });
+  const result = await f.run();
+  assert.equal(result.code, 200); assert.equal(result.body.activeCount, 1); assert.deepEqual(result.body.suspects, []);
+}
+for (const options of [{ authorization: '' }, { authorization: 'Bearer customer-token' }, { method: 'POST' }, { method: 'DELETE' }]) {
+  const f = await sweepFixture({ caseRows: detectionCases });
+  const result = await f.run(options);
+  assert.equal(result.code, options.method ? 405 : 401);
+  assert.equal(f.connections, 0); assert.deepEqual(f.reads, [], 'method/auth rejection precedes all reads');
+}
+for (const [failTable, message] of [
+  ['operations_cases', 'Cases could not be read.'],
+  ['bookings', 'Linked bookings could not be checked. Try again.'],
+]) {
+  const f = await sweepFixture({ caseRows: detectionCases, bookingRows: detectionBookings, failTable });
+  const result = await f.run();
+  assert.equal(result.code, 503); assert.equal(result.body.error, message);
+  assert.equal(result.body.suspects, undefined, 'failed source cannot return a partial successful suspect list');
+  assert.equal(result.body.activeCount, undefined);
+  assert.equal(f.reads.length, failTable === 'operations_cases' ? 1 : 2);
+}
+
+console.log('PASS actual test-case handler: canonical schema, active suspects and reasons, read-only safety, owner auth, and honest source failures');
