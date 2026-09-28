@@ -1123,12 +1123,13 @@
             <div class="detail-section-title" style="margin:0">Easer Payout Ledger</div>
             <div id="an-payout-totals" style="font-size:0.78rem;color:var(--muted)"></div>
           </div>
+          <p style="font-size:0.76rem;color:var(--muted);margin-bottom:0.75rem">Preferences apply to manual payouts. Stripe payout setup is managed separately.</p>
           <div class="finance-scroll">
             <table class="finance-table" style="width:100%;border-collapse:collapse;font-size:0.82rem" id="an-payout-table">
               <thead>
                 <tr style="border-bottom:1px solid var(--border)">
                   <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Easer</th>
-                  <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Preferred Method</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Manual payout preference</th>
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Jobs</th>
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Owed</th>
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Paid</th>
@@ -9369,6 +9370,12 @@ window.intelQuick = intelQuick;
     }).join('') || '<div style="color:var(--muted);font-size:0.85rem">No completed jobs in this period.</div>';
   }
 
+  function manualPayoutPreferenceLabel(value) {
+    if (value === null || value === '') return 'Not provided';
+    var labels = { ach: 'ACH / bank transfer', zelle: 'Zelle', paypal: 'PayPal', check: 'Check' };
+    return typeof value === 'string' && Object.prototype.hasOwnProperty.call(labels, value) ? labels[value] : 'Unknown';
+  }
+
   async function loadPayoutLedger() {
     var tbody = document.getElementById('an-payout-body');
     var totalsEl = document.getElementById('an-payout-totals');
@@ -9426,8 +9433,8 @@ window.intelQuick = intelQuick;
       }
 
       tbody.innerHTML = easers.map(function(e) {
-        var methodLabels = { ach:'ACH / bank transfer', zelle:'Zelle', paypal:'PayPal', check:'Check' };
-        var preferredMethod = methodLabels[e.payout_method_preference] || 'Not selected';
+        var preferredMethod = manualPayoutPreferenceLabel(e.payout_method_preference);
+        var preferenceColor = preferredMethod === 'Not provided' || preferredMethod === 'Unknown' ? 'var(--muted)' : 'var(--text)';
         var jobsNeedingAction = e.unpaid_jobs || [];
         var actionButtons = jobsNeedingAction.slice(0, 3).map(function(job) {
           var isConnectProcessing = job.payout_mode === 'stripe_connect' && job.disposition === 'transferred';
@@ -9454,8 +9461,10 @@ window.intelQuick = intelQuick;
           + (hasValidUsPhone(e.phone) ? '<br><a href="tel:' + esc(e.phone) + '" style="color:var(--teal)">' + esc(formatUsPhone(e.phone)) + '</a>' : '<br><span style="color:var(--red)">Valid phone required</span>')
           + '</div>';
         return '<tr style="border-bottom:1px solid var(--border)">'
-          + '<td style="padding:0.6rem 0.75rem;font-weight:600;color:var(--text)">' + esc(e.assembler_name) + ' ' + easerTierBadge(e.assembler_tier) + contact + (['requested','reviewing','completed'].includes(e.account_closure_status) ? '<div style="font-size:0.68rem;color:var(--red);margin-top:0.2rem">Closure: ' + esc(e.account_closure_status) + '</div>' : '') + '</td>'
-          + '<td style="padding:0.6rem 0.75rem;font-size:0.76rem;color:' + (e.payout_method_preference ? 'var(--text)' : 'var(--red)') + '">' + esc(preferredMethod) + '</td>'
+          + '<td style="padding:0.6rem 0.75rem;font-weight:600;color:var(--text)"><div class="payout-easer">'
+          + '<div class="payout-easer-identity"><div class="payout-easer-name">' + esc(e.assembler_name) + '</div><div class="payout-easer-tier">' + easerTierBadge(e.assembler_tier) + '</div></div>'
+          + contact + (['requested','reviewing','completed'].includes(e.account_closure_status) ? '<div style="font-size:0.68rem;color:var(--red);margin-top:0.2rem">Closure: ' + esc(e.account_closure_status) + '</div>' : '') + '</div></td>'
+          + '<td style="padding:0.6rem 0.75rem;font-size:0.76rem;color:' + preferenceColor + '">' + esc(preferredMethod) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--soft)">' + e.jobs + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--text)">' + fmt$(e.total_owed) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--green)">' + fmt$(e.total_paid) + '</td>'
