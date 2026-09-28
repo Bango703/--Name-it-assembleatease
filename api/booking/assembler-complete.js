@@ -269,6 +269,23 @@ export default async function handler(req, res) {
         });
       } catch (e) { console.error('Capture failure alert error:', e); }
 
+      // Same reservation leak as the owner path: nothing is running, so the
+      // booking must not stay locked. Left set, the Easer's next attempt is
+      // refused and only a hand-written UPDATE frees it.
+      try {
+        await releaseBookingFinancialOperation(sb, { bookingId: booking.id, operationKey });
+      } catch (releaseErr) {
+        console.error('Capture failure lock release error:', releaseErr?.message || releaseErr);
+        await logActivity(sb, {
+          bookingId: booking.id,
+          eventType: 'completion_lock_release_failed',
+          actorType: 'system',
+          actorName: 'assembler-complete',
+          description: 'A failed completion could not release its own booking reservation. Retrying completion will be refused until it is cleared.',
+          metadata: { operationKey, error: releaseErr?.message || String(releaseErr) },
+        }).catch(() => {});
+      }
+
       // Detect expired/uncapturable PI and give a clearer message
       const isUncapturable = stripeErr?.code === 'payment_intent_unexpected_state'
         || (stripeErr?.message || '').includes('requires_payment_method')

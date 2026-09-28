@@ -314,3 +314,46 @@ console.log('Easer payout truth tests: PASS');
     'no surface may hardcode an hour count that the cron owns');
   console.log('PASS the payout hold is a single number every surface reads');
 }
+
+// ── The payout column must describe how the Easer is ACTUALLY paid ──────────
+// Phil Hawkins is fully onboarded on Connect — account live, payouts enabled
+// since Sep 23 — and his $275.80 was already pending an automatic transfer.
+// The table still showed a red "Not selected", because it read
+// payout_method_preference, which only ever describes a MANUAL payout. Red
+// text next to a live transfer reads as a blocker on money that is on its way.
+{
+  const { readFile } = await import('node:fs/promises');
+  const load = n => readFile(new URL('../' + n, import.meta.url), 'utf8');
+  const api = await load('api/owner/payouts.js');
+  const ui = await load('owner/index.html');
+
+  // Scoped to the SELECT itself. Searching the whole file passes on a name
+  // that merely appears further down, which is precisely the bug being
+  // guarded: the field is read but never fetched, so it is undefined at
+  // runtime and the column silently reports the wrong thing.
+  const profileSelect = api.match(/\.select\('(id, email, phone[^']*)'\)/);
+  if (!profileSelect) throw new Error('payouts.js must still select the Easer profile');
+  for (const column of ['stripe_connect_account_id', 'stripe_connect_payouts_enabled',
+                        'stripe_connect_onboarding_complete']) {
+    if (!profileSelect[1].includes(column)) {
+      throw new Error(`the profile SELECT must fetch ${column} or it reads undefined`);
+    }
+  }
+  if (!/connect_payouts_ready/.test(api)) throw new Error('payouts.js must expose connect readiness to the row');
+  // Onboarded is not the same as payable. Both must be required for "ready".
+  if (!/connect_payouts_ready\s*=\s*easer\.connect_onboarded[\s\S]{0,120}payouts_enabled === true/.test(api)) {
+    throw new Error('ready must require BOTH onboarding complete and payouts enabled');
+  }
+
+  if (!/if \(e\.connect_payouts_ready\) preferredMethod = 'Stripe Connect \(automatic\)'/.test(ui)) {
+    throw new Error('an Easer paid by Connect must be labelled as such, not "Not selected"');
+  }
+  if (!/else if \(e\.connect_onboarded\) preferredMethod = 'Stripe Connect - payouts not enabled yet'/.test(ui)) {
+    throw new Error('onboarded-but-not-payable is its own state and must be named');
+  }
+  // The red is reserved for a genuine gap: no Connect and no manual method.
+  if (!/e\.connect_payouts_ready \|\| e\.payout_method_preference \? 'var\(--text\)' : 'var\(--red\)'/.test(ui)) {
+    throw new Error('red must mean there is really no way to pay this Easer');
+  }
+  console.log('PASS the payout column names how each Easer is actually paid');
+}
