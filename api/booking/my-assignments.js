@@ -239,6 +239,7 @@ export default async function handler(req, res) {
       .from('booking_crew')
       .select('booking_id')
       .eq('easer_id', user.id)
+      .eq('role', 'helper')
       .is('removed_at', null);
     crewBookingIds = [...new Set((myCrew || []).map(r => r.booking_id).filter(Boolean))];
   } catch (crewErr) {

@@ -134,15 +134,16 @@ function formatAlertAge(ms) {
  * diagnostics panel must never be the reason the dashboard goes dark.
  */
 async function loadSelfDiagnosedFailures(sb, sinceIso) {
-  const out = { financial: [], notification: [], total: 0 };
+  const out = { financial: [], notification: [], total: 0, sourceErrors: [] };
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from('financial_event_audit')
       .select('event_type, error, created_at, booking_id, payment_intent_id')
       .eq('status', 'failed')
       .gte('created_at', sinceIso)
       .order('created_at', { ascending: false })
       .limit(100);
+    if (error) out.sourceErrors.push('Payment incident history could not be loaded.');
     out.financial = collapseFailureAttempts((data || []).map(r => ({
       at: r.created_at,
       kind: r.event_type,
@@ -150,18 +151,30 @@ async function loadSelfDiagnosedFailures(sb, sinceIso) {
       detail: String(r.error || 'no reason recorded').slice(0, 240),
       paymentIntentId: r.payment_intent_id || null,
       bookingId: r.booking_id || null,
-    }))).slice(0, 20);
+    })));
+    const bookingIds = [...new Set(out.financial.map(row => row.bookingId).filter(Boolean))];
+    if (bookingIds.length) {
+      const current = await sb.from('bookings')
+        .select('id, ref, status, payment_status, total_price, amount_charged, stripe_payment_intent_id, payment_captured_at, completed_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at, financial_operation_key, financial_operation_type, financial_operation_started_at')
+        .in('id', bookingIds);
+      if (current.error) out.sourceErrors.push('Current payment outcomes could not be verified.');
+      out.financial = classifyFinancialIncidents(out.financial, current.error ? [] : current.data || []);
+    }
   } catch (err) {
+    out.sourceErrors.push('Payment incident history could not be verified.');
     console.error('[live-ops] financial failure lookup failed:', err?.message || err);
   }
+  out.financial = out.financial.sort((a, b) => Number(a.state === 'recovered') - Number(b.state === 'recovered')
+    || String(b.at || '').localeCompare(String(a.at || ''))).slice(0, 20);
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from('activity_logs')
       .select('event_type, description, metadata, created_at, booking_id')
       .in('event_type', ['notification_audit_failed', 'dispatch_notification_failed', 'acceptance_notification_failed'])
       .gte('created_at', sinceIso)
       .order('created_at', { ascending: false })
       .limit(100);
+    if (error) out.sourceErrors.push('Notification incident history could not be loaded.');
     out.notification = collapseFailureAttempts((data || []).map(r => ({
       at: r.created_at,
       kind: r.event_type,
@@ -170,10 +183,44 @@ async function loadSelfDiagnosedFailures(sb, sinceIso) {
       bookingId: r.booking_id || null,
     }))).slice(0, 20);
   } catch (err) {
+    out.sourceErrors.push('Notification incident history could not be verified.');
     console.error('[live-ops] notification failure lookup failed:', err?.message || err);
   }
   out.total = out.financial.length + out.notification.length;
   return out;
+}
+
+// Completion validates Stripe before recording captured payment. Only that
+// later, matching outcome can recover a capture incident. Time passing, an
+// unrelated transfer, or a different linked payment is not evidence of recovery.
+export function classifyFinancialIncidents(incidents = [], bookings = []) {
+  const byId = new Map(bookings.map(booking => [booking.id, booking]));
+  return incidents.map(incident => {
+    const booking = byId.get(incident.bookingId);
+    const capturedAt = Date.parse(booking?.payment_captured_at || '');
+    const failedAt = Date.parse(incident.at || '');
+    const completedAt = Date.parse(booking?.completed_at || '');
+    const recovered = incident.kind === 'capture_attempt'
+      && Boolean(incident.paymentIntentId)
+      && incident.paymentIntentId === booking?.stripe_payment_intent_id
+      && booking?.status === 'completed'
+      && booking.payment_status === 'captured'
+      && Number(booking.total_price) > 0
+      && Number(booking.amount_charged) === Number(booking.total_price)
+      && Number.isFinite(failedAt) && capturedAt > failedAt && completedAt > failedAt
+      && !booking.financial_reconciliation_required_at
+      && !booking.cancellation_reconciliation_required_at
+      && !booking.financial_operation_key
+      && !booking.financial_operation_type
+      && !booking.financial_operation_started_at;
+    return {
+      ...incident,
+      bookingRef: booking?.ref || null,
+      state: recovered ? 'recovered' : 'needs_review',
+      resolvedAt: recovered ? booking.payment_captured_at : null,
+      resolution: recovered ? `Payment collected: $${(Number(booking.amount_charged) / 100).toFixed(2)}. Booking completed after this attempt.` : null,
+    };
+  });
 }
 
 export function collapseFailureAttempts(rows = []) {

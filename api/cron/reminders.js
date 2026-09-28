@@ -1,6 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { formatAppointmentDate, formatSlotShort, notificationAppointmentTimestampMs, appointmentTimeZone, localCalendarDate } from '../booking/_appt-date.js';
-import { sendEmail, ownerEmail, esc, formatAddress, ensureEmailShell } from '../_email.js';
+import { sendEmail, esc, formatAddress, ensureEmailShell } from '../_email.js';
 import { sendSms, smsEligibility } from '../_sms.js';
 import { logCron } from './_cron-logger.js';
 import { BOOKING_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
@@ -128,7 +128,9 @@ export default async function handler(req, res) {
   let sent = 0;
   let reconciled = 0;
   let deferred = 0;
-  let expiringAuthsWarned = 0;
+  // Compatibility field only. Authorization monitoring belongs to
+  // reauth-payments and _authorization-window, not appointment reminders.
+  const expiringAuthsWarned = 0;
   const errors = [];
   const fromDate = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
   const throughDate = new Date(now.getTime() + 2 * 86400000).toISOString().slice(0, 10);
@@ -198,25 +200,6 @@ export default async function handler(req, res) {
       } catch (error) { errors.push({ ref: candidate.ref, error: error?.message || String(error) }); }
     }
 
-    // The age of our authorization record is a review trigger, not Stripe's
-    // exact capture deadline. Financial execution is untouched by this cron.
-    const { data: authorizations, error: authError } = await sb.from('bookings')
-      .select('id, ref, service, customer_name, date, payment_authorized_at, is_test_booking')
-      .eq('status', BOOKING_STATUS.CONFIRMED).eq('payment_status', 'authorized')
-      .lte('payment_authorized_at', new Date(now.getTime() - 5 * 86400000).toISOString())
-      .order('payment_authorized_at', { ascending: true }).limit(100);
-    if (authError) errors.push({ ref: null, error: `Authorization review query failed: ${authError.message}` });
-    const aged = (authorizations || []).filter(b => b.is_test_booking !== true);
-    if (aged.length) {
-      const rows = aged.map(b => `<li>${esc(b.ref)}: ${esc(b.service || 'Service')}, ${esc(formatAppointmentDate(b.date))}; authorized ${esc(formatAppointmentDate(String(b.payment_authorized_at).slice(0, 10)))}</li>`).join('');
-      const result = await sendEmail({ to: ownerEmail(), from: 'AssembleAtEase System <booking@assembleatease.com>',
-        subject: `Review needed: ${aged.length} aging card authorization(s)`,
-        html: ensureEmailShell(`<h1 style="font-size:22px">Review aging card authorizations</h1><p>These bookings have authorization records at least five days old. Review each PaymentIntent in Stripe for its current status and actual capture deadline, then follow up on any job that needs action.</p><ul>${rows}</ul><p>Authorization age alone does not establish an expiry date. Do not mark a job complete or cancel it solely to move a payment.</p><p><a href="${SITE}/owner/">Open the owner dashboard</a></p>`, 'owner'),
-        meta: { notificationType: 'authorization_age_review', recipientType: 'owner', notificationKey: `authorization-age-review:${localCalendarDate(now, 'America/Chicago')}`, routine: false },
-      });
-      if (result?.ok && !result.suppressed) expiringAuthsWarned = aged.length;
-      else if (!result?.ok && !result?.deferred) errors.push({ ref: null, error: result?.error || 'Authorization review email not sent' });
-    }
     await logCron('reminders', { status: errors.length ? 'error' : 'ok', records: sent + expiringAuthsWarned, errorText: errors.length ? JSON.stringify(errors).slice(0, 1000) : null, duration: Date.now() - startedAt });
     return res.status(200).json({ ok: errors.length === 0, sent, reconciled, deferred, expiringAuthsWarned, errors });
   } catch (error) {

@@ -21,6 +21,11 @@
 
 const GUARD_REASONS = Object.freeze([
   {
+    match: 'Active crew allocations require review before changing the lead Easer',
+    code: 'CREW_HANDOFF_REQUIRES_REVIEW',
+    owner: 'This booking has crew pay allocations. Review the crew and earnings before changing its lead Easer. No assignment or pay was changed.',
+  },
+  {
     match: 'Customer payment must be verified before assignment or acceptance',
     code: 'CUSTOMER_PAYMENT_NOT_VERIFIED',
     owner: "The customer's payment is not in an assignable state yet. This is the customer's payment, not the Easer's payout setup.",
