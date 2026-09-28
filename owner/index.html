@@ -7337,6 +7337,15 @@ window.intelQuick = intelQuick;
           ? ' &bull; <span style="color:#155e75">Owner-Easer offline flow</span>'
           : ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>'
             + (isAccepted ? '' : ' <button onclick="releaseAssignment(\'' + b.id + '\',this)" class="btn" style="font-size:0.72rem;padding:2px 8px">Release</button>'));
+      // Fill the list even though it starts hidden. Reassign only un-hides
+      // these controls; it does not build them. Without this the owner clicked
+      // Reassign, got an empty dropdown, and the Assign button stayed disabled
+      // because its change event can never fire with nothing to choose — which
+      // reads as "this job cannot be reassigned" on every assigned booking.
+      // The currently assigned Easer is left out: picking them is a no-op that
+      // still costs a write and a notification.
+      fillAssignChoices(eligibleAssemblers.filter(function(a) { return a.id !== b.assembler_id; }),
+        'No other eligible Easer is available right now.');
       controls.style.display = 'none';
     } else {
       if (allowOwnerManualCompleted && !completedAttributionReady) {
@@ -7370,13 +7379,11 @@ window.intelQuick = intelQuick;
         status.textContent = 'Owner-Easer is not eligible for new jobs yet' + (ownerMissingItems ? ': ' + ownerMissingItems : '.');
       }
       controls.style.display = 'flex';
-      select.innerHTML = assignmentChoices.length
-        ? (allowOwnerManualCompleted ? '' : '<option value="">Select an Easer...</option>')
-        : '<option value="">Owner-Easer account is not available</option>';
-      assignmentChoices.forEach(function(a) {
-        var tierBadge = a.tier === 'elite' ? ' (Elite)' : a.tier === 'verified' ? ' (Verified)' : '';
-        select.innerHTML += '<option value="' + a.id + '">' + esc(a.full_name) + tierBadge + ' (' + (a.completed_jobs || 0) + ' jobs, ' + (a.rating ? Number(a.rating).toFixed(1) : 'New') + ')</option>';
-      });
+      // Same builder the assigned branch uses, so the two paths cannot
+      // disagree about who is selectable.
+      fillAssignChoices(assignmentChoices, ownerEaserOnly
+        ? 'Owner-Easer account is not available'
+        : 'No eligible Easer is available right now.');
       if (allowOwnerManualCompleted && assignmentChoices.length) {
         select.value = assignmentChoices[0].id;
         if (assignButton) {
@@ -7621,6 +7628,21 @@ window.intelQuick = intelQuick;
       if (btn) { btn.disabled = false; btn.textContent = original; }
     }
   };
+
+  // One place that turns a list of Easers into <option> elements. Used by the
+  // assigned branch (hidden until Reassign is clicked) and the unassigned one,
+  // so the two can never disagree about who is selectable.
+  function fillAssignChoices(choices, emptyLabel) {
+    var select = document.getElementById("assign-select");
+    if (!select) return;
+    if (!choices.length) { select.innerHTML = '<option value="">' + esc(emptyLabel) + '</option>'; return; }
+    select.innerHTML = '<option value="">Select an Easer...</option>';
+    choices.forEach(function(a) {
+      var tierBadge = a.tier === "elite" ? " (Elite)" : a.tier === "verified" ? " (Verified)" : "";
+      select.innerHTML += '<option value="' + a.id + '">' + esc(a.full_name) + tierBadge
+        + ' (' + (a.completed_jobs || 0) + ' jobs, ' + (a.rating ? Number(a.rating).toFixed(1) : "New") + ')</option>';
+    });
+  }
 
   window.toggleReassign = function() {
     var controls = document.getElementById('assign-controls');
