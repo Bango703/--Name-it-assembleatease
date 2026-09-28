@@ -372,6 +372,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .finance-table.pro-table th { padding:0.48rem 0.55rem;font-size:0.62rem;letter-spacing:0.06em; }
 .finance-table.pro-table td { padding:0.58rem 0.55rem;line-height:1.25; }
 .finance-table .money-cell { font-variant-numeric:tabular-nums;white-space:nowrap; }
+.payout-easer{min-width:0;overflow-wrap:anywhere}
+.payout-easer-identity{display:grid;grid-template-columns:minmax(0,1fr) 7.25rem;gap:0.5rem;align-items:start;min-width:15.75rem}
+.payout-easer-name{min-width:0;overflow-wrap:anywhere}
+.payout-easer-tier{width:7.25rem}
+.payout-easer-tier .sb{box-sizing:border-box;width:100%;justify-content:center;white-space:nowrap}
 #cust-table{min-width:760px}
 #md-requests-table{min-width:780px}
 #mk-social-table{min-width:720px}
@@ -442,6 +447,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   .site-chat-thread-head{flex-wrap:wrap}
 }
 @media(max-width:800px){
+  .payout-easer-identity{grid-template-columns:minmax(0,1fr);min-width:0;gap:0.35rem}
   .owner-responsive-table{display:block;min-width:0 !important;width:100% !important}
   .owner-responsive-table thead{display:none}
   .owner-responsive-table tbody{display:grid;gap:0.75rem}
