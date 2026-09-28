@@ -265,8 +265,9 @@ assert.match(ownerPage, /phoneDigits\.length !== 10/);
 assert.match(ownerPage, /function hasValidUsPhone\(value\)/);
 assert.doesNotMatch(ownerPage, /var dispatchEligible =/,
   'owner dashboard must use server-authoritative Easer readiness');
-assert.match(ownerPage, /authoritativeDispatchChip\.textContent = ready \? 'Eligible' : 'Ineligible'/);
-assert.match(ownerPage, /chk\(hasValidUsPhone\(a\.phone\), 'Valid U\.S\. phone on file'\)/);
+assert.match(ownerPage, /authoritativeDispatchChip\.textContent = presentation\.label/);
+assert.match(ownerPage, /\['Valid Phone On File', readinessChip\(!!r\.phoneAvailable\)\]/,
+  'the requirement checklist must show the server phone verdict, not a duplicate cached check');
 assert.match(ownerPage, /hasValidUsPhone\(w\.phone\)/);
 assert.match(ownerPage, /Number\(d\.failed \|\| 0\) > 0 \? 'error' : 'success'/);
 

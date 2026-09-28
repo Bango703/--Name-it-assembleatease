@@ -354,7 +354,7 @@ assert.match(profileUpdateMigration, /GRANT EXECUTE ON FUNCTION public\.update_o
 const ownerDashboardPage = await load('owner/index.html');
 assert.doesNotMatch(ownerDashboardPage, /var dispatchEligible =/,
   'owner dashboard must not duplicate a partial browser-side dispatch eligibility rule');
-assert.match(ownerDashboardPage, /authoritativeDispatchChip\.textContent = ready \? 'Eligible' : 'Ineligible'/,
+assert.match(ownerDashboardPage, /authoritativeDispatchChip\.textContent = presentation\.label/,
   'owner dispatch label must come from the server-authoritative readiness response');
 assert.match(ownerDashboardPage, /asm-dispatch-chip[\s\S]*Checking\.\.\./,
   'owner modal must remain neutral while readiness is loading');

@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to fetch assemblers: ' + error.message });
   }
 
-  const normalized = (data || []).map(profile => normalizeAssemblerProfile(sanitizeAssemblerForOwner(profile)));
+  const profiles = (data || []).map(sanitizeAssemblerForOwner);
   const requireConnect = isStripeConnectEnabled();
   // Two DIFFERENT questions, both answered here so the browser never has to
   // reimplement either:
@@ -44,11 +44,16 @@ export default async function handler(req, res) {
   // hand-copy of the paid-XOR-waived fee rule to decide whether to enable the
   // Approve button. Two copies of one money rule is exactly the drift that let an
   // Easer sit permanently un-approvable with a greyed-out button and no reason.
-  const assemblers = await Promise.all(normalized.map(async assembler => ({
-    ...assembler,
-    readiness: await getEaserReadiness(assembler, { connectRequired: requireConnect }),
-    approvalReadiness: getEaserApprovalReadiness(assembler),
-  })));
+  const assemblers = await Promise.all(profiles.map(async profile => {
+    const assembler = normalizeAssemblerProfile(profile);
+    return {
+      ...assembler,
+      // Display normalization may infer active status from a legacy tier. Job
+      // readiness must use the stored approval evidence, as dispatch does.
+      readiness: await getEaserReadiness(profile, { connectRequired: requireConnect }),
+      approvalReadiness: getEaserApprovalReadiness(assembler),
+    };
+  }));
 
   const stats = {
     total:         assemblers.length,

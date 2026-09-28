@@ -214,7 +214,8 @@ function linesMatching(file, re) {
   report('INFO', 'Easer readiness', `Canonical gates (${all.length}): ${all.join(', ')}`);
 
   const ownerSrc = readFileSync(join(ROOT, 'owner/index.html'), 'utf8');
-  const panel = ownerSrc.match(/var rows = \[([\s\S]*?)\]\.concat/);
+  const renderer = ownerSrc.slice(ownerSrc.indexOf('function renderOnboardingReadinessPanel('), ownerSrc.indexOf('async function loadEaserOnboardingReadiness('));
+  const panel = renderer.match(/var rows = \[([\s\S]*?)\n\s*\];/);
   const shown = panel ? [...panel[1].matchAll(/r\.([A-Za-z]+)/g)].map(m => m[1]) : [];
   const hidden = all.filter(g => !shown.includes(g));
   report(hidden.length ? 'FAIL' : 'PASS', 'Easer readiness',
