@@ -600,6 +600,21 @@
 /* Finding cases left over from testing. Each suspect carries the reason it is
    suspected, because a regex liking a subject line is not proof, and closing a
    real customer's case is worse than leaving noise on the board. */
+.cases-sweep-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.cases-sweep-error {
+  color: #991b1b;
+}
+
 .cases-sweep-box {
   border: 1px solid var(--border-md);
   border-radius: 10px;

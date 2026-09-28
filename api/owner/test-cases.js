@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const { data: cases, error } = await sb
-    .from('operation_cases')
+    .from('operations_cases')
     .select('id, case_ref, case_type, status, severity, subject, description, booking_id, customer_name, customer_email, created_by_name, created_at')
     .order('created_at', { ascending: false })
     .limit(500);
@@ -59,10 +59,14 @@ export default async function handler(req, res) {
 
   let bookingMap = new Map();
   if (bookingIds.length) {
-    const { data: bookings } = await sb
+    const { data: bookings, error: bookingError } = await sb
       .from('bookings')
       .select('id, ref, customer_email, is_test_booking')
       .in('id', bookingIds);
+    if (bookingError) {
+      console.error('test-cases booking lookup error:', bookingError);
+      return res.status(503).json({ error: 'Linked bookings could not be checked. Try again.' });
+    }
     bookingMap = new Map((bookings || []).map(b => [b.id, b]));
   }
 
