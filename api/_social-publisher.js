@@ -56,7 +56,7 @@ export function getSocialAutomationStatus({ imageUrl } = {}) {
   };
 }
 
-export async function publishContentKit({ title, url, kit, imageUrl, channels, dryRun = false, dueAt } = {}) {
+export async function publishContentKit({ title, url, kit, imageUrl, channels, dryRun = false, dueAt, aiAssisted = true, altText, source } = {}) {
   const cfg = bufferConfig();
   const selected = normalizeChannels(channels, cfg.channels);
   const results = {};
@@ -68,7 +68,7 @@ export async function publishContentKit({ title, url, kit, imageUrl, channels, d
       continue;
     }
 
-    const input = buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt });
+    const input = buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt, aiAssisted, altText, source });
     if (dryRun) {
       results[channel.key] = { status: 'dry_run', provider: 'buffer', payload: input };
       continue;
@@ -123,7 +123,7 @@ function normalizeChannels(channels, configured) {
   return configured.filter((channel) => wanted.has(channel.key));
 }
 
-function buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt }) {
+function buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt, aiAssisted = true, altText, source }) {
   const text = textForChannel(channel, { title, url, kit });
   const input = {
     text,
@@ -132,13 +132,13 @@ function buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt }) {
     mode: dueAt ? 'customScheduled' : BUFFER_DEFAULT_MODE,
     metadata: metadataForChannel(channel, { url }),
     assets: [],
-    source: 'assembleatease-content-engine',
-    aiAssisted: true,
+    source: source || 'assembleatease-content-engine',
+    aiAssisted,
   };
 
   if (dueAt) input.dueAt = dueAt;
   if (imageUrl && shouldAttachImageForChannel(channel)) {
-    input.assets = [{ image: { url: imageUrl, metadata: { altText: socialImageAlt(title) } } }];
+    input.assets = [{ image: { url: imageUrl, metadata: { altText: altText || socialImageAlt(title) } } }];
   }
 
   // Buffer refuses a post carrying both an image asset and a link attachment:
