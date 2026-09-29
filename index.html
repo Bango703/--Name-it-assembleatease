@@ -1028,7 +1028,8 @@ section#service-area{display:block}
       var subtotal=(b.included||[]).reduce(function(sum, ref){ return sum + findPrice(src, ref); }, 0);
       var itemCount=(b.included||[]).length;
       var img=bundleImages[b.slug] || '/images/bundle-move-in-setup.png';
-      return '<a class="rr-preview-card" href="/book?bundle='+encodeURIComponent(b.slug)+'">'
+      var bundleHref='/book?bundle='+encodeURIComponent(b.slug);
+      return '<a class="rr-preview-card" href="'+bundleHref+'">'
         +'<div class="rr-preview-photo"><img src="'+esc(img)+'" alt="'+esc(b.name)+' bundle preview" loading="lazy" width="1536" height="960"/><span class="rr-preview-badge">'+itemCount+' item'+(itemCount===1?'':'s')+'</span></div>'
         +'<div class="rr-preview-body">'
           +'<div class="rr-preview-top"><div class="rr-preview-name">'+esc(b.name)+'</div><span class="rr-preview-pill">Bundle</span></div>'
