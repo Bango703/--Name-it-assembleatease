@@ -10,7 +10,7 @@ import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 import { loadCurrentCompletionEvidence, loadCustomerFacingCompletionPhoto } from './_completion-evidence.js';
-import { reserveBookingFinancialOperation } from './_financial-operation.js';
+import { releaseBookingFinancialOperation, reserveBookingFinancialOperation } from './_financial-operation.js';
 import { finalizeCompletionRewards, surfaceCompletionRewardHold } from './_completion-rewards.js';
 import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { captureOrRecoverBookingPayment } from './_stripe-booking-payment.js';
@@ -226,6 +226,25 @@ export default async function handler(req, res) {
           meta: { bookingId: booking.id, notificationType: 'payment_capture_failed', recipientType: 'owner' },
         });
       } catch (alertErr) { console.error('Capture failure alert error:', alertErr); }
+
+      // Nothing is running any more, so the booking must not stay reserved.
+      // Leaving the lock set turned one recoverable capture failure into a
+      // stranded booking: every retry returned FINANCIAL_OPERATION_CONFLICT,
+      // no cron clears a stale completion lock, and no owner screen can either,
+      // so it took a hand-written UPDATE to get the job closed.
+      try {
+        await releaseBookingFinancialOperation(sb, { bookingId: booking.id, operationKey });
+      } catch (releaseErr) {
+        console.error('Capture failure lock release error:', releaseErr?.message || releaseErr);
+        await logActivity(sb, {
+          bookingId: booking.id,
+          eventType: 'completion_lock_release_failed',
+          actorType: 'system',
+          actorName: 'booking-complete',
+          description: 'A failed completion could not release its own booking reservation. Retrying completion will be refused until it is cleared.',
+          metadata: { operationKey, error: releaseErr?.message || String(releaseErr) },
+        }).catch(() => {});
+      }
 
       return res.status(502).json({
         error: 'Payment capture failed. Booking was not completed. Please resolve payment and retry.',

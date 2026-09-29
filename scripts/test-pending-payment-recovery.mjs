@@ -96,7 +96,7 @@ assert.equal(classifyPendingExpiry({
 }, { nowMs, staleBeforeMs }).requiresReconciliation, true, 'unknown/authorized pending rows must remain unchanged');
 
 const load = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
-const [ownerSend, recoveryPage, quoteApproval, staleBooking, liveOps, bookingCreate, bookingConfirmed, ownerReconcile, stripeWebhook] = await Promise.all([
+const [ownerSend, recoveryPage, quoteApproval, staleBooking, liveOps, bookingCreate, bookingConfirmed, ownerReconcile, stripeWebhook, scheduledAuthorization, trackVerifyCode, recoveryTokenMigration] = await Promise.all([
   load('api/owner/send-payment-continuation.js'),
   load('api/booking/payment-recovery.js'),
   load('api/owner/quote-approve.js'),
@@ -106,13 +106,16 @@ const [ownerSend, recoveryPage, quoteApproval, staleBooking, liveOps, bookingCre
   load('api/booking-confirmed.js'),
   load('api/owner/reconcile-payment-authorization.js'),
   load('api/assembler/stripe-webhook.js'),
+  load('api/cron/authorize-scheduled-payments.js'),
+  load('api/track/verify-code.js'),
+  load('api/migrations/099_payment_recovery_token.sql'),
 ]);
 
 assert.match(ownerSend, /verifyOwner\(req\)/);
 assert.doesNotMatch(ownerSend, /deriveGuestMutationToken/, 'owner continuation must never recreate a deterministic historical guest credential');
 assert.match(ownerSend, /const guestToken = randomToken\(32\)/);
-assert.match(ownerSend, /guest_mutation_token_hash: nextGuestTokenHash/);
-assert.match(ownerSend, /tokenRotation\.eq\('guest_mutation_token_hash', booking\.guest_mutation_token_hash\)/);
+assert.match(ownerSend, /payment_recovery_token_hash: nextGuestTokenHash/);
+assert.match(ownerSend, /tokenRotation\.eq\('payment_recovery_token_hash', previousPaymentTokenHash\)/);
 assert.match(ownerSend, /validateBookingPaymentIntent/);
 assert.match(ownerSend, /payment-recovery\?bookingId=/);
 assert.doesNotMatch(ownerSend, /clientSecret/, 'owner email endpoint must never return or email the Stripe client secret');
@@ -127,13 +130,26 @@ assert.ok(
   ownerSend.indexOf('const { data: tokenRows') < ownerSend.indexOf('const emailResult = await sendEmail'),
   'the fresh random token hash must be committed before its raw token is emailed',
 );
-assert.match(ownerSend, /if \(!emailDelivered\)[\s\S]*guest_mutation_token_hash: previousGuestTokenHash/);
-assert.match(ownerSend, /\.eq\('guest_mutation_token_hash', nextGuestTokenHash\)/);
+assert.match(ownerSend, /if \(!emailDelivered\)[\s\S]*payment_recovery_token_hash: previousPaymentTokenHash/);
+assert.match(ownerSend, /\.eq\('payment_recovery_token_hash', nextGuestTokenHash\)/);
+assert.doesNotMatch(ownerSend, /guest_mutation_token_hash: nextGuestTokenHash/, 'payment email must not invalidate booking-management links');
 assert.match(ownerSend, /payment_recovery_token_rollback_failed/);
 assert.match(ownerSend, /dedupeWindowMin: 2/);
 assert.doesNotMatch(ownerSend, /disableDedupe: true/, 'rapid duplicate owner sends must preserve the first valid emailed link');
 
 assert.match(recoveryPage, /hasValidGuestPaymentToken\(booking, token\)/);
+assert.match(recoveryPage, /hasValidPaymentRecoveryToken\(booking, token\)/);
+assert.match(recoveryPage, /payment_recovery_token_hash/);
+assert.match(recoveryPage, /intent\.status === 'canceled'[\s\S]*createReplacementIntent/);
+assert.match(recoveryPage, /capture_method: 'manual'/);
+assert.match(recoveryPage, /financial_operation_type: 'payment_recovery_replacement'/);
+assert.match(scheduledAuthorization, /payment_recovery_token_hash: nextHash/);
+assert.doesNotMatch(scheduledAuthorization, /guest_mutation_token_hash: nextHash/);
+assert.doesNotMatch(trackVerifyCode, /payment_recovery_token_hash/);
+assert.match(bookingConfirmed, /validRecoveryToken/);
+assert.match(bookingConfirmed, /completionUpdate = completionUpdate\.eq\('payment_recovery_token_hash', booking\.payment_recovery_token_hash\)/);
+assert.match(bookingConfirmed, /\['pending', 'failed', 'authorized'\]\.includes\(booking\.payment_status\)/);
+assert.match(recoveryTokenMigration, /ADD COLUMN IF NOT EXISTS payment_recovery_token_hash/);
 assert.match(recoveryPage, /validateBookingPaymentIntent\(booking, intent\)/);
 assert.match(recoveryPage, /guestMutationToken:token/);
 assert.match(recoveryPage, /Cache-Control', 'no-store/);

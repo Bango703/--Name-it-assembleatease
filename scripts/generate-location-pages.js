@@ -424,8 +424,12 @@ const SERVICES = [
     ],
     faqs: [
       { q: 'Do you supply the TV mount?', a: 'No. you provide the TV mount and hardware; our pros bring the tools and do the install. Not sure what fits your TV and wall? Coordinate with your pro after booking.' },
-      { q: 'Can you mount a TV above a fireplace?', a: 'Yes. Above-fireplace mounts include an $85 add-on for the extra height, reach, and precise tilt-angle work required.' },
-      { q: 'What wall types do you work with?', a: 'Drywall, brick, concrete, tile, and steel-stud framing. Brick/concrete is a $75 add-on, tile is $65, and steel stud framing is $55.' },
+      // These figures are the only prices in this file not read from
+      // assets/js/booking-source-of-truth.js, so they go stale silently every
+      // time the menu changes. scripts/test-mounting-addon-pricing.mjs fails
+      // when they drift.
+      { q: 'Can you mount a TV above a fireplace?', a: 'Yes. Above-fireplace mounts include a $175 add-on for the extra height, reach, and precise tilt-angle work required.' },
+      { q: 'What wall types do you work with?', a: 'Drywall, brick, concrete, tile, and steel-stud framing. Brick/concrete is a $110 add-on, tile is $65, and steel stud framing is $55.' },
     ],
     relatedService: 'smart-home-installation',
     brands: ['Samsung', 'LG', 'Sony', 'TCL', 'Vizio', 'Hisense'],
