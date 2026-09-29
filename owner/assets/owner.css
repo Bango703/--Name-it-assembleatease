@@ -386,6 +386,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .easer-tier-badge{box-sizing:border-box;width:7.25rem;flex:0 0 7.25rem;justify-content:center;white-space:nowrap}
 .ops-easer-tier{flex:0 0 7.25rem;display:flex;justify-content:center}
 .ops-easer-tier .sb{box-sizing:border-box;width:7.25rem;flex:0 0 7.25rem;justify-content:center;white-space:nowrap}
+.ops-easer-row .sb.et-starter,.ops-easer-row .sb.et-professional,.ops-easer-row .sb.et-elite{box-sizing:border-box;width:7.25rem;flex:0 0 7.25rem;justify-content:center;white-space:nowrap}
 #wl-table th:first-child,#wl-table td:first-child{min-width:140px;white-space:nowrap}
 #wl-table th:last-child,#wl-table td:last-child{min-width:270px}
 #asm-table th:first-child,#asm-table td:first-child{min-width:200px;white-space:nowrap}
