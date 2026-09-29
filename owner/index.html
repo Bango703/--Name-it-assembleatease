@@ -335,12 +335,11 @@
                 <div class="detail-section-title">Easer Assignment</div>
                 <div id="assign-status" style="font-size:0.85rem;color:var(--soft);margin-bottom:0.75rem"></div>
                 <div id="assign-controls" style="display:flex;gap:0.5rem;align-items:center">
-                  <select id="assign-select" aria-label="Easer assignment" style="flex:1;padding:0.5rem 0.75rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;cursor:pointer">
+                  <select id="assign-select" style="flex:1;padding:0.5rem 0.75rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;cursor:pointer">
                     <option value="">Select an Easer...</option>
                   </select>
                   <button class="btn btn-teal" id="assign-btn" disabled>Assign</button>
                 </div>
-                <div id="assign-choice-status" role="status" style="font-size:0.78rem;color:var(--muted);margin-top:0.5rem"></div>
                 <!-- Crew: a second Easer on the same job. Hidden entirely unless the
                      booking is in a state that can take one, so it never advertises
                      an action the server would refuse. -->
@@ -1390,7 +1389,7 @@ window.intelQuick = intelQuick;
     <input type="text" class="modal-input" id="eb-address" placeholder="Full address"/>
     <label id="eb-notify-row" style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);margin-top:0.75rem;cursor:pointer">
       <input type="checkbox" id="eb-notify" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
-      <span>Email customer about these changes<small style="display:block;color:var(--muted);margin-top:4px">If the schedule changes, the assigned Easer will still be asked to accept it.</small></span>
+      Notify customer of changes by email
     </label>
     <div class="modal-error" id="eb-error" style="display:none;margin-top:0.75rem"></div>
     <div class="modal-actions" style="margin-top:1.25rem">
@@ -4059,7 +4058,9 @@ window.intelQuick = intelQuick;
         + thumb
         + '<div class="evidence-card-meta">'
         + '<div class="evidence-card-type">' + esc(label) + '</div>'
-        + '<div><strong>' + esc(ev.uploaded_by_role || 'Uploader') + ':</strong> ' + esc(ev.uploaded_by_name || 'Unknown') + '</div>'
+        + '<div><strong>' + esc(ev.uploaded_by_role || 'Uploader') + ':</strong> ' + esc(ev.uploaded_by_name || 'Unknown')
+        + (ev.uploaded_on_behalf_of_name ? ' <span style="color:var(--muted)">(for ' + esc(ev.uploaded_on_behalf_of_name) + ')</span>' : '')
+        + '</div>'
         + '<div>' + fmtDate(ev.created_at) + '</div>'
         + '<div>' + fmtBytes(ev.file_size_bytes) + '</div>'
         + (ev.notes ? '<div style="margin-top:2px;font-style:italic">' + esc(ev.notes) + '</div>' : '')
@@ -4584,61 +4585,47 @@ window.intelQuick = intelQuick;
     var el = document.getElementById('ops-selfdiag');
     if (!el) return;
     var sd = d && d.selfDiagnosed;
-    if (!sd || (!sd.total && !(sd.sourceErrors || []).length)) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    if (!sd || !sd.total) { el.style.display = 'none'; el.innerHTML = ''; return; }
 
     var rows = [];
     (sd.financial || []).forEach(function(f) {
-      rows.push({ at: f.at, tag: 'Payment', kind: f.kind, detail: f.detail, attempts: f.attempts || 1, state: f.state, resolution: f.resolution, bookingId: f.bookingId, bookingRef: f.bookingRef });
+      rows.push({ at: f.at, tag: 'MONEY', kind: f.kind, detail: f.detail, attempts: f.attempts || 1 });
     });
     (sd.notification || []).forEach(function(f) {
-      rows.push({ at: f.at, tag: 'Notification', kind: f.kind, detail: f.cause || f.detail, attempts: f.attempts || 1, bookingId: f.bookingId });
+      rows.push({ at: f.at, tag: 'NOTIFY', kind: f.kind, detail: f.cause || f.detail, attempts: f.attempts || 1 });
     });
-    rows.sort(function(a, b) { return Number(a.state === 'recovered') - Number(b.state === 'recovered') || String(b.at).localeCompare(String(a.at)); });
+    rows.sort(function(a, b) { return String(b.at).localeCompare(String(a.at)); });
 
-    // Age describes recency, never recovery. The server verifies a later
-    // matching payment outcome before an incident can leave the action list.
-    var newestMs = rows.reduce(function(latest, r) { return Math.max(latest, new Date(r.at).getTime() || 0); }, 0);
+    // A failure ten minutes old is a fire; one from two days ago that stopped is
+    // history aging out of a 72-hour window. The panel showed both in the same red
+    // and the owner reasonably read a resolved incident as a live one.
+    var newestMs = rows.length ? new Date(rows[0].at).getTime() : 0;
     var hoursSince = newestMs ? (Date.now() - newestMs) / 3600000 : 0;
     var settled = newestMs && hoursSince >= 6;
-    var recoveredCount = rows.filter(function(r) { return r.state === 'recovered'; }).length;
-    var reviewCount = rows.length - recoveredCount;
-    var historyOnly = !reviewCount && !(sd.sourceErrors || []).length;
-    var edge = historyOnly ? 'var(--border)' : '#fed7aa';
-    var wash = historyOnly ? 'var(--surface)' : '#fff7ed';
-    var ink  = historyOnly ? 'var(--text)' : '#9a3412';
-    var sub  = historyOnly ? 'var(--muted)' : '#9a3412';
+    var edge = settled ? '#fed7aa' : '#fecaca';
+    var wash = settled ? '#fff7ed' : '#fef2f2';
+    var ink  = settled ? '#9a3412' : '#991b1b';
+    var sub  = settled ? '#9a3412' : '#b91c1c';
     var recency = !newestMs ? 'last 72 hours'
       : settled ? ('nothing new in ' + Math.round(hoursSince) + 'h \u00b7 last 72 hours')
       : ('newest ' + (hoursSince < 1 ? Math.max(1, Math.round(hoursSince * 60)) + 'm' : Math.round(hoursSince) + 'h') + ' ago \u00b7 last 72 hours');
 
-    var title = historyOnly ? 'Recovered incidents (' + recoveredCount + ')'
-      : reviewCount ? reviewCount + ' incident' + (reviewCount === 1 ? ' needs' : 's need') + ' review'
-      : 'Incident status could not be verified';
-    var html = '<' + (historyOnly ? 'details' : 'div') + ' style="border:1px solid ' + edge + ';background:' + wash + ';border-radius:10px;padding:0.9rem 1rem">'
-      + '<' + (historyOnly ? 'summary' : 'div') + ' style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:0.5rem' + (historyOnly ? ';cursor:pointer' : '') + '">'
-      + '<strong style="color:' + ink + ';font-size:0.85rem">' + esc(title) + '</strong>'
-      + '<span style="font-size:0.72rem;color:' + sub + '">' + esc(recency) + (historyOnly ? ' · View history' : '') + '</span></' + (historyOnly ? 'summary' : 'div') + '>';
-    (sd.sourceErrors || []).forEach(function(message) {
-      html += '<p style="font-size:0.78rem;color:' + ink + '">' + esc(message) + '</p>';
-    });
+    var html = '<div style="border:1px solid ' + edge + ';background:' + wash + ';border-radius:10px;padding:0.9rem 1rem">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:0.5rem">'
+      + '<strong style="color:' + ink + ';font-size:0.85rem">The platform reported ' + rows.length + ' incident' + (rows.length === 1 ? '' : 's') + ' about itself</strong>'
+      + '<span style="font-size:0.72rem;color:' + sub + ';white-space:nowrap">' + esc(recency) + '</span></div>';
     rows.slice(0, 8).forEach(function(r) {
       var when = new Date(r.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-      var labels = { capture_attempt: 'Payment collection', capture_recovery_attempt: 'Payment recovery', transfer_attempt: 'Easer transfer', notification_audit_failed: 'Notification recording', dispatch_notification_failed: 'Job-offer notification', acceptance_notification_failed: 'Acceptance notification' };
       html += '<div style="font-size:0.78rem;line-height:1.6;padding:0.3rem 0;border-top:1px solid ' + edge + '">'
-        + '<span style="font-size:0.68rem;color:' + sub + '">' + esc(r.tag) + '</span> '
+        + '<span style="font-family:monospace;font-size:0.68rem;color:#b91c1c">' + esc(r.tag) + '</span> '
         + '<span style="color:var(--muted)">' + esc(when) + '</span> &bull; '
-        + '<strong>' + esc(labels[r.kind] || String(r.kind || 'Incident').replace(/_/g, ' ')) + '</strong>' + (r.attempts > 1 ? ' &middot; ' + r.attempts + ' attempts' : '') + '<br>'
-        + (r.state === 'recovered' ? '<strong>Recovered.</strong> ' + esc(r.resolution) + '<br><span style="color:var(--muted)">Earlier attempt: ' : '<span style="color:#7f1d1d">')
-        + esc(r.detail || 'no reason recorded') + '</span>'
-        + (r.bookingId ? '<br><button class="btn btn-ghost" type="button" data-incident-booking="' + esc(r.bookingId) + '">View booking' + (r.bookingRef ? ' ' + esc(r.bookingRef) : '') + '</button>' : '') + '</div>';
+        + '<strong>' + esc(r.kind) + '</strong>' + (r.attempts > 1 ? ' &middot; ' + r.attempts + ' attempts' : '') + '<br>'
+        + '<span style="color:#7f1d1d">' + esc(r.detail || 'no reason recorded') + '</span></div>';
     });
     if (rows.length > 8) html += '<div style="font-size:0.72rem;color:' + sub + ';padding-top:0.4rem">…and ' + (rows.length - 8) + ' more</div>';
-    html += '</' + (historyOnly ? 'details' : 'div') + '>';
+    html += '</div>';
     el.innerHTML = html;
     el.style.display = '';
-    el.querySelectorAll('[data-incident-booking]').forEach(function(button) {
-      button.addEventListener('click', function() { window.openOwnerBookingRecord(button.dataset.incidentBooking, null, true); });
-    });
   }
 
   // Off-platform leakage watch.
@@ -5017,6 +5004,19 @@ window.intelQuick = intelQuick;
         btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">Decline</button>');
         btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel</button>');
       }
+    }
+    // Mirrors isActivePaymentRecoveryBooking in
+    // api/booking/_pending-payment-recovery.js. The browser cannot import it,
+    // so scripts/test-evidence-attribution.mjs asserts the two stay identical
+    // — if they drift, this offers a button the server will refuse.
+    if (['en_route', 'arrived', 'in_progress'].includes(b.status)
+        && ['pending', 'failed'].includes(b.payment_status)
+        && b.stripe_payment_intent_id) {
+      // Says what the condition actually tests. The hold may be perfectly
+      // healthy and simply unpaid; calling that "expired" sends the owner
+      // hunting a problem in Stripe that is not there.
+      notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payment not completed:</strong> the customer still needs to pay before this job can be marked complete.</div>');
+      btns.push('<button class="btn btn-teal" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
     }
     if (b.status === 'confirmed') {
       if (b.payment_status === 'card_saved') {
@@ -7021,7 +7021,7 @@ window.intelQuick = intelQuick;
       elite:        ['et-elite',        'Elite'],
     };
     var v = map[tier] || ['et-starter', tier];
-    return '<span class="sb easer-tier-badge ' + v[0] + '" title="Stored platform tier; separate from identity, job readiness, and payout status">' + esc(v[1]) + '</span>';
+    return '<span class="sb ' + v[0] + '" title="Stored platform tier; separate from identity, job readiness, and payout status">' + esc(v[1]) + '</span>';
   }
 
   function verificationBadge(a) {
@@ -7283,27 +7283,14 @@ window.intelQuick = intelQuick;
   // ─── Assembler assignment ───
   var eligibleAssemblers = [];
   var ownerEaserProfile = null;
-  var assemblerChoicesAvailable = null;
-  var assemblerChoicesRequest = 0;
-  var assignmentEditor = { bookingId: null, snapshotKey: null, open: false };
-  var assignmentInFlight = false;
-
-  function assignmentSnapshot(booking) {
-    return { assemblerId: booking.assembler_id || null, assignedAt: booking.assigned_at || null,
-      status: booking.status || null, acceptedAt: booking.assembler_accepted_at || null,
-      dispatchStatus: booking.dispatch_status || null };
-  }
 
   async function loadAssemblers() {
-    var request = ++assemblerChoicesRequest;
     try {
-      var r = await fetch('/api/booking/assemblers', { headers: headers(), cache: 'no-store' });
-      if (!r.ok) throw new Error('Eligible Easers could not be loaded');
+      var r = await fetch('/api/booking/assemblers', { headers: headers() });
+      if (!r.ok) return;
       var data = await r.json();
-      if (request !== assemblerChoicesRequest) return;
       eligibleAssemblers = data.assemblers || [];
       ownerEaserProfile = data.ownerEaser || null;
-      assemblerChoicesAvailable = true;
       if (selectedId) {
         var selectedBookingForAssignment = allBookings.find(function(booking) { return booking.id === selectedId; });
         if (selectedBookingForAssignment) renderAssignSection(selectedBookingForAssignment);
@@ -7318,13 +7305,7 @@ window.intelQuick = intelQuick;
           );
         }
       }
-    } catch(e) {
-      if (request !== assemblerChoicesRequest) return;
-      assemblerChoicesAvailable = false;
-      console.error('Failed to load assemblers:', e);
-      var booking = allBookings.find(function(item) { return item.id === selectedId; });
-      if (booking) renderAssignSection(booking);
-    }
+    } catch(e) { console.error('Failed to load assemblers:', e); }
   }
 
   if (ownerSessionToken) loadAssemblers();
@@ -7339,13 +7320,6 @@ window.intelQuick = intelQuick;
     var controls = document.getElementById('assign-controls');
     var select   = document.getElementById('assign-select');
     var assignButton = document.getElementById('assign-btn');
-    var choiceStatus = document.getElementById('assign-choice-status');
-    var snapshotKey = JSON.stringify(assignmentSnapshot(b));
-    var sameAssignment = assignmentEditor.bookingId === b.id && assignmentEditor.snapshotKey === snapshotKey;
-    var previousSelection = sameAssignment ? select.value : '';
-    if (!sameAssignment) assignmentEditor = { bookingId: b.id, snapshotKey: snapshotKey, open: false };
-    delete assignButton.dataset.reassign;
-    choiceStatus.textContent = '';
     var allowOwnerManualCompleted = b.source === 'owner_manual' && b.status === 'completed';
     var allowOwnerManualLive = b.source === 'owner_manual' && b.status === 'confirmed';
     var ownerEaserOnly = allowOwnerManualLive || allowOwnerManualCompleted;
@@ -7378,26 +7352,16 @@ window.intelQuick = intelQuick;
           ? ' &bull; <span style="color:#155e75">Owner-Easer offline flow</span>'
           : ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>'
             + (isAccepted ? '' : ' <button onclick="releaseAssignment(\'' + b.id + '\',this)" class="btn" style="font-size:0.72rem;padding:2px 8px">Release</button>'));
-      controls.style.display = assignmentEditor.open && !ownerEaserOnly ? 'flex' : 'none';
-      // An assigned booking needs a fresh replacement list too. Previously only
-      // the unassigned branch filled this select, leaving accepted jobs empty or
-      // carrying whichever choices were last rendered for another booking.
-      var replacements = eligibleAssemblers.filter(function(candidate) { return candidate.id !== b.assembler_id; });
-      select.innerHTML = '<option value="">Select a replacement Easer...</option>';
-      if (assemblerChoicesAvailable === true) replacements.forEach(function(candidate) {
-        select.innerHTML += '<option value="' + esc(candidate.id) + '">' + esc(candidate.full_name) + '</option>';
-      });
-      select.value = replacements.some(function(candidate) { return candidate.id === previousSelection; }) && assemblerChoicesAvailable === true ? previousSelection : '';
-      select.disabled = assignmentInFlight || assemblerChoicesAvailable !== true;
-      assignButton.textContent = assignmentInFlight ? 'Reassigning...' : 'Reassign';
-      assignButton.disabled = assignmentInFlight || !select.value || assemblerChoicesAvailable !== true;
-      if (assignmentEditor.open && !ownerEaserOnly) {
-        choiceStatus.textContent = assemblerChoicesAvailable === false
-          ? 'Eligible Easers could not be verified. Close and reopen Reassign to retry.'
-          : assemblerChoicesAvailable === null ? 'Loading eligible Easers...'
-          : replacements.length ? 'Choose a replacement. The replacement must accept the job before work begins.'
-          : 'No other eligible Easers are available. Check Easer readiness and availability, then reopen Reassign.';
-      }
+      // Fill the list even though it starts hidden. Reassign only un-hides
+      // these controls; it does not build them. Without this the owner clicked
+      // Reassign, got an empty dropdown, and the Assign button stayed disabled
+      // because its change event can never fire with nothing to choose — which
+      // reads as "this job cannot be reassigned" on every assigned booking.
+      // The currently assigned Easer is left out: picking them is a no-op that
+      // still costs a write and a notification.
+      fillAssignChoices(eligibleAssemblers.filter(function(a) { return a.id !== b.assembler_id; }),
+        'No other eligible Easer is available right now.');
+      controls.style.display = 'none';
     } else {
       if (allowOwnerManualCompleted && !completedAttributionReady) {
         status.textContent = b.return_visit_required === true
@@ -7430,13 +7394,11 @@ window.intelQuick = intelQuick;
         status.textContent = 'Owner-Easer is not eligible for new jobs yet' + (ownerMissingItems ? ': ' + ownerMissingItems : '.');
       }
       controls.style.display = 'flex';
-      select.innerHTML = assignmentChoices.length
-        ? (allowOwnerManualCompleted ? '' : '<option value="">Select an Easer...</option>')
-        : '<option value="">Owner-Easer account is not available</option>';
-      assignmentChoices.forEach(function(a) {
-        var tierBadge = a.tier === 'elite' ? ' (Elite)' : a.tier === 'verified' ? ' (Verified)' : '';
-        select.innerHTML += '<option value="' + a.id + '">' + esc(a.full_name) + tierBadge + ' (' + (a.completed_jobs || 0) + ' jobs, ' + (a.rating ? Number(a.rating).toFixed(1) : 'New') + ')</option>';
-      });
+      // Same builder the assigned branch uses, so the two paths cannot
+      // disagree about who is selectable.
+      fillAssignChoices(assignmentChoices, ownerEaserOnly
+        ? 'Owner-Easer account is not available'
+        : 'No eligible Easer is available right now.');
       if (allowOwnerManualCompleted && assignmentChoices.length) {
         select.value = assignmentChoices[0].id;
         if (assignButton) {
@@ -7447,8 +7409,6 @@ window.intelQuick = intelQuick;
         assignButton.disabled = true;
         assignButton.textContent = 'Assign';
       }
-      select.disabled = assignmentInFlight || assemblerChoicesAvailable !== true;
-      if (assignmentInFlight || assemblerChoicesAvailable !== true) assignButton.disabled = true;
     }
   }
 
@@ -7684,67 +7644,67 @@ window.intelQuick = intelQuick;
     }
   };
 
-  window.toggleReassign = async function() {
-    if (assignmentInFlight) return;
-    var booking = allBookings.find(function(item) { return item.id === selectedId; });
-    if (!booking || !booking.assembler_id) return;
-    var opening = !assignmentEditor.open;
-    assignmentEditor = { bookingId: booking.id, snapshotKey: JSON.stringify(assignmentSnapshot(booking)), open: opening };
-    if (opening) assemblerChoicesAvailable = null;
-    renderAssignSection(booking);
-    if (opening) await loadAssemblers();
+  // One place that turns a list of Easers into <option> elements. Used by the
+  // assigned branch (hidden until Reassign is clicked) and the unassigned one,
+  // so the two can never disagree about who is selectable.
+  function fillAssignChoices(choices, emptyLabel) {
+    var select = document.getElementById("assign-select");
+    if (!select) return;
+    if (!choices.length) { select.innerHTML = '<option value="">' + esc(emptyLabel) + '</option>'; return; }
+    select.innerHTML = '<option value="">Select an Easer...</option>';
+    choices.forEach(function(a) {
+      var tierBadge = a.tier === "elite" ? " (Elite)" : a.tier === "verified" ? " (Verified)" : "";
+      select.innerHTML += '<option value="' + a.id + '">' + esc(a.full_name) + tierBadge
+        + ' (' + (a.completed_jobs || 0) + ' jobs, ' + (a.rating ? Number(a.rating).toFixed(1) : "New") + ')</option>';
+    });
+  }
+
+  window.toggleReassign = function() {
+    var controls = document.getElementById('assign-controls');
+    var btn = document.getElementById('assign-btn');
+    controls.style.display = controls.style.display === 'none' ? 'flex' : 'none';
+    if (btn) btn.textContent = 'Reassign';
+    if (btn) btn.dataset.reassign = 'true';
   };
 
   document.getElementById('assign-select').addEventListener('change', function() {
-    document.getElementById('assign-btn').disabled = assignmentInFlight || assemblerChoicesAvailable !== true || !this.value;
+    document.getElementById('assign-btn').disabled = !this.value;
   });
 
   document.getElementById('assign-btn').addEventListener('click', async function() {
-    if (assignmentInFlight || this.disabled) return;
     var assemblerId = document.getElementById('assign-select').value;
     if (!assemblerId || !selectedId) return;
+    // Derive this from the booking, not from a sticky flag on the button. The
+    // flag only got set by clicking Reassign, so whenever the cached list was
+    // behind the server — after a release, an acceptance, or a dispatch landing —
+    // the request went without it and the owner was shown the raw developer
+    // string "Booking already assigned. Pass reassign:true to override."
     var assignTarget = allBookings.find(function(item){ return item.id === selectedId; });
-    if (!assignTarget) return;
-    var bookingId = assignTarget.id;
-    var isReassign = !!assignTarget.assembler_id;
-    if (isReassign && (!assignmentEditor.open || assignmentEditor.bookingId !== bookingId
-      || assignmentEditor.snapshotKey !== JSON.stringify(assignmentSnapshot(assignTarget)))) {
-      renderAssignSection(assignTarget); toast('The assignment changed. Open Reassign again to review it.', 'error'); return;
-    }
-    if (isReassign && assemblerId === assignTarget.assembler_id) return;
-    if (isReassign) {
-      var replacement = eligibleAssemblers.find(function(item) { return item.id === assemblerId; });
-      if (!replacement) return;
-      var handoff = 'Reassign ' + (assignTarget.ref || 'this booking') + ' from ' + (assignTarget.assembler_name || 'the current Easer') + ' to ' + replacement.full_name + '? The replacement must accept the job.';
-      if (easerHasAccepted(assignTarget)) handoff += ' The current Easer’s acceptance will be cleared. Contact them about the handoff before they travel or continue work.';
-      if (['en_route', 'arrived', 'in_progress'].includes(assignTarget.status)) handoff += ' Work progress will reset. Review any partial pay owed to the previous Easer separately.';
-      if (!confirm(handoff)) return;
-    }
-    assignmentInFlight = true;
+    var isReassign = this.dataset.reassign === 'true' || !!(assignTarget && assignTarget.assembler_id);
     this.disabled = true; this.textContent = isReassign ? 'Reassigning...' : 'Assigning...';
     try {
-      var body = { bookingId: bookingId, assemblerId: assemblerId, expectedAssignment: assignmentSnapshot(assignTarget) };
+      var body = { bookingId: selectedId, assemblerId: assemblerId };
       if (isReassign) body.reassign = true;
       var data = await apiPost('/assign', body);
-      if (data.error) {
-        toast(data.error, 'error');
-        if (data.code === 'ASSIGNMENT_CHANGED' || data.code === 'ALREADY_ASSIGNED') {
-          assignmentEditor.open = false;
+      // Last-resort recovery: the server saw an assignment this page did not know
+      // about. Confirm and retry as a reassignment rather than leaving the owner
+      // holding an instruction meant for a developer.
+      if (data.error && data.code === 'ALREADY_ASSIGNED' && !body.reassign) {
+        if (confirm('This booking already has an Easer assigned — your view was out of date.\n\nReassign it to the Easer you selected?')) {
+          data = await apiPost('/assign', Object.assign({}, body, { reassign: true }));
+        } else {
           await loadBookings(true);
           if (selectedId) selectBooking(selectedId);
+          return;
         }
-        return;
       }
+      if (data.error) { toast(data.error, 'error'); return; }
       toast((isReassign ? 'Reassigned' : 'Assigned') + ' to ' + (data.assignedTo || 'Easer'), 'success');
-      assignmentEditor.open = false;
-      await loadBookings(true);
+      delete this.dataset.reassign;
+      await loadBookings();
       if (selectedId) selectBooking(selectedId);
     } catch(e) { toast(e.message || 'Failed to assign', 'error'); }
-    finally {
-      assignmentInFlight = false;
-      var current = allBookings.find(function(item) { return item.id === selectedId; });
-      if (current) renderAssignSection(current);
-    }
+    finally { this.disabled = false; this.textContent = 'Assign'; }
   });
 
   // ─── View switching ───
@@ -8056,7 +8016,7 @@ window.intelQuick = intelQuick;
           // Fixed-width columns. Both cells were shrink-to-fit, so STARTER vs
           // ELITE (different widths) pushed the status text to a different x
           // position on every row and the list read as ragged.
-          + '<span class="ops-easer-tier">' + easerTierBadge(e.tier) + '</span>'
+          + '<span style="flex:0 0 62px;display:flex;justify-content:flex-end">' + easerTierBadge(e.tier) + '</span>'
           + '<span style="flex:0 0 96px;text-align:right;font-size:0.7rem;color:' + labelColor + ';font-weight:600;white-space:nowrap">' + label + '</span>'
           + '</div>';
       }).join('');
@@ -9608,9 +9568,9 @@ window.intelQuick = intelQuick;
         }
       }
       var booking = allBookings.find(function(item){ return item.id == bookingId; });
-      // Refresh before payout forms and current-outcome incident drilldowns.
-      // Cached booking details must not contradict either source.
-      if (!booking || intent === 'record' || intent === 'refresh') {
+      // Always refresh before showing a form that tells the owner to send
+      // external money. A stale Financials row must never authorize a payout.
+      if (!booking || intent === 'record') {
         var data = await apiGet('/list?limit=1&bookingId=' + encodeURIComponent(bookingId));
         booking = (data.bookings || [])[0];
         if (!booking) throw new Error('Booking ' + ref + ' was not found');
@@ -9906,7 +9866,7 @@ window.intelQuick = intelQuick;
     }).join('');
   }
 
-  window.openOwnerBookingRecord = async function(bookingId, tabName, forceRefresh) {
+  window.openOwnerBookingRecord = async function(bookingId, tabName) {
     stopMarketDemand();
     currentView = 'bookings';
     document.querySelectorAll('.sidebar-nav a').forEach(function(link) { link.classList.toggle('active', link.dataset.view === 'bookings'); });
@@ -9914,11 +9874,7 @@ window.intelQuick = intelQuick;
     $bookingsView.style.display = '';
     $topbarTitle.textContent = 'Bookings';
     stopLiveOps();
-    if (forceRefresh) {
-      $detail.classList.remove('open');
-      $detailPh.style.display = '';
-    }
-    var opened = await window.openPayoutBooking(bookingId, 'booking', forceRefresh ? 'refresh' : undefined);
+    var opened = await window.openPayoutBooking(bookingId, 'booking');
     if (opened && tabName === 'evidence') {
       switchDetailTab('evidence', document.querySelector('[data-tab="evidence"]'));
     }
