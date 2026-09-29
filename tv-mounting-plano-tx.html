@@ -41,10 +41,12 @@
 .fa-sub{font-size:1.08rem;line-height:1.7;color:var(--ink-soft);max-width:31rem;margin-bottom:1.85rem}
 .fa-cta-row{display:flex;flex-wrap:wrap;gap:0.9rem;margin-bottom:1.7rem}
 .fa-btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--cyan);color:#03303f;font-weight:700;font-size:1rem;padding:0.95rem 1.95rem;border-radius:999px;text-decoration:none;transition:all .18s;box-shadow:0 12px 30px rgba(0,191,255,0.3)}
-.fa-btn-primary:hover{background:var(--cyan-dark);color:#fff;transform:translateY(-2px)}
+@media (hover: hover) and (pointer: fine){.fa-btn-primary:hover{background:var(--cyan-dark);color:#fff;transform:translateY(-2px)}}
 .fa-btn-ghost{display:inline-flex;align-items:center;gap:8px;color:var(--ink);font-weight:600;font-size:1rem;padding:0.95rem 1.5rem;border-radius:999px;text-decoration:none;border:1.5px solid var(--border);transition:all .18s}
-.fa-btn-ghost:hover{border-color:var(--cyan);color:var(--cyan-dark)}
+@media (hover: hover) and (pointer: fine){.fa-btn-ghost:hover{border-color:var(--cyan);color:var(--cyan-dark)}}
 .fa-hero-media{position:relative}
+.fa-hero-media picture{display:block}
+.fa-shot .frame picture{display:block;width:100%;height:100%}
 .fa-hero-media img{width:100%;height:auto;display:block;border-radius:20px;box-shadow:0 26px 55px rgba(2,32,43,0.22)}
 .fa-media-chip{position:absolute;left:0.9rem;bottom:0.9rem;background:rgba(8,18,30,0.84);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.14);color:#fff;font-size:0.78rem;font-weight:600;padding:0.5rem 0.9rem;border-radius:999px;display:flex;align-items:center;gap:8px}
 .fa-media-chip::before{content:"";width:7px;height:7px;border-radius:50%;background:#28d17c;box-shadow:0 0 0 4px rgba(40,209,124,0.25)}
@@ -59,7 +61,7 @@
 .fa-shot{border-radius:16px;overflow:hidden;background:var(--white);border:1px solid var(--border);box-shadow:var(--shadow)}
 .fa-shot .frame{width:100%;aspect-ratio:7/5;overflow:hidden;background:#e9eef2}
 .fa-shot .frame img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
-.fa-shot:hover .frame img{transform:scale(1.04)}
+@media (hover: hover) and (pointer: fine){.fa-shot:hover .frame img{transform:scale(1.04)}}
 .fa-shot .cap{padding:0.95rem 1.1rem;font-size:0.92rem;font-weight:700;color:var(--ink)}
 .fa-shot .cap small{display:block;font-weight:500;color:var(--muted);font-size:0.77rem;margin-top:3px}
 .fa-note{background:var(--off-white);border:1px solid var(--border);border-radius:16px;padding:1.7rem 1.5rem;color:var(--ink);display:flex;flex-direction:column;justify-content:center;min-height:200px}
@@ -85,7 +87,7 @@
 .fa-process{max-width:900px;margin:0 auto}
 .fa-process-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.75rem}
 .fa-process-tab{appearance:none;border:1.5px solid var(--border);background:var(--white);border-radius:16px;padding:0.95rem 1rem;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
-.fa-process-tab:hover{border-color:var(--cyan-mid)}
+@media (hover: hover) and (pointer: fine){.fa-process-tab:hover{border-color:var(--cyan-mid)}}
 .fa-process-tab.is-active{border-color:var(--cyan);background:#f7fcfe;box-shadow:0 10px 28px rgba(0,191,255,0.08)}
 .fa-process-num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.05rem;margin-bottom:0.7rem}
 .fa-process-tab.is-active .fa-process-num{background:var(--cyan-dark)}
@@ -103,14 +105,14 @@
 .fa-chev{transition:transform .2s;flex-shrink:0;color:var(--cyan-dark);font-size:1.1rem}
 .fa-citylinks{display:flex;flex-wrap:wrap;gap:0.6rem;justify-content:center}
 .fa-citylinks a{display:inline-flex;align-items:center;background:var(--white);border:1px solid var(--cyan-mid);border-radius:999px;padding:0.55rem 1.15rem;font-size:0.875rem;font-weight:600;color:var(--cyan-dark);text-decoration:none;transition:all .15s}
-.fa-citylinks a:hover{background:var(--cyan-light);border-color:var(--cyan)}
+@media (hover: hover) and (pointer: fine){.fa-citylinks a:hover{background:var(--cyan-light);border-color:var(--cyan)}}
 .fa-share-kit{max-width:860px;margin:0 auto}
 .fa-share-inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.15rem 1.25rem;background:var(--white);border:1px solid var(--border);border-radius:18px}
 .fa-share-copy strong{display:block;font-size:1rem;color:var(--ink);margin-bottom:0.2rem}
 .fa-share-copy span{display:block;font-size:0.88rem;line-height:1.6;color:var(--muted);max-width:34rem}
 .fa-share-actions{display:flex;align-items:center;justify-content:flex-end;gap:0.6rem;flex-wrap:wrap}
 .fa-share-btn{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:999px;border:1px solid var(--cyan-mid);background:var(--white);color:var(--cyan-dark);text-decoration:none;transition:background .15s,border-color .15s,color .15s,transform .15s}
-.fa-share-btn:hover{background:var(--cyan-light);border-color:var(--cyan);transform:translateY(-1px)}
+@media (hover: hover) and (pointer: fine){.fa-share-btn:hover{background:var(--cyan-light);border-color:var(--cyan);transform:translateY(-1px)}}
 .fa-share-btn svg{width:18px;height:18px;display:block}
 .fa-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:900px){
@@ -191,7 +193,7 @@
       </div>
     </div>
     <div class="fa-hero-media">
-      <img src="/images/real-tv-mount-console.jpg" alt="Large flat-screen TV wall-mounted above a media console" loading="eager" fetchpriority="high"/>
+      <picture><source type="image/webp" srcset="/images/real-tv-mount-console-640.webp 640w, /images/real-tv-mount-console-1200.webp 1200w" sizes="(max-width: 860px) 100vw, 540px"/><img src="/images/real-tv-mount-console.jpg" alt="Large flat-screen TV wall-mounted above a media console" width="1448" height="1086" loading="eager" fetchpriority="high"/></picture>
       <div class="fa-media-chip">Example completed project</div>
     </div>
   </div>
@@ -206,8 +208,8 @@
       <p class="fa-lead">Recent job photos for this service.</p>
     </div>
     <div class="fa-gallery">
-      <figure class="fa-shot"><div class="frame"><img src="/images/real-tv-dawg-days.jpg" alt="Large TV mounted on a great-room wall above a soundbar" loading="lazy"/></div><figcaption class="cap">Great-room TV + soundbar<small>Leveled, soundbar mounted, cables out of sight</small></figcaption></figure>
-      <figure class="fa-shot"><div class="frame"><img src="/images/real-tv-setup-console.jpg" alt="Flat TV flush-mounted over a black media console" loading="lazy"/></div><figcaption class="cap">Flush mount over a console<small>Tilt set, cords concealed, ready to watch</small></figcaption></figure>
+      <figure class="fa-shot"><div class="frame"><picture><source type="image/webp" srcset="/images/real-tv-dawg-days-640.webp 640w, /images/real-tv-dawg-days-1200.webp 1200w" sizes="(max-width: 860px) 100vw, 380px"/><img src="/images/real-tv-dawg-days.jpg" alt="Large TV mounted on a great-room wall above a soundbar" width="1448" height="1086" loading="lazy"/></picture></div><figcaption class="cap">Great-room TV + soundbar<small>Leveled, soundbar mounted, cables out of sight</small></figcaption></figure>
+      <figure class="fa-shot"><div class="frame"><picture><source type="image/webp" srcset="/images/real-tv-setup-console-640.webp 640w, /images/real-tv-setup-console-1086.webp 1086w" sizes="(max-width: 860px) 100vw, 380px"/><img src="/images/real-tv-setup-console.jpg" alt="Flat TV flush-mounted over a black media console" width="1086" height="1448" loading="lazy"/></picture></div><figcaption class="cap">Flush mount over a console<small>Tilt set, cords concealed, ready to watch</small></figcaption></figure>
     </div>
   </div>
 </section>
@@ -274,6 +276,8 @@
       <p class="fa-lead" style="margin-left:auto;margin-right:auto">TV installation details should include the screen size, mount style, wall material, mounting height, outlet location, and any soundbar or cable-management work. Fireplace, brick, concrete, tile, and steel-stud installations need to be identified before the visit.</p>
       <p class="fa-lead" style="margin-left:auto;margin-right:auto">TV mounting service requests can include TV wall mounting, standard TV installation, above-fireplace mounting, soundbar mounting, in-wall cord concealment, mirror hanging, shelves, and curtain rod installation.</p>
       <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Planning your Plano appointment:</strong> For Plano appointments, include apartment or gated-community access, parking, stairs, and whether items are already in the correct room. Office and multi-item bookings should include quantities and model details when available.</p>
+      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Local homes:</strong> Plano (Collin and Denton counties): 43% of households rent, 32% of homes are in buildings with five or more units, 60% are detached houses, and the median home was built in 1993. Newer homes usually have drywall over wood studs; still flag tile, brick, stone, or a fireplace surround. With this many renters, check drilling and move-out repair rules before booking.</p>
+      <p class="fa-lead" style="margin-left:auto;margin-right:auto;font-size:0.8rem;color:var(--muted)">Source: U.S. Census Bureau, American Community Survey 2020-2024 5-year estimates (tables B25003, B25024, B25034, B25035).</p>
     </div>
     <div class="fa-mini-facts">
       <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Trusted local pros</strong><span>Assigned and confirmed before the visit.</span></div>

@@ -1,0 +1,642 @@
+{
+  "source": "U.S. Census Bureau, American Community Survey 2020-2024 5-year estimates (tables B25003, B25024, B25034, B25035), via Census Reporter",
+  "release": "acs2024_5yr",
+  "retrieved": "2026-09-29",
+  "cities": {
+    "austin": {
+      "censusName": "Austin city",
+      "counties": [
+        "Bastrop County",
+        "Hays County",
+        "Travis County",
+        "Williamson County"
+      ],
+      "renterPct": 57,
+      "detachedPct": 43,
+      "apartment5PlusPct": 43,
+      "builtBefore1980Pct": 28,
+      "medianYearBuilt": 1994
+    },
+    "dallas": {
+      "censusName": "Dallas city",
+      "counties": [
+        "Collin County",
+        "Dallas County",
+        "Denton County",
+        "Kaufman County",
+        "Rockwall County"
+      ],
+      "renterPct": 58,
+      "detachedPct": 41,
+      "apartment5PlusPct": 47,
+      "builtBefore1980Pct": 48,
+      "medianYearBuilt": 1981
+    },
+    "pflugerville": {
+      "censusName": "Pflugerville city",
+      "counties": [
+        "Travis County",
+        "Williamson County"
+      ],
+      "renterPct": 30,
+      "detachedPct": 74,
+      "apartment5PlusPct": 15,
+      "builtBefore1980Pct": 4,
+      "medianYearBuilt": 2004
+    },
+    "round-rock": {
+      "censusName": "Round Rock city",
+      "counties": [
+        "Travis County",
+        "Williamson County"
+      ],
+      "renterPct": 44,
+      "detachedPct": 64,
+      "apartment5PlusPct": 28,
+      "builtBefore1980Pct": 11,
+      "medianYearBuilt": 2002
+    },
+    "cedar-park": {
+      "censusName": "Cedar Park city",
+      "counties": [
+        "Travis County",
+        "Williamson County"
+      ],
+      "renterPct": 33,
+      "detachedPct": 73,
+      "apartment5PlusPct": 21,
+      "builtBefore1980Pct": 6,
+      "medianYearBuilt": 2005
+    },
+    "georgetown": {
+      "censusName": "Georgetown city",
+      "counties": [
+        "Williamson County"
+      ],
+      "renterPct": 31,
+      "detachedPct": 73,
+      "apartment5PlusPct": 16,
+      "builtBefore1980Pct": 9,
+      "medianYearBuilt": 2008
+    },
+    "leander": {
+      "censusName": "Leander city",
+      "counties": [
+        "Travis County",
+        "Williamson County"
+      ],
+      "renterPct": 27,
+      "detachedPct": 82,
+      "apartment5PlusPct": 13,
+      "builtBefore1980Pct": 3,
+      "medianYearBuilt": 2013
+    },
+    "hutto": {
+      "censusName": "Hutto city",
+      "counties": [
+        "Williamson County"
+      ],
+      "renterPct": 20,
+      "detachedPct": 93,
+      "apartment5PlusPct": 6,
+      "builtBefore1980Pct": 3,
+      "medianYearBuilt": 2010
+    },
+    "manor": {
+      "censusName": "Manor city",
+      "counties": [
+        "Travis County"
+      ],
+      "renterPct": 25,
+      "detachedPct": 81,
+      "apartment5PlusPct": 16,
+      "builtBefore1980Pct": 2,
+      "medianYearBuilt": 2015
+    },
+    "bee-cave": {
+      "censusName": "Bee Cave city",
+      "counties": [
+        "Travis County"
+      ],
+      "renterPct": 51,
+      "detachedPct": 52,
+      "apartment5PlusPct": 43,
+      "builtBefore1980Pct": 0,
+      "medianYearBuilt": 2012
+    },
+    "lakeway": {
+      "censusName": "Lakeway city",
+      "counties": [
+        "Travis County"
+      ],
+      "renterPct": 14,
+      "detachedPct": 78,
+      "apartment5PlusPct": 11,
+      "builtBefore1980Pct": 14,
+      "medianYearBuilt": 2004
+    },
+    "buda": {
+      "censusName": "Buda city",
+      "counties": [
+        "Hays County"
+      ],
+      "renterPct": 23,
+      "detachedPct": 86,
+      "apartment5PlusPct": 12,
+      "builtBefore1980Pct": 4,
+      "medianYearBuilt": 2012
+    },
+    "kyle": {
+      "censusName": "Kyle city",
+      "counties": [
+        "Hays County"
+      ],
+      "renterPct": 33,
+      "detachedPct": 75,
+      "apartment5PlusPct": 18,
+      "builtBefore1980Pct": 4,
+      "medianYearBuilt": 2010
+    },
+    "houston": {
+      "censusName": "Houston city",
+      "counties": [
+        "Fort Bend County",
+        "Harris County",
+        "Montgomery County",
+        "Waller County"
+      ],
+      "renterPct": 58,
+      "detachedPct": 43,
+      "apartment5PlusPct": 44,
+      "builtBefore1980Pct": 47,
+      "medianYearBuilt": 1982
+    },
+    "san-antonio": {
+      "censusName": "San Antonio city",
+      "counties": [
+        "Bexar County",
+        "Comal County",
+        "Medina County"
+      ],
+      "renterPct": 48,
+      "detachedPct": 59,
+      "apartment5PlusPct": 30,
+      "builtBefore1980Pct": 43,
+      "medianYearBuilt": 1985
+    },
+    "fort-worth": {
+      "censusName": "Fort Worth city",
+      "counties": [
+        "Denton County",
+        "Johnson County",
+        "Parker County",
+        "Tarrant County",
+        "Wise County"
+      ],
+      "renterPct": 43,
+      "detachedPct": 65,
+      "apartment5PlusPct": 25,
+      "builtBefore1980Pct": 34,
+      "medianYearBuilt": 1994
+    },
+    "el-paso": {
+      "censusName": "El Paso city",
+      "counties": [
+        "El Paso County"
+      ],
+      "renterPct": 39,
+      "detachedPct": 67,
+      "apartment5PlusPct": 19,
+      "builtBefore1980Pct": 44,
+      "medianYearBuilt": 1984
+    },
+    "arlington": {
+      "censusName": "Arlington city",
+      "counties": [
+        "Tarrant County"
+      ],
+      "renterPct": 46,
+      "detachedPct": 60,
+      "apartment5PlusPct": 25,
+      "builtBefore1980Pct": 33,
+      "medianYearBuilt": 1986
+    },
+    "corpus-christi": {
+      "censusName": "Corpus Christi city",
+      "counties": [
+        "Aransas County",
+        "Kleberg County",
+        "Nueces County",
+        "San Patricio County"
+      ],
+      "renterPct": 42,
+      "detachedPct": 64,
+      "apartment5PlusPct": 22,
+      "builtBefore1980Pct": 46,
+      "medianYearBuilt": 1982
+    },
+    "plano": {
+      "censusName": "Plano city",
+      "counties": [
+        "Collin County",
+        "Denton County"
+      ],
+      "renterPct": 43,
+      "detachedPct": 60,
+      "apartment5PlusPct": 32,
+      "builtBefore1980Pct": 18,
+      "medianYearBuilt": 1993
+    },
+    "lubbock": {
+      "censusName": "Lubbock city",
+      "counties": [
+        "Lubbock County"
+      ],
+      "renterPct": 49,
+      "detachedPct": 65,
+      "apartment5PlusPct": 22,
+      "builtBefore1980Pct": 45,
+      "medianYearBuilt": 1984
+    },
+    "laredo": {
+      "censusName": "Laredo city",
+      "counties": [
+        "Webb County"
+      ],
+      "renterPct": 36,
+      "detachedPct": 67,
+      "apartment5PlusPct": 15,
+      "builtBefore1980Pct": 24,
+      "medianYearBuilt": 1997
+    },
+    "irving": {
+      "censusName": "Irving city",
+      "counties": [
+        "Dallas County"
+      ],
+      "renterPct": 62,
+      "detachedPct": 39,
+      "apartment5PlusPct": 48,
+      "builtBefore1980Pct": 36,
+      "medianYearBuilt": 1986
+    },
+    "garland": {
+      "censusName": "Garland city",
+      "counties": [
+        "Collin County",
+        "Dallas County",
+        "Rockwall County"
+      ],
+      "renterPct": 38,
+      "detachedPct": 68,
+      "apartment5PlusPct": 24,
+      "builtBefore1980Pct": 55,
+      "medianYearBuilt": 1978
+    },
+    "frisco": {
+      "censusName": "Frisco city",
+      "counties": [
+        "Collin County",
+        "Denton County"
+      ],
+      "renterPct": 34,
+      "detachedPct": 69,
+      "apartment5PlusPct": 26,
+      "builtBefore1980Pct": 2,
+      "medianYearBuilt": 2009
+    },
+    "mckinney": {
+      "censusName": "McKinney city",
+      "counties": [
+        "Collin County"
+      ],
+      "renterPct": 36,
+      "detachedPct": 70,
+      "apartment5PlusPct": 23,
+      "builtBefore1980Pct": 8,
+      "medianYearBuilt": 2007
+    },
+    "amarillo": {
+      "censusName": "Amarillo city",
+      "counties": [
+        "Potter County",
+        "Randall County"
+      ],
+      "renterPct": 40,
+      "detachedPct": 70,
+      "apartment5PlusPct": 18,
+      "builtBefore1980Pct": 60,
+      "medianYearBuilt": 1973
+    },
+    "grand-prairie": {
+      "censusName": "Grand Prairie city",
+      "counties": [
+        "Dallas County",
+        "Ellis County",
+        "Tarrant County"
+      ],
+      "renterPct": 41,
+      "detachedPct": 62,
+      "apartment5PlusPct": 25,
+      "builtBefore1980Pct": 31,
+      "medianYearBuilt": 1992
+    },
+    "brownsville": {
+      "censusName": "Brownsville city",
+      "counties": [
+        "Cameron County"
+      ],
+      "renterPct": 38,
+      "detachedPct": 68,
+      "apartment5PlusPct": 15,
+      "builtBefore1980Pct": 29,
+      "medianYearBuilt": 1995
+    },
+    "killeen": {
+      "censusName": "Killeen city",
+      "counties": [
+        "Bell County"
+      ],
+      "renterPct": 51,
+      "detachedPct": 61,
+      "apartment5PlusPct": 15,
+      "builtBefore1980Pct": 25,
+      "medianYearBuilt": 1996
+    },
+    "pasadena": {
+      "censusName": "Pasadena city",
+      "counties": [
+        "Harris County"
+      ],
+      "renterPct": 46,
+      "detachedPct": 58,
+      "apartment5PlusPct": 31,
+      "builtBefore1980Pct": 57,
+      "medianYearBuilt": 1977
+    },
+    "mesquite": {
+      "censusName": "Mesquite city",
+      "counties": [
+        "Dallas County",
+        "Kaufman County"
+      ],
+      "renterPct": 37,
+      "detachedPct": 71,
+      "apartment5PlusPct": 22,
+      "builtBefore1980Pct": 41,
+      "medianYearBuilt": 1983
+    },
+    "mcallen": {
+      "censusName": "McAllen city",
+      "counties": [
+        "Hidalgo County"
+      ],
+      "renterPct": 41,
+      "detachedPct": 64,
+      "apartment5PlusPct": 16,
+      "builtBefore1980Pct": 25,
+      "medianYearBuilt": 1995
+    },
+    "waco": {
+      "censusName": "Waco city",
+      "counties": [
+        "McLennan County"
+      ],
+      "renterPct": 51,
+      "detachedPct": 59,
+      "apartment5PlusPct": 27,
+      "builtBefore1980Pct": 51,
+      "medianYearBuilt": 1979
+    },
+    "midland": {
+      "censusName": "Midland city",
+      "counties": [
+        "Martin County",
+        "Midland County"
+      ],
+      "renterPct": 35,
+      "detachedPct": 64,
+      "apartment5PlusPct": 23,
+      "builtBefore1980Pct": 36,
+      "medianYearBuilt": 1989
+    },
+    "denton": {
+      "censusName": "Denton city",
+      "counties": [
+        "Denton County"
+      ],
+      "renterPct": 50,
+      "detachedPct": 56,
+      "apartment5PlusPct": 30,
+      "builtBefore1980Pct": 27,
+      "medianYearBuilt": 1997
+    },
+    "abilene": {
+      "censusName": "Abilene city",
+      "counties": [
+        "Jones County",
+        "Taylor County"
+      ],
+      "renterPct": 44,
+      "detachedPct": 69,
+      "apartment5PlusPct": 17,
+      "builtBefore1980Pct": 56,
+      "medianYearBuilt": 1975
+    },
+    "beaumont": {
+      "censusName": "Beaumont city",
+      "counties": [
+        "Jefferson County"
+      ],
+      "renterPct": 45,
+      "detachedPct": 66,
+      "apartment5PlusPct": 21,
+      "builtBefore1980Pct": 53,
+      "medianYearBuilt": 1978
+    },
+    "odessa": {
+      "censusName": "Odessa city",
+      "counties": [
+        "Ector County",
+        "Midland County"
+      ],
+      "renterPct": 40,
+      "detachedPct": 63,
+      "apartment5PlusPct": 25,
+      "builtBefore1980Pct": 51,
+      "medianYearBuilt": 1980
+    },
+    "richardson": {
+      "censusName": "Richardson city",
+      "counties": [
+        "Collin County",
+        "Dallas County"
+      ],
+      "renterPct": 49,
+      "detachedPct": 54,
+      "apartment5PlusPct": 36,
+      "builtBefore1980Pct": 44,
+      "medianYearBuilt": 1986
+    },
+    "pearland": {
+      "censusName": "Pearland city",
+      "counties": [
+        "Brazoria County",
+        "Fort Bend County",
+        "Harris County"
+      ],
+      "renterPct": 24,
+      "detachedPct": 79,
+      "apartment5PlusPct": 14,
+      "builtBefore1980Pct": 11,
+      "medianYearBuilt": 2003
+    },
+    "college-station": {
+      "censusName": "College Station city",
+      "counties": [
+        "Brazos County"
+      ],
+      "renterPct": 65,
+      "detachedPct": 42,
+      "apartment5PlusPct": 31,
+      "builtBefore1980Pct": 18,
+      "medianYearBuilt": 1999
+    },
+    "tyler": {
+      "censusName": "Tyler city",
+      "counties": [
+        "Smith County"
+      ],
+      "renterPct": 45,
+      "detachedPct": 62,
+      "apartment5PlusPct": 25,
+      "builtBefore1980Pct": 53,
+      "medianYearBuilt": 1978
+    },
+    "sugar-land": {
+      "censusName": "Sugar Land city",
+      "counties": [
+        "Fort Bend County"
+      ],
+      "renterPct": 20,
+      "detachedPct": 86,
+      "apartment5PlusPct": 10,
+      "builtBefore1980Pct": 13,
+      "medianYearBuilt": 1994
+    },
+    "league-city": {
+      "censusName": "League City city",
+      "counties": [
+        "Galveston County",
+        "Harris County"
+      ],
+      "renterPct": 25,
+      "detachedPct": 77,
+      "apartment5PlusPct": 18,
+      "builtBefore1980Pct": 14,
+      "medianYearBuilt": 2003
+    },
+    "allen": {
+      "censusName": "Allen city",
+      "counties": [
+        "Collin County"
+      ],
+      "renterPct": 31,
+      "detachedPct": 73,
+      "apartment5PlusPct": 22,
+      "builtBefore1980Pct": 7,
+      "medianYearBuilt": 2003
+    },
+    "edinburg": {
+      "censusName": "Edinburg city",
+      "counties": [
+        "Hidalgo County"
+      ],
+      "renterPct": 47,
+      "detachedPct": 58,
+      "apartment5PlusPct": 13,
+      "builtBefore1980Pct": 17,
+      "medianYearBuilt": 2003
+    },
+    "conroe": {
+      "censusName": "Conroe city",
+      "counties": [
+        "Montgomery County"
+      ],
+      "renterPct": 45,
+      "detachedPct": 56,
+      "apartment5PlusPct": 31,
+      "builtBefore1980Pct": 17,
+      "medianYearBuilt": 2006
+    },
+    "san-angelo": {
+      "censusName": "San Angelo city",
+      "counties": [
+        "Tom Green County"
+      ],
+      "renterPct": 39,
+      "detachedPct": 70,
+      "apartment5PlusPct": 19,
+      "builtBefore1980Pct": 52,
+      "medianYearBuilt": 1978
+    },
+    "new-braunfels": {
+      "censusName": "New Braunfels city",
+      "counties": [
+        "Comal County",
+        "Guadalupe County"
+      ],
+      "renterPct": 35,
+      "detachedPct": 68,
+      "apartment5PlusPct": 19,
+      "builtBefore1980Pct": 20,
+      "medianYearBuilt": 2006
+    },
+    "temple": {
+      "censusName": "Temple city",
+      "counties": [
+        "Bell County"
+      ],
+      "renterPct": 48,
+      "detachedPct": 65,
+      "apartment5PlusPct": 20,
+      "builtBefore1980Pct": 36,
+      "medianYearBuilt": 1991
+    },
+    "bryan": {
+      "censusName": "Bryan city",
+      "counties": [
+        "Brazos County"
+      ],
+      "renterPct": 49,
+      "detachedPct": 55,
+      "apartment5PlusPct": 23,
+      "builtBefore1980Pct": 33,
+      "medianYearBuilt": 1991
+    },
+    "baytown": {
+      "censusName": "Baytown city",
+      "counties": [
+        "Chambers County",
+        "Harris County"
+      ],
+      "renterPct": 48,
+      "detachedPct": 59,
+      "apartment5PlusPct": 28,
+      "builtBefore1980Pct": 49,
+      "medianYearBuilt": 1981
+    },
+    "the-woodlands": {
+      "censusName": "The Woodlands CDP",
+      "counties": [
+        "Harris County",
+        "Montgomery County"
+      ],
+      "renterPct": 27,
+      "detachedPct": 75,
+      "apartment5PlusPct": 19,
+      "builtBefore1980Pct": 8,
+      "medianYearBuilt": 2000
+    }
+  }
+}

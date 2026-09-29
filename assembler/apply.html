@@ -33,6 +33,9 @@
   <link rel="stylesheet" href="../assets/css/style.css" />
   <script src="/assets/js/app.js?v=20260818a" defer></script>
   <style>
+@font-face{font-family:'DM Serif Display Fallback';src:local('Times New Roman'),local('TimesNewRomanPSMT');size-adjust:111.45%;ascent-override:92.96%;descent-override:30.06%;line-gap-override:0%}
+@font-face{font-family:'DM Sans Fallback';src:local('Arial'),local('ArialMT');size-adjust:105.81%;ascent-override:93.76%;descent-override:29.3%;line-gap-override:0%}
+
     :root {
       --apply-cyan: #00BFFF;
       --apply-cyan-dark: #0099CC;
@@ -52,7 +55,7 @@
       margin: 0;
       background: #f6fafc;
       color: var(--apply-ink);
-      font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "DM Sans", "DM Sans Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       overflow-x: hidden;
     }
 
@@ -79,7 +82,7 @@
       gap: 0.65rem;
       color: #fff;
       text-decoration: none;
-      font-family: "DM Serif Display", serif;
+      font-family: "DM Serif Display", "DM Serif Display Fallback", serif;
       font-size: 1.45rem;
       line-height: 1;
     }
@@ -144,7 +147,7 @@
     .hero-title {
       max-width: 620px;
       margin: 0 0 1rem;
-      font-family: "DM Serif Display", serif;
+      font-family: "DM Serif Display", "DM Serif Display Fallback", serif;
       font-size: clamp(3rem, 6vw, 5.6rem);
       line-height: 0.92;
       letter-spacing: 0;
@@ -282,7 +285,7 @@
     }
     .form-intro h2 {
       margin: 0 0 0.35rem;
-      font-family: "DM Serif Display", serif;
+      font-family: "DM Serif Display", "DM Serif Display Fallback", serif;
       font-size: 2rem;
       line-height: 1;
       color: var(--apply-ink);
@@ -750,7 +753,7 @@
     }
     .success-box h2 {
       margin: 0 0 0.55rem;
-      font-family: "DM Serif Display", serif;
+      font-family: "DM Serif Display", "DM Serif Display Fallback", serif;
       font-size: 2.1rem;
       color: var(--apply-ink);
     }

@@ -1,3 +1,5 @@
+@font-face{font-family:'DM Serif Display Fallback';src:local('Times New Roman'),local('TimesNewRomanPSMT');size-adjust:111.45%;ascent-override:92.96%;descent-override:30.06%;line-gap-override:0%}
+@font-face{font-family:'DM Sans Fallback';src:local('Arial'),local('ArialMT');size-adjust:105.81%;ascent-override:93.76%;descent-override:29.3%;line-gap-override:0%}
 .cases-view-shell,
 .cases-view-shell * {
   min-width: 0;
@@ -14,7 +16,7 @@
 
 .cases-toolbar-copy h2 {
   margin: 0 0 0.3rem;
-  font-family: 'DM Serif Display', serif;
+  font-family: 'DM Serif Display', 'DM Serif Display Fallback', serif;
   font-size: 1.35rem;
 }
 
@@ -214,7 +216,7 @@
 
 .cases-detail h3 {
   margin: 0.3rem 0 0;
-  font-family: 'DM Serif Display', serif;
+  font-family: 'DM Serif Display', 'DM Serif Display Fallback', serif;
   font-size: 1.35rem;
   line-height: 1.3;
   overflow-wrap: anywhere;

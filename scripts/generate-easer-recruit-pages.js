@@ -26,7 +26,9 @@ import { ALL_TEXAS_CITIES } from './lib/texas-cities.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const TODAY = '2026-08-06';
-const VALID_THROUGH = '2026-11-06'; // ~90 days; regenerate to refresh JobPosting freshness
+// No validThrough: the role has no expiration date, and a baked-in date on a static
+// page silently expires every posting (Google drops them). Google: omit it when the
+// posting does not expire.
 const ORIGIN = 'https://www.assembleatease.com';
 
 // The cities we actively dispatch in today (mirrors SERVED in assets/js/aae-location.js).
@@ -74,7 +76,7 @@ function volumeFaqAnswer(city, served) {
     : `We accept customer bookings across ${city.name} and confirm a local pro for each one, so the opportunity is real — but ${city.name} is a newer market and volume is still growing. Getting approved now means you&rsquo;re in position to accept jobs as demand ramps up. Volume is demand-driven with no guaranteed hours.`;
 }
 
-function jobPostingSchema(city, served) {
+function jobPostingSchema(city, served, titleOverride) {
   const desc =
     `<p>AssembleAtEase is looking for skilled, reliable independent assembly and mounting pros ("Easers") in ${esc(city.name)}, Texas.</p>` +
     `<p>This is independent-contractor work, not employment. You set your own schedule, bring your own tools, and are <strong>paid per completed job</strong> — you keep 70% of each job&rsquo;s price. Job volume is demand-driven and varies; there are no guaranteed hours or salary.</p>` +
@@ -83,10 +85,10 @@ function jobPostingSchema(city, served) {
   const schema = {
     '@context': 'https://schema.org/',
     '@type': 'JobPosting',
-    title: 'Independent Furniture Assembly & TV Mounting Contractor (Easer)',
+    // Per-city title: identical titles across 54 pages were collapsed to one posting.
+    title: titleOverride || `Furniture Assembly & TV Mounting Contractor in ${city.name}, TX`,
     description: desc,
     datePosted: TODAY,
-    validThrough: VALID_THROUGH,
     employmentType: 'CONTRACTOR',
     hiringOrganization: {
       '@type': 'Organization',
@@ -101,10 +103,10 @@ function jobPostingSchema(city, served) {
         addressLocality: city.name,
         addressRegion: 'TX',
         addressCountry: 'US',
+        ...(city.zip ? { postalCode: city.zip } : {}),
       },
     },
-    applicantLocationRequirements: { '@type': 'Country', name: 'US' },
-    jobLocationType: 'On-site',
+    // jobLocationType/applicantLocationRequirements are for remote (TELECOMMUTE) roles only.
     directApply: true,
     industry: 'Home Services',
     // baseSalary intentionally omitted: pay is per completed job and demand-driven.
@@ -318,7 +320,7 @@ function buildHubPage() {
     .map((c) => `<a href="/easer-jobs-${c.slug}-tx">${esc(c.name)}${SERVED_SLUGS.has(c.slug) ? '' : ''}</a>`)
     .join('\n      ');
 
-  const hubJobPosting = jobPostingSchema({ name: 'Texas', slug: 'texas' }, true).replace('"addressLocality":"Texas"', '"addressLocality":"Austin"');
+  const hubJobPosting = jobPostingSchema({ name: 'Texas', slug: 'texas' }, true, 'Independent Furniture Assembly & TV Mounting Contractor (Easer) - Texas').replace('"addressLocality":"Texas"', '"addressLocality":"Austin"');
 
   return `${headBlock({ title, metaDesc, url, jsonLd: [hubJobPosting] })}
 
