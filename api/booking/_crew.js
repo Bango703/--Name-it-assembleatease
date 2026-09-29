@@ -132,7 +132,9 @@ export async function loadCrew(bookingIds, { sb, includeRemoved = false } = {}) 
 export function easerIsOnBooking(booking, crew, userId) {
   if (!userId) return false;
   if (booking?.assembler_id && booking.assembler_id === userId) return true;
-  return (crew || []).some(row => row.easer_id === userId && !row.removed_at);
+  // A historical lead row is an earnings record, never authority to keep
+  // reading a booking after its current lead changes.
+  return (crew || []).some(row => row.easer_id === userId && row.role === CREW_ROLE.HELPER && !row.removed_at);
 }
 
 /**
@@ -149,7 +151,7 @@ export function easerMayCompleteBooking(booking, userId) {
 
 export function crewRoleFor(booking, crew, userId) {
   if (booking?.assembler_id === userId) return CREW_ROLE.LEAD;
-  const row = (crew || []).find(r => r.easer_id === userId && !r.removed_at);
+  const row = (crew || []).find(r => r.easer_id === userId && r.role === CREW_ROLE.HELPER && !r.removed_at);
   return row ? row.role : null;
 }
 

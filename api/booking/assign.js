@@ -24,7 +24,7 @@ const SITE = 'https://www.assembleatease.com';
  * Owner assigns a confirmed booking to an assembler.
  * Completed owner-manual bookings may also be linked to the singular owner-Easer
  * record for payout/history purposes without reopening the job.
- * Body: { bookingId, assemblerId }
+ * Body: { bookingId, assemblerId, reassign?, expectedAssignment? }
  */
 // The assignment write is fast; Resend and web-push are not. On the default
 // 10-second budget a slow provider timed out the whole function AFTER the
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { bookingId, assemblerId, reassign } = req.body;
+  const { bookingId, assemblerId, reassign, expectedAssignment } = req.body;
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
   if (!assemblerId) return res.status(400).json({ error: 'assemblerId is required' });
 
@@ -55,6 +55,22 @@ export default async function handler(req, res) {
     .single();
 
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
+  // The owner's reviewed assignment is a precondition, never an authority for
+  // readiness/payment. Reject a stale screen before replacing a different Easer
+  // or restarting work that advanced since the handoff was reviewed.
+  if (expectedAssignment !== undefined) {
+    const actual = { assemblerId: booking.assembler_id || null, assignedAt: booking.assigned_at || null,
+      status: booking.status || null, acceptedAt: booking.assembler_accepted_at || null,
+      dispatchStatus: booking.dispatch_status || null };
+    if (!expectedAssignment || typeof expectedAssignment !== 'object' || Array.isArray(expectedAssignment)
+        || Object.keys(actual).some(key => !Object.prototype.hasOwnProperty.call(expectedAssignment, key)
+          || (expectedAssignment[key] !== null && typeof expectedAssignment[key] !== 'string'))) {
+      return res.status(400).json({ error: 'The reviewed assignment is incomplete. Refresh the booking and try again.' });
+    }
+    if (Object.keys(actual).some(key => actual[key] !== expectedAssignment[key])) {
+      return res.status(409).json({ error: 'The booking or assignment changed. Refresh and review the current Easer before reassigning.', code: 'ASSIGNMENT_CHANGED' });
+    }
+  }
   const recordOnlyOwnerManualCompleted = booking.source === 'owner_manual'
     && booking.status === BOOKING_STATUS.COMPLETED
     && booking.payment_status === 'offline_recorded';
@@ -101,6 +117,23 @@ export default async function handler(req, res) {
       code: 'ALREADY_ASSIGNED',
       assignedTo: booking.assembler_name || null,
     });
+  }
+  if (booking.assembler_id === assemblerId) {
+    return res.status(409).json({ error: 'This Easer is already assigned. Choose a different Easer to reassign the job.', code: 'SAME_EASER_ASSIGNED' });
+  }
+
+  // Crew allocations are pay obligations, not spare assignment metadata. An
+  // ordinary handoff must not orphan an old lead or transfer somebody's pay.
+  // Migration 098 repeats this under the booking write lock, closing the race
+  // with an owner adding crew after this read and before the assignment CAS.
+  const { data: activeCrew, error: crewError } = await sb.from('booking_crew')
+    .select('id').eq('booking_id', bookingId).is('removed_at', null).limit(1);
+  if (crewError) {
+    return res.status(503).json({ error: 'Crew allocations could not be verified. Assignment was not changed.', code: 'CREW_REVIEW_UNAVAILABLE' });
+  }
+  if (activeCrew?.length) {
+    const reason = describeAssignmentGuardFailure({ message: 'Active crew allocations require review before changing the lead Easer' });
+    return res.status(409).json({ error: reason.message, code: reason.code });
   }
 
   // Verify assembler exists and is eligible
@@ -282,6 +315,12 @@ export default async function handler(req, res) {
     updateQuery = booking.assigned_at == null
       ? updateQuery.is('assigned_at', null)
       : updateQuery.eq('assigned_at', booking.assigned_at);
+    updateQuery = booking.assembler_accepted_at == null
+      ? updateQuery.is('assembler_accepted_at', null)
+      : updateQuery.eq('assembler_accepted_at', booking.assembler_accepted_at);
+    updateQuery = booking.dispatch_status == null
+      ? updateQuery.is('dispatch_status', null)
+      : updateQuery.eq('dispatch_status', booking.dispatch_status);
   } else {
     updateQuery = updateQuery.is('assembler_id', null);
   }
@@ -312,6 +351,7 @@ export default async function handler(req, res) {
   }
   if (!assignedRows?.length) {
     return res.status(409).json({
+      code: 'ASSIGNMENT_CHANGED',
       error: recordOnlyOwnerManualCompleted
         ? 'The completed owner booking changed before linking. Refresh and try again.'
         : 'Booking changed before assignment. Refresh and try again.',

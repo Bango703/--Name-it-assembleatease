@@ -249,6 +249,30 @@ assert.ok(invalid.errors.includes('livemode'));
   assert.equal(sb.state.booking.financial_operation_key, null, 'safe link conflict must release only the exact lock');
 }
 
+// A hold may be collected/canceled after the read-only deadline inspection and
+// before this processor reads it under the exact financial reservation.
+for (const [status, reviewReason] of [['canceled', 'payment_hold_canceled'], ['succeeded', 'payment_already_collected']]) {
+  const events = [];
+  const row = booking();
+  const sb = fakeSupabase(row, events);
+  const stripe = fakeStripe(events, { intents: [paymentIntent('pi_old', { status, amount_capturable: 0 })] });
+  const result = await processBookingReauthorization({ sb, stripe, booking: row, expectedLivemode: false, nowIso: NOW });
+  assert.equal(result.ok, false);
+  assert.equal(result.paymentReviewRequired, true, 'invalid source must become an owner action instead of a silent cron error');
+  assert.equal(result.paymentReviewReason, reviewReason);
+  assert.equal(result.ownerActionRequired, false, 'released lock must not use the locked-reconciliation email');
+  assert.equal(sb.state.booking.financial_operation_key, null);
+  assert.equal(events.some(event => event === 'create' || event.startsWith('cancel:')), false, 'no new payment or old-payment mutation on an invalid source');
+}
+{
+  const events = [];
+  const row = booking();
+  const sb = fakeSupabase(row, events);
+  const stripe = fakeStripe(events, { intents: [paymentIntent('pi_old', { status: 'succeeded', amount_capturable: 0, customer: 'cus_wrong' })] });
+  const result = await processBookingReauthorization({ sb, stripe, booking: row, expectedLivemode: false, nowIso: NOW });
+  assert.equal(result.paymentReviewReason, 'payment_details_mismatch', 'an unverified payment cannot establish that this customer paid');
+}
+
 {
   const events = [];
   const row = booking();

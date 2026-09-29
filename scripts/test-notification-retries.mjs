@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { cancelQueuedNotification } from '../api/_notification-policy.js';
+import { notificationRetryEligibility } from '../api/_notification-retry-eligibility.js';
 import { smsEligibility } from '../api/_sms.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
@@ -83,6 +84,60 @@ async function harness({ notices = [notification()], bookings = [customer], prof
   const handler = await new AsyncFunction(...Object.keys(deps), `${source}\nreturn handler;`)(...Object.values(deps));
   const res = response(); await handler(req, res);
   return { db, calls, res, handler };
+}
+
+// Payment-review messages freeze the exact hold that needs owner attention.
+// Exercise real eligibility through the actual worker so a changed booking
+// cancels and clears the stored payload instead of sending obsolete advice.
+const reviewBooking = { id: 'booking-1', status: 'confirmed', payment_status: 'authorized',
+  stripe_payment_intent_id: 'pi_old', authorization_capture_before: null, total_price: 38321,
+  stripe_customer_id: 'cus_fixture', date: '2026-09-30', time: '8:00 AM - 10:00 AM',
+  return_visit_required: false, return_visit_date: null, return_visit_time: null };
+const paymentReviewSnapshot = Object.fromEntries(['stripe_payment_intent_id', 'authorization_capture_before', 'total_price', 'stripe_customer_id',
+  'date', 'time', 'return_visit_required', 'return_visit_date', 'return_visit_time'].map(field => [field, reviewBooking[field] ?? null]));
+const reviewNotice = notification({ notification_type: 'payment_authorization_review', recipient_type: 'owner', recipient_email: 'owner@example.test',
+  send_payload: { kind: 'email', original: { to: 'owner@example.test', subject: 'Payment review', html: '<p>Review the old hold.</p>' },
+    meta: { bookingId: reviewBooking.id, notificationType: 'payment_authorization_review', paymentReviewSnapshot,
+      notificationKey: 'payment-review:booking-1:pi_old:payment_hold_canceled' } } });
+const realEligibility = ({ deps }) => { deps.notificationRetryEligibility = notificationRetryEligibility; };
+{
+  const h = await harness({ notices: [reviewNotice], bookings: [reviewBooking], customize: realEligibility });
+  assert.equal(h.res.body.accepted, 1); assert.equal(h.res.body.cancelled, 0);
+  assert.equal(h.calls.email[0].meta.notificationKey, reviewNotice.send_payload.meta.notificationKey);
+}
+for (const patch of [
+  { stripe_payment_intent_id: 'pi_new_healthy' }, { authorization_capture_before: iso(7 * 86400000) },
+  { payment_status: 'captured' }, { status: 'completed' }, { status: 'cancelled' }, { is_test_booking: true },
+  { financial_operation_key: 'capture:booking-1' }, { financial_operation_type: 'refund' }, { financial_operation_started_at: iso(-minute) },
+  { financial_reconciliation_required_at: iso(-minute) }, { cancellation_reconciliation_required_at: iso(-minute) },
+  { total_price: 40000 }, { stripe_customer_id: 'cus_replacement' }, { date: '2026-10-01' }, { time: '2:00 PM - 4:00 PM' },
+  { return_visit_required: true }, { return_visit_date: '2026-10-02' }, { return_visit_time: '2:00 PM - 4:00 PM' },
+]) {
+  for (const status of ['deferred', 'failed']) {
+    const h = await harness({ notices: [{ ...reviewNotice, status }], bookings: [{ ...reviewBooking, ...patch }], customize: realEligibility });
+    assert.equal(h.calls.email.length, 0, JSON.stringify(patch));
+    assert.equal(h.res.body.cancelled, 1); assert.equal(h.res.body.accepted, 0);
+    assert.equal(h.db.rows.notification_log[0].status, 'cancelled');
+    assert.equal(h.db.rows.notification_log[0].send_payload, null);
+    assert.equal(h.db.rows.notification_log[0].next_attempt_at, null);
+  }
+}
+for (const snapshot of [undefined, {}, { ...paymentReviewSnapshot, stripe_payment_intent_id: 'pi_other' }]) {
+  const notice = structuredClone(reviewNotice); notice.send_payload.meta.paymentReviewSnapshot = snapshot;
+  const h = await harness({ notices: [notice], bookings: [reviewBooking], customize: realEligibility });
+  assert.equal(h.calls.email.length, 0); assert.equal(h.res.body.cancelled, 1, 'unproven legacy payment advice cannot retry');
+}
+{
+  const h = await harness({ notices: [reviewNotice], bookings: [reviewBooking], customize: ({ db, deps }) => {
+    deps.notificationRetryEligibility = notificationRetryEligibility;
+    db.failures.set('bookings:select', 'current payment state unavailable');
+  } });
+  assert.equal(h.calls.email.length, 0); assert.equal(h.res.body.cancelled, 0);
+  assert.ok(h.res.body.errors.length); assert.ok(h.db.rows.notification_log[0].send_payload, 'read outage must preserve retry intent');
+}
+{
+  const h = await harness({ customize: realEligibility });
+  assert.equal(h.res.body.accepted, 1, 'new guard leaves unrelated notification types unchanged');
 }
 
 // A provider retry reuses the exact original request and stable identity.

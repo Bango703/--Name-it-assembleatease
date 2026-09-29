@@ -111,6 +111,7 @@ export default async function handler(req, res) {
         .select('id')
         .eq('booking_id', bk.id)
         .eq('easer_id', easerAccess.user.id)
+        .eq('role', 'helper')
         .is('removed_at', null)
         .maybeSingle();
       if (!crewRow) return res.status(404).json({ error: 'Booking not found' });
