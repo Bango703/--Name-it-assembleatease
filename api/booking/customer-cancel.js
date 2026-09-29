@@ -27,6 +27,7 @@ import {
   cancellationPolicyEvaluationTimeMs,
   hasDurableCancellationFeeCaptureAudit,
 } from './_cancellation-operation.js';
+import { cancellationFeeSummaryHtml } from './_cancellation-fee-summary.js';
 
 async function cancelCustomerIntent(stripe, booking, row) {
   if (row.intent.status === 'canceled') return;
@@ -509,7 +510,8 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Customer Cancelled — ${booking.ref}`,
       html: `<p>Customer <strong>${esc(booking.customer_name)}</strong> cancelled booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}).</p>
-<p>Job date: ${esc(formatAppointmentDate(booking.date))} at ${esc(booking.time)}${feeCaptured > 0 ? ' — Cancellation fee of $' + (feeCaptured/100).toFixed(2) + ' (' + policy.feePct + '% ' + policy.tier + ' tier) charged.' : ' — No fee charged (24h+ notice).'}</p>
+<p>Job date: ${esc(formatAppointmentDate(booking.date))} at ${esc(booking.time)}</p>
+${cancellationFeeSummaryHtml({ policy, feeCaptured, hoursAway })}
 ${proTripCutCents > 0 ? '<p style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 14px;color:#1e3a8a"><strong>Pro trip cut owed:</strong> $' + (proTripCutCents/100).toFixed(2) + ' — a pro was committed/en route. Record a manual payout.</p>' : ''}`,
     });
   } catch (e) { console.error('Owner cancel notify error:', e); }
