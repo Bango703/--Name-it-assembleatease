@@ -301,7 +301,7 @@ export default async function handler(req, res) {
   // applicant — retry once without it. Bookings degrade the same way.
   if (profileError && isMissingAttributionColumn(profileError)) {
     const { application_attribution, ...withoutAttribution } = coreProfile;
-    if (existingProfile) {
+    if (profileForThisAuthUser) { // same branch as the first attempt
       const { id: _omit, ...updatable } = withoutAttribution;
       ({ error: profileError } = await sb.from('profiles').update(updatable).eq('id', userId));
     } else {
