@@ -2,6 +2,7 @@ import { getSupabase } from './_supabase.js';
 import { rateLimit } from './_ratelimit.js';
 import { logActivity } from './booking/_activity.js';
 import { verifyReviewToken } from './_review-token.js';
+import { shareReviewToSocials } from './_review-social.js';
 
 export default async function handler(req, res) {
   const sb = getSupabase();
@@ -35,6 +36,8 @@ export default async function handler(req, res) {
 
   const payload = (req.body && typeof req.body === 'object') ? req.body : {};
   const { ref, email, rating, body, token } = payload;
+  // Opt-in only: the checkbox on review.html, unchecked by default.
+  const shareConsent = payload.share_consent === true;
   const normalizedRef = String(ref || '').toUpperCase().trim();
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const parsedRating = parseInt(rating, 10);
@@ -132,8 +135,30 @@ export default async function handler(req, res) {
     actorType:   'customer',
     actorName:   booking.customer_name,
     description: `Customer left a ${parsedRating}-star review`,
-    metadata:    { rating: parsedRating },
+    metadata:    { rating: parsedRating, share_consent: shareConsent },
   });
+
+  // With consent, queue the review as a post on the business's own Facebook and
+  // Google Business pages (Buffer queue, owner can edit or remove). The review is
+  // already saved; a share failure is recorded, never returned as an error.
+  if (shareConsent) {
+    const share = await shareReviewToSocials({
+      consent: shareConsent,
+      rating: parsedRating,
+      body: reviewBody,
+      customerName: booking.customer_name,
+      service: booking.service,
+    });
+    logActivity(sb, {
+      bookingId:   booking.id,
+      eventType:   'review_social_share',
+      actorType:   'system',
+      description: share.shared
+        ? 'Review queued for the Facebook and Google Business pages (customer consented)'
+        : `Review not shared to social pages: ${share.reason}`,
+      metadata:    { reason: share.reason, error: share.error || null, channels: share.channels },
+    });
+  }
 
   // Recalculate Easer's average rating from all their approved reviews
   if (booking.assembler_id) {
