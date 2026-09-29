@@ -70,7 +70,7 @@ for (const css of ['assets/css/marketing.css', 'assets/css/style.css']) {
   const t = read(css);
   assert.ok(t.includes("font-family:'DM Serif Display Fallback'") && t.includes("font-family:'DM Sans Fallback'"), `${css}: fallback @font-face missing`);
 }
-for (const f of [...html, 'assets/css/marketing.css', 'assets/css/style.css', 'assets/css/easer.css']) {
+for (const f of [...html, 'assets/css/marketing.css', 'assets/css/style.css']) {
   const t = read(f);
   for (const m of t.matchAll(/(['"])(DM Serif Display|DM Sans)\1\s*,(?!\s*\1?\2 Fallback)/g)) {
     // Stripe Elements renders inside its own iframe; the fallback face cannot apply there.
@@ -78,6 +78,23 @@ for (const f of [...html, 'assets/css/marketing.css', 'assets/css/style.css', 'a
     if (/fontFamily\s*:\s*'?$/.test(around)) continue;
     assert.fail(`${f}: "${m[2]}" stack without its metric-matched fallback`);
   }
+}
+// The fallback only belongs where the web font is actually loaded. The Easer
+// app never loads DM Sans, so a sized-up Arial there replaced the system font
+// and grew every line of the dashboard (2026-09-29).
+for (const [css, pages] of [['assets/css/easer.css', ['assembler/index.html', 'assembler/my-assignments.html', 'assembler/payouts.html', 'assembler/profile.html']]]) {
+  const loadsWebFont = pages.some((p) => /fonts\.googleapis\.com\/css2/.test(read(p)));
+  if (!loadsWebFont) assert.ok(!read(css).includes('DM Sans Fallback'), `${css}: fallback face on pages that never load DM Sans changes their font`);
+}
+// An @import after any other rule is ignored by the browser. Inserting the
+// faces above style.css's font @import silently dropped the web fonts from
+// the booking page (2026-09-29).
+for (const css of readdirSync('assets/css').filter((f) => f.endsWith('.css')).map((f) => `assets/css/${f}`)) {
+  const body = read(css).replace(/^﻿/, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  const firstImport = body.indexOf('@import');
+  if (firstImport === -1) continue;
+  const before = body.slice(0, firstImport).replace(/@charset[^;]*;/, '').trim();
+  assert.equal(before, '', `${css}: @import must come before every other rule or the browser ignores it`);
 }
 checks++;
 

@@ -1,5 +1,3 @@
-@font-face{font-family:'DM Serif Display Fallback';src:local('Times New Roman'),local('TimesNewRomanPSMT');size-adjust:111.45%;ascent-override:92.96%;descent-override:30.06%;line-gap-override:0%}
-@font-face{font-family:'DM Sans Fallback';src:local('Arial'),local('ArialMT');size-adjust:105.81%;ascent-override:93.76%;descent-override:29.3%;line-gap-override:0%}
 ﻿/* ============================================
    ASSEMBLEATEASE — GLOBAL DESIGN SYSTEM
    Theme: Clean light / minimal
@@ -7,6 +5,8 @@
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
+@font-face{font-family:'DM Serif Display Fallback';src:local('Times New Roman'),local('TimesNewRomanPSMT');size-adjust:111.45%;ascent-override:92.96%;descent-override:30.06%;line-gap-override:0%}
+@font-face{font-family:'DM Sans Fallback';src:local('Arial'),local('ArialMT');size-adjust:105.81%;ascent-override:93.76%;descent-override:29.3%;line-gap-override:0%}
 
 /* ════════════════════════════════════════
    CSS VARIABLES
