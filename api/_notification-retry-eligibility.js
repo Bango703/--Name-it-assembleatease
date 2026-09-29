@@ -11,6 +11,24 @@ export async function notificationRetryEligibility(sb, row, payload, booking, no
   const type = String(row.notification_type || payload?.meta?.notificationType || '');
   const meta = payload?.meta || {};
   try {
+    if (type === 'payment_authorization_review') {
+      if (!booking || booking.id !== (row.booking_id || meta.bookingId)
+          || booking.status !== 'confirmed' || booking.payment_status !== 'authorized' || booking.is_test_booking === true
+          || booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at
+          || booking.financial_reconciliation_required_at || booking.cancellation_reconciliation_required_at) {
+        return { ok: false, reason: 'payment_review_no_longer_eligible' };
+      }
+      const snapshot = meta.paymentReviewSnapshot;
+      const fields = ['stripe_payment_intent_id', 'authorization_capture_before', 'total_price', 'stripe_customer_id',
+        'date', 'time', 'return_visit_required', 'return_visit_date', 'return_visit_time'];
+      // The worker loads current booking truth before calling this helper.
+      // A replacement hold or newly recorded deadline invalidates old advice.
+      if (!snapshot || fields.some(field => !Object.hasOwn(snapshot, field)
+          || (snapshot[field] ?? null) !== (booking[field] ?? null))) {
+        return { ok: false, reason: 'payment_review_context_changed' };
+      }
+      return { ok: true };
+    }
     if (type === 'assemblecash_access_code') {
       const { data: codes, error } = await sb.from('customer_verification_codes')
         .select('code_hash,expires_at,consumed_at,attempts').eq('email', row.recipient_email).eq('purpose', 'assemblecash')

@@ -49,6 +49,7 @@ export default async function handler(req, res) {
       .select('role')
       .eq('booking_id', booking.id)
       .eq('easer_id', user.id)
+      .eq('role', 'helper')
       .is('removed_at', null)
       .maybeSingle();
     return res.status(403).json({

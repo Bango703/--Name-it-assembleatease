@@ -154,13 +154,26 @@ for (const changes of [{ payment_status: 'failed' }, { payment_status: 'card_sav
   await h.run(); assert.equal(h.calls.length, 2); assert.match(h.calls[0].html, /Finish the cabinet/);
   assert.ok(h.calls.every(c => c.meta.notificationKey.includes('2026-09-24')));
 }
-{
-  let fail = true;
-  const h = harness({ booking: fixture({ date: '2026-09-28', payment_authorized_at: '2026-09-17T12:00:00Z' }), outcome: () => ({ ok: !fail }) });
+// Authorization expiry is decided by the payment monitor's real deadline,
+// never by a second age-based policy in the appointment reminder cron.
+for (const changes of [
+  { authorization_capture_before: '2026-10-01T12:00:00Z' }, // old record, healthy hold
+  { authorization_capture_before: null }, // monitor must inspect the unknown deadline
+  { authorization_capture_before: '2026-09-22T12:00:00Z' }, // actual expiry belongs to monitor
+  { payment_authorized_at: '2026-09-23T13:00:00Z', authorization_capture_before: '2026-09-30T13:00:00Z' },
+  { payment_status: 'captured', payment_collected: true },
+]) {
+  const h = harness({ booking: fixture({ date: '2026-09-28', payment_authorized_at: '2026-09-17T12:00:00Z', ...changes }) });
   assert.equal((await h.run()).expiringAuthsWarned, 0);
-  fail = false; assert.equal((await h.run()).expiringAuthsWarned, 1);
-  h.advance(1); assert.equal((await h.run()).expiringAuthsWarned, 0);
-  assert.equal(h.calls.length, 2, 'one successful owner authorization review per local day');
-  assert.doesNotMatch(h.calls[1].html, /holds last 7 days|expire within|must complete or cancel/i);
+  h.advance(1); await h.run(); h.advance(24); await h.run();
+  assert.equal(h.calls.length, 0, 'neither hourly nor next-day scans send an independent payment warning');
+  assert.equal(h.updates.length, 0, 'reminder scan performs no financial repair');
 }
-console.log('PASS reminder calendar cadence, quiet hours/DST/timezones, channel-specific legacy recovery, overlap/retries, consent, current-state gates, return visits, branded copy and owner warning truth.');
+{
+  const h = harness({ booking: fixture({ payment_authorized_at: '2026-09-17T12:00:00Z', authorization_capture_before: '2026-09-29T12:00:00Z' }) });
+  const result = await h.run();
+  assert.equal(result.sent, 2, 'an old authorization record does not disrupt due appointment reminders');
+  assert.equal(result.expiringAuthsWarned, 0, 'legacy response field remains compatible');
+  assert.deepEqual(h.calls.map(c => c.meta.recipientType).sort(), ['customer', 'easer']);
+}
+console.log('PASS reminder calendar cadence, quiet hours/DST/timezones, channel-specific legacy recovery, overlap/retries, consent, current-state gates, return visits, branded copy and no duplicate authorization monitor.');
