@@ -186,6 +186,11 @@ ${jsonLd.map((s) => `<script type="application/ld+json">${s}</script>`).join('\n
 .rec-citylist a{color:var(--cyan-dark);text-decoration:none;font-size:0.875rem;font-weight:500}
 .rec-citylist a:hover{text-decoration:underline}
 </style>
+<!-- First page of the visit wins, so the city page that brought someone here
+     is what the application records. Loaded on the RECRUITMENT page, not just
+     the form: capture that runs only on /assembler/apply records that path for
+     everyone, which is the same as recording nothing. -->
+<script src="/assets/js/attribution.js"></script>
 </head>
 <body>
 ${buildPublicNavBlock({ variant: 'core', includeSkipNav: true })}<main id="main-content">`;

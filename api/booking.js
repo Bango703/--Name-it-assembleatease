@@ -15,6 +15,7 @@ import { logActivity } from './booking/_activity.js';
 import { appointmentTimestampMs, formatAppointmentDate } from './booking/_appt-date.js';
 import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './booking/_booking-window.js';
 import { SCHEDULED_AUTHORIZATION_LEAD_DAYS } from './booking/_booking-window.js';
+import { cleanAcquisitionAttribution } from './_attribution.js';
 import { CANCELLATION_POLICY } from './_source-of-truth.js';
 import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 import { assertGuestTokenConfiguration, deriveGuestMutationToken, guestMutationTokenHash, randomToken } from './_payment-security.js';
@@ -496,7 +497,7 @@ export default async function handler(req, res) {
     promo_discount_cents: promoDiscountCents,
     assemblecash_redeemed_cents: assemblecashRedeemedCents,
     bundle_slug: (typeof bundleSlug === 'string' && bundleSlug) ? bundleSlug.slice(0, 64) : null,
-    booking_attribution: cleanBookingAttribution(attribution),
+    booking_attribution: cleanAcquisitionAttribution(attribution),
     ...(smsConsent === true ? {
       sms_consent_at: new Date().toISOString(),
       sms_consent_source: 'customer_booking_checkout',
@@ -1124,28 +1125,4 @@ function clampInt(value, min, max, fallback) {
   return Math.min(max, Math.max(min, n));
 }
 
-function cleanBookingAttribution(value) {
-  const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-  const clean = (field, max) => String(input[field] || '').trim().replace(/[\u0000-\u001f]/g, '').slice(0, max);
-  const landingPath = clean('landingPath', 240);
-  const referrerHost = clean('referrerHost', 120).toLowerCase();
-  const utmSource = clean('utmSource', 100);
-  const result = {
-    source: utmSource || referrerHost || 'direct',
-    capturedAt: new Date().toISOString(),
-  };
-  if (utmSource) result.utmSource = utmSource;
-  const utmMedium = clean('utmMedium', 100);
-  const utmCampaign = clean('utmCampaign', 140);
-  const utmContent = clean('utmContent', 140);
-  const utmTerm = clean('utmTerm', 140);
-  const clickId = clean('clickId', 180);
-  if (utmMedium) result.utmMedium = utmMedium;
-  if (utmCampaign) result.utmCampaign = utmCampaign;
-  if (utmContent) result.utmContent = utmContent;
-  if (utmTerm) result.utmTerm = utmTerm;
-  if (clickId) result.clickId = clickId;
-  if (landingPath.startsWith('/')) result.landingPath = landingPath;
-  if (referrerHost) result.referrerHost = referrerHost;
-  return result;
-}
+
