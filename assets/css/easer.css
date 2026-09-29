@@ -1,5 +1,3 @@
-@font-face{font-family:'DM Serif Display Fallback';src:local('Times New Roman'),local('TimesNewRomanPSMT');size-adjust:111.45%;ascent-override:92.96%;descent-override:30.06%;line-gap-override:0%}
-@font-face{font-family:'DM Sans Fallback';src:local('Arial'),local('ArialMT');size-adjust:105.81%;ascent-override:93.76%;descent-override:29.3%;line-gap-override:0%}
 ﻿/**
  * AssembleAtEase — Easer Workforce App Shell
  * Single source of truth for all Easer-facing pages.
@@ -35,7 +33,7 @@
   --e-amber-dim:  rgba(245,158,11,0.09);
   --e-red:        #dc2626;
   --e-red-dim:    rgba(220,38,38,0.08);
-  --e-font:       'DM Sans', 'DM Sans Fallback', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --e-font:       'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   /* Shell dimensions */
   --e-header-h:   56px;
