@@ -16,6 +16,9 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260818a" defer></script>
   <style>
+@font-face{font-family:'DM Serif Display Fallback';src:local('Times New Roman'),local('TimesNewRomanPSMT');size-adjust:111.45%;ascent-override:92.96%;descent-override:30.06%;line-gap-override:0%}
+@font-face{font-family:'DM Sans Fallback';src:local('Arial'),local('ArialMT');size-adjust:105.81%;ascent-override:93.76%;descent-override:29.3%;line-gap-override:0%}
+
     :root {
       --bg: #f5f9fb;
       --card: #ffffff;
@@ -46,7 +49,7 @@
         radial-gradient(circle at top left, rgba(0, 191, 255, 0.16), transparent 28%),
         linear-gradient(180deg, #f8fcfe 0%, #eef6fa 100%);
       color: var(--ink);
-      font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "DM Sans", "DM Sans Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -90,7 +93,7 @@
 
     h1 {
       margin: 0 0 0.55rem;
-      font-family: "DM Serif Display", serif;
+      font-family: "DM Serif Display", "DM Serif Display Fallback", serif;
       font-size: clamp(2rem, 4vw, 3.2rem);
       line-height: 0.98;
     }

@@ -153,7 +153,8 @@ textarea.form-control{resize:vertical;min-height:120px}
         <p class="success-desc">Your review is live — it means a lot to our team.</p>
         <p style="font-size:0.88rem;color:var(--ink-soft);font-weight:600;margin-bottom:0.75rem">One more thing — can you share it on Google too?</p>
         <p style="font-size:0.82rem;color:var(--muted);line-height:1.6;margin-bottom:1.25rem">It only takes 30 more seconds and helps other homeowners find us.</p>
-        <a href="https://g.page/r/CeHfRKINOeZsEBM/review" target="_blank" rel="noopener" class="btn btn-cyan" style="width:100%;justify-content:center;margin-bottom:0.65rem">Also Leave a Google Review</a>
+        <p id="google-copy-note" style="display:none;font-size:0.82rem;color:var(--ink-soft);line-height:1.6;margin-bottom:0.75rem">Your review will be copied, so you can paste it on Google.</p>
+        <a id="google-review-link" href="https://g.page/r/CeHfRKINOeZsEBM/review" target="_blank" rel="noopener" class="btn btn-cyan" style="width:100%;justify-content:center;margin-bottom:0.65rem">Also Leave a Google Review</a>
         <a href="/" class="btn" style="width:100%;justify-content:center;background:#f4f4f5;color:#374151;font-weight:500">No thanks, back to home</a>
       </div>
     </div>
@@ -291,6 +292,30 @@ textarea.form-control{resize:vertical;min-height:120px}
 document.getElementById('year').textContent = new Date().getFullYear();
 
 var selectedRating = 0;
+
+// Retyping a review on Google is where most customers stop. Copy what they
+// already wrote so the Google box is one paste away.
+(function () {
+  var link = document.getElementById('google-review-link');
+  var note = document.getElementById('google-copy-note');
+  var success = document.getElementById('success-state');
+  if (!link || !success) return;
+  new MutationObserver(function () {
+    if (success.style.display === 'block' && window.__aaeReviewBody && note) note.style.display = 'block';
+  }).observe(success, { attributes: true, attributeFilter: ['style'] });
+  link.addEventListener('click', function () {
+    var text = window.__aaeReviewBody;
+    if (!text) return;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).catch(function () {}); return; }
+    } catch (e) {}
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    } catch (e) {}
+  });
+})();
 var prefilled = false;
 var reviewToken = '';
 var labels = ['','Poor','Fair','Good','Great','Excellent'];
@@ -511,6 +536,7 @@ async function submitReview() {
   var email = document.getElementById('r-email').value.trim();
   var ref   = document.getElementById('r-ref').value.trim();
   var body  = document.getElementById('r-body').value.trim();
+  window.__aaeReviewBody = body;
 
   if (!selectedRating)  { showErr('Please tap a star to rate your experience.'); return; }
   // The written review is OPTIONAL. A star rating is a complete answer, and
