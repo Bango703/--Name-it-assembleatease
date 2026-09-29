@@ -10128,6 +10128,7 @@ window.intelQuick = intelQuick;
   var currentTierFilter = 'active';
   var asmConnectRequired = false;
   var currentAssemblerDetailId = null;
+  var easerReadinessRequest = 0;
 
   // ─── EASER MANAGEMENT — CLEAN STATUS/TIER/ID ARCHITECTURE ──────────────────
   // status: pending | active | suspended | rejected  (platform access)
@@ -10361,7 +10362,7 @@ window.intelQuick = intelQuick;
           + '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(a.email) + '</span>'
           + (!hasValidUsPhone(a.phone) ? ' <span style="font-size:0.68rem;color:#ef4444;font-weight:600">Valid phone required</span>' : '')
           + '</td>'
-        + '<td style="' + rs + '">' + statusBadge(a.status) + (a.status === 'active' ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">' + (a.readiness && a.readiness.isReady ? 'Ready for jobs' : 'Readiness action needed') + '</div>' : '') + '</td>'
+        + '<td style="' + rs + '">' + statusBadge(a.status) + (a.status === 'active' ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">' + esc(easerOfferPresentation(a.readiness).label) + '</div>' : '') + '</td>'
         + '<td style="' + rs + '">' + tierBadge(a.tier) + (a.tier_grace_started_at ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">Grace since ' + esc(formatDate(a.tier_grace_started_at)) + '</div>' : '') + '</td>'
         + '<td style="' + rs + '">' + idVerificationBadge(a) + '</td>'
         + '<td style="' + rs + '">' + connectBadge(a) + '</td>'
@@ -10484,31 +10485,35 @@ window.intelQuick = intelQuick;
       : '<span style="display:inline-block;background:#fee2e2;color:#991b1b;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px">NO</span>';
   }
 
+  // Labels only: the canonical server verdict owns every job requirement.
+  function easerOfferPresentation(readiness) {
+    var state = readiness && readiness.requirementsVerified === true ? readiness.offerStatus : 'unverified';
+    if (state === 'ready') return { label: 'Ready for offers', hint: 'Job requirements are complete and availability is on.', bg: '#d1fae5', fg: '#065f46' };
+    if (state === 'offline') return { label: 'Offline', hint: 'Job requirements are complete. New job offers are paused while this Easer is offline.', bg: 'var(--elevated)', fg: 'var(--muted)' };
+    if (state === 'action_required') return { label: 'Requirements need attention', hint: 'Complete the missing job requirements below before sending new offers.', bg: '#fee2e2', fg: '#991b1b' };
+    return { label: 'Unverified', hint: 'Job requirements could not be verified. Refresh to check again.', bg: 'var(--elevated)', fg: 'var(--muted)' };
+  }
+
   function renderOnboardingReadinessPanel(data) {
     var container = document.getElementById('asm-onboarding-readiness-panel');
     if (!container) return;
 
-    if (!data || !data.readiness) {
-      container.innerHTML = '<div style="color:var(--red);font-size:0.8rem">Could not load onboarding readiness.</div>';
-      var unavailableChip = document.getElementById('asm-dispatch-chip');
-      if (unavailableChip) {
-        unavailableChip.style.background = '#fee2e2';
-        unavailableChip.style.color = '#991b1b';
-        unavailableChip.textContent = 'Unverified';
-      }
-      return;
-    }
-
-    var r = data.readiness;
-    var ready = r.finalStatus === 'READY FOR JOBS';
+    var r = (data && data.readiness) || {};
+    var presentation = easerOfferPresentation(r);
     var authoritativeDispatchChip = document.getElementById('asm-dispatch-chip');
     if (authoritativeDispatchChip) {
-      authoritativeDispatchChip.style.background = ready ? '#d1fae5' : '#fee2e2';
-      authoritativeDispatchChip.style.color = ready ? '#065f46' : '#991b1b';
-      authoritativeDispatchChip.textContent = ready ? 'Eligible' : 'Ineligible';
+      authoritativeDispatchChip.style.background = presentation.bg;
+      authoritativeDispatchChip.style.color = presentation.fg;
+      authoritativeDispatchChip.textContent = presentation.label;
     }
-    var statusBg = ready ? '#d1fae5' : '#fee2e2';
-    var statusFg = ready ? '#065f46' : '#991b1b';
+    if (presentation.label === 'Unverified') {
+      container.innerHTML = '<div role="status" style="font-size:0.8rem;color:var(--muted)">' + esc(presentation.hint) + '</div>'
+        + '<button type="button" class="btn btn-sm" style="margin-top:0.5rem" onclick="loadEaserOnboardingReadiness(currentAssemblerDetailId)">Retry readiness check</button>';
+      return;
+    }
+    var requirementsLabel = r.requirementsReady === true ? 'Complete' : 'Action required';
+    var statusBg = r.requirementsReady === true ? '#d1fae5' : '#fee2e2';
+    var statusFg = r.requirementsReady === true ? '#065f46' : '#991b1b';
 
     var rows = [
       ['Application Submitted', readinessChip(!!r.applicationSubmitted)],
@@ -10527,65 +10532,78 @@ window.intelQuick = intelQuick;
       ['Tier Eligible', readinessChip(!!r.tierEligible)],
       ['Identity Verified', readinessChip(!!r.identityVerified)],
       ['Owner Approved', readinessChip(!!r.ownerApproved)],
-      ['Online &amp; Available', readinessChip(!!r.available)],
-    ].concat(asmConnectRequired ? [
+      ['Availability', r.available ? 'Online' : 'Offline (new offers paused)'],
+    ];
+
+    var payoutRows = r.connectRequired ? [
+      ['Payout Setup', r.connectVerified ? (r.payoutSetupComplete ? 'Complete' : 'Action required') : 'Unverified'],
       ['Stripe Connect Started', readinessChip(!!r.connectStarted)],
-      ['Stripe Connect Complete', readinessChip(!!r.connectComplete)],
-      ['Payouts Enabled', readinessChip(!!r.payoutsEnabled)],
-      ['Requirements Due Count', (r.requirementsDueCount == null ? 'Unknown' : String(r.requirementsDueCount))],
-      ['Disabled Reason', r.disabledReason ? esc(r.disabledReason) : 'None'],
+      ['Stripe Connect Complete', r.connectVerified ? readinessChip(!!r.connectComplete) : 'Unknown'],
+      ['Payouts Enabled', r.connectVerified ? readinessChip(!!r.payoutsEnabled) : 'Unknown'],
+      ['Requirements Due Count', (!r.connectVerified || r.requirementsDueCount == null ? 'Unknown' : String(r.requirementsDueCount))],
+      ['Disabled Reason', r.connectVerified ? (r.disabledReason ? esc(r.disabledReason) : 'None') : 'Unknown'],
     ] : [
       ['Payout Mode', '<span style="color:#0369a1;font-weight:700">Manual external payouts</span>'],
       ['Stripe Connect', '<span style="color:var(--muted)">Not required for launch</span>'],
-    ]).concat([
+    ];
+    payoutRows = payoutRows.concat([
       ['Tax Readiness Status', esc(r.taxReadinessStatus || 'Unknown')],
       ['W-9 Status', esc((r.w9Status || 'not_requested').replace(/_/g, ' '))],
     ]);
 
-    var tableHtml = rows.map(function(row) {
-      return '<div style="display:flex;justify-content:space-between;gap:0.75rem;padding:0.38rem 0;border-bottom:1px solid var(--border)">'
+    function renderReadinessRows(items) { return items.map(function(row) {
+      return '<div style="display:flex;justify-content:space-between;gap:0.75rem;padding:0.38rem 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere">'
         + '<div style="font-size:0.79rem;color:var(--muted)">' + row[0] + '</div>'
         + '<div style="font-size:0.79rem;color:var(--text);text-align:right">' + row[1] + '</div>'
         + '</div>';
-    }).join('');
+    }).join(''); }
 
-    var missingHtml = (r.missingItems || []).length
+    var missingHtml = (r.requirementsMissingItems || []).length
       ? '<div style="margin-top:0.7rem;padding:0.65rem 0.75rem;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px">'
-        + '<div style="font-size:0.72rem;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem">Exact Missing Items</div>'
-        + (r.missingItems || []).map(function(item) {
+        + '<div style="font-size:0.72rem;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem">Missing Job Requirements</div>'
+        + (r.requirementsMissingItems || []).map(function(item) {
           return '<div style="font-size:0.79rem;color:#9a3412;line-height:1.45">- ' + esc(item) + '</div>';
         }).join('')
         + '</div>'
-      : '<div style="margin-top:0.7rem;font-size:0.79rem;color:#166534">No missing items.</div>';
+      : '';
 
     container.innerHTML =
-      '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:0.5rem">'
-        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Job Readiness</div>'
-        + '<span style="display:inline-block;background:' + statusBg + ';color:' + statusFg + ';font-size:0.7rem;font-weight:800;padding:4px 10px;border-radius:999px;letter-spacing:0.05em">' + esc(r.finalStatus || 'ACTION REQUIRED') + '</span>'
+      '<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:0.5rem">'
+        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Job requirements</div>'
+        + '<span style="display:inline-block;background:' + statusBg + ';color:' + statusFg + ';font-size:0.7rem;font-weight:800;padding:4px 10px;border-radius:999px;letter-spacing:0.05em">' + requirementsLabel + '</span>'
       + '</div>'
-      + '<div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.7rem">'
-      + tableHtml
-      + '</div>'
-      + missingHtml;
+      + '<p style="font-size:0.8rem;color:var(--muted);margin:0.5rem 0">' + esc(presentation.hint) + '</p>'
+      + missingHtml
+      + '<details style="margin-top:0.75rem"><summary style="cursor:pointer;font-size:0.8rem;padding:0.5rem 0;min-height:44px">View job requirements and availability</summary>'
+      + renderReadinessRows(rows) + '</details>'
+      + '<details style="margin-top:0.75rem"><summary style="cursor:pointer;font-size:0.8rem;padding:0.5rem 0;min-height:44px">Payout and tax setup' + (r.connectRequired && !r.payoutSetupComplete ? ' — ' + (r.connectVerified ? 'Action required' : 'Unverified') : '') + '</summary>'
+      + renderReadinessRows(payoutRows) + '</details>';
   }
 
   async function loadEaserOnboardingReadiness(assemblerId) {
     var container = document.getElementById('asm-onboarding-readiness-panel');
     if (!container) return;
-    container.innerHTML = '<div style="font-size:0.8rem;color:var(--muted)">Loading onboarding readiness...</div>';
+    var requestId = ++easerReadinessRequest;
+    function isCurrent() {
+      return requestId === easerReadinessRequest && currentAssemblerDetailId === assemblerId
+        && container === document.getElementById('asm-onboarding-readiness-panel');
+    }
+    container.innerHTML = '<div role="status" style="font-size:0.8rem;color:var(--muted)">Checking job requirements...</div>';
+    var loadingChip = document.getElementById('asm-dispatch-chip');
+    if (loadingChip) {
+      loadingChip.textContent = 'Checking...';
+      loadingChip.style.background = 'var(--elevated)';
+      loadingChip.style.color = 'var(--muted)';
+    }
     try {
       var r = await fetch('/api/owner/easer-readiness?assemblerId=' + encodeURIComponent(assemblerId), { headers: headers() });
       var d = await r.json();
+      if (!isCurrent()) return;
       if (!r.ok || d.error) throw new Error(d.error || 'Failed to load readiness');
       renderOnboardingReadinessPanel(d);
     } catch (err) {
-      container.innerHTML = '<div style="font-size:0.8rem;color:var(--red)">Failed to load onboarding readiness.</div>';
-      var unavailableChip = document.getElementById('asm-dispatch-chip');
-      if (unavailableChip) {
-        unavailableChip.style.background = '#fee2e2';
-        unavailableChip.style.color = '#991b1b';
-        unavailableChip.textContent = 'Unverified';
-      }
+      if (!isCurrent()) return;
+      renderOnboardingReadinessPanel(null);
     }
   }
 
@@ -10658,8 +10676,7 @@ window.intelQuick = intelQuick;
       dangerBtns += '<button class="btn btn-red" onclick="retryEaserAccessRevocation(\'' + a.id + '\')">Retry Sign-In Revocation</button>';
     }
 
-    // Dispatch chip: three states — N/A (not active), Eligible, Ineligible
-    var connectReadyForDispatch = !asmConnectRequired || (!!a.stripe_connect_onboarding_complete && !!a.stripe_connect_charges_enabled && !!a.stripe_connect_payouts_enabled);
+    // A fresh server verdict supplies the new-offer status below.
     var dispatchChip;
     if (a.status !== 'active') {
       dispatchChip = '<span id="asm-dispatch-chip" style="background:#e4e4e7;color:#71717a;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">N/A</span>';
@@ -10667,24 +10684,14 @@ window.intelQuick = intelQuick;
       dispatchChip = '<span id="asm-dispatch-chip" style="background:#e4e4e7;color:#71717a;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">Checking...</span>';
     }
 
-    // Dispatch readiness checklist (only for active Easers)
+    // Work activity only. Requirements and availability come from the fresh
+    // server panel, not a second checklist rebuilt from the cached roster.
     var dispatchChecklist = '';
     if (a.status === 'active') {
-      var chk = function(ok, label) { return '<div style="font-size:0.8rem;margin:1px 0"><span style="font-weight:700;color:' + (ok ? '#10b981' : 'var(--red)') + '">' + (ok ? 'PASS' : 'MISSING') + '</span> <span style="color:var(--muted)">' + label + '</span></div>'; };
       var recentDecline = a.last_dispatch_declined_at && (Date.now() - new Date(a.last_dispatch_declined_at).getTime()) < 7200000;
-      var availColor = a.is_available ? '#10b981' : '#71717a';
       dispatchChecklist = '<div style="background:#fafafa;border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:0.5rem">'
-        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px">Operational Snapshot</div>'
-        + '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px">Informational only. Final dispatch eligibility is verified by the server below.</div>'
-        + chk(a.status === 'active', 'Active account')
-        + chk(!closureHeld, 'No account closure hold')
-        + chk(!!a.identity_verified, 'ID verified')
-        + chk(hasValidUsPhone(a.phone), 'Valid U.S. phone on file')
-        + chk(['starter','professional','elite'].includes(a.tier), 'Valid tier')
-        + chk(!!a.is_available, 'Available right now')
-        + (asmConnectRequired ? chk(connectReadyForDispatch, 'Stripe Connect payouts ready') : '')
-        + '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:0.78rem;display:grid;grid-template-columns:1fr 1fr;gap:2px 1rem">'
-        + '<div><strong>Online:</strong> <span style="color:' + availColor + ';font-weight:600">' + (a.is_available ? 'Online' : 'Offline') + '</span></div>'
+        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px">Work activity</div>'
+        + '<div style="font-size:0.78rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:4px 1rem">'
         + '<div><strong>Active Jobs Today:</strong> ' + (a.active_jobs_today || 0) + '</div>'
         + '<div><strong>Last Assigned:</strong> ' + (a.last_assigned_at ? formatDate(a.last_assigned_at) : 'Never') + '</div>'
         + '<div><strong>Acceptance Rate:</strong> ' + (a.acceptance_rate != null ? Number(a.acceptance_rate).toFixed(0) + '%' : '—') + '</div>'
@@ -10712,7 +10719,7 @@ window.intelQuick = intelQuick;
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Connect Status</div>' + connectBadge(a) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">' + (asmConnectRequired ? 'Payouts Enabled' : 'Payout Mode') + '</div>' + payoutCapabilityBadge(a) + '</div>'
         + (a.has_membership ? '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Membership</div><span style="background:#00BFFF;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:999px">Active</span></div>' : '')
-        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Dispatch</div>' + dispatchChip + '</div>'
+        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">New job offers</div>' + dispatchChip + '</div>'
         + '</div>',
       // Contact section
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Contact</div>'

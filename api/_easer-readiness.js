@@ -5,8 +5,16 @@ import { isStripeConnectEnabled } from './_stripe-connect.js';
 import { isApplicationFeeSatisfied } from './_easer-application-fee.js';
 import { isEaserClosureBlocking, normalizeEaserClosureStatus } from './_easer-closure.js';
 import { normalizeUsPhone } from './_phone.js';
+import { EASER_READINESS_FIELDS } from './_easer-readiness-select.js';
 
 export { isApplicationFeeSatisfied } from './_easer-application-fee.js';
+
+// Job-readiness presentation must distinguish missing evidence from an unmet
+// requirement. payment_confirmed is an approval-only legacy alias; Connect is
+// payout setup. Neither is evidence required by the canonical job gates below.
+export const EASER_REQUIREMENTS_FIELDS = Object.freeze(EASER_READINESS_FIELDS.filter(
+  field => !['payment_confirmed', 'stripe_connect_account_id'].includes(field),
+));
 
 function clean(value) {
   return String(value || '').trim().toLowerCase();
@@ -209,13 +217,27 @@ export async function getEaserReadiness(profile = {}, options = {}) {
   if (!flags.tierEligible) missingItems.push('Valid Easer tier');
   if (!flags.phoneAvailable) missingItems.push('Valid 10-digit U.S. phone number on file');
   if (!flags.jobTextsEnabled) missingItems.push('Job texts enabled');
-  if (requireAvailability && !flags.available) missingItems.push('Online and available');
+  const availabilityItemIndex = missingItems.length;
   // Named, not generic: these are the two the database used to reject silently.
   if (flags.applicationFeeRefundBlocking) {
     missingItems.push('Application fee refund resolved (a refund is recorded, pending, or under review)');
   }
   if (flags.applicationDecisionInFlight) {
     missingItems.push('Application decision finished (one is still in progress)');
+  }
+
+  // Derive setup presentation from the same gates before availability is added.
+  // Stored null/false values are evidence; an omitted or undefined column is not.
+  const requirementsVerified = EASER_REQUIREMENTS_FIELDS.every(field => (
+    Object.prototype.hasOwnProperty.call(profile, field) && profile[field] !== undefined
+  ));
+  const requirementsMissingItems = requirementsVerified ? [...missingItems] : [];
+  const requirementsReady = requirementsVerified ? requirementsMissingItems.length === 0 : null;
+  const offerStatus = !requirementsVerified ? 'unverified'
+    : !requirementsReady ? 'action_required'
+      : flags.available ? 'ready' : 'offline';
+  if (requireAvailability && !flags.available) {
+    missingItems.splice(availabilityItemIndex, 0, 'Online and available');
   }
 
   // Payout setup (Stripe Connect) does NOT block job offers. An approved Easer
@@ -242,6 +264,10 @@ export async function getEaserReadiness(profile = {}, options = {}) {
     accountStatus: clean(profile.status),
     currentAgreementVersion: CONTRACTOR_AGREEMENT_VERSION,
     missingItems,
+    requirementsVerified,
+    requirementsMissingItems,
+    requirementsReady,
+    offerStatus,
     payoutSetupRequired: connectRequired,
     payoutSetupComplete,
     payoutSetupItems,
