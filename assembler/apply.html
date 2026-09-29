@@ -1460,6 +1460,20 @@
     var cityInput = document.getElementById('city');
     if (cityInput && !cityInput.value) cityInput.value = cityParam.slice(0, 60);
   }
+
+  var easerApplicationStartTracked = false;
+  function trackEaserApplicationEvent(name) {
+    if (typeof window.gtag !== 'function') return;
+    window.gtag('event', name, {
+      city: cityParam ? cityParam.slice(0, 60) : 'unknown',
+      source: cityParam ? 'easer_city_page' : 'easer_application_page',
+    });
+  }
+  function trackEaserApplicationStart() {
+    if (easerApplicationStartTracked) return;
+    easerApplicationStartTracked = true;
+    trackEaserApplicationEvent('easer_application_start');
+  }
   if (params.get('verification') === 'complete') {
     var panel = document.getElementById('application-panel');
     if (panel) panel.style.display = 'none';
@@ -1607,7 +1621,10 @@
     else next.textContent = 'Application form ready. Review your answers before submitting.';
   }
 
-  document.getElementById('apply-form').addEventListener('input', updateApplicationProgress);
+  document.getElementById('apply-form').addEventListener('input', function() {
+    trackEaserApplicationStart();
+    updateApplicationProgress();
+  });
   document.getElementById('apply-form').addEventListener('change', updateApplicationProgress);
   updateApplicationProgress();
 
@@ -1965,6 +1982,7 @@
         }
       }
 
+      trackEaserApplicationEvent('easer_application_submit');
       var submitted = await postApplication(data);
       if (!submitted.paymentRequired) {
         showApplicationSuccess(submitted.data);
