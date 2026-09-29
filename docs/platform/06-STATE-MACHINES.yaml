@@ -1,0 +1,44 @@
+version: 1
+status: inventory_and_target_contract
+as_of: '2026-09-24'
+
+machines:
+  booking:
+    current_states: [pending, confirmed, en_route, arrived, in_progress, completed, cancelled, declined]
+    payment_status_is_separate: true
+    note: refunded is a payment_status outcome today, not a reachable bookings.status transition.
+    target_states: [draft, quote_ready, payment_ready, confirmed, active, completed, cancelled, closed]
+  dispatch:
+    booking_column_values: [null, offered, assigned_pending_acceptance, accepted, dropped, manual_required, payment_hold, reconfirmation_required]
+    offer_column_values: [sent, accepted, declined, expired, cancelled, superseded]
+    note: bookings.dispatch_status and dispatch_offers.offer_status are separate state axes.
+    target_states: [not_started, searching, offering, assigned, reassignment_required, failed]
+  execution:
+    current_states: [confirmed, en_route, arrived, in_progress, completed]
+    target_states: [not_started, en_route, arrived, in_progress, completion_pending, completion_review, verified, failed]
+  payment:
+    current_states: [pending, card_saved, authorized, deposit_paid, offline_recorded, failed, captured, partially_refunded, refunded, cancellation_fee_captured]
+    target_states: [payment_method_required, ready, authorized, auth_expiring, reauth_required, capture_pending, paid, failed, refund_pending, partial_refund, refunded, disputed]
+  earnings:
+    current_states: [pending, transferred, paid]
+    target_states: [not_earned, earned, adjustment_pending, payable, on_hold]
+  payout:
+    current_states: [pending, transferred]
+    target_states: [not_scheduled, queued, processing, paid, failed, reversed]
+  payout_review:
+    current_states: [not_required, review_required, approved_full]
+    note: payout_review_status is a separate hold/review axis, not a payout_status value.
+  evidence:
+    current_model: evidence existence and review fields, no persisted evidence state machine yet
+    target_states: [not_started, completion_pending, completion_review, verified, failed]
+  communication:
+    current_states: [suppressed, queued, provider_accepted, sent, delivered, failed]
+    target_states: [created, queued, sent, delivered, undelivered, failed, read]
+
+rules:
+  - State transitions must be registered before implementation.
+  - Booking, dispatch, execution, payment, earnings, payout, and communication states are separate.
+  - Provider callbacks may arrive duplicated or out of order.
+  - Completion requires payment readiness for positive-price jobs.
+  - Payout requires frozen earnings and no blocking hold.
+  - A rejected transition must return a reason code and create an audit/operational record where appropriate.

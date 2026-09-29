@@ -1,0 +1,38 @@
+version: 1
+status: inventory
+as_of: '2026-09-24'
+
+workers:
+  - name: notification-retries
+    route: /api/cron/notification-retries
+    domain: notification
+  - name: auto-dispatch
+    route: /api/cron/auto-dispatch
+    domain: dispatch
+  - name: reauth-payments
+    route: /api/cron/reauth-payments
+    domain: payment
+  - name: authorize-scheduled-payments
+    route: /api/cron/authorize-scheduled-payments
+    domain: payment
+  - name: release-payouts
+    route: /api/cron/release-payouts
+    domain: payout
+  - name: stripe-reconciliation
+    route: /api/cron/stripe-reconciliation
+    domain: reconciliation
+  - name: reminders
+    route: /api/cron/reminders
+    domain: notification
+  - name: no-show-check
+    route: /api/cron/no-show-check
+    domain: execution
+  - name: easer-arrival-nudge
+    route: /api/cron/easer-arrival-nudge
+    domain: notification
+
+rules:
+  - Every worker has a cron log result.
+  - Workers must be safe to rerun.
+  - Provider and database uncertainty becomes reconciliation, not silent success.
+  - Failed work must remain owner-visible.
