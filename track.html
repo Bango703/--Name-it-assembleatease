@@ -999,9 +999,9 @@ function renderBooking(b) {
     }
   } else {
     cancelBtn.style.display = '';
-    const p = cancelFeeClient(b);
-    if (p.pct > 0) {
-      document.getElementById('cancelFeeMsg').textContent = p.msg + ' Estimated fee: ' + p.feeText + '.';
+    const p = cancellationPreviewOf(b);
+    if (p && p.fee_cents > 0) {
+      document.getElementById('cancelFeeMsg').textContent = p.message + ' Estimated fee: ' + formatUsdCents(p.fee_cents) + '.';
       feeWarn.style.display = 'block';
     } else {
       feeWarn.style.display = 'none';
@@ -1100,19 +1100,29 @@ async function loadCustomerCommunication() {
 })();
 
 // ── Cancel modal ───────────────────────────────────────────
-function openCancelModal() {
+async function openCancelModal() {
   if (!currentBooking) return;
   const feeEl  = document.getElementById('cancelModalFee');
   const descEl = document.getElementById('cancelModalDesc');
 
-  const p = cancelFeeClient(currentBooking);
-  if (p.pct > 0) {
-    feeEl.innerHTML = '<strong>Cancellation fee: ' + p.feeText + '</strong> ' + p.msg;
+  // Re-read the booking so the fee reflects the time the customer is deciding,
+  // not the time the page loaded.
+  await silentRefreshBooking();
+  const p = cancellationPreviewOf(currentBooking);
+  if (p && p.fee_cents > 0) {
+    feeEl.textContent = '';
+    const strong = document.createElement('strong');
+    strong.textContent = 'Cancellation fee: ' + formatUsdCents(p.fee_cents);
+    feeEl.appendChild(strong);
+    feeEl.appendChild(document.createTextNode(' ' + p.message));
     feeEl.style.display = 'block';
     descEl.textContent  = 'Are you sure you want to cancel? This cannot be undone.';
+  } else if (p) {
+    feeEl.style.display = 'none';
+    descEl.textContent  = p.message + ' Are you sure you want to cancel? This cannot be undone.';
   } else {
     feeEl.style.display = 'none';
-    descEl.textContent  = 'Your appointment is more than 24 hours away — cancellation is free. Your card hold will be fully released.';
+    descEl.textContent  = 'Any cancellation fee is calculated when you confirm. Are you sure you want to cancel? This cannot be undone.';
   }
 
   document.getElementById('cancelModalContent').style.display = '';
@@ -1293,6 +1303,7 @@ async function confirmReschedule() {
     currentBooking.time = time;
     currentBooking.was_rescheduled = true;
     renderBooking(currentBooking);
+    silentRefreshBooking();
   } catch (err) {
     errEl.textContent = err.message;
     errEl.style.display = 'block';
@@ -1320,9 +1331,9 @@ async function confirmCancel() {
     document.getElementById('cancelResultIcon').textContent   = 'Done';
     document.getElementById('cancelResultTitle').textContent  = 'Booking cancelled';
     document.getElementById('cancelResultDesc').textContent   =
-      data.feeCaptured > 0
-        ? 'A cancellation fee of ' + formatUsdCents(data.feeCaptured) + ' was charged. A confirmation email is on its way.'
-        : 'Your booking has been cancelled and your card hold released. A confirmation email is on its way.';
+      (data.customerMessage || (data.feeCaptured > 0
+        ? 'A cancellation fee of ' + formatUsdCents(data.feeCaptured) + ' was charged.'
+        : 'Your booking is cancelled.')) + ' A confirmation email is on its way.';
     resultEl.style.display = 'block';
 
     // Update booking card badge
@@ -1417,25 +1428,12 @@ function apptHoursAway(dateStr, timeStr) {
   } catch { return null; }
 }
 
-// Client estimate that mirrors the server cancellation policy
-// (api/_source-of-truth.js → computeCancellationFee). Server is the source of truth.
-function cancelFeeClient(b) {
-  const sub = Math.max(0, (b.total_price || 0) - (b.tax_amount || 0) - (b.service_call_fee || 0));
-  const h = apptHoursAway(b.date, b.time);
-  const st = String(b.status || '').toLowerCase();
-  const committed = st === 'en_route' || st === 'arrived' || st === 'in_progress';
-  let pct = 0, msg = '';
-  if (committed || (h != null && h < 2)) {
-    pct = 15;
-    msg = 'A pro is on the way or your appointment is within 2 hours, so a 15% fee applies (on the service subtotal, no tax). The rest of your hold is released.';
-  } else if ((h != null && h < 24) || b.was_rescheduled) {
-    pct = 10;
-    msg = (b.was_rescheduled && !(h != null && h < 24))
-      ? 'Because this booking was rescheduled, a 10% fee applies (on the service subtotal, no tax).'
-      : 'Your appointment is within 24 hours, so a 10% fee applies (on the service subtotal, no tax). The rest of your hold is released.';
-  }
-  const feeCents = Math.round(sub * pct / 100);
-  return { pct, feeCents, feeText: formatUsdCents(feeCents), msg };
+// The cancellation fee and its reason come from the server
+// (api/booking/track.js -> cancellation_preview), worked out by the same
+// evaluation the cancel endpoint charges with. The page never computes a fee.
+function cancellationPreviewOf(b) {
+  const p = b && b.cancellation_preview;
+  return p && typeof p.message === 'string' ? p : null;
 }
 
 // Pre-fill from URL params.

@@ -5,6 +5,8 @@ import { safeTokenHashMatch } from '../_payment-security.js';
 import { canRecoverPaymentNow } from './_pending-payment-recovery.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
 import { loadCustomerFacingCompletionPhoto } from './_completion-evidence.js';
+import { evaluateCancellationPolicy } from './_cancellation-policy-truth.js';
+import { cancellationPreview } from './_cancellation-fee-summary.js';
 
 /**
  * POST /api/booking/track
@@ -127,6 +129,19 @@ export default async function handler(req, res) {
   }
   const wasRescheduled = rescheduleCount > 0;
 
+  // The cancel button's fee warning. Worked out by the same evaluation the
+  // cancel endpoints charge with, so what the customer is shown is what they
+  // are charged, for the same reason. The page renders this; it never
+  // computes a fee of its own.
+  let cancellationPreviewPayload = null;
+  if (!['cancelled', 'completed', 'declined', 'refunded'].includes(String(booking.status || '').toLowerCase())) {
+    try {
+      cancellationPreviewPayload = cancellationPreview(evaluateCancellationPolicy(booking).policy);
+    } catch (previewError) {
+      console.error('Cancellation preview unavailable:', previewError.message);
+    }
+  }
+
   // Pro trust details — photo, rating, jobs done — once a Pro has accepted.
   // Builds confidence before a stranger arrives. First name + these only; no PII.
   let proPhoto = null, proRating = null, proJobs = null, proVerified = false, proTier = null;
@@ -206,6 +221,7 @@ export default async function handler(req, res) {
     cancel_reason: booking.cancel_reason || null,
     cancellation_fee: booking.cancellation_fee || null,
     was_rescheduled: wasRescheduled,
+    cancellation_preview: cancellationPreviewPayload,
     // Pro trust signal — first name only (never full name/phone to customer),
     // shown once the Pro has accepted the job.
     pro_first_name: (booking.assembler_accepted_at && booking.assembler_name)

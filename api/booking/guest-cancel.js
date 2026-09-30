@@ -4,16 +4,15 @@ import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeCancellationFee, computeBookingSplitAtFeePct } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeBookingSplitAtFeePct } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
-import { appointmentTimestampMs } from './_appt-date.js';
 import { writeFinancialAudit, writeFinancialAuditRequired } from '../_financial-audit.js';
 import { safeTokenHashMatch } from '../_payment-security.js';
 import { reserveBookingFinancialOperation } from './_financial-operation.js';
 import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { reconcileCancellationAssembleCash } from './_cancellation-credits.js';
-import { loadBookingRescheduleTruth } from './_cancellation-policy-truth.js';
+import { evaluateCancellationPolicy } from './_cancellation-policy-truth.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
 import {
@@ -24,10 +23,9 @@ import {
 } from './_cancellation-stripe-truth.js';
 import {
   assertCancellationPayoutUnsettled,
-  cancellationPolicyEvaluationTimeMs,
   hasDurableCancellationFeeCaptureAudit,
 } from './_cancellation-operation.js';
-import { cancellationFeeSummaryHtml } from './_cancellation-fee-summary.js';
+import { cancellationFeeSummaryHtml, customerCancellationResult } from './_cancellation-fee-summary.js';
 
 async function cancelGuestIntent(stripe, booking, row) {
   if (row.intent.status === 'canceled') return;
@@ -131,32 +129,13 @@ export default async function handler(req, res) {
   }
 
   // Timing → tiered cancellation fee (% of pre-tax service subtotal, never tax).
-  const policyEvaluationTimeMs = cancellationPolicyEvaluationTimeMs(booking);
-  let hoursAway = null;
+  // One evaluation shared with the other cancel path and the tracking preview.
+  let policy, hoursAway, wasRescheduled;
   try {
-    const apptMs = appointmentTimestampMs(booking.date, booking.time);
-    if (apptMs != null) hoursAway = (apptMs - policyEvaluationTimeMs) / 3600000;
-  } catch (e) { console.error('Date parse error:', e); }
-
-  // A rescheduled booking forfeits its free window (disclosed at reschedule time).
-  let wasRescheduled;
-  try {
-    ({ wasRescheduled } = loadBookingRescheduleTruth(booking));
+    ({ policy, hoursAway, wasRescheduled } = evaluateCancellationPolicy(booking));
   } catch (policyTruthError) {
     return res.status(503).json({ error: policyTruthError.message, code: policyTruthError.code });
   }
-
-  const serviceSubtotalCents = Math.max(0,
-    (booking.total_price || 0) - (booking.tax_amount || 0) - (booking.service_call_fee || 0));
-  const policy = computeCancellationFee({
-    serviceSubtotalCents,
-    hoursUntilAppointment: hoursAway,
-    status: booking.status,
-    forfeitFreeWindow: wasRescheduled,
-    // No accepted Easer means no commitment to compensate. The rule lives in
-    // computeCancellationFee; this only supplies the fact it needs.
-    easerAccepted: Boolean(booking.assembler_id && booking.assembler_accepted_at),
-  });
   const withinWindow = policy.tier !== 'free';
 
   if (!['pending', 'failed', 'authorized', 'card_saved', 'not_required'].includes(booking.payment_status)) {
@@ -435,17 +414,10 @@ export default async function handler(req, res) {
 
   // Email customer
   try {
-    const feeReasonText = (wasRescheduled && policy.tier === 'late')
-      ? 'applies because this booking had been rescheduled (rescheduled bookings are not eligible for free cancellation)'
-      : (policy.tier === 'imminent'
-          ? 'applies because the appointment was within 2 hours or a pro was already on the way'
-          : 'applies because this cancellation was within 24 hours of your appointment');
-    const feeHtml = feeCaptured > 0
-      ? `<p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">
-           A cancellation fee of <strong>$${(feeCaptured / 100).toFixed(2)}</strong> (${policy.feePct}% of the service subtotal &mdash; no tax) ${feeReasonText}. The remainder of your hold has been released.
-         </p>`
-      : `<p style="margin:0 0 16px;font-size:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:12px 16px;color:#166534">
-           No charge &mdash; your card hold has been fully released.
+    // Words come from the rule's reason (one source); only the facts
+    // (what was captured, whether a hold existed) come from this path.
+    const feeHtml = `${feeCaptured > 0 ? '<p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">' : '<p style="margin:0 0 16px;font-size:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:12px 16px;color:#166534">'}
+           ${esc(customerCancellationResult({ policy, feeCaptured, holdReleased: stripeMutationRequired }))}
          </p>`;
 
     await sendEmail({
@@ -521,5 +493,5 @@ ${proTripCutCents > 0 ? '<p style="background:#eff6ff;border:1px solid #bfdbfe;b
     feeCaptured, withinWindow, timestamp: new Date().toISOString(),
   }));
 
-  return res.status(cancellationCredits.ok ? 200 : 202).json({ success: true, feeCaptured, withinWindow, tier: policy.tier, feePct: policy.feePct, proTripCutCents, rewardsReconciliationRequired: !cancellationCredits.ok, operationalFollowupRequired: !!dispatchCleanupError || !timelineResult.ok });
+  return res.status(cancellationCredits.ok ? 200 : 202).json({ success: true, feeCaptured, withinWindow, tier: policy.tier, feePct: policy.feePct, reason: policy.reason, customerMessage: customerCancellationResult({ policy, feeCaptured, holdReleased: stripeMutationRequired }), proTripCutCents, rewardsReconciliationRequired: !cancellationCredits.ok, operationalFollowupRequired: !!dispatchCleanupError || !timelineResult.ok });
 }

@@ -53,10 +53,15 @@ import { computeCancellationFee } from '../api/_source-of-truth.js';
 
 // ── Every cancel path supplies the fact ─────────────────────────────────────
 {
-  for (const f of ['cancel.js', 'customer-cancel.js', 'guest-cancel.js']) {
+  // The fact is supplied once, in the shared evaluation every path must use
+  // (2026-09-29: one evaluation so the preview, the charge and every email agree).
+  const evaluator = await fs.readFile(new URL('../api/booking/_cancellation-policy-truth.js', import.meta.url), 'utf8');
+  assert.ok(/easerAccepted: Boolean\(booking\.assembler_id && booking\.assembler_accepted_at\)/.test(evaluator),
+    'the shared evaluation must pass easerAccepted, or it silently waives every fee');
+  for (const f of ['cancel.js', 'customer-cancel.js', 'guest-cancel.js', 'track.js']) {
     const src = await fs.readFile(new URL(`../api/booking/${f}`, import.meta.url), 'utf8');
-    assert.ok(/easerAccepted: Boolean\(booking\.assembler_id && booking\.assembler_accepted_at\)/.test(src),
-      `${f} must pass easerAccepted, or it silently waives every fee`);
+    assert.ok(/evaluateCancellationPolicy\(booking/.test(src),
+      `${f} must use the shared evaluation that supplies easerAccepted`);
   }
   console.log('PASS all three cancellation paths supply the acceptance fact');
 }

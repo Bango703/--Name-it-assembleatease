@@ -438,23 +438,29 @@ export function computeCancellationFee({ serviceSubtotalCents = 0, hoursUntilApp
   // fails toward not charging. Losing a fee we were owed is recoverable; taking
   // money we were not owed is not.
   if (easerAccepted !== true) {
-    return { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false, waivedReason: 'no_easer_accepted' };
+    return { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false, waivedReason: 'no_easer_accepted', reason: 'no_easer_accepted' };
   }
 
   const proCommitted = status === BOOKING_STATUS.EN_ROUTE || status === BOOKING_STATUS.ARRIVED || status === BOOKING_STATUS.IN_PROGRESS;
 
-  let tier, feePct;
+  // `reason` is the ONE statement of why this outcome applies. Every email,
+  // page and dashboard that explains a cancellation fee renders this code;
+  // none may work out its own reason (AAE-TYRHONCHIO: an email guessed
+  // "24h+ notice" for a same-day cancellation whose real reason was
+  // no_easer_accepted).
+  let tier, feePct, reason;
   if (isNoShow || proCommitted || (h != null && h < CANCELLATION_POLICY.imminentWindowHours)) {
     tier = 'imminent'; feePct = CANCELLATION_POLICY.imminentFeePct;
+    reason = isNoShow ? 'no_show' : (proCommitted ? 'pro_committed' : 'imminent_window');
   } else if (h != null && h < CANCELLATION_POLICY.freeWindowHours) {
-    tier = 'late'; feePct = CANCELLATION_POLICY.lateFeePct;
+    tier = 'late'; feePct = CANCELLATION_POLICY.lateFeePct; reason = 'late_window';
   } else {
-    tier = 'free'; feePct = 0;
+    tier = 'free'; feePct = 0; reason = h == null ? 'notice_unknown' : 'free_window';
   }
   // A rescheduled booking forfeits its free window — at minimum the late tier applies.
-  if (forfeitFreeWindow && tier === 'free') { tier = 'late'; feePct = CANCELLATION_POLICY.lateFeePct; }
+  if (forfeitFreeWindow && tier === 'free') { tier = 'late'; feePct = CANCELLATION_POLICY.lateFeePct; reason = 'rescheduled'; }
 
-  return { tier, feePct, feeCents: Math.round(sub * feePct / 100), proTripCut: tier === 'imminent' };
+  return { tier, feePct, feeCents: Math.round(sub * feePct / 100), proTripCut: tier === 'imminent', reason };
 }
 
 /**
