@@ -1,0 +1,27 @@
+{
+  "name": "assembleatease-easer-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AssembleAtEase Easer app for iOS and Android (Capacitor shell around https://www.assembleatease.com/assembler/)",
+  "scripts": {
+    "sync": "cap sync",
+    "assets": "capacitor-assets generate --iconBackgroundColor '#ffffff' --splashBackgroundColor '#ffffff'",
+    "open:android": "cap open android",
+    "open:ios": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/ios": "8.5.2",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.3",
+    "@capacitor-firebase/messaging": "8.5.2",
+    "firebase": "^12.6.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.2"
+  }
+}

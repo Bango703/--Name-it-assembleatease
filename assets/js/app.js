@@ -555,6 +555,14 @@ const APP = {
 
 window.APP = APP;
 
+// True only inside the installed Easer app (App Store / Google Play), where
+// Capacitor provides native push. The website never has window.Capacitor, so
+// every branch guarded by this is a no-op on the web.
+window.AAE_isNativeApp = function () {
+  try { return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()); }
+  catch (_) { return false; }
+};
+
 // ── Footer year — runs on every page ──────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const yearEl = document.getElementById('year');
@@ -576,6 +584,8 @@ document.addEventListener('DOMContentLoaded', () => {
 (function initPWAInstall() {
   if (typeof window === 'undefined' || !window.location) return;
   if (location.pathname.indexOf('/assembler') !== 0) return; // Easer routes only
+  // The store app has native push and is already installed: no service worker, no install button.
+  if (window.AAE_isNativeApp && window.AAE_isNativeApp()) return;
 
   // Ensure the service worker is registered on whatever Easer route the Pro lands
   // on (incl. onboarding pages that don't register it themselves). Android needs a
