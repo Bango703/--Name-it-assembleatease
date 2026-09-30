@@ -94,7 +94,7 @@ assert.match(read('api/cron/easer-announcements.js'), /white-space:pre-line/, 't
 const page = read('assembler/my-assignments.html');
 assert.match(page, /a\.ackRequired[\s\S]*id="required-action-ack"[\s\S]*>I understand</);
 assert.match(page, /\/api\/assembler\/acknowledge-announcement/);
-const migration = read('api/migrations/102_easer_cancellation_policy_announcement.sql');
+const migration = read('api/migrations/102_easer_cancellation_policy_announcement.sql').replace(/\r\n/g, '\n');
 assert.match(migration, /'policy_acknowledgment'/);
 assert.match(migration, /ON CONFLICT \(key\) DO UPDATE SET/, 'safe to run twice; a rerun updates wording without touching confirmations');
 assert.match(migration, /A confirmed no-show: 3 strikes/, 'the notice lists every strike rule');
