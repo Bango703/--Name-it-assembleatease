@@ -295,6 +295,7 @@
     <a href="/assembler/verify-identity" style="color:#0369a1;font-weight:700;margin-left:0.25rem">Review agreement</a>
   </div>
 
+  <div id="reliability-standing" role="status" style="display:none;margin:0 0 0.75rem;padding:0.65rem 0.85rem;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:0.8rem;line-height:1.5"></div>
   <div class="e-filter-row" id="filter-tabs">
     <button class="e-filter-pill active" data-filter="all">All</button>
     <button class="e-filter-pill" data-filter="offers">Offers <span class="e-pill-count" id="fc-offers"></span></button>
@@ -1102,6 +1103,7 @@
       if (!await earningsPromise) await refreshEarningsTruth(token);
       renderAssignments(allAssignments);
       updateFilterCounts(allAssignments);
+      if (typeof window.loadReliabilityStanding === 'function') window.loadReliabilityStanding();
       if (initialOfferBookingId && typeof window.openDetail === 'function') {
         setTimeout(function(){ window.openDetail(initialOfferBookingId); }, 150);
       }
@@ -1699,24 +1701,26 @@
       workflow.innerHTML = supportPanelHtml(
         'Can\'t make this job?',
         canSelfDrop
-          ? 'You are still within the 15-minute self-drop window. Select a reason before releasing the job.'
-          : 'The 15-minute self-drop window has passed. Support can help release you from the job.',
+          ? 'Select a reason before cancelling. The job will be offered to another Easer.'
+          : 'This job is already underway. Support can help release you from it.',
         '<div id="release-reasons" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.7rem">'
           + ['Emergency', 'Vehicle issue', 'Running too late', 'Schedule conflict', 'Other'].map(function(reason) {
             return '<button type="button" class="release-reason" data-release-reason="' + esc(reason) + '" style="padding:0.35rem 0.65rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.73rem;font-weight:600;cursor:pointer">' + esc(reason) + '</button>';
           }).join('')
           + '</div>'
+          + (canSelfDrop ? '<div id="release-impact" role="status" style="margin-top:0.65rem;padding:0.65rem 0.75rem;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:0.78rem;line-height:1.5">Checking what cancelling this job means for your reliability…</div>' : '')
           + '<textarea id="release-note" maxlength="1200" rows="2" placeholder="Tell us anything else we should know (optional)" style="width:100%;box-sizing:border-box;margin-top:0.65rem;border:1px solid var(--pro-border-md);border-radius:9px;padding:0.65rem;font:inherit;font-size:0.78rem;resize:vertical"></textarea>'
-          + '<button type="button" id="release-submit" class="btn btn-teal" disabled style="width:100%;min-height:44px;margin-top:0.55rem;border-radius:10px">' + (canSelfDrop ? 'Drop this job' : 'Request release') + '</button>'
+          + '<button type="button" id="release-submit" class="btn btn-teal" disabled style="width:100%;min-height:44px;margin-top:0.55rem;border-radius:10px">' + (canSelfDrop ? 'Cancel this job' : 'Request release') + '</button>'
           + (canSelfDrop ? '<div id="release-confirmation" role="group" aria-labelledby="release-confirmation-title" style="display:none;margin-top:0.65rem;padding:0.75rem;border:1px solid #fecaca;border-radius:10px;background:#fff7f7">'
-            + '<div id="release-confirmation-title" style="font-size:0.82rem;font-weight:700;color:#991b1b">Drop this job?</div>'
-            + '<div style="font-size:0.75rem;color:#7f1d1d;line-height:1.5;margin-top:0.2rem">You will be removed from the assignment and the job will be offered to another Easer.</div>'
+            + '<div id="release-confirmation-title" style="font-size:0.82rem;font-weight:700;color:#991b1b">Cancel this job?</div>'
+            + '<div id="release-confirmation-body" style="font-size:0.75rem;color:#7f1d1d;line-height:1.5;margin-top:0.2rem">You will be removed from the assignment and the job will be offered to another Easer.</div>'
             + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.65rem">'
             + '<button type="button" id="release-confirm-back" class="btn btn-outline" style="min-height:44px">Go back</button>'
-            + '<button type="button" id="release-confirm-submit" class="btn btn-danger" style="min-height:44px">Confirm drop</button>'
+            + '<button type="button" id="release-confirm-submit" class="btn btn-danger" style="min-height:44px">Confirm cancel</button>'
             + '</div></div>' : '')
       );
       workflow.style.display = 'block';
+      if (canSelfDrop) loadCancellationImpact();
       var selectedReason = '';
       workflow.querySelectorAll('.release-reason').forEach(function(button) {
         button.addEventListener('click', function() {
@@ -1850,12 +1854,69 @@
     }
   }
 
+  function reliabilityImpactText(impact) {
+    if (!impact) return '';
+    var added = impact.strikesAdded;
+    var costLine = impact.kind === 'grace'
+      ? 'You accepted this job less than 15 minutes ago, so cancelling now has no reliability strike.'
+      : impact.kind === 'advance'
+        ? 'The job is more than 24 hours away, so cancelling now has no reliability strike.'
+        : impact.kind === 'same_day'
+          ? 'The job is today. Cancelling counts as ' + added + ' reliability strikes.'
+          : 'The job starts in less than 24 hours. Cancelling counts as ' + added + ' reliability strike' + (added === 1 ? '' : 's') + '.';
+    var standing = ' You have ' + impact.strikesBefore + ' strike' + (impact.strikesBefore === 1 ? '' : 's') + ' in the last ' + impact.windowDays + ' days; at ' + impact.pauseAtStrikes + ', new jobs pause.';
+    var pauseLine = impact.willPause ? ' This cancellation will pause new jobs until AssembleAtEase reviews your account.' : '';
+    return costLine + standing + pauseLine;
+  }
+
+  async function loadCancellationImpact() {
+    var box = document.getElementById('release-impact');
+    if (!box || !_supportContext) return;
+    try {
+      var response = await fetch('/api/booking/drop-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+        body: JSON.stringify({ bookingId: _supportContext.bookingId, preview: true }),
+      });
+      var data = await response.json();
+      if (!response.ok || !data.impact) throw new Error(data.error || 'unavailable');
+      var text = reliabilityImpactText(data.impact);
+      box.textContent = text;
+      var confirmBody = document.getElementById('release-confirmation-body');
+      if (confirmBody) confirmBody.textContent = 'You will be removed from the assignment and the job will be offered to another Easer. ' + text;
+    } catch (error) {
+      box.textContent = error && error.message && error.message !== 'unavailable'
+        ? error.message
+        : 'The reliability cost could not be loaded. Cancelling within 24 hours of the job counts as a strike.';
+    }
+  }
+
+  async function loadReliabilityStanding() {
+    var el = document.getElementById('reliability-standing');
+    if (!el) return;
+    try {
+      var response = await fetch('/api/assembler/reliability', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+      var data = await response.json();
+      if (!response.ok) return;
+      if (data.paused) {
+        el.textContent = 'New jobs are paused: ' + data.strikes + ' reliability strikes in the last ' + data.windowDays + ' days. AssembleAtEase will review your account.';
+        el.style.display = 'block';
+      } else if (data.strikes > 0) {
+        el.textContent = 'Reliability: ' + data.strikes + ' strike' + (data.strikes === 1 ? '' : 's') + ' in the last ' + data.windowDays + ' days. At ' + data.pauseAtStrikes + ', new jobs pause. Cancelling within 24 hours of a job is 1 strike; on the day of the job, 2.';
+        el.style.display = 'block';
+      } else {
+        el.style.display = 'none';
+      }
+    } catch (_) { /* standing is informational; the cancel panel always shows the cost */ }
+  }
+  window.loadReliabilityStanding = loadReliabilityStanding;
+
   async function dropCurrentJob(button, reason, note) {
     if (_supportRequestInFlight || !_supportContext) return;
     _supportRequestInFlight = true;
     var originalText = button.textContent;
     button.disabled = true;
-    button.textContent = 'Dropping...';
+    button.textContent = 'Cancelling...';
     try {
       var response = await fetch('/api/booking/drop-job', {
         method: 'POST',
@@ -1865,7 +1926,8 @@
       var data = await response.json();
       if (!response.ok || data.error) throw new Error(data.error || 'Could not drop this job.');
       closeAssignmentModal(false);
-      APP.showAlert('page-alert', data.message || 'Job dropped. You will not receive further updates for this assignment.', 'info');
+      APP.showAlert('page-alert', data.message || 'Job cancelled. You will not receive further updates for this assignment.', 'info');
+      loadReliabilityStanding();
       var assignmentsResponse = await fetchAssignments();
       if (assignmentsResponse.ok) {
         var assignmentsData = await assignmentsResponse.json();
@@ -2185,13 +2247,16 @@
     const hasActiveAssignmentForSupport = accepted
       && !isCompleted
       && (['confirmed', 'en_route', 'arrived', 'in_progress'].includes(b.status) || openReturnVisit);
+    // Any confirmed, accepted job can be cancelled by the Easer themself; the
+    // server decides the reliability cost (grace / advance / late / same-day)
+    // and the panel shows it before they confirm.
     _supportContext = {
       bookingId: b.id,
       canSelfDrop: hasActiveAssignmentForSupport
         && b.status === 'confirmed'
         && b._can_self_drop !== false
-        && !!acceptedAt
-        && minsSinceAcceptance <= 15,
+        && !!acceptedAt,
+      minsSinceAcceptance: minsSinceAcceptance,
     };
     _selectedSupportType = '';
     _supportRequestInFlight = false;

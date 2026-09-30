@@ -10734,6 +10734,8 @@ window.intelQuick = intelQuick;
         : ''),
       // Authoritative job-readiness panel
       '<div id="asm-onboarding-readiness-panel" style="margin-bottom:0.75rem"></div>',
+      // Cancellation reliability: strikes in the window, each cancellation, excuse
+      '<div id="asm-reliability-panel" style="margin-bottom:0.75rem"></div>',
       // Tax-document tracking. Raw W-9/TIN data must remain in an approved secure system.
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">W-9 Compliance</div>'
         + '<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">'
@@ -10788,7 +10790,56 @@ window.intelQuick = intelQuick;
     ].filter(Boolean).join('');
     document.getElementById('asm-detail-modal').classList.add('open');
     loadEaserOnboardingReadiness(a.id);
+    loadEaserReliability(a.id);
   }
+
+  // ── Easer cancellation reliability (strikes) ─────────────────────────────
+  // Server decides and counts (api/_easer-reliability.js); this only renders
+  // and sends the owner's excuse. Excusing never reactivates a paused Easer.
+  var RELIABILITY_KIND_LABEL = { grace: 'Within 15 min of accepting', advance: '24+ hours notice', late: 'Under 24 hours notice', same_day: 'Same day' };
+  async function loadEaserReliability(easerId) {
+    var box = document.getElementById('asm-reliability-panel');
+    if (!box) return;
+    box.innerHTML = '<div style="font-size:0.78rem;color:var(--muted)">Loading reliability…</div>';
+    try {
+      var r = await fetch('/api/owner/easer-reliability?easerId=' + encodeURIComponent(easerId), { headers: headers() });
+      var data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Reliability could not be loaded.');
+      if (document.getElementById('asm-reliability-panel') !== box) return;
+      var rows = (data.events || []).slice().reverse().map(function(e) {
+        var when = new Date(e.createdAt).toLocaleString();
+        var label = RELIABILITY_KIND_LABEL[e.kind] || e.kind || 'Cancellation';
+        var strikeText = e.excused ? 'Excused' : (e.strikes + ' strike' + (e.strikes === 1 ? '' : 's'));
+        var action = (!e.excused && e.strikes > 0)
+          ? '<button class="btn" style="padding:2px 10px;font-size:0.72rem" onclick="excuseEaserCancellation(\'' + esc(e.logId) + '\', \'' + esc(easerId) + '\')">Excuse</button>'
+          : '';
+        return '<div style="display:flex;justify-content:space-between;gap:0.5rem;align-items:center;padding:6px 0;border-top:1px solid var(--border)">'
+          + '<div><div style="font-weight:600;color:var(--ink)">' + esc(label) + ' · ' + esc(strikeText) + '</div>'
+          + '<div style="font-size:0.72rem;color:var(--muted)">' + esc(when) + (e.reason ? ' · ' + esc(e.reason) : '') + '</div></div>'
+          + action + '</div>';
+      }).join('');
+      box.innerHTML = '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Reliability</div>'
+        + '<div style="font-weight:700;color:' + (data.strikes >= data.pauseAtStrikes ? '#b91c1c' : data.strikes > 0 ? '#b45309' : 'var(--ink)') + '">'
+        + data.strikes + ' strike' + (data.strikes === 1 ? '' : 's') + ' in the last ' + data.windowDays + ' days (pause at ' + data.pauseAtStrikes + ')</div>'
+        + (rows || '<div style="font-size:0.78rem;color:var(--muted)">No cancellations of accepted jobs in this window.</div>');
+    } catch (err) {
+      box.innerHTML = '<div style="font-size:0.78rem;color:#b91c1c">' + esc(err.message || 'Reliability could not be loaded.') + '</div>';
+    }
+  }
+  async function excuseEaserCancellation(logId, easerId) {
+    var note = prompt('Excuse this cancellation? Its strikes will be removed. Optional note (for example, the emergency):', '');
+    if (note === null) return;
+    try {
+      var r = await fetch('/api/owner/easer-reliability', { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ logId: logId, note: note }) });
+      var data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'The excusal could not be saved.');
+      toast('Cancellation excused.', 'success');
+      loadEaserReliability(easerId);
+    } catch (err) {
+      toast(err.message || 'The excusal could not be saved.', 'error');
+    }
+  }
+  window.excuseEaserCancellation = excuseEaserCancellation;
 
   function formatUsPhone(value) {
     var digits = String(value || '').replace(/\D/g, '');
