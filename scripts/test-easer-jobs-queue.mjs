@@ -143,8 +143,14 @@ assert.match(jobsPage, /Your assignment remains active until support confirms a 
   'A release request must not imply that the booking was already mutated.');
 assert.match(jobsPage, /If anyone is in immediate danger, call 911/);
 assert.match(jobsPage, />Send Urgent Report</);
-assert.match(jobsPage, /canSelfDrop[\s\S]*minsSinceAcceptance <= 15/,
-  'The existing 15-minute self-drop remains available only inside the routed exception flow.');
+// 2026-09-30: self-cancel is no longer limited to 15 minutes. It stays inside
+// the routed "Can't make it" flow, only for a confirmed accepted job, and the
+// server's reliability cost is shown before the Easer confirms
+// (test-easer-cancellation-reliability).
+assert.match(jobsPage, /canSelfDrop: hasActiveAssignmentForSupport\s*&& b\.status === 'confirmed'\s*&& b\._can_self_drop !== false\s*&& !!acceptedAt,/,
+  'Self-cancel remains available only inside the routed exception flow, for a confirmed accepted job.');
+assert.match(jobsPage, /if \(canSelfDrop\) loadCancellationImpact\(\)/,
+  'The reliability cost is loaded before a self-cancel can be confirmed.');
 
 assert.match(messageApi, /const EASER_SUPPORT_TYPES = Object\.freeze/);
 assert.match(messageApi, /safety_concern:[\s\S]*OPERATION_CASE_TYPES\.SAFETY[\s\S]*OPERATION_CASE_SEVERITIES\.CRITICAL/);
