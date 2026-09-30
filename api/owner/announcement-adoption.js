@@ -74,7 +74,7 @@ export default async function handler(req, res) {
         .eq('role', 'assembler').eq('status', 'active').eq('application_status', 'approved');
 
       // Currently incomplete (the pending list).
-      const { data: incomplete } = await rule.query(sb);
+      const { data: incomplete } = await rule.query(sb, a);
       const pending = incomplete || [];
       const pendingIds = pending.map((p) => p.id);
 

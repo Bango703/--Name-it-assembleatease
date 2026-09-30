@@ -10,7 +10,42 @@ import { isSmsEnabled } from './_sms.js';
 // Each rule decides, from a plain profile row, whether an Easer still NEEDS the
 // action (`incomplete`) and how to bulk-select those Easers (`query`). `active`
 // gates whether the rule is live at all right now (e.g. Connect must be on).
+// Acknowledgment rule: the Easer is "done" when they tap "I understand", not
+// when a profile field changes. The tap is stored on their delivery row
+// (dismissed_at = acknowledged, completed_at = done), so there is a dated
+// record that each Easer saw the policy. Used for the cancellation policy
+// (2026-09-30); any policy notice can reuse it with target_rule
+// 'policy_acknowledgment'.
+async function acknowledgedEaserIds(sb, announcementId) {
+  const { data, error } = await sb.from('easer_announcement_deliveries')
+    .select('easer_id')
+    .eq('announcement_id', announcementId)
+    .not('dismissed_at', 'is', null);
+  if (error) return { ids: null, error };
+  return { ids: new Set((data || []).map((row) => row.easer_id)), error: null };
+}
+
 export const TARGET_RULES = {
+  policy_acknowledgment: {
+    ackRequired: true,
+    active: () => true,
+    incomplete(profile = {}) {
+      return String(profile.status || '').toLowerCase() === 'active'
+        && String(profile.application_status || '').toLowerCase() === 'approved';
+    },
+    async query(sb, announcement) {
+      const { data, error } = await sb.from('profiles')
+        .select('id, full_name, email, status, application_status')
+        .eq('role', 'assembler')
+        .eq('status', 'active')
+        .eq('application_status', 'approved');
+      if (error) return { data: null, error };
+      if (!announcement?.id) return { data: data || [], error: null };
+      const acked = await acknowledgedEaserIds(sb, announcement.id);
+      if (acked.error) return { data: null, error: acked.error };
+      return { data: (data || []).filter((p) => !acked.ids.has(p.id)), error: null };
+    },
+  },
   // Job texts. An Easer approved before the application form started recording
   // SMS consent has no consent row, so api/_sms.js silently suppresses every
   // offer, crew add and arrival nudge sent to them. On 2026-09-08 that was two
@@ -115,7 +150,17 @@ export async function getEaserRequiredActions(sb, profile) {
   for (const a of announcements) {
     const rule = ruleFor(a);
     if (!rule || !rule.incomplete(profile)) continue;
+    if (rule.ackRequired) {
+      const { data: delivery, error } = await sb.from('easer_announcement_deliveries')
+        .select('dismissed_at')
+        .eq('announcement_id', a.id)
+        .eq('easer_id', profile.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (delivery?.dismissed_at) continue;
+    }
     out.push({
+      ackRequired: rule.ackRequired === true,
       key: a.key,
       type: a.type,
       title: a.title,
@@ -125,6 +170,25 @@ export async function getEaserRequiredActions(sb, profile) {
     });
   }
   return out;
+}
+
+// The Easer taps "I understand" on an acknowledgment announcement. Idempotent;
+// only for announcements whose rule requires acknowledgment.
+export async function acknowledgeAnnouncement(sb, { easerId, key, nowIso = new Date().toISOString() }) {
+  const { data: a, error } = await sb.from('easer_announcements')
+    .select('id, key, target_rule, status').eq('key', key).maybeSingle();
+  if (error) return { ok: false, status: 503, error: 'The notice could not be checked. Please retry.' };
+  if (!a || a.status !== 'active' || !ruleFor(a)?.ackRequired) return { ok: false, status: 404, error: 'Notice not found.' };
+  const { data: existing, error: loadError } = await sb.from('easer_announcement_deliveries')
+    .select('id, dismissed_at').eq('announcement_id', a.id).eq('easer_id', easerId).maybeSingle();
+  if (loadError) return { ok: false, status: 503, error: 'The notice could not be checked. Please retry.' };
+  if (existing?.dismissed_at) return { ok: true, alreadyAcknowledged: true, acknowledgedAt: existing.dismissed_at };
+  const patch = { dismissed_at: nowIso, completed_at: nowIso, updated_at: nowIso };
+  const result = existing
+    ? await sb.from('easer_announcement_deliveries').update(patch).eq('id', existing.id).select('id').single()
+    : await sb.from('easer_announcement_deliveries').insert({ announcement_id: a.id, easer_id: easerId, ...patch }).select('id').single();
+  if (result.error) return { ok: false, status: 503, error: 'Your confirmation could not be saved. Please retry.' };
+  return { ok: true, acknowledgedAt: nowIso, announcementKey: a.key };
 }
 
 // Cadence: send when no delivery yet, or when the next reminder day has arrived.
