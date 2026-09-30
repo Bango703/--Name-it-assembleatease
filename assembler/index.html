@@ -21,6 +21,7 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
   <script src="../config.js?v=20260818a" defer></script>
   <script src="../assets/js/app.js?v=20260818a" defer></script>
+  <script src="../assets/js/native-app.js?v=20260930a" defer></script>
   <script src="../assets/js/api.js?v=20260818a" defer></script>
   <script src="../assets/js/easer-notifications.js?v=20260818b" defer></script>
   <link rel="stylesheet" href="../assets/css/easer.css" />
@@ -1655,6 +1656,9 @@
 <script>
 (function(){
   if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
+  // Inside the store app, native push replaces web push (assets/js/native-app.js).
+  // (Checked directly: app.js is deferred and not loaded yet; Capacitor is injected before any page script.)
+  if(window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()) return;
   var _swReg=null, _userId=null, _swToken=null, _pushPublicKey=null;
 
   navigator.serviceWorker.register('/sw.js',{scope:'/assembler/'}).then(function(reg){

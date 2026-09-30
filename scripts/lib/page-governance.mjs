@@ -14,6 +14,7 @@ const EXCLUDED_DIRS = new Set([
   'business-artifacts',
   'functions',
   'images',
+  'mobile', // Easer app project (Capacitor): not website pages, never deployed
   'node_modules',
   'output',
   'tmp',

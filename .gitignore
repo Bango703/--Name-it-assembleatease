@@ -40,3 +40,8 @@ config.local.js
 secrets.js
 .vercel
 .env*
+
+# Easer app (Capacitor): dependencies and per-project Firebase config stay out of git
+mobile/node_modules/
+mobile/android/app/google-services.json
+mobile/ios/App/App/GoogleService-Info.plist
