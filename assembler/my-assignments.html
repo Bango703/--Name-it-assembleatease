@@ -1926,7 +1926,7 @@
       var data = await response.json();
       if (!response.ok || data.error) throw new Error(data.error || 'Could not drop this job.');
       closeAssignmentModal(false);
-      APP.showAlert('page-alert', data.message || 'Job cancelled. You will not receive further updates for this assignment.', 'info');
+      APP.showAlert('page-alert', data.message || 'Job cancelled. You will not receive further updates for this job.', 'info');
       loadReliabilityStanding();
       var assignmentsResponse = await fetchAssignments();
       if (assignmentsResponse.ok) {

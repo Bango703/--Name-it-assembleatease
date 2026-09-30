@@ -269,11 +269,11 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `${classification.kind === 'same_day' ? 'Same-day Easer cancellation' : classification.kind === 'late' ? 'Late Easer cancellation' : 'Job Dropped'} — ${esc(booking.ref || bookingId)}`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
-        <h3 style="color:#f59e0b">${classification.kind === 'grace' ? 'Pro Dropped a Job (within 15-min window)' : 'Pro Cancelled an Accepted Job'}</h3>
-        <p><strong>Reliability:</strong> ${classification.strikes} strike${classification.strikes === 1 ? '' : 's'} added (${esc(classification.kind.replace('_', '-'))}). ${esc(easerName)} now has ${strikesAfter} in ${EASER_RELIABILITY_POLICY.windowDays} days (pause at ${EASER_RELIABILITY_POLICY.pauseAtStrikes}).${pause.paused ? ' <strong>Paused from new jobs; reactivate from the Easers page if appropriate.</strong>' : ''}${strikeRecord.ok ? '' : ' <strong>The strike could not be recorded; check the booking timeline.</strong>'} You can excuse it from the Easer's profile for a genuine emergency.</p>
+        <h3 style="color:#f59e0b">${classification.kind === 'grace' ? 'Easer dropped a job within 15 minutes of accepting' : 'Easer cancelled an accepted job'}</h3>
+        <p><strong>Reliability:</strong> ${classification.strikes} strike${classification.strikes === 1 ? '' : 's'} for ${({ late: 'a late cancellation (under 24 hours)', same_day: 'a same-day cancellation', grace: 'a cancellation within 15 minutes of accepting', advance: 'a cancellation with 24+ hours notice' }[classification.kind] || 'a cancellation')}. ${esc(easerName)} now has ${strikesAfter} in the last ${EASER_RELIABILITY_POLICY.windowDays} days; new jobs pause at ${EASER_RELIABILITY_POLICY.pauseAtStrikes}.${pause.paused ? ' <strong>New jobs are now paused for this Easer. You can reactivate them from the Easers page.</strong>' : ''}${strikeRecord.ok ? '' : ' <strong>The strike could not be saved; check the booking timeline.</strong>'} For a genuine emergency, you can excuse it from the Easer's profile.</p>
         <p><strong>${esc(easerName)}</strong> dropped booking <strong>${esc(booking.ref || '')}</strong> (${esc(booking.service || '')}) ${Math.round(elapsedMin)} min after accepting.</p>
         ${reason ? `<p><strong>Reason:</strong> ${esc(reason)}${note ? `<br/><strong>Additional details:</strong> ${esc(note)}` : ''}</p>` : ''}
-        <p>${safelyRematching ? 'The job is being matched to other online Pros.' : 'Automatic redispatch needs owner review.'} The customer was not notified.</p>
+        <p>${safelyRematching ? 'The job is being offered to other Easers.' : 'No other Easer could be offered the job automatically; assign it from the dashboard.'} The customer was not notified.</p>
         <p><a href="${SITE}/owner/" style="color:#00BFFF">View in owner dashboard</a></p>
       </div>`,
       meta: { bookingId, notificationType: 'job_dropped', recipientType: 'owner' },
@@ -294,6 +294,6 @@ export default async function handler(req, res) {
     impact: { ...impact, paused: pause.paused === true },
     message: pause.paused
       ? `Job cancelled.${strikeText} You have reached ${EASER_RELIABILITY_POLICY.pauseAtStrikes} strikes, so new jobs are paused until AssembleAtEase reviews your account.`
-      : `Job cancelled. You will not receive further updates for this assignment.${strikeText}`,
+      : `Job cancelled. You will not receive further updates for this job.${strikeText}`,
   });
 }

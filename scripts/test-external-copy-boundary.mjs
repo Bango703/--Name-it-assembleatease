@@ -199,7 +199,7 @@ assert.match(completionApi, /We email you when it is sent/);
 }
 
 const dropResponse = dropApi.slice(dropApi.lastIndexOf('return res.status(200).json'));
-assert.match(dropResponse, /You will not receive further updates for this assignment/);
+assert.match(dropResponse, /You will not receive further updates for this job/);
 assert.doesNotMatch(dropResponse, /redispatch|dispatchAction|warning|owner review|customer payment/i);
 
 const declineResponse = declineApi.slice(declineApi.lastIndexOf('return res.status(200).json'));
