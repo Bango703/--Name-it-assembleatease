@@ -172,7 +172,7 @@ assert.equal(summary.platformGrossCents, -2_344, 'Refunded jobs must retain the 
 // is nobody to compensate when no one took the job.
 assert.deepEqual(
   computeCancellationFee({ serviceSubtotalCents: 20_000, hoursUntilAppointment: 30, easerAccepted: true }),
-  { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false },
+  { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false, reason: 'free_window' },
 );
 assert.equal(computeCancellationFee({ serviceSubtotalCents: 20_000, hoursUntilAppointment: 8, easerAccepted: true }).feeCents, 2_000);
 assert.equal(computeCancellationFee({ serviceSubtotalCents: 20_000, status: 'en_route', easerAccepted: true }).feeCents, 3_000);
