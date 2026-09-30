@@ -1014,11 +1014,35 @@
         if (!el) return;
         if (!actions.length) { el.style.display = 'none'; return; }
         var a = actions[0];
-        var btn = a.actionUrl
-          ? '<a href="' + esc(a.actionUrl) + '" style="background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:0.62rem 1.1rem;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;white-space:nowrap">' + esc(a.actionLabel || 'Open') + ' &rarr;</a>'
-          : '';
-        el.innerHTML = '<div style="flex:1;min-width:0"><div style="font-weight:800;color:#0a1628;font-size:0.9rem">' + esc(a.title) + '</div><div style="font-size:0.8rem;color:#334155;line-height:1.45;margin-top:2px">' + esc(a.body) + '</div></div>' + btn;
+        var btn = a.ackRequired
+          ? '<button type="button" id="required-action-ack" style="background:#00BFFF;color:#04222c;font-weight:800;border:0;padding:0.62rem 1.1rem;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;white-space:nowrap;cursor:pointer">I understand</button>'
+          : (a.actionUrl
+            ? '<a href="' + esc(a.actionUrl) + '" style="background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:0.62rem 1.1rem;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;white-space:nowrap">' + esc(a.actionLabel || 'Open') + ' &rarr;</a>'
+            : '');
+        // white-space:pre-line keeps the notice's line breaks (policy lists).
+        el.innerHTML = '<div style="flex:1;min-width:0"><div style="font-weight:800;color:#0a1628;font-size:0.9rem">' + esc(a.title) + '</div><div style="font-size:0.8rem;color:#334155;line-height:1.45;margin-top:2px;white-space:pre-line">' + esc(a.body) + '</div><div id="required-action-status" role="status" style="font-size:0.78rem;margin-top:4px"></div></div>' + btn;
         el.style.display = 'flex';
+        var ackBtn = document.getElementById('required-action-ack');
+        if (ackBtn) {
+          ackBtn.addEventListener('click', async function() {
+            ackBtn.disabled = true; ackBtn.textContent = 'Saving...';
+            try {
+              var ackResp = await fetch('/api/assembler/acknowledge-announcement', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+                body: JSON.stringify({ key: a.key }),
+              });
+              var ackData = await ackResp.json();
+              if (!ackResp.ok) throw new Error(ackData.error || 'Your confirmation could not be saved. Please retry.');
+              el.style.display = 'none';
+              APP.showAlert('page-alert', 'Thanks. Your confirmation is saved.', 'info');
+            } catch (ackErr) {
+              ackBtn.disabled = false; ackBtn.textContent = 'I understand';
+              var st = document.getElementById('required-action-status');
+              if (st) { st.textContent = ackErr.message; st.style.color = '#991b1b'; }
+            }
+          });
+        }
       } catch (e) {}
     })();
 
