@@ -414,6 +414,7 @@ export const EASER_RELIABILITY_POLICY = Object.freeze({
   lateNoticeHours: 24,       // under 24h before the start: late cancellation
   lateStrikes: 1,
   sameDayStrikes: 2,         // on the calendar day of the job (Central time)
+  noShowStrikes: 3,          // owner-confirmed no-show (an automatic flag alone never counts)
   windowDays: 90,            // strikes count for 90 days
   pauseAtStrikes: 3,         // at this many, the Easer is paused from new jobs
   dispatchPenaltyPerStrike: 150, // dispatch score points lost per active strike
