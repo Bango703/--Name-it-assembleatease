@@ -4,7 +4,8 @@ import { formatAppointmentDate } from './_appt-date.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
-import { safeTokenHashMatch } from '../_payment-security.js';
+import { safeTokenHashMatch, guestManageUrl } from '../_payment-security.js';
+import { customerMessageRecipient } from './_message-routing.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
 import { logActivity } from './_activity.js';
 import {
@@ -314,8 +315,8 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Booking not found' });
     }
   }
-  if (resolvedSender === 'customer' && booking.assembler_id && booking.assembler_accepted_at) {
-    resolvedRecipient = 'assembler';
+  if (resolvedSender === 'customer') {
+    resolvedRecipient = customerMessageRecipient(booking);
   }
   if (resolvedSender === 'owner' && target === 'assembler' && !booking.assembler_id) {
     return res.status(409).json({ error: 'No Easer is assigned to this booking' });
@@ -506,6 +507,10 @@ export default async function handler(req, res) {
       // address is never exposed and replies come back to AssembleAtEase, so
       // the conversation stays on-platform and auditable in both directions.
       const relayFirstName = String(booking.assembler_name || '').trim().split(/\s+/)[0] || 'Your pro';
+      // Conversations happen on the platform only (owner, 2026-09-29): the
+      // customer replies on their booking page, which goes straight to the
+      // Easer. Replying to this email is not a channel.
+      const customerReplyUrl = guestManageUrl(booking, SITE) + '#bookingCommunication';
       const relayHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
@@ -518,7 +523,8 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:16px 18px">
       <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
     </td></tr></table>
-    <p style="margin:20px 0 0;font-size:13px;color:#52525b">Reply to this email and we'll pass it straight to ${esc(relayFirstName)}.</p>
+    <p style="margin:22px 0 0"><a href="${esc(customerReplyUrl)}" style="display:inline-block;background:#00BFFF;color:#0d1117;font-weight:700;font-size:14px;text-decoration:none;padding:12px 20px;border-radius:8px">Reply to ${esc(relayFirstName)}</a></p>
+    <p style="margin:12px 0 0;font-size:12px;color:#71717a">Your reply goes to ${esc(relayFirstName)} from your booking page. Replies to this email do not reach your pro.</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
     Your booking, guarantee, and payment protection are handled by AssembleAtEase &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
@@ -553,7 +559,7 @@ export default async function handler(req, res) {
           sms_consent_at: booking.sms_consent_at,
           sms_opted_out_at: booking.sms_opted_out_at,
         },
-        body: `AssembleAtEase: ${relayFirstName} sent a question about your job ${booking.ref}. Check your email to reply.`,
+        body: `AssembleAtEase: ${relayFirstName} sent a question about your job ${booking.ref}. Open the email to reply.`,
         meta: {
           bookingId: booking.id,
           notificationType: 'easer_customer_relay',
@@ -613,7 +619,7 @@ export default async function handler(req, res) {
       notificationResult = await sendEmail({
         to: ownerEmail(),
         from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
-        subject: 'Customer Reply — ' + booking.ref + ' from ' + booking.customer_name,
+        subject: (resolvedRecipient === 'assembler' ? 'FYI: customer messaged the Easer — ' : 'Customer Reply — ') + booking.ref + ' from ' + booking.customer_name,
         html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #00BFFF"><tr><td style="padding:20px 24px">
@@ -629,7 +635,9 @@ export default async function handler(req, res) {
       <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
-      <p style="margin:0;font-size:13px;color:#1e40af">Contact <strong>${esc(booking.customer_name)}</strong> at <a href="mailto:${esc(booking.customer_email)}" style="color:#1e40af">${esc(booking.customer_email)}</a>.</p>
+      <p style="margin:0;font-size:13px;color:#1e40af">${resolvedRecipient === 'assembler'
+        ? 'Delivered to the assigned Easer in the app. No action needed; this is your copy.'
+        : `Contact <strong>${esc(booking.customer_name)}</strong> at <a href="mailto:${esc(booking.customer_email)}" style="color:#1e40af">${esc(booking.customer_email)}</a>.`}</p>
     </td></tr></table>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Serving customers across Texas</td></tr></table>
@@ -644,16 +652,47 @@ export default async function handler(req, res) {
       });
       if (booking.assembler_id && booking.assembler_accepted_at) {
         const { data: easerProfile } = await sb.from('profiles')
-          .select('email, full_name')
+          .select('email, full_name, phone, sms_consent_at, sms_opted_out_at')
           .eq('id', booking.assembler_id)
           .eq('role', 'assembler')
           .maybeSingle();
+        const easerJobUrl = `${SITE}/assembler/my-assignments?job=${encodeURIComponent(booking.id)}`;
+        // Push and a text so a reply is not missed on the road; email alone was.
+        await sendPushToUser(booking.assembler_id, {
+          title: 'Customer replied',
+          body: messageText.slice(0, 140),
+          url: easerJobUrl,
+          jobId: booking.id,
+        }, { bookingId: booking.id, notificationType: 'customer_message', recipientType: 'easer' }).catch(() => {});
+        if (easerProfile?.phone) {
+          // At most one text per booking per 30 minutes: a burst of messages is one doorbell.
+          const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+          const { data: recentText, error: recentTextError } = await sb.from('notification_log')
+            .select('id')
+            .eq('channel', 'sms')
+            .eq('booking_id', booking.id)
+            .eq('notification_type', 'customer_message_easer')
+            .gte('created_at', since)
+            .limit(1);
+          if (recentTextError || !recentText?.length) {
+            await sendSms({
+              recipient: easerProfile,
+              body: `AssembleAtEase: Your customer replied about job ${booking.ref}. Open your jobs to read it and reply.`,
+              meta: {
+                bookingId: booking.id,
+                notificationType: 'customer_message_easer',
+                recipientType: 'easer',
+                recipientUserId: booking.assembler_id,
+              },
+            }).catch(() => {});
+          }
+        }
         if (easerProfile?.email) {
           const easerNotice = await sendEmail({
             to: easerProfile.email,
             from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
             subject: 'Customer message — ' + booking.ref,
-            html: `<p style="font-family:Arial,sans-serif;color:#1a1a1a">A customer sent a message about booking <strong>${esc(booking.ref)}</strong>.</p><p style="font-family:Arial,sans-serif;color:#1a1a1a;line-height:1.6">${sBody}</p><p style="font-family:Arial,sans-serif;color:#71717a">Open your assigned job in the Easer dashboard to reply through AssembleAtEase.</p>`,
+            html: `<p style="font-family:Arial,sans-serif;color:#1a1a1a">A customer sent a message about booking <strong>${esc(booking.ref)}</strong>.</p><p style="font-family:Arial,sans-serif;color:#1a1a1a;line-height:1.6">${sBody}</p><p style="margin:18px 0 0"><a href="${esc(easerJobUrl)}" style="display:inline-block;background:#00BFFF;color:#0d1117;font-weight:700;font-size:14px;text-decoration:none;padding:12px 20px;border-radius:8px;font-family:Arial,sans-serif">Open the job to reply</a></p><p style="font-family:Arial,sans-serif;color:#71717a;font-size:12px">Replies to this email do not reach the customer.</p>`,
             replyTo: ownerEmail(),
             meta: {
               bookingId: booking.id,

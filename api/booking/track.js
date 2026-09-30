@@ -7,6 +7,7 @@ import { bookingEmailMatches } from './_guest-booking-auth.js';
 import { loadCustomerFacingCompletionPhoto } from './_completion-evidence.js';
 import { evaluateCancellationPolicy } from './_cancellation-policy-truth.js';
 import { cancellationPreview } from './_cancellation-fee-summary.js';
+import { customerMessageRecipient } from './_message-routing.js';
 
 /**
  * POST /api/booking/track
@@ -222,6 +223,8 @@ export default async function handler(req, res) {
     cancellation_fee: booking.cancellation_fee || null,
     was_rescheduled: wasRescheduled,
     cancellation_preview: cancellationPreviewPayload,
+    // Who the message box delivers to; same rule the message API routes with.
+    message_recipient: customerMessageRecipient(booking) === 'assembler' ? 'pro' : 'team',
     // Pro trust signal — first name only (never full name/phone to customer),
     // shown once the Pro has accepted the job.
     pro_first_name: (booking.assembler_accepted_at && booking.assembler_name)

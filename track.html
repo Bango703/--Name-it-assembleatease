@@ -406,7 +406,7 @@
 
     <section class="booking-communication" id="bookingCommunication" aria-labelledby="bookingCommunicationTitle">
       <h2 id="bookingCommunicationTitle">Message about your booking</h2>
-      <p class="booking-communication-copy">Send a note to the AssembleAtEase team. Your message and any photos stay private to your booking.</p>
+      <p class="booking-communication-copy" id="bookingCommunicationCopy">Send a note to the AssembleAtEase team. Your message and any photos stay private to your booking.</p>
       <div class="customer-thread" id="customerThread" aria-live="polite"></div>
       <div class="customer-photos" id="customerPhotos"></div>
       <div class="customer-compose">
@@ -1030,6 +1030,15 @@ function renderCustomerCommunication(messages, photos) {
   var section = document.getElementById('bookingCommunication');
   if (!section || !currentBooking || !currentMutationToken) return;
   section.style.display = '';
+  // Label the box with who the server actually delivers to (message_recipient,
+  // same rule the message API routes with).
+  var toPro = currentBooking.message_recipient === 'pro';
+  var proName = currentBooking.pro_first_name || 'your pro';
+  document.getElementById('bookingCommunicationTitle').textContent = toPro ? 'Message ' + proName : 'Message about your booking';
+  document.getElementById('bookingCommunicationCopy').textContent = toPro
+    ? 'Your message goes straight to ' + proName + ', your service pro. Messages and photos stay private to your booking.'
+    : 'Send a note to the AssembleAtEase team. Your message and any photos stay private to your booking.';
+  document.getElementById('customerMessage').placeholder = toPro ? 'Write a message to ' + proName : 'Tell us what you need help with';
   var thread = document.getElementById('customerThread');
   thread.textContent = '';
   (messages || []).forEach(function(message) {
@@ -1038,7 +1047,7 @@ function renderCustomerCommunication(messages, photos) {
     bubble.textContent = message.body || '';
     var meta = document.createElement('span');
     meta.className = 'customer-message-meta';
-    meta.textContent = (message.sender === 'customer' ? 'You' : message.sender === 'assembler' ? 'Your service pro' : 'AssembleAtEase') + ' · ' + new Date(message.created_at).toLocaleString();
+    meta.textContent = (message.sender === 'customer' ? 'You' : message.sender === 'assembler' ? (currentBooking.pro_first_name || 'Your service pro') : 'AssembleAtEase') + ' · ' + new Date(message.created_at).toLocaleString();
     bubble.appendChild(meta); thread.appendChild(bubble);
   });
   if (!messages || !messages.length) {
@@ -1062,6 +1071,10 @@ async function loadCustomerCommunication() {
     if (!results[0].ok || !results[1].ok) throw new Error('Communication unavailable');
     var messageData = await results[0].json(); var photoData = await results[1].json();
     renderCustomerCommunication(messageData.messages || [], photoData.photos || []);
+    if (window.location.hash === '#bookingCommunication' && !window.__aaeScrolledToMessages) {
+      window.__aaeScrolledToMessages = true;
+      setTimeout(function(){ var s = document.getElementById('bookingCommunication'); if (s) s.scrollIntoView({ behavior: 'smooth', block: 'start' }); var t = document.getElementById('customerMessage'); if (t) t.focus({ preventScroll: true }); }, 400);
+    }
   } catch (_) { setCustomerCommunicationStatus('Messages are temporarily unavailable. Please try again.', true); }
 }
 
