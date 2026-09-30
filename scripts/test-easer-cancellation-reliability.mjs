@@ -150,4 +150,16 @@ const ownerPage = read('owner/index.html');
 assert.match(ownerPage, /id="asm-reliability-panel"/);
 assert.match(ownerPage, /\/api\/owner\/easer-reliability/);
 
+// Confirmed no-show (owner action; an automatic flag alone never counts)
+assert.equal(P.noShowStrikes, 3);
+const noShow = read('api/owner/confirm-no-show.js');
+assert.match(noShow, /verifyOwner\(req\)/, 'only the owner can confirm a no-show');
+assert.match(noShow, /booking\.status !== BOOKING_STATUS\.CONFIRMED/, 'an Easer who is on the way or on site is not a no-show');
+assert.match(noShow, /if \(startMs > nowMs\) return res\.status\(409\)/, 'cannot be confirmed before the appointment starts');
+assert.match(noShow, /contains\('metadata', \{ easerId, kind: 'no_show' \}\)/, 'one no-show per booking and Easer');
+assert.match(noShow, /strikes: EASER_RELIABILITY_POLICY\.noShowStrikes/);
+assert.doesNotMatch(noShow, /from\('bookings'\)\.update/, 'confirming a no-show does not move the job');
+assert.match(ownerPage, /Tap again to record 3 strikes/, 'two taps, so it cannot be recorded by accident');
+assert.doesNotMatch(read('api/cron/no-show-check.js'), /recordEaserCancellation/, 'the automatic flag never adds strikes by itself');
+
 console.log('PASS Easer cancellation reliability: grace/advance/late/same-day, 90-day strikes, excuse, pause at limit, fail-open dispatch, cost shown before confirming.');

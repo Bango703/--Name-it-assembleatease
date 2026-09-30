@@ -9,7 +9,8 @@
 -- the tap is stored as dismissed_at on their delivery row). It never blocks
 -- job offers.
 --
--- Safe to run more than once.
+-- Safe to run more than once: a second run updates the wording, it does not
+-- reset who has already confirmed.
 
 BEGIN;
 
@@ -19,7 +20,7 @@ VALUES (
   'reliability_policy_2026_09',
   'required_action',
   'Cancellation policy for accepted jobs',
-  E'Cancelling a job you have accepted now counts toward your reliability.\n\n- Within 15 minutes of accepting: no strike.\n- 24 hours or more before the job: no strike.\n- Less than 24 hours before the job: 1 strike.\n- On the day of the job: 2 strikes.\n\nStrikes count for 90 days. Each strike moves you lower when jobs are offered. At 3 strikes, new job offers pause until AssembleAtEase reviews your account. When you cancel, the app shows what it will count before you confirm.\n\nOpen the app and tap I understand to confirm you have read this.',
+  E'Cancelling a job you have accepted now counts toward your reliability.\n\n- Within 15 minutes of accepting: no strike.\n- 24 hours or more before the job: no strike.\n- Less than 24 hours before the job: 1 strike.\n- On the day of the job: 2 strikes.\n- A confirmed no-show: 3 strikes.\n\nStrikes count for 90 days. Each strike moves you lower when jobs are offered. At 3 strikes, new job offers pause until AssembleAtEase reviews your account. When you cancel, the app shows what it will count before you confirm.\n\nOpen the app and tap I understand to confirm you have read this.',
   'Open the app to confirm',
   '/assembler/my-assignments',
   'policy_acknowledgment',
@@ -29,7 +30,13 @@ VALUES (
   'active',
   'system'
 )
-ON CONFLICT (key) DO NOTHING;
+ON CONFLICT (key) DO UPDATE SET
+  title = EXCLUDED.title,
+  body = EXCLUDED.body,
+  action_label = EXCLUDED.action_label,
+  action_url = EXCLUDED.action_url,
+  target_rule = EXCLUDED.target_rule,
+  blocks_offers = EXCLUDED.blocks_offers;
 
 INSERT INTO public.platform_schema_state (migration_number, migration_name)
 VALUES (102, 'easer_cancellation_policy_announcement')

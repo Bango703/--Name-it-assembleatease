@@ -96,7 +96,8 @@ assert.match(page, /a\.ackRequired[\s\S]*id="required-action-ack"[\s\S]*>I under
 assert.match(page, /\/api\/assembler\/acknowledge-announcement/);
 const migration = read('api/migrations/102_easer_cancellation_policy_announcement.sql');
 assert.match(migration, /'policy_acknowledgment'/);
-assert.match(migration, /ON CONFLICT \(key\) DO NOTHING/, 'safe to run twice');
+assert.match(migration, /ON CONFLICT \(key\) DO UPDATE SET/, 'safe to run twice; a rerun updates wording without touching confirmations');
+assert.match(migration, /A confirmed no-show: 3 strikes/, 'the notice lists every strike rule');
 assert.match(migration, /\n  false,\n/, 'the notice never blocks job offers');
 
 console.log('PASS policy acknowledgment: reminds only Easers who have not confirmed, records the tap with its time, stops reminders, never blocks offers.');

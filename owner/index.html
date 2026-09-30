@@ -7351,7 +7351,11 @@ window.intelQuick = intelQuick;
         + (ownerEaserOnly
           ? ' &bull; <span style="color:#155e75">Owner-Easer offline flow</span>'
           : ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>'
-            + (isAccepted ? '' : ' <button onclick="releaseAssignment(\'' + b.id + '\',this)" class="btn" style="font-size:0.72rem;padding:2px 8px">Release</button>'));
+            + (isAccepted ? '' : ' <button onclick="releaseAssignment(\'' + b.id + '\',this)" class="btn" style="font-size:0.72rem;padding:2px 8px">Release</button>')
+            // Confirmed no-show: accepted, never started, appointment day reached. The server checks the start time.
+            + (isAccepted && b.status === 'confirmed' && b.date && String(b.date).slice(0, 10) <= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
+              ? ' <button onclick="confirmEaserNoShow(\'' + b.id + '\',this)" class="btn" style="font-size:0.72rem;padding:2px 8px">Confirm no-show</button>'
+              : ''));
       // Fill the list even though it starts hidden. Reassign only un-hides
       // these controls; it does not build them. Without this the owner clicked
       // Reassign, got an empty dropdown, and the Assign button stayed disabled
@@ -10796,7 +10800,7 @@ window.intelQuick = intelQuick;
   // ── Easer cancellation reliability (strikes) ─────────────────────────────
   // Server decides and counts (api/_easer-reliability.js); this only renders
   // and sends the owner's excuse. Excusing never reactivates a paused Easer.
-  var RELIABILITY_KIND_LABEL = { grace: 'Within 15 min of accepting', advance: '24+ hours notice', late: 'Under 24 hours notice', same_day: 'Same day' };
+  var RELIABILITY_KIND_LABEL = { grace: 'Within 15 min of accepting', advance: '24+ hours notice', late: 'Under 24 hours notice', same_day: 'Same day', no_show: 'No-show (confirmed)' };
   async function loadEaserReliability(easerId) {
     var box = document.getElementById('asm-reliability-panel');
     if (!box) return;
@@ -10840,6 +10844,31 @@ window.intelQuick = intelQuick;
     }
   }
   window.excuseEaserCancellation = excuseEaserCancellation;
+
+  // Owner confirms a no-show after checking (an automatic flag alone never counts).
+  // Two taps: the first arms the button, the second records it.
+  var confirmNoShowArmed = null;
+  async function confirmEaserNoShow(bookingId, button) {
+    if (confirmNoShowArmed !== bookingId) {
+      confirmNoShowArmed = bookingId;
+      button.textContent = 'Tap again to record 3 strikes';
+      setTimeout(function() { if (confirmNoShowArmed === bookingId) { confirmNoShowArmed = null; button.textContent = 'Confirm no-show'; } }, 6000);
+      return;
+    }
+    confirmNoShowArmed = null;
+    button.disabled = true; button.textContent = 'Saving...';
+    try {
+      var r = await fetch('/api/owner/confirm-no-show', { method: 'POST', headers: headers(), body: JSON.stringify({ bookingId: bookingId }) });
+      var data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'The no-show could not be recorded.');
+      toast(data.alreadyRecorded ? 'This no-show was already recorded.' : data.message, 'success');
+      button.textContent = 'No-show recorded';
+    } catch (err) {
+      toast(err.message || 'The no-show could not be recorded.', 'error');
+      button.disabled = false; button.textContent = 'Confirm no-show';
+    }
+  }
+  window.confirmEaserNoShow = confirmEaserNoShow;
 
   function formatUsPhone(value) {
     var digits = String(value || '').replace(/\D/g, '');
