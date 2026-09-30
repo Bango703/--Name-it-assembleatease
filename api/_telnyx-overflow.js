@@ -69,9 +69,9 @@ export function isUnansweredHumanFailure(payload) {
   return !payload?.answered_at && FAILED_UNANSWERED_CAUSES.has(cause);
 }
 
-export function buildOverflowAssistantStart(config, callControlId) {
+export function buildOverflowAssistantStart(config, callControlId, greeting = null) {
   return { assistant: { id: config.assistantId, dynamic_variables: { overflow_route: true } },
-    greeting: "Sorry, we can't connect you with a team member right now. I'm Sora, AssembleAtEase's virtual assistant. I can help take the details of your request.",
+    greeting: greeting || "Sorry, we can't connect you with a team member right now. I'm Sora, AssembleAtEase's virtual assistant. I can help take the details of your request.",
     command_id: commandId('start-sora', callControlId) };
 }
 

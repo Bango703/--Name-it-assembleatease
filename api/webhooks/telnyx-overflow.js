@@ -2,6 +2,7 @@ import { overflowConfig, parseOverflowClientState, isUnansweredHumanFailure, bui
   buildOverflowTransfer, buildOverflowMachineHangup, buildOverflowAssistantStart, buildOverflowSpeech, buildOverflowHangup,
   sendTelnyxCommand, telnyxCallControlEvent, isOverflowInbound, overflowCommandReference } from '../_telnyx-overflow.js';
 import { verifyVoiceSignature } from '../_voice-call-history.js';
+import { supportHours } from '../ai/support.js';
 
 export const config = { api: { bodyParser: false } };
 const MAX_BYTES = 32768;
@@ -59,6 +60,10 @@ export function createTelnyxOverflowWebhook({ env = process.env, fetchImpl = fet
       if (!state || state.stage !== 'caller' || payload.call_control_id !== state.callerCallControlId) {
         return res.status(200).json({ ignored: 'not the caller leg' });
       }
+      if (!supportHours(new Date(now())).humanSupportOpen) {
+        return startAssistant(settings, state.callerCallControlId, fetchImpl, res, 'human support is closed',
+          "Our team is currently unavailable. I'm Sora, AssembleAtEase's virtual assistant. I can help take the details of your request.");
+      }
       const result = await sendTelnyxCommand(settings, state.callerCallControlId, 'transfer',
         buildOverflowTransfer(settings, state.callerCallControlId), fetchImpl);
       if (result.ok) return res.status(200).json({ received: true, action: 'human transfer started' });
@@ -111,9 +116,9 @@ export function createTelnyxOverflowWebhook({ env = process.env, fetchImpl = fet
   };
 }
 
-async function startAssistant(settings, callerCallControlId, fetchImpl, res, reason) {
+async function startAssistant(settings, callerCallControlId, fetchImpl, res, reason, greeting = null) {
   const result = await sendTelnyxCommand(settings, callerCallControlId, 'ai_assistant_start',
-    buildOverflowAssistantStart(settings, callerCallControlId), fetchImpl);
+    buildOverflowAssistantStart(settings, callerCallControlId, greeting), fetchImpl);
   if (result.ok) return res.status(200).json({ received: true, action: 'Sora started', reason });
   if (result.code === '90061') return res.status(200).json({ received: true, action: 'Sora already active', reason });
   if (result.ambiguous || result.status >= 500 || result.status === 408 || result.status === 429) {

@@ -47,7 +47,8 @@ function mockFetch(statuses = [200]) {
 }
 async function invoke(handler, data, opts = {}) {
   const raw = Buffer.from(JSON.stringify(data));
-  const timestamp = String(Math.floor(now / 1000));
+  const requestNow = opts.now ?? now;
+  const timestamp = String(Math.floor(requestNow / 1000));
   const req = Readable.from([raw]);
   req.method = opts.method || 'POST';
   req.headers = { 'content-type': 'application/json', 'telnyx-timestamp': timestamp,
@@ -93,6 +94,16 @@ out = await invoke(noMatchHandler, inboundEvent(), { headers: { 'telnyx-signatur
 check(out.code === 401, 'Unsigned call event is rejected');
 
 const callerState = buildOverflowAnswer(settings, callerCallControlId).client_state;
+const afterHoursFetch = mockFetch();
+const afterHoursHandler = createTelnyxOverflowWebhook({ env, fetchImpl: afterHoursFetch.fetchImpl,
+  now: () => Date.parse('2026-10-04T15:00:00Z') });
+out = await invoke(afterHoursHandler, event('call.answered', { connection_id: settings.connectionId,
+  call_control_id: callerCallControlId, client_state: callerState }), { now: Date.parse('2026-10-04T15:00:00Z') });
+check(out.data.action === 'Sora started' && afterHoursFetch.requests.length === 1
+  && afterHoursFetch.requests[0].url.endsWith('/actions/ai_assistant_start'),
+  'Closed-hours caller goes directly to Sora without ringing the personal phone');
+check(afterHoursFetch.requests[0].body.greeting.startsWith('Our team is currently unavailable'),
+  'After-hours greeting does not imply unusually high call volume');
 out = await invoke(handler, event('call.answered', { connection_id: settings.connectionId,
   call_control_id: callerCallControlId, client_state: callerState }));
 check(out.data.action === 'human transfer started', 'Answered caller leg attempts the fixed human destination');

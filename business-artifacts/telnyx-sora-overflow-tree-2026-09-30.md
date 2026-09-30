@@ -1,6 +1,6 @@
 # Sora High-Volume and No-Answer Overflow
 
-Status: LOCAL RUNTIME IMPLEMENTATION + 45 OFFLINE ASSERTIONS PASS. NOT DEPLOYED, CONNECTED, OR ENABLED. No live number, assistant, version, recording, or routing settings were changed.
+Status: LOCAL RUNTIME IMPLEMENTATION + 47 OFFLINE ASSERTIONS PASS. NOT DEPLOYED, CONNECTED, OR ENABLED. No live number, assistant, version, recording, or routing settings were changed.
 
 ## Current Live Findings
 
@@ -18,19 +18,21 @@ Read-only inspection of the Telnyx portal on 2026-09-30 found:
 ```text
 Inbound call to +1-979-232-5139
   -> Dedicated Call Control entry answers/retains the caller leg
-  -> Attempt one transfer to the fixed human destination
-       -> Human answers: bridge the call; do not start Sora
-       -> Busy, rejected, or bounded no-answer timeout:
-            keep the original caller leg active
-            start the configured Sora assistant on that leg
-            inject overflow_route=true
-            play the one-call overflow greeting
-            continue through the existing Sora role/intake workflow
-                 -> Customer request intake
-                 -> Service Pro support intake
-                 -> Explicit readback + callback consent before save
-       -> Transfer/API failure that cannot be recovered:
-            play a truthful contact-page fallback, then end the call
+  -> Check the existing Central-time human support hours
+       -> Closed: start Sora directly with the after-hours greeting
+       -> Open: attempt one transfer to the fixed human destination
+            -> Human answers: bridge the call; do not start Sora
+            -> Busy, rejected, voicemail, or bounded no-answer timeout:
+                 keep the original caller leg active
+                 start the configured Sora assistant on that leg
+                 inject overflow_route=true
+                 play the one-call overflow greeting
+                 continue through the existing Sora role/intake workflow
+                      -> Customer request intake
+                      -> Service Pro support intake
+                      -> Explicit readback + callback consent before save
+            -> Transfer/API failure that cannot be recovered:
+                 play a truthful contact-page fallback, then end the call
 ```
 
 The call-control application must preserve the caller leg when the transfer leg fails. It must handle Telnyx's transfer-leg webhooks idempotently; a timeout or hangup from the human leg must not end the original caller leg before Sora starts. Do not use number-level **On-failure** as a substitute for this flow: Telnyx says On-failure handles unreachable/rejected endpoints, not a call that successfully rings without answer.
@@ -45,9 +47,9 @@ Use this only on the `overflow_route=true` path. Do not say call volume is unusu
 
 ## Implementation Shape
 
-The current number-level forwarding control cannot provide a human-first ring timeout into Sora. The local runtime path is implemented in `api/_telnyx-overflow.js` and `api/webhooks/telnyx-overflow.js`; the focused test is `scripts/test-telnyx-overflow.mjs` and the command is `npm run test:telnyx-overflow`. All 45 mocked assertions pass. The route is default-off. Implement/configure a dedicated Call Control voice application as the number's primary route only after the release and activation gates below. The handler:
+The current number-level forwarding control cannot provide a human-first ring timeout into Sora. The local runtime path is implemented in `api/_telnyx-overflow.js` and `api/webhooks/telnyx-overflow.js`; the focused test is `scripts/test-telnyx-overflow.mjs` and the command is `npm run test:telnyx-overflow`. All 47 mocked assertions pass. The route is default-off. Implement/configure a dedicated Call Control voice application as the number's primary route only after the release and activation gates below. The handler:
 
-1. Answer the original caller leg and place one bounded transfer attempt to the fixed human destination.
+1. Answer the original caller leg. During existing Central-time support hours, place one bounded transfer attempt to the fixed human destination; outside those hours, start Sora directly without ringing the personal phone.
 2. On human answer, bridge and stop the overflow branch.
 3. On a confirmed unanswered failure (`timeout`, `user_busy`, or `user_rejected` with no answer timestamp), preserve the original caller leg and start the configured Sora assistant with `overflow_route=true` in its dynamic variables.
 4. Starts the assistant without recording options. The feature gate also requires both `TELNYX_OVERFLOW_ASSISTANT_VERSION_CONFIRMED=true` and `TELNYX_OVERFLOW_RECORDING_OFF_CONFIRMED=true`; these are activation attestations, not technical overrides. Verify the selected assistant/Main version and actual recording events on bounded calls. Do not treat the number-level recording toggle as proof that assistant recording is off.
