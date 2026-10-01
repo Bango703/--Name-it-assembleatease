@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/assets/status.css" />
   <link rel="stylesheet" href="/owner/assets/cases.css" />
   <link rel="stylesheet" href="/owner/assets/voice-calls.css" />
+  <link rel="stylesheet" href="/owner/assets/partners.css" />
   <script src="/assets/js/mobile-nav.js" defer></script>
   <!-- Canonical service catalog. The Edit Booking service list was hardcoded here
        and had drifted: it offered only 4 of the 7 real services and wrote
@@ -27,6 +28,7 @@
   <script src="/assets/js/job-duration.js" defer></script>
   <script src="/owner/assets/cases.js" defer></script>
   <script src="/owner/assets/voice-calls.js" defer></script>
+  <script src="/owner/assets/partners.js" defer></script>
   <link rel="stylesheet" href="/owner/assets/owner.css" />
 </head>
 <body>
@@ -61,6 +63,7 @@
         <li><a data-view="voice-calls"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h4l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z"/></svg></span> Phone Calls <span class="nav-count" id="nav-voice-calls" title="Call activity requiring review" style="display:none">0</span></a></li>
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
         <li><a data-view="market-demand"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z"/></svg></span> Market Demand <span class="nav-count" id="nav-market-demand" style="display:none">0</span></a></li>
+        <li><a data-view="partners"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11 4 7l4-4"/><path d="M4 7h11a5 5 0 0 1 0 10h-3"/><path d="M16 13l4 4-4 4"/><path d="M20 17H9"/></svg></span> Partners <span class="nav-count" id="nav-partners" title="Partner follow-ups due" style="display:none;background:#d97706">0</span></a></li>
         <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews</a></li>
         <li><a data-view="marketing"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M9 14h6"/><path d="M12 14v6"/></svg></span> Marketing</a></li>
         <li><a data-view="analytics"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Financials <span class="nav-count" id="nav-payouts" title="Easer earnings requiring owner action" style="display:none;background:#d97706">0</span></a></li>
@@ -213,6 +216,46 @@
           <div><div id="voice-calls-list" class="voice-calls-list"><div class="voice-call-empty">Loading call history...</div></div><button type="button" id="voice-calls-more" class="voice-button" hidden>Load older activity</button></div>
           <div id="voice-calls-detail" class="voice-calls-detail" aria-live="polite"><p>Select a call to see its timeline and any linked request.</p></div>
         </div>
+      </div>
+      <!-- Referral partners for the move-in channel. Rules and lists come from
+           /api/owner/partners (api/_partners.js); owner/assets/partners.js renders them. -->
+      <div id="partners-view" class="partners-view" style="display:none">
+        <div class="partners-toolbar">
+          <div><h2>Partners</h2><p class="partners-muted">Leasing offices, property managers, movers, realtors and furniture stores who can send you move-in jobs.</p></div>
+          <div class="partners-actions">
+            <button type="button" class="partners-button partners-week" id="partners-week" title="Partners contacted this week. Target: 10 a week, each followed up once after 4 to 5 days." aria-pressed="false">0 / 10</button>
+            <button type="button" class="partners-button" id="partners-due" aria-pressed="false">0 follow-ups due</button>
+            <button type="button" class="partners-button" id="partners-refresh">Refresh</button>
+          </div>
+        </div>
+        <div id="partners-notice" class="partners-note" role="status" hidden></div>
+        <div id="partners-setup" class="partners-note" hidden></div>
+        <div id="partners-body" hidden>
+          <div class="partners-stages" id="partners-stages" role="group" aria-label="Filter by stage"></div>
+          <div class="partners-filters">
+            <select id="partners-kind" aria-label="Partner type"></select>
+            <select id="partners-city" aria-label="City"></select>
+            <input type="search" id="partners-search" placeholder="Search name, street or notes" aria-label="Search partners">
+          </div>
+          <details class="partners-add">
+            <summary>Add a partner you met</summary>
+            <form id="partners-add-form">
+              <label class="partners-field">Business name<input id="partners-add-name" required maxlength="120"></label>
+              <label class="partners-field">Type<select id="partners-add-kind"></select></label>
+              <label class="partners-field">City<input id="partners-add-city" maxlength="60" value="Austin"></label>
+              <label class="partners-field">Phone<input id="partners-add-phone" maxlength="40"></label>
+              <label class="partners-field">Email<input id="partners-add-email" type="email" maxlength="160"></label>
+              <label class="partners-field">Website<input id="partners-add-website" type="url" maxlength="300" placeholder="https://"></label>
+              <button type="submit" class="partners-button partners-primary">Add partner</button>
+              <span id="partners-add-status" class="partners-muted" role="status"></span>
+            </form>
+          </details>
+          <div class="partners-grid">
+            <div class="partners-listwrap"><div class="partners-listhead" id="partners-count">Loading partners</div><div class="partners-list" id="partners-list"></div></div>
+            <div class="partners-detail" id="partners-detail" aria-live="polite"></div>
+          </div>
+        </div>
+        <div id="partners-toast" class="partners-toast" hidden></div>
       </div>
       <div id="cases-view" class="cases-view-shell" style="display:none">
         <div class="cases-toolbar">
@@ -2895,6 +2938,7 @@ window.intelQuick = intelQuick;
         window.OwnerCases.loadBadge();
       }
       if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.loadBadge();
+      if (window.OwnerPartners) window.OwnerPartners.loadBadge();
     }, 0);
   }
 
@@ -2989,6 +3033,7 @@ window.intelQuick = intelQuick;
       if (currentView === 'assemblers') await loadAssemblerList();
       else if (currentView === 'cases') { if (window.OwnerCases) await window.OwnerCases.refresh(); }
       else if (currentView === 'voice-calls') { if (window.OwnerVoiceCalls) await window.OwnerVoiceCalls.refresh(); }
+      else if (currentView === 'partners') { if (window.OwnerPartners) await window.OwnerPartners.refresh(); }
       else if (currentView === 'waitlist') await loadWaitlist();
       else if (currentView === 'market-demand') await loadMarketDemand();
       else if (currentView === 'reviews') { await loadReviews(); }
@@ -7722,6 +7767,7 @@ window.intelQuick = intelQuick;
   var $casesView      = document.getElementById('cases-view');
   var $voiceCallsView = document.getElementById('voice-calls-view');
   var $marketDemandView = document.getElementById('market-demand-view');
+  var $partnersView     = document.getElementById('partners-view');
   var $waitlistView   = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
   var $todayView        = document.getElementById('today-view');
@@ -7733,7 +7779,7 @@ window.intelQuick = intelQuick;
   var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
+  var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$partnersView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
   var _bookingsLoadPromise = null;
@@ -7771,6 +7817,7 @@ window.intelQuick = intelQuick;
       else if (view === 'cases')        { $casesView.style.display='';       $topbarTitle.textContent='Cases'; stopLiveOps(); if (window.OwnerCases) window.OwnerCases.load(); }
       else if (view === 'voice-calls')  { $voiceCallsView.style.display='';  $topbarTitle.textContent='Phone Calls'; stopLiveOps(); if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.load(); }
       else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); startMarketDemand(); }
+      else if (view === 'partners')     { $partnersView.style.display='';    $topbarTitle.textContent='Partners'; stopLiveOps(); if (window.OwnerPartners) window.OwnerPartners.load(); }
       else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; stopLiveOps(); loadWaitlist(); }
       else if (view === 'assemblers')  { $assemblersView.style.display='';  $topbarTitle.textContent='Easers'; loadAssemblerList(); }
       // marketplace removed
