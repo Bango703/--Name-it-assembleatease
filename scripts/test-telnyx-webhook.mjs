@@ -9,7 +9,7 @@ process.env.SUPABASE_SERVICE_KEY = 'unit-test-placeholder';
 const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
 process.env.TELNYX_PUBLIC_KEY = publicKey.export({ format: 'der', type: 'spki' }).subarray(-32).toString('base64');
 
-const tables = { profiles: [], bookings: [], notification_log: [], sms_conversations: [], sms_messages: [] };
+const tables = { profiles: [], bookings: [], notification_log: [], sms_conversations: [], sms_messages: [], operational_events: [] };
 let failNext = null;
 let requests = 0;
 let outboundRequests = 0;
@@ -59,7 +59,7 @@ globalThis.fetch = async (input, options = {}) => {
     if (!existing) tables[table].push(row);
     else if (!preference.includes('resolution=ignore-duplicates')) Object.assign(existing, row);
     const stored = tables[table].find(item => item.id === row.id);
-    console.error('POST', table, 'wantsObject=', wantsObject, 'stored=', JSON.stringify(stored && stored.id)); return wantsObject ? Response.json(stored, { status: 201 }) : Response.json([stored], { status: 201 });
+    return wantsObject ? Response.json(stored, { status: 201 }) : Response.json([stored], { status: 201 });
   }
   if (method === 'PATCH') {
     rows.forEach(row => Object.assign(row, JSON.parse(options.body)));
@@ -81,6 +81,7 @@ function reset() {
   tables.notification_log = [];
   tables.sms_conversations = [];
   tables.sms_messages = [];
+  tables.operational_events = [];
   failNext = null;
 }
 function event(type, text = 'HELP', occurredAt = old, id = crypto.randomUUID()) {
