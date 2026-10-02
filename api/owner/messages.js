@@ -39,14 +39,16 @@ export function createOwnerMessagesHandler({ supabase = getSupabase, authorize =
     const { conversations: bookingConversations, needsReply: bookingNeedsReply } = buildConversations(rows, bookings, easerNames);
     let smsConversations = [];
     let smsAvailable = true;
+    let smsErrorDetail = null;
     const { data: smsRows, error: smsError } = await sb.from('sms_conversations')
       .select('id, phone, customer_name, customer_email, booking_id, easer_id, status, last_message_at, last_message_preview, unread_count, bookings(id, ref, service, status)')
       .gte('last_message_at', since)
       .order('last_message_at', { ascending: false })
       .limit(100);
     if (smsError) {
-      console.error('Owner SMS conversation lookup error:', smsError);
+      console.error('Owner SMS conversation lookup error:', JSON.stringify({ code: smsError.code, message: smsError.message, details: smsError.details, hint: smsError.hint }));
       smsAvailable = false;
+      smsErrorDetail = `${smsError.code || 'unknown'}: ${smsError.message || 'unknown'}`;
     } else {
       smsConversations = smsRows || [];
     }
@@ -57,7 +59,10 @@ export function createOwnerMessagesHandler({ supabase = getSupabase, authorize =
       smsEaserNames = new Map((smsProfiles || []).map(profile => [profile.id, profile]));
     }
     smsConversations = smsConversations.map(row => ({ ...row, profiles: smsEaserNames.get(row.easer_id) || null }));
-    const inbox = appendSmsConversations({ conversations: bookingConversations, needsReply: bookingNeedsReply }, smsConversations);
+    // Owner direction, 2026-10-01: the Messages view is SMS-only. Booking in-app
+    // conversations stay in their booking detail thread — they do not enter
+    // this tab. The Messages badge counts SMS conversations only.
+    const inbox = appendSmsConversations({ conversations: [], needsReply: [] }, smsConversations);
     return res.status(200).json({
       conversations: inbox.conversations,
       needsReply: inbox.needsReply,
@@ -65,6 +70,7 @@ export function createOwnerMessagesHandler({ supabase = getSupabase, authorize =
       truncated,
       bookingDetailsAvailable,
       smsAvailable,
+      smsError: smsErrorDetail,
     });
   };
 }

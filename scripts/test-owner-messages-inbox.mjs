@@ -87,6 +87,7 @@ function db(tables) {
     sms_conversations: { data: [{ id: 'sms-1', phone: '+15125550101', customer_name: 'Casey', booking_id: 'b1', easer_id: null, status: 'open', last_message_at: '2026-10-01T16:00:00Z', last_message_preview: 'text', unread_count: 1, bookings: null, profiles: null }], error: null },
   }) })({ method: 'GET' }, r);
   assert.equal(r.statusCode, 200);
+  assert.equal(r.body.conversations.length, 1, 'Messages is SMS-only — booking chat rows stay in the booking detail');
   assert.equal(r.body.conversations[0].lastMessage.direction, 'SMS to You');
   assert.deepEqual(r.body.needsReply, ['sms:sms-1']);
 }

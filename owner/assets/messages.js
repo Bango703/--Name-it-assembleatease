@@ -46,26 +46,25 @@
     btn.setAttribute('aria-pressed', String(state.onlyReply));
     btn.textContent = 'Waiting for you (' + data.needsReply.length + ')';
     var notes = [];
-    if (data.truncated) notes.push('Showing the most recent 1,000 booking messages.');
-    if (!data.bookingDetailsAvailable) notes.push('Booking names could not be loaded; refs may be missing. Refresh to try again.');
-    if (data.smsAvailable === false) notes.push('SMS conversations could not be loaded. Apply the SMS inbox migration and refresh.');
+    if (data.smsAvailable === false) {
+      notes.push('SMS conversations could not be loaded. '
+        + (data.smsError ? 'Reason: ' + data.smsError : 'Apply the SMS inbox migration and refresh.'));
+    }
     el('inbox-notice').hidden = !notes.length; el('inbox-notice').textContent = notes.join(' ');
     if (!list.length) {
-      el('inbox-list').innerHTML = '<div class="inbox-empty">' + (state.onlyReply ? 'Nothing is waiting for your reply.' : 'No messages in the last ' + esc(data.windowDays) + ' days.') + '</div>';
+      el('inbox-list').innerHTML = '<div class="inbox-empty">' + (state.onlyReply ? 'Nothing is waiting for your reply.' : 'No SMS messages yet. Texts to the business number will appear here.') + '</div>';
       return;
     }
     el('inbox-list').innerHTML = list.map(function(c) {
       var who = [esc(c.customerName || c.phone || 'Customer'), c.easerName ? 'Easer: ' + esc(c.easerName) : null].filter(Boolean).join(' &middot; ');
       var tags = '';
       if (c.needsReply) tags += '<span class="inbox-tag inbox-tag-reply">Waiting for you</span>';
-      else if (c.direct) tags += '<span class="inbox-tag">Between customer and Easer</span>';
-      if (c.kind === 'sms') tags += '<span class="inbox-tag">SMS</span>';
       if (c.unreadForOwner) tags += '<span class="inbox-tag inbox-tag-unread">' + c.unreadForOwner + ' unread</span>';
-      return '<button type="button" class="inbox-row' + (c.needsReply ? ' inbox-row-reply' : '') + '" data-inbox-booking="' + esc(c.bookingId || '') + '" data-inbox-sms="' + esc(c.kind === 'sms' ? c.conversationId : '') + '" data-inbox-thread="' + esc(c.openThread) + '">' +
-        '<span class="inbox-row-top"><strong>' + esc(c.ref || c.phone || 'Conversation') + '</strong><span class="inbox-who">' + who + '</span><span class="inbox-when">' + esc(when(c.lastMessage.at)) + '</span></span>' +
+      return '<button type="button" class="inbox-row' + (c.needsReply ? ' inbox-row-reply' : '') + '" data-inbox-sms="' + esc(c.conversationId) + '">' +
+        '<span class="inbox-row-top"><strong>' + esc(c.ref || c.phone || 'SMS conversation') + '</strong><span class="inbox-who">' + who + '</span><span class="inbox-when">' + esc(when(c.lastMessage.at)) + '</span></span>' +
         '<span class="inbox-direction">' + esc(c.lastMessage.direction) + '</span>' +
         '<span class="inbox-body">' + esc(c.lastMessage.body) + '</span>' +
-        '<span class="inbox-row-bottom">' + tags + '<span class="inbox-count">' + (c.kind === 'sms' ? 'SMS conversation' : (c.messageCount + (c.messageCount === 1 ? ' message' : ' messages'))) + '</span><span class="inbox-open">Open conversation</span></span>' +
+        '<span class="inbox-row-bottom">' + tags + '<span class="inbox-count">SMS conversation</span><span class="inbox-open">Open conversation</span></span>' +
         '</button>';
     }).join('');
   }
@@ -174,13 +173,8 @@
   }
   document.addEventListener('click', async function(event) {
     if (!event.target.closest('#messages-view')) return;
-    var row = event.target.closest('[data-inbox-booking]');
-    if (row) {
-      if (row.dataset.inboxSms) { await openSms(row.dataset.inboxSms); return; }
-      var ok = typeof window.ownerOpenBookingMessages === 'function' && await window.ownerOpenBookingMessages(row.dataset.inboxBooking, row.dataset.inboxThread);
-      if (!ok) { el('inbox-notice').hidden = false; el('inbox-notice').textContent = 'That booking could not be opened. Refresh Bookings and try again.'; }
-      return;
-    }
+    var row = event.target.closest('[data-inbox-sms]');
+    if (row) { await openSms(row.dataset.inboxSms); return; }
     if (event.target.closest('#sms-reply-send')) { await sendSmsReply(); return; }
     if (event.target.closest('#inbox-refresh')) { load(); return; }
     if (event.target.closest('#inbox-filter-reply')) { state.onlyReply = !state.onlyReply; render(); }
