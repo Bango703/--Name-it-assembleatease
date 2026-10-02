@@ -9,11 +9,41 @@
 //   3. opens the right screen when an Easer taps a notification
 //   4. signs the device out of notifications when the Easer signs out, so a
 //      shared phone stops receiving the previous Easer's jobs
+//   5. opens the Easer application in Safari. The application takes a card
+//      payment (the application fee); inside an App Store app that payment
+//      must not happen in the app itself, so the app hands it to the browser.
+//      The website is unchanged.
 (function () {
   'use strict';
   var cap = window.Capacitor;
   if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform()) return;
   var plugins = cap.Plugins || {};
+
+  // ── Pages that open in Safari, never inside the app ──
+  var OPEN_IN_BROWSER = [/^\/assembler\/apply(?:\.html)?\/?$/];
+  function opensInBrowser(url) {
+    return url.origin === window.location.origin && OPEN_IN_BROWSER.some(function (re) { return re.test(url.pathname); });
+  }
+  function openInBrowser(url) {
+    var launcher = plugins.AppLauncher;
+    if (!launcher || typeof launcher.openUrl !== 'function') return false;
+    launcher.openUrl({ url: url.href }).catch(function () {});
+    return true;
+  }
+  document.addEventListener('click', function (event) {
+    var link = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+    if (!link) return;
+    var url;
+    try { url = new URL(link.href, window.location.href); } catch (_) { return; }
+    if (opensInBrowser(url) && openInBrowser(url)) event.preventDefault();
+  }, true);
+  // Arrived on one of those pages some other way: send it to Safari and step back.
+  if (opensInBrowser(new URL(window.location.href)) && openInBrowser(new URL(window.location.href))) {
+    if (window.history.length > 1) window.history.back();
+    else window.location.replace('/auth/login');
+    return;
+  }
+
   var messaging = plugins.FirebaseMessaging;
   if (!messaging) return;
 
