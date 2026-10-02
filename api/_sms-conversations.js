@@ -32,7 +32,9 @@ async function linkedEaser(sb, phone) {
     .select('id, full_name, email, phone, role, status, sms_consent_at, sms_opted_out_at')
     .eq('role', 'assembler')
     .in('phone', variants)
-    .order('updated_at', { ascending: false })
+    // profiles has created_at, not updated_at — ordering by a missing column
+    // threw 'column profiles.updated_at does not exist' and killed every inbound text.
+    .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error) throw error;
