@@ -9,7 +9,7 @@ process.env.SUPABASE_SERVICE_KEY = 'unit-test-placeholder';
 const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
 process.env.TELNYX_PUBLIC_KEY = publicKey.export({ format: 'der', type: 'spki' }).subarray(-32).toString('base64');
 
-const tables = { profiles: [], bookings: [], notification_log: [] };
+const tables = { profiles: [], bookings: [], notification_log: [], sms_conversations: [], sms_messages: [] };
 let failNext = null;
 let requests = 0;
 let outboundRequests = 0;
@@ -24,7 +24,7 @@ function condition(row, expression) {
 }
 function matches(row, params) {
   for (const [key, value] of params) {
-    if (['select', 'limit', 'on_conflict'].includes(key)) continue;
+    if (['select', 'limit', 'on_conflict', 'order'].includes(key)) continue;
     if (key === 'or') {
       if (!value.slice(1, -1).split(',').some(part => condition(row, part))) return false;
     } else if (!condition(row, `${key}.${value}`)) return false;
@@ -48,17 +48,27 @@ globalThis.fetch = async (input, options = {}) => {
     return Response.json({ message: 'Simulated database failure', code: 'XX000' }, { status: 500 });
   }
   const rows = tables[table].filter(row => matches(row, url.searchParams));
+  // Supabase .single()/.maybeSingle() request an object via this Accept header;
+  // the mock must unwrap to the same shape or downstream reads see null.
+  const hdrs = Object.fromEntries(new Headers(options.headers).entries()); const wantsObject = JSON.stringify(hdrs).includes('pgrst.object');
   if (method === 'POST') {
     const row = JSON.parse(options.body);
+    if (!row.id) row.id = `${table}-${crypto.randomUUID()}`;
     const existing = tables[table].find(item => item.id === row.id);
     const preference = new Headers(options.headers).get('Prefer') || '';
     if (!existing) tables[table].push(row);
     else if (!preference.includes('resolution=ignore-duplicates')) Object.assign(existing, row);
-    return new Response(null, { status: 201 });
+    const stored = tables[table].find(item => item.id === row.id);
+    console.error('POST', table, 'wantsObject=', wantsObject, 'stored=', JSON.stringify(stored && stored.id)); return wantsObject ? Response.json(stored, { status: 201 }) : Response.json([stored], { status: 201 });
   }
-  if (method === 'PATCH') rows.forEach(row => Object.assign(row, JSON.parse(options.body)));
+  if (method === 'PATCH') {
+    rows.forEach(row => Object.assign(row, JSON.parse(options.body)));
+    return wantsObject ? Response.json(rows[0] || null) : Response.json(rows);
+  }
   assert.ok(['GET', 'PATCH'].includes(method));
-  return Response.json(rows.map(row => ({ id: row.id })));
+  // The inbox recorder selects the real columns back (.single()/.maybeSingle()),
+  // so the mock must return full rows, not just ids.
+  return wantsObject ? Response.json(rows[0] || null) : Response.json(rows);
 };
 const { default: handler } = await import('../api/webhooks/telnyx.js');
 const phone = '+15125550100';
@@ -69,6 +79,8 @@ function reset() {
   tables.profiles = [{ id: 'easer', phone, sms_consent_at: null, sms_opted_out_at: null }];
   tables.bookings = [{ id: 'booking', customer_phone: phone, sms_consent_at: null, sms_opted_out_at: null }];
   tables.notification_log = [];
+  tables.sms_conversations = [];
+  tables.sms_messages = [];
   failNext = null;
 }
 function event(type, text = 'HELP', occurredAt = old, id = crypto.randomUUID()) {
@@ -196,3 +208,5 @@ assert.equal(outboundRequests, 1, 'A log failure must not resend the SMS');
 assert.ok(capturedErrors.some(line => line.includes('notification_log write failed:') && line.includes('Simulated database failure')));
 console.log('PASS sender log failures are observable without duplicate texts or booking failures');
 console.log('Telnyx webhook behavioral tests passed. No network requests were made.');
+
+
