@@ -220,11 +220,11 @@
           <div id="voice-calls-detail" class="voice-calls-detail" aria-live="polite"><p>Select a call to see its timeline and any linked request.</p></div>
         </div>
       </div>
-      <!-- Owner Messages inbox: every booking conversation, including customer-Easer
-           direct ones. Lists come from /api/owner/messages (api/_owner-inbox.js). -->
+      <!-- Owner SMS inbox. Texts to the business number land here; owner replies
+           go through the same SMS consent and delivery rules as every other text. -->
       <div id="messages-view" class="inbox-view" style="display:none">
         <div class="inbox-toolbar">
-          <div><h2>Messages</h2><p class="inbox-muted">Every conversation from the last 45 days. Customers and Easers on an accepted job write to each other directly; those appear here too.</p></div>
+          <div><h2>Messages</h2><p class="inbox-muted">SMS messages sent to the business number. Booking chat stays inside the booking detail.</p></div>
           <div class="inbox-actions">
             <button type="button" class="inbox-button" id="inbox-filter-reply" aria-pressed="false">Waiting for you</button>
             <button type="button" class="inbox-button" id="inbox-refresh">Refresh</button>
