@@ -27,6 +27,51 @@ const read = (f) => readFileSync(f, 'utf8');
   assert.equal(fetched, 0, 'Capacitor present but not native (web build) does nothing either');
 }
 
+// In the app, the Easer application (it takes a card payment) opens in Safari.
+function nativeSandbox(path) {
+  const opened = [];
+  const listeners = {};
+  let wentBack = 0;
+  const sandbox = {
+    URL,
+    window: {
+      location: { href: 'https://www.assembleatease.com' + path, origin: 'https://www.assembleatease.com', replace() {} },
+      history: { length: 2, back() { wentBack++; } },
+      Capacitor: { isNativePlatform: () => true, getPlatform: () => 'ios', Plugins: { AppLauncher: { openUrl: (o) => { opened.push(o.url); return Promise.resolve(); } } } },
+    },
+    document: { readyState: 'complete', addEventListener(type, fn) { listeners[type] = fn; } },
+    fetch: () => Promise.resolve({ ok: true }),
+  };
+  vm.runInNewContext(read('assets/js/native-app.js'), sandbox);
+  return { opened, listeners, wentBack: () => wentBack };
+}
+{
+  const s = nativeSandbox('/assembler/apply');
+  assert.deepEqual(s.opened, ['https://www.assembleatease.com/assembler/apply'], 'landing on the application inside the app opens it in Safari');
+  assert.equal(s.wentBack(), 1, 'and the app steps back instead of showing the payment form');
+}
+{
+  const s = nativeSandbox('/auth/login');
+  assert.equal(s.opened.length, 0, 'other pages stay in the app');
+  let prevented = false;
+  s.listeners.click({ target: { closest: () => ({ href: 'https://www.assembleatease.com/assembler/apply' }) }, preventDefault() { prevented = true; } });
+  assert.equal(prevented, true, 'tapping "Apply to join" in the app does not open the form in the app');
+  assert.deepEqual(s.opened, ['https://www.assembleatease.com/assembler/apply']);
+  let otherPrevented = false;
+  s.listeners.click({ target: { closest: () => ({ href: 'https://www.assembleatease.com/assembler/my-assignments' }) }, preventDefault() { otherPrevented = true; } });
+  assert.equal(otherPrevented, false, 'ordinary Easer links are untouched');
+}
+for (const page of ['auth/login.html', 'assembler/apply.html']) {
+  assert.match(read(page), /assets\/js\/native-app\.js\?v=[^"]+" defer/, `${page} loads the app bridge so the Safari rule applies there`);
+}
+assert.ok(JSON.parse(read('mobile/package.json')).dependencies['@capacitor/app-launcher'], 'the Safari launcher plugin ships in the app');
+assert.match(read('mobile/ios/App/CapApp-SPM/Package.swift'), /CapacitorAppLauncher/);
+assert.match(read('mobile/android/capacitor.settings.gradle'), /capacitor-app-launcher/);
+
+// App Store review basics
+assert.match(read('mobile/ios/App/App/Info.plist'), /<key>ITSAppUsesNonExemptEncryption<\/key>\s*<false\/>/, 'standard HTTPS only: no export-compliance question on every build');
+assert.doesNotMatch(read('mobile/ios/App/App.xcodeproj/project.pbxproj'), /TARGETED_DEVICE_FAMILY = "1,2"/, 'iPhone only: no iPad screenshots or iPad review');
+
 // Web-only flows are gated only by the native check
 const app = read('assets/js/app.js');
 assert.match(app, /window\.AAE_isNativeApp = function/);
@@ -114,6 +159,8 @@ assert.equal(cap.server.errorPath, 'offline.html');
 assert.ok(existsSync('mobile/www/offline.html'));
 const plist = read('mobile/ios/App/App/Info.plist');
 assert.match(plist, /NSCameraUsageDescription/, 'Apple requires a reason before the camera opens for job photos');
+assert.match(plist, /NSLocationWhenInUseUsageDescription/, 'check-in asks for location once; iOS blocks it and Apple rejects the app without a stated reason');
+assert.match(read('mobile/android/app/src/main/AndroidManifest.xml'), /ACCESS_FINE_LOCATION/, 'Android check-in location needs the permission declared');
 assert.match(plist, /<string>remote-notification<\/string>/);
 assert.match(read('mobile/ios/App/App/App.entitlements'), /aps-environment/);
 assert.match(read('mobile/ios/App/App.xcodeproj/project.pbxproj'), /GoogleService-Info\.plist in Resources/, 'Firebase config is bundled into the iOS app');

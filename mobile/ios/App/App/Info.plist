@@ -6,6 +6,8 @@
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleDisplayName</key>
         <string>AssembleAtEase Easer</string>
 	<key>CFBundleExecutable</key>
@@ -66,6 +68,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is shared once when you check in at a job, to confirm you arrived. You can still check in without it.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos of finished work and job details to attach to your jobs.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
