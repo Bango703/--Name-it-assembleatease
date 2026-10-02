@@ -2,6 +2,7 @@
 import { rateLimit } from '../_ratelimit.js';
 import { formatAppointmentDate } from './_appt-date.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import { messageDirectionLabel } from '../_owner-inbox.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
 import { safeTokenHashMatch, guestManageUrl } from '../_payment-security.js';
@@ -145,7 +146,7 @@ export default async function handler(req, res) {
           .eq('booking_id', bk.id)
           .order('created_at', { ascending: true });
         if (baseRes.error) return res.status(500).json({ error: 'Failed to fetch messages' });
-        return res.status(200).json({ messages: baseRes.data || [] });
+        return res.status(200).json({ messages: (baseRes.data || []).map(m => ({ ...m, direction: messageDirectionLabel(m) })) });
       }
       return res.status(500).json({ error: 'Failed to fetch messages' });
     }
@@ -224,7 +225,8 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      messages: msgs || [],
+      // The owner sees who wrote to whom; the wording comes from api/_owner-inbox.js.
+      messages: ownerRequest ? (msgs || []).map(m => ({ ...m, direction: messageDirectionLabel(m) })) : (msgs || []),
       markedRead,
       unreadRemaining,
       readError,

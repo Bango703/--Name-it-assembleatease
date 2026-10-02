@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="/owner/assets/cases.css" />
   <link rel="stylesheet" href="/owner/assets/voice-calls.css" />
   <link rel="stylesheet" href="/owner/assets/partners.css" />
+  <link rel="stylesheet" href="/owner/assets/messages.css" />
   <script src="/assets/js/mobile-nav.js" defer></script>
   <!-- Canonical service catalog. The Edit Booking service list was hardcoded here
        and had drifted: it offered only 4 of the 7 real services and wrote
@@ -29,6 +30,7 @@
   <script src="/owner/assets/cases.js" defer></script>
   <script src="/owner/assets/voice-calls.js" defer></script>
   <script src="/owner/assets/partners.js" defer></script>
+  <script src="/owner/assets/messages.js" defer></script>
   <link rel="stylesheet" href="/owner/assets/owner.css" />
 </head>
 <body>
@@ -58,7 +60,8 @@
       <ul class="sidebar-nav">
         <li><a class="active" data-view="liveops"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="15" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="5" y1="9" x2="5" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/></svg></span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
         <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" title="Active jobs scheduled today" style="display:none;background:#64748b">0</span></a></li>
-        <li><a data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span><span class="nav-count" id="nav-messages" title="Unread customer or Easer messages" style="display:none;background:#dc2626">0</span></a></li>
+        <li><a data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
+        <li><a data-view="messages"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Messages <span class="nav-count" id="nav-inbox" title="Conversations waiting for your reply" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="cases"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 5V3h8v2"/><path d="M9 11h6M9 15h4"/></svg></span> Cases <span class="nav-count" id="nav-cases" title="Cases requiring owner action" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="voice-calls"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h4l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z"/></svg></span> Phone Calls <span class="nav-count" id="nav-voice-calls" title="Call activity requiring review" style="display:none">0</span></a></li>
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
@@ -217,6 +220,20 @@
           <div id="voice-calls-detail" class="voice-calls-detail" aria-live="polite"><p>Select a call to see its timeline and any linked request.</p></div>
         </div>
       </div>
+      <!-- Owner Messages inbox: every booking conversation, including customer-Easer
+           direct ones. Lists come from /api/owner/messages (api/_owner-inbox.js). -->
+      <div id="messages-view" class="inbox-view" style="display:none">
+        <div class="inbox-toolbar">
+          <div><h2>Messages</h2><p class="inbox-muted">Every conversation from the last 45 days. Customers and Easers on an accepted job write to each other directly; those appear here too.</p></div>
+          <div class="inbox-actions">
+            <button type="button" class="inbox-button" id="inbox-filter-reply" aria-pressed="false">Waiting for you</button>
+            <button type="button" class="inbox-button" id="inbox-refresh">Refresh</button>
+          </div>
+        </div>
+        <div id="inbox-notice" class="inbox-note" role="status" hidden></div>
+        <div id="inbox-list" class="inbox-list"><div class="inbox-empty">Loading messages</div></div>
+      </div>
+
       <!-- Referral partners for the move-in channel. Rules and lists come from
            /api/owner/partners (api/_partners.js); owner/assets/partners.js renders them. -->
       <div id="partners-view" class="partners-view" style="display:none">
@@ -2939,6 +2956,7 @@ window.intelQuick = intelQuick;
       }
       if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.loadBadge();
       if (window.OwnerPartners) window.OwnerPartners.loadBadge();
+      if (window.OwnerInbox) window.OwnerInbox.loadBadge();
     }, 0);
   }
 
@@ -3034,6 +3052,7 @@ window.intelQuick = intelQuick;
       else if (currentView === 'cases') { if (window.OwnerCases) await window.OwnerCases.refresh(); }
       else if (currentView === 'voice-calls') { if (window.OwnerVoiceCalls) await window.OwnerVoiceCalls.refresh(); }
       else if (currentView === 'partners') { if (window.OwnerPartners) await window.OwnerPartners.refresh(); }
+      else if (currentView === 'messages') { if (window.OwnerInbox) await window.OwnerInbox.refresh(); }
       else if (currentView === 'waitlist') await loadWaitlist();
       else if (currentView === 'market-demand') await loadMarketDemand();
       else if (currentView === 'reviews') { await loadReviews(); }
@@ -3433,6 +3452,18 @@ window.intelQuick = intelQuick;
     if (!card) return;
     selectBooking(card.dataset.id);
   });
+
+  // Messages inbox: open a booking on its message thread with the right party selected.
+  window.ownerOpenBookingMessages = async function(id, target) {
+    var nav = document.querySelector('.sidebar-nav [data-view="bookings"]');
+    if (nav && currentView !== 'bookings') nav.click();
+    if (!allBookings.find(function(x){ return x.id === id; })) { try { await loadBookings(true); } catch (e) {} }
+    if (!allBookings.find(function(x){ return x.id === id; })) return false;
+    await selectBooking(id);
+    var b = allBookings.find(function(x){ return x.id === id; });
+    if (target === 'assembler' && b && b.assembler_id) { applyMsgTarget('assembler'); renderMessageThread(); }
+    return true;
+  };
 
   async function selectBooking(id) {
     selectedId = id;
@@ -6552,12 +6583,13 @@ window.intelQuick = intelQuick;
   // for the party currently selected (_msgTarget) so a customer never sees the
   // Easer's messages here and vice versa, and the owner can't misread which
   // conversation they're in. Legacy rows without a recipient_type are never hidden.
+  // Since customers and Easers talk directly (2026-09-29), a message between them
+  // belongs to BOTH threads: the customer tab shows everything the customer wrote
+  // or received, the Easer tab everything the Easer wrote or received.
   function messageInSelectedThread(m, target) {
     if (m.recipient_type == null && m.sender === 'owner') return true;
-    if (target === 'assembler') {
-      return m.sender === 'assembler' || (m.sender === 'owner' && m.recipient_type === 'assembler');
-    }
-    return m.sender === 'customer' || (m.sender === 'owner' && m.recipient_type === 'customer');
+    if (target === 'assembler') return m.sender === 'assembler' || m.recipient_type === 'assembler';
+    return m.sender === 'customer' || m.recipient_type === 'customer';
   }
   function renderMessageThread() {
     var target = _msgTarget;
@@ -6569,9 +6601,8 @@ window.intelQuick = intelQuick;
     }
     $msgThread.innerHTML = msgs.map(function(m) {
       var senderClass = m.sender === 'owner' ? 'owner' : 'customer';
-      var senderLabel = m.sender === 'owner'
-        ? 'You to ' + (m.recipient_type === 'assembler' ? 'Easer' : m.recipient_type === 'customer' ? 'Customer' : 'recipient')
-        : m.sender === 'assembler' ? 'Easer to Owner' : 'Customer to Owner';
+      // Who wrote to whom is decided on the server (api/_owner-inbox.js).
+      var senderLabel = m.direction || 'Message';
       return '<div class="msg ' + senderClass + '">'
         + '<div>' + esc(m.body) + '</div>'
         + '<div class="msg-time">' + senderLabel + ' &bull; ' + formatDateTime(m.created_at) + '</div>'
@@ -7768,6 +7799,7 @@ window.intelQuick = intelQuick;
   var $voiceCallsView = document.getElementById('voice-calls-view');
   var $marketDemandView = document.getElementById('market-demand-view');
   var $partnersView     = document.getElementById('partners-view');
+  var $messagesView     = document.getElementById('messages-view');
   var $waitlistView   = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
   var $todayView        = document.getElementById('today-view');
@@ -7779,7 +7811,7 @@ window.intelQuick = intelQuick;
   var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$partnersView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
+  var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$partnersView,$messagesView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
   var _bookingsLoadPromise = null;
@@ -7818,6 +7850,7 @@ window.intelQuick = intelQuick;
       else if (view === 'voice-calls')  { $voiceCallsView.style.display='';  $topbarTitle.textContent='Phone Calls'; stopLiveOps(); if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.load(); }
       else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); startMarketDemand(); }
       else if (view === 'partners')     { $partnersView.style.display='';    $topbarTitle.textContent='Partners'; stopLiveOps(); if (window.OwnerPartners) window.OwnerPartners.load(); }
+      else if (view === 'messages')     { $messagesView.style.display='';    $topbarTitle.textContent='Messages'; stopLiveOps(); if (window.OwnerInbox) window.OwnerInbox.load(); }
       else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; stopLiveOps(); loadWaitlist(); }
       else if (view === 'assemblers')  { $assemblersView.style.display='';  $topbarTitle.textContent='Easers'; loadAssemblerList(); }
       // marketplace removed
