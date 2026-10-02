@@ -232,6 +232,20 @@
         </div>
         <div id="inbox-notice" class="inbox-note" role="status" hidden></div>
         <div id="inbox-list" class="inbox-list"><div class="inbox-empty">Loading messages</div></div>
+        <div id="sms-panel" class="sms-panel" hidden>
+          <div class="sms-thread-head">
+            <div>
+              <div id="sms-thread-title" class="sms-thread-title">SMS conversation</div>
+              <div id="sms-thread-meta" class="sms-thread-meta"></div>
+            </div>
+          </div>
+          <div id="sms-thread-body" class="msg-thread sms-thread-body"></div>
+          <div class="msg-compose">
+            <textarea id="sms-reply-input" class="msg-input" rows="3" maxlength="2000" placeholder="Reply by text..."></textarea>
+            <button id="sms-reply-send" type="button" class="btn btn-teal">Send SMS</button>
+          </div>
+          <div class="sms-note">Replies send as SMS only when this number has text-message consent. Consent or STOP replies remain governed by the existing SMS rules.</div>
+        </div>
       </div>
 
       <!-- Referral partners for the move-in channel. Rules and lists come from
