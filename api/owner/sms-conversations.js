@@ -10,12 +10,20 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const { data, error } = await sb.from('sms_conversations')
-    .select('id, phone, customer_name, customer_email, booking_id, easer_id, status, last_message_at, last_message_preview, unread_count, created_at, updated_at, bookings(id, ref, service, status), profiles(id, full_name, email)')
+    .select('id, phone, customer_name, customer_email, booking_id, easer_id, status, last_message_at, last_message_preview, unread_count, created_at, updated_at, bookings(id, ref, service, status)')
     .order('last_message_at', { ascending: false })
     .limit(100);
   if (error) {
     console.error('Owner SMS conversation list error:', error);
     return res.status(503).json({ error: 'SMS conversations could not be loaded. The migration may not be applied yet.' });
   }
-  return res.status(200).json({ conversations: data || [] });
+  const easerIds = [...new Set((data || []).map(row => row.easer_id).filter(Boolean))];
+  let profilesById = new Map();
+  if (easerIds.length) {
+    const { data: profiles } = await sb.from('profiles').select('id, full_name, email').in('id', easerIds);
+    profilesById = new Map((profiles || []).map(profile => [profile.id, profile]));
+  }
+  return res.status(200).json({
+    conversations: (data || []).map(row => ({ ...row, profiles: profilesById.get(row.easer_id) || null })),
+  });
 }

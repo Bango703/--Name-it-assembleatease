@@ -40,7 +40,7 @@ export function createOwnerMessagesHandler({ supabase = getSupabase, authorize =
     let smsConversations = [];
     let smsAvailable = true;
     const { data: smsRows, error: smsError } = await sb.from('sms_conversations')
-      .select('id, phone, customer_name, customer_email, booking_id, easer_id, status, last_message_at, last_message_preview, unread_count, bookings(id, ref, service, status), profiles(id, full_name, email)')
+      .select('id, phone, customer_name, customer_email, booking_id, easer_id, status, last_message_at, last_message_preview, unread_count, bookings(id, ref, service, status)')
       .gte('last_message_at', since)
       .order('last_message_at', { ascending: false })
       .limit(100);
@@ -50,6 +50,13 @@ export function createOwnerMessagesHandler({ supabase = getSupabase, authorize =
     } else {
       smsConversations = smsRows || [];
     }
+    const smsEaserIds = [...new Set(smsConversations.map(row => row.easer_id).filter(Boolean))];
+    let smsEaserNames = new Map();
+    if (smsEaserIds.length) {
+      const { data: smsProfiles } = await sb.from('profiles').select('id, full_name, email').in('id', smsEaserIds);
+      smsEaserNames = new Map((smsProfiles || []).map(profile => [profile.id, profile]));
+    }
+    smsConversations = smsConversations.map(row => ({ ...row, profiles: smsEaserNames.get(row.easer_id) || null }));
     const inbox = appendSmsConversations({ conversations: bookingConversations, needsReply: bookingNeedsReply }, smsConversations);
     return res.status(200).json({
       conversations: inbox.conversations,
