@@ -1,6 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
-import { buildConversations } from '../_owner-inbox.js';
+import { appendSmsConversations, buildConversations } from '../_owner-inbox.js';
 
 const WINDOW_DAYS = 45;
 const MESSAGE_LIMIT = 1000;
@@ -36,8 +36,29 @@ export function createOwnerMessagesHandler({ supabase = getSupabase, authorize =
         easerNames = new Map((profiles || []).map(p => [p.id, p.full_name]));
       }
     }
-    const { conversations, needsReply } = buildConversations(rows, bookings, easerNames);
-    return res.status(200).json({ conversations, needsReply, windowDays: WINDOW_DAYS, truncated, bookingDetailsAvailable });
+    const { conversations: bookingConversations, needsReply: bookingNeedsReply } = buildConversations(rows, bookings, easerNames);
+    let smsConversations = [];
+    let smsAvailable = true;
+    const { data: smsRows, error: smsError } = await sb.from('sms_conversations')
+      .select('id, phone, customer_name, customer_email, booking_id, easer_id, status, last_message_at, last_message_preview, unread_count, bookings(id, ref, service, status), profiles(id, full_name, email)')
+      .gte('last_message_at', since)
+      .order('last_message_at', { ascending: false })
+      .limit(100);
+    if (smsError) {
+      console.error('Owner SMS conversation lookup error:', smsError);
+      smsAvailable = false;
+    } else {
+      smsConversations = smsRows || [];
+    }
+    const inbox = appendSmsConversations({ conversations: bookingConversations, needsReply: bookingNeedsReply }, smsConversations);
+    return res.status(200).json({
+      conversations: inbox.conversations,
+      needsReply: inbox.needsReply,
+      windowDays: WINDOW_DAYS,
+      truncated,
+      bookingDetailsAvailable,
+      smsAvailable,
+    });
   };
 }
 

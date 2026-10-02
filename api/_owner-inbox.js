@@ -14,6 +14,7 @@
  *   - a conversation needs the owner when its latest message was written TO
  *     the owner by a customer or Easer (a direct customer-Easer exchange is
  *     visible but needs nothing)
+ *   - an unread inbound SMS needs the owner until it is read or replied to
  *   - the Messages badge is the length of the needs-reply list
  */
 const PARTY = { customer: 'Customer', assembler: 'Easer', owner: 'You' };
@@ -82,4 +83,44 @@ export function buildConversations(messages = [], bookings = [], easerNames = ne
     conversations,
     needsReply: conversations.filter(c => c.needsReply).map(c => c.bookingId),
   };
+}
+
+/**
+ * Add phone-text threads to the same inbox ordering. These rows do not prove a
+ * customer identity; booking/Easer fields are links from the normalized number.
+ */
+export function appendSmsConversations(bookingInbox, smsConversations = []) {
+  const conversations = [...(bookingInbox.conversations || [])];
+  const needsReply = [...(bookingInbox.needsReply || [])];
+  for (const conversation of smsConversations) {
+    const needsOwner = Number(conversation.unread_count || 0) > 0;
+    const row = {
+      bookingId: conversation.booking_id || null,
+      conversationId: conversation.id,
+      kind: 'sms',
+      ref: conversation.bookings?.ref || null,
+      customerName: conversation.customer_name || conversation.profiles?.full_name || null,
+      easerName: conversation.profiles?.full_name || null,
+      bookingStatus: conversation.bookings?.status || null,
+      phone: conversation.phone,
+      messageCount: Number(conversation.unread_count || 0),
+      unreadForOwner: Number(conversation.unread_count || 0),
+      needsReply: needsOwner,
+      direct: false,
+      includesEaser: Boolean(conversation.easer_id),
+      lastMessage: {
+        sender: 'customer',
+        recipientType: 'owner',
+        direction: 'SMS to You',
+        body: String(conversation.last_message_preview || '').slice(0, 280),
+        at: conversation.last_message_at,
+      },
+      openThread: 'sms',
+    };
+    conversations.push(row);
+    if (needsOwner) needsReply.push(`sms:${conversation.id}`);
+  }
+  conversations.sort((a, b) => (a.needsReply === b.needsReply ? 0 : a.needsReply ? -1 : 1)
+    || new Date(b.lastMessage.at) - new Date(a.lastMessage.at));
+  return { conversations, needsReply };
 }

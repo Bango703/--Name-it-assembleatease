@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { getSupabase } from '../_supabase.js';
+import { recordSmsConversationMessage } from '../_sms-conversations.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -147,6 +148,15 @@ async function handleInbound(sb, payload, stamp) {
 
   // A stable ID makes retries/concurrent duplicates one owner-inbox entry.
   // Log after consent writes, so retrying a partial failure completes them.
+  await recordSmsConversationMessage(sb, {
+    phone: from,
+    body: text,
+    direction: 'inbound',
+    sender: 'system',
+    status: 'received',
+    providerId: payload.id,
+    occurredAt: stamp,
+  });
   await requireWrite(sb.from('notification_log').upsert({
     id: inboundNotificationId(payload.id),
     channel: 'sms',

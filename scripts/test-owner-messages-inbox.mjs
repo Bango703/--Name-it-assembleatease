@@ -10,7 +10,7 @@
 
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { messageDirectionLabel, messageNeedsOwner, buildConversations } from '../api/_owner-inbox.js';
+import { appendSmsConversations, messageDirectionLabel, messageNeedsOwner, buildConversations } from '../api/_owner-inbox.js';
 import { createOwnerMessagesHandler } from '../api/owner/messages.js';
 import { isBrowserExtensionNoise } from '../api/_runtime-noise.js';
 import { classifyRuntimeFailures } from '../api/owner/live-ops.js';
@@ -51,6 +51,18 @@ assert.equal(messageNeedsOwner({ sender: 'owner', recipient_type: 'customer' }),
   assert.equal(conversations.find(c => c.bookingId === 'b3').needsReply, false, 'answered by the owner');
 }
 
+{
+  const inbox = appendSmsConversations({ conversations: [], needsReply: [] }, [{
+    id: 'sms-1', phone: '+15125550101', customer_name: 'Casey', booking_id: 'b1', easer_id: null,
+    status: 'open', last_message_at: '2026-10-01T16:00:00Z', last_message_preview: 'Can you move the visit?',
+    unread_count: 1, bookings: { id: 'b1', ref: 'AAE-1', status: 'confirmed' }, profiles: null,
+  }]);
+  assert.deepEqual(inbox.needsReply, ['sms:sms-1'], 'an unread inbound SMS waits for the owner');
+  assert.equal(inbox.conversations[0].kind, 'sms');
+  assert.equal(inbox.conversations[0].conversationId, 'sms-1');
+  assert.equal(inbox.conversations[0].lastMessage.direction, 'SMS to You');
+}
+
 // ── 3. Endpoint ──────────────────────────────────────────────────────────────
 function res() { return { statusCode: 0, body: null, setHeader() {}, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } }; }
 function db(tables) {
@@ -72,10 +84,11 @@ function db(tables) {
     messages: { data: [{ booking_id: 'b1', sender: 'customer', recipient_type: 'assembler', body: 'hi', created_at: '2026-10-01T15:00:00Z' }], error: null },
     bookings: { data: [{ id: 'b1', ref: 'AAE-1', customer_name: 'Dana', assembler_id: 'e1' }], error: null },
     profiles: { data: [{ id: 'e1', full_name: 'Trapper' }], error: null },
+    sms_conversations: { data: [{ id: 'sms-1', phone: '+15125550101', customer_name: 'Casey', booking_id: 'b1', easer_id: null, status: 'open', last_message_at: '2026-10-01T16:00:00Z', last_message_preview: 'text', unread_count: 1, bookings: null, profiles: null }], error: null },
   }) })({ method: 'GET' }, r);
   assert.equal(r.statusCode, 200);
-  assert.equal(r.body.conversations[0].lastMessage.direction, 'Customer to Easer');
-  assert.deepEqual(r.body.needsReply, []);
+  assert.equal(r.body.conversations[0].lastMessage.direction, 'SMS to You');
+  assert.deepEqual(r.body.needsReply, ['sms:sms-1']);
 }
 
 // ── 4. Booking thread in the dashboard ──────────────────────────────────────
@@ -94,6 +107,16 @@ assert.match(dash, /\$messagesView,/);
 const panel = read('owner/assets/messages.js');
 assert.match(panel, /state\.data\.needsReply\.length/, 'badge is the server list length');
 assert.doesNotMatch(panel, /recipientType === 'owner' &&|sender !== 'owner' && .*recipient/, 'the panel does not decide what needs a reply');
+assert.match(panel, /\/api\/owner\/sms-messages/, 'SMS rows open the SMS thread API');
+assert.match(panel, /sendSmsReply/, 'SMS rows can be answered from Messages');
+assert.match(dash, /id="sms-panel"/, 'Messages contains the SMS thread');
+assert.match(dash, /id="sms-reply-send"/, 'Messages contains the SMS reply action');
+assert.match(read('api/webhooks/telnyx.js'), /recordSmsConversationMessage/, 'inbound SMS reaches the owner conversation');
+assert.match(read('api/webhooks/telnyx.js'), /await recordSmsConversationMessage[\s\S]*notification_log/, 'conversation recording precedes the notification log');
+assert.match(read('api/owner/sms-messages.js'), /sendSms\(/, 'owner SMS replies go through the one SMS sender');
+assert.match(read('api/owner/sms-messages.js'), /status: 'suppressed'/, 'a consent-blocked reply is saved as not sent');
+assert.match(read('api/migrations/100_owner_sms_conversations.sql'), /CREATE TABLE IF NOT EXISTS public\.sms_conversations/i, 'SMS conversations exist in migrations');
+assert.match(read('api/migrations/100_owner_sms_conversations.sql'), /CREATE UNIQUE INDEX IF NOT EXISTS idx_sms_messages_provider/i, 'Telnyx retries dedupe by provider ID');
 
 // ── 5. Browser extension errors ─────────────────────────────────────────────
 assert.equal(isBrowserExtensionNoise({ message: 'Invalid call to runtime.sendMessage(). Tab not found.' }), true, 'the 2026-10-01 Live Ops alert');

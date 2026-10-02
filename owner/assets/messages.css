@@ -26,4 +26,11 @@
 .inbox-tag-unread { border-color: var(--teal, #00BFFF); }
 .inbox-open { margin-left: auto; color: var(--blue, #2563eb); font-weight: 600; }
 .inbox-empty { padding: 28px 20px; color: var(--muted, #6b7280); line-height: 1.6; }
-@media (max-width: 560px) { .inbox-row { padding: 12px 14px; } .inbox-when { margin-left: 0; } }
+.sms-panel { margin-top: 14px; background: var(--surface, #fff); border: 1px solid var(--border-md, rgba(0,0,0,.14)); border-radius: 12px; overflow: hidden; }
+.sms-thread-head { display: flex; justify-content: space-between; gap: 16px; padding: 14px 16px; border-bottom: 1px solid var(--border, rgba(0,0,0,.08)); }
+.sms-thread-title { font-size: 15px; font-weight: 700; color: var(--text, #111827); }
+.sms-thread-meta { font-size: 12px; color: var(--muted, #6b7280); line-height: 1.5; margin-top: 2px; overflow-wrap: anywhere; }
+.sms-thread-body { max-height: 360px; padding: 14px 16px; }
+.sms-panel .msg-compose { padding: 12px 16px 14px; border-top: 1px solid var(--border, rgba(0,0,0,.08)); }
+.sms-note { padding: 0 16px 14px; font-size: 11px; color: var(--muted, #6b7280); line-height: 1.5; }
+@media (max-width: 560px) { .inbox-row { padding: 12px 14px; } .inbox-when { margin-left: 0; } .sms-thread-head { flex-wrap: wrap; } }
