@@ -5,6 +5,7 @@ import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { messageDirectionLabel } from '../_owner-inbox.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
+import { textOwnerAboutMessage } from '../_owner-text.js';
 import { safeTokenHashMatch, guestManageUrl } from '../_payment-security.js';
 import { customerMessageRecipient } from './_message-routing.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
@@ -616,6 +617,7 @@ export default async function handler(req, res) {
           disableDedupe: true,
         },
       });
+      await textOwnerAboutMessage({ sb, booking, fromParty: 'assembler', urgent: supportDefinition?.severity === OPERATION_CASE_SEVERITIES.CRITICAL });
     } else {
       // Customer message — notify owner
       notificationResult = await sendEmail({
@@ -652,6 +654,8 @@ export default async function handler(req, res) {
           disableDedupe: true,
         },
       });
+      // Text only when the customer wrote to the owner; a message to the Easer is FYI by email.
+      if (resolvedRecipient === 'owner') await textOwnerAboutMessage({ sb, booking, fromParty: 'customer' });
       if (booking.assembler_id && booking.assembler_accepted_at) {
         const { data: easerProfile } = await sb.from('profiles')
           .select('email, full_name, phone, sms_consent_at, sms_opted_out_at')
