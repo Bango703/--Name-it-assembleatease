@@ -6,6 +6,7 @@ import {
   insertOperationalEventFailOpen,
   redactString,
 } from '../_observability.js';
+import { isBrowserExtensionNoise } from '../_runtime-noise.js';
 
 function parseBody(req) {
   if (!req.body) return {};
@@ -32,6 +33,8 @@ export default async function handler(req, res) {
   const message = redactString(body.message || 'Unknown client runtime error') || 'Unknown client runtime error';
   const stack = redactString(body.stack || '');
   const kind = String(body.kind || 'window_error').slice(0, 64);
+  // A visitor's browser extension threw, not this site. Accept and drop it.
+  if (isBrowserExtensionNoise({ message, source, stack })) return res.status(202).json({ ok: true, ignored: 'browser_extension' });
   const sb = getSupabase();
 
   await insertOperationalEventFailOpen(sb, {
