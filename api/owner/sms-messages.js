@@ -17,7 +17,7 @@ function clean(value, maxLength) {
 async function getConversation(res, conversationId) {
   const sb = getSupabase();
   const { data: conversation, error: conversationError } = await sb.from('sms_conversations')
-    .select('id, phone, customer_name, customer_email, booking_id, easer_id, status, unread_count, last_message_at, bookings(id, ref, service, status), profiles(id, full_name, email)')
+    .select('id, phone, customer_name, customer_email, booking_id, easer_id, status, unread_count, last_message_at, bookings(id, ref, service, status)')
     .eq('id', conversationId)
     .maybeSingle();
   if (conversationError) {
@@ -25,6 +25,10 @@ async function getConversation(res, conversationId) {
     return res.status(503).json({ error: 'SMS conversation could not be verified. The migration may not be applied yet.' });
   }
   if (!conversation) return res.status(404).json({ error: 'SMS conversation not found' });
+  if (conversation.easer_id) {
+    const { data: profile } = await sb.from('profiles').select('id, full_name, email').eq('id', conversation.easer_id).maybeSingle();
+    conversation.profiles = profile || null;
+  }
 
   const { data: messages, error: messagesError } = await sb.from('sms_messages')
     .select('id, conversation_id, booking_id, direction, sender, phone, body, provider_id, notification_id, status, error_text, read_at, occurred_at, created_at')
