@@ -147,17 +147,9 @@ async function handleInbound(sb, payload, stamp) {
       .in('customer_phone', phoneVariants), stamp, true));
   }
 
-  // A stable ID makes retries/concurrent duplicates one owner-inbox entry.
-  // Log after consent writes, so retrying a partial failure completes them.
-  await recordSmsConversationMessage(sb, {
-    phone: from,
-    body: text,
-    direction: 'inbound',
-    sender: 'system',
-    status: 'received',
-    providerId: payload.id,
-    occurredAt: stamp,
-  });
+  // Durable log and owner alert FIRST — they must survive even if the inbox
+  // write below fails. Six delivered texts were lost because the inbox record
+  // ran before them and threw, killing the whole event and Telnyx's retries.
   await requireWrite(sb.from('notification_log').upsert({
     id: inboundNotificationId(payload.id),
     channel: 'sms',
@@ -217,6 +209,37 @@ async function handleInbound(sb, payload, stamp) {
     } catch (alertError) {
       console.error('[telnyx-webhook] owner inbound alert failed:', alertError?.message || alertError);
     }
+  }
+
+  // Inbox record LAST. If the table/migration is ever missing again, the log
+  // and alert above have already run — the text is not lost, the owner is
+  // notified, and the failure is recorded where it can be seen instead of
+  // dying in a 503 retry storm.
+  try {
+    await recordSmsConversationMessage(sb, {
+      phone: from,
+      body: text,
+      direction: 'inbound',
+      sender: 'system',
+      status: 'received',
+      providerId: payload.id,
+      occurredAt: stamp,
+    });
+  } catch (inboxError) {
+    console.error('[telnyx-webhook] inbox record failed for', payload.id, inboxError?.message || inboxError);
+    try {
+      await sb.from('operational_events').insert({
+        event_type: 'sms_inbox_write_failed',
+        route: '/api/webhooks/telnyx',
+        method: 'POST',
+        actor_role: 'system',
+        stage: 'inbound_inbox',
+        reason_code: 'inbox_record_failed',
+        reason_detail: String(inboxError?.message || inboxError).slice(0, 300),
+        mutation_result: 'log_and_alert_survived',
+        payload: { provider_id: payload.id, from },
+      });
+    } catch { /* if even the event log fails, nothing more can be done here */ }
   }
 }
 
