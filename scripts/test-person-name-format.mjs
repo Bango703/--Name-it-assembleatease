@@ -32,6 +32,7 @@ assert.match(readFileSync('api/owner/add-easer.js', 'utf8'), /const cleanName {2
 const migration = readFileSync('api/migrations/105_normalize_shouted_names.sql', 'utf8');
 assert.match(migration, /full_name = upper\(full_name\) OR full_name = lower\(full_name\)/, 'only names with no casing information are corrected');
 assert.match(migration, /SET full_name = initcap\(/);
+assert.match(migration, /set_config\('request\.jwt\.claim\.role', 'service_role', true\)/, 'runs past the profile guard as the server does, for this transaction only');
 assert.doesNotMatch(migration, /contractor_agreement_signed_name|bookings/, 'signatures and bookings are not touched');
 assert.match(migration, /NOTIFY pgrst, 'reload schema'/);
 

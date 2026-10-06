@@ -15,6 +15,12 @@
 
 BEGIN;
 
+-- guard_profile_self_update (migration 031) only lets the server (service
+-- role) change another person's profile. Run this update as the service role,
+-- for this transaction only (third argument true = local to the transaction).
+SELECT set_config('request.jwt.claim.role', 'service_role', true);
+SELECT set_config('request.jwt.claims', '{"role":"service_role"}', true);
+
 UPDATE public.profiles
 SET full_name = initcap(regexp_replace(btrim(full_name), '\s+', ' ', 'g'))
 WHERE full_name ~ '[A-Za-z]'
