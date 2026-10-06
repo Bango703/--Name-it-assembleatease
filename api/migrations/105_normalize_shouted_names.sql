@@ -13,24 +13,27 @@
 -- Not touched: contractor agreement signatures (stored separately, exactly as
 -- signed), emails, phone numbers, any booking or payment data.
 
-BEGIN;
-
 -- guard_profile_self_update (migration 031) only lets the server (service
--- role) change another person's profile. Run this update as the service role,
--- for this transaction only (third argument true = local to the transaction).
-SELECT set_config('request.jwt.claim.role', 'service_role', true);
-SELECT set_config('request.jwt.claims', '{"role":"service_role"}', true);
+-- role) change another person's profile. The Supabase SQL editor runs each
+-- statement separately, so the service-role claim and the update must run in
+-- one statement: a DO block. set_config(..., true) is local to that block's
+-- transaction; the guard itself is unchanged. Applied 2026-10-06.
+DO $$
+BEGIN
+  PERFORM set_config('request.jwt.claim.role', 'service_role', true);
+  PERFORM set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  RAISE NOTICE 'running as: %', auth.role();
 
-UPDATE public.profiles
-SET full_name = initcap(regexp_replace(btrim(full_name), '\s+', ' ', 'g'))
-WHERE full_name ~ '[A-Za-z]'
-  AND (full_name = upper(full_name) OR full_name = lower(full_name))
-  AND full_name IS DISTINCT FROM initcap(regexp_replace(btrim(full_name), '\s+', ' ', 'g'));
+  UPDATE public.profiles
+  SET full_name = initcap(regexp_replace(btrim(full_name), '\s+', ' ', 'g'))
+  WHERE full_name ~ '[A-Za-z]'
+    AND (full_name = upper(full_name) OR full_name = lower(full_name))
+    AND full_name IS DISTINCT FROM initcap(regexp_replace(btrim(full_name), '\s+', ' ', 'g'));
 
-INSERT INTO public.platform_schema_state (migration_number, migration_name)
-VALUES (105, 'normalize_shouted_names')
-ON CONFLICT (migration_number) DO NOTHING;
-
-COMMIT;
+  INSERT INTO public.platform_schema_state (migration_number, migration_name)
+  VALUES (105, 'normalize_shouted_names')
+  ON CONFLICT (migration_number) DO NOTHING;
+END
+$$;
 
 NOTIFY pgrst, 'reload schema';
