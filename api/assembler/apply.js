@@ -1,6 +1,7 @@
 ﻿import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
 import { getSupabase } from '../_supabase.js';
+import { normalizePersonName } from '../_person-name.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { rateLimit } from '../_ratelimit.js';
 import { logActivity } from '../booking/_activity.js';
@@ -109,6 +110,8 @@ export default async function handler(req, res) {
   }
 
   const cleanName = fullName.trim();
+  // Stored for display in ordinary capitalisation; the signature keeps cleanName as typed.
+  const displayName = normalizePersonName(cleanName);
   const cleanEmail = email.trim().toLowerCase();
   const applicationAttemptHash = hashApplicationAttemptId(applicationAttemptId);
   const feeConsentGiven = applicationFeeConsent === true;
@@ -208,7 +211,7 @@ export default async function handler(req, res) {
       email_confirm: true,
       user_metadata: {
         role: 'assembler',
-        full_name: cleanName,
+        full_name: displayName,
         application_attempt_hash: applicationAttemptHash,
       },
     });
@@ -226,7 +229,7 @@ export default async function handler(req, res) {
   // the exact server-created PaymentIntent. Owner review cannot start earlier.
   const coreProfile = {
     id: userId,
-    full_name: cleanName,
+    full_name: displayName,
     email: cleanEmail,
     phone: cleanPhone,
     role: 'assembler',
