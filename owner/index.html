@@ -16,6 +16,8 @@
   <link rel="stylesheet" href="/assets/status.css" />
   <link rel="stylesheet" href="/owner/assets/cases.css" />
   <link rel="stylesheet" href="/owner/assets/voice-calls.css" />
+  <link rel="stylesheet" href="/owner/assets/partners.css" />
+  <link rel="stylesheet" href="/owner/assets/messages.css" />
   <script src="/assets/js/mobile-nav.js" defer></script>
   <!-- Canonical service catalog. The Edit Booking service list was hardcoded here
        and had drifted: it offered only 4 of the 7 real services and wrote
@@ -28,6 +30,8 @@
   <script src="/owner/assets/cases.js" defer></script>
   <script src="/owner/assets/voice-calls.js" defer></script>
   <script src="/owner/assets/acquisition.js" defer></script>
+  <script src="/owner/assets/partners.js" defer></script>
+  <script src="/owner/assets/messages.js" defer></script>
   <link rel="stylesheet" href="/owner/assets/owner.css" />
 </head>
 <body>
@@ -57,11 +61,13 @@
       <ul class="sidebar-nav">
         <li><a class="active" data-view="liveops"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="15" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="5" y1="9" x2="5" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/></svg></span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
         <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" title="Active jobs scheduled today" style="display:none;background:#64748b">0</span></a></li>
-        <li><a data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span><span class="nav-count" id="nav-messages" title="Unread customer or Easer messages" style="display:none;background:#dc2626">0</span></a></li>
+        <li><a data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
+        <li><a data-view="messages"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Messages <span class="nav-count" id="nav-inbox" title="Conversations waiting for your reply" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="cases"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 5V3h8v2"/><path d="M9 11h6M9 15h4"/></svg></span> Cases <span class="nav-count" id="nav-cases" title="Cases requiring owner action" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="voice-calls"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h4l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z"/></svg></span> Phone Calls <span class="nav-count" id="nav-voice-calls" title="Call activity requiring review" style="display:none">0</span></a></li>
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
         <li><a data-view="market-demand"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z"/></svg></span> Market Demand <span class="nav-count" id="nav-market-demand" style="display:none">0</span></a></li>
+        <li><a data-view="partners"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11 4 7l4-4"/><path d="M4 7h11a5 5 0 0 1 0 10h-3"/><path d="M16 13l4 4-4 4"/><path d="M20 17H9"/></svg></span> Partners <span class="nav-count" id="nav-partners" title="Partner follow-ups due" style="display:none;background:#d97706">0</span></a></li>
         <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews</a></li>
         <li><a data-view="marketing"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M9 14h6"/><path d="M12 14v6"/></svg></span> Marketing</a></li>
         <li><a data-view="analytics"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Financials <span class="nav-count" id="nav-payouts" title="Easer earnings requiring owner action" style="display:none;background:#d97706">0</span></a></li>
@@ -215,6 +221,74 @@
           <div id="voice-calls-detail" class="voice-calls-detail" aria-live="polite"><p>Select a call to see its timeline and any linked request.</p></div>
         </div>
       </div>
+      <!-- Owner SMS inbox. Texts to the business number land here; owner replies
+           go through the same SMS consent and delivery rules as every other text. -->
+      <div id="messages-view" class="inbox-view" style="display:none">
+        <div class="inbox-toolbar">
+          <div><h2>Messages</h2><p class="inbox-muted">SMS messages sent to the business number. Booking chat stays inside the booking detail.</p></div>
+          <div class="inbox-actions">
+            <button type="button" class="inbox-button" id="inbox-filter-reply" aria-pressed="false">Waiting for you</button>
+            <button type="button" class="inbox-button" id="inbox-refresh">Refresh</button>
+          </div>
+        </div>
+        <div id="inbox-notice" class="inbox-note" role="status" hidden></div>
+        <div id="inbox-list" class="inbox-list"><div class="inbox-empty">Loading messages</div></div>
+        <div id="sms-panel" class="sms-panel" hidden>
+          <div class="sms-thread-head">
+            <div>
+              <div id="sms-thread-title" class="sms-thread-title">SMS conversation</div>
+              <div id="sms-thread-meta" class="sms-thread-meta"></div>
+            </div>
+          </div>
+          <div id="sms-thread-body" class="msg-thread sms-thread-body"></div>
+          <div class="msg-compose">
+            <textarea id="sms-reply-input" class="msg-input" rows="3" maxlength="2000" placeholder="Reply by text..."></textarea>
+            <button id="sms-reply-send" type="button" class="btn btn-teal">Send SMS</button>
+          </div>
+          <div class="sms-note">Replies send as SMS only when this number has text-message consent. Consent or STOP replies remain governed by the existing SMS rules.</div>
+        </div>
+      </div>
+
+      <!-- Referral partners for the move-in channel. Rules and lists come from
+           /api/owner/partners (api/_partners.js); owner/assets/partners.js renders them. -->
+      <div id="partners-view" class="partners-view" style="display:none">
+        <div class="partners-toolbar">
+          <div><h2>Partners</h2><p class="partners-muted">Leasing offices, property managers, movers, realtors and furniture stores who can send you move-in jobs.</p></div>
+          <div class="partners-actions">
+            <button type="button" class="partners-button partners-week" id="partners-week" title="Partners contacted this week. Target: 10 a week, each followed up once after 4 to 5 days." aria-pressed="false">0 / 10</button>
+            <button type="button" class="partners-button" id="partners-due" aria-pressed="false">0 follow-ups due</button>
+            <button type="button" class="partners-button" id="partners-refresh">Refresh</button>
+          </div>
+        </div>
+        <div id="partners-notice" class="partners-note" role="status" hidden></div>
+        <div id="partners-setup" class="partners-note" hidden></div>
+        <div id="partners-body" hidden>
+          <div class="partners-stages" id="partners-stages" role="group" aria-label="Filter by stage"></div>
+          <div class="partners-filters">
+            <select id="partners-kind" aria-label="Partner type"></select>
+            <select id="partners-city" aria-label="City"></select>
+            <input type="search" id="partners-search" placeholder="Search name, street or notes" aria-label="Search partners">
+          </div>
+          <details class="partners-add">
+            <summary>Add a partner you met</summary>
+            <form id="partners-add-form">
+              <label class="partners-field">Business name<input id="partners-add-name" required maxlength="120"></label>
+              <label class="partners-field">Type<select id="partners-add-kind"></select></label>
+              <label class="partners-field">City<input id="partners-add-city" maxlength="60" value="Austin"></label>
+              <label class="partners-field">Phone<input id="partners-add-phone" maxlength="40"></label>
+              <label class="partners-field">Email<input id="partners-add-email" type="email" maxlength="160"></label>
+              <label class="partners-field">Website<input id="partners-add-website" type="url" maxlength="300" placeholder="https://"></label>
+              <button type="submit" class="partners-button partners-primary">Add partner</button>
+              <span id="partners-add-status" class="partners-muted" role="status"></span>
+            </form>
+          </details>
+          <div class="partners-grid">
+            <div class="partners-listwrap"><div class="partners-listhead" id="partners-count">Loading partners</div><div class="partners-list" id="partners-list"></div></div>
+            <div class="partners-detail" id="partners-detail" aria-live="polite"></div>
+          </div>
+        </div>
+        <div id="partners-toast" class="partners-toast" hidden></div>
+      </div>
       <div id="cases-view" class="cases-view-shell" style="display:none">
         <div class="cases-toolbar">
           <div class="cases-toolbar-copy">
@@ -363,7 +437,7 @@
                   <button id="msg-target-customer" onclick="setMsgTarget('customer')" style="min-height:44px;padding:8px 12px;border-radius:99px;border:1.5px solid var(--teal);background:var(--teal);color:#fff;font-size:0.76rem;font-weight:600;cursor:pointer;touch-action:manipulation">Customer</button>
                   <button id="msg-target-assembler" onclick="setMsgTarget('assembler')" style="min-height:44px;padding:8px 12px;border-radius:99px;border:1.5px solid #7c3aed;background:none;color:#7c3aed;font-size:0.76rem;font-weight:600;cursor:pointer;touch-action:manipulation">Easer</button>
                 </div>
-                <p id="msg-route-help" style="margin:0 0 0.65rem;font-size:0.78rem;line-height:1.5;color:var(--muted)">Customer notifications go by email. Replies sent from the tracking page appear here; replies sent by email go to your owner inbox. Customer read status is not shown.</p>
+                <p id="msg-route-help" style="margin:0 0 0.65rem;font-size:0.78rem;line-height:1.5;color:var(--muted)">Messages sent here are saved in this booking. Customers are notified by email; Easers can also receive push notifications. Tracking-page replies appear here. Direct email replies go to the owner mailbox. Customer read status is not shown.</p>
                 <div class="msg-compose">
                   <textarea class="msg-input" id="msg-input" placeholder="Message customer..." aria-describedby="msg-route-help" rows="4" style="border-color:var(--teal)"></textarea>
                   <button class="btn" id="msg-send" style="background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600;white-space:nowrap">Send to Customer</button>
@@ -2912,6 +2986,8 @@ window.intelQuick = intelQuick;
         window.OwnerCases.loadBadge();
       }
       if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.loadBadge();
+      if (window.OwnerPartners) window.OwnerPartners.loadBadge();
+      if (window.OwnerInbox) window.OwnerInbox.loadBadge();
     }, 0);
   }
 
@@ -3006,6 +3082,8 @@ window.intelQuick = intelQuick;
       if (currentView === 'assemblers') await loadAssemblerList();
       else if (currentView === 'cases') { if (window.OwnerCases) await window.OwnerCases.refresh(); }
       else if (currentView === 'voice-calls') { if (window.OwnerVoiceCalls) await window.OwnerVoiceCalls.refresh(); }
+      else if (currentView === 'partners') { if (window.OwnerPartners) await window.OwnerPartners.refresh(); }
+      else if (currentView === 'messages') { if (window.OwnerInbox) await window.OwnerInbox.refresh(); }
       else if (currentView === 'waitlist') await loadWaitlist();
       else if (currentView === 'market-demand') await loadMarketDemand();
       else if (currentView === 'reviews') { await loadReviews(); }
@@ -3405,6 +3483,18 @@ window.intelQuick = intelQuick;
     if (!card) return;
     selectBooking(card.dataset.id);
   });
+
+  // Messages inbox: open a booking on its message thread with the right party selected.
+  window.ownerOpenBookingMessages = async function(id, target) {
+    var nav = document.querySelector('.sidebar-nav [data-view="bookings"]');
+    if (nav && currentView !== 'bookings') nav.click();
+    if (!allBookings.find(function(x){ return x.id === id; })) { try { await loadBookings(true); } catch (e) {} }
+    if (!allBookings.find(function(x){ return x.id === id; })) return false;
+    await selectBooking(id);
+    var b = allBookings.find(function(x){ return x.id === id; });
+    if (target === 'assembler' && b && b.assembler_id) { applyMsgTarget('assembler'); renderMessageThread(); }
+    return true;
+  };
 
   async function selectBooking(id) {
     selectedId = id;
@@ -4075,7 +4165,9 @@ window.intelQuick = intelQuick;
         + thumb
         + '<div class="evidence-card-meta">'
         + '<div class="evidence-card-type">' + esc(label) + '</div>'
-        + '<div><strong>' + esc(ev.uploaded_by_role || 'Uploader') + ':</strong> ' + esc(ev.uploaded_by_name || 'Unknown') + '</div>'
+        + '<div><strong>' + esc(ev.uploaded_by_role || 'Uploader') + ':</strong> ' + esc(ev.uploaded_by_name || 'Unknown')
+        + (ev.uploaded_on_behalf_of_name ? ' <span style="color:var(--muted)">(for ' + esc(ev.uploaded_on_behalf_of_name) + ')</span>' : '')
+        + '</div>'
         + '<div>' + fmtDate(ev.created_at) + '</div>'
         + '<div>' + fmtBytes(ev.file_size_bytes) + '</div>'
         + (ev.notes ? '<div style="margin-top:2px;font-style:italic">' + esc(ev.notes) + '</div>' : '')
@@ -4973,7 +5065,7 @@ window.intelQuick = intelQuick;
     }
     if (b.status === 'confirmed' && b.payment_status === 'card_saved') {
       var savedCardStaffing = b.assembler_id ? (b.assembler_accepted_at ? ' The assigned Easer has accepted.' : ' An Easer is assigned; acceptance is still pending.') : ' An Easer can be assigned through this booking.';
-      notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Future appointment:</strong> the customer card is saved with no charge or hold. Authorization runs five days before the visit.' + savedCardStaffing + ' Follow the existing payment-ready checks before travel.</div>');
+      notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Future appointment:</strong> the customer card is saved with no charge or hold. Authorization is scheduled closer to the visit.' + savedCardStaffing + ' Follow the existing payment-ready checks before travel.</div>');
     }
     if (b.status === 'pending') {
       // A pending booking is not paid. Keep quote, authorization, and failed
@@ -5020,6 +5112,19 @@ window.intelQuick = intelQuick;
         btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">Decline</button>');
         btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel</button>');
       }
+    }
+    // Mirrors isActivePaymentRecoveryBooking in
+    // api/booking/_pending-payment-recovery.js. The browser cannot import it,
+    // so scripts/test-evidence-attribution.mjs asserts the two stay identical
+    // — if they drift, this offers a button the server will refuse.
+    if (['en_route', 'arrived', 'in_progress'].includes(b.status)
+        && ['pending', 'failed'].includes(b.payment_status)
+        && b.stripe_payment_intent_id) {
+      // Says what the condition actually tests. The hold may be perfectly
+      // healthy and simply unpaid; calling that "expired" sends the owner
+      // hunting a problem in Stripe that is not there.
+      notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payment not completed:</strong> the customer still needs to pay before this job can be marked complete.</div>');
+      btns.push('<button class="btn btn-teal" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
     }
     if (b.status === 'confirmed') {
       if (b.payment_status === 'card_saved') {
@@ -6510,12 +6615,13 @@ window.intelQuick = intelQuick;
   // for the party currently selected (_msgTarget) so a customer never sees the
   // Easer's messages here and vice versa, and the owner can't misread which
   // conversation they're in. Legacy rows without a recipient_type are never hidden.
+  // Since customers and Easers talk directly (2026-09-29), a message between them
+  // belongs to BOTH threads: the customer tab shows everything the customer wrote
+  // or received, the Easer tab everything the Easer wrote or received.
   function messageInSelectedThread(m, target) {
     if (m.recipient_type == null && m.sender === 'owner') return true;
-    if (target === 'assembler') {
-      return m.sender === 'assembler' || (m.sender === 'owner' && m.recipient_type === 'assembler');
-    }
-    return m.sender === 'customer' || (m.sender === 'owner' && m.recipient_type === 'customer');
+    if (target === 'assembler') return m.sender === 'assembler' || m.recipient_type === 'assembler';
+    return m.sender === 'customer' || m.recipient_type === 'customer';
   }
   function renderMessageThread() {
     var target = _msgTarget;
@@ -6527,9 +6633,8 @@ window.intelQuick = intelQuick;
     }
     $msgThread.innerHTML = msgs.map(function(m) {
       var senderClass = m.sender === 'owner' ? 'owner' : 'customer';
-      var senderLabel = m.sender === 'owner'
-        ? 'You to ' + (m.recipient_type === 'assembler' ? 'Easer' : m.recipient_type === 'customer' ? 'Customer' : 'recipient')
-        : m.sender === 'assembler' ? 'Easer to Owner' : 'Customer to Owner';
+      // Who wrote to whom is decided on the server (api/_owner-inbox.js).
+      var senderLabel = m.direction || 'Message';
       return '<div class="msg ' + senderClass + '">'
         + '<div>' + esc(m.body) + '</div>'
         + '<div class="msg-time">' + senderLabel + ' &bull; ' + formatDateTime(m.created_at) + '</div>'
@@ -7113,7 +7218,7 @@ window.intelQuick = intelQuick;
       pending: 'No payment authorization or charge is confirmed',
       failed: 'Authorization failed; customer can retry securely',
       card_saved: booking && booking.status === 'confirmed'
-        ? 'Card saved; authorization scheduled five days before the appointment'
+        ? 'Card saved; authorization scheduled closer to the appointment'
         : 'Card saved for an owner-priced quote; no charge captured',
       authorized: (usesKlarna ? 'Klarna' : 'Card') + ' authorization confirmed; funds not captured yet',
       captured: 'Customer payment captured by Stripe',
@@ -7354,7 +7459,11 @@ window.intelQuick = intelQuick;
         + (ownerEaserOnly
           ? ' &bull; <span style="color:#155e75">Owner-Easer offline flow</span>'
           : ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>'
-            + (isAccepted ? '' : ' <button onclick="releaseAssignment(\'' + b.id + '\',this)" class="btn" style="font-size:0.72rem;padding:2px 8px">Release</button>'));
+            + (isAccepted ? '' : ' <button onclick="releaseAssignment(\'' + b.id + '\',this)" class="btn" style="font-size:0.72rem;padding:2px 8px">Release</button>')
+            // Confirmed no-show: accepted, never started, appointment day reached. The server checks the start time.
+            + (isAccepted && b.status === 'confirmed' && b.date && String(b.date).slice(0, 10) <= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
+              ? ' <button onclick="confirmEaserNoShow(\'' + b.id + '\',this)" class="btn" style="font-size:0.72rem;padding:2px 8px">Confirm no-show</button>'
+              : ''));
       // Fill the list even though it starts hidden. Reassign only un-hides
       // these controls; it does not build them. Without this the owner clicked
       // Reassign, got an empty dropdown, and the Assign button stayed disabled
@@ -7721,6 +7830,8 @@ window.intelQuick = intelQuick;
   var $casesView      = document.getElementById('cases-view');
   var $voiceCallsView = document.getElementById('voice-calls-view');
   var $marketDemandView = document.getElementById('market-demand-view');
+  var $partnersView     = document.getElementById('partners-view');
+  var $messagesView     = document.getElementById('messages-view');
   var $waitlistView   = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
   var $todayView        = document.getElementById('today-view');
@@ -7732,7 +7843,7 @@ window.intelQuick = intelQuick;
   var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
+  var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$partnersView,$messagesView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
   var _bookingsLoadPromise = null;
@@ -7770,6 +7881,8 @@ window.intelQuick = intelQuick;
       else if (view === 'cases')        { $casesView.style.display='';       $topbarTitle.textContent='Cases'; stopLiveOps(); if (window.OwnerCases) window.OwnerCases.load(); }
       else if (view === 'voice-calls')  { $voiceCallsView.style.display='';  $topbarTitle.textContent='Phone Calls'; stopLiveOps(); if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.load(); }
       else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); startMarketDemand(); }
+      else if (view === 'partners')     { $partnersView.style.display='';    $topbarTitle.textContent='Partners'; stopLiveOps(); if (window.OwnerPartners) window.OwnerPartners.load(); }
+      else if (view === 'messages')     { $messagesView.style.display='';    $topbarTitle.textContent='Messages'; stopLiveOps(); if (window.OwnerInbox) window.OwnerInbox.load(); }
       else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; stopLiveOps(); loadWaitlist(); }
       else if (view === 'assemblers')  { $assemblersView.style.display='';  $topbarTitle.textContent='Easers'; loadAssemblerList(); }
       // marketplace removed
@@ -10132,6 +10245,7 @@ window.intelQuick = intelQuick;
   var currentTierFilter = 'active';
   var asmConnectRequired = false;
   var currentAssemblerDetailId = null;
+  var easerReadinessRequest = 0;
 
   // ─── EASER MANAGEMENT — CLEAN STATUS/TIER/ID ARCHITECTURE ──────────────────
   // status: pending | active | suspended | rejected  (platform access)
@@ -10365,7 +10479,7 @@ window.intelQuick = intelQuick;
           + '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(a.email) + '</span>'
           + (!hasValidUsPhone(a.phone) ? ' <span style="font-size:0.68rem;color:#ef4444;font-weight:600">Valid phone required</span>' : '')
           + '</td>'
-        + '<td style="' + rs + '">' + statusBadge(a.status) + (a.status === 'active' ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">' + (a.readiness && a.readiness.isReady ? 'Ready for jobs' : 'Readiness action needed') + '</div>' : '') + '</td>'
+        + '<td style="' + rs + '">' + statusBadge(a.status) + (a.status === 'active' ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">' + esc(easerOfferPresentation(a.readiness).label) + '</div>' : '') + '</td>'
         + '<td style="' + rs + '">' + tierBadge(a.tier) + (a.tier_grace_started_at ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">Grace since ' + esc(formatDate(a.tier_grace_started_at)) + '</div>' : '') + '</td>'
         + '<td style="' + rs + '">' + idVerificationBadge(a) + '</td>'
         + '<td style="' + rs + '">' + connectBadge(a) + '</td>'
@@ -10488,31 +10602,35 @@ window.intelQuick = intelQuick;
       : '<span style="display:inline-block;background:#fee2e2;color:#991b1b;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px">NO</span>';
   }
 
+  // Labels only: the canonical server verdict owns every job requirement.
+  function easerOfferPresentation(readiness) {
+    var state = readiness && readiness.requirementsVerified === true ? readiness.offerStatus : 'unverified';
+    if (state === 'ready') return { label: 'Ready for offers', hint: 'Job requirements are complete and availability is on.', bg: '#d1fae5', fg: '#065f46' };
+    if (state === 'offline') return { label: 'Offline', hint: 'Job requirements are complete. New job offers are paused while this Easer is offline.', bg: 'var(--elevated)', fg: 'var(--muted)' };
+    if (state === 'action_required') return { label: 'Requirements need attention', hint: 'Complete the missing job requirements below before sending new offers.', bg: '#fee2e2', fg: '#991b1b' };
+    return { label: 'Unverified', hint: 'Job requirements could not be verified. Refresh to check again.', bg: 'var(--elevated)', fg: 'var(--muted)' };
+  }
+
   function renderOnboardingReadinessPanel(data) {
     var container = document.getElementById('asm-onboarding-readiness-panel');
     if (!container) return;
 
-    if (!data || !data.readiness) {
-      container.innerHTML = '<div style="color:var(--red);font-size:0.8rem">Could not load onboarding readiness.</div>';
-      var unavailableChip = document.getElementById('asm-dispatch-chip');
-      if (unavailableChip) {
-        unavailableChip.style.background = '#fee2e2';
-        unavailableChip.style.color = '#991b1b';
-        unavailableChip.textContent = 'Unverified';
-      }
-      return;
-    }
-
-    var r = data.readiness;
-    var ready = r.finalStatus === 'READY FOR JOBS';
+    var r = (data && data.readiness) || {};
+    var presentation = easerOfferPresentation(r);
     var authoritativeDispatchChip = document.getElementById('asm-dispatch-chip');
     if (authoritativeDispatchChip) {
-      authoritativeDispatchChip.style.background = ready ? '#d1fae5' : '#fee2e2';
-      authoritativeDispatchChip.style.color = ready ? '#065f46' : '#991b1b';
-      authoritativeDispatchChip.textContent = ready ? 'Eligible' : 'Ineligible';
+      authoritativeDispatchChip.style.background = presentation.bg;
+      authoritativeDispatchChip.style.color = presentation.fg;
+      authoritativeDispatchChip.textContent = presentation.label;
     }
-    var statusBg = ready ? '#d1fae5' : '#fee2e2';
-    var statusFg = ready ? '#065f46' : '#991b1b';
+    if (presentation.label === 'Unverified') {
+      container.innerHTML = '<div role="status" style="font-size:0.8rem;color:var(--muted)">' + esc(presentation.hint) + '</div>'
+        + '<button type="button" class="btn btn-sm" style="margin-top:0.5rem" onclick="loadEaserOnboardingReadiness(currentAssemblerDetailId)">Retry readiness check</button>';
+      return;
+    }
+    var requirementsLabel = r.requirementsReady === true ? 'Complete' : 'Action required';
+    var statusBg = r.requirementsReady === true ? '#d1fae5' : '#fee2e2';
+    var statusFg = r.requirementsReady === true ? '#065f46' : '#991b1b';
 
     var rows = [
       ['Application Submitted', readinessChip(!!r.applicationSubmitted)],
@@ -10531,65 +10649,78 @@ window.intelQuick = intelQuick;
       ['Tier Eligible', readinessChip(!!r.tierEligible)],
       ['Identity Verified', readinessChip(!!r.identityVerified)],
       ['Owner Approved', readinessChip(!!r.ownerApproved)],
-      ['Online &amp; Available', readinessChip(!!r.available)],
-    ].concat(asmConnectRequired ? [
+      ['Availability', r.available ? 'Online' : 'Offline (new offers paused)'],
+    ];
+
+    var payoutRows = r.connectRequired ? [
+      ['Payout Setup', r.connectVerified ? (r.payoutSetupComplete ? 'Complete' : 'Action required') : 'Unverified'],
       ['Stripe Connect Started', readinessChip(!!r.connectStarted)],
-      ['Stripe Connect Complete', readinessChip(!!r.connectComplete)],
-      ['Payouts Enabled', readinessChip(!!r.payoutsEnabled)],
-      ['Requirements Due Count', (r.requirementsDueCount == null ? 'Unknown' : String(r.requirementsDueCount))],
-      ['Disabled Reason', r.disabledReason ? esc(r.disabledReason) : 'None'],
+      ['Stripe Connect Complete', r.connectVerified ? readinessChip(!!r.connectComplete) : 'Unknown'],
+      ['Payouts Enabled', r.connectVerified ? readinessChip(!!r.payoutsEnabled) : 'Unknown'],
+      ['Requirements Due Count', (!r.connectVerified || r.requirementsDueCount == null ? 'Unknown' : String(r.requirementsDueCount))],
+      ['Disabled Reason', r.connectVerified ? (r.disabledReason ? esc(r.disabledReason) : 'None') : 'Unknown'],
     ] : [
       ['Payout Mode', '<span style="color:#0369a1;font-weight:700">Manual external payouts</span>'],
       ['Stripe Connect', '<span style="color:var(--muted)">Not required for launch</span>'],
-    ]).concat([
+    ];
+    payoutRows = payoutRows.concat([
       ['Tax Readiness Status', esc(r.taxReadinessStatus || 'Unknown')],
       ['W-9 Status', esc((r.w9Status || 'not_requested').replace(/_/g, ' '))],
     ]);
 
-    var tableHtml = rows.map(function(row) {
-      return '<div style="display:flex;justify-content:space-between;gap:0.75rem;padding:0.38rem 0;border-bottom:1px solid var(--border)">'
+    function renderReadinessRows(items) { return items.map(function(row) {
+      return '<div style="display:flex;justify-content:space-between;gap:0.75rem;padding:0.38rem 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere">'
         + '<div style="font-size:0.79rem;color:var(--muted)">' + row[0] + '</div>'
         + '<div style="font-size:0.79rem;color:var(--text);text-align:right">' + row[1] + '</div>'
         + '</div>';
-    }).join('');
+    }).join(''); }
 
-    var missingHtml = (r.missingItems || []).length
+    var missingHtml = (r.requirementsMissingItems || []).length
       ? '<div style="margin-top:0.7rem;padding:0.65rem 0.75rem;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px">'
-        + '<div style="font-size:0.72rem;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem">Exact Missing Items</div>'
-        + (r.missingItems || []).map(function(item) {
+        + '<div style="font-size:0.72rem;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem">Missing Job Requirements</div>'
+        + (r.requirementsMissingItems || []).map(function(item) {
           return '<div style="font-size:0.79rem;color:#9a3412;line-height:1.45">- ' + esc(item) + '</div>';
         }).join('')
         + '</div>'
-      : '<div style="margin-top:0.7rem;font-size:0.79rem;color:#166534">No missing items.</div>';
+      : '';
 
     container.innerHTML =
-      '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:0.5rem">'
-        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Job Readiness</div>'
-        + '<span style="display:inline-block;background:' + statusBg + ';color:' + statusFg + ';font-size:0.7rem;font-weight:800;padding:4px 10px;border-radius:999px;letter-spacing:0.05em">' + esc(r.finalStatus || 'ACTION REQUIRED') + '</span>'
+      '<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:0.5rem">'
+        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Job requirements</div>'
+        + '<span style="display:inline-block;background:' + statusBg + ';color:' + statusFg + ';font-size:0.7rem;font-weight:800;padding:4px 10px;border-radius:999px;letter-spacing:0.05em">' + requirementsLabel + '</span>'
       + '</div>'
-      + '<div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.7rem">'
-      + tableHtml
-      + '</div>'
-      + missingHtml;
+      + '<p style="font-size:0.8rem;color:var(--muted);margin:0.5rem 0">' + esc(presentation.hint) + '</p>'
+      + missingHtml
+      + '<details style="margin-top:0.75rem"><summary style="cursor:pointer;font-size:0.8rem;padding:0.5rem 0;min-height:44px">View job requirements and availability</summary>'
+      + renderReadinessRows(rows) + '</details>'
+      + '<details style="margin-top:0.75rem"><summary style="cursor:pointer;font-size:0.8rem;padding:0.5rem 0;min-height:44px">Payout and tax setup' + (r.connectRequired && !r.payoutSetupComplete ? ' — ' + (r.connectVerified ? 'Action required' : 'Unverified') : '') + '</summary>'
+      + renderReadinessRows(payoutRows) + '</details>';
   }
 
   async function loadEaserOnboardingReadiness(assemblerId) {
     var container = document.getElementById('asm-onboarding-readiness-panel');
     if (!container) return;
-    container.innerHTML = '<div style="font-size:0.8rem;color:var(--muted)">Loading onboarding readiness...</div>';
+    var requestId = ++easerReadinessRequest;
+    function isCurrent() {
+      return requestId === easerReadinessRequest && currentAssemblerDetailId === assemblerId
+        && container === document.getElementById('asm-onboarding-readiness-panel');
+    }
+    container.innerHTML = '<div role="status" style="font-size:0.8rem;color:var(--muted)">Checking job requirements...</div>';
+    var loadingChip = document.getElementById('asm-dispatch-chip');
+    if (loadingChip) {
+      loadingChip.textContent = 'Checking...';
+      loadingChip.style.background = 'var(--elevated)';
+      loadingChip.style.color = 'var(--muted)';
+    }
     try {
       var r = await fetch('/api/owner/easer-readiness?assemblerId=' + encodeURIComponent(assemblerId), { headers: headers() });
       var d = await r.json();
+      if (!isCurrent()) return;
       if (!r.ok || d.error) throw new Error(d.error || 'Failed to load readiness');
       renderOnboardingReadinessPanel(d);
     } catch (err) {
-      container.innerHTML = '<div style="font-size:0.8rem;color:var(--red)">Failed to load onboarding readiness.</div>';
-      var unavailableChip = document.getElementById('asm-dispatch-chip');
-      if (unavailableChip) {
-        unavailableChip.style.background = '#fee2e2';
-        unavailableChip.style.color = '#991b1b';
-        unavailableChip.textContent = 'Unverified';
-      }
+      if (!isCurrent()) return;
+      renderOnboardingReadinessPanel(null);
     }
   }
 
@@ -10662,8 +10793,7 @@ window.intelQuick = intelQuick;
       dangerBtns += '<button class="btn btn-red" onclick="retryEaserAccessRevocation(\'' + a.id + '\')">Retry Sign-In Revocation</button>';
     }
 
-    // Dispatch chip: three states — N/A (not active), Eligible, Ineligible
-    var connectReadyForDispatch = !asmConnectRequired || (!!a.stripe_connect_onboarding_complete && !!a.stripe_connect_charges_enabled && !!a.stripe_connect_payouts_enabled);
+    // A fresh server verdict supplies the new-offer status below.
     var dispatchChip;
     if (a.status !== 'active') {
       dispatchChip = '<span id="asm-dispatch-chip" style="background:#e4e4e7;color:#71717a;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">N/A</span>';
@@ -10671,24 +10801,14 @@ window.intelQuick = intelQuick;
       dispatchChip = '<span id="asm-dispatch-chip" style="background:#e4e4e7;color:#71717a;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">Checking...</span>';
     }
 
-    // Dispatch readiness checklist (only for active Easers)
+    // Work activity only. Requirements and availability come from the fresh
+    // server panel, not a second checklist rebuilt from the cached roster.
     var dispatchChecklist = '';
     if (a.status === 'active') {
-      var chk = function(ok, label) { return '<div style="font-size:0.8rem;margin:1px 0"><span style="font-weight:700;color:' + (ok ? '#10b981' : 'var(--red)') + '">' + (ok ? 'PASS' : 'MISSING') + '</span> <span style="color:var(--muted)">' + label + '</span></div>'; };
       var recentDecline = a.last_dispatch_declined_at && (Date.now() - new Date(a.last_dispatch_declined_at).getTime()) < 7200000;
-      var availColor = a.is_available ? '#10b981' : '#71717a';
       dispatchChecklist = '<div style="background:#fafafa;border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:0.5rem">'
-        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px">Operational Snapshot</div>'
-        + '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px">Informational only. Final dispatch eligibility is verified by the server below.</div>'
-        + chk(a.status === 'active', 'Active account')
-        + chk(!closureHeld, 'No account closure hold')
-        + chk(!!a.identity_verified, 'ID verified')
-        + chk(hasValidUsPhone(a.phone), 'Valid U.S. phone on file')
-        + chk(['starter','professional','elite'].includes(a.tier), 'Valid tier')
-        + chk(!!a.is_available, 'Available right now')
-        + (asmConnectRequired ? chk(connectReadyForDispatch, 'Stripe Connect payouts ready') : '')
-        + '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:0.78rem;display:grid;grid-template-columns:1fr 1fr;gap:2px 1rem">'
-        + '<div><strong>Online:</strong> <span style="color:' + availColor + ';font-weight:600">' + (a.is_available ? 'Online' : 'Offline') + '</span></div>'
+        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px">Work activity</div>'
+        + '<div style="font-size:0.78rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:4px 1rem">'
         + '<div><strong>Active Jobs Today:</strong> ' + (a.active_jobs_today || 0) + '</div>'
         + '<div><strong>Last Assigned:</strong> ' + (a.last_assigned_at ? formatDate(a.last_assigned_at) : 'Never') + '</div>'
         + '<div><strong>Acceptance Rate:</strong> ' + (a.acceptance_rate != null ? Number(a.acceptance_rate).toFixed(0) + '%' : '—') + '</div>'
@@ -10716,7 +10836,7 @@ window.intelQuick = intelQuick;
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Connect Status</div>' + connectBadge(a) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">' + (asmConnectRequired ? 'Payouts Enabled' : 'Payout Mode') + '</div>' + payoutCapabilityBadge(a) + '</div>'
         + (a.has_membership ? '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Membership</div><span style="background:#00BFFF;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:999px">Active</span></div>' : '')
-        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Dispatch</div>' + dispatchChip + '</div>'
+        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">New job offers</div>' + dispatchChip + '</div>'
         + '</div>',
       // Contact section
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Contact</div>'
@@ -10731,6 +10851,8 @@ window.intelQuick = intelQuick;
         : ''),
       // Authoritative job-readiness panel
       '<div id="asm-onboarding-readiness-panel" style="margin-bottom:0.75rem"></div>',
+      // Cancellation reliability: strikes in the window, each cancellation, excuse
+      '<div id="asm-reliability-panel" style="margin-bottom:0.75rem"></div>',
       // Tax-document tracking. Raw W-9/TIN data must remain in an approved secure system.
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">W-9 Compliance</div>'
         + '<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">'
@@ -10785,7 +10907,81 @@ window.intelQuick = intelQuick;
     ].filter(Boolean).join('');
     document.getElementById('asm-detail-modal').classList.add('open');
     loadEaserOnboardingReadiness(a.id);
+    loadEaserReliability(a.id);
   }
+
+  // ── Easer cancellation reliability (strikes) ─────────────────────────────
+  // Server decides and counts (api/_easer-reliability.js); this only renders
+  // and sends the owner's excuse. Excusing never reactivates a paused Easer.
+  var RELIABILITY_KIND_LABEL = { grace: 'Within 15 min of accepting', advance: '24+ hours notice', late: 'Under 24 hours notice', same_day: 'Same day', no_show: 'No-show (confirmed)' };
+  async function loadEaserReliability(easerId) {
+    var box = document.getElementById('asm-reliability-panel');
+    if (!box) return;
+    box.innerHTML = '<div style="font-size:0.78rem;color:var(--muted)">Loading reliability…</div>';
+    try {
+      var r = await fetch('/api/owner/easer-reliability?easerId=' + encodeURIComponent(easerId), { headers: headers() });
+      var data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Reliability could not be loaded.');
+      if (document.getElementById('asm-reliability-panel') !== box) return;
+      var rows = (data.events || []).slice().reverse().map(function(e) {
+        var when = new Date(e.createdAt).toLocaleString();
+        var label = RELIABILITY_KIND_LABEL[e.kind] || e.kind || 'Cancellation';
+        var strikeText = e.excused ? 'Excused' : (e.strikes + ' strike' + (e.strikes === 1 ? '' : 's'));
+        var action = (!e.excused && e.strikes > 0)
+          ? '<button class="btn" style="padding:2px 10px;font-size:0.72rem" onclick="excuseEaserCancellation(\'' + esc(e.logId) + '\', \'' + esc(easerId) + '\')">Excuse</button>'
+          : '';
+        return '<div style="display:flex;justify-content:space-between;gap:0.5rem;align-items:center;padding:6px 0;border-top:1px solid var(--border)">'
+          + '<div><div style="font-weight:600;color:var(--ink)">' + esc(label) + ' · ' + esc(strikeText) + '</div>'
+          + '<div style="font-size:0.72rem;color:var(--muted)">' + esc(when) + (e.reason ? ' · ' + esc(e.reason) : '') + '</div></div>'
+          + action + '</div>';
+      }).join('');
+      box.innerHTML = '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Reliability</div>'
+        + '<div style="font-weight:700;color:' + (data.strikes >= data.pauseAtStrikes ? '#b91c1c' : data.strikes > 0 ? '#b45309' : 'var(--ink)') + '">'
+        + data.strikes + ' strike' + (data.strikes === 1 ? '' : 's') + ' in the last ' + data.windowDays + ' days (pause at ' + data.pauseAtStrikes + ')</div>'
+        + (rows || '<div style="font-size:0.78rem;color:var(--muted)">No cancellations of accepted jobs in this window.</div>');
+    } catch (err) {
+      box.innerHTML = '<div style="font-size:0.78rem;color:#b91c1c">' + esc(err.message || 'Reliability could not be loaded.') + '</div>';
+    }
+  }
+  async function excuseEaserCancellation(logId, easerId) {
+    var note = prompt('Excuse this cancellation? Its strikes will be removed. Optional note (for example, the emergency):', '');
+    if (note === null) return;
+    try {
+      var r = await fetch('/api/owner/easer-reliability', { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ logId: logId, note: note }) });
+      var data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'The excusal could not be saved.');
+      toast('Cancellation excused.', 'success');
+      loadEaserReliability(easerId);
+    } catch (err) {
+      toast(err.message || 'The excusal could not be saved.', 'error');
+    }
+  }
+  window.excuseEaserCancellation = excuseEaserCancellation;
+
+  // Owner confirms a no-show after checking (an automatic flag alone never counts).
+  // Two taps: the first arms the button, the second records it.
+  var confirmNoShowArmed = null;
+  async function confirmEaserNoShow(bookingId, button) {
+    if (confirmNoShowArmed !== bookingId) {
+      confirmNoShowArmed = bookingId;
+      button.textContent = 'Tap again to record 3 strikes';
+      setTimeout(function() { if (confirmNoShowArmed === bookingId) { confirmNoShowArmed = null; button.textContent = 'Confirm no-show'; } }, 6000);
+      return;
+    }
+    confirmNoShowArmed = null;
+    button.disabled = true; button.textContent = 'Saving...';
+    try {
+      var r = await fetch('/api/owner/confirm-no-show', { method: 'POST', headers: headers(), body: JSON.stringify({ bookingId: bookingId }) });
+      var data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'The no-show could not be recorded.');
+      toast(data.alreadyRecorded ? 'This no-show was already recorded.' : data.message, 'success');
+      button.textContent = 'No-show recorded';
+    } catch (err) {
+      toast(err.message || 'The no-show could not be recorded.', 'error');
+      button.disabled = false; button.textContent = 'Confirm no-show';
+    }
+  }
+  window.confirmEaserNoShow = confirmEaserNoShow;
 
   function formatUsPhone(value) {
     var digits = String(value || '').replace(/\D/g, '');

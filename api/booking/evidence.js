@@ -87,7 +87,7 @@ export default async function handler(req, res) {
   // Fetch all evidence rows for this booking
   const { data: rows, error: fetchErr } = await sb
     .from('booking_evidence')
-    .select('id, uploaded_by, storage_path, evidence_type, mime_type, file_size_bytes, visibility, notes, created_at')
+    .select('id, uploaded_by, uploaded_on_behalf_of, storage_path, evidence_type, mime_type, file_size_bytes, visibility, notes, created_at')
     .eq('booking_id', bookingId)
     .order('created_at', { ascending: true });
 
@@ -100,8 +100,10 @@ export default async function handler(req, res) {
     return res.status(200).json({ evidence: [], bookingRef: booking.ref, total: 0 });
   }
 
-  // Enrich with uploader names
-  const uploaderIds = [...new Set(rows.map(r => r.uploaded_by))];
+  // Enrich with uploader names. uploaded_on_behalf_of is resolved too: the
+  // owner can upload a photo for an Easer who could not, and a record showing
+  // only who pressed the button reads as though the owner did the work.
+  const uploaderIds = [...new Set(rows.flatMap(r => [r.uploaded_by, r.uploaded_on_behalf_of]).filter(Boolean))];
   const { data: profiles } = await sb
     .from('profiles')
     .select('id, full_name, role')
@@ -132,6 +134,10 @@ export default async function handler(req, res) {
         uploaded_by_id:      row.uploaded_by,
         uploaded_by_name:    profileMap[row.uploaded_by]?.full_name || 'Unknown',
         uploaded_by_role:    profileMap[row.uploaded_by]?.role === 'assembler' ? 'Easer' : 'Platform user',
+        uploaded_on_behalf_of_id:   row.uploaded_on_behalf_of || null,
+        uploaded_on_behalf_of_name: row.uploaded_on_behalf_of
+          ? (profileMap[row.uploaded_on_behalf_of]?.full_name || 'Unknown')
+          : null,
         signed_url:          signed?.signedUrl || null,
         signed_url_expires_at: signed?.signedUrl ? signedUrlExpiresAt : null,
       };

@@ -212,9 +212,10 @@ export default async function handler(req, res) {
 
   const notificationFailures = [];
 
-  // Schedule changes always notify the customer; optional notifications remain
-  // available for safe pre-payment service/address corrections.
-  if (!recordOnlyOwnerManual && (notifyCustomer || scheduleChanged) && booking.customer_email) {
+  // Honor an explicit opt-out; older callers that omit the preference still
+  // notify for schedule changes. Easer reconfirmation remains independent.
+  const shouldNotifyCustomer = notifyCustomer !== false && Boolean(notifyCustomer || scheduleChanged);
+  if (!recordOnlyOwnerManual && shouldNotifyCustomer && booking.customer_email) {
     try {
       // Quote notification — when a price is being set for the first time
       const isQuote = typeof totalPrice === 'number' && totalPrice > 0 && (!booking.total_price || booking.total_price === 0);
@@ -285,7 +286,7 @@ export default async function handler(req, res) {
       console.error('Edit booking notify error:', e);
       notificationFailures.push({ recipient: 'customer', error: e?.message || String(e) });
     }
-  } else if (!recordOnlyOwnerManual && scheduleChanged && !booking.customer_email) {
+  } else if (!recordOnlyOwnerManual && shouldNotifyCustomer && scheduleChanged && !booking.customer_email) {
     notificationFailures.push({ recipient: 'customer', error: 'Customer email is missing' });
   }
 

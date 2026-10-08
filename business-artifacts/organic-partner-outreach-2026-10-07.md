@@ -26,7 +26,8 @@ The older kit's claim that movers do not assemble is contradicted by the mover b
 
 **Why it fits:** The company manages Austin rentals and provides a dedicated vendor contact route. Resident furniture assembly and permitted TV mounting can fit move-in needs. Interest, vendor requirements, and referral volume are unknown; none is assumed.
 
-**To:** info@propertymanagementaustin.com  
+**To:** info@propertymanagementaustin.com
+
 **Subject:** Assembly and setup help for your Austin residents
 
 > Hi Austin Property Management team,
@@ -51,7 +52,8 @@ The older kit's claim that movers do not assemble is contradicted by the mover b
 
 **Why it fits:** Customers are already moving into homes in AssembleAtEase's core area. The concrete proposal is an optional TV-mounting handoff after a move. Whether customers request this or the mover already provides it must be confirmed.
 
-**To:** austin@littleguys.com  
+**To:** austin@littleguys.com
+
 **Subject:** TV mounting referrals after an Austin move
 
 > Hi Little Guys Movers Austin team,
@@ -76,7 +78,8 @@ The older kit's claim that movers do not assemble is contradicted by the mover b
 
 **Why it fits:** This Austin showroom serves people furnishing rooms and offers design help. A TV-mounting introduction may complement a media-room purchase. This is a question about adjacent customer needs, not evidence of missing delivery or assembly capacity.
 
-**To:** info@fiveelementsfurniture.com  
+**To:** info@fiveelementsfurniture.com
+
 **Subject:** A TV mounting contact for your Austin customers
 
 > Hi Five Elements Furniture team,
@@ -120,9 +123,9 @@ Check replies after five business days; prepare one relevant follow-up for appro
 
 The current `/business` form does not include UTM fields in its inquiry payload. Record the company and referral source manually for B2B replies/inquiries. Verify deployed booking attribution before relying on automatic per-partner reporting; keep a simple owner note if cookies, device changes, or direct calls prevent attribution. Do not count a test visit or the recipient's first-contact click as an acquired customer.
 
-## Public citation corrections checked October 7, 2026
+## Public citation baseline checked October 7, 2026
 
-The owner confirmed **(979) 232-5139 is the only public business phone**. Root corrected Google Business Profile separately. HTTP checks and a subsequent browser check found four other public listings with the old number. No directory form, account creation, correction request, message, or purchase was submitted in this review.
+The owner confirmed **(979) 232-5139 is the only public business phone**. This table records the October 7 baseline; the October 8 execution receipts below supersede its login obstacles and old-phone observations for Google, Yelp and BBB. No account creation or paid purchase was required.
 
 | Listing | Observed phone and evidence | Free correction route / access needed |
 |---|---|---|
@@ -136,6 +139,22 @@ Prepared correction text for each confirmed mismatch: **"Please update AssembleA
 After an authorized correction, verify the actual public phone and call link; a saved form or submitted report alone is not proof of publication. Record the submission reference and public verification date in the existing owner tracker. Root has the exact account links above for any existing-session access needed.
 
 **Browser handoff:** New Edge tabs were left open for BBB login (`995950945`), Yahoo's prefilled claim route (`995950948`), Yelp owner login (`995950951`), and YellowPages business-owner login (`995950960`). Every owner-edit route requires authentication; no existing authenticated session was available. The public Yelp verification is in tab `995950963`; the general YellowPages login is in `995950954`. Existing Google, analytics, Stripe, and owner-dashboard tabs were not changed.
+
+## Google, Yelp and MapQuest execution: October 8, 2026
+
+**Google: public correction verified.** The public knowledge panel and authenticated editor show **(979) 232-5139**. The saved website URL is `https://www.assembleatease.com/?utm_source=google&utm_medium=organic&utm_campaign=gbp&utm_content=website`; the appointment URL is `https://www.assembleatease.com/book?utm_source=google&utm_medium=organic&utm_campaign=gbp&utm_content=book`. The public panel has an Appointments link to `/book`.
+
+**Yelp: saved and publicly verified.** The [existing listing](https://www.yelp.com/biz/assembleatease-austin) now shows **(979) 232-5139**, website **https://www.assembleatease.com/book**, and **8 AM–8 PM every day**. The owner-approved service scope replaces 16 unsupported repair/installation selections; factual specialties/history and a Travis G. owner introduction are saved and public. Ten genuine existing project photos were retained; one caption now says “TV wall mounting.” The hidden street address and six existing service areas (Austin, Bee Cave, Cedar Park, Georgetown, Manor and Round Rock) were preserved. Yelp reports 100% profile completion; the public profile still has zero Yelp reviews. No invented reviews, credentials, job photos or storefront were added.
+
+Yelp inbox review was read-only. Its three New leads are each labeled two years old; one is a plumbing request, now outside the corrected service scope. The sole Active TV-mounting row is labeled 29 days old and says the customer archived it. No lead message or status was changed. These are not four verified current opportunities.
+
+**MapQuest: request #3218500 sent and acknowledged; public correction pending.** The owner explicitly authorized sending the correction and other verified necessary updates. One request was entered through the [official free feedback form](https://help.mapquest.com/hc/en-us/requests/new?errorType=feedback&ticket_form_id=52820&sourceUrl=https://mapquest.com/us/texas/assembleatease-543036970) on October 8 at approximately **17:41 UTC**, using Travis Gibson, `service@assembleatease.com`, category General feedback, and subject **“Correct AssembleAtEase business phone number, hours, and booking information.”** MapQuest required email verification before submission. The business mailbox received that verification message; after the official anonymous-request link was opened, the confirmation page said **“Email confirmed”** and **“Your request was sent.”** Verification completed at approximately **17:42 UTC** (clock afterward: 17:42:46). The subsequent MapQuest Consumer Support email to `service@assembleatease.com`, displayed October 8 at 1:42 PM in IONOS, acknowledged [request #3218500](https://help.mapquest.com/hc/requests/3218500). No second request, paid claim, account registration, or purchase was made.
+
+The reviewed request identifies the [existing listing](https://www.mapquest.com/us/texas/assembleatease-543036970) and asks for: **(1)** phone `(737) 290-6129` to **`(979) 232-5139`**; **(2)** **8:00 AM–8:00 PM Monday–Sunday**, replacing observed 9 AM–7:30 PM weekdays and closed weekends; **(3)** preservation of `https://www.assembleatease.com/` as the primary website and addition of `https://www.assembleatease.com/book` as the booking/appointment link if supported; **(4)** removal of the autogenerated payment-timing guarantee, replaced with the exact neutral sentence **“Customers can review services and request a booking through the website.”** The request explicitly preserves other details and requests no address, legal-entity, or duplicate-listing change. A fresh public reload after acknowledgement still showed the old phone, 7:30 PM closing time, and old description, with no booking link; therefore publication remains pending. Confirmation tab: `995951052`; public check: `995951045`. A support acknowledgement is not proof of a published correction.
+
+**Yahoo/YellowPages correction sent October 8.** The owner portal was a separate login from Yahoo, and free claim search did not return the existing business. The authorized correction was therefore sent once through the official free [YellowPages contact form](https://www.yellowpages.com/about/contact-us), at approximately **18:00 UTC October 8** (clock immediately afterward 18:00:13). The confirmation displayed **“Your message was sent!”** and said its team would review the message and get in touch. No reference number appeared. This supersedes the account-access obstacle; no further sign-in is needed to send this request.
+
+Sender was Travis Gibson, `service@assembleatease.com`, business phone `9792325139`. The request identified the existing Yahoo listing `https://local.yahoo.com/info-233982268-assembleatease-austin/`; corrected the observed 737 phone to **979-232-5139** and weekday 9 AM–7:30 PM/weekend-closed schedule to **8 AM–8 PM daily**; preserved `https://www.assembleatease.com/` and requested `/book` as an appointment link if supported. Other details were to remain unchanged. An initial client-side phone-format validation required ten digits; only the subsequent successful submission was sent. No signup, password reset, paid listing, duplicate business or advertising purchase occurred. Public publication remains pending provider review.
 
 ## BBB execution check: October 8, 2026
 

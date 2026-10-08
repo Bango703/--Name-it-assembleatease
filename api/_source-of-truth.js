@@ -403,6 +403,45 @@ export function computeBookingSplitFromSnapshot({
 // capped fee for late cancels; a higher fee once a pro is committed or for a
 // no-show — but NEVER 100% (no work was performed). Server is the source of
 // truth; never trust a client-sent fee.
+// ── Easer cancellation reliability (owner, 2026-09-30) ─────────────────────
+// Easers were cancelling accepted jobs at the last minute, including on the
+// day of the job, with no consequence. Consequences come through access to
+// work, not money (independent contractors; same model as TaskRabbit, where a
+// Tasker cancellation inside 24h is a Terms violation counted over 90 days).
+// This is the ONE place these numbers live.
+export const EASER_RELIABILITY_POLICY = Object.freeze({
+  graceMinutes: 15,          // cancel within 15 min of accepting: no strike (mis-tap)
+  lateNoticeHours: 24,       // under 24h before the start: late cancellation
+  lateStrikes: 1,
+  sameDayStrikes: 2,         // on the calendar day of the job (Central time)
+  noShowStrikes: 3,          // owner-confirmed no-show (an automatic flag alone never counts)
+  windowDays: 90,            // strikes count for 90 days
+  pauseAtStrikes: 3,         // at this many, the Easer is paused from new jobs
+  dispatchPenaltyPerStrike: 150, // dispatch score points lost per active strike
+  timeZone: 'America/Chicago',
+});
+
+function calendarDateIn(timeZone, ms) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
+}
+
+// Classify an Easer cancelling a job they ACCEPTED. Pure: no I/O.
+//   kind: grace | advance | late | same_day
+export function classifyEaserCancellation({ acceptedAtMs, nowMs, appointmentMs = null, appointmentDate = null }) {
+  const P = EASER_RELIABILITY_POLICY;
+  const minutesSinceAccept = Number.isFinite(acceptedAtMs) ? (nowMs - acceptedAtMs) / 60000 : Infinity;
+  const hoursUntilStart = Number.isFinite(appointmentMs) ? (appointmentMs - nowMs) / 3600000 : null;
+  const today = calendarDateIn(P.timeZone, nowMs);
+  const isSameDay = (typeof appointmentDate === 'string' && appointmentDate.slice(0, 10) === today)
+    || (hoursUntilStart != null && hoursUntilStart <= 0);
+  let kind, strikes;
+  if (minutesSinceAccept <= P.graceMinutes) { kind = 'grace'; strikes = 0; }
+  else if (isSameDay) { kind = 'same_day'; strikes = P.sameDayStrikes; }
+  else if (hoursUntilStart == null || hoursUntilStart < P.lateNoticeHours) { kind = 'late'; strikes = P.lateStrikes; }
+  else { kind = 'advance'; strikes = 0; }
+  return { kind, strikes, hoursUntilStart, minutesSinceAccept };
+}
+
 export const CANCELLATION_POLICY = Object.freeze({
   freeWindowHours: 24,     // 24h+ before the appointment → free
   imminentWindowHours: 2,  // under 2h before, pro en route/arrived/in-progress, or no-show
@@ -438,23 +477,29 @@ export function computeCancellationFee({ serviceSubtotalCents = 0, hoursUntilApp
   // fails toward not charging. Losing a fee we were owed is recoverable; taking
   // money we were not owed is not.
   if (easerAccepted !== true) {
-    return { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false, waivedReason: 'no_easer_accepted' };
+    return { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false, waivedReason: 'no_easer_accepted', reason: 'no_easer_accepted' };
   }
 
   const proCommitted = status === BOOKING_STATUS.EN_ROUTE || status === BOOKING_STATUS.ARRIVED || status === BOOKING_STATUS.IN_PROGRESS;
 
-  let tier, feePct;
+  // `reason` is the ONE statement of why this outcome applies. Every email,
+  // page and dashboard that explains a cancellation fee renders this code;
+  // none may work out its own reason (AAE-TYRHONCHIO: an email guessed
+  // "24h+ notice" for a same-day cancellation whose real reason was
+  // no_easer_accepted).
+  let tier, feePct, reason;
   if (isNoShow || proCommitted || (h != null && h < CANCELLATION_POLICY.imminentWindowHours)) {
     tier = 'imminent'; feePct = CANCELLATION_POLICY.imminentFeePct;
+    reason = isNoShow ? 'no_show' : (proCommitted ? 'pro_committed' : 'imminent_window');
   } else if (h != null && h < CANCELLATION_POLICY.freeWindowHours) {
-    tier = 'late'; feePct = CANCELLATION_POLICY.lateFeePct;
+    tier = 'late'; feePct = CANCELLATION_POLICY.lateFeePct; reason = 'late_window';
   } else {
-    tier = 'free'; feePct = 0;
+    tier = 'free'; feePct = 0; reason = h == null ? 'notice_unknown' : 'free_window';
   }
   // A rescheduled booking forfeits its free window — at minimum the late tier applies.
-  if (forfeitFreeWindow && tier === 'free') { tier = 'late'; feePct = CANCELLATION_POLICY.lateFeePct; }
+  if (forfeitFreeWindow && tier === 'free') { tier = 'late'; feePct = CANCELLATION_POLICY.lateFeePct; reason = 'rescheduled'; }
 
-  return { tier, feePct, feeCents: Math.round(sub * feePct / 100), proTripCut: tier === 'imminent' };
+  return { tier, feePct, feeCents: Math.round(sub * feePct / 100), proTripCut: tier === 'imminent', reason };
 }
 
 /**

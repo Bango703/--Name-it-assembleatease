@@ -140,8 +140,16 @@ const customerReviewCount = (customerReviewsSection.match(/{b:"/g) || []).length
 // requiring displayed === cards forced either a stale number or a carousel
 // that grows without bound. What must never happen is the reverse: showing
 // more review cards than the site claims exist, or claiming none at all.
-if (!displayedReviewCount || customerReviewCount === 0 || displayedReviewCount < customerReviewCount) {
-  throw new Error(`Homepage Google review count must be a real number and at least the carousel card count; displayed ${displayedReviewCount}, cards ${customerReviewCount}`);
+// Owner, 2026-10-07: the homepage shows the 5.0 rating without the review
+// count (a small count reads as a brand-new business). A number is optional;
+// when one is shown it must still cover the cards, and either way the page
+// must name Google reviews, link to the real listing, and show real cards.
+if (customerReviewCount === 0) throw new Error('Homepage review carousel has no customer reviews');
+if (displayedReviewCount && displayedReviewCount < customerReviewCount) {
+  throw new Error(`Homepage Google review count must be at least the carousel card count; displayed ${displayedReviewCount}, cards ${customerReviewCount}`);
+}
+if (!/Google reviews/.test(customerReviewsSection) || !/href="https:\/\/www\.google\.com\/maps\?cid=\d+"/.test(customerReviewsSection)) {
+  throw new Error('Homepage reviews must be labelled as Google reviews and link to the real Google listing');
 }
 
 const faviconSvg = readFileSync('images/favicon.svg', 'utf8');

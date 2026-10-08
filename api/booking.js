@@ -15,11 +15,12 @@ import { logActivity } from './booking/_activity.js';
 import { appointmentTimestampMs, formatAppointmentDate } from './booking/_appt-date.js';
 import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './booking/_booking-window.js';
 import { SCHEDULED_AUTHORIZATION_LEAD_DAYS } from './booking/_booking-window.js';
+import { cleanAcquisitionAttribution } from './_attribution.js';
 import { CANCELLATION_POLICY } from './_source-of-truth.js';
 import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 import { assertGuestTokenConfiguration, deriveGuestMutationToken, guestMutationTokenHash, randomToken } from './_payment-security.js';
 import { parseServiceLocation } from './_booking-location.js';
-import { cleanBookingAttribution, bookingAnalyticsContext } from './_booking-attribution.js';
+import { bookingAnalyticsContext } from './_booking-attribution.js';
 import {
   verifyRedemptionToken,
   getAvailableBalanceCents,
@@ -498,7 +499,7 @@ export default async function handler(req, res) {
     promo_discount_cents: promoDiscountCents,
     assemblecash_redeemed_cents: assemblecashRedeemedCents,
     bundle_slug: (typeof bundleSlug === 'string' && bundleSlug) ? bundleSlug.slice(0, 64) : null,
-    booking_attribution: cleanBookingAttribution(attribution),
+    booking_attribution: cleanAcquisitionAttribution(attribution),
     ...(smsConsent === true ? {
       sms_consent_at: new Date().toISOString(),
       sms_consent_source: 'customer_booking_checkout',

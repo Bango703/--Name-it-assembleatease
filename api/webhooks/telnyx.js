@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import { getSupabase } from '../_supabase.js';
+import { recordSmsConversationMessage } from '../_sms-conversations.js';
+import { sendEmail, ownerEmail, esc } from '../_email.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -145,8 +147,9 @@ async function handleInbound(sb, payload, stamp) {
       .in('customer_phone', phoneVariants), stamp, true));
   }
 
-  // A stable ID makes retries/concurrent duplicates one owner-inbox entry.
-  // Log after consent writes, so retrying a partial failure completes them.
+  // Durable log and owner alert FIRST — they must survive even if the inbox
+  // write below fails. Six delivered texts were lost because the inbox record
+  // ran before them and threw, killing the whole event and Telnyx's retries.
   await requireWrite(sb.from('notification_log').upsert({
     id: inboundNotificationId(payload.id),
     channel: 'sms',
@@ -160,6 +163,84 @@ async function handleInbound(sb, payload, stamp) {
     last_provider_event_at: stamp,
     last_provider_event_type: 'message.received',
   }, { onConflict: 'id', ignoreDuplicates: true }));
+
+  // Owner alert, immediate: a text that lands silently costs exactly what the
+  // verification code cost — the owner only knew about it an hour later.
+  // Sent only on non-keyword texts (a bare STOP/START needs no alert), and a
+  // failed alert never blocks the webhook: the inbox record is the truth.
+  if (!isOptOut && !isOptIn) {
+    // Skip the email if this exact provider message already alerted — Telnyx
+    // retries and multi-endpoint delivery can send the same event twice.
+    try {
+      const { data: existingAlert } = await sb.from('notification_log')
+        .select('id')
+        .eq('channel', 'email')
+        .eq('notification_type', 'owner_sms_inbound_alert')
+        .eq('provider_id', `sms-alert:${payload.id}`)
+        .maybeSingle();
+      if (existingAlert) return;
+    } catch { /* if the lookup fails, still try to alert rather than stay silent */ }
+    try {
+      const alertResult = await sendEmail({
+        to: ownerEmail(),
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: `New text to (979) 232-5139 from ${from || 'unknown number'}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#0a1628">
+  <h2 style="margin:0 0 10px;font-size:18px">New text message to the business line</h2>
+  <p style="font-size:13px;color:#64748b;margin:0 0 12px">From <strong>${esc(from || 'unknown')}</strong> · ${esc(new Date(stamp).toLocaleString('en-US', { timeZone: 'America/Chicago' }))}</p>
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;font-size:15px;line-height:1.6;white-space:pre-wrap">${esc(text)}</div>
+  <p style="margin:16px 0"><a href="https://www.assembleatease.com/owner" style="display:inline-block;background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:11px 20px;border-radius:8px">Open Messages</a></p>
+  <p style="font-size:12px;color:#64748b">Received by the AssembleAtEase business number. Replies go out through the owner dashboard Messages view.</p>
+</div>`,
+        meta: { notificationType: 'owner_sms_inbound_alert', recipientType: 'owner', disableDedupe: true },
+      });
+      // Stamp the alert's log row with the SMS provider ID so a retried webhook
+      // sees the previous alert and never emails twice.
+      if (alertResult?.ok) {
+        await sb.from('notification_log')
+          .update({ provider_id: `sms-alert:${payload.id}` })
+          .eq('channel', 'email')
+          .eq('notification_type', 'owner_sms_inbound_alert')
+          .eq('recipient_email', ownerEmail())
+          .order('sent_at', { ascending: false })
+          .limit(1)
+          .then(() => {}, (e) => console.error('[telnyx-webhook] alert stamp failed:', e?.message || e));
+      }
+    } catch (alertError) {
+      console.error('[telnyx-webhook] owner inbound alert failed:', alertError?.message || alertError);
+    }
+  }
+
+  // Inbox record LAST. If the table/migration is ever missing again, the log
+  // and alert above have already run — the text is not lost, the owner is
+  // notified, and the failure is recorded where it can be seen instead of
+  // dying in a 503 retry storm.
+  try {
+    await recordSmsConversationMessage(sb, {
+      phone: from,
+      body: text,
+      direction: 'inbound',
+      sender: 'system',
+      status: 'received',
+      providerId: payload.id,
+      occurredAt: stamp,
+    });
+  } catch (inboxError) {
+    console.error('[telnyx-webhook] inbox record failed for', payload.id, inboxError?.message || inboxError);
+    try {
+      await sb.from('operational_events').insert({
+        event_type: 'sms_inbox_write_failed',
+        route: '/api/webhooks/telnyx',
+        method: 'POST',
+        actor_role: 'system',
+        stage: 'inbound_inbox',
+        reason_code: 'inbox_record_failed',
+        reason_detail: String(inboxError?.message || inboxError).slice(0, 300),
+        mutation_result: 'log_and_alert_survived',
+        payload: { provider_id: payload.id, from },
+      });
+    } catch { /* if even the event log fails, nothing more can be done here */ }
+  }
 }
 
 function currentConsentOnly(query, stamp, isOptIn = false) {

@@ -5,9 +5,8 @@ import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_e
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit, writeFinancialAuditRequired } from '../_financial-audit.js';
 import { adjustActiveJobs } from './_active-jobs.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeCancellationFee, computeBookingSplitAtFeePct } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeBookingSplitAtFeePct } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
-import { appointmentTimestampMs } from './_appt-date.js';
 import { claimBookingCancellationRecovery, reserveBookingFinancialOperation } from './_financial-operation.js';
 import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
@@ -15,7 +14,7 @@ import {
   CANCELLATION_REWARDS_RECONCILIATION_REASON,
   reconcileCancellationAssembleCash,
 } from './_cancellation-credits.js';
-import { loadBookingRescheduleTruth } from './_cancellation-policy-truth.js';
+import { evaluateCancellationPolicy } from './_cancellation-policy-truth.js';
 import {
   CANCELLABLE_PAYMENT_INTENT_STATES,
   bookingCancellationPaymentIntentIds,
@@ -24,7 +23,6 @@ import {
 } from './_cancellation-stripe-truth.js';
 import {
   assertCancellationPayoutUnsettled,
-  cancellationPolicyEvaluationTimeMs,
   hasDurableCancellationFeeCaptureAudit,
   resolveOwnerCancellationReservation,
 } from './_cancellation-operation.js';
@@ -225,35 +223,14 @@ export default async function handler(req, res) {
   // An owner override on a started job never auto-charges a fee — the owner
   // settles any adjustment manually through the reviewed refund workflow.
   const waiveFee = req.body.waiveFee === true || (workStarted && ownerOverride);
-  let wasRescheduled = false;
-  try {
-    ({ wasRescheduled } = loadBookingRescheduleTruth(booking));
-  } catch (policyTruthError) {
-    if (!waiveFee) {
-      return res.status(503).json({ error: policyTruthError.message, code: policyTruthError.code });
-    }
-  }
   const noShow = req.body.noShow === true;   // owner flags a customer no-show → imminent tier
-  const policyEvaluationTimeMs = cancellationPolicyEvaluationTimeMs(booking);
-  let hoursAway = null;
+  // One evaluation shared with the customer/guest cancel and the tracking preview.
+  let policy;
   try {
-    const apptMs = appointmentTimestampMs(booking.date, booking.time);
-    if (apptMs != null) hoursAway = (apptMs - policyEvaluationTimeMs) / 3600000;
-  } catch (dateErr) {
-    console.error('Cancellation window date parse error:', dateErr);
+    ({ policy } = evaluateCancellationPolicy(booking, { isNoShow: noShow, allowMissingRescheduleTruth: waiveFee }));
+  } catch (policyTruthError) {
+    return res.status(503).json({ error: policyTruthError.message, code: policyTruthError.code });
   }
-  const serviceSubtotalCents = Math.max(0,
-    (booking.total_price || 0) - (booking.tax_amount || 0) - (booking.service_call_fee || 0));
-  const policy = computeCancellationFee({
-    serviceSubtotalCents,
-    hoursUntilAppointment: hoursAway,
-    status: booking.status,
-    isNoShow: noShow,
-    forfeitFreeWindow: wasRescheduled,
-    // No accepted Easer means no commitment to compensate. The rule lives in
-    // computeCancellationFee; this only supplies the fact it needs.
-    easerAccepted: Boolean(booking.assembler_id && booking.assembler_accepted_at),
-  });
   const withinCancellationWindow = policy.tier !== 'free';
 
   let feeSnapshot = null;

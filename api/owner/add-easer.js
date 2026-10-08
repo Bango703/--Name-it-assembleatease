@@ -1,6 +1,7 @@
 ﻿import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
 import { getSupabase } from '../_supabase.js';
+import { normalizePersonName } from '../_person-name.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { buildIdentityResumeUrl, ensureIdentityResumeToken } from '../_assembler-onboarding.js';
 import { normalizeUsPhone } from '../_phone.js';
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
   if (!city?.trim()) return res.status(400).json({ error: 'City is required' });
 
   const sb = getSupabase();
-  const cleanName  = fullName.trim();
+  const cleanName  = normalizePersonName(fullName);
   const cleanEmail = email.trim().toLowerCase();
   const tempPassword = randomUUID() + randomUUID();
 

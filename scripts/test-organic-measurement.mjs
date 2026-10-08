@@ -2,13 +2,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { cleanBookingAttribution, bookingAnalyticsContext, safeAcquisitionPath } from '../api/_booking-attribution.js';
+import { cleanAcquisitionAttribution } from '../api/_attribution.js';
+import { newRefCode, REF_CODE } from '../api/_partners.js';
 
 const booking = readFileSync('book.html', 'utf8');
 const consent = readFileSync('assets/js/cookie-consent.js', 'utf8');
 const nav = readFileSync('assets/js/mobile-nav.js', 'utf8');
 const funnel = booking.slice(booking.indexOf('var BOOKING_ANALYTICS_ATTEMPT'), booking.indexOf('var CHICAGO_DATE_FORMATTER'));
 const outcome = booking.slice(booking.indexOf('function trackBookingConfirmation'), booking.indexOf('function showConfirmation(ref'));
-const capture = nav.slice(0, nav.indexOf('  var runtimeErrorState')) + '\n})();';
+const capture = readFileSync('assets/js/attribution.js', 'utf8');
+assert.equal(cleanBookingAttribution, cleanAcquisitionAttribution, 'compatibility export must use the canonical server sanitizer');
+assert.doesNotMatch(nav, /function (?:sanitizeAcquisition|captureBookingAttributionEntry)/, 'navigation must not keep a second capture implementation');
 
 function storage(initial = {}, blocked = false) {
   const values = new Map(Object.entries(initial));
@@ -19,7 +23,7 @@ function storage(initial = {}, blocked = false) {
   };
 }
 
-function browser({ url = 'https://www.assembleatease.com/book?email=person@example.com&token=private', referrer = '', session = storage(), local = storage({ 'cookie-consent': 'accepted' }), gpc = false, canonical = 'https://www.assembleatease.com/book' } = {}) {
+function browser({ url = 'https://www.assembleatease.com/book?email=person@example.com&token=private', referrer = '', session = storage(), local = storage({ 'cookie-consent': 'accepted' }), gpc = false, canonical = 'https://www.assembleatease.com/book', loadAttribution = true } = {}) {
   const documentListeners = {};
   const windowListeners = {};
   const injected = [];
@@ -27,7 +31,7 @@ function browser({ url = 'https://www.assembleatease.com/book?email=person@examp
     readyState: 'loading', referrer,
     documentElement: { dataset: {} },
     body: { style: { setProperty() {}, removeProperty() {} } },
-    head: { appendChild(node) { injected.push(node); } },
+    head: { appendChild(node) { injected.push(node); if (loadAttribution && node.src === '/assets/js/attribution.js') { vm.runInContext(capture, context); node.onload(); } } },
     createElement() { return {}; },
     getElementById(id) { return injected.find(node => node.id === id) || null; },
     querySelector(selector) { return selector === 'link[rel="canonical"]' && canonical ? { href: canonical } : null; },
@@ -107,6 +111,9 @@ for (const [source, medium, campaign, content, channel] of [
   ['partner', 'email', 'partner_outreach_oct2026', 'example-store', 'email'],
   ['partner', 'referral', 'ema86q', '', 'referral'],
   ['partner', 'referral', 'bpvk4b', '', 'referral'],
+  ['partner', 'referral', 'abcdef', '', 'referral'],
+  ['partner', 'referral', '2abcde', '', 'referral'],
+  ['partner', 'referral', '234567', '', 'referral'],
   ['owner', 'email', 'rebook', '', 'email'],
   ['sora', 'voice', '', '', 'campaign'],
 ]) {
@@ -136,10 +143,35 @@ const privateTags = cleanBookingAttribution({ utmSource: 'partner', utmCampaign:
 assert.equal(privateTags.utmContent, undefined);
 assert.equal(privateTags.utmTerm, undefined);
 assert.equal(cleanBookingAttribution({ utmSource: 'partner', utmCampaign: 'personal-information' }).utmCampaign, undefined);
-for (const campaign of ['secret', '5125551234', 'person@example.com', 'private-ref-token']) {
+for (const campaign of ['private_text', '5125551234', 'person@example.com', 'private-ref-token']) {
   assert.equal(cleanBookingAttribution({ utmSource: 'partner', utmMedium: 'referral', utmCampaign: campaign }).utmCampaign, undefined);
 }
 assert.equal(cleanBookingAttribution({ utmSource: 'google', utmCampaign: 'ema86q' }).utmCampaign, undefined, 'short manual codes are reserved for the existing partner channel');
+for (let i = 0; i < 50; i++) {
+  const code = newRefCode();
+  assert.match(code, REF_CODE);
+  const generated = browser({ url: 'https://www.assembleatease.com/book?utm_source=partner&utm_medium=referral&utm_campaign=' + code });
+  generated.run(capture);
+  assert.equal(cleanAcquisitionAttribution(generated.context.AAE_ATTRIBUTION.capture()).utmCampaign, code);
+}
+
+// The standalone application/recruitment modules use the exact same capture
+// without loading navigation, and retain the original city recruitment page.
+const applicationSession = storage();
+const recruit = browser({ url: 'https://www.assembleatease.com/easer-jobs-tyler-tx', canonical: 'https://www.assembleatease.com/easer-jobs-tyler-tx', referrer: 'https://www.google.com/search', session: applicationSession });
+recruit.run(capture); recruit.ready();
+assert.equal(recruit.context.AAE_ATTRIBUTION, recruit.context.AAEAcquisition);
+const application = browser({ url: 'https://www.assembleatease.com/assembler/apply', canonical: 'https://www.assembleatease.com/assembler/apply', referrer: 'https://www.assembleatease.com/easer-jobs-tyler-tx', session: applicationSession });
+application.run(capture); application.ready();
+assert.equal(application.context.AAE_ATTRIBUTION.capture('/assembler/apply').landingPath, '/easer-jobs-tyler-tx');
+assert.equal(cleanAcquisitionAttribution(application.context.AAE_ATTRIBUTION.capture()).entryAudience, 'easer');
+
+const delayedDependency = browser({ loadAttribution: false });
+delayedDependency.run(funnel); delayedDependency.run(consent); delayedDependency.ready();
+assert.equal(delayedDependency.injected.some(node => /gtag\/js|hs-scripts/.test(node.src || '')), false, 'optional tags wait for the canonical source helper');
+delayedDependency.run(capture);
+delayedDependency.injected.find(node => node.src === '/assets/js/attribution.js').onload();
+assert.equal(delayedDependency.events('job_plan_started').length, 1);
 
 // The inline booking start precedes deferred consent initialization in the real page.
 const analyticsSession = storage();
@@ -213,7 +245,7 @@ assert.equal(choice.events().length, 0);
 choice.context.acceptCookies();
 assert.equal(choice.context.AAEAnalytics.hasConsent(), true);
 assert.equal(choice.events('job_plan_started').length, 1);
-assert.equal(JSON.parse(consentSession.getItem('aaeBookingAttribution')).utmCampaign, 'gbp');
+assert.equal(JSON.parse(consentSession.getItem('aaeAcquisitionAttribution')).utmCampaign, 'gbp');
 assert.equal(choice.injected.filter(node => /gtag\/js/.test(node.src || '')).length, 1);
 assert.equal(choice.injected.filter(node => /hs-scripts/.test(node.src || '')).length, 1);
 choice.context.acceptCookies();
@@ -228,6 +260,7 @@ assert.equal(choice.events().length, acceptedEvents, 'withdrawal blocks all late
 assert.equal(choice.context.AAEAnalytics.hasConsent(), false);
 assert.equal(choice.context['ga-disable-G-ZN45GP8D25'], true);
 assert.equal(consentSession.getItem('aaeBookingAttribution'), null);
+assert.equal(consentSession.getItem('aaeAcquisitionAttribution'), null);
 assert.equal(JSON.stringify(choice.context.AAEAcquisition.capture()), '{}');
 
 const downloading = browser();
@@ -283,7 +316,7 @@ business.run(consent); business.ready();
 const fields = Object.fromEntries(Object.entries({ 'b-name': 'Casey', 'b-company': 'Example', 'b-email': 'casey@example.com', 'b-location': 'Austin', 'b-timeline': 'Flexible', 'b-type': 'Office assembly', 'b-frequency': 'Monthly', 'b-details': 'Two desks', 'b-err': '', 'b-btn': '', 'b2b-form-fields': '', 'b-success': '', 'b2b-form-wrap': '' }).map(([id, value]) => [id, { value, style: {}, scrollIntoView() {} }]));
 business.context.document.getElementById = id => fields[id];
 const businessRequests = [];
-business.context.AAEAcquisition = { capture: () => ({ utmSource: 'partner', utmMedium: 'referral' }) };
+business.context.AAE_ATTRIBUTION = { capture: () => ({ utmSource: 'partner', utmMedium: 'referral' }) };
 business.context.fetch = async (_url, req) => { businessRequests.push(JSON.parse(req.body)); return { ok: true, json: async () => ({ ref: 'B2B-LOCAL' }) }; };
 business.run(businessForm);
 await business.context.sendB2B(); await business.context.sendB2B();
@@ -292,7 +325,7 @@ assert.equal(business.events('business_inquiry_submitted').length, 1);
 assert.equal(business.events('business_inquiry_submitted')[0][2].outcome_stage, 'inquiry_received');
 assert.equal(business.events('business_inquiry_submitted')[0][2].value, undefined);
 assert.equal(JSON.stringify(business.context.dataLayer).includes('casey@example.com'), false);
-business.context.AAEAcquisition.capture = () => { throw new Error('capture unavailable'); };
+business.context.AAE_ATTRIBUTION.capture = () => { throw new Error('capture unavailable'); };
 business.context.AAEAnalytics.trackOnce = () => { throw new Error('analytics unavailable'); };
 await business.context.sendB2B();
 assert.equal(fields['b-success'].style.display, 'block');

@@ -1,0 +1,120 @@
+{
+ "real-fitness-home-gym.jpg": {
+  "w": 1537,
+  "h": 1023,
+  "variants": [
+   640,
+   1200
+  ]
+ },
+ "real-furniture-dresser-wood.jpg": {
+  "w": 1000,
+  "h": 750,
+  "variants": [
+   640,
+   1000
+  ]
+ },
+ "real-office-home-ldesk.jpg": {
+  "w": 1999,
+  "h": 1333,
+  "variants": [
+   640,
+   1200
+  ]
+ },
+ "real-smarthome-doorbell-vivint.png": {
+  "w": 1024,
+  "h": 682,
+  "variants": [
+   640,
+   1024
+  ]
+ },
+ "real-tv-mount-console.jpg": {
+  "w": 1448,
+  "h": 1086,
+  "variants": [
+   640,
+   1200
+  ]
+ },
+ "service-outdoor-playsets.jpg": {
+  "w": 1536,
+  "h": 1024,
+  "variants": [
+   640,
+   1200
+  ]
+ },
+ "real-furniture-bed-paneled.png": {
+  "w": 400,
+  "h": 400,
+  "variants": [
+   400
+  ]
+ },
+ "real-furniture-dresser-white.png": {
+  "w": 1280,
+  "h": 720,
+  "variants": [
+   640,
+   1200
+  ]
+ },
+ "real-office-cabinets.jpg": {
+  "w": 1500,
+  "h": 2000,
+  "variants": [
+   640,
+   1200
+  ]
+ },
+ "real-office-workstations.jpg": {
+  "w": 1280,
+  "h": 853,
+  "variants": [
+   640,
+   1200
+  ]
+ },
+ "real-outdoor-gazebo.png": {
+  "w": 356,
+  "h": 302,
+  "variants": [
+   356
+  ]
+ },
+ "real-smarthome-doorbell-adt.jpg": {
+  "w": 1500,
+  "h": 1125,
+  "variants": [
+   640,
+   1200
+  ]
+ },
+ "real-tv-dawg-days.jpg": {
+  "w": 1448,
+  "h": 1086,
+  "variants": [
+   640,
+   1200
+  ]
+ },
+ "real-tv-setup-console.jpg": {
+  "w": 1086,
+  "h": 1448,
+  "variants": [
+   640,
+   1086
+  ]
+ },
+ "work-outdoor-playset.jpg": {
+  "w": 1536,
+  "h": 1024,
+  "variants": [
+   640,
+   1200
+  ]
+ }
+}

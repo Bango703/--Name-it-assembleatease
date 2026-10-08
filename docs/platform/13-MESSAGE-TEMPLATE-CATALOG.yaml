@@ -1,0 +1,22 @@
+version: 1
+status: inventory_and_target_contract
+as_of: '2026-09-24'
+
+categories:
+  booking_transactional:
+    examples: [booking_confirmed, booking_updated, booking_cancelled, payment_recovery]
+  payment_transactional:
+    examples: [payment_action_required, payment_failed, payment_paid, payment_refunded]
+  easer_operational:
+    examples: [assignment_confirmation, dispatch_offer, easer_reminder, arrival_nudge, payout_status]
+  owner_system:
+    examples: [payment_risk, capture_failed, webhook_failed, worker_failed, payout_failed]
+  support:
+    examples: [message_received, support_case_opened, support_case_updated]
+
+rules:
+  - Templates declare audience, channel, category, variables, consent, and dedupe key.
+  - Customer templates use plain language and never expose provider mechanics.
+  - Easer SMS requires valid phone, consent, and no opt-out.
+  - Owner alerts include the affected resource and one valid next action.
+  - Templates are versioned when variables or meaning change.

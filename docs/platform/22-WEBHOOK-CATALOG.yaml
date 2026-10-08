@@ -1,0 +1,31 @@
+version: 1
+status: inventory
+as_of: '2026-09-24'
+
+webhooks:
+  - provider: stripe
+    routes: [/api/assembler/stripe-webhook, /api/webhook/stripe-identity]
+    signature: Stripe constructEvent
+    dedupe: claimStripeWebhookEvent
+  - provider: telnyx
+    routes: [/api/webhooks/telnyx]
+    signature: Telnyx Ed25519
+    purpose: SMS delivery and opt-out
+  - provider: telnyx
+    routes: [/api/webhooks/telnyx-voice]
+    signature: Telnyx Ed25519
+    purpose: voice history
+  - provider: telnyx
+    routes: [/api/webhooks/telnyx-call-control]
+    signature: Telnyx Ed25519
+    purpose: call bridging
+  - provider: resend
+    routes: [/api/webhooks/resend]
+    signature: Svix
+    purpose: email delivery truth
+
+rules:
+  - Verify signature before parsing or mutating state.
+  - Store provider event identity before domain processing.
+  - Duplicate events acknowledge without repeating side effects.
+  - Out-of-order events must not regress newer state.

@@ -173,12 +173,19 @@ await test('accepted saved-card job stays scheduled without acceptance alert', a
   assert.equal(body.alerts.some(alert => ['no_acceptance', 'arrival_follow_up'].includes(alert.type)), false);
 });
 await test('accepted saved-card authorization alert does not claim staffing is paused', async () => {
-  const h = harness(liveOpsSource, fixture({ payment_status: 'card_saved', stripe_payment_intent_id: null, date: '2026-10-11', assembler_accepted_at: '2026-10-06T13:00:00Z' }));
+  const date = bookingWindow.addIsoDays('2026-10-07', bookingWindow.SCHEDULED_AUTHORIZATION_LEAD_DAYS);
+  const h = harness(liveOpsSource, fixture({ payment_status: 'card_saved', stripe_payment_intent_id: null, date, assembler_accepted_at: '2026-10-06T13:00:00Z' }));
   const { body } = await h.run();
   const alert = body.alerts.find(row => row.type === 'scheduled_payment_due');
   assert.ok(alert);
   assert.doesNotMatch(alert.message, /dispatch remains paused/i);
   assert.equal(body.activeJobs[0]._stage, 'scheduled');
+});
+await test('saved-card authorization alert waits for the canonical lead window', async () => {
+  const date = bookingWindow.addIsoDays('2026-10-07', bookingWindow.SCHEDULED_AUTHORIZATION_LEAD_DAYS + 1);
+  const h = harness(liveOpsSource, fixture({ payment_status: 'card_saved', stripe_payment_intent_id: null, date, assembler_accepted_at: '2026-10-06T13:00:00Z' }));
+  const { body } = await h.run();
+  assert.equal(body.alerts.some(row => row.type === 'scheduled_payment_due'), false);
 });
 await test('manual-coverage alert does not invent exhausted dispatch attempts', async () => {
   const h = harness(liveOpsSource, fixture({ assembler_id: null, needs_manual_dispatch: true }));

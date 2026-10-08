@@ -1,0 +1,36 @@
+version: 1
+status: inventory
+as_of: '2026-09-24'
+
+source: vercel.json
+
+schedules:
+  frequent:
+    - '*/10 * * * *'
+    - '*/15 * * * *'
+    - '*/30 * * * *'
+    - '20,50 * * * *'
+  hourly:
+    - '0 * * * *'
+  daily:
+    - '0 6 * * *'
+    - '0 7 * * *'
+    - '0 8 * * *'
+    - '0 9 1,15 * *'
+    - '0 10 * * *'
+    - '15 10 * * *'
+    - '0 11 * * *'
+    - '0 12 * * *'
+    - '0 13 * * *'
+    - '0 14 * * *'
+    - '0 14,20 * * *'
+    - '0 15 * * *'
+    - '30 15 * * *'
+  weekly:
+    - '0 14 * * 1'
+
+rules:
+  - Schedule changes require production review.
+  - Every scheduled route must authenticate with the cron secret.
+  - Each run must write success, failure, duration, and record counts.
+  - Critical financial workers must be observable and retry-safe.

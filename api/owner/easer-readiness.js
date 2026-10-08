@@ -100,10 +100,6 @@ export default async function handler(req, res) {
   const taxReadiness = connectRequired
     ? taxReadinessFromAccount(account)
     : { code: w9Status, label: w9Labels[w9Status] || 'W-9 Status Unknown' };
-  const missingItems = [...readiness.missingItems];
-  if (connectRequired && taxReadiness.code === 'action_required') {
-    missingItems.push('Tax readiness status: Action Required');
-  }
 
   return res.status(200).json({
     ok: true,
@@ -112,8 +108,6 @@ export default async function handler(req, res) {
       taxReadinessStatus: taxReadiness.label,
       w9Status,
       jobTexts: jobTextStatus(profile),
-      finalStatus: missingItems.length === 0 ? 'READY FOR JOBS' : 'ACTION REQUIRED',
-      missingItems,
       checkedAt: new Date().toISOString(),
     },
   });

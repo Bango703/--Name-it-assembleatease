@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AssembleAtEase Easer</string>
+    <string name="title_activity_main">AssembleAtEase Easer</string>
+    <string name="package_name">com.assembleatease.easer</string>
+    <string name="custom_url_scheme">com.assembleatease.easer</string>
+</resources>

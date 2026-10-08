@@ -1,0 +1,46 @@
+{
+  "appId": "com.assembleatease.easer",
+  "appName": "AssembleAtEase Easer",
+  "webDir": "www",
+  "server": {
+    "url": "https://www.assembleatease.com/assembler/my-assignments",
+    "allowNavigation": [
+      "www.assembleatease.com",
+      "assembleatease.com"
+    ],
+    "errorPath": "offline.html"
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#ffffff",
+      "showSpinner": false
+    },
+    "FirebaseMessaging": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
+  },
+  "experimental": {
+    "ios": {
+      "spm": {
+        "packageOptions": {
+          "@capacitor-firebase/messaging": {
+            "symlink": true
+          }
+        }
+      }
+    }
+  }
+}

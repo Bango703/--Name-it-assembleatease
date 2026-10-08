@@ -5,7 +5,7 @@ import { broadcastFooter, unsubscribeUrl } from '../api/_broadcast.js';
 import { isReminderDue } from '../api/_announcements.js';
 import { governedSend, describeGovernedRun } from '../api/_send-governor.js';
 import { normalizeEmail } from '../api/_broadcast.js';
-import { cleanBookingAttribution } from '../api/_booking-attribution.js';
+import { cleanAcquisitionAttribution } from '../api/_attribution.js';
 
 // Execute the real cron/handler bodies with isolated in-memory persistence and
 // provider doubles. No environment file, network, live DB, or message is used.
@@ -289,7 +289,7 @@ for (const failedChannel of ['email', 'push']) {
     createHash, ownerEmail: () => 'owner@example.com', escapeHtml: esc,
     rateLimit: async () => true, normalizeUsPhone: value => value, formatUsPhone: value => value,
     upsertContact: async () => null, addNote: async () => {},
-    cleanBookingAttribution, getSupabase: () => ({ from(table) {
+    cleanAcquisitionAttribution, getSupabase: () => ({ from(table) {
       assert.equal(table, 'activity_logs');
       return { async upsert(event, options) {
         assert.deepEqual(options, { onConflict: 'id', ignoreDuplicates: true });

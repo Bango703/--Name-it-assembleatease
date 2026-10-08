@@ -96,6 +96,7 @@ const METRO_SERVICE_GUIDES = {
   },
   houston: {
     'playset-assembly': {
+      includeMarketContext: true,
       // Owner audit 2026-10-07: completed outdoor job in Spring/Houston.
       // No customer identity, private media or association with gallery images.
       completedWork: 'Completed outdoor assembly work in the Houston area includes a Spring appointment.',
@@ -131,6 +132,7 @@ const METRO_SERVICE_GUIDES = {
   },
   'round-rock': {
     'furniture-assembly': {
+      includeMarketContext: true,
       summary: 'Plan a Round Rock bedroom or home-office setup from the exact items being delivered. For a bed, include its size and any storage drawers; for a desk, note an electric frame or return; for a wardrobe, list frames, doors, and interior fittings. Add each item and quantity instead of using one general description for a whole room.',
       preparation: 'Schedule after all packages arrive and compare the box count with the delivery instructions. For an upstairs room, share the floor, stair access, and where the boxes will be. Keep matching hardware together and leave space for the finished furniture as well as the build. Mention manufacturer-required wall anchoring and any rental restrictions before the visit.',
       guide: { href: '/blog/ikea-pax-wardrobe-assembly', label: 'Plan a modular wardrobe before booking assembly' },
@@ -139,6 +141,7 @@ const METRO_SERVICE_GUIDES = {
   },
   manor: {
     'playset-assembly': {
+      includeMarketContext: true,
       summary: 'For a Manor playset, swing set, or trampoline appointment, start with the product link, model, and full package count. Say whether this is a new kit or work on an existing structure. Share the finished footprint and the manufacturer clearance requirements with photos of the intended location.',
       preparation: 'Show the access path from the boxes to the yard, gate opening, surface, and nearby fences or branches. Note any missing parts, slope, or site preparation still needed before scheduling. For a gazebo, shed, or outdoor furniture kit, include the base and anchoring instructions. Existing damage or a replacement slide needs its own scope check before an appointment is confirmed.',
       guide: { href: '/book?service=Other', label: 'Request a quote for repairs, replacement parts, or unusual outdoor work' },
@@ -147,6 +150,7 @@ const METRO_SERVICE_GUIDES = {
   },
   buda: {
     'playset-assembly': {
+      includeMarketContext: true,
       summary: 'For a Buda backyard assembly appointment, compare the finished dimensions with the usable space before booking. A playset or swing set needs the manufacturer clearances as well as the frame footprint. For a trampoline, send the model, package count, surface, and a wide photo showing the proposed position.',
       preparation: 'Identify where the boxes will be delivered and the route through any gate to the work area. Share the manufacturer base and anchoring requirements, and describe any site preparation that remains. A gazebo, shed, or outdoor furniture kit has different base and access needs. For an existing structure or an incomplete kit, request a quote with photos so the work can be confirmed first.',
       guide: { href: '/book?service=Other', label: 'Get a quote for a gazebo, incomplete kit, or custom outdoor project' },
@@ -155,6 +159,7 @@ const METRO_SERVICE_GUIDES = {
   },
   pearland: {
     'smart-home-installation': {
+      includeMarketContext: true,
       summary: 'For smart-home setup in Pearland, list each device model and whether it replaces an existing device or goes in a new location. Doorbells, thermostats, security cameras, and smart locks need different compatibility details. Include the current device, power source, mounting surface, and the app or hub you want to use.',
       preparation: 'Check the manufacturer compatibility information before buying. Have access to your own device account and Wi-Fi on your phone during the visit; do not put passwords in booking notes. Photograph the existing location without removing wiring. Mention rental permission, inaccessible mounting positions, or new wiring needs before choosing the appointment so the supported work can be confirmed.',
       guide: { href: '/blog/smart-home-installation-austin', label: 'Review device, account, and compatibility preparation' },
@@ -163,6 +168,7 @@ const METRO_SERVICE_GUIDES = {
   },
   'san-angelo': {
     'smart-home-installation': {
+      includeMarketContext: true,
       summary: 'Plan a San Angelo smart-home visit by room and device. List doorbells, thermostats, security cameras, and smart locks separately, including each model and quantity. For several devices, identify the app or hub they must work with and whether setup is at an existing or new mounting location.',
       preparation: 'Check the manufacturer requirements for power, Wi-Fi, and compatible equipment. Note which devices and accessories you already have, where they will be installed, and any hard-to-reach positions. Have your own phone and device-account access ready for testing. Do not send passwords in booking notes. Tell us about unfinished wiring or site preparation before scheduling; availability and the supported work are confirmed for your address.',
       guide: { href: '/blog/smart-home-installation-austin', label: 'Prepare compatible devices and the information needed for setup' },
@@ -170,6 +176,85 @@ const METRO_SERVICE_GUIDES = {
     },
   },
 };
+
+// Local housing facts per city (U.S. Census ACS 5-year, scripts/lib/city-housing.json).
+// They change what a customer should prepare: renters need drilling/anchoring
+// permission, apartment buildings need elevator and loading plans, older homes
+// have older walls and wiring. Austin reference pages are left unchanged.
+const HOUSING = JSON.parse(readFileSync(new URL('./lib/city-housing.json', import.meta.url), 'utf8'));
+
+function joinList(items) {
+  return items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}` : items[0] || '';
+}
+
+function housingGuide(cfg, city) {
+  if (city.citySlug === 'austin') return null;
+  const h = HOUSING.cities[city.citySlug];
+  if (!h) return null;
+  const n = city.name;
+  const counties = h.counties.map((c) => c.replace(/ County$/, ''));
+  const countyText = `${joinList(counties)} ${counties.length > 1 ? 'counties' : 'County'}`;
+  const facts = `${n} (${countyText}): ${h.renterPct}% of households rent, ${h.apartment5PlusPct}% of homes are in buildings with five or more units, ${h.detachedPct}% are detached houses, and the median home was built in ${h.medianYearBuilt}.`;
+  const renters = h.renterPct >= 40;
+  const apartments = h.apartment5PlusPct >= 25;
+  const older = h.builtBefore1980Pct >= 30;
+  const advice = {
+    'furniture-assembly': [
+      apartments
+        ? 'In a larger apartment building, include the floor, elevator reservation, and loading-zone rules so moving boxes to each room is planned.'
+        : 'In a detached house, the usual planning points are stairs, the room for each piece, and where the boxes will be staged.',
+      renters
+        ? 'If you rent, check whether the lease allows wall anchoring for dressers and tall bookcases.'
+        : 'Tall dressers and bookcases should be anchored to the wall under the manufacturer instructions; mention the wall type if you know it.',
+    ],
+    'tv-mounting': [
+      older
+        ? `${h.builtBefore1980Pct}% of homes here were built before 1980, when plaster and older framing were more common, so describe the wall and add a photo if it is not standard drywall.`
+        : 'Newer homes usually have drywall over wood studs; still flag tile, brick, stone, or a fireplace surround.',
+      renters
+        ? 'With this many renters, check drilling and move-out repair rules before booking.'
+        : 'If you rent, check drilling and move-out repair rules before booking.',
+    ],
+    'smart-home-installation': [
+      older || h.medianYearBuilt < 1990
+        ? `Older homes are more likely to lack a thermostat common wire (C-wire) or a working doorbell transformer, and ${h.builtBefore1980Pct}% of homes here were built before 1980. Share photos of the thermostat wiring and doorbell chime.`
+        : 'Newer wiring usually suits smart thermostats and doorbells; confirm the C-wire and doorbell power before buying a device.',
+      'Renters usually need landlord approval to replace locks, doorbells, or thermostats.',
+    ],
+    'fitness-equipment-assembly': [
+      apartments
+        ? 'In an apartment building, check elevator size, doorway width, and any floor-load or quiet-hours rules before a treadmill or rack arrives.'
+        : 'In a detached house, many home gyms go in a garage or spare room; tell us the floor surface and whether the room is upstairs.',
+    ],
+    'office-furniture-assembly': [
+      apartments
+        ? 'For a home office in an apartment building, include elevator and loading details; for a business suite, include delivery hours and suite access.'
+        : 'For a home office in a detached house, list every desk, chair, and cabinet with its room so a multi-piece setup is scheduled correctly.',
+    ],
+    'playset-assembly': [
+      h.detachedPct >= 60
+        ? 'Detached houses are the homes most likely to have a yard; share the yard slope, ground surface, and gate width so the kit can reach the build site.'
+        : 'Where larger buildings are common, confirm HOA or property rules and the available ground area before ordering an outdoor kit.',
+      ...(renters ? ['If you rent, confirm permission for ground anchors.'] : []),
+    ],
+  }[cfg.prefix];
+  if (!advice) return null;
+  return { facts, advice: advice.join(' '), source: HOUSING.source.replace(/, via Census Reporter$/, '') };
+}
+
+// Responsive WebP versions of the service photos (scripts/lib/service-image-variants.json,
+// made from the originals in /images). The original stays as the <img> fallback, and
+// width/height reserve the box so the photo cannot shift the layout when it loads.
+const IMAGE_VARIANTS = JSON.parse(readFileSync(new URL('./lib/service-image-variants.json', import.meta.url), 'utf8'));
+
+function picture(src, alt, sizes, attrs) {
+  const v = IMAGE_VARIANTS[src];
+  const img = `<img src="/images/${src}" alt="${alt}"${v ? ` width="${v.w}" height="${v.h}"` : ''}${attrs}/>`;
+  if (!v) return img;
+  const base = src.replace(/\.(jpe?g|png)$/i, '');
+  const srcset = v.variants.map((w) => `/images/${base}-${w}.webp ${w}w`).join(', ');
+  return `<picture><source type="image/webp" srcset="${srcset}" sizes="${sizes}"/>${img}</picture>`;
+}
 
 function metroServiceGuide(cfg, city) {
   return METRO_SERVICE_GUIDES[city.citySlug]?.[cfg.prefix];
@@ -362,10 +447,12 @@ const FA_STYLE = `<style>
 .fa-sub{font-size:1.08rem;line-height:1.7;color:var(--ink-soft);max-width:31rem;margin-bottom:1.85rem}
 .fa-cta-row{display:flex;flex-wrap:wrap;gap:0.9rem;margin-bottom:1.7rem}
 .fa-btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--cyan);color:#03303f;font-weight:700;font-size:1rem;padding:0.95rem 1.95rem;border-radius:999px;text-decoration:none;transition:all .18s;box-shadow:0 12px 30px rgba(0,191,255,0.3)}
-.fa-btn-primary:hover{background:var(--cyan-dark);color:#fff;transform:translateY(-2px)}
+@media (hover: hover) and (pointer: fine){.fa-btn-primary:hover{background:var(--cyan-dark);color:#fff;transform:translateY(-2px)}}
 .fa-btn-ghost{display:inline-flex;align-items:center;gap:8px;color:var(--ink);font-weight:600;font-size:1rem;padding:0.95rem 1.5rem;border-radius:999px;text-decoration:none;border:1.5px solid var(--border);transition:all .18s}
-.fa-btn-ghost:hover{border-color:var(--cyan);color:var(--cyan-dark)}
+@media (hover: hover) and (pointer: fine){.fa-btn-ghost:hover{border-color:var(--cyan);color:var(--cyan-dark)}}
 .fa-hero-media{position:relative}
+.fa-hero-media picture{display:block}
+.fa-shot .frame picture{display:block;width:100%;height:100%}
 .fa-hero-media img{width:100%;height:auto;display:block;border-radius:20px;box-shadow:0 26px 55px rgba(2,32,43,0.22)}
 .fa-media-chip{position:absolute;left:0.9rem;bottom:0.9rem;background:rgba(8,18,30,0.84);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.14);color:#fff;font-size:0.78rem;font-weight:600;padding:0.5rem 0.9rem;border-radius:999px;display:flex;align-items:center;gap:8px}
 .fa-media-chip::before{content:"";width:7px;height:7px;border-radius:50%;background:#28d17c;box-shadow:0 0 0 4px rgba(40,209,124,0.25)}
@@ -380,7 +467,7 @@ const FA_STYLE = `<style>
 .fa-shot{border-radius:16px;overflow:hidden;background:var(--white);border:1px solid var(--border);box-shadow:var(--shadow)}
 .fa-shot .frame{width:100%;aspect-ratio:7/5;overflow:hidden;background:#e9eef2}
 .fa-shot .frame img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
-.fa-shot:hover .frame img{transform:scale(1.04)}
+@media (hover: hover) and (pointer: fine){.fa-shot:hover .frame img{transform:scale(1.04)}}
 .fa-shot .cap{padding:0.95rem 1.1rem;font-size:0.92rem;font-weight:700;color:var(--ink)}
 .fa-shot .cap small{display:block;font-weight:500;color:var(--muted);font-size:0.77rem;margin-top:3px}
 .fa-note{background:var(--off-white);border:1px solid var(--border);border-radius:16px;padding:1.7rem 1.5rem;color:var(--ink);display:flex;flex-direction:column;justify-content:center;min-height:200px}
@@ -406,7 +493,7 @@ const FA_STYLE = `<style>
 .fa-process{max-width:900px;margin:0 auto}
 .fa-process-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.75rem}
 .fa-process-tab{appearance:none;border:1.5px solid var(--border);background:var(--white);border-radius:16px;padding:0.95rem 1rem;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
-.fa-process-tab:hover{border-color:var(--cyan-mid)}
+@media (hover: hover) and (pointer: fine){.fa-process-tab:hover{border-color:var(--cyan-mid)}}
 .fa-process-tab.is-active{border-color:var(--cyan);background:#f7fcfe;box-shadow:0 10px 28px rgba(0,191,255,0.08)}
 .fa-process-num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.05rem;margin-bottom:0.7rem}
 .fa-process-tab.is-active .fa-process-num{background:var(--cyan-dark)}
@@ -424,14 +511,14 @@ const FA_STYLE = `<style>
 .fa-chev{transition:transform .2s;flex-shrink:0;color:var(--cyan-dark);font-size:1.1rem}
 .fa-citylinks{display:flex;flex-wrap:wrap;gap:0.6rem;justify-content:center}
 .fa-citylinks a{display:inline-flex;align-items:center;background:var(--white);border:1px solid var(--cyan-mid);border-radius:999px;padding:0.55rem 1.15rem;font-size:0.875rem;font-weight:600;color:var(--cyan-dark);text-decoration:none;transition:all .15s}
-.fa-citylinks a:hover{background:var(--cyan-light);border-color:var(--cyan)}
+@media (hover: hover) and (pointer: fine){.fa-citylinks a:hover{background:var(--cyan-light);border-color:var(--cyan)}}
 .fa-share-kit{max-width:860px;margin:0 auto}
 .fa-share-inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.15rem 1.25rem;background:var(--white);border:1px solid var(--border);border-radius:18px}
 .fa-share-copy strong{display:block;font-size:1rem;color:var(--ink);margin-bottom:0.2rem}
 .fa-share-copy span{display:block;font-size:0.88rem;line-height:1.6;color:var(--muted);max-width:34rem}
 .fa-share-actions{display:flex;align-items:center;justify-content:flex-end;gap:0.6rem;flex-wrap:wrap}
 .fa-share-btn{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:999px;border:1px solid var(--cyan-mid);background:var(--white);color:var(--cyan-dark);text-decoration:none;transition:background .15s,border-color .15s,color .15s,transform .15s}
-.fa-share-btn:hover{background:var(--cyan-light);border-color:var(--cyan);transform:translateY(-1px)}
+@media (hover: hover) and (pointer: fine){.fa-share-btn:hover{background:var(--cyan-light);border-color:var(--cyan);transform:translateY(-1px)}}
 .fa-share-btn svg{width:18px;height:18px;display:block}
 .fa-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:900px){
@@ -482,7 +569,7 @@ function gallerySection(cfg, city) {
       <h2 class="fa-h2">${cfg.workHeadline}</h2>
       <p class="fa-lead">${escapeHtml(metroServiceGuide(cfg, city)?.workSummary || 'Recent job photos for this service.')}</p>
     </div>`;
-  const shot = (g) => `      <figure class="fa-shot"><div class="frame"><img src="/images/${g.src}" alt="${g.alt}" loading="lazy"${g.pos ? ` style="object-position:${g.pos}"` : ''}/></div><figcaption class="cap">${g.cap}<small>${g.sub}</small></figcaption></figure>`;
+  const shot = (g) => `      <figure class="fa-shot"><div class="frame">${picture(g.src, g.alt, '(max-width: 860px) 100vw, 380px', ` loading="lazy"${g.pos ? ` style="object-position:${g.pos}"` : ''}`)}</div><figcaption class="cap">${g.cap}<small>${g.sub}</small></figcaption></figure>`;
   const noteCell = `      <div class="fa-note"><strong>${noteStrong}</strong><p>${cfg.noteSpan}</p></div>`;
   let inner;
   if (cfg.gallery.length >= 2) {
@@ -531,6 +618,7 @@ function buildBody(cfg, city) {
   const servicePlanning = SERVICE_PLANNING[cfg.prefix];
   if (!servicePlanning) throw new Error(`Missing service planning content for ${cfg.prefix}.`);
   const localGuide = metroServiceGuide(cfg, city);
+  const housing = housingGuide(cfg, city);
   const planningGuide = localGuide?.guide || (city.name === 'Austin' ? servicePlanning.austinGuide : null);
   const marketContext = city.bio
     ? `${city.bio}${city.landmark ? ` Addresses around ${city.landmark} can have different parking, entry, and item-move requirements.` : ''}`
@@ -549,7 +637,7 @@ function buildBody(cfg, city) {
       </div>
     </div>
     <div class="fa-hero-media">
-      <img src="/images/${cfg.heroPhoto}" alt="${cfg.heroAlt}" loading="eager" fetchpriority="high"/>
+      ${picture(cfg.heroPhoto, cfg.heroAlt, '(max-width: 860px) 100vw, 540px', ' loading="eager" fetchpriority="high"')}
       <div class="fa-media-chip">${projectLabel}</div>
     </div>
   </div>
@@ -616,7 +704,7 @@ ${menu}
       <h2 class="fa-h2">${escapeHtml(servicePlanning.heading)} in ${escapeHtml(city.name)}</h2>
       <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(localGuide?.summary || servicePlanning.summary)}</p>
       <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(localGuide?.preparation || servicePlanning.requestTypes)}</p>
-${localGuide?.completedWork ? `      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(localGuide.completedWork)}</p>\n` : ''}${[planningGuide, localGuide?.extraGuide].filter(Boolean).map((guide) => `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><a href="${guide.href}">${escapeHtml(guide.label)}</a>.</p>\n`).join('')}${localGuide ? '' : `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Planning your ${escapeHtml(city.name)} appointment:</strong> ${escapeHtml(marketContext)}${city.bio ? ` ${escapeHtml(bookingGuidance)}` : ''}</p>\n`}    </div>
+${localGuide?.completedWork ? `      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(localGuide.completedWork)}</p>\n` : ''}${[planningGuide, localGuide?.extraGuide].filter(Boolean).map((guide) => `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><a href="${guide.href}">${escapeHtml(guide.label)}</a>.</p>\n`).join('')}${localGuide && !localGuide.includeMarketContext ? '' : `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Planning your ${escapeHtml(city.name)} appointment:</strong> ${escapeHtml(marketContext)}${city.bio ? ` ${escapeHtml(bookingGuidance)}` : ''}</p>\n`}${housing ? `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Local homes:</strong> ${escapeHtml(housing.facts)} ${escapeHtml(housing.advice)}</p>\n      <p class="fa-lead" style="margin-left:auto;margin-right:auto;font-size:0.8rem;color:var(--muted)">Source: ${escapeHtml(housing.source)}.</p>\n` : ''}    </div>
     <div class="fa-mini-facts">
       <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Trusted local pros</strong><span>Assigned and confirmed before the visit.</span></div>
       <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Careful setup</strong><span>Built, mounted, or installed with the finish details checked.</span></div>
@@ -927,12 +1015,18 @@ export function applyServiceGuideToPage(html, cfg, city) {
     const previous = html.match(section)?.[0];
     let replacement = body.match(section)?.[0];
     if (!previous || !replacement) throw new Error(`Missing ${marker} block in ${pageSlug(cfg, city)}`);
-    // Other reviewed processes may add public local evidence to this section.
-    // Retain those paragraphs while refreshing the guide's owned copy.
+    // Other reviewed processes may add local planning and cited evidence here.
+    // Keep that reviewed copy and its source together. The full generator now
+    // renders housing guidance too, so replace that generated copy rather than
+    // appending a second version during a narrow content refresh.
     if (marker === 'WHAT TO EXPECT') {
-      const evidence = previous.match(/<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?Local homes:(?:(?!<\/p>)[\s\S])*?<\/p>/g) || [];
-      if (evidence.length) replacement = replacement.replace('    </div>\n    <div class="fa-mini-facts">',
-        evidence.map((paragraph) => `      ${paragraph}\n`).join('') + '    </div>\n    <div class="fa-mini-facts">');
+      const evidencePattern = /^[ \t]*<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?(?:Local homes:|Planning your [^<]+ appointment:|Source: U\.S\. Census Bureau)(?:(?!<\/p>)[\s\S])*?<\/p>\n?/gm;
+      const evidence = previous.match(evidencePattern) || [];
+      if (evidence.length) {
+        replacement = replacement.replace(evidencePattern, '');
+        replacement = replacement.replace('    </div>\n    <div class="fa-mini-facts">',
+          evidence.map((paragraph) => `      ${paragraph.trim()}\n`).join('') + '    </div>\n    <div class="fa-mini-facts">');
+      }
     }
     html = html.replace(section, () => replacement);
   }

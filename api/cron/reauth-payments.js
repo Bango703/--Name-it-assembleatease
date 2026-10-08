@@ -1,10 +1,10 @@
 ﻿import Stripe from 'stripe';
 import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { getSupabase } from '../_supabase.js';
-import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
+import { sendEmail, ownerEmail, esc, formatAddress, ensureEmailShell } from '../_email.js';
 import { reserveBookingFinancialOperation } from '../booking/_financial-operation.js';
 import { logCron } from './_cron-logger.js';
-import { fetchCaptureDeadline, needsAuthorizationRenewal, RENEWAL_LEAD_HOURS } from '../booking/_authorization-window.js';
+import { captureBeforeFromIntent, fetchCaptureDeadline, needsAuthorizationRenewal, RENEWAL_LEAD_HOURS } from '../booking/_authorization-window.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const REAUTH_OPERATION_TYPE = 'reauth_payment';
@@ -21,9 +21,9 @@ const CANCELABLE_PAYMENT_INTENT_STATUSES = new Set([
  * GET /api/cron/reauth-payments
  * Runs daily at 10:00 UTC via Vercel cron.
  *
- * Stripe manual-capture authorizations expire after 7 days. This cron finds
- * confirmed bookings whose appointment is exactly 5 days away (leaving 2 days
- * buffer before the auth window closes) and silently re-authorizes the card:
+ * Stripe reports each card hold's actual deadline. This cron retains the
+ * five-day appointment scan, adds approaching deadlines, and inspects holds
+ * whose deadline has not been recorded before deciding whether to renew:
  *
  *   1. Reserve the booking's central financial-operation lock.
  *   2. Retrieve and validate the existing PaymentIntent and saved method.
@@ -56,19 +56,7 @@ export default async function handler(req, res) {
   // Anything whose authorization dies inside the renewal lead time is due now.
   const renewalHorizonIso = new Date(now.getTime() + RENEWAL_LEAD_HOURS * 3600000).toISOString();
 
-  const { data: bookings, error: queryErr } = await sb
-    .from('bookings')
-    // The reservation RPC compares the complete financial snapshot. Include
-    // locked prior attempts even after the calendar moves past the target day
-    // so a crash after linking can still release the old hold idempotently.
-    .select('*')
-    .eq('status', 'confirmed')
-    .eq('payment_status', 'authorized')
-    // The calendar rule stays exactly as it was. The third clause is the fix:
-    // a hold whose real deadline is close, whatever the appointment date, is
-    // picked up here rather than discovered at capture.
-    .or(`date.eq.${targetStr},financial_operation_type.eq.${REAUTH_OPERATION_TYPE},authorization_capture_before.lte.${renewalHorizonIso}`)
-    .limit(50);
+  const { data: bookings, error: queryErr } = await loadReauthorizationCandidates(sb, targetStr, renewalHorizonIso);
 
   if (queryErr) {
     console.error('reauth-payments query error:', queryErr);
@@ -94,10 +82,39 @@ export default async function handler(req, res) {
   let recovered = 0;
   const errors = [];
 
-  for (const booking of bookings) {
-    // The query is deliberately broad; this is the one place that decides.
-    if (booking.date !== targetStr && !needsAuthorizationRenewal(booking)) continue;
+  for (const candidate of bookings) {
+    let booking = candidate;
     try {
+      if (booking.is_test_booking === true) continue;
+      // A linked replacement with our exact lock still needs old-hold cleanup,
+      // even when its new deadline is healthy. Never skip that recovery.
+      const recovering = booking.financial_operation_key === `reauth:${booking.id}`
+        && booking.financial_operation_type === REAUTH_OPERATION_TYPE;
+      const unlocked = !booking.financial_operation_key && !booking.financial_operation_type
+        && !booking.financial_operation_started_at;
+      const inspectUnknown = unlocked && booking.authorization_capture_before == null
+        && booking.payment_method_type !== 'klarna';
+      if (inspectUnknown) {
+        const inspection = await inspectUnknownAuthorization({ stripe, booking, expectedLivemode });
+        if (!inspection.ok) {
+          errors.push({ ref: booking.ref, reason: inspection.reason });
+          const alert = await sendCurrentPaymentReviewAlert(sb, booking, inspection);
+          if (!alert?.ok && !alert?.deferred) errors.push({ ref: booking.ref, reason: 'payment_review_notification_failed' });
+          continue;
+        }
+        const recorded = await recordInspectedDeadline(sb, booking, inspection.captureBefore);
+        if (!recorded.ok) {
+          if (recorded.changed) continue; // another payment operation won the race
+          errors.push({ ref: booking.ref, reason: 'payment_deadline_save_failed' });
+          const alert = await sendCurrentPaymentReviewAlert(sb, booking, { reason: 'payment_deadline_save_failed' });
+          if (!alert?.ok && !alert?.deferred) errors.push({ ref: booking.ref, reason: 'payment_review_notification_failed' });
+          continue;
+        }
+        booking = { ...booking, authorization_capture_before: inspection.captureBefore };
+      }
+      // An inspected healthy legacy hold does not need replacement just because
+      // its DB deadline is missing, including on the five-day calendar scan.
+      if (!recovering && !needsAuthorizationRenewal(booking, now.getTime())) continue;
       const outcome = await processBookingReauthorization({
         sb,
         stripe,
@@ -107,7 +124,10 @@ export default async function handler(req, res) {
       });
       if (!outcome.ok) {
         errors.push({ ref: booking.ref, reason: outcome.reason });
-        if (outcome.ownerActionRequired) {
+        if (outcome.paymentReviewRequired) {
+          const alert = await sendCurrentPaymentReviewAlert(sb, booking, outcome);
+          if (!alert?.ok && !alert?.deferred) errors.push({ ref: booking.ref, reason: 'payment_review_notification_failed' });
+        } else if (outcome.ownerActionRequired) {
           await sendReauthOwnerAlert(booking, outcome).catch(alertErr => {
             console.error(`reauth-payments: owner alert email failed for ${booking.ref}:`, alertErr?.message || alertErr);
           });
@@ -156,6 +176,71 @@ export default async function handler(req, res) {
     skipped: errors.length,
     errors: errors.length ? errors : undefined,
   });
+}
+
+async function loadReauthorizationCandidates(sb, targetStr, renewalHorizonIso) {
+  // Known due holds and locked retries precede calendar/legacy discovery.
+  // Page both scans so healthy unknowns cannot crowd out urgent work.
+  const priorities = [
+    `financial_operation_type.eq.${REAUTH_OPERATION_TYPE},authorization_capture_before.lte.${renewalHorizonIso}`,
+    `date.eq.${targetStr},authorization_capture_before.is.null`,
+  ];
+  const candidates = new Map();
+  const pageSize = 100;
+  for (const selection of priorities) {
+    for (let offset = 0; ; offset += pageSize) {
+      const page = await sb.from('bookings').select('*')
+        .eq('status', 'confirmed').eq('payment_status', 'authorized')
+        .or(selection).order('id', { ascending: true }).range(offset, offset + pageSize - 1);
+      if (page.error) return page;
+      for (const booking of page.data || []) if (!candidates.has(booking.id)) candidates.set(booking.id, booking);
+      if ((page.data || []).length < pageSize) break;
+    }
+  }
+  return { data: [...candidates.values()], error: null };
+}
+
+export async function inspectUnknownAuthorization({ stripe, booking, expectedLivemode }) {
+  if (!booking.stripe_payment_intent_id) return { ok: false, reason: 'payment_source_missing' };
+  let intent;
+  try {
+    intent = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id, { expand: ['latest_charge'] });
+  } catch {
+    return { ok: false, reason: 'payment_verification_unavailable' };
+  }
+  // Deadline and identity come from the same verified Stripe response. Reading
+  // another customer's deadline must never authorize this booking's renewal.
+  const validation = validateReauthorizationIntent(intent, {
+    booking, expectedId: booking.stripe_payment_intent_id,
+    expectedType: originalPaymentType(intent), expectedLivemode, requireAuthorized: false,
+  });
+  if (!validation.ok) return { ok: false, reason: 'payment_details_mismatch' };
+  if (intent.status === 'succeeded') return { ok: false, reason: 'payment_already_collected' };
+  if (intent.status === 'canceled') return { ok: false, reason: 'payment_hold_canceled' };
+  if (intent.status !== 'requires_capture' || Number(intent.amount_capturable) !== Number(booking.total_price)) {
+    return { ok: false, reason: 'payment_hold_unavailable' };
+  }
+  const captureBefore = captureBeforeFromIntent(intent);
+  if (!captureBefore) return { ok: false, reason: 'payment_deadline_unknown' };
+  return { ok: true, captureBefore };
+}
+
+async function recordInspectedDeadline(sb, booking, captureBefore) {
+  // A verified legacy hold becomes known to every canonical reader. This is a
+  // deadline projection only; no booking/payment status or money is changed.
+  let query = sb.from('bookings').update({ authorization_capture_before: captureBefore })
+    .eq('id', booking.id).eq('status', 'confirmed').eq('payment_status', 'authorized')
+    .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id)
+    .is('authorization_capture_before', null)
+    .is('financial_operation_key', null).is('financial_operation_type', null)
+    .is('financial_operation_started_at', null)
+    .is('financial_reconciliation_required_at', null).is('cancellation_reconciliation_required_at', null);
+  for (const field of ['date', 'time', 'total_price', 'stripe_customer_id',
+    'return_visit_required', 'return_visit_date', 'return_visit_time']) {
+    query = applyNullableEq(query, field, booking[field]);
+  }
+  const { data, error } = await query.select('id');
+  return { ok: !error && Boolean(data?.length), changed: !error && !data?.length };
 }
 
 export async function processBookingReauthorization({ sb, stripe, booking, expectedLivemode, nowIso }) {
@@ -255,6 +340,7 @@ export async function processBookingReauthorization({ sb, stripe, booking, expec
       ok: false,
       reason: released.ok ? 'payment_intent_retrieve_failed' : 'safe_lock_release_failed',
       ownerActionRequired: !released.ok,
+      paymentReviewRequired: released.ok,
       detail: error?.message || String(error),
     };
   }
@@ -290,6 +376,11 @@ export async function processBookingReauthorization({ sb, stripe, booking, expec
       ok: false,
       reason: released.ok ? `source_payment_intent_invalid:${currentValidation.errors.join(',') || 'type'}` : 'safe_lock_release_failed',
       ownerActionRequired: !released.ok,
+      paymentReviewRequired: released.ok,
+      paymentReviewReason: currentValidation.errors.every(field => ['status', 'amount_capturable'].includes(field))
+        ? currentIntent.status === 'succeeded' ? 'payment_already_collected'
+          : currentIntent.status === 'canceled' ? 'payment_hold_canceled' : 'payment_hold_unavailable'
+        : 'payment_details_mismatch',
     };
   }
 
@@ -874,6 +965,42 @@ function applyNullableEq(query, field, value) {
 function reauthAttemptId(value) {
   const normalized = String(value || '').replace(/[^a-z0-9]/gi, '');
   return normalized || null;
+}
+
+async function sendCurrentPaymentReviewAlert(sb, booking, outcome) {
+  // An email must not send the owner chasing a booking already captured,
+  // refreshed, rescheduled or picked up by another financial operation.
+  const { data: current, error } = await sb.from('bookings').select('*').eq('id', booking.id).maybeSingle();
+  if (error) return { ok: false, error: 'Current booking payment state could not be verified.' };
+  if (!current || current.is_test_booking === true || current.status !== 'confirmed' || current.payment_status !== 'authorized'
+      || current.financial_operation_key || current.financial_operation_type || current.financial_operation_started_at
+      || current.financial_reconciliation_required_at || current.cancellation_reconciliation_required_at) {
+    return { ok: true, suppressed: true };
+  }
+  const reviewFields = ['stripe_payment_intent_id', 'total_price', 'stripe_customer_id', 'date', 'time',
+    'authorization_capture_before', 'return_visit_required', 'return_visit_date', 'return_visit_time'];
+  for (const field of reviewFields) {
+    if ((current[field] ?? null) !== (booking[field] ?? null)) return { ok: true, suppressed: true };
+  }
+  const reason = outcome.paymentReviewReason || outcome.reason;
+  const description = {
+    payment_already_collected: 'Stripe shows this payment was collected, but the booking still shows a card hold. Verify the payment record before requesting any further payment. Do not charge the customer again.',
+    payment_hold_canceled: 'Stripe shows that the existing card hold was canceled. Contact the customer to arrange a valid payment authorization before work starts.',
+    payment_hold_unavailable: 'The existing card hold is not available for the full booking amount. Verify the payment and contact the customer if a new authorization is needed before work starts.',
+    payment_details_mismatch: 'The linked payment details do not match this booking. Verify the amount and booking reference before requesting any payment or sending an Easer.',
+    payment_source_missing: 'This booking has no linked card payment to verify. Confirm the payment arrangement before sending an Easer.',
+    payment_deadline_unknown: 'Stripe did not provide a card hold deadline, so we could not verify that the hold lasts through this appointment. Confirm the payment arrangement before work starts.',
+    payment_deadline_save_failed: 'The card hold was verified, but its deadline could not be saved to the booking. The booking still needs payment review before work starts.',
+  }[reason] || 'The current card hold could not be verified. This does not establish that the card was declined. Confirm the payment arrangement before work starts.';
+  return sendEmail({
+    to: ownerEmail(), from: 'AssembleAtEase <booking@assembleatease.com>',
+    subject: `Payment review before appointment: ${booking.ref}`,
+    html: ensureEmailShell(`<h1 style="font-size:22px">Review this booking's payment</h1><p><strong>${esc(booking.ref)}</strong>: ${esc(booking.service || 'Service')}, ${esc(formatAppointmentDate(booking.date))}.</p><p>${esc(description)}</p><p>Open the booking in the owner dashboard and review its payment details and timeline. If the records disagree, check the linked payment in Stripe before taking action. Do not mark work complete just to collect payment.</p><p>This check did not create a new card hold, collect a payment, or cancel a payment.</p><p><a href="https://www.assembleatease.com/owner/">Open the owner dashboard</a></p>`, 'owner'),
+    replyTo: 'service@assembleatease.com',
+    meta: { bookingId: booking.id, notificationType: 'payment_authorization_review', recipientType: 'owner',
+      paymentReviewSnapshot: Object.fromEntries(reviewFields.map(field => [field, current[field] ?? null])),
+      notificationKey: `payment-review:${booking.id}:${booking.stripe_payment_intent_id || 'missing'}:${booking.date}:${booking.time || ''}:${reason}` },
+  });
 }
 
 async function sendAuthenticationRequiredAlert(booking) {

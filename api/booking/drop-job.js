@@ -4,15 +4,18 @@ import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { dispatchBooking } from './_dispatch-internal.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, EASER_RELIABILITY_POLICY, classifyEaserCancellation } from '../_source-of-truth.js';
+import { appointmentTimestampMs } from './_appt-date.js';
+import { loadEaserStrikeSummary, recordEaserCancellation, pauseEaserIfOverLimit } from '../_easer-reliability.js';
 import { finalizeDispatchRound, holdDispatchForPaymentReconciliation, notifyOwnerManualDispatch } from './_dispatch-safety.js';
 
 const SITE = 'https://www.assembleatease.com';
 
-// A Pro may self-cancel a job they accepted, but only within this grace window
-// after acceptance. After it closes, they must contact support to be released —
-// this is the anti-flake commitment rule.
-const DROP_WINDOW_MIN = parseInt(process.env.EASER_DROP_WINDOW_MINUTES || '15', 10);
+// A Pro may cancel a job they accepted. Inside the grace window it is free;
+// after it, the cancellation is self-service (the job goes straight back out,
+// no owner case to wait on) and it carries reliability strikes set by
+// EASER_RELIABILITY_POLICY: late (<24h) 1, same-day 2, pause at 3 in 90 days.
+const DROP_WINDOW_MIN = EASER_RELIABILITY_POLICY.graceMinutes;
 const DROP_REASONS = new Set(['Emergency', 'Vehicle issue', 'Running too late', 'Schedule conflict', 'Other']);
 
 /**
@@ -35,7 +38,7 @@ export default async function handler(req, res) {
   const { data: { user }, error: authErr } = await userClient.auth.getUser(auth.replace('Bearer ', ''));
   if (authErr || !user) return res.status(401).json({ error: 'Invalid or expired token' });
 
-  const { bookingId, reason: rawReason, note: rawNote } = req.body || {};
+  const { bookingId, reason: rawReason, note: rawNote, preview } = req.body || {};
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
   const reason = String(rawReason || '').trim();
   const note = String(rawNote || '').trim();
@@ -70,17 +73,41 @@ export default async function handler(req, res) {
     return res.status(409).json({ error: 'This job is temporarily unavailable. Refresh or contact support before dropping it.' });
   }
 
-  // ── 15-minute window check (from acceptance) ──────────────────────────────
   if (!booking.assembler_accepted_at) {
     // No acceptance timestamp (e.g. owner-assigned) — no self-drop, support only.
     return res.status(403).json({ error: 'Please contact support to be released from this job.' });
   }
   const elapsedMin = (now.getTime() - new Date(booking.assembler_accepted_at).getTime()) / 60000;
-  if (elapsedMin > DROP_WINDOW_MIN) {
-    return res.status(403).json({
-      error: `The ${DROP_WINDOW_MIN}-minute window to drop this job has passed. Please contact support to be released.`,
-      windowClosed: true,
-    });
+
+  // ── Reliability: what this cancellation costs, decided by the one rule ────
+  let appointmentMs = null;
+  try { appointmentMs = appointmentTimestampMs(booking.date, booking.time); } catch (_) { appointmentMs = null; }
+  const classification = classifyEaserCancellation({
+    acceptedAtMs: new Date(booking.assembler_accepted_at).getTime(),
+    nowMs: now.getTime(),
+    appointmentMs,
+    appointmentDate: booking.date || null,
+  });
+  let strikeSummary;
+  try {
+    strikeSummary = await loadEaserStrikeSummary(sb, user.id, { nowMs: now.getTime() });
+  } catch (summaryError) {
+    console.error('drop-job reliability read error:', summaryError);
+    return res.status(503).json({ error: 'Your reliability record could not be checked. The job was not released. Try again in a moment.' });
+  }
+  const strikesAfter = strikeSummary.strikes + classification.strikes;
+  const willPause = classification.strikes > 0 && strikesAfter >= EASER_RELIABILITY_POLICY.pauseAtStrikes;
+  const impact = {
+    kind: classification.kind,
+    strikesAdded: classification.strikes,
+    strikesBefore: strikeSummary.strikes,
+    strikesAfter,
+    pauseAtStrikes: EASER_RELIABILITY_POLICY.pauseAtStrikes,
+    windowDays: EASER_RELIABILITY_POLICY.windowDays,
+    willPause,
+  };
+  if (preview === true) {
+    return res.status(200).json({ ok: true, preview: true, impact });
   }
 
   // Account status/closure intentionally does not block releasing owned work,
@@ -143,13 +170,24 @@ export default async function handler(req, res) {
   // excluded from this one re-dispatch via excludeEaserId.
   adjustActiveJobs(sb, user.id, -1).catch(() => {});
 
+  // The strike is recorded and checked, then the pause applied if it reaches the limit.
+  const strikeRecord = await recordEaserCancellation(sb, {
+    booking, easerId: user.id, easerName, classification, reason: reason || null, note: note || null,
+  });
+  if (!strikeRecord.ok) console.error('drop-job: reliability strike not recorded', strikeRecord.error);
+  const pause = strikeRecord.ok
+    ? await pauseEaserIfOverLimit(sb, { easerId: user.id, easerName, strikes: strikesAfter, bookingId })
+    : { paused: false };
+
   await logActivity(sb, {
     bookingId,
     eventType: 'easer_dropped',
     actorType: 'easer',
     actorId: user.id,
     actorName: easerName,
-    description: `${easerName} dropped the job within the ${DROP_WINDOW_MIN}-min window — re-dispatching to other Pros`,
+    description: classification.kind === 'grace'
+      ? `${easerName} dropped the job within the ${DROP_WINDOW_MIN}-min window — re-dispatching to other Pros`
+      : `${easerName} cancelled the job (${classification.kind.replace('_', '-')}, ${classification.strikes} strike${classification.strikes === 1 ? '' : 's'}) — re-dispatching to other Pros`,
     metadata: {
       elapsed_min: Math.round(elapsedMin),
       ref: booking.ref,
@@ -225,16 +263,17 @@ export default async function handler(req, res) {
   const paymentHeld = finalization?.action === 'payment_hold';
 
   // ── Owner FYI. Customer is not notified — their booking remains confirmed. ──
-  if (!manualRequired && !paymentHeld) {
+  if ((!manualRequired && !paymentHeld) || pause.paused || classification.strikes > 0) {
     await sendEmail({
       to:   ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: `Job Dropped — ${esc(booking.ref || bookingId)}`,
+      subject: `${classification.kind === 'same_day' ? 'Same-day Easer cancellation' : classification.kind === 'late' ? 'Late Easer cancellation' : 'Job Dropped'} — ${esc(booking.ref || bookingId)}`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
-        <h3 style="color:#f59e0b">Pro Dropped a Job (within 15-min window)</h3>
+        <h3 style="color:#f59e0b">${classification.kind === 'grace' ? 'Easer dropped a job within 15 minutes of accepting' : 'Easer cancelled an accepted job'}</h3>
+        <p><strong>Reliability:</strong> ${classification.strikes} strike${classification.strikes === 1 ? '' : 's'} for ${({ late: 'a late cancellation (under 24 hours)', same_day: 'a same-day cancellation', grace: 'a cancellation within 15 minutes of accepting', advance: 'a cancellation with 24+ hours notice' }[classification.kind] || 'a cancellation')}. ${esc(easerName)} now has ${strikesAfter} in the last ${EASER_RELIABILITY_POLICY.windowDays} days; new jobs pause at ${EASER_RELIABILITY_POLICY.pauseAtStrikes}.${pause.paused ? ' <strong>New jobs are now paused for this Easer. You can reactivate them from the Easers page.</strong>' : ''}${strikeRecord.ok ? '' : ' <strong>The strike could not be saved; check the booking timeline.</strong>'} For a genuine emergency, you can excuse it from the Easer's profile.</p>
         <p><strong>${esc(easerName)}</strong> dropped booking <strong>${esc(booking.ref || '')}</strong> (${esc(booking.service || '')}) ${Math.round(elapsedMin)} min after accepting.</p>
         ${reason ? `<p><strong>Reason:</strong> ${esc(reason)}${note ? `<br/><strong>Additional details:</strong> ${esc(note)}` : ''}</p>` : ''}
-        <p>${safelyRematching ? 'The job is being matched to other online Pros.' : 'Automatic redispatch needs owner review.'} The customer was not notified.</p>
+        <p>${safelyRematching ? 'The job is being offered to other Easers.' : 'No other Easer could be offered the job automatically; assign it from the dashboard.'} The customer was not notified.</p>
         <p><a href="${SITE}/owner/" style="color:#00BFFF">View in owner dashboard</a></p>
       </div>`,
       meta: { bookingId, notificationType: 'job_dropped', recipientType: 'owner' },
@@ -247,8 +286,14 @@ export default async function handler(req, res) {
     redispatchError: redispatchError?.message || null,
   });
 
+  const strikeText = classification.strikes > 0
+    ? ` This counts as ${classification.strikes} reliability strike${classification.strikes === 1 ? '' : 's'}; you now have ${strikesAfter} in the last ${EASER_RELIABILITY_POLICY.windowDays} days.`
+    : '';
   return res.status(200).json({
     ok: true,
-    message: 'Job dropped. You will not receive further updates for this assignment.',
+    impact: { ...impact, paused: pause.paused === true },
+    message: pause.paused
+      ? `Job cancelled.${strikeText} You have reached ${EASER_RELIABILITY_POLICY.pauseAtStrikes} strikes, so new jobs are paused until AssembleAtEase reviews your account.`
+      : `Job cancelled. You will not receive further updates for this job.${strikeText}`,
   });
 }

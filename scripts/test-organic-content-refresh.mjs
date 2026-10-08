@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { SERVICES, AUSTIN, applyServiceGuideToPage } from './build-flagship-service-pages.mjs';
+import { SERVICES, AUSTIN, buildBody, applyServiceGuideToPage } from './build-flagship-service-pages.mjs';
 import { ALL_TEXAS_CITIES } from './lib/texas-cities.mjs';
 import { refreshPostContent } from './cleanup-blog-pages.mjs';
 
@@ -18,6 +18,7 @@ const section = (html, name) => html.match(new RegExp(`<!-- ${name} -->[\\s\\S]*
 const ld = (html, type) => [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
   .map((match) => JSON.parse(match[1])).find((node) => node['@type'] === type);
 const evidence = '<p class="fa-lead">Local homes: Existing reviewed evidence must survive a content refresh.</p>';
+const citation = '<p class="fa-lead">Source: U.S. Census Bureau, existing reviewed citation.</p>';
 for (const [prefix, slug] of targets) {
   const source = ALL_TEXAS_CITIES.find((city) => city.slug === slug);
   let nearby = source.nearby.filter((name) => citiesByName.has(name)).slice(0, 4);
@@ -27,10 +28,22 @@ for (const [prefix, slug] of targets) {
   const cfg = SERVICES.find((service) => service.prefix === prefix);
   const path = `${prefix}-${slug}-tx.html`;
   const html = read(path);
+  const fullBuild = buildBody(cfg, city);
+  if (slug !== 'austin') {
+    assert.ok(fullBuild.includes('Local homes:</strong>'), `${path}: full generator lost current local housing guidance`);
+    assert.ok(fullBuild.includes('Source: U.S. Census Bureau'), `${path}: full generator lost housing attribution`);
+  }
+  if (html.includes(`Planning your ${source.name} appointment:`)) {
+    assert.ok(fullBuild.includes(`Planning your ${source.name} appointment:`), `${path}: full generator lost existing local appointment context`);
+  }
   assert.equal(applyServiceGuideToPage(html, cfg, city), html, `${path}: content is stale or refresh is not idempotent`);
-  const fixture = html.replace('    <div class="fa-mini-facts">', `    ${evidence}\n    <div class="fa-mini-facts">`);
+  const fixture = html.replace('    <div class="fa-mini-facts">', `    ${evidence}\n    ${citation}\n    <div class="fa-mini-facts">`);
   const refreshed = applyServiceGuideToPage(fixture, cfg, city);
   assert.equal(refreshed.split(evidence).length - 1, 1, `${path}: existing local evidence lost or duplicated`);
+  assert.equal(refreshed.split(citation).length - 1, 1, `${path}: existing evidence citation lost or duplicated`);
+  for (const paragraph of html.match(/<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?(?:Local homes:|Planning your [^<]+ appointment:|Source: U\.S\. Census Bureau)(?:(?!<\/p>)[\s\S])*?<\/p>/g) || []) {
+    assert.equal(refreshed.split(paragraph).length - 1, 1, `${path}: current local planning/evidence/source changed or duplicated`);
+  }
   assert.equal(applyServiceGuideToPage(refreshed, cfg, city), refreshed, `${path}: evidence duplicates on a second refresh`);
   for (const name of ['HERO', 'PRICING', 'HOW IT WORKS', 'LOCATION AND SERVICE LINKS']) {
     assert.equal(section(refreshed, name), section(html, name), `${path}: unrelated ${name} changed`);

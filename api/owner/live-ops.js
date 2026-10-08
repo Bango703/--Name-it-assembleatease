@@ -14,6 +14,7 @@ import { chicagoTodayIso, appointmentTimestampMs } from '../booking/_appt-date.j
 import { arrivalFollowUp } from '../booking/_arrival-follow-up.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
 import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
+import { isBrowserExtensionNoise } from '../_runtime-noise.js';
 import { computeLeakageSignals } from '../booking/_leakage-signal.js';
 import {
   buildActiveJobs,
@@ -24,7 +25,7 @@ import {
 
 export function classifyRuntimeFailures(rows = [], activeAfter) {
   const activeAfterMs = new Date(activeAfter).getTime();
-  const history = [...rows]
+  const history = rows.filter(row => !isBrowserExtensionNoise({ message: row.reason_detail }))
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .map(row => {
     const active = new Date(row.created_at).getTime() >= activeAfterMs;

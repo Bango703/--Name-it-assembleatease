@@ -84,6 +84,24 @@ for (const url of ['https://example.com/blog/test', 'https://assembleatease.com.
 }
 assert.deepEqual(await publishContentKit({ title: 'None selected', url: articleUrl, channels: [], dryRun: true }), {});
 
+// Current main also publishes consented customer reviews through this shared
+// boundary. Preserve their truthful provenance, image label and booking CTA.
+const reviewPosts = await publishContentKit({
+  title: 'Customer review', url: 'https://www.assembleatease.com/book',
+  imageUrl: articleImage, kit: { facebook: 'Customer review', googleBusiness: 'Customer review' },
+  channels: ['facebook', 'googleBusiness'], dryRun: true,
+  aiAssisted: false, altText: 'Customer-reviewed furniture assembly', source: 'assembleatease-customer-review',
+});
+for (const key of ['facebook', 'googleBusiness']) {
+  const payload = reviewPosts[key].payload;
+  assert.equal(payload.aiAssisted, false);
+  assert.equal(payload.source, 'assembleatease-customer-review');
+  assert.equal(payload.assets[0].image.metadata.altText, 'Customer-reviewed furniture assembly');
+  assert.equal(payload.text, 'Customer review\n\nhttps://www.assembleatease.com/book');
+}
+assert.equal(reviewPosts.facebook.payload.metadata.facebook.linkAttachment, undefined);
+assert.equal(reviewPosts.googleBusiness.payload.metadata.google.detailsWhatsNew.link, 'https://www.assembleatease.com/book');
+
 // Query attribution must not change the repeat-protection article identity.
 const automationSource = readFileSync(join(ROOT, 'api', '_social-automation.js'), 'utf8');
 const extractionSource = automationSource.slice(automationSource.indexOf('function extractBlogUrls(post)'));

@@ -172,7 +172,7 @@ assert.equal(summary.platformGrossCents, -2_344, 'Refunded jobs must retain the 
 // is nobody to compensate when no one took the job.
 assert.deepEqual(
   computeCancellationFee({ serviceSubtotalCents: 20_000, hoursUntilAppointment: 30, easerAccepted: true }),
-  { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false },
+  { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false, reason: 'free_window' },
 );
 assert.equal(computeCancellationFee({ serviceSubtotalCents: 20_000, hoursUntilAppointment: 8, easerAccepted: true }).feeCents, 2_000);
 assert.equal(computeCancellationFee({ serviceSubtotalCents: 20_000, status: 'en_route', easerAccepted: true }).feeCents, 3_000);
@@ -265,8 +265,9 @@ assert.match(ownerPage, /phoneDigits\.length !== 10/);
 assert.match(ownerPage, /function hasValidUsPhone\(value\)/);
 assert.doesNotMatch(ownerPage, /var dispatchEligible =/,
   'owner dashboard must use server-authoritative Easer readiness');
-assert.match(ownerPage, /authoritativeDispatchChip\.textContent = ready \? 'Eligible' : 'Ineligible'/);
-assert.match(ownerPage, /chk\(hasValidUsPhone\(a\.phone\), 'Valid U\.S\. phone on file'\)/);
+assert.match(ownerPage, /authoritativeDispatchChip\.textContent = presentation\.label/);
+assert.match(ownerPage, /\['Valid Phone On File', readinessChip\(!!r\.phoneAvailable\)\]/,
+  'the requirement checklist must show the server phone verdict, not a duplicate cached check');
 assert.match(ownerPage, /hasValidUsPhone\(w\.phone\)/);
 assert.match(ownerPage, /Number\(d\.failed \|\| 0\) > 0 \? 'error' : 'success'/);
 

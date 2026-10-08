@@ -3,7 +3,7 @@ import { rateLimit } from './_ratelimit.js';
 import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 import { sendEmail, ownerEmail, esc as escapeHtml } from './_email.js';
 import { createHash } from 'node:crypto';
-import { cleanBookingAttribution } from './_booking-attribution.js';
+import { cleanAcquisitionAttribution } from './_attribution.js';
 import { getSupabase } from './_supabase.js';
 
 const esc = value => escapeHtml(String(value || ''));
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   } catch (rlErr) { /* fail open if Redis down */ }
 
   const { name, company, email, phone, location, timeline, type, frequency, details, attribution } = req.body || {};
-  const acquisition = cleanBookingAttribution(attribution);
+  const acquisition = cleanAcquisitionAttribution(attribution);
   const rawPhone = typeof phone === 'string' ? phone.trim() : '';
   const cleanPhone = rawPhone ? normalizeUsPhone(rawPhone) : null;
   if (!name || !company || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !type || !details) {

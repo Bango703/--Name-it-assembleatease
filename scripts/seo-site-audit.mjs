@@ -49,7 +49,8 @@ const SERVICE_CONTENT_RULES = {
   ] },
 };
 const SERVICE_PAGE_RE = new RegExp(`^(${SERVICE_PREFIXES.join('|')})-([a-z-]+)-tx\\.html$`);
-const EXCLUDED_DIRS = new Set(['.git', '.vercel', '_local_artifacts', 'api', 'assets', 'business-artifacts', 'functions', 'images', 'node_modules', 'output', 'tmp']);
+// mobile/ is the Easer app project (Capacitor); excluded from deploys by .vercelignore, not a public page.
+const EXCLUDED_DIRS = new Set(['.git', '.vercel', '_local_artifacts', 'api', 'assets', 'business-artifacts', 'functions', 'images', 'mobile', 'node_modules', 'output', 'tmp']);
 // These public utilities are deliberately absent from search, along with the
 // private portals identified by the existing page-governance classification.
 const NON_SEARCH_ROUTES = new Set(['/404', '/review', '/track']);

@@ -19,6 +19,7 @@
   var measurementConfigured = false;
   var measurementTagLoaded = false;
   var consentChoice = null;
+  var attributionLoadAttempted = false;
   try { consentChoice = localStorage.getItem(CONSENT_KEY); } catch (e) {}
 
   function analyticsAllowed() {
@@ -178,7 +179,7 @@
     // contain booking tokens or personal data. These are GA4 config fields:
     // https://developers.google.com/analytics/devguides/collection/ga4/reference/config
     try {
-      var acquisition = window.AAEAcquisition && window.AAEAcquisition.capture();
+      var acquisition = window.AAE_ATTRIBUTION && window.AAE_ATTRIBUTION.capture();
       [['utmSource', 'campaign_source'], ['utmMedium', 'campaign_medium'], ['utmCampaign', 'campaign_name'], ['utmContent', 'campaign_content']].forEach(function (fields) {
         if (acquisition && acquisition.utmSource && acquisition[fields[0]]) measurementContext[fields[1]] = acquisition[fields[0]];
       });
@@ -219,6 +220,17 @@
 
   function grantAnalytics() {
     if (!analyticsAllowed()) return;
+    // Applications/recruitment include this canonical module directly. Other
+    // public pages obtain it here before optional tags need campaign context.
+    if (!window.AAE_ATTRIBUTION && !attributionLoadAttempted) {
+      attributionLoadAttempted = true;
+      var attributionScript = document.createElement('script');
+      attributionScript.src = '/assets/js/attribution.js';
+      attributionScript.onload = grantAnalytics;
+      attributionScript.onerror = grantAnalytics;
+      document.head.appendChild(attributionScript);
+      return;
+    }
     window['ga-disable-' + GA_MEASUREMENT_ID] = false;
     window._hsq = window._hsq || [];
     window._hsq.push(['doNotTrack', { track: true }]);
@@ -277,8 +289,8 @@
       measurementConfigured = false;
       window.__AAE_GTAG_READY__ = false;
     }
-    if (window.AAEAcquisition) window.AAEAcquisition.clear();
-    try { sessionStorage.removeItem('aaeBookingAttribution'); } catch (e) {}
+    if (window.AAE_ATTRIBUTION) window.AAE_ATTRIBUTION.clear();
+    try { sessionStorage.removeItem('aaeAcquisitionAttribution'); sessionStorage.removeItem('aaeBookingAttribution'); } catch (e) {}
     window.gtag('consent', 'update', {
       analytics_storage: 'denied',
       ad_storage: 'denied',

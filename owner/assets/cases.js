@@ -8,6 +8,7 @@
     pendingCaseId: null,
     includeTest: false,
     hiddenTestCases: 0,
+    findingTestCases: false,
   };
 
   var TYPE_LABELS = {
@@ -137,14 +138,15 @@
   // case-action, the same audited transition as closing one by hand.
   async function findTestCases() {
     var host = document.getElementById('cases-test-sweep');
-    if (!host) return;
-    host.innerHTML = '<div class="cases-loading">Looking for cases left over from testing...</div>';
+    if (!host || state.findingTestCases) return;
+    state.findingTestCases = true;
+    host.innerHTML = '<div class="cases-sweep-feedback" role="status">Looking for cases left over from testing...</div>';
     try {
       var data = await request('/api/owner/test-cases');
       var suspects = data.suspects || [];
       if (!suspects.length) {
-        host.innerHTML = '<div class="cases-test-note">Nothing here looks like a test case. All '
-          + Number(data.activeCount || 0) + ' active case(s) look real.</div>';
+        host.innerHTML = '<div class="cases-sweep-feedback" role="status">No suspected test cases found among '
+          + Number(data.activeCount || 0) + ' active cases.</div>';
         return;
       }
       host.innerHTML = '<div class="cases-sweep-box">'
@@ -163,7 +165,12 @@
         + '</div>';
       document.getElementById('cases-sweep-close').addEventListener('click', closeSweptCases);
     } catch (error) {
-      host.innerHTML = '<div class="cases-error">' + esc(error.message || 'Could not check for test cases.') + '</div>';
+      host.innerHTML = '<div class="cases-sweep-feedback cases-sweep-error" role="alert">'
+        + '<span><strong>Test-case search failed.</strong> ' + esc(error.message || 'Could not check for test cases.') + '</span>'
+        + '<button type="button" class="cases-test-toggle" id="cases-sweep-retry">Retry search</button></div>';
+      document.getElementById('cases-sweep-retry').addEventListener('click', findTestCases);
+    } finally {
+      state.findingTestCases = false;
     }
   }
 

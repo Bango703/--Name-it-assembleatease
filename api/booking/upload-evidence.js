@@ -157,6 +157,7 @@ export default async function handler(req, res) {
       .select('id')
       .eq('booking_id', booking.id)
       .eq('easer_id', user.id)
+      .eq('role', 'helper')
       .is('removed_at', null)
       .maybeSingle();
     if (!crewRow) {

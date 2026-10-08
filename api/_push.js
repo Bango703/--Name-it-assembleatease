@@ -1,5 +1,6 @@
 import webpush from 'web-push';
 import { getSupabase } from './_supabase.js';
+import { sendNativePushToUser } from './_native-push.js';
 
 let _configured = false;
 function configure() {
@@ -22,7 +23,7 @@ function configure() {
  * payload: { title, body, url, jobId, urgent }
  * meta (optional): { bookingId, notificationType, recipientType }
  */
-export async function sendPushToUser(userId, payload, meta = {}) {
+async function sendWebPushToUser(userId, payload, meta = {}) {
   try {
     configure();
   } catch (e) {
@@ -112,5 +113,50 @@ export async function sendPushToUser(userId, payload, meta = {}) {
     logError,
     reason: sent > 0 ? null : 'push_delivery_failed',
     error: sent > 0 ? null : (logRows.find(row => row.error_text)?.error_text || 'Push delivery failed'),
+  };
+}
+
+/**
+ * Send a push notification to every device a user has: web push subscriptions
+ * (unchanged) and, when configured, the installed Easer app (FCM, see
+ * _native-push.js). When there is no app to reach, this returns the web push
+ * result exactly as before, so web behaviour cannot change.
+ * payload: { title, body, url, jobId, urgent }
+ * meta (optional): { bookingId, notificationType, recipientType }
+ */
+export async function sendPushToUser(userId, payload, meta = {}) {
+  const web = await sendWebPushToUser(userId, payload, meta);
+  let native;
+  try {
+    native = await sendNativePushToUser(getSupabase(), userId, payload, meta);
+  } catch (e) {
+    console.error('[push] native push error:', e && (e.message || String(e)));
+    native = { skipped: true, reason: 'native_push_error', error: e && e.message, sent: 0, failed: 0, logRows: [] };
+  }
+  if (native.skipped) return web;
+
+  let nativeLogError = null;
+  if (native.logRows?.length) {
+    try {
+      const { error: logErr } = await getSupabase().from('notification_log').insert(native.logRows);
+      if (logErr) nativeLogError = logErr.message || String(logErr);
+    } catch (e) {
+      nativeLogError = e && (e.message || String(e));
+    }
+    if (nativeLogError) console.error('[push] native notification_log insert failed:', nativeLogError);
+  }
+  const sent = Number(web.sent || 0) + Number(native.sent || 0);
+  const failed = Number(web.failed || 0) + Number(native.failed || 0);
+  return {
+    ok: sent > 0,
+    sent,
+    failed,
+    skipped: false,
+    logged: web.logged !== false && !nativeLogError,
+    logError: web.logError || nativeLogError || null,
+    reason: sent > 0 ? null : 'push_delivery_failed',
+    error: sent > 0 ? null : (web.error || native.error || 'Push delivery failed'),
+    web: { sent: Number(web.sent || 0), failed: Number(web.failed || 0), skipped: web.skipped === true, reason: web.reason || null },
+    native: { sent: native.sent, failed: native.failed },
   };
 }

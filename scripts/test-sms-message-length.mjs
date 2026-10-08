@@ -77,7 +77,10 @@ const MESSAGES = {
   // the email: it can be long, it can be personal, and a tokenized tracking
   // link would not fit a single segment on its own.
   easer_customer_relay:
-    `AssembleAtEase: ${easerFirstName} sent a question about your job ${ref}. Check your email to reply.`,
+    `AssembleAtEase: ${easerFirstName} sent a question about your job ${ref}. Open the email to reply.`,
+  // The Easer's doorbell when the customer replies on the platform (at most one per booking per 30 min).
+  customer_message_easer:
+    `AssembleAtEase: Your customer replied about job ${ref}. Open your jobs to read it and reply.`,
 };
 
 // The GSM 03.38 basic set plus its extension characters.

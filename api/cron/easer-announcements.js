@@ -34,7 +34,7 @@ function buildEmailHtml(a) {
   return `
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#0a1628">
       <h2 style="color:#0a1628;margin:0 0 12px">${esc(a.title)}</h2>
-      <p style="font-size:15px;line-height:1.6;color:#334155">${esc(a.body)}</p>
+      <p style="font-size:15px;line-height:1.6;color:#334155;white-space:pre-line">${esc(a.body)}</p>
       <p style="margin:22px 0">
         <a href="${esc(url)}" style="display:inline-block;background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:12px 22px;border-radius:999px">${esc(a.action_label || 'Open AssembleAtEase')}</a>
       </p>
@@ -52,7 +52,7 @@ export async function processAnnouncement(sb, a, counters, dependencies = {}) {
   if (!rule) return;
 
   // 1) Currently-incomplete Easers (the targets).
-  const { data: targets, error: targetErr } = await rule.query(sb);
+  const { data: targets, error: targetErr } = await rule.query(sb, a);
   if (targetErr) throw new Error(`Announcement ${a.key} targets could not be verified: ${targetErr.message}`);
   const incomplete = targets || [];
   const incompleteIds = new Set(incomplete.map((p) => p.id));

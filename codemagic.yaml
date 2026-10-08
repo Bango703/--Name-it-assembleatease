@@ -1,0 +1,73 @@
+# Easer app builds (Codemagic). Started by hand from the Codemagic dashboard;
+# a website push never triggers an app build. See mobile/README.md for the
+# one-time setup (signing, Firebase files, store connections).
+#
+# Environment variable groups expected in Codemagic:
+#   firebase:    FIREBASE_GOOGLE_SERVICES_JSON  (base64 of google-services.json)
+#                FIREBASE_IOS_PLIST             (base64 of GoogleService-Info.plist)
+#   google_play: GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (Play Console service account JSON)
+workflows:
+  easer-android:
+    name: Easer app - Android (Google Play internal testing)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      node: 20
+      java: 21
+      groups:
+        - firebase
+        - google_play
+      android_signing:
+        - easer_upload_key
+    scripts:
+      - name: Install app dependencies
+        script: cd mobile && npm ci
+      - name: Add Firebase config
+        script: echo "$FIREBASE_GOOGLE_SERVICES_JSON" | base64 --decode > mobile/android/app/google-services.json
+      - name: Sync native project
+        script: cd mobile && npx cap sync android
+      - name: Set version code from the build number
+        script: sed -i -E "s/versionCode [0-9]+/versionCode $BUILD_NUMBER/" mobile/android/app/build.gradle
+      - name: Build signed App Bundle
+        script: cd mobile/android && chmod +x gradlew && ./gradlew bundleRelease
+    artifacts:
+      - mobile/android/app/build/outputs/**/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+
+  easer-ios:
+    name: Easer app - iOS (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: AssembleAtEase App Store Connect
+    environment:
+      node: 20
+      xcode: latest
+      groups:
+        - firebase
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.assembleatease.easer
+    scripts:
+      - name: Install app dependencies
+        script: cd mobile && npm ci
+      - name: Add Firebase config
+        script: echo "$FIREBASE_IOS_PLIST" | base64 --decode > mobile/ios/App/App/GoogleService-Info.plist
+      - name: Sync native project
+        script: cd mobile && npx cap sync ios
+      - name: Use signing profiles
+        script: xcode-project use-profiles --project mobile/ios/App/App.xcodeproj
+      - name: Set build number
+        script: cd mobile/ios/App && agvtool new-version -all "$BUILD_NUMBER"
+      - name: Build signed IPA
+        script: xcode-project build-ipa --project mobile/ios/App/App.xcodeproj --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

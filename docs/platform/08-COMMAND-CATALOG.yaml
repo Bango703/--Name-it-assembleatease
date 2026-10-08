@@ -1,0 +1,55 @@
+version: 1
+status: target_contract
+as_of: '2026-09-24'
+
+commands:
+  - name: create_booking
+    actor: [public, customer, owner]
+    mutation: booking
+  - name: authorize_payment
+    actor: [customer, system_worker, owner_finance]
+    mutation: payment
+  - name: recover_payment
+    actor: [customer, owner_finance]
+    mutation: payment
+  - name: assign_easer
+    actor: [owner_dispatch, owner_admin, system_worker]
+    mutation: assignment
+  - name: accept_offer
+    actor: [easer]
+    mutation: offer_and_assignment
+  - name: update_execution_status
+    actor: [easer, owner_dispatch, owner_admin]
+    mutation: execution
+  - name: submit_completion
+    actor: [easer]
+    mutation: completion
+  - name: verify_completion
+    actor: [owner, owner_dispatch, owner_finance]
+    mutation: completion_and_audit
+  - name: capture_payment
+    actor: [system_worker, owner_finance]
+    mutation: payment_and_ledger
+  - name: request_refund
+    actor: [customer, owner_support, owner_finance]
+    mutation: refund_request
+  - name: release_payout
+    actor: [system_worker, owner_finance]
+    mutation: payout
+  - name: send_message
+    actor: [customer, easer, owner]
+    mutation: message_and_notification
+
+required_command_contract:
+  - actor
+  - permission
+  - resource_scope
+  - input_schema
+  - state_preconditions
+  - database_transaction
+  - event
+  - outbox_effect
+  - provider_call
+  - failure_behavior
+  - idempotency_key
+  - audit_event

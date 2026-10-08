@@ -4,11 +4,12 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc, ownerEmail } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForDispatch, isSameServiceMarket } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForDispatch, isSameServiceMarket, EASER_RELIABILITY_POLICY } from '../_source-of-truth.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { logActivity } from './_activity.js';
 import { DISPATCH_HISTORY_EXCLUSION_STATUSES } from './_dispatch-safety.js';
+import { loadEaserStrikes } from '../_easer-reliability.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -226,6 +227,17 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   // ── Enhanced scoring ──────────────────────────────────────────────────────
   const isHighValue = (booking.total_price || 0) > 20000; // > $200
 
+  // Reliability strikes (late / same-day cancellations of accepted jobs) lower
+  // an Easer's place in line while they count. Fails OPEN: if the history
+  // cannot be read, dispatch continues exactly as before and never blocks a job.
+  let strikesByEaser = new Map();
+  try {
+    strikesByEaser = await loadEaserStrikes(sb, scoreable.map(e => e.id), { nowMs });
+  } catch (strikeError) {
+    console.error('dispatch reliability lookup failed (no penalty applied):', strikeError?.message || strikeError);
+  }
+  const strikePenalty = EASER_RELIABILITY_POLICY.dispatchPenaltyPerStrike;
+
   const scored = scoreable.map(e => {
     let score = e.tier === 'elite' ? 400 : e.tier === 'professional' ? 250 : 100;
 
@@ -264,7 +276,11 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
       if (hrsSince < 2) score -= 200;
     }
 
-    return { ...e, _score: Math.max(0, score) };
+    // Reliability: each active strike costs points (EASER_RELIABILITY_POLICY).
+    const strikes = strikesByEaser.get(e.id)?.strikes || 0;
+    if (strikes > 0) score -= strikes * strikePenalty;
+
+    return { ...e, _score: Math.max(0, score), _strikes: strikes };
   }).sort((a, b) => b._score - a._score);
 
   const top = scored.slice(0, BATCH_SIZE);
