@@ -20,6 +20,7 @@ import { CANCELLATION_POLICY } from './_source-of-truth.js';
 import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 import { assertGuestTokenConfiguration, deriveGuestMutationToken, guestMutationTokenHash, randomToken } from './_payment-security.js';
 import { parseServiceLocation } from './_booking-location.js';
+import { bookingAnalyticsContext } from './_booking-attribution.js';
 import {
   verifyRedemptionToken,
   getAvailableBalanceCents,
@@ -278,6 +279,7 @@ export default async function handler(req, res) {
           isDeposit: false,
           depositAmountCents: null,
           reusedExistingBooking: true,
+          analytics: bookingAnalyticsContext(serviceLocation),
           pricing: {
             itemSubtotalCents: subtotalCents,
             discountCents,
@@ -919,6 +921,7 @@ export default async function handler(req, res) {
       scheduledAuthorization,
       isDeposit,
       depositAmountCents,
+      analytics: bookingAnalyticsContext(serviceLocation),
       pricing: {
         itemSubtotalCents: subtotalCents,
         discountCents,
@@ -1124,5 +1127,3 @@ function clampInt(value, min, max, fallback) {
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, n));
 }
-
-

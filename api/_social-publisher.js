@@ -124,7 +124,9 @@ function normalizeChannels(channels, configured) {
 }
 
 function buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt, aiAssisted = true, altText, source }) {
-  const text = textForChannel(channel, { title, url, kit });
+  const articleUrl = canonicalArticleUrl(url);
+  url = attributedArticleUrl(channel.key, articleUrl) || url;
+  const text = replaceArticleLinks(textForChannel(channel, { title, url, kit }), articleUrl, url);
   const input = {
     text,
     channelId: channel.channelId,
@@ -153,6 +155,45 @@ function buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt, aiAss
     input.text = ensureUrlInText(input.text, url);
   }
   return input;
+}
+
+// Only our public blog inventory is rewritten. Functional booking links and
+// other destinations retain their existing parameters and behavior.
+function canonicalArticleUrl(value) {
+  try {
+    const parsed = new URL(value);
+    if (!['http:', 'https:'].includes(parsed.protocol)
+      || !['assembleatease.com', 'www.assembleatease.com'].includes(parsed.hostname)
+      || parsed.username || parsed.password || parsed.port
+      || !/^\/blog\/[a-z0-9-]+$/.test(parsed.pathname)) return '';
+    return `https://www.assembleatease.com${parsed.pathname}`;
+  } catch (_) {
+    return '';
+  }
+}
+
+function attributedArticleUrl(channelKey, articleUrl) {
+  if (!articleUrl) return '';
+  const tags = {
+    facebook: ['facebook', 'social', 'social_buffer'],
+    linkedin: ['linkedin', 'social', 'social_buffer'],
+    googleBusiness: ['google', 'organic', 'gbp_buffer'],
+  }[channelKey];
+  if (!tags) return '';
+  const tagged = new URL(articleUrl);
+  ['utm_source', 'utm_medium', 'utm_campaign'].forEach((key, index) => tagged.searchParams.set(key, tags[index]));
+  return tagged.href;
+}
+
+function replaceArticleLinks(text, articleUrl, taggedUrl) {
+  if (!articleUrl) return text;
+  // Generated copy may use a root/www variant or an older tag. Match the
+  // complete URL token, not a slug prefix, and leave unrelated links untouched.
+  return String(text || '').replace(/https?:\/\/[^\s<>"']+/gi, (match) => {
+    const suffix = match.match(/[),.!?\]]+$/)?.[0] || '';
+    const candidate = suffix ? match.slice(0, -suffix.length) : match;
+    return canonicalArticleUrl(candidate) === articleUrl ? taggedUrl + suffix : match;
+  });
 }
 
 function withoutLinkAttachments(metadata) {

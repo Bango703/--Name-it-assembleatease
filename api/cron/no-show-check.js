@@ -1,7 +1,8 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
-import { notificationAppointmentTimestampMs, formatAppointmentDate } from '../booking/_appt-date.js';
+import { formatAppointmentDate } from '../booking/_appt-date.js';
+import { arrivalFollowUp, arrivalFollowUpLookbackDate } from '../booking/_arrival-follow-up.js';
 import { logCron } from './_cron-logger.js';
 import { formatUsPhone } from '../_phone.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
@@ -17,9 +18,6 @@ import { BOOKING_STATUS } from '../_source-of-truth.js';
  * auto-re-dispatch — a late Easer is not always a no-show, and sending a
  * second Easer risks two pros at one home. Owner stays in control (launch mode).
  */
-const GRACE_MINUTES = 60;          // minutes past appointment start before flagging
-const LOOKBACK_DAYS  = 3;          // ignore appointments older than this (avoid ancient noise)
-
 export default async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret || req.headers.authorization !== 'Bearer ' + cronSecret) {
@@ -29,13 +27,13 @@ export default async function handler(req, res) {
   const t = Date.now();
   const sb = getSupabase();
   const now = Date.now();
-  const lookbackDate = new Date(now - LOOKBACK_DAYS * 86400000).toISOString().slice(0, 10);
+  const lookbackDate = arrivalFollowUpLookbackDate(now);
 
   // Candidates: an Easer accepted (assembler_accepted_at set) but the job is still
   // sitting in confirmed/en_route — never marked arrived/in_progress/completed.
   const { data: candidates, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_email, customer_phone, address, service_zip, service_city, date, time, status, assembler_id, assembler_name, assembler_accepted_at, return_visit_required')
+    .select('id, ref, service, customer_name, customer_email, customer_phone, address, service_zip, service_city, date, time, status, assembler_id, assembler_name, assembler_accepted_at, checked_in_at, return_visit_required')
     .in('status', [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.EN_ROUTE])
     .not('assembler_accepted_at', 'is', null)
     .gte('date', lookbackDate)
@@ -71,10 +69,9 @@ export default async function handler(req, res) {
   const flaggedRefs = [];
 
   for (const b of candidates || []) {
-    if (b.return_visit_required === true) continue;
-    const apptMs = notificationAppointmentTimestampMs(b);
-    if (apptMs == null) continue;                          // unparseable time → skip (conservative)
-    if (now < apptMs + GRACE_MINUTES * 60000) continue;    // not past grace yet
+    const followUp = arrivalFollowUp(b, now);
+    if (!followUp) continue;
+    const apptMs = followUp.appointmentMs;
 
     // A legacy activity marker was written even after a failed send. Only a
     // successful owner email for this appointment/acceptance can stop retries.
@@ -95,7 +92,7 @@ export default async function handler(req, res) {
       console.warn('no-show dedup check skipped:', e.message);
     }
 
-    const minsLate = Math.round((now - apptMs) / 60000);
+    const minsLate = followUp.minutesLate;
     const easer = esc(b.assembler_name || 'the assigned Easer');
     const easerPhoneRaw = assemblerPhonesById[b.assembler_id] || null;
     const easerPhone = formatUsPhone(easerPhoneRaw);

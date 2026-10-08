@@ -18,7 +18,7 @@ const ACTIVE_MARKETS = [{
 const BOOKING_SELECT = [
   'id', 'ref', 'source', 'status', 'payment_status', 'customer_name',
   'customer_email', 'customer_phone', 'service', 'date', 'time', 'address',
-  'service_city', 'service_state', 'service_zip', 'total_price',
+  'service_city', 'service_state', 'service_zip', 'total_price', 'amount_charged',
   'needs_manual_dispatch', 'assembler_id', 'is_test_booking',
   'booking_attribution', 'created_at',
 ].join(', ');
@@ -28,7 +28,7 @@ const BOOKING_SELECT_WITHOUT_ATTRIBUTION = BOOKING_SELECT.replace(', booking_att
 const LEGACY_BOOKING_SELECT = [
   'id', 'ref', 'source', 'status', 'payment_status', 'customer_name',
   'customer_email', 'customer_phone', 'service', 'date', 'time', 'address',
-  'total_price', 'needs_manual_dispatch', 'assembler_id', 'is_test_booking',
+  'total_price', 'amount_charged', 'needs_manual_dispatch', 'assembler_id', 'is_test_booking',
   'booking_attribution', 'created_at',
 ].join(', ');
 

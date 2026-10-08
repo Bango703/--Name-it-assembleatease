@@ -386,6 +386,8 @@ async function sendB2B() {
   var btn = document.getElementById('b-btn');
   btn.disabled = true;
   btn.textContent = 'Sending...';
+  var attribution = {};
+  try { if (window.AAE_ATTRIBUTION) attribution = window.AAE_ATTRIBUTION.capture(); } catch (captureError) { /* Intake remains available if measurement fails. */ }
   try {
     var resp = await fetch('/api/business-inquiry', {
       method:'POST',
@@ -398,10 +400,18 @@ async function sendB2B() {
         timeline: timeline,
         type: type,
         frequency: frequency,
-        details: details
+        details: details,
+        attribution: attribution
       })
     });
     if (!resp.ok) throw new Error('Server error');
+    var data = await resp.json();
+    try {
+      if (window.AAEAnalytics && data.ref) window.AAEAnalytics.trackOnce('business_inquiry_submitted', {
+        booking_flow: 'business_inquiry', outcome_stage: 'inquiry_received',
+        service_market: 'unknown', service_city: 'unknown'
+      }, 'business-inquiry:' + data.ref);
+    } catch (analyticsError) { /* Measurement never blocks a received inquiry. */ }
   } catch(e) {
     document.getElementById('b-err').textContent='Something went wrong. Please try again or email us at service@assembleatease.com.';
     document.getElementById('b-err').style.display='block';
