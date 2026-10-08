@@ -33,7 +33,14 @@
     if (/^\/(?:track|review)(?:\/|$|\.html)/.test(path)) return 'customer_support';
     return 'customer';
   }
+  // The store app does not use optional web marketing tags. Cookie consent is
+  // not Apple's tracking permission; customer routes must keep Ads/CRM off too.
+  function isNativeApp() {
+    var cap = window.Capacitor;
+    return !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
+  }
   function measurementExcluded() {
+    if (isNativeApp()) return true;
     if (!/^(?:www\.)?assembleatease\.com$/.test(window.location.hostname || '')) return true;
     if (/^\/(?:owner|auth)(?:\/|$|\.html)/.test(window.location.pathname || '')) return true;
     if (/^\/assembler(?:\/|$)/.test(window.location.pathname || '') && !/^\/assembler\/apply(?:\.html)?\/?$/.test(window.location.pathname || '')) return true;
@@ -88,6 +95,7 @@
   window.dataLayer = window.dataLayer || [];
   var existingGtag = window.gtag;
   window.gtag = function gtag() {
+    if (isNativeApp()) return;
     if (arguments[0] !== 'consent' && !analyticsAllowed()) return;
     if (existingGtag) return existingGtag.apply(window, arguments);
     window.dataLayer.push(arguments);
@@ -266,6 +274,7 @@
   }
 
   function acceptCookies() {
+    if (isNativeApp()) { hideBanner(); return; }
     if (globalPrivacyControlEnabled()) {
       declineCookies();
       return;
@@ -308,6 +317,7 @@
   }
 
   function openCookiePreferences() {
+    if (isNativeApp()) { hideBanner(); return; }
     injectStyles();
     updateBannerCopy();
     bindBannerActions();
@@ -418,6 +428,7 @@
   }
 
   function initConsent() {
+    if (isNativeApp()) { hideBanner(); return; }
     injectStyles();
     updateBannerCopy();
     bindBannerActions();
@@ -453,6 +464,7 @@
   window.openCookiePreferences = openCookiePreferences;
   window.addEventListener('storage', function (event) {
     if (event.key !== CONSENT_KEY) return;
+    if (isNativeApp()) { hideBanner(); return; }
     consentChoice = event.newValue;
     if (analyticsAllowed()) grantAnalytics();
     else declineCookies();

@@ -1,4 +1,12 @@
 (function () {
+  // All public pages keep app navigation when opened in the installed app.
+  // Normal browsers do not fetch or run the native bridge.
+  if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform() &&
+      !window.__aaeNativeBridgeReady && !document.querySelector('script[src*="/native-app.js"]')) {
+    var nativeBridge = document.createElement('script');
+    nativeBridge.src = '/assets/js/native-app.js?v=20261008a';
+    document.head.appendChild(nativeBridge);
+  }
   var runtimeErrorState = {
     sent: Object.create(null),
     sessionId: null,

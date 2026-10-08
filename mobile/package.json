@@ -1,8 +1,11 @@
 {
-  "name": "assembleatease-easer-app",
+  "name": "assembleatease-app",
   "private": true,
   "version": "1.0.0",
-  "description": "AssembleAtEase Easer app for iOS and Android (Capacitor shell around https://www.assembleatease.com/assembler/)",
+  "description": "AssembleAtEase Customer and Easer app for iOS and Android (Capacitor shell around https://www.assembleatease.com/app)",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "sync": "cap sync",
     "assets": "capacitor-assets generate --iconBackgroundColor '#ffffff' --splashBackgroundColor '#ffffff'",

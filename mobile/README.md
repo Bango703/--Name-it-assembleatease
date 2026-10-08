@@ -1,7 +1,9 @@
-# AssembleAtEase Easer app (iOS and Android)
+# AssembleAtEase app (iOS and Android)
 
-The Easer app is a native shell (Capacitor 8) around the live Easer pages at
-`https://www.assembleatease.com/assembler/`. Website fixes reach the app
+The app is a native shell (Capacitor 8) opening the shared entry page at
+`https://www.assembleatease.com/app`. Customers use the existing booking and
+tracking flows; Easers sign in to their existing workspace. Route selection
+does not grant an account role or bypass server authorization. Website fixes reach the app
 immediately; a store update is only needed when this `mobile/` folder changes.
 
 What the app adds on top of the website:
@@ -17,7 +19,10 @@ and `.vercelignore` keeps this folder out of the website deploy.
 `scripts/test-native-app.mjs` checks all of this on every `npm run test:launch`.
 
 - App ID (bundle / package): `com.assembleatease.easer`
-- App name: AssembleAtEase Easer
+- App name: AssembleAtEase
+- Apple app record: 6820654960 (version 1.0, Prepare for Submission)
+- Node.js 22+; Xcode 26+; iOS 15+ target
+- The stable internal bundle ID keeps its existing `.easer` suffix for both roles.
 
 ## One-time setup
 
@@ -47,13 +52,13 @@ Until it runs, the app works but does not register for notifications.
 1. Certificates, Identifiers & Profiles, Identifiers: register
    `com.assembleatease.easer` with the Push Notifications capability.
 2. App Store Connect: create the app (iOS, bundle ID above, name
-   "AssembleAtEase Easer").
+   "AssembleAtEase").
 3. Users and Access, Integrations, App Store Connect API: create a key with the
    App Manager role (used by Codemagic to upload builds).
 
 ### 4. Google Play Console
 
-1. Create the app "AssembleAtEase Easer".
+1. Create the app "AssembleAtEase".
 2. Google Cloud: create a service account, give it access in Play Console
    (Users and permissions) with release permissions, and download its JSON key.
 
@@ -98,3 +103,17 @@ npm install
 npx cap sync          # after changing capacitor.config.json or plugins
 npm run assets        # regenerate icons/splash from resources/
 ```
+
+## Unified app validation
+
+Run `node scripts/test-native-app.mjs`, `node scripts/test-native-routes.mjs`,
+and `node scripts/test-native-privacy.mjs` from the repository root. Native
+customer pages do not register Easer push tokens. Optional website Ads/GA/CRM
+tracking and advertising attribution are disabled inside Capacitor. Website
+consent behavior remains unchanged.
+
+A local test pass does not prove a signed iOS build. Before App Review, verify
+both routes, card authentication/return, camera upload, check-in, notifications,
+account deletion, and offline recovery on the actual TestFlight build. Capture
+store screenshots from that build using synthetic review records. Never use a
+real customer job or credential in screenshots or review access.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AssembleAtEase Easer</title>
+<title>AssembleAtEase</title>
 <style>
   :root { color-scheme: light dark; --bg:#ffffff; --ink:#0d1117; --soft:#475569; --brand:#00BFFF; --brand-ink:#04222c; }
   @media (prefers-color-scheme: dark) { :root { --bg:#0c1419; --ink:#e7eef2; --soft:#b3c2cc; } }
@@ -18,15 +18,15 @@
 <body>
 <main>
   <h1>You're offline</h1>
-  <p>Your jobs load when you're back online. Nothing you accepted has changed.</p>
+  <p>Connect to the internet to view your bookings or Easer jobs.</p>
   <button type="button" id="retry">Try again</button>
 </main>
 <script>
   document.getElementById('retry').addEventListener('click', function () {
-    window.location.href = 'https://www.assembleatease.com/assembler/my-assignments';
+    window.location.href = 'https://www.assembleatease.com/app';
   });
   window.addEventListener('online', function () {
-    window.location.href = 'https://www.assembleatease.com/assembler/my-assignments';
+    window.location.href = 'https://www.assembleatease.com/app';
   });
 </script>
 </body>

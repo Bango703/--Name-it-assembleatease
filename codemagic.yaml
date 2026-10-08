@@ -1,4 +1,4 @@
-# Easer app builds (Codemagic). Started by hand from the Codemagic dashboard;
+# AssembleAtEase app builds (Codemagic). Started by hand from the Codemagic dashboard;
 # a website push never triggers an app build. See mobile/README.md for the
 # one-time setup (signing, Firebase files, store connections).
 #
@@ -8,11 +8,11 @@
 #   google_play: GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (Play Console service account JSON)
 workflows:
   easer-android:
-    name: Easer app - Android (Google Play internal testing)
+    name: AssembleAtEase - Android (Google Play internal testing)
     instance_type: linux_x2
     max_build_duration: 60
     environment:
-      node: 20
+      node: 22
       java: 21
       groups:
         - firebase
@@ -20,10 +20,24 @@ workflows:
       android_signing:
         - easer_upload_key
     scripts:
+      - name: Add Firebase config
+        script: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, json, os, pathlib, sys
+          try:
+              encoded = os.environ.get('FIREBASE_GOOGLE_SERVICES_JSON', '')
+              content = base64.b64decode(''.join(encoded.split()), validate=True)
+              config = json.loads(content)
+              clients = config.get('client', [])
+              if not any(client.get('client_info', {}).get('android_client_info', {}).get('package_name') == 'com.assembleatease.easer' for client in clients):
+                  raise ValueError('package mismatch')
+          except Exception:
+              sys.exit('Missing or invalid Firebase Android configuration for com.assembleatease.easer. Check the firebase environment group.')
+          pathlib.Path('mobile/android/app/google-services.json').write_bytes(content)
+          PY
       - name: Install app dependencies
         script: cd mobile && npm ci
-      - name: Add Firebase config
-        script: echo "$FIREBASE_GOOGLE_SERVICES_JSON" | base64 --decode > mobile/android/app/google-services.json
       - name: Sync native project
         script: cd mobile && npx cap sync android
       - name: Set version code from the build number
@@ -39,13 +53,13 @@ workflows:
         submit_as_draft: true
 
   easer-ios:
-    name: Easer app - iOS (TestFlight)
+    name: AssembleAtEase - iOS (TestFlight)
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
       app_store_connect: AssembleAtEase App Store Connect
     environment:
-      node: 20
+      node: 22
       xcode: latest
       groups:
         - firebase
@@ -53,10 +67,32 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.assembleatease.easer
     scripts:
+      - name: Check Xcode requirement
+        script: |
+          set -euo pipefail
+          version="$(xcodebuild -version | awk '/^Xcode / {print $2}')"
+          major="${version%%.*}"
+          if ! [[ "$major" =~ ^[0-9]+$ ]] || (( major < 26 )); then
+            echo "Capacitor 8 requires Xcode 26.0 or newer. Select a compatible Codemagic image."
+            exit 1
+          fi
+      - name: Add Firebase config
+        script: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, os, pathlib, plistlib, sys
+          try:
+              encoded = os.environ.get('FIREBASE_IOS_PLIST', '')
+              content = base64.b64decode(''.join(encoded.split()), validate=True)
+              config = plistlib.loads(content)
+              if config.get('BUNDLE_ID') != 'com.assembleatease.easer' or not config.get('GOOGLE_APP_ID'):
+                  raise ValueError('bundle mismatch or missing app ID')
+          except Exception:
+              sys.exit('Missing or invalid Firebase iOS configuration for com.assembleatease.easer. Check the firebase environment group.')
+          pathlib.Path('mobile/ios/App/App/GoogleService-Info.plist').write_bytes(content)
+          PY
       - name: Install app dependencies
         script: cd mobile && npm ci
-      - name: Add Firebase config
-        script: echo "$FIREBASE_IOS_PLIST" | base64 --decode > mobile/ios/App/App/GoogleService-Info.plist
       - name: Sync native project
         script: cd mobile && npx cap sync ios
       - name: Use signing profiles

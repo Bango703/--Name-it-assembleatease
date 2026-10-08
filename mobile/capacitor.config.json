@@ -1,9 +1,9 @@
 {
   "appId": "com.assembleatease.easer",
-  "appName": "AssembleAtEase Easer",
+  "appName": "AssembleAtEase",
   "webDir": "www",
   "server": {
-    "url": "https://www.assembleatease.com/assembler/my-assignments",
+    "url": "https://www.assembleatease.com/app",
     "allowNavigation": [
       "www.assembleatease.com",
       "assembleatease.com"

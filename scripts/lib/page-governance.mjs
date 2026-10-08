@@ -21,6 +21,11 @@ const EXCLUDED_DIRS = new Set([
 ]);
 
 export const PAGE_TYPE_RULES = {
+  app_entry: {
+    visibility: 'private_customer',
+    required: ['title', 'metaDescription', 'canonical'],
+    recommended: [],
+  },
   home: {
     visibility: 'public_marketing',
     required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'organizationSchema', 'currentFacebookLink', 'sharedCookieConsent'],
@@ -253,6 +258,7 @@ export function classifyPage(pagePath) {
   if (path === 'track.html' || path === 'review.html' || path === 'assemblecash.html' || path === 'setup-club.html') return 'support';
   if (path === 'about.html' || path === 'contact.html' || path === 'bundles.html' || path === 'locations.html' || path === 'compare-assembly-options.html' || path === 'furniture-stores-texas.html') return 'core_marketing';
   if (path.startsWith('owner/')) return 'owner_portal';
+  if (path === 'app.html') return 'app_entry';
   if (path.startsWith('auth/')) return 'auth';
   if (path === 'assembler/apply.html') return 'assembler_public';
   if (path.startsWith('assembler/')) return 'assembler_portal';
@@ -278,6 +284,7 @@ export function resolveGeneratorOwners(pagePath, pageType) {
   if (pageType === 'blog_article' || pageType === 'blog_index') return ['manual content', 'scripts/cleanup-blog-pages.mjs'];
   if (pageType === 'home' || pageType === 'pricing' || pageType === 'business' || pageType === 'booking') return ['manual core page'];
   if (pageType === 'core_marketing' || pageType === 'policy' || pageType === 'support') return ['manual marketing page'];
+  if (pageType === 'app_entry') return ['manual native app entry'];
   if (pageType === 'auth') return ['manual auth page'];
   if (pageType === 'assembler_public' || pageType === 'assembler_portal') return ['manual assembler page'];
   if (pageType === 'owner_portal') return ['manual owner page'];
