@@ -1,0 +1,318 @@
+import Foundation
+
+// Field names are the server's. Every field is optional and decoded one at a
+// time, so one unexpected value never empties a whole list on an Easer's phone.
+
+struct EaserSession: Codable, Equatable {
+    var accessToken: String
+    var refreshToken: String
+    var userID: String
+    var expiresAt: Date
+}
+
+struct DynamicKey: CodingKey {
+    var stringValue: String
+    var intValue: Int? { nil }
+    init(_ string: String) { stringValue = string }
+    init?(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { return nil }
+}
+
+extension KeyedDecodingContainer where Key == DynamicKey {
+    func string(_ key: String) -> String? {
+        if let value = try? decodeIfPresent(String.self, forKey: DynamicKey(key)) { return value }
+        if let value = try? decodeIfPresent(Double.self, forKey: DynamicKey(key)) { return String(value) }
+        return nil
+    }
+    func number(_ key: String) -> Double? {
+        if let value = try? decodeIfPresent(Double.self, forKey: DynamicKey(key)) { return value }
+        if let text = try? decodeIfPresent(String.self, forKey: DynamicKey(key)) { return Double(text) }
+        return nil
+    }
+    func bool(_ key: String) -> Bool? { (try? decodeIfPresent(Bool.self, forKey: DynamicKey(key))) ?? nil }
+}
+
+struct EaserProfile: Decodable {
+    let id: String
+    let role: String?
+    let fullName: String?
+    let email: String?
+    let isAvailable: Bool
+    let closureStatus: String?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id") ?? ""
+        role = c.string("role")
+        fullName = c.string("full_name")
+        email = c.string("email")
+        isAvailable = c.bool("is_available") ?? false
+        closureStatus = c.string("account_closure_status")
+    }
+
+    var firstName: String {
+        let first = (fullName ?? "").split(separator: " ").first.map(String.init) ?? ""
+        return first.isEmpty ? "there" : first
+    }
+
+    /// Same rule as the web Easer dashboard (assembler/index.html isClosureHeld).
+    var closureHeld: Bool { ["requested", "reviewing", "completed"].contains(closureStatus ?? "") }
+}
+
+struct Readiness: Decodable {
+    let isReady: Bool
+    let missingItems: [String]
+    let suspended: Bool
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        isReady = c.bool("isReady") ?? false
+        missingItems = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("missingItems"))) ?? []
+        suspended = c.bool("suspended") ?? false
+    }
+}
+
+struct ReadinessEnvelope: Decodable { let readiness: Readiness }
+
+struct JobItem: Decodable, Hashable {
+    let name: String
+    let quantity: Int
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        name = c.string("name") ?? "Item"
+        quantity = max(1, Int(c.number("quantity") ?? 1))
+    }
+}
+
+enum JobStep: Equatable {
+    case accept, startTravel, arrived, startJob, complete, noAction
+}
+
+struct EaserJob: Decodable, Identifiable, Hashable {
+    let id: String
+    let ref: String?
+    let service: String?
+    let date: String?
+    let time: String?
+    let address: String?
+    let details: String?
+    let status: String
+    let customerName: String?
+    let customerPhone: String?
+    let acceptedAt: String?
+    let offerLocation: String?
+    let offerToken: String?
+    let offerExpiresAt: String?
+    let canDecline: Bool
+    let payEstimateCents: Double?
+    let customQuote: Bool
+    let crewRole: String?
+    let returnVisitOpen: Bool
+    let items: [JobItem]
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id") ?? UUID().uuidString
+        ref = c.string("ref")
+        service = c.string("service")
+        date = c.string("date")
+        time = c.string("time")
+        address = c.string("address")
+        details = c.string("details")
+        status = c.string("status") ?? ""
+        customerName = c.string("customer_name")
+        customerPhone = c.string("customer_phone")
+        acceptedAt = c.string("assembler_accepted_at")
+        offerLocation = c.string("_offer_location")
+        offerToken = c.string("_offer_token")
+        offerExpiresAt = c.string("_offer_expires_at")
+        canDecline = c.bool("_can_decline") ?? false
+        payEstimateCents = c.number("_pay_estimate_lo")
+        customQuote = c.bool("_custom_quote") ?? false
+        crewRole = c.string("_crew_role")
+        returnVisitOpen = c.bool("_return_visit_open") ?? false
+        items = (try? c.decodeIfPresent([JobItem].self, forKey: DynamicKey("_booking_items"))) ?? []
+    }
+
+    static let finishedStatuses: Set<String> = ["completed", "cancelled", "declined", "refunded"]
+
+    var isFinished: Bool { Self.finishedStatuses.contains(status) && !returnVisitOpen }
+    var needsAcceptance: Bool { acceptedAt == nil && !isFinished }
+    var isOffer: Bool { needsAcceptance && offerToken != nil }
+    var isActive: Bool { ["en_route", "arrived", "in_progress"].contains(status) }
+    var isHelper: Bool { crewRole == "helper" }
+
+    var title: String { service ?? "Service job" }
+    var when: String { [Format.day(date), time].compactMap { $0 }.joined(separator: " · ") }
+    /// Before acceptance the server sends an area, not the address.
+    var place: String { (acceptedAt != nil ? address : nil) ?? offerLocation ?? address ?? "Location shared after you accept" }
+
+    var payText: String {
+        if customQuote { return "Pay confirmed after quote" }
+        guard let cents = payEstimateCents, cents > 0 else { return "Pay to be confirmed" }
+        return Format.money(cents: cents)
+    }
+
+    /// Words a person uses, never a status code (seat 15).
+    var statusLabel: String {
+        if needsAcceptance { return isOffer ? "New offer" : "Waiting for you to accept" }
+        switch status {
+        case "en_route": return "On the way"
+        case "arrived": return "Arrived"
+        case "in_progress": return "In progress"
+        case "completed": return returnVisitOpen ? "Return visit needed" : "Completed"
+        case "cancelled", "declined", "refunded": return "Cancelled"
+        default: return "Scheduled"
+        }
+    }
+
+    var nextStep: JobStep {
+        if isFinished { return .noAction }
+        if needsAcceptance { return .accept }
+        if isHelper { return .noAction }
+        switch status {
+        case "en_route": return .arrived
+        case "arrived": return .startJob
+        case "in_progress": return .complete
+        case "completed": return .noAction
+        default: return .startTravel
+        }
+    }
+}
+
+struct AssignmentsEnvelope: Decodable {
+    let bookings: [EaserJob]
+    let newOffersAllowed: Bool
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        bookings = (try? c.decodeIfPresent([EaserJob].self, forKey: DynamicKey("bookings"))) ?? []
+        if let access = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("access")) {
+            newOffersAllowed = access.bool("newOffersAllowed") ?? true
+        } else {
+            newOffersAllowed = true
+        }
+    }
+}
+
+struct Earning: Decodable, Identifiable {
+    let bookingID: String
+    let bookingRef: String?
+    let service: String
+    let earningType: String
+    let earnedAt: String?
+    let amountCents: Double
+    let statusLabel: String
+    let statusMessage: String
+    let disposition: String
+    var id: String { bookingID + ":" + earningType }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        bookingID = c.string("booking_id") ?? UUID().uuidString
+        bookingRef = c.string("booking_ref")
+        service = c.string("service") ?? "Service"
+        earningType = c.string("earning_type") ?? "completed_job"
+        earnedAt = c.string("earned_at")
+        amountCents = c.number("amount_cents") ?? 0
+        if let payout = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("payout")) {
+            statusLabel = payout.string("status_label") ?? "Processing"
+            statusMessage = payout.string("status_message") ?? ""
+            disposition = payout.string("disposition") ?? ""
+        } else {
+            statusLabel = "Processing"
+            statusMessage = ""
+            disposition = ""
+        }
+    }
+}
+
+struct EarningsSummary: Decodable {
+    let completedJobs: Int
+    let totalEarnedCents: Double
+    let paidCents: Double
+    let awaitingPayoutCents: Double
+    let onHoldCents: Double
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        completedJobs = Int(c.number("completed_jobs") ?? 0)
+        totalEarnedCents = c.number("total_earned_cents") ?? 0
+        paidCents = c.number("paid_cents") ?? 0
+        awaitingPayoutCents = c.number("awaiting_payout_cents") ?? 0
+        onHoldCents = c.number("on_hold_cents") ?? 0
+    }
+}
+
+struct EarningsEnvelope: Decodable {
+    let earnings: [Earning]
+    let summary: EarningsSummary?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        earnings = (try? c.decodeIfPresent([Earning].self, forKey: DynamicKey("earnings"))) ?? []
+        summary = try? c.decodeIfPresent(EarningsSummary.self, forKey: DynamicKey("summary"))
+    }
+}
+
+struct EaserNotice: Decodable, Identifiable {
+    let id: String
+    let title: String
+    let detail: String
+    let createdAt: String?
+    let read: Bool
+    let bookingID: String?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id") ?? UUID().uuidString
+        title = c.string("title") ?? "Update"
+        detail = c.string("detail") ?? ""
+        createdAt = c.string("createdAt")
+        read = c.bool("read") ?? false
+        bookingID = c.string("bookingId")
+    }
+}
+
+struct NoticesEnvelope: Decodable {
+    let notifications: [EaserNotice]
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        notifications = (try? c.decodeIfPresent([EaserNotice].self, forKey: DynamicKey("notifications"))) ?? []
+    }
+}
+
+struct JobMessage: Decodable, Identifiable {
+    let id: String
+    let sender: String
+    let body: String
+    let createdAt: String?
+    var fromMe: Bool { sender == "assembler" }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id") ?? UUID().uuidString
+        sender = c.string("sender") ?? ""
+        body = c.string("body") ?? ""
+        createdAt = c.string("created_at")
+    }
+
+    var senderLabel: String {
+        switch sender {
+        case "assembler": return "You"
+        case "customer": return "Customer"
+        default: return "AssembleAtEase"
+        }
+    }
+}
+
+struct MessagesEnvelope: Decodable {
+    let messages: [JobMessage]
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        messages = (try? c.decodeIfPresent([JobMessage].self, forKey: DynamicKey("messages"))) ?? []
+    }
+}

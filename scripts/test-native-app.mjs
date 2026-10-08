@@ -156,7 +156,7 @@ assert.match(reg, /\.eq\('token', token\)\.eq\('user_id', authed\.user\.id\)/, '
 
 const cap = JSON.parse(read('mobile/capacitor.config.json'));
 assert.equal(cap.appId, 'com.assembleatease.easer');
-assert.equal(cap.server.url, 'https://www.assembleatease.com/app', 'the app starts with the Customer and Easer entry points');
+assert.equal(cap.server.url, 'https://www.assembleatease.com/app', 'the Android shell starts at the shared entry; the iOS app is native and does not read this');
 assert.equal(cap.server.errorPath, 'offline.html');
 assert.ok(existsSync('mobile/www/offline.html'));
 const plist = read('mobile/ios/App/App/Info.plist');
@@ -166,7 +166,9 @@ assert.match(read('mobile/android/app/src/main/AndroidManifest.xml'), /ACCESS_FI
 assert.match(plist, /<string>remote-notification<\/string>/);
 assert.match(read('mobile/ios/App/App/App.entitlements'), /aps-environment/);
 assert.match(read('mobile/ios/App/App.xcodeproj/project.pbxproj'), /GoogleService-Info\.plist in Resources/, 'Firebase config is bundled into the iOS app');
-assert.match(read('mobile/ios/App/App/AppDelegate.swift'), /capacitorDidRegisterForRemoteNotifications/);
+// iOS is the native Easer app: Firebase is used directly, not through the web bridge
+// (scripts/test-easer-native-app.mjs holds the rest). Android keeps the Capacitor plugin.
+assert.match(read('mobile/ios/App/App/AppDelegate.swift'), /Messaging\.messaging\(\)\.apnsToken = deviceToken/);
 assert.match(read('mobile/android/app/src/main/AndroidManifest.xml'), /default_notification_icon/);
 assert.match(read('codemagic.yaml'), /submit_to_testflight: true/);
 
