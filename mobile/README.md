@@ -1,5 +1,20 @@
 # AssembleAtEase app (iOS and Android)
 
+## iPhone: Easer, a native app
+
+Since 2026-10-08 the iOS app is native SwiftUI and for Easers only. It does not load
+the website. Screens live in `ios/App/App/`: `EaserViews.swift` (Today, Jobs, Earnings,
+Inbox, Account, job, completion, messages), `EaserStore.swift` (state and actions),
+`EaserAPI.swift` (sign-in and server calls), `EaserModels.swift` (server fields),
+`EaserSupport.swift` (Keychain, location, photo sizing, brand). The server stays the
+source of truth for offers, status, completion, earnings and readiness.
+`scripts/test-easer-native-app.mjs` checks every endpoint and field the app reads.
+
+Changing an iPhone screen needs a new build; website changes do not reach it.
+
+## Android: web shell (unchanged)
+
+
 The app is a native shell (Capacitor 8) opening the shared entry page at
 `https://www.assembleatease.com/app`. Customers use the existing booking and
 tracking flows; Easers sign in to their existing workspace. Route selection

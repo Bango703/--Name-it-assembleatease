@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		ECEEA0346EA710E5EAA22643 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 28DDF1AF7DBB75E111EE13BE /* PrivacyInfo.xcprivacy */; };
+		62DEA74AB385F71DF0942393 /* EaserSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E96B49669C94509C5B713F3C /* EaserSupport.swift */; };
+		B9D30A393C005D2ACB0AABC2 /* EaserModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25476047CEB710CBCBA89DD /* EaserModels.swift */; };
+		4E76051AEAA64D4894A9793D /* EaserAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B5AAD52E45A815E66307DB /* EaserAPI.swift */; };
+		7BA8B188B2DCDE31863793D5 /* EaserStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C31A064211D2AE538C3CAA7 /* EaserStore.swift */; };
+		2CA541A01CC9B6E0326F0459 /* EaserViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD00B975214483417FDAE1BC /* EaserViews.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
@@ -20,6 +26,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		28DDF1AF7DBB75E111EE13BE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		E96B49669C94509C5B713F3C /* EaserSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserSupport.swift; sourceTree = "<group>"; };
+		D25476047CEB710CBCBA89DD /* EaserModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserModels.swift; sourceTree = "<group>"; };
+		C1B5AAD52E45A815E66307DB /* EaserAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserAPI.swift; sourceTree = "<group>"; };
+		0C31A064211D2AE538C3CAA7 /* EaserStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserStore.swift; sourceTree = "<group>"; };
+		AD00B975214483417FDAE1BC /* EaserViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserViews.swift; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		AA11E0000000000000000001 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
@@ -70,6 +82,12 @@
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				AA11E0000000000000000001 /* GoogleService-Info.plist */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
+				28DDF1AF7DBB75E111EE13BE /* PrivacyInfo.xcprivacy */,
+				E96B49669C94509C5B713F3C /* EaserSupport.swift */,
+				D25476047CEB710CBCBA89DD /* EaserModels.swift */,
+				C1B5AAD52E45A815E66307DB /* EaserAPI.swift */,
+				0C31A064211D2AE538C3CAA7 /* EaserStore.swift */,
+				AD00B975214483417FDAE1BC /* EaserViews.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -146,6 +164,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */,
+				ECEEA0346EA710E5EAA22643 /* PrivacyInfo.xcprivacy in Resources */,
 				50B271D11FEDC1A000F3C39B /* public in Resources */,
 				504EC30F1FED79650016851F /* Assets.xcassets in Resources */,
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
@@ -164,6 +183,11 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				62DEA74AB385F71DF0942393 /* EaserSupport.swift in Sources */,
+				B9D30A393C005D2ACB0AABC2 /* EaserModels.swift in Sources */,
+				4E76051AEAA64D4894A9793D /* EaserAPI.swift in Sources */,
+				7BA8B188B2DCDE31863793D5 /* EaserStore.swift in Sources */,
+				2CA541A01CC9B6E0326F0459 /* EaserViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,7 +262,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -289,7 +313,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -307,7 +331,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				INFOPLIST_FILE = App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -330,7 +354,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				INFOPLIST_FILE = App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
