@@ -11,6 +11,11 @@
   var plugins = cap.Plugins || {};
   var currentUrl = new URL(window.location.href);
   var easerPage = /^\/assembler\/(?!apply(?:\.html)?\/?$)/.test(currentUrl.pathname);
+  // The website homepage is the marketing site. In the app, home is /app.
+  var WEBSITE_HOME = /^\/(?:index\.html)?$/;
+  if (WEBSITE_HOME.test(currentUrl.pathname)) { window.location.replace('/app'); return; }
+  // Lets native-app.css swap the website menu and footer for app navigation.
+  if (document.documentElement) document.documentElement.classList.add('aae-native-app');
 
   function goBack() {
     if (window.history.length > 1) window.history.back();
@@ -19,10 +24,10 @@
 
   function mountNavigation() {
     if (!document.body || document.getElementById('aae-native-nav')) return;
-    if (!document.querySelector('link[href="/assets/css/native-app.css"]')) {
+    if (!document.querySelector('link[href^="/assets/css/native-app.css"]')) {
       var css = document.createElement('link');
       css.rel = 'stylesheet';
-      css.href = '/assets/css/native-app.css';
+      css.href = '/assets/css/native-app.css?v=20261008b';
       document.head.appendChild(css);
     }
     var nav = document.createElement('nav');
@@ -45,7 +50,8 @@
     error.setAttribute('role', 'alert');
     error.hidden = true;
     nav.append(back, home, error);
-    if (back.hidden) nav.hidden = true;
+    // Easer screens already have the app's bottom tab bar.
+    if (back.hidden || document.querySelector('.easer-nav')) nav.hidden = true;
     document.body.prepend(nav);
   }
 
@@ -89,6 +95,11 @@
     if (!link) return;
     var url;
     try { url = new URL(link.href, window.location.href); } catch (_) { return; }
+    if (url.origin === window.location.origin && WEBSITE_HOME.test(url.pathname)) {
+      event.preventDefault();
+      window.location.assign('/app');
+      return;
+    }
     if (opensInBrowser(url) || ['tel:', 'mailto:'].indexOf(url.protocol) !== -1 ||
         (url.protocol === 'https:' && url.origin !== window.location.origin)) {
       event.preventDefault();

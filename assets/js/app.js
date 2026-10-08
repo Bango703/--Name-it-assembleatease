@@ -566,7 +566,7 @@ window.AAE_isNativeApp = function () {
 // Auth and Easer pages share this loader. It never adds a script on the website.
 if (window.AAE_isNativeApp() && !window.__aaeNativeBridgeReady && !document.querySelector('script[src*="/native-app.js"]')) {
   const nativeBridge = document.createElement('script');
-  nativeBridge.src = '/assets/js/native-app.js?v=20261008a';
+  nativeBridge.src = '/assets/js/native-app.js?v=20261008b';
   document.head.appendChild(nativeBridge);
 }
 
