@@ -7,13 +7,13 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
 function run(path, role = null, options = {}) {
   const nodes = new Map(), listeners = {}, events = {}, calls = [], storage = new Map(), classes = new Set();
   const element = () => ({
-    hidden: false, children: [], setAttribute() {}, addEventListener(type, fn) { this[type] = fn; },
+    hidden: false, children: [], attrs: {}, setAttribute(k, v) { this.attrs[k] = v; }, addEventListener(type, fn) { this[type] = fn; },
     append(...children) { this.children.push(...children); children.forEach(n => n.id && nodes.set(n.id, n)); },
   });
   const document = {
     readyState: 'complete',
     head: { appendChild() {} },
-    body: { prepend(node) { nodes.set(node.id, node); } },
+    body: { prepend(node) { nodes.set(node.id, node); }, append(node) { nodes.set(node.id, node); } },
     documentElement: { classList: { add(c) { classes.add(c); } } },
     getElementById(id) { return nodes.get(id); }, querySelector(sel) { return options.easerTabs && sel === '.easer-nav' ? {} : null; },
     createElement: element, addEventListener(type, fn) { listeners[type] = fn; },
@@ -21,7 +21,8 @@ function run(path, role = null, options = {}) {
   let permissions = 0, signedOut = 0;
   const window = {
     location: { origin: 'https://www.assembleatease.com', href: 'https://www.assembleatease.com' + path,
-      assign(url) { calls.push(['assign', url]); }, replace(url) { calls.push(['replace', url]); } },
+      assign(url) { calls.push(['assign', url]); }, replace(url) { calls.push(['replace', url]); }, reload() { calls.push(['reload']); } },
+    scrollY: 0,
     history: { length: 1, back() { calls.push(['back']); } },
     APP: {
       async getAuth() { return role ? { user: { id: 'user-1' }, profile: { role }, session: { access_token: 'test-bearer' } } : null; },
@@ -106,7 +107,6 @@ for (const [path, role] of [['/book', 'assembler'], ['/track', 'customer'], ['/a
 {
   const s = run('/track');
   assert.ok(s.classes.has('aae-native-app'), 'app pages are marked so the website menu and footer give way');
-  assert.equal(s.nodes.get('aae-native-nav').hidden, false, 'customer screens show the app bar');
   for (const href of ['https://www.assembleatease.com/', 'https://www.assembleatease.com/index.html', 'https://www.assembleatease.com/#services-hdr']) {
     let prevented = false;
     s.listeners.click({ target: { closest: () => ({ href }) }, preventDefault() { prevented = true; } });
@@ -128,6 +128,64 @@ for (const [path, role] of [['/book', 'assembler'], ['/track', 'customer'], ['/a
     assert.ok(rule.includes('.aae-native-app ' + sel), `${sel} is hidden in the app only`);
   }
   assert.doesNotMatch(css, /(^|[}\n])\s*(nav\.nav|footer\.footer|\.nav-mobile)\s*[{,]/, 'the website itself is never restyled');
+}
+// Customer tab bar, as in TaskRabbit or Thumbtack: on customer screens, never while booking or on Easer screens.
+{
+  const s = run('/track');
+  const bar = s.nodes.get('aae-tabbar');
+  assert.ok(bar, 'customer screens have the app tab bar');
+  assert.deepEqual(bar.children.map(a => a.href), ['/app', '/book', '/track', '/contact']);
+  assert.deepEqual(bar.children.filter(a => a.attrs['aria-current'] === 'page').map(a => a.href), ['/track'], 'the current tab is marked');
+  assert.ok(s.classes.has('aae-has-tabs'), 'content is padded clear of the tab bar');
+  assert.equal(s.nodes.get('aae-native-nav').hidden, true, 'a tab screen needs no Back bar on top');
+}
+{
+  const s = run('/privacy');
+  assert.ok(s.nodes.get('aae-tabbar'), 'other customer screens keep the tab bar');
+  assert.equal(s.nodes.get('aae-native-nav').hidden, false, 'and a Back bar, since they are not a tab');
+}
+for (const path of ['/book', '/assembler/my-assignments', '/auth/login']) {
+  const s = run(path, null, path.startsWith('/assembler') ? { easerTabs: true } : {});
+  assert.equal(s.nodes.get('aae-tabbar'), undefined, `${path}: no customer tab bar`);
+}
+assert.equal(run('/book').nodes.get('aae-native-nav').hidden, false, 'booking keeps Back / App home so a customer can leave checkout');
+
+// Pull down to refresh where data changes, never while booking or inside a dialog.
+function pull(s, distance, target = { closest: () => null }) {
+  s.listeners.touchstart({ target, touches: [{ clientY: 100 }] });
+  s.listeners.touchmove({ touches: [{ clientY: 100 + distance }] });
+  s.listeners.touchend({});
+}
+{
+  const s = run('/track');
+  pull(s, 40);
+  assert.equal(s.calls.filter(c => c[0] === 'reload').length, 0, 'a short pull does not refresh');
+  assert.equal(s.nodes.get('aae-pull').hidden, true);
+  pull(s, 120);
+  assert.equal(s.calls.filter(c => c[0] === 'reload').length, 1, 'a full pull at the top refreshes');
+}
+{
+  const s = run('/track');
+  pull(s, 120, { closest: sel => (sel.includes('[role="dialog"]') ? {} : null) });
+  assert.equal(s.calls.filter(c => c[0] === 'reload').length, 0, 'pulling inside an open dialog never reloads it away');
+  s.window.scrollY = 300;
+  pull(s, 120);
+  assert.equal(s.calls.filter(c => c[0] === 'reload').length, 0, 'only from the top of the page');
+}
+{
+  const s = run('/assembler/my-assignments', 'assembler', { easerTabs: true });
+  pull(s, 120);
+  assert.equal(s.calls.filter(c => c[0] === 'reload').length, 1, 'Easers can pull to refresh their jobs');
+}
+for (const path of ['/book', '/app', '/auth/login']) {
+  const s = run(path);
+  assert.equal(s.listeners.touchstart, undefined, `${path}: no pull to refresh (a pull would wipe a booking in progress)`);
+}
+{
+  const plist = readFileSync('mobile/ios/App/App/Info.plist', 'utf8');
+  const iphone = plist.match(/<key>UISupportedInterfaceOrientations<\/key>\s*<array>([\s\S]*?)<\/array>/)[1];
+  assert.doesNotMatch(iphone, /Landscape/, 'the iPhone app stays upright');
+  assert.match(readFileSync('mobile/android/app/src/main/AndroidManifest.xml', 'utf8'), /android:screenOrientation="portrait"/);
 }
 const entry = readFileSync('app.html', 'utf8');
 for (const route of ['/book', '/track', '/assembler/my-assignments']) assert.ok(entry.includes(`href="${route}"`));

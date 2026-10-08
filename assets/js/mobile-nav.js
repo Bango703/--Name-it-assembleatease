@@ -4,7 +4,7 @@
   if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform() &&
       !window.__aaeNativeBridgeReady && !document.querySelector('script[src*="/native-app.js"]')) {
     var nativeBridge = document.createElement('script');
-    nativeBridge.src = '/assets/js/native-app.js?v=20261008b';
+    nativeBridge.src = '/assets/js/native-app.js?v=20261008c';
     document.head.appendChild(nativeBridge);
   }
   var runtimeErrorState = {
