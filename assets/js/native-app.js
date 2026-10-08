@@ -17,6 +17,83 @@
   // Lets native-app.css swap the website menu and footer for app navigation.
   if (document.documentElement) document.documentElement.classList.add('aae-native-app');
 
+  // ── Customer tab bar: the app's own navigation on customer screens ──
+  var APP_HOME = /^\/app(?:\.html)?\/?$/;
+  var BOOK_PAGE = /^\/book(?:\.html)?\/?$/;
+  var ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+  var CUSTOMER_TABS = [
+    { href: '/app', label: 'Home', match: APP_HOME, icon: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>' },
+    { href: '/book', label: 'Book', match: BOOK_PAGE, icon: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>' },
+    { href: '/track', label: 'Bookings', match: /^\/track(?:\.html)?\/?$/, icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>' },
+    { href: '/contact', label: 'Help', match: /^\/contact(?:\.html)?\/?$/, icon: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5.1A8 8 0 1 1 21 12z"/>' },
+  ];
+  // Not on Easer or sign-in screens (Easers have their own tab bar), and not
+  // while booking, where the booking page keeps its Continue bar at the bottom.
+  var customerTabsShown = !/^\/(?:assembler|auth|owner)(?:\/|$)/.test(currentUrl.pathname) && !BOOK_PAGE.test(currentUrl.pathname);
+  var tabRoot = CUSTOMER_TABS.some(function (tab) { return tab.match.test(currentUrl.pathname); });
+
+  function mountTabs() {
+    if (!customerTabsShown || !document.body || document.getElementById('aae-tabbar') || document.querySelector('.easer-nav')) return;
+    var bar = document.createElement('nav');
+    bar.id = 'aae-tabbar';
+    bar.className = 'aae-tabbar';
+    bar.setAttribute('aria-label', 'Main');
+    CUSTOMER_TABS.forEach(function (tab) {
+      var link = document.createElement('a');
+      link.href = tab.href;
+      link.className = 'aae-tab';
+      if (tab.match.test(currentUrl.pathname)) link.setAttribute('aria-current', 'page');
+      link.innerHTML = ICON + tab.icon + '</svg><span>' + tab.label + '</span>';
+      bar.append(link);
+    });
+    document.body.append(bar);
+    document.documentElement.classList.add('aae-has-tabs');
+  }
+
+  // ── Pull down to refresh on screens whose data changes (never while booking) ──
+  var PULL_TO_REFRESH = easerPage || /^\/track(?:\.html)?\/?$/.test(currentUrl.pathname);
+  var PULL_DISTANCE = 80;
+
+  function mountPullToRefresh() {
+    if (!PULL_TO_REFRESH || !document.body || document.getElementById('aae-pull')) return;
+    var pill = document.createElement('div');
+    pill.id = 'aae-pull';
+    pill.className = 'aae-pull';
+    pill.setAttribute('role', 'status');
+    pill.hidden = true;
+    document.body.append(pill);
+    var startY = null;
+    var ready = false;
+    function busy(target) {
+      if (target && target.closest && target.closest('[role="dialog"], [aria-modal="true"], input, textarea, select, [contenteditable="true"]')) return true;
+      return (document.body.style && document.body.style.overflow === 'hidden') ||
+        (document.documentElement.style && document.documentElement.style.overflow === 'hidden');
+    }
+    document.addEventListener('touchstart', function (event) {
+      var touches = event.touches || [];
+      startY = (window.scrollY <= 0 && touches.length === 1 && !busy(event.target)) ? touches[0].clientY : null;
+      ready = false;
+    }, { passive: true });
+    document.addEventListener('touchmove', function (event) {
+      if (startY === null) return;
+      var pulled = event.touches[0].clientY - startY;
+      if (pulled < 12 || window.scrollY > 0) { pill.hidden = true; ready = false; return; }
+      ready = pulled >= PULL_DISTANCE;
+      pill.textContent = ready ? 'Release to refresh' : 'Pull to refresh';
+      pill.hidden = false;
+    }, { passive: true });
+    document.addEventListener('touchend', function () {
+      if (startY !== null && ready) {
+        pill.textContent = 'Refreshing';
+        window.location.reload();
+      } else {
+        pill.hidden = true;
+      }
+      startY = null;
+      ready = false;
+    }, { passive: true });
+  }
+
   function goBack() {
     if (window.history.length > 1) window.history.back();
     else window.location.assign('/app');
@@ -27,7 +104,7 @@
     if (!document.querySelector('link[href^="/assets/css/native-app.css"]')) {
       var css = document.createElement('link');
       css.rel = 'stylesheet';
-      css.href = '/assets/css/native-app.css?v=20261008b';
+      css.href = '/assets/css/native-app.css?v=20261008c';
       document.head.appendChild(css);
     }
     var nav = document.createElement('nav');
@@ -50,8 +127,8 @@
     error.setAttribute('role', 'alert');
     error.hidden = true;
     nav.append(back, home, error);
-    // Easer screens already have the app's bottom tab bar.
-    if (back.hidden || document.querySelector('.easer-nav')) nav.hidden = true;
+    // Tab screens and Easer screens navigate with their bottom tab bar instead.
+    if (back.hidden || (customerTabsShown && tabRoot) || document.querySelector('.easer-nav')) nav.hidden = true;
     document.body.prepend(nav);
   }
 
@@ -64,8 +141,9 @@
     error.hidden = false;
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountNavigation);
-  else mountNavigation();
+  function mountAppChrome() { mountNavigation(); mountTabs(); mountPullToRefresh(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountAppChrome);
+  else mountAppChrome();
 
   // Android's hardware Back follows the same history as the on-screen control.
   if (plugins.App && typeof plugins.App.addListener === 'function') {
