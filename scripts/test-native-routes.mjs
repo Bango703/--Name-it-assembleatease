@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const source = readFileSync('assets/js/native-app.js', 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
 function run(path, role = null, options = {}) {
-  const nodes = new Map(), listeners = {}, events = {}, calls = [], storage = new Map();
+  const nodes = new Map(), listeners = {}, events = {}, calls = [], storage = new Map(), classes = new Set();
   const element = () => ({
     hidden: false, children: [], setAttribute() {}, addEventListener(type, fn) { this[type] = fn; },
     append(...children) { this.children.push(...children); children.forEach(n => n.id && nodes.set(n.id, n)); },
@@ -14,7 +14,8 @@ function run(path, role = null, options = {}) {
     readyState: 'complete',
     head: { appendChild() {} },
     body: { prepend(node) { nodes.set(node.id, node); } },
-    getElementById(id) { return nodes.get(id); }, querySelector() { return null; },
+    documentElement: { classList: { add(c) { classes.add(c); } } },
+    getElementById(id) { return nodes.get(id); }, querySelector(sel) { return options.easerTabs && sel === '.easer-nav' ? {} : null; },
     createElement: element, addEventListener(type, fn) { listeners[type] = fn; },
   };
   let permissions = 0, signedOut = 0;
@@ -42,7 +43,7 @@ function run(path, role = null, options = {}) {
     fetch: async (url, request) => { calls.push(['fetch', url, request]); return { ok: true }; },
   };
   vm.runInNewContext(source, sandbox);
-  return { window, nodes, listeners, events, calls, storage, sandbox, permissions: () => permissions, signedOut: () => signedOut };
+  return { window, nodes, listeners, events, calls, storage, sandbox, classes, permissions: () => permissions, signedOut: () => signedOut };
 }
 for (const path of ['/app', '/book', '/track', '/auth/login', '/assembler/my-assignments']) {
   const s = run(path);
@@ -95,6 +96,38 @@ for (const [path, role] of [['/book', 'assembler'], ['/track', 'customer'], ['/a
   const s = run('/assembler/apply', null, { failExternal: true }); await flush();
   assert.equal(s.calls.some(c => c[0] === 'replace'), false, 'failed external handoff keeps the current screen');
   assert.equal(s.nodes.get('aae-native-link-error').hidden, false);
+}
+// In the app, home is /app: the website homepage and its links lead there.
+{
+  const s = run('/');
+  assert.deepEqual(s.calls, [['replace', '/app']], 'opening the website homepage inside the app goes to the app home');
+  assert.equal(s.nodes.get('aae-native-nav'), undefined);
+}
+{
+  const s = run('/track');
+  assert.ok(s.classes.has('aae-native-app'), 'app pages are marked so the website menu and footer give way');
+  assert.equal(s.nodes.get('aae-native-nav').hidden, false, 'customer screens show the app bar');
+  for (const href of ['https://www.assembleatease.com/', 'https://www.assembleatease.com/index.html', 'https://www.assembleatease.com/#services-hdr']) {
+    let prevented = false;
+    s.listeners.click({ target: { closest: () => ({ href }) }, preventDefault() { prevented = true; } });
+    assert.equal(prevented, true, `${href}: a home link in the app does not open the website homepage`);
+    assert.deepEqual(s.calls.at(-1), ['assign', '/app']);
+  }
+  let prevented = false;
+  s.listeners.click({ target: { closest: () => ({ href: 'https://www.assembleatease.com/book' }) }, preventDefault() { prevented = true; } });
+  assert.equal(prevented, false, 'other links are untouched');
+}
+{
+  const s = run('/assembler/my-assignments', null, { easerTabs: true });
+  assert.equal(s.nodes.get('aae-native-nav').hidden, true, 'Easer screens use their own bottom tab bar, not a second bar on top');
+}
+{
+  const css = readFileSync('assets/css/native-app.css', 'utf8');
+  const rule = css.slice(0, css.indexOf('{ display:none !important; }'));
+  for (const sel of ['nav.nav', '.nav-mobile', 'footer.footer', 'a.book-nav-back', 'a.page-back[href="/"]']) {
+    assert.ok(rule.includes('.aae-native-app ' + sel), `${sel} is hidden in the app only`);
+  }
+  assert.doesNotMatch(css, /(^|[}\n])\s*(nav\.nav|footer\.footer|\.nav-mobile)\s*[{,]/, 'the website itself is never restyled');
 }
 const entry = readFileSync('app.html', 'utf8');
 for (const route of ['/book', '/track', '/assembler/my-assignments']) assert.ok(entry.includes(`href="${route}"`));
