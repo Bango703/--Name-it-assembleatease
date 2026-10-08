@@ -3747,31 +3747,8 @@ var BOOKING_WINDOW_DAYS = 30;
 var IMMEDIATE_AUTHORIZATION_DAYS = 2;
 
 function captureBookingAttribution() {
-  var storageKey = 'aaeBookingAttribution';
-  try {
-    var existing = sessionStorage.getItem(storageKey);
-    if (existing) return JSON.parse(existing);
-    var params = new URLSearchParams(window.location.search || '');
-    var referrerHost = '';
-    try { referrerHost = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
-    var value = {
-      utmSource: params.get('utm_source') || '',
-      utmMedium: params.get('utm_medium') || '',
-      utmCampaign: params.get('utm_campaign') || '',
-      utmContent: params.get('utm_content') || '',
-      utmTerm: params.get('utm_term') || '',
-      clickId: params.get('gclid') || params.get('msclkid') || '',
-      landingPath: window.location.pathname || '/book',
-      referrerHost: referrerHost
-    };
-    sessionStorage.setItem(storageKey, JSON.stringify(value));
-    return value;
-  } catch (e) {
-    return { landingPath: '/book' };
-  }
+  return window.AAE_ATTRIBUTION ? window.AAE_ATTRIBUTION.capture() : {};
 }
-
-var BOOKING_ATTRIBUTION = captureBookingAttribution();
 
 // Owner "rebook" links (utm_campaign=rebook) prefill the customer's contact step from
 // the URL so a returning customer lands ready to go. Additive: only fills empty fields,
@@ -3795,20 +3772,38 @@ document.addEventListener('DOMContentLoaded', function() {
   } catch (e) {}
 });
 
-function trackBookingFunnelOnce(eventName, params) {
-  try {
-    var key = 'aaeFunnel:' + eventName;
-    if (sessionStorage.getItem(key)) return;
-    if (typeof window.gtag !== 'function') return;
-    window.gtag('event', eventName, Object.assign({
-      page_path: window.location.pathname,
-      booking_flow: 'standard'
-    }, params || {}));
-    sessionStorage.setItem(key, '1');
-  } catch (e) {}
+var BOOKING_ANALYTICS_ATTEMPT = Date.now().toString(36) + Math.random().toString(36).slice(2);
+var bookingAnalyticsQueue = [];
+function flushBookingAnalytics() {
+  if (!window.AAEAnalytics) return;
+  var pending = bookingAnalyticsQueue.splice(0);
+  pending.forEach(function (entry) {
+    try { window.AAEAnalytics.trackOnce(entry.name, entry.params, entry.key); } catch (e) { /* Measurement cannot block booking. */ }
+  });
 }
-
-window.setTimeout(function() { trackBookingFunnelOnce('job_plan_started'); }, 0);
+function trackBookingFunnelOnce(eventName, params, bookingRef) {
+  try {
+  if (window.AAEAnalytics) { if (!window.AAEAnalytics.hasConsent()) return; }
+  else if (navigator.globalPrivacyControl === true || localStorage.getItem('cookie-consent') !== 'accepted') return;
+  // Funnel milestones belong to this attempt; confirmations belong to their booking.
+  // A second real booking in one tab must be counted, while a repeated confirmation must not.
+  var key = (bookingRef ? 'booking:' + bookingRef : 'attempt:' + BOOKING_ANALYTICS_ATTEMPT) + ':' + eventName;
+  bookingAnalyticsQueue.push({ name: eventName, key: key, params: Object.assign({
+    booking_flow: 'standard',
+    service_count: BOOK.selectedServices.length,
+    service_market: 'unknown', service_city: 'unknown'
+  }, BOOK._analytics || {}, params || {}) });
+  if (window.__AAE_GTAG_READY__) flushBookingAnalytics();
+  } catch (e) { /* Measurement cannot block booking. */ }
+}
+window.addEventListener('aae-analytics-ready', function () {
+  flushBookingAnalytics();
+  trackBookingFunnelOnce('job_plan_started');
+});
+window.addEventListener('aae-analytics-consent-changed', function () {
+  if (!window.AAEAnalytics.hasConsent()) bookingAnalyticsQueue = [];
+});
+trackBookingFunnelOnce('job_plan_started');
 
 var CHICAGO_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
@@ -7881,7 +7876,7 @@ async function submitBooking() {
         smsConsent: !!(document.getElementById('s4-sms-consent') || {}).checked,
 
         setupIntentId: (BOOK._isQuoteFlow || BOOK._scheduledAuthorization) ? savedSetupIntentId : null,
-        attribution: BOOKING_ATTRIBUTION
+        attribution: captureBookingAttribution()
 
       })
 
@@ -7930,6 +7925,7 @@ async function submitBooking() {
       throw new Error(data.error || 'Server error. Please try again.');
     }
 
+    BOOK._analytics = data.analytics || {};
     // Hold the created booking so a card retry reuses it instead of creating another.
     BOOK._pendingPayment = { fingerprint: orderFingerprint, data: data };
 
@@ -7959,6 +7955,7 @@ async function submitBooking() {
       time: BOOK.time,
       address: BOOK.address,
       selectedServices: BOOK.selectedServices,
+      analytics: BOOK._analytics || {},
       isQuote: false
     }));
 
@@ -8148,23 +8145,26 @@ function showMarketDemandConfirmation(ref) {
 
 
 
-function showConfirmation(ref, isQuote, isScheduledAuthorization) {
+function trackBookingConfirmation(ref, isQuote, isScheduledAuthorization) {
+  if (!ref) return;
+  var outcome = {
+    booking_type: isQuote ? 'quote' : (isScheduledAuthorization ? 'future' : 'near_term'),
+    outcome_stage: 'form_confirmation'
+  };
+  trackBookingFunnelOnce(isQuote ? 'quote_requested' : 'booking_confirmed', outcome, ref);
+  // Compatibility only. This historical event never meant finished work or captured revenue.
+  // New key-event reporting must select the distinct outcome above, not both aliases.
+  trackBookingFunnelOnce('booking_completed', Object.assign({ deprecated_event: true }, outcome), ref);
 
-  // Google Ads conversions. A completed booking is revenue with a known total.
-  // A quote request is a LEAD whose price does not exist yet - the owner sets it
-  // later. These must not share one conversion action: reporting a quote through
-  // the booking action tells Ads a lead is a sale, and reporting it with
-  // _grandTotalCents would train bidding on a number no customer was ever charged.
-  //
-  // Quote requests were previously reported to Ads NOT AT ALL. Custom quotes are
-  // the highest-value path on the platform (a completed one was $648.42), so Ads
-  // has been optimising against incomplete data and will underbid exactly the
-  // traffic worth the most.
-  //
+  // Existing Ads actions remain separate. Their value is the reservation estimate,
+  // not captured revenue; quote leads have no monetary value.
   var ADS_BOOKING_CONVERSION = 'AW-16551666395/7KS0CIjz1aMcENvFudQ9';
   var ADS_QUOTE_CONVERSION = 'AW-16551666395/YSgLCNCQie8cENvFudQ9';
 
-  if (window.gtag) {
+  var adsKey = 'aaeAdsConfirmation:' + ref + ':' + (isQuote ? 'quote' : 'booking');
+  var adsSent = false;
+  try { adsSent = sessionStorage.getItem(adsKey) === '1'; } catch (e) {}
+  if (!adsSent && window.gtag && window.AAEAnalytics && window.AAEAnalytics.hasConsent()) {
     if (!isQuote) {
       window.gtag('event', 'conversion', {
         send_to: ADS_BOOKING_CONVERSION,
@@ -8179,13 +8179,12 @@ function showConfirmation(ref, isQuote, isScheduledAuthorization) {
         transaction_id: ref
       });
     }
+    try { sessionStorage.setItem(adsKey, '1'); } catch (e) {}
   }
-  trackBookingFunnelOnce('booking_completed', {
-    transaction_id: ref,
-    value: Number(BOOK._grandTotalCents || 0) / 100,
-    currency: 'USD',
-    booking_type: isQuote ? 'quote' : (isScheduledAuthorization ? 'future' : 'near_term')
-  });
+}
+
+function showConfirmation(ref, isQuote, isScheduledAuthorization) {
+  try { trackBookingConfirmation(ref, isQuote, isScheduledAuthorization); } catch (e) { /* Confirmation UI does not depend on analytics. */ }
 
   for (var i=1;i<=TOTAL_STEPS;i++) { var p=document.getElementById('step-'+i); if(p) p.classList.add('hidden'); }
 
@@ -8369,6 +8368,7 @@ async function recoverRedirectedPayment() {
     if(!confirmResp.ok) throw new Error(confirmData.error||'Booking confirmation is still pending.');
     BOOK.email=recovery.email||''; BOOK.date=recovery.date||''; BOOK.time=recovery.time||''; BOOK.address=recovery.address||'';
     BOOK.selectedServices=Array.isArray(recovery.selectedServices)?recovery.selectedServices:[];
+    BOOK._analytics=recovery.analytics||{};
     BOOK._guestMutationToken=recovery.guestMutationToken||'';
     sessionStorage.removeItem('aaePaymentRecovery');
     history.replaceState({},document.title,'/book');

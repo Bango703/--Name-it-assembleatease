@@ -186,14 +186,14 @@ assert.equal(actionSb.state.booking.guest_mutation_token_hash, 'existing-secure-
 const [bookHtml, bookingApi, setupApi, cronApi, ownerApi, marketApi, attributionScript, migration, vercel] = await Promise.all([
   source('book.html'), source('api/booking.js'), source('api/booking/setup-intent.js'),
   source('api/cron/authorize-scheduled-payments.js'), source('api/owner/live-ops.js'),
-  source('api/owner/market-demand.js'), source('assets/js/mobile-nav.js'),
+  source('api/owner/market-demand.js'), source('assets/js/attribution.js'),
   source('api/migrations/056_booking_attribution.sql'), source('vercel.json'),
 ]);
 
 assert.match(bookHtml, /30-day window/);
 assert.match(bookHtml, /purpose: isScheduledAuthorization \? 'future_booking' : 'quote_booking'/);
 assert.match(bookHtml, /booking_completed/);
-assert.match(bookHtml, /attribution: BOOKING_ATTRIBUTION/);
+assert.match(bookHtml, /attribution: captureBookingAttribution\(\)/, 'booking submission must recheck consent instead of reusing stale attribution');
 assert.match(bookingApi, /payment_status: scheduledAuthorization \? 'card_saved'/);
 assert.match(bookingApi, /dispatch_paused: scheduledAuthorization/);
 assert.match(setupApi, /FUTURE_BOOKING_SETUP_NOT_ALLOWED/);

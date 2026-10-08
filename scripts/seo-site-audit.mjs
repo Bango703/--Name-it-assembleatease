@@ -29,10 +29,24 @@ const SERVICE_CONTENT_RULES = {
     ['soundbar scope', /\bsoundbars?\b/i],
     ['cable scope', /\b(?:cable|cord)\b/i],
   ] },
-  'smart-home-installation': { heading: 'Smart home installation planning', terms: ['smart home installation service', 'video doorbell installation', 'smart thermostat installation', 'security camera setup', 'smart lock installation'] },
+  'smart-home-installation': { heading: 'Smart home installation planning', topics: [
+    ['device identification', /\b(?:model|brand)\b/i],
+    ['doorbells', /\bdoorbells?\b/i],
+    ['thermostats', /\bthermostats?\b/i],
+    ['cameras and locks', /\bcameras?\b[\s\S]*\blocks?\b|\blocks?\b[\s\S]*\bcameras?\b/i],
+    ['power or compatibility', /\b(?:power|wiring|compatib\w*)\b/i],
+    ['network or account preparation', /\b(?:Wi-Fi|accounts?|hubs?)\b/i],
+  ] },
   'fitness-equipment-assembly': { heading: 'Fitness equipment assembly planning', terms: ['fitness equipment assembly service', 'gym equipment assembly', 'treadmill assembly', 'elliptical assembly', 'squat rack assembly', 'home gyms'] },
   'office-furniture-assembly': { heading: 'Office furniture assembly planning', terms: ['office furniture assembly service', 'installation', 'standing desk assembly', 'conference table assembly', 'workstation setups'] },
-  'playset-assembly': { heading: 'Playset and outdoor assembly planning', terms: ['playset assembly service', 'playset installation', 'swing set assembly', 'trampoline assembly', 'playground assembly', 'gazebo', 'shed assembly', 'outdoor furniture assembly'] },
+  'playset-assembly': { heading: 'Playset and outdoor assembly planning', topics: [
+    ['kit identification', /\b(?:model|product|kit)\b/i],
+    ['playsets and trampolines', /\bplaysets?\b[\s\S]*\btrampolines?\b|\btrampolines?\b[\s\S]*\bplaysets?\b/i],
+    ['gazebos', /\bgazebos?\b/i],
+    ['footprint or clearance', /\b(?:dimensions|footprint|clearance\w*)\b/i],
+    ['surface or anchoring', /\b(?:surface|base|anchor\w*)\b/i],
+    ['access or site preparation', /\b(?:access|gate|site|preparation)\b/i],
+  ] },
 };
 const SERVICE_PAGE_RE = new RegExp(`^(${SERVICE_PREFIXES.join('|')})-([a-z-]+)-tx\\.html$`);
 // mobile/ is the Easer app project (Capacitor); excluded from deploys by .vercelignore, not a public page.

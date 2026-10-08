@@ -5,6 +5,7 @@ import { broadcastFooter, unsubscribeUrl } from '../api/_broadcast.js';
 import { isReminderDue } from '../api/_announcements.js';
 import { governedSend, describeGovernedRun } from '../api/_send-governor.js';
 import { normalizeEmail } from '../api/_broadcast.js';
+import { cleanAcquisitionAttribution } from '../api/_attribution.js';
 
 // Execute the real cron/handler bodies with isolated in-memory persistence and
 // provider doubles. No environment file, network, live DB, or message is used.
@@ -280,23 +281,61 @@ for (const failedChannel of ['email', 'push']) {
 {
   const { createHash } = await import('node:crypto');
   const messages = [];
+  const inquiryLogs = [];
   let failOwner = true;
+  let failLog = false;
+  let ownerSuppressed = false;
   const { handler } = await loadHandler('api/business-inquiry.js', {
     createHash, ownerEmail: () => 'owner@example.com', escapeHtml: esc,
     rateLimit: async () => true, normalizeUsPhone: value => value, formatUsPhone: value => value,
     upsertContact: async () => null, addNote: async () => {},
-    sendEmail: async message => { messages.push(message); return { ok: message.meta.recipientType === 'owner' ? !failOwner : false }; },
+    cleanAcquisitionAttribution, getSupabase: () => ({ from(table) {
+      assert.equal(table, 'activity_logs');
+      return { async upsert(event, options) {
+        assert.deepEqual(options, { onConflict: 'id', ignoreDuplicates: true });
+        if (failLog) return { error: { message: 'log unavailable' } };
+        if (!inquiryLogs.some(row => row.id === event.id)) inquiryLogs.push(structuredClone(event));
+        return { error: null };
+      } };
+    } }),
+    sendEmail: async message => { messages.push(message); return { ok: message.meta.recipientType === 'owner' ? !failOwner : false, suppressed: message.meta.recipientType === 'owner' && ownerSuppressed }; },
   });
-  const req = { method: 'POST', headers: {}, body: { name: 'Casey', email: 'casey@example.com', company: 'Example', type: 'Office assembly', details: 'Two desks' } };
+  const req = { method: 'POST', headers: {}, body: { name: 'Casey', email: 'casey@example.com', company: 'Example', type: 'Office assembly', details: 'Two desks', attribution: { utmSource: 'partner', utmMedium: 'referral', utmCampaign: 'austin_partners_oct2026', utmContent: 'example-store', utmTerm: 'casey@example.com' } } };
   const first = response(); await handler(req, first);
   assert.equal(first.statusCode, 503);
   assert.equal(messages.length, 1);
+  assert.equal(inquiryLogs.length, 0, 'failed intake is not recorded as a received business inquiry');
   failOwner = false;
   const second = response(); await handler(req, second);
   assert.equal(second.statusCode, 200);
   assert.equal(first.body.ref, second.body.ref, 'identical same-day retry keeps its reference');
   assert.equal(messages[0].meta.notificationKey, messages[1].meta.notificationKey);
   assert.equal(messages[2].meta.notificationType, 'business_inquiry_received');
+  assert.equal(inquiryLogs.length, 1);
+  assert.equal(inquiryLogs[0].event_type, 'business_inquiry_received');
+  assert.equal(inquiryLogs[0].metadata.inquiryRef, second.body.ref);
+  assert.equal(inquiryLogs[0].metadata.attribution.channel, 'referral');
+  assert.equal(inquiryLogs[0].metadata.attribution.utmContent, 'example-store');
+  assert.equal(JSON.stringify(inquiryLogs[0]).includes('casey@example.com'), false);
+  assert.match(messages[1].html, /partner \/ referral/);
+  ownerSuppressed = true;
+  const duplicate = response(); await handler(req, duplicate);
+  assert.equal(duplicate.statusCode, 200);
+  assert.equal(inquiryLogs.length, 1, 'a suppressed owner notification does not duplicate a received lead');
+  ownerSuppressed = false; failLog = true;
+  const missingLog = response(); await handler(req, missingLog);
+  assert.equal(missingLog.statusCode, 200, 'measurement failure cannot lose an already received inquiry');
+  inquiryLogs.length = 0;
+  const failedFirstLog = response(); await handler(req, failedFirstLog);
+  assert.equal(failedFirstLog.statusCode, 200);
+  assert.equal(inquiryLogs.length, 0, 'a returned database error is not a successful log');
+  failLog = false; ownerSuppressed = true;
+  await Promise.all([handler(req, response()), handler(req, response())]);
+  assert.equal(inquiryLogs.length, 1, 'suppressed email retries repair a missing log without duplicate leads');
+  assert.equal(inquiryLogs[0].metadata.evidenceCapturedOnRetry, true);
+  const firstEvidence = JSON.stringify(inquiryLogs[0]);
+  await handler({ ...req, body: { ...req.body, attribution: { utmSource: 'google', utmMedium: 'organic' } } }, response());
+  assert.equal(JSON.stringify(inquiryLogs[0]), firstEvidence, 'later retry must never replace existing acquisition evidence');
 }
 
 // Conditions can change during quiet hours or channel spacing. The worker

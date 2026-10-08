@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { pathToFileURL } from 'node:url';
 import { buildPublicCookieConsentBlock } from './lib/public-consent.mjs';
 import { buildPublicFooterBlock } from './lib/public-footer.mjs';
 import { buildPublicNavBlock } from './lib/public-nav.mjs';
@@ -216,11 +217,15 @@ const posts = [
     alt: 'Customer reviewing home setup details before booking',
     serviceUrl: '/book',
     cta: 'Book a Pro',
+    relatedLinks: [
+      { href: '/furniture-assembly-austin-tx', label: 'Austin furniture assembly items and pricing' },
+      { href: '/tv-mounting-austin-tx', label: 'Austin TV mounting scope and preparation' },
+    ],
     description: 'A short decision blog for time, tools, risk, and home setup jobs worth hiring out.',
     metaDescription: 'Decide whether to DIY or hire home setup help in Austin by comparing safety, tools, time, lifting, wall attachment, and the cost of mistakes.',
     paragraphs: [
-      'DIY is fine when the risk is low. Hiring makes more sense when the job involves heavy lifting, wall mounting, hidden studs, fragile furniture, electrical setup, or anything that gets expensive if it fails later.',
-      'AssembleAtEase is built for those jobs that are too annoying or risky to wrestle with alone. You keep control of the booking while a prepared Easer handles the setup.'
+      'Start with the exact item and its instructions. A small table, a storage bed, a modular wardrobe, and a wall-mounted TV need different tools, handling, and preparation. The right choice depends on your experience, available help, and the finished result you need.',
+      'Use this guide to decide whether to assemble it yourself, book setup help, or ask for a custom quote. General home repairs, damaged furniture, missing parts, and new electrical work need their own scope check; do not assume a standard assembly booking includes them.'
     ],
   },
   {
@@ -499,6 +504,7 @@ const contentBySlug = {
   },
   'why-hire-handyman-austin': {
     published: '2026-04-15',
+    modified: '2026-10-07',
     quickAnswer: 'Hiring help makes sense when the cost of a mistake, missing tools, heavy lifting, wall attachment, or lost time is higher than the service price. DIY remains reasonable for low-risk work that matches your tools, experience, and available time.',
     sections: [
       {
@@ -510,13 +516,18 @@ const contentBySlug = {
         paragraphs: ['A small, stable item with clear instructions and common tools may be a reasonable DIY project. Stop when parts do not align, hardware is missing, the wall condition is uncertain, or the task moves outside your experience. Forcing a step often creates damage that is harder to correct later.'],
       },
       {
+        title: 'Match the decision to the item',
+        bullets: ['Small table or nightstand: compare the instructions and tool list with what you already have, and allow clear space for the build.', 'Bed or dresser: count drawers, storage components, and packages; check whether lifting or wall attachment needs additional help.', 'Modular wardrobe: identify every frame, door, drawer, and interior fitting, plus ceiling clearance and manufacturer anchoring requirements.', 'TV or wall-mounted storage: check property permission and the intended surface before arranging installation.', 'Partly assembled or damaged item: describe its condition and send photos for a scope check instead of choosing a new-build service by appearance alone.'],
+      },
+      {
         title: 'What professional help should clarify',
-        paragraphs: ['Before confirming, the service should identify the items, add-ons, customer total, timing expectations, and what happens next. The professional should receive enough job detail to arrive prepared, while the customer should know when assignment and appointment status are actually confirmed.'],
+        paragraphs: ['Compare the complete scope: exact models and quantities, final rooms, stairs or loading access, required wall attachment, and any handling beyond assembly. Keep item purchase and delivery separate from the assembly service. The booking total should reflect all selected work before you confirm.', 'If several items are arriving for an Austin move-in, schedule after the complete delivery and share building access instructions. Check the booking status for appointment confirmation before depending on the visit. Current item prices and service details are linked below so you can compare a specific job with the time and equipment it would take to do it yourself.'],
       },
     ],
   },
   'tv-mounting-tips-austin': {
     published: '2026-04-20',
+    modified: '2026-10-07',
     quickAnswer: 'Choose the viewing position first, then confirm the wall, mount, power, and cable path. The best-looking height is not automatically the safest or most comfortable height for every room.',
     sections: [
       {
@@ -530,6 +541,11 @@ const contentBySlug = {
       {
         title: 'Plan cords before the screen goes up',
         paragraphs: ['Choose between visible cords, a surface cable cover, or a code-appropriate in-wall option. Power cords should not be hidden inside a wall unless the product and installation method are specifically approved for that use. New outlets or permanent wiring may require a licensed electrician.'],
+      },
+      {
+        title: 'Have the booking details ready',
+        bullets: ['TV and mount model numbers, screen size, and the mount hardware you already have.', 'A wide wall photo that shows the intended position, nearby outlets, fireplace if present, and media furniture.', 'Known wall material and any property restrictions; say when the wall construction is unknown.', 'Each soundbar, shelf, extra screen, or cable-finish option you want included.', 'Floor, stairs, gate instructions, parking, and any reserved elevator time.'],
+        paragraphs: ['For multiple TVs, match each screen to its room and mount. Share uncertain details before the visit rather than guessing at the installation type. Keep a clear work area and the product instructions ready. The service page below separates the available work and pricing; the apartment guide covers rental permission and move-out planning.'],
       },
     ],
   },
@@ -559,12 +575,31 @@ const contentBySlug = {
 
 const bySlug = new Map(posts.map((post) => [post.slug, post]));
 
-for (const post of posts) {
-  const path = join(blogDir, `${post.slug}.html`);
-  writeFileSync(path, renderPost(post), 'utf8');
+if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
+  const selected = process.argv.slice(2).filter((arg) => arg.startsWith('--post=')).map((arg) => arg.slice(7));
+  if (selected.some((slug) => !bySlug.has(slug))) throw new Error('Unknown selected blog post');
+  for (const post of posts.filter((entry) => !selected.length || selected.includes(entry.slug))) {
+    const path = join(blogDir, `${post.slug}.html`);
+    const html = process.argv.includes('--content-only') ? refreshPostContent(readFileSync(path, 'utf8'), post.slug) : renderPost(post);
+    writeFileSync(path, html, 'utf8');
+  }
+  if (!selected.length) writeFileSync(join(blogDir, 'index.html'), renderIndex(posts), 'utf8');
 }
 
-writeFileSync(join(blogDir, 'index.html'), renderIndex(posts), 'utf8');
+// Keep approved nav/footer/scripts when refreshing an existing article.
+// Render the article, its dates and structured data from the canonical post data.
+export function refreshPostContent(html, slug) {
+  const post = bySlug.get(slug);
+  if (!post) throw new Error(`Unknown blog post: ${slug}`);
+  const fresh = renderPost(post);
+  for (const pattern of [/<main id="main-content">[\s\S]*?<\/main>/, /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
+    /<meta property="article:modified_time"[^>]*>/]) {
+    const replacement = fresh.match(pattern)?.[0];
+    if (!replacement || !pattern.test(html)) throw new Error(`Missing article block: ${slug}`);
+    html = html.replace(pattern, () => replacement);
+  }
+  return html;
+}
 
 function renderPost(post) {
   const canonical = `${SITE}/blog/${post.slug}`;
@@ -586,7 +621,8 @@ function renderPost(post) {
   const articleWords = [post.description, ...post.paragraphs, content.quickAnswer, ...content.sections.flatMap((section) => [...(section.paragraphs || []), ...(section.bullets || [])])].join(' ');
   const readTime = Math.max(3, Math.ceil(wordCount(articleWords) / 225));
   const publishedLabel = formatDate(content.published);
-  const modifiedLabel = formatDate(MODIFIED_DATE);
+  const modifiedDate = content.modified || MODIFIED_DATE;
+  const modifiedLabel = formatDate(modifiedDate);
   const locationNote = post.slug.includes('austin')
     ? 'This guide focuses on Austin, Texas. The planning principles apply broadly, but local pricing, property rules, and service availability can differ. Enter the service address to confirm current availability.'
     : 'This planning guide can be used in any market. Service availability and pricing are confirmed for the service address before an appointment is assigned.';
@@ -600,7 +636,7 @@ function renderPost(post) {
         description: metaDescription,
         url: canonical,
         datePublished: content.published,
-        dateModified: MODIFIED_DATE,
+        dateModified: modifiedDate,
         author: { '@type': 'Organization', name: 'AssembleAtEase Editorial Team', url: `${SITE}/about` },
         publisher: {
           '@type': 'Organization',
@@ -643,7 +679,7 @@ function renderPost(post) {
 <meta property="og:image" content="${SITE}${post.image}"/>
 <meta property="og:image:alt" content="${esc(post.alt)}"/>
 <meta property="article:published_time" content="${content.published}"/>
-<meta property="article:modified_time" content="${MODIFIED_DATE}"/>
+<meta property="article:modified_time" content="${modifiedDate}"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${esc(post.title)}"/>
 <meta name="twitter:description" content="${esc(metaDescription)}"/>
@@ -666,7 +702,7 @@ ${nav()}<main id="main-content">
       <span class="guide-meta">${esc(post.tag)}</span>
       <h1 class="page-title">${esc(post.title)}</h1>
       <p class="page-desc">${esc(post.description)}</p>
-      <p class="blog-byline">By AssembleAtEase Editorial Team <span aria-hidden="true">&middot;</span> Updated <time datetime="${MODIFIED_DATE}">${modifiedLabel}</time> <span aria-hidden="true">&middot;</span> ${readTime} min read</p>
+      <p class="blog-byline">By AssembleAtEase Editorial Team <span aria-hidden="true">&middot;</span> Updated <time datetime="${modifiedDate}">${modifiedLabel}</time> <span aria-hidden="true">&middot;</span> ${readTime} min read</p>
     </div>
     <img class="blog-hero-image" src="${post.image}" alt="${esc(post.alt)}" width="640" height="440" loading="eager"/>
   </section>

@@ -3,6 +3,8 @@ import { rateLimit } from './_ratelimit.js';
 import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 import { sendEmail, ownerEmail, esc as escapeHtml } from './_email.js';
 import { createHash } from 'node:crypto';
+import { cleanAcquisitionAttribution } from './_attribution.js';
+import { getSupabase } from './_supabase.js';
 
 const esc = value => escapeHtml(String(value || ''));
 
@@ -22,7 +24,8 @@ export default async function handler(req, res) {
     if (!await rateLimit(ip, 'default')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
   } catch (rlErr) { /* fail open if Redis down */ }
 
-  const { name, company, email, phone, location, timeline, type, frequency, details } = req.body || {};
+  const { name, company, email, phone, location, timeline, type, frequency, details, attribution } = req.body || {};
+  const acquisition = cleanAcquisitionAttribution(attribution);
   const rawPhone = typeof phone === 'string' ? phone.trim() : '';
   const cleanPhone = rawPhone ? normalizeUsPhone(rawPhone) : null;
   if (!name || !company || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !type || !details) {
@@ -65,6 +68,9 @@ export default async function handler(req, res) {
       ${row('Type of work', type)}
       ${row('Frequency', frequency)}
       ${row('Timeline', timeline)}
+      ${row('Recorded source', acquisition.source + ' / ' + acquisition.channel)}
+      ${row('Campaign', acquisition.utmCampaign)}
+      ${row('Partner / link', acquisition.utmContent)}
     </table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:18px"><tr><td style="padding:16px 18px">
       <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Project Details</p>
@@ -117,6 +123,22 @@ export default async function handler(req, res) {
       return res.status(503).json({ error: 'Your request could not be sent yet. Please try again shortly.', ref });
     }
 
+    // Reuse the existing primary key for this inquiry, including suppressed
+    // email retries. ON CONFLICT DO NOTHING preserves the first evidence and
+    // prevents concurrent retries from creating duplicate received leads.
+    try {
+      const digest = createHash('sha256').update('business_inquiry_received:' + ref).digest('hex');
+      const logId = `${digest.slice(0, 8)}-${digest.slice(8, 12)}-8${digest.slice(13, 16)}-a${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
+      const { error } = await getSupabase().from('activity_logs').upsert({
+        id: logId, booking_id: null, event_type: 'business_inquiry_received',
+        actor_type: 'customer', description: 'Business inquiry received.',
+        metadata: { inquiryRef: ref, attribution: acquisition, evidenceCapturedOnRetry: ownerResp.suppressed === true },
+      }, { onConflict: 'id', ignoreDuplicates: true });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Business inquiry attribution reporting incomplete; source remains in the owner email. Retry can repair the missing record.', error?.message);
+    }
+
     // Partnership-grade auto-response to the business (non-blocking on failure)
     const bizResp = await sendEmail({
         from: 'AssembleAtEase <contact@assembleatease.com>',
@@ -143,7 +165,10 @@ export default async function handler(req, res) {
             `Frequency: ${esc(frequency || 'n/a')}`,
             `Timeline: ${esc(timeline || 'n/a')}`,
             `Location: ${esc(location || 'n/a')}`,
+            `Recorded source: ${esc(acquisition.source)} / ${esc(acquisition.channel)}`,
           ];
+          if (acquisition.utmCampaign) noteLines.push(`Campaign: ${esc(acquisition.utmCampaign)}`);
+          if (acquisition.utmContent) noteLines.push(`Partner / link: ${esc(acquisition.utmContent)}`);
           if (displayPhone) noteLines.push(`Phone: ${esc(displayPhone)}`);
           noteLines.push('', esc(details));
           await addNote({ contactId, body: noteLines.join('<br>') });

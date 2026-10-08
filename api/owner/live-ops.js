@@ -11,6 +11,7 @@ import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
 import { chicagoTodayIso, appointmentTimestampMs } from '../booking/_appt-date.js';
+import { arrivalFollowUp } from '../booking/_arrival-follow-up.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
 import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
 import { isBrowserExtensionNoise } from '../_runtime-noise.js';
@@ -203,7 +204,7 @@ export default async function handler(req, res) {
   const thirtyMinAgo = new Date(now - 30 * 60 * 1000).toISOString();
   const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
 
-  const bookingProjection = 'id, ref, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, authorization_capture_before, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, damage_review_status, damage_claim_opened_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
+  const bookingProjection = 'id, ref, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, service_zip, service_city, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, authorization_capture_before, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_method_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, damage_review_status, damage_claim_opened_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
   const [bookingsRes, financialHoldsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes, damageReportsRes, customerThreadRes] = await Promise.all([
     sb.from('bookings')
       .select(bookingProjection)
@@ -395,7 +396,7 @@ export default async function handler(req, res) {
     b.assembler_id
     && !b.assembler_accepted_at
     && b.status === 'confirmed'
-    && (isBookingPaymentReadyForDispatch(b) || isOwnerManualOfflineBooking(b))
+    && (isBookingPaymentReadyForDispatch(b, { allowSavedCard: true }) || isOwnerManualOfflineBooking(b))
   );
 
   const enRoute = operationalBookings.filter(b => b.status === 'en_route');
@@ -692,8 +693,8 @@ export default async function handler(req, res) {
       severity: 'high',
       ref: b.ref,
       bookingId: b.id,
-      message: `${b.service} — max attempts reached, manual assignment needed`,
-      action: 'dispatch',
+      message: `${b.service} — owner assignment needed; review service-area coverage and dispatch history`,
+      action: 'review_timeline',
     });
   });
 
@@ -708,6 +709,21 @@ export default async function handler(req, res) {
       bookingId: b.id,
       message: `${b.assembler_name || 'Easer'} hasn't accepted ${b.ref} — ${Math.round(age)}min since assigned`,
       action: 'reassign',
+    });
+  });
+
+  // Use the same threshold and appointment timezone as the owner alert cron.
+  // Visibility must not depend on successful email delivery or imply a no-show.
+  operationalBookings.forEach(b => {
+    const followUp = arrivalFollowUp(b, now_ts);
+    if (!followUp) return;
+    alerts.push({
+      type: 'arrival_follow_up',
+      severity: 'high',
+      ref: b.ref,
+      bookingId: b.id,
+      message: `${b.ref} — ${b.assembler_name || 'Easer'} accepted, but arrival has not been recorded ${followUp.minutesLate} minutes past the appointment start. Contact the Easer and customer to verify status before reassigning.`,
+      action: 'review_timeline',
     });
   });
 
@@ -726,7 +742,7 @@ export default async function handler(req, res) {
     message: isOwnerManualOfflineBooking(b)
       ? `TODAY: ${b.service} at ${operationalTime(b) || 'TBD'} — owner-Easer assignment is still required`
       : `TODAY: ${b.service} at ${operationalTime(b) || 'TBD'} — no Easer assigned`,
-    action: isOwnerManualOfflineBooking(b) ? 'review_timeline' : 'dispatch',
+    action: (b.needs_manual_dispatch || isOwnerManualOfflineBooking(b)) ? 'review_timeline' : 'dispatch',
   }));
 
   // Incomplete standard card authorizations older than 1hr
@@ -852,7 +868,7 @@ export default async function handler(req, res) {
       severity: 'high',
       ref: b.ref,
       bookingId: b.id,
-      message: `${b.ref} — scheduled card verification is due. Dispatch remains paused until Stripe confirms authorization.`,
+      message: `${b.ref} — scheduled card authorization is due. Review the authorization result before the appointment.`,
       action: 'review_timeline',
     }));
 

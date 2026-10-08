@@ -29,6 +29,7 @@
   <script src="/assets/js/job-duration.js" defer></script>
   <script src="/owner/assets/cases.js" defer></script>
   <script src="/owner/assets/voice-calls.js" defer></script>
+  <script src="/owner/assets/acquisition.js" defer></script>
   <script src="/owner/assets/partners.js" defer></script>
   <script src="/owner/assets/messages.js" defer></script>
   <link rel="stylesheet" href="/owner/assets/owner.css" />
@@ -436,8 +437,9 @@
                   <button id="msg-target-customer" onclick="setMsgTarget('customer')" style="min-height:44px;padding:8px 12px;border-radius:99px;border:1.5px solid var(--teal);background:var(--teal);color:#fff;font-size:0.76rem;font-weight:600;cursor:pointer;touch-action:manipulation">Customer</button>
                   <button id="msg-target-assembler" onclick="setMsgTarget('assembler')" style="min-height:44px;padding:8px 12px;border-radius:99px;border:1.5px solid #7c3aed;background:none;color:#7c3aed;font-size:0.76rem;font-weight:600;cursor:pointer;touch-action:manipulation">Easer</button>
                 </div>
+                <p id="msg-route-help" style="margin:0 0 0.65rem;font-size:0.78rem;line-height:1.5;color:var(--muted)">Messages sent here are saved in this booking. Customers are notified by email; Easers can also receive push notifications. Tracking-page replies appear here. Direct email replies go to the owner mailbox. Customer read status is not shown.</p>
                 <div class="msg-compose">
-                  <textarea class="msg-input" id="msg-input" placeholder="Message customer..." rows="4" style="border-color:var(--teal)"></textarea>
+                  <textarea class="msg-input" id="msg-input" placeholder="Message customer..." aria-describedby="msg-route-help" rows="4" style="border-color:var(--teal)"></textarea>
                   <button class="btn" id="msg-send" style="background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600;white-space:nowrap">Send to Customer</button>
                 </div>
               </div>
@@ -507,6 +509,21 @@
       <!-- ─── MARKET DEMAND VIEW ─── -->
       <div id="market-demand-view" style="display:none">
         <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Online booking is active across Texas. Central Texas can use automatic dispatch; other Texas bookings require owner-managed Easer assignment. Markets outside Texas remain demand collection only.</p>
+        <section style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem" aria-labelledby="acquisition-heading">
+          <h2 id="acquisition-heading" style="font-size:1rem;margin:0 0 0.6rem">Acquisition and completed jobs</h2>
+          <p style="font-size:0.8rem;color:var(--muted);line-height:1.5">Original source evidence stays separate from job status. Unknown sources are not counted as organic. Dates select when bookings were created; outcomes and recorded payments reflect the latest snapshot.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:0.7rem;align-items:center;margin:0.8rem 0">
+            <label for="acquisition-period">Bookings created</label>
+            <select id="acquisition-period" style="font:inherit;max-width:100%;padding:0.4rem"><option value="28">Last 28 complete days</option><option value="90" selected>Last 90 complete days</option><option value="all">All time</option></select>
+            <button type="button" class="btn" id="acquisition-refresh">Refresh acquisition report</button>
+          </div>
+          <p id="acquisition-status" role="status" style="font-size:0.78rem;color:var(--muted)">Report has not loaded.</p>
+          <div id="acquisition-report"></div>
+          <details style="margin-top:0.8rem;font-size:0.8rem"><summary>Exclude owner testing from website analytics</summary>
+            <label style="display:block;margin:0.6rem 0"><input type="checkbox" id="acquisition-internal"> Exclude this browser from website analytics</label>
+            <p id="acquisition-internal-status" role="status">Applies to subsequent public-page loads in this browser. Booking and payment records remain unchanged.</p>
+          </details>
+        </section>
         <div class="stats-row" id="md-stats-row">
           <div class="stat teal"><div class="stat-value" id="md-active">—</div><div class="stat-label">Demand Signals</div></div>
           <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Recorded Bookings</div></div>
@@ -5047,7 +5064,8 @@ window.intelQuick = intelQuick;
       }
     }
     if (b.status === 'confirmed' && b.payment_status === 'card_saved') {
-      notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Future appointment:</strong> the customer card is saved with no charge or hold. Authorization runs five days before the visit; dispatch remains paused until Stripe confirms it.</div>');
+      var savedCardStaffing = b.assembler_id ? (b.assembler_accepted_at ? ' The assigned Easer has accepted.' : ' An Easer is assigned; acceptance is still pending.') : ' An Easer can be assigned through this booking.';
+      notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Future appointment:</strong> the customer card is saved with no charge or hold. Authorization is scheduled closer to the visit.' + savedCardStaffing + ' Follow the existing payment-ready checks before travel.</div>');
     }
     if (b.status === 'pending') {
       // A pending booking is not paid. Keep quote, authorization, and failed
@@ -7200,7 +7218,7 @@ window.intelQuick = intelQuick;
       pending: 'No payment authorization or charge is confirmed',
       failed: 'Authorization failed; customer can retry securely',
       card_saved: booking && booking.status === 'confirmed'
-        ? 'Card saved; authorization scheduled five days before the appointment'
+        ? 'Card saved; authorization scheduled closer to the appointment'
         : 'Card saved for an owner-priced quote; no charge captured',
       authorized: (usesKlarna ? 'Klarna' : 'Card') + ' authorization confirmed; funds not captured yet',
       captured: 'Customer payment captured by Stripe',
@@ -8027,7 +8045,7 @@ window.intelQuick = intelQuick;
           var _stateColors = { active_offers: '#8b5cf6', offers_expired: '#ea580c', needs_manual: '#dc2626', owner_manual_assignment: '#dc2626', owner_manual_reconciliation: '#d97706' };
           var label = _stateLabels[b._dispatchState] || (b.dispatch_offered_at ? 'Offer sent' : 'No Easer yet');
           var badgeColor = _stateColors[b._dispatchState] || (b.dispatch_offered_at ? '#ea580c' : '#dc2626');
-          var isOwnerManual = ['owner_manual_assignment','owner_manual_reconciliation'].includes(b._dispatchState);
+          var isOwnerManual = ['needs_manual','owner_manual_assignment','owner_manual_reconciliation'].includes(b._dispatchState);
           var action = isOwnerManual ? 'review_timeline' : 'dispatch';
           var actionLabel = isOwnerManual ? 'Open Booking' : 'Dispatch Now';
           var actionClass = isOwnerManual ? 'btn' : 'btn btn-teal';
@@ -9722,6 +9740,7 @@ window.intelQuick = intelQuick;
   function startMarketDemand() {
     stopMarketDemand();
     loadMarketDemand();
+    if (window.OwnerAcquisition) window.OwnerAcquisition.load();
     _marketDemandTimer = setInterval(function() {
       if (currentView === 'market-demand' && ownerSessionToken && !document.hidden) loadMarketDemand();
     }, 30000);

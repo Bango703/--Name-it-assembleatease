@@ -12,10 +12,11 @@
 //   node scripts/apply-flagship-cities.mjs            # all cities except Austin
 //   node scripts/apply-flagship-cities.mjs dallas houston   # only these
 //   node scripts/apply-flagship-cities.mjs houston --service=furniture-assembly
+//   Add --content-only to refresh reviewed planning/FAQ copy without replacing the page layout.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { selectServices, applyFlagshipToPage, assertVisibleStartPrice } from './build-flagship-service-pages.mjs';
+import { selectServices, applyFlagshipToPage, applyServiceGuideToPage, assertVisibleStartPrice } from './build-flagship-service-pages.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -63,7 +64,7 @@ function locationLinksFor(city) {
 
 const args = process.argv.slice(2);
 const selectedServices = selectServices(args);
-const requested = new Set(args.filter((arg) => !arg.startsWith('--service=')).map((s) => s.toLowerCase()));
+const requested = new Set(args.filter((arg) => !arg.startsWith('--service=') && arg !== '--content-only').map((s) => s.toLowerCase()));
 // Austin is owned by build-flagship-service-pages.mjs; never transform it here.
 const targets = CITIES.filter((c) => c.slug !== 'austin' && (!requested.size || requested.has(c.slug)));
 
@@ -75,6 +76,7 @@ for (const cfg of selectedServices) assertVisibleStartPrice(cfg);
 
 let built = 0;
 let missing = 0;
+const pages = [];
 for (const city of targets) {
   const locationLinks = locationLinksFor(city);
   const ctx = {
@@ -89,9 +91,14 @@ for (const city of targets) {
   for (const cfg of selectedServices) {
     const file = join(ROOT, `${cfg.prefix}-${city.slug}-tx.html`);
     if (!existsSync(file)) { missing += 1; console.warn(`  skip (missing): ${cfg.prefix}-${city.slug}-tx.html`); continue; }
-    const html = applyFlagshipToPage(readFileSync(file, 'utf8'), cfg, ctx);
-    writeFileSync(file, html);
-    built += 1;
+    const refresh = args.includes('--content-only') ? applyServiceGuideToPage : applyFlagshipToPage;
+    const html = refresh(readFileSync(file, 'utf8'), cfg, ctx);
+    pages.push({ file, html });
   }
+}
+// Fail on an unreviewed guide before writing a partial set of selected pages.
+for (const { file, html } of pages) {
+  writeFileSync(file, html);
+  built += 1;
 }
 console.log(`Done: ${built} pages across ${targets.length} cities${missing ? ` (${missing} missing files skipped)` : ''}.`);
