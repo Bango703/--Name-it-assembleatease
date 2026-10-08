@@ -1,19 +1,10 @@
 #!/usr/bin/env node
 // One loader owns Google measurement. Nothing else may load the tag.
 //
-// THE DRIFT. assets/js/cookie-consent.js is the single place that declares
-// Consent Mode defaults and then loads gtag — unconditionally, on every page, so
-// a visitor who ignores the banner still produces cookieless pings and is not
-// silently invisible. The auto-blog cron template had grown its own inline
-// copy that instead fired ONLY when localStorage already said 'accepted',
-// declared no consent defaults at all, and shipped no banner. A first-time
-// visitor on a generated post therefore could never consent, sent nothing, and
-// lost the Google click id.
-//
-// All 18 blog posts currently on disk are fine — they use the shared script. The
-// bug was latent: the next post the cron generated would have regressed. That is
-// exactly the class of failure a guard exists to stop, because nothing about it
-// is visible until months of ad spend have already been mismeasured.
+// Shared consent owns both the banner and all optional tag loading. Templates
+// must not introduce independent loaders or bypass the published opt-in promise.
+// No choice, decline and GPC remain unmeasured; behavioral coverage lives in
+// test-organic-measurement.mjs.
 //
 // Article 2 (one source of truth) and Article 3 (no duplicate domain logic).
 
@@ -56,7 +47,7 @@ if (offenders.length) {
   console.log('  PASS  only ' + OWNER + ' loads the Google tag');
 }
 
-// The owner must keep the properties that make denied-by-default measurable.
+// Defense-in-depth defaults remain denied even after explicit tag opt-in.
 const owner = await readFile(join(ROOT, OWNER), 'utf8');
 
 const required = [
@@ -82,11 +73,12 @@ else {
   if (!failures) console.log('  PASS  all four consent signals default to denied');
 }
 
-// The tag must load regardless of consent, or denied-mode pings never happen.
-if (/loadMeasurement\(\);\s*\n\s*if \(storedConsent === 'accepted'\)/.test(owner)) {
-  console.log('  PASS  the tag loads before the stored-consent branch');
+// The shared loader must never load optional tags before an accepted choice.
+if (/function loadMeasurement\(\) \{\s*if \(!analyticsAllowed\(\)\) return;/.test(owner)
+    && !/loadMeasurement\(\);\s*\n\s*if \(storedConsent === 'accepted'\)/.test(owner)) {
+  console.log('  PASS  optional tag loading requires accepted consent');
 } else {
-  fail('the tag no longer loads unconditionally — a visitor who ignores the banner would send nothing');
+  fail('the tag loader must require accepted consent and honor decline/GPC');
 }
 
 console.log('');

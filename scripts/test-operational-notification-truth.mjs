@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import * as appointments from '../api/booking/_appt-date.js';
+import * as arrivalFollowUp from '../api/booking/_arrival-follow-up.js';
 import { BOOKING_STATUS } from '../api/_source-of-truth.js';
 import { notificationDeliveryKey } from '../api/_notification-policy.js';
 
@@ -72,6 +73,7 @@ function harness(name, booking = fixture(), options = {}) {
     notificationDeliveryKey,
     formatAddress: () => 'Austin, TX', formatUsPhone: value => value,
     ...appointments,
+    ...arrivalFollowUp,
     notificationAppointmentTimestampMs: appointments.notificationAppointmentTimestampMs || (b => appointments.appointmentTimestampMs(b.date, b.time)),
     appointmentTimeZone: appointments.appointmentTimeZone || (() => 'America/Chicago'),
     logActivity: async (_sb, event) => { calls.activity.push(event); return { ok: true }; },

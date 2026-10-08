@@ -1,7 +1,8 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { BOOKING_STATUS, isAutomaticDispatchZip } from '../_source-of-truth.js';
+import { parseServiceLocation } from '../_booking-location.js';
 
 /**
  * POST /api/booking/release-assignment — owner only.
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error: bErr } = await sb
     .from('bookings')
-    .select('id, ref, service, date, time, status, assembler_id, assembler_name, assigned_at, assembler_accepted_at, dispatch_status, financial_operation_key, financial_operation_type, financial_operation_started_at')
+    .select('id, ref, service, date, time, address, service_zip, status, assembler_id, assembler_name, assigned_at, assembler_accepted_at, assignment_token, dispatch_token, dispatch_status, dispatch_paused, financial_operation_key, financial_operation_type, financial_operation_started_at')
     .eq('id', bookingId)
     .single();
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
@@ -63,6 +64,8 @@ export default async function handler(req, res) {
 
   const previousEaserId = booking.assembler_id;
   const previousEaserName = booking.assembler_name || 'the assigned Easer';
+  const serviceZip = parseServiceLocation({ zip: booking.service_zip, address: booking.address }).zip;
+  const needsManualDispatch = !isAutomaticDispatchZip(serviceZip);
 
   // Compare-and-set against the exact assignment we just read. If the Easer
   // accepts in this window the guard fails and nothing is released.
@@ -73,23 +76,34 @@ export default async function handler(req, res) {
       assembler_name: null,
       assigned_at: null,
       assembler_accepted_at: null,
+      assignment_token: null,
+      dispatch_token: null,
       dispatch_status: null,
       // MUST clear the pause. api/booking/assign.js sets dispatch_paused = true
       // when an Easer is assigned, so auto-dispatch does not compete for a job
       // that already has someone. Clearing assembler_id without clearing this
       // left the booking unassigned AND paused: Smart Dispatch then refused with
       // "Dispatch is paused on this booking" — a pause the owner never set and
-      // could not see. Releasing a job means it is dispatchable again.
+      // could not see. Restore dispatch within the market's existing coverage.
       dispatch_paused: false,
-      needs_manual_dispatch: false,
+      // Assignment temporarily clears this flag. Restore the canonical market
+      // gate when releasing it; an owner assignment is not coverage expansion.
+      needs_manual_dispatch: needsManualDispatch,
     })
     .eq('id', booking.id)
     .eq('assembler_id', previousEaserId)
     .eq('status', BOOKING_STATUS.CONFIRMED)
-    .is('assembler_accepted_at', null);
-  releaseQuery = booking.assigned_at == null
-    ? releaseQuery.is('assigned_at', null)
-    : releaseQuery.eq('assigned_at', booking.assigned_at);
+    .is('assembler_accepted_at', null)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null);
+  // Pin every assignment/schedule/location input used above. An acceptance,
+  // replacement token, payment operation or reschedule after the read wins.
+  for (const field of ['assigned_at', 'assignment_token', 'dispatch_token', 'dispatch_status', 'dispatch_paused', 'date', 'time', 'service_zip', 'address']) {
+    releaseQuery = booking[field] == null
+      ? releaseQuery.is(field, null)
+      : releaseQuery.eq(field, booking[field]);
+  }
 
   const { data: released, error: releaseErr } = await releaseQuery.select('id');
   if (releaseErr) {
@@ -123,6 +137,7 @@ export default async function handler(req, res) {
     ok: true,
     released: true,
     previousEaserName,
-    message: `Released from ${previousEaserName}. The booking is unassigned and ready to dispatch or assign.`,
+    needsManualDispatch,
+    message: `Released from ${previousEaserName}. The booking is unassigned and ${needsManualDispatch ? 'needs owner assignment for this service area' : 'ready to dispatch or assign'}.`,
   });
 }

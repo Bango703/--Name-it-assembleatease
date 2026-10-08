@@ -179,7 +179,7 @@ const [bookHtml, bookingApi, setupApi, cronApi, ownerApi, marketApi, attribution
 assert.match(bookHtml, /30-day window/);
 assert.match(bookHtml, /purpose: isScheduledAuthorization \? 'future_booking' : 'quote_booking'/);
 assert.match(bookHtml, /booking_completed/);
-assert.match(bookHtml, /attribution: BOOKING_ATTRIBUTION/);
+assert.match(bookHtml, /attribution: captureBookingAttribution\(\)/, 'booking submission must recheck consent instead of reusing stale attribution');
 assert.match(bookingApi, /payment_status: scheduledAuthorization \? 'card_saved'/);
 assert.match(bookingApi, /dispatch_paused: scheduledAuthorization/);
 assert.match(setupApi, /FUTURE_BOOKING_SETUP_NOT_ALLOWED/);
