@@ -32,10 +32,11 @@ function nativeSandbox(path) {
   const opened = [];
   const listeners = {};
   let wentBack = 0;
+  let replaced = null;
   const sandbox = {
     URL,
     window: {
-      location: { href: 'https://www.assembleatease.com' + path, origin: 'https://www.assembleatease.com', replace() {} },
+      location: { href: 'https://www.assembleatease.com' + path, origin: 'https://www.assembleatease.com', replace(path) { replaced = path; } },
       history: { length: 2, back() { wentBack++; } },
       Capacitor: { isNativePlatform: () => true, getPlatform: () => 'ios', Plugins: { AppLauncher: { openUrl: (o) => { opened.push(o.url); return Promise.resolve(); } } } },
     },
@@ -43,12 +44,13 @@ function nativeSandbox(path) {
     fetch: () => Promise.resolve({ ok: true }),
   };
   vm.runInNewContext(read('assets/js/native-app.js'), sandbox);
-  return { opened, listeners, wentBack: () => wentBack };
+  return { opened, listeners, wentBack: () => wentBack, replaced: () => replaced };
 }
 {
   const s = nativeSandbox('/assembler/apply');
   assert.deepEqual(s.opened, ['https://www.assembleatease.com/assembler/apply'], 'landing on the application inside the app opens it in Safari');
-  assert.equal(s.wentBack(), 1, 'and the app steps back instead of showing the payment form');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(s.replaced(), '/app', 'successful browser handoff returns to the shared app home');
 }
 {
   const s = nativeSandbox('/auth/login');
@@ -154,7 +156,7 @@ assert.match(reg, /\.eq\('token', token\)\.eq\('user_id', authed\.user\.id\)/, '
 
 const cap = JSON.parse(read('mobile/capacitor.config.json'));
 assert.equal(cap.appId, 'com.assembleatease.easer');
-assert.equal(cap.server.url, 'https://www.assembleatease.com/assembler/my-assignments', 'the app opens the live Easer pages, so web fixes reach the app without a store update');
+assert.equal(cap.server.url, 'https://www.assembleatease.com/app', 'the app starts with the Customer and Easer entry points');
 assert.equal(cap.server.errorPath, 'offline.html');
 assert.ok(existsSync('mobile/www/offline.html'));
 const plist = read('mobile/ios/App/App/Info.plist');

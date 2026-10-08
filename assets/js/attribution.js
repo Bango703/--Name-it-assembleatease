@@ -7,6 +7,9 @@
     try { sessionStorage.removeItem(STORAGE_KEY); sessionStorage.removeItem('aaeBookingAttribution'); } catch (e) {}
   }
   function acquisitionAllowed() {
+    // This module can run before cookie-consent.js on application pages.
+    var cap = window.Capacitor;
+    if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) return false;
     if (navigator.globalPrivacyControl === true) return false;
     if (window.AAEAnalytics && window.AAEAnalytics.hasConsent) return window.AAEAnalytics.hasConsent();
     try { return localStorage.getItem('cookie-consent') === 'accepted' && localStorage.getItem('aae-analytics-internal') !== '1'; } catch (e) { return false; }

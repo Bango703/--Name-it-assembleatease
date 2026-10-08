@@ -1,0 +1,25 @@
+/* Entry and navigation for the shared Customer / Easer app. No global overrides. */
+.app-entry { min-height:100dvh; padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem max(1.5rem, env(safe-area-inset-bottom)); }
+.app-entry-brand { display:flex; align-items:center; justify-content:center; gap:.75rem; font-family:var(--font-display); font-size:1.4rem; margin:0 auto 2rem; }
+.app-entry-brand img { border-radius:12px; }
+.app-entry-main { max-width:520px; margin:0 auto; }
+.app-entry-main h1 { font-family:var(--font-display); font-weight:400; font-size:clamp(1.9rem,7vw,2.5rem); line-height:1.2; }
+.app-entry-intro { margin:.65rem 0 1.5rem; color:var(--ink-soft); }
+.app-entry-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-xl); padding:1.4rem; margin-bottom:1rem; }
+.app-entry-card h2 { font-family:var(--font-display); font-size:1.5rem; font-weight:400; margin-bottom:.5rem; }
+.app-entry-card p { color:var(--ink-soft); font-size:.95rem; margin-bottom:1.1rem; }
+.app-entry-primary,.app-entry-secondary { display:flex; justify-content:center; align-items:center; min-height:48px; padding:.65rem 1rem; border-radius:var(--radius-md); text-decoration:none; font-weight:600; text-align:center; }
+.app-entry-primary { background:var(--accent); color:var(--ink); margin-bottom:.65rem; border:1px solid var(--accent); }
+.app-entry-secondary { background:var(--off-white); border:1px solid var(--border); color:var(--ink); }
+.app-entry-text-link { display:block; text-align:center; padding:.75rem .5rem 0; color:var(--ink-soft); text-underline-offset:3px; }
+.app-entry-help { text-align:center; color:var(--ink-soft); font-size:.9rem; margin:1.5rem 0; }
+.app-entry-help a,.app-entry-footer a { color:var(--ink); text-underline-offset:3px; }
+.app-entry-footer { display:flex; justify-content:center; flex-wrap:wrap; gap:1.5rem; font-size:.85rem; }
+.app-entry a:focus-visible,.aae-native-nav a:focus-visible,.aae-native-nav button:focus-visible { outline:3px solid var(--accent, #00BFFF); outline-offset:3px; }
+/* Static placement preserves each page's own fixed header, modal and bottom actions. */
+.aae-native-nav { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.4rem; padding:.35rem max(.75rem, env(safe-area-inset-left)); background:var(--off-white, #f8fafc); border-bottom:1px solid var(--border, #e2e8f0); font:500 14px/1.4 system-ui,sans-serif; }
+.aae-native-nav a,.aae-native-nav button { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:.5rem .75rem; border:0; border-radius:8px; background:transparent; color:var(--ink, #0d1117); font:inherit; text-decoration:none; cursor:pointer; }
+.aae-native-nav [hidden] { display:none; }
+.aae-native-link-error { flex-basis:100%; margin:0; padding:.5rem .75rem; color:var(--ink, #0d1117); }
+
+.aae-native-nav[hidden] { display:none; }

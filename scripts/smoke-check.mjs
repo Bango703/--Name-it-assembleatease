@@ -487,7 +487,9 @@ if (!robots.includes('Allow: /assembler/apply') || !robots.includes('Disallow: /
 // not customer-facing pages: holding one to the meta-description/canonical/og
 // contract fails the whole gate over a file no visitor can reach. Anything that
 // IS public and underscore-named would still be caught here via sitemapFiles.
-const isInternalHtml = (name) => name.startsWith('_');
+// The noindex native route selector has no marketing tags or cookie UI; its
+// separate contract is enforced by test-native-routes.mjs.
+const isInternalHtml = (name) => name.startsWith('_') || name === 'app.html';
 
 const publicHtmlFiles = [
   ...readdirSync('.').filter((name) => name.endsWith('.html') && !isInternalHtml(name)),

@@ -555,13 +555,20 @@ const APP = {
 
 window.APP = APP;
 
-// True only inside the installed Easer app (App Store / Google Play), where
+// True only inside the installed AssembleAtEase app (App Store / Google Play), where
 // Capacitor provides native push. The website never has window.Capacitor, so
 // every branch guarded by this is a no-op on the web.
 window.AAE_isNativeApp = function () {
   try { return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()); }
   catch (_) { return false; }
 };
+
+// Auth and Easer pages share this loader. It never adds a script on the website.
+if (window.AAE_isNativeApp() && !window.__aaeNativeBridgeReady && !document.querySelector('script[src*="/native-app.js"]')) {
+  const nativeBridge = document.createElement('script');
+  nativeBridge.src = '/assets/js/native-app.js?v=20261008a';
+  document.head.appendChild(nativeBridge);
+}
 
 // ── Footer year — runs on every page ──────────────────────
 document.addEventListener('DOMContentLoaded', () => {
