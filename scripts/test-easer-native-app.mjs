@@ -64,7 +64,8 @@ assert.match(store, /"evidenceType": "completion_photo"/);
 assert.match(store, /evidenceUploaded/, 'a retried completion does not upload the photo twice');
 assert.match(swift['EaserModels.swift'], /\["requested", "reviewing", "completed"\]/, 'same closure hold as the web dashboard');
 assert.match(read('assembler/index.html'), /\['requested', 'reviewing', 'completed'\]\.includes\(currentClosureStatus\)/);
-assert.doesNotMatch(all, /\* ?0\.(3|7|25|75)\b|platformFee|feePct/, 'the app never computes pay; it shows the server estimate');
+assert.doesNotMatch(all, /\* ?0\.(3|7|25|75)\b|platformFee|platform_fee|getPlatformFeePct/, 'the app never computes pay; it shows the server estimate');
+assert.doesNotMatch(all, /(grossCents|netCents|feeCents)\s*[-+*/]\s*[A-Za-z(]/, 'instant payout amounts are shown as the server priced them, never recalculated');
 
 // ── 5. Photo limits are the server's ─────────────────────────────────────────
 assert.match(swift['EaserSupport.swift'], new RegExp(`maxEdgePixels: CGFloat = ${IMAGE_MAX_EDGE_PX}\\b`));
@@ -131,6 +132,25 @@ const logoAsset = readFileSync(`${APP}/Assets.xcassets/AAELogo.imageset/AAELogo.
 assert.ok(logoAsset.equals(readFileSync('images/logo.jpg')), 'the in-app logo is the real AAE logo file');
 assert.match(swift['EaserSupport.swift'], /Image\("AAELogo"\)/);
 assert.doesNotMatch(all, /wrench\.and\.screwdriver/, 'no stand-in symbol where the logo belongs');
+
+// ── 8c. Account, profile and payouts ────────────────────────────────────────
+const webFields = read('assets/js/app.js').match(/EASER_BOOTSTRAP_PROFILE_FIELDS = \[([\s\S]*?)\]/)[1].match(/'([a-z_]+)'/g).map(f => f.replace(/'/g, ''));
+const appFields = swift['EaserAPI.swift'].match(/name: "select", value: "([^"]+)"/)[1].split(',');
+for (const field of appFields) assert.ok(webFields.includes(field), `profile column ${field} is one the website already reads (an unreadable column would break sign-in)`);
+assert.match(swift['EaserAPI.swift'], /email: \(user\["email"\] as\? String\)/, 'email comes from the sign-in response');
+assert.match(swift['EaserAPI.swift'], /auth\/v1\/recover[\s\S]*\/auth\/set-password/, 'password reset returns to the same page as the website');
+const payoutsPage = read('assembler/payouts.html');
+const webMethods = [...payoutsPage.matchAll(/<option value="([a-z]+)">([^<]+)<\/option>/g)].map(m => [m[1], m[2]]);
+const appMethods = [...store.matchAll(/PayoutMethod\(value: "([a-z]+)", label: "([^"]+)"\)/g)].map(m => [m[1], m[2]]);
+assert.deepEqual(appMethods, webMethods, 'payout methods are the website\'s list');
+assert.match(store, /"acknowledgedFeeCents": Int\(quote\.feeCents\.rounded\(\)\)/, 'instant payout sends the fee the Easer was shown');
+assert.match(swift['EaserModels.swift'], /instantAvailable"\) \?\? false\) && \(c\.bool\("eligible"\)/, 'instant payout shown only when the server says it can be sent');
+const smsApi = read('api/assembler/sms-preference.js');
+for (const field of ['enabled', 'hasPhone', 'optedOut']) assert.ok(smsApi.includes(field) && swift['EaserModels.swift'].includes(`"${field}"`), `text alert ${field}`);
+assert.match(swift['EaserViews.swift'], /guard online else \{ return "Paused while you're offline" \}/, 'job alerts never claim to be on while the Easer is offline');
+assert.doesNotMatch(all, /opens in Safari/, 'no mechanics in customer- or Easer-facing copy');
+assert.match(swift['EaserModels.swift'], /case "starter": return "Starter Pro"/);
+assert.match(profilePage, /starter: 'Starter Pro'/, 'level labels match the website');
 
 // ── 8. The website is untouched by the app build ─────────────────────────────
 assert.equal(JSON.parse(read('mobile/capacitor.config.json')).server.url, 'https://www.assembleatease.com/app', 'Android keeps its existing shell; iOS no longer reads this');

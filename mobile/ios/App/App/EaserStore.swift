@@ -44,6 +44,12 @@ final class EaserStore: ObservableObject {
     @Published var busyJobs: Set<String> = []
     @Published var availabilityBusy = false
     @Published var alertsAuthorized: Bool?
+    @Published var textAlerts: TextAlerts?
+    @Published var reviews: [EaserReview] = []
+    @Published var connect: ConnectStatus?
+    @Published var payoutsProblem: String?
+    @Published var instantQuote: InstantQuote?
+    @Published var payoutPreference = ""
 
     let api = EaserAPI()
     private let location = OneTimeLocation()
@@ -343,6 +349,135 @@ final class EaserStore: ObservableObject {
             banner = Banner(text: error.localizedDescription, kind: .problem)
             return false
         }
+    }
+
+    // MARK: Profile and account
+
+    var email: String? { api.session?.email }
+
+    /// Text alerts and reviews, loaded when the Easer opens their profile.
+    func loadProfileExtras() async {
+        async let texts = capture { try await self.api.get("/api/assembler/sms-preference", as: TextAlerts.self) }
+        async let mine = capture { try await self.api.get("/api/assembler/reviews", as: ReviewsEnvelope.self) }
+        let (t, r) = await (texts, mine)
+        if case .success(let value) = t { textAlerts = value }
+        if case .success(let value) = r { reviews = value.reviews }
+    }
+
+    /// Text consent is recorded by the server when the Easer asks for it (TCPA).
+    func setTextAlerts(_ on: Bool) async {
+        do {
+            let data = try await api.call("POST", "/api/assembler/sms-preference", body: ["enabled": on])
+            textAlerts = try? JSONDecoder().decode(TextAlerts.self, from: data)
+            banner = Banner(text: on ? "Job texts are on." : "Job texts are off.", kind: .success)
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+        }
+    }
+
+    /// Saves only what changed. The server decides which fields may change.
+    func saveDetails(fullName: String, phone: String, city: String, state: String, zip: String) async -> Bool {
+        guard let me = profile else { return false }
+        var updates: [String: Any] = [:]
+        func clean(_ value: String) -> String { value.trimmingCharacters(in: .whitespacesAndNewlines) }
+        if clean(phone) != (me.phone ?? "") { updates["phone"] = clean(phone) }
+        if !me.identityVerified {
+            if clean(fullName) != (me.fullName ?? "") { updates["full_name"] = clean(fullName) }
+            if clean(city) != (me.city ?? "") { updates["city"] = clean(city) }
+            if clean(state) != (me.state ?? "") { updates["state"] = clean(state) }
+            if clean(zip) != (me.zip ?? "") { updates["zip"] = clean(zip) }
+        }
+        guard !updates.isEmpty else { return true }
+        do {
+            try await api.updateDetails(updates)
+            profile = try await api.profile()
+            banner = Banner(text: "Profile saved.", kind: .success)
+            return true
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+            return false
+        }
+    }
+
+    func sendPasswordReset() async {
+        guard let email else {
+            banner = Banner(text: "Use Forgot password on the sign-in screen.", kind: .problem)
+            return
+        }
+        do {
+            try await api.sendPasswordReset(to: email)
+            banner = Banner(text: "Check \(email) for a link to set a new password.", kind: .success)
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+        }
+    }
+
+    // MARK: Payouts
+
+    /// Bank payout setup, instant payout and the manual payout preference.
+    func loadPayouts(afterStripe: Bool = false) async {
+        do {
+            let status = try await api.get("/api/assembler/connect-status" + (afterStripe ? "?refresh=true" : ""), as: ConnectStatus.self)
+            connect = status
+            payoutsProblem = nil
+            if status.enabled {
+                let data = try? await api.call("POST", "/api/assembler/instant-payout", body: ["action": "quote"])
+                instantQuote = data.flatMap { try? JSONDecoder().decode(InstantQuote.self, from: $0) }
+            } else {
+                instantQuote = nil
+                if let saved = try? await api.get("/api/assembler/payout-preference", as: PayoutPreference.self) {
+                    payoutPreference = saved.preference
+                }
+            }
+        } catch {
+            connect = nil
+            payoutsProblem = "Payout setup could not be loaded. Pull down to try again."
+        }
+    }
+
+    struct PayoutMethod: Hashable { let value: String; let label: String }
+
+    /// The website's list (assembler/payouts.html).
+    static let payoutMethods: [PayoutMethod] = [
+        PayoutMethod(value: "ach", label: "ACH bank transfer"),
+        PayoutMethod(value: "zelle", label: "Zelle"),
+        PayoutMethod(value: "paypal", label: "PayPal"),
+        PayoutMethod(value: "check", label: "Check"),
+    ]
+
+    func savePayoutPreference(_ value: String) async {
+        do {
+            _ = try await api.call("POST", "/api/assembler/payout-preference", body: ["preference": value])
+            payoutPreference = value
+            banner = Banner(text: "Preferred payout method saved. AssembleAtEase will confirm the payment details with you.", kind: .success)
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+        }
+    }
+
+    /// Stripe's own pages for bank details. Returns the link to open, or nil after showing why not.
+    func payoutSetupLink(manage: Bool) async -> URL? {
+        do {
+            let data = try await api.call("POST", manage ? "/api/assembler/connect-login" : "/api/assembler/connect-link")
+            if let url = try JSONDecoder().decode(LinkEnvelope.self, from: data).url { return url }
+            banner = Banner(text: "Payout setup could not be opened. Try again.", kind: .problem)
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+        }
+        return nil
+    }
+
+    /// Sends the instant payout at the fee the Easer was shown; the server refuses a changed fee.
+    func sendInstantPayout(_ quote: InstantQuote) async {
+        do {
+            let data = try await api.call("POST", "/api/assembler/instant-payout", body: ["action": "payout", "acknowledgedFeeCents": Int(quote.feeCents.rounded())])
+            let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            banner = Banner(text: (json?["message"] as? String) ?? "Your payout is on its way.", kind: .success)
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+        }
+        await loadPayouts()
+        await refresh()
     }
 
     // MARK: Inbox and messages
