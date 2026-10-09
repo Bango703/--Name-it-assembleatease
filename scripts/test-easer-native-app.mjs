@@ -166,6 +166,10 @@ assert.doesNotMatch(swift['EaserViews.swift'], /Open Account to see what is need
 assert.match(store, /func payText\(for job: EaserJob\)[\s\S]*earning\(for: job\)/, 'finished jobs show the recorded earning, not "Pay to be confirmed"');
 assert.match(assignments, /status === BOOKING_STATUS\.COMPLETED && !b\._return_visit_open\) return;/, 'the server sends no estimate for completed jobs');
 
+// ── 8e. Speed: each part of the screen shows when its data arrives ────────────
+assert.match(store, /withTaskGroup\(of: LoadedPart\.self\)/, 'screens load progressively');
+assert.match(store, /for await part in group/, 'results are applied as they arrive, not after the slowest one');
+
 // ── 8. The website is untouched by the app build ─────────────────────────────
 assert.equal(JSON.parse(read('mobile/capacitor.config.json')).server.url, 'https://www.assembleatease.com/app', 'Android keeps its existing shell; iOS no longer reads this');
 
