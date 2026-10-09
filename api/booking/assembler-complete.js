@@ -19,7 +19,7 @@ import { finalizeCompletionRewards, surfaceCompletionRewardHold } from './_compl
 import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { captureOrRecoverBookingPayment } from './_stripe-booking-payment.js';
 import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
-import { isOwnerManualLiveFlow } from '../_owner-easer.js';
+import { isOwnerManualLiveFlow, isDemoTestLiveFlow } from '../_owner-easer.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -66,7 +66,11 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'You are not assigned to this booking' });
   }
   const operationKey = `complete:${booking.id}`;
-  const offlineOwnerEaserLiveFlow = isOwnerManualLiveFlow(booking, profile);
+  // A demo (App Review) Easer on an offline test booking completes like the
+  // owner-Easer, with no payout obligation (see completeOfflineOwnerManualBooking).
+  const demoTestJob = !isOwnerManualLiveFlow(booking, profile)
+    && await isDemoTestLiveFlow(sb, booking, user.id);
+  const offlineOwnerEaserLiveFlow = isOwnerManualLiveFlow(booking, profile) || demoTestJob;
   if (booking.status === BOOKING_STATUS.COMPLETED) {
     if (offlineOwnerEaserLiveFlow) {
       return res.status(200).json({
@@ -146,6 +150,7 @@ export default async function handler(req, res) {
       user,
       completionEvidence,
       operationKey,
+      demoTestJob,
     });
   }
 
@@ -576,6 +581,7 @@ async function completeOfflineOwnerManualBooking(sb, res, {
   user,
   completionEvidence,
   operationKey,
+  demoTestJob = false,
 }) {
   const totalCents = Number(booking.total_price || 0);
   if (!(totalCents > 0)) {
@@ -643,10 +649,11 @@ async function completeOfflineOwnerManualBooking(sb, res, {
     platform_fee_pct: split.feePct,
     platform_fee: split.platformFeeCents,
     assembler_due: split.assemblerDueCents,
-    payout_status: split.assemblerDueCents > 0 ? 'pending' : null,
+    // A demo test job shows its earnings to the reviewer but owes nobody anything.
+    payout_status: split.assemblerDueCents > 0 && !demoTestJob ? 'pending' : null,
     // Offline customer funds are outside the platform Stripe balance. Even when
     // Connect is enabled for online work, this payout must be recorded manually.
-    payout_mode_snapshot: split.assemblerDueCents > 0 ? 'manual' : null,
+    payout_mode_snapshot: split.assemblerDueCents > 0 && !demoTestJob ? 'manual' : null,
     payout_review_status: 'not_required',
     // Processing fee for how the customer paid this offline job (0 for cash/bank
     // rails, the card rate for card rails) — one rule, from _offline-payment.js.

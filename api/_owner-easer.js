@@ -12,6 +12,8 @@
 // enforced independently at the database level by migration 042's assignment
 // trigger — this module keeps the API gates in lockstep with that trigger.
 
+import { isDemoEaser } from './_demo-accounts.js';
+
 export const OWNER_MANUAL_SOURCE = 'owner_manual';
 
 export function isOwnerManualBooking(booking = {}) {
@@ -32,4 +34,27 @@ export function isOwnerEaserProfile(profile = {}) {
 // guarded by this — never by source or is_owner alone.
 export function isOwnerManualLiveFlow(booking, profile) {
   return isOwnerManualOfflineBooking(booking) && isOwnerEaserProfile(profile);
+}
+
+// The second, equally narrow exception: a DEMO Easer account (App Store review,
+// profiles.is_demo_account) working an offline booking the owner marked as a
+// TEST booking. It lets a reviewer run the whole job flow without any customer,
+// card or Stripe money existing:
+//
+//   * the booking is an offline owner-manual job (source + payment lane above), AND
+//   * the booking is marked is_test_booking = true, AND
+//   * the Easer is a demo account (read with its own query, api/_demo-accounts.js).
+//
+// A real booking can never be a test booking with a demo Easer on it: dispatch,
+// assign, crew and accept all refuse that (demoBookingBlock), and migration 107
+// refuses it in the database. Completion records no payout for it.
+export async function isDemoTestLiveFlow(sb, booking, easerId) {
+  if (!isOwnerManualOfflineBooking(booking) || booking?.is_test_booking !== true) return false;
+  return isDemoEaser(sb, easerId);
+}
+
+/** Owner-Easer or demo-test live flow: the only cases that skip the card gates. */
+export async function isOfflineLiveFlow(sb, booking, profile) {
+  if (isOwnerManualLiveFlow(booking, profile)) return true;
+  return isDemoTestLiveFlow(sb, booking, profile?.id);
 }

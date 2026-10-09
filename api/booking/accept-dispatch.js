@@ -11,7 +11,7 @@ import { getEaserReadiness, publicReadinessError, publicMissingItems } from '../
 import { isLegacyAssignmentTokenFresh } from './_dispatch-safety.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
-import { isOwnerManualLiveFlow } from '../_owner-easer.js';
+import { isOfflineLiveFlow } from '../_owner-easer.js';
 import { demoBookingBlock, isDemoEaser } from '../_demo-accounts.js';
 
 const SITE = 'https://www.assembleatease.com';
@@ -367,7 +367,7 @@ export default async function handler(req, res) {
   if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'This booking is no longer available' });
   // Exception: the owner's own Easer account accepting the offline job it was
   // assigned to (payment collected offline). Everyone else needs verified payment.
-  const ownerEaserLiveManual = isOwnerManualLiveFlow(booking, actorProfile)
+  const ownerEaserLiveManual = await isOfflineLiveFlow(sb, booking, actorProfile)
     && booking.assembler_id === assemblerId;
 
   const isDispatch   = booking.dispatch_token && booking.dispatch_token === token;

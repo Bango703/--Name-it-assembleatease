@@ -15,7 +15,8 @@ import {
   computeBookingSplitFromSnapshot,
   SALES_TAX_RATE,
 } from '../_source-of-truth.js';
-import { isOwnerManualLiveFlow } from '../_owner-easer.js';
+import { isOwnerManualLiveFlow, isOwnerManualOfflineBooking } from '../_owner-easer.js';
+import { isDemoEaser } from '../_demo-accounts.js';
 import { loadCrew } from './_crew.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 import { evaluateCustomerContactRelease, maskCustomerNameForEaser } from './_customer-contact-release.js';
@@ -251,7 +252,7 @@ export default async function handler(req, res) {
   // ── 1. Bookings assigned to this Easer ──────────────────────────────────
   let query = sb
     .from('bookings')
-    .select('id, ref, source, service, customer_name, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, easer_bonus_cents, easer_bonus_reason, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, expected_bank_arrival_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, same_day_fee_cents, same_day_easer_bonus_cents');
+    .select('id, ref, source, service, customer_name, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, easer_bonus_cents, easer_bonus_reason, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, expected_bank_arrival_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, same_day_fee_cents, same_day_easer_bonus_cents, is_test_booking');
 
   query = crewBookingIds.length
     ? query.or(`assembler_id.eq.${user.id},id.in.(${crewBookingIds.join(',')})`)
@@ -394,10 +395,15 @@ export default async function handler(req, res) {
 
   // ── 3. Merge and add pay estimates ──────────────────────────────────────
   const allBookings = [...offerBookings, ...(assignedBookings || [])];
+  // Looked up only when this Easer holds an offline test booking (App Review).
+  const easerIsDemo = allBookings.some(b => isOwnerManualOfflineBooking(b) && b.is_test_booking === true)
+    ? await isDemoEaser(sb, user.id)
+    : false;
   allBookings.forEach(booking => {
     booking._return_visit_open = booking.status === BOOKING_STATUS.COMPLETED
       && booking.return_visit_required === true;
-    booking._can_self_drop = !isOwnerManualLiveFlow(booking, easerProfile);
+    booking._can_self_drop = !isOwnerManualLiveFlow(booking, easerProfile)
+      && !(easerIsDemo && isOwnerManualOfflineBooking(booking) && booking.is_test_booking === true);
     const appointmentDate = booking.return_visit_required ? booking.return_visit_date : booking.date;
     const appointmentTime = booking.return_visit_required ? booking.return_visit_time : booking.time;
     booking._stage_availability = Object.fromEntries(EASER_JOB_STAGES.map(stage => {

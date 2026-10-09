@@ -2,6 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { normalizeAssemblerProfile } from '../_assembler-state.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
+import { loadDemoEaserIds } from '../_demo-accounts.js';
 
 /**
  * GET /api/booking/assemblers
@@ -28,6 +29,9 @@ export default async function handler(req, res) {
 
   const assemblers = [];
   let ownerEaser = null;
+  // Demo (App Review) accounts are labelled so the dashboard offers them only on
+  // test bookings. Its own query: a failure means no demo accounts are labelled.
+  const demoIds = await loadDemoEaserIds(sb);
   for (const profile of data || []) {
     const normalized = normalizeAssemblerProfile(profile);
     const readiness = await getEaserReadiness(normalized);
@@ -61,6 +65,7 @@ export default async function handler(req, res) {
       is_available: normalized.is_available,
       identity_verified: normalized.identity_verified,
       is_owner: normalized.is_owner === true,
+      is_demo_account: demoIds.has(normalized.id),
     });
   }
 

@@ -16,7 +16,7 @@ import {
 } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { guestManageUrl } from '../_payment-security.js';
-import { isOwnerManualLiveFlow } from '../_owner-easer.js';
+import { isOfflineLiveFlow } from '../_owner-easer.js';
 
 const STAGES = {
   [EASER_STAGE.EN_ROUTE]:    { status: BOOKING_STATUS.EN_ROUTE,    field: 'en_route_at',    label: 'On the way' },
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
   // Exception: the owner working the live flow on their own offline job. The
   // payment is collected offline by the owner, so there is no Stripe hold to
   // clear. booking.assembler_id === user.id is already proven above.
-  const ownerEaserLiveManual = isOwnerManualLiveFlow(booking, profile);
+  const ownerEaserLiveManual = await isOfflineLiveFlow(sb, booking, profile);
   if (!ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking)) {
     return res.status(409).json({
       error: 'This job is temporarily on hold. Do not travel to or start it until the status changes.',

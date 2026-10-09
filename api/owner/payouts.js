@@ -34,7 +34,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to load payout data' });
   }
 
-  const earningsRows = (finance.rows || []).filter(r => r.assemblerId);
+  // Test bookings (including App Review demo jobs) owe nobody anything, as on
+  // every other owner money panel.
+  const earningsRows = (finance.rows || []).filter(r => r.assemblerId && r.isTestBooking !== true);
 
   // Aggregate per Easer
   const byEaser = {};

@@ -14,7 +14,7 @@ import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
 import { verifyOwnerManualCustomerFundsForPayout } from '../owner/_manual-payment-truth.js';
-import { isOwnerManualLiveFlow } from '../_owner-easer.js';
+import { isOwnerManualLiveFlow, isDemoTestLiveFlow } from '../_owner-easer.js';
 import { demoBookingBlock, isDemoEaser } from '../_demo-accounts.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -163,7 +163,9 @@ export default async function handler(req, res) {
   // booking — the customer's payment is collected by the owner offline, so the
   // Stripe payment gate does not apply. Everyone else, and every online booking,
   // still requires verified payment before assignment.
-  const ownerEaserLiveManual = ownerManualConfirmed && ownerEaserManual;
+  // The owner-Easer, or a demo (App Review) Easer on an offline TEST booking.
+  const ownerEaserLiveManual = ownerManualConfirmed
+    && (ownerEaserManual || await isDemoTestLiveFlow(sb, booking, assemblerId));
   if (!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual) {
     // Say WHICH payment and WHY. The old message named neither, and an owner
     // assigning a payout-ready pro read it as the PRO's payment setup.
