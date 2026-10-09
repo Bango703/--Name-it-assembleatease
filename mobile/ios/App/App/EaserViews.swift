@@ -293,7 +293,9 @@ private struct TodayView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    AvailabilityCard()
+                    // Until setup is done the server refuses to put an Easer online,
+                    // so the switch is not offered; the steps come first.
+                    if !store.needsSetup { AvailabilityCard() }
                     SetupCard()
                     if let problem = store.loadProblem, store.jobs.isEmpty, !store.jobsLocked {
                         NoticeCard(icon: "wifi.exclamationmark", title: "Jobs could not be loaded", text: problem)
@@ -378,15 +380,18 @@ private struct AvailabilityCard: View {
 
 /// Shown only when a real step blocks job offers. Every step is done inside the
 /// app; only Stripe's identity check opens Stripe's own page.
+extension EaserStore {
+    /// A step still blocks job offers (the server's readiness verdict).
+    var needsSetup: Bool { jobsLocked || readiness?.isReady == false }
+}
+
 private struct SetupCard: View {
     @EnvironmentObject private var store: EaserStore
     @Environment(\.openURL) private var openURL
     @State private var signing = false
     @State private var startingVerification = false
 
-    private var needsSetup: Bool {
-        store.jobsLocked || store.readiness?.isReady == false
-    }
+    private var needsSetup: Bool { store.needsSetup }
 
     /// Items the three steps below do not already cover, in the server's words.
     private var otherItems: [String] {
@@ -1462,7 +1467,7 @@ private struct AccountView: View {
 
     /// Job alerts reach an Easer only while they are online, so the row says so.
     private var alertStatus: String {
-        guard online else { return "Paused while you're offline" }
+        guard online else { return "Paused" }
         switch store.alertsAuthorized {
         case .some(true): return "On"
         case .some(false): return "Off"
@@ -1478,7 +1483,10 @@ private struct AccountView: View {
                         Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 64)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(store.profile?.fullName ?? "Easer").font(.headline)
-                            if let email = store.email { Text(email).font(.subheadline).foregroundStyle(.secondary) }
+                            if let email = store.email {
+                                Text(email).font(.subheadline).foregroundStyle(.secondary)
+                                    .lineLimit(1).truncationMode(.middle)
+                            }
                             Text(store.profile?.levelLabel ?? "Easer").font(.caption.weight(.semibold)).foregroundStyle(Brand.skyDark)
                         }
                     }
@@ -1490,9 +1498,10 @@ private struct AccountView: View {
                         get: { online },
                         set: { value in Task { await store.setAvailable(value) } }
                     ))
-                    .disabled(store.availabilityBusy || store.profile?.closureHeld == true)
+                    .disabled(store.availabilityBusy || store.profile?.closureHeld == true || store.needsSetup)
                 } footer: {
-                    Text(online ? "New job offers can reach you." : "You won't get job offers until you go online.")
+                    Text(store.needsSetup ? "Available once setup on the Today tab is finished."
+                         : online ? "New job offers can reach you." : "You won't get job offers until you go online.")
                 }
 
                 Section {

@@ -161,7 +161,7 @@ assert.match(store, /"acknowledgedFeeCents": Int\(quote\.feeCents\.rounded\(\)\)
 assert.match(swift['EaserModels.swift'], /instantAvailable"\) \?\? false\) && \(c\.bool\("eligible"\)/, 'instant payout shown only when the server says it can be sent');
 const smsApi = read('api/assembler/sms-preference.js');
 for (const field of ['enabled', 'hasPhone', 'optedOut']) assert.ok(smsApi.includes(field) && swift['EaserModels.swift'].includes(`"${field}"`), `text alert ${field}`);
-assert.match(swift['EaserViews.swift'], /guard online else \{ return "Paused while you're offline" \}/, 'job alerts never claim to be on while the Easer is offline');
+assert.match(swift['EaserViews.swift'], /guard online else \{ return "Paused" \}/, 'job alerts never claim to be on while the Easer is offline');
 assert.doesNotMatch(all, /opens in Safari/, 'no mechanics in customer- or Easer-facing copy');
 assert.match(swift['EaserModels.swift'], /case "starter": return "Starter Pro"/);
 assert.match(profilePage, /starter: 'Starter Pro'/, 'level labels match the website');
@@ -200,6 +200,8 @@ for (const sentence of [
   assert.ok(verifyPage.replace(/<[^>]+>/g, '').includes(sentence) && swift['EaserViews.swift'].includes(sentence), `consent wording matches the website: ${sentence}`);
 }
 assert.doesNotMatch(all, /Site\.page\("\/assembler\/verify-identity"\)/, 'identity check starts from the app session, not a signed-out web page');
+assert.match(swift['EaserViews.swift'], /if !store\.needsSetup \{ AvailabilityCard\(\) \}/, 'no online switch the server would refuse while setup is unfinished');
+assert.match(swift['EaserViews.swift'], /store\.profile\?\.closureHeld == true \|\| store\.needsSetup\)/, 'Account availability is disabled until setup is done');
 assert.doesNotMatch(swift['EaserViews.swift'], /Button\("Finish setup"\)/, 'no setup button that sends a signed-in Easer to a signed-out browser');
 assert.match(store, /status == 403[\s\S]{0,80}jobsLocked = true/, 'an account not approved yet is a status, not "Jobs could not be loaded"');
 assert.match(store, /if jobsLocked \|\| readiness\?\.isReady == false/, 'approved Easers never call the onboarding endpoint');

@@ -5,7 +5,7 @@ import {
 } from '../_easer-access.js';
 
 const NOTIFICATION_COPY = {
-  approval: ['Account approved', 'Your account is ready for the next required setup step.'],
+  approval: ['Account approved', "You're approved. Finish any remaining setup steps to start getting jobs."],
   assignment_confirmation: ['Job scheduled', 'A job has been added to your schedule.'],
   dispatch_offer: ['New job offer', 'A new job offer is ready for you to review.'],
   easer_work_available: ['Work available', 'New work may be available in your service area.'],
