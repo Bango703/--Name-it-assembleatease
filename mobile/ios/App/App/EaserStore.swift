@@ -31,6 +31,9 @@ struct Banner: Identifiable, Equatable {
 
 @MainActor
 final class EaserStore: ObservableObject {
+    /// Counts closings of the in-app browser, so a screen that sent the Easer to
+    /// Stripe can ask the server for the result the moment they come back.
+    @Published var browserCloses = 0
     enum Phase { case launching, signedOut, signedIn }
 
     @Published var phase: Phase = .launching

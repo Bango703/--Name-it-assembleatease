@@ -20,7 +20,16 @@ const all = Object.values(swift).join('\n');
 
 // ── 1. Native, Easer-only, not the website ───────────────────────────────────
 assert.match(swift['SceneDelegate.swift'], /UIHostingController\(rootView: EaserRootView\(\)\)/, 'the app opens native screens');
-assert.doesNotMatch(all, /CAPBridgeViewController|WKWebView|SFSafariViewController/, 'no web view is the interface');
+assert.doesNotMatch(all, /CAPBridgeViewController|WKWebView/, 'no web view is the interface');
+// Documents and Stripe pages open in Apple's in-app browser sheet, never as the
+// app's own screens and never by sending the Easer out to the Safari app.
+for (const [file, text] of Object.entries(swift)) {
+  if (file !== 'EaserSupport.swift') assert.doesNotMatch(text, /SFSafariViewController/, `${file}: web pages go through InAppBrowser only`);
+}
+assert.match(swift['EaserSupport.swift'], /enum InAppBrowser[\s\S]*SFSafariViewController\(url: url\)/, 'one in-app browser');
+assert.match(swift['EaserSupport.swift'], /scheme == "https" \|\| scheme == "http" else \{\s*return \.systemAction/, 'calls, email and Settings keep their system behaviour');
+assert.match(swift['EaserViews.swift'], /\.environment\(\\.openURL, InAppBrowser\.action \{[\s\S]{0,160}store\.refresh\(\)/, 'every link in the app opens in the sheet, and closing it refreshes setup status');
+assert.match(swift['EaserAccountViews.swift'], /onChange\(of: store\.browserCloses\)[\s\S]{0,400}loadPayouts\(afterStripe: true\)/, 'payout status reloads when the Easer closes Stripe');
 assert.doesNotMatch(all, /"\/(book|track|app)(\?|")/, 'no customer booking or customer/Easer chooser in the Easer app');
 const plist = read(`${APP}/Info.plist`);
 assert.doesNotMatch(plist, /UIMainStoryboardFile|UISceneStoryboardFile/, 'no storyboard creates a web bridge behind the native screens');
@@ -190,6 +199,7 @@ for (const sentence of [
 ]) {
   assert.ok(verifyPage.replace(/<[^>]+>/g, '').includes(sentence) && swift['EaserViews.swift'].includes(sentence), `consent wording matches the website: ${sentence}`);
 }
+assert.doesNotMatch(all, /Site\.page\("\/assembler\/verify-identity"\)/, 'identity check starts from the app session, not a signed-out web page');
 assert.doesNotMatch(swift['EaserViews.swift'], /Button\("Finish setup"\)/, 'no setup button that sends a signed-in Easer to a signed-out browser');
 assert.match(store, /status == 403[\s\S]{0,80}jobsLocked = true/, 'an account not approved yet is a status, not "Jobs could not be loaded"');
 assert.match(store, /if jobsLocked \|\| readiness\?\.isReady == false/, 'approved Easers never call the onboarding endpoint');

@@ -33,6 +33,10 @@ struct EaserRootView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: store.banner)
         .environmentObject(store)
+        .environment(\.openURL, InAppBrowser.action {
+            store.browserCloses += 1
+            if store.phase == .signedIn { Task { await store.refresh() } }
+        })
         .tint(Brand.skyDark)
         .task { await store.start() }
         .task(id: store.banner?.id) {
