@@ -60,7 +60,9 @@ workflows:
       app_store_connect: AssembleAtEase App Store Connect
     environment:
       node: 22
-      xcode: latest
+      # Pinned: Codemagic support (2026-10-09) reported a queue spike on the default
+      # Xcode 26.6 machine pool. 26.5 is the same iOS 26 toolchain (Capacitor 8 needs 26+).
+      xcode: 26.5
       groups:
         - firebase
       ios_signing:
