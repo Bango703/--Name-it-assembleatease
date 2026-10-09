@@ -95,6 +95,11 @@ assert.doesNotMatch(pbx, /IPHONEOS_DEPLOYMENT_TARGET = 1[0-6]\./, 'iOS 17 minimu
 const privacy = read(`${APP}/PrivacyInfo.xcprivacy`);
 assert.match(privacy, /<key>NSPrivacyTracking<\/key>\s*<false\/>/);
 assert.match(privacy, /NSPrivacyAccessedAPICategoryUserDefaults[\s\S]*CA92\.1/);
+// Same eight data types as the App Privacy answers published in App Store Connect (2026-10-09).
+for (const type of ['Name', 'EmailAddress', 'PhoneNumber', 'PreciseLocation', 'PhotosorVideos', 'OtherUserContent', 'UserID', 'DeviceID']) {
+  assert.ok(privacy.includes(`<string>NSPrivacyCollectedDataType${type}</string>`), `privacy manifest declares ${type}`);
+}
+assert.doesNotMatch(privacy, /<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<true\/>/, 'nothing is used for tracking');
 assert.doesNotMatch(all, /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u, 'no emoji');
 
 // ── 8a. Full job tree: release, photo requests, damage, customer photos ─────
