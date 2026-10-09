@@ -17,6 +17,7 @@ import {
   CREW_ROLE,
   CREW_FUNDING,
 } from '../booking/_crew.js';
+import { demoBookingBlock, isDemoEaser } from '../_demo-accounts.js';
 
 const SITE = process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com';
 
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
 
   const { data: booking, error: bookingErr } = await sb
     .from('bookings')
-    .select('id, ref, status, assembler_id, assembler_name, assembler_accepted_at, total_price, amount_charged, tax_amount, assembler_due, easer_fee_pct_snapshot, assemblecash_redeemed_cents, payout_status, service, date, time, customer_name, customer_email, address, city, zip')
+    .select('id, ref, status, assembler_id, assembler_name, assembler_accepted_at, total_price, amount_charged, tax_amount, assembler_due, easer_fee_pct_snapshot, assemblecash_redeemed_cents, payout_status, service, date, time, customer_name, customer_email, address, city, zip, is_test_booking')
     .eq('id', bookingId)
     .single();
   if (bookingErr || !booking) return res.status(404).json({ error: 'Booking not found' });
@@ -123,6 +124,8 @@ export default async function handler(req, res) {
   if (!eligibility.ok) {
     return res.status(409).json({ error: eligibility.message, code: eligibility.reason });
   }
+  const demoBlock = demoBookingBlock(booking, await isDemoEaser(sb, easerId));
+  if (demoBlock) return res.status(409).json({ error: demoBlock.message, code: demoBlock.code });
 
   const pool = laborPoolCents(booking);
   const proposal = proposeEvenSplit({ booking, crew, addingCount: Math.max(1, Number(addingCount) || 1) });
