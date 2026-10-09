@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import Security
 import CoreLocation
+import SafariServices
 
 // Brand: sky blue #00BFFF, dark #0099CC (CLAUDE.md, Brand & Design-System seat).
 // Text on a sky-blue button is ink, never white: white on #00BFFF fails contrast.
@@ -11,6 +12,65 @@ enum Brand {
     static let ink = Color(red: 13.0 / 255.0, green: 17.0 / 255.0, blue: 23.0 / 255.0)
     static let surface = Color(uiColor: .secondarySystemBackground)
     static let attention = Color(red: 0.85, green: 0.47, blue: 0.02)
+}
+
+/// Web pages (agreements, Stripe identity check, Stripe payout setup) open in a
+/// sheet over the app, never in the Safari app, so an Easer never leaves the app
+/// mid-setup and lands back where they started. Calls, email and Settings links
+/// keep their system behaviour.
+@MainActor
+enum InAppBrowser {
+    static func action(onClose: @escaping () -> Void) -> OpenURLAction {
+        OpenURLAction { url in
+            guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else {
+                return .systemAction
+            }
+            present(url, onClose: onClose, attempt: 0)
+            return .handled
+        }
+    }
+
+    private static func present(_ url: URL, onClose: @escaping () -> Void, attempt: Int) {
+        guard let root = UIApplication.shared.connectedScenes
+            .compactMap({ ($0 as? UIWindowScene)?.keyWindow })
+            .first?.rootViewController else {
+            UIApplication.shared.open(url)
+            return
+        }
+        var top = root
+        var settling = false
+        while let next = top.presentedViewController {
+            if next.isBeingDismissed { settling = true; break }
+            top = next
+        }
+        // A sheet that is still closing (signing, then straight to the ID check)
+        // cannot present yet; wait for it rather than drop the link.
+        if settling || top.isBeingPresented {
+            if attempt < 10 {
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 150_000_000)
+                    present(url, onClose: onClose, attempt: attempt + 1)
+                }
+            } else {
+                UIApplication.shared.open(url)
+            }
+            return
+        }
+        let browser = SFSafariViewController(url: url)
+        browser.preferredControlTintColor = UIColor(Brand.skyDark)
+        browser.dismissButtonStyle = .done
+        let closer = Closer(onClose: onClose)
+        browser.delegate = closer
+        objc_setAssociatedObject(browser, &Closer.key, closer, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        top.present(browser, animated: true)
+    }
+
+    private final class Closer: NSObject, SFSafariViewControllerDelegate {
+        static var key: UInt8 = 0
+        let onClose: () -> Void
+        init(onClose: @escaping () -> Void) { self.onClose = onClose }
+        func safariViewControllerDidFinish(_ controller: SFSafariViewController) { onClose() }
+    }
 }
 
 enum Site {

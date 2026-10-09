@@ -19,6 +19,7 @@ struct ProfileView: View {
     @State private var saving = false
     @State private var changingPhoto = false
     @State private var confirmReset = false
+    @State private var startingVerification = false
 
     private var locked: Bool { store.profile?.identityVerified == true }
 
@@ -92,7 +93,16 @@ struct ProfileView: View {
                         .foregroundStyle(locked ? Brand.skyDark : Brand.attention)
                 }
                 if !locked {
-                    Button("Verify your identity") { openURL(Site.page("/assembler/verify-identity")) }
+                    Button {
+                        startingVerification = true
+                        Task {
+                            if let url = await store.identityVerificationLink() { openURL(url) }
+                            startingVerification = false
+                        }
+                    } label: {
+                        if startingVerification { ProgressView() } else { Text("Verify your identity") }
+                    }
+                    .disabled(startingVerification)
                 }
                 if let since = Format.day(store.profile?.createdAt) {
                     LabeledContent("Member since", value: since)
@@ -295,6 +305,13 @@ struct PayoutsView: View {
             preference = store.payoutPreference
         }
         .onChange(of: store.payoutPreference) { _, saved in preference = saved }
+        .onChange(of: store.browserCloses) { _, _ in
+            // Back from Stripe: ask the server for the fresh status.
+            if openedStripe {
+                openedStripe = false
+                Task { await store.loadPayouts(afterStripe: true) }
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             // Back from Stripe: ask the server for the fresh status.
             if phase == .active && openedStripe {
