@@ -170,6 +170,8 @@ assert.match(read('mobile/ios/App/App.xcodeproj/project.pbxproj'), /GoogleServic
 // (scripts/test-easer-native-app.mjs holds the rest). Android keeps the Capacitor plugin.
 assert.match(read('mobile/ios/App/App/AppDelegate.swift'), /Messaging\.messaging\(\)\.apnsToken = deviceToken/);
 assert.match(read('mobile/android/app/src/main/AndroidManifest.xml'), /default_notification_icon/);
-assert.match(read('codemagic.yaml'), /submit_to_testflight: true/);
+// Builds upload for internal TestFlight testing; external beta review is a separate, later decision.
+assert.match(read('codemagic.yaml'), /auth: integration[\s\S]{0,400}?submit_to_testflight: false/);
+assert.doesNotMatch(read('codemagic.yaml'), /submit_to_testflight: true/);
 
 console.log('PASS native app: website untouched (bridge inert, web push unchanged, app kept out of deploys); native push sends, logs, and cleans up only dead devices.');

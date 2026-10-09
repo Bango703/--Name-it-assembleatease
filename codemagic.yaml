@@ -106,4 +106,7 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: true
+        # Upload only. Internal testers (App Store Connect users) get every processed
+        # build without review. External beta review needs a Beta App Description and
+        # is not wanted until the Easer flow passes on a real iPhone (EASER-NATIVE-APP).
+        submit_to_testflight: false
