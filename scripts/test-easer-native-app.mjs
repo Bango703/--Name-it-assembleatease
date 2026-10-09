@@ -202,6 +202,7 @@ for (const sentence of [
 assert.doesNotMatch(all, /Site\.page\("\/assembler\/verify-identity"\)/, 'identity check starts from the app session, not a signed-out web page');
 assert.match(swift['EaserViews.swift'], /if !store\.needsSetup \{ AvailabilityCard\(\) \}/, 'no online switch the server would refuse while setup is unfinished');
 assert.match(swift['EaserViews.swift'], /store\.profile\?\.closureHeld == true \|\| store\.needsSetup\)/, 'Account availability is disabled until setup is done');
+assert.match(swift['EaserViews.swift'], /\.disabled\(blockedReason != nil \|\| working\)[\s\S]{0,200}if let blockedReason \{ Text\(blockedReason\) \}/, 'the Sign button never sits disabled without saying why (Article 14)');
 assert.doesNotMatch(swift['EaserViews.swift'], /Button\("Finish setup"\)/, 'no setup button that sends a signed-in Easer to a signed-out browser');
 assert.match(store, /status == 403[\s\S]{0,80}jobsLocked = true/, 'an account not approved yet is a status, not "Jobs could not be loaded"');
 assert.match(store, /if jobsLocked \|\| readiness\?\.isReady == false/, 'approved Easers never call the onboarding endpoint');
