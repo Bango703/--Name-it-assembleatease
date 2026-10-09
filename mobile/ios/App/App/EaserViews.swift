@@ -291,7 +291,7 @@ private struct TodayView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     AvailabilityCard()
                     SetupCard()
-                    if let problem = store.loadProblem, store.jobs.isEmpty {
+                    if let problem = store.loadProblem, store.jobs.isEmpty, !store.jobsLocked {
                         NoticeCard(icon: "wifi.exclamationmark", title: "Jobs could not be loaded", text: problem)
                     }
                     if let active = store.activeJob {
@@ -311,7 +311,7 @@ private struct TodayView: View {
                         NavigationLink(value: JobRef(id: next.id)) { JobCard(job: next, emphasis: false) }
                             .buttonStyle(.plain)
                     }
-                    if store.loadedOnce && store.activeJob == nil && store.offers.isEmpty && store.upcoming.isEmpty && store.loadProblem == nil {
+                    if store.loadedOnce && !store.jobsLocked && store.activeJob == nil && store.offers.isEmpty && store.upcoming.isEmpty && store.loadProblem == nil {
                         EmptyTodayCard(online: store.profile?.isAvailable == true)
                     }
                 }
@@ -372,30 +372,83 @@ private struct AvailabilityCard: View {
     }
 }
 
-/// Shown only when a real step blocks job offers.
+/// Shown only when a real step blocks job offers. Every step is done inside the
+/// app; only Stripe's identity check opens Stripe's own page.
 private struct SetupCard: View {
     @EnvironmentObject private var store: EaserStore
     @Environment(\.openURL) private var openURL
+    @State private var signing = false
+    @State private var startingVerification = false
+
+    private var needsSetup: Bool {
+        store.jobsLocked || store.readiness?.isReady == false
+    }
+
+    /// Items the three steps below do not already cover, in the server's words.
+    private var otherItems: [String] {
+        let covered = ["contractor agreement", "code of conduct", "identity", "approv"]
+        return (store.readiness?.missingItems ?? []).filter { item in
+            !covered.contains { item.lowercased().contains($0) }
+        }
+    }
 
     var body: some View {
         if store.profile?.closureHeld == true {
             NoticeCard(icon: "person.crop.circle.badge.xmark", title: "Account closure requested",
                        text: "You are offline while AssembleAtEase reviews your request.")
-        } else if let ready = store.readiness, !ready.isReady {
-            VStack(alignment: .leading, spacing: 10) {
-                Label(ready.suspended ? "Your account is paused" : "Finish setting up to get jobs", systemImage: "checklist")
-                    .font(.headline)
-                if !ready.missingItems.isEmpty {
+        } else if store.readiness?.suspended == true {
+            NoticeCard(icon: "pause.circle", title: "Your account is paused",
+                       text: "Contact \(Site.supportEmail) to reactivate it.")
+        } else if needsSetup, let setup = store.setup {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Finish setting up to get jobs").font(.headline)
+                SetupStep(number: 1, done: !setup.requiresAgreement,
+                          title: "Sign the contractor agreement and Code of Conduct",
+                          detail: setup.priorAgreementOnFile && setup.requiresAgreement ? "An updated version needs your signature." : nil) {
+                    Button("Review and sign") { signing = true }
+                        .buttonStyle(PrimaryButtonStyle())
+                }
+                SetupStep(number: 2, done: setup.identityVerified,
+                          title: "Verify your identity",
+                          detail: setup.requiresAgreement ? "Available after step 1." : "A quick ID and selfie check with Stripe.") {
+                    if !setup.requiresAgreement {
+                        Button {
+                            startingVerification = true
+                            Task {
+                                if let url = await store.identityVerificationLink() { openURL(url) }
+                                startingVerification = false
+                            }
+                        } label: {
+                            if startingVerification { ProgressView().tint(Brand.ink) } else { Text("Verify identity") }
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .disabled(startingVerification)
+                    }
+                }
+                SetupStep(number: 3, done: setup.approved,
+                          title: "Approval by AssembleAtEase",
+                          detail: setup.approved ? nil : "We review your account and email you when you're approved.") {
+                    EmptyView()
+                }
+                if !otherItems.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        ForEach(ready.missingItems, id: \.self) { item in
-                            Label(item, systemImage: "circle")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                        Text("Also needed").font(.subheadline.weight(.semibold))
+                        ForEach(otherItems, id: \.self) { item in
+                            Label(item, systemImage: "circle").font(.subheadline).foregroundStyle(.secondary)
                         }
                     }
                 }
-                Button("Finish setup") { openURL(Site.page("/assembler/")) }
-                    .buttonStyle(SecondaryButtonStyle())
+            }
+            .padding(16)
+            .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .sheet(isPresented: $signing) { AgreementSheet(legalName: setup.fullName).environmentObject(store) }
+        } else if needsSetup {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Finish setting up to get jobs", systemImage: "checklist").font(.headline)
+                ForEach(store.readiness?.missingItems ?? [], id: \.self) { item in
+                    Label(item, systemImage: "circle").font(.subheadline).foregroundStyle(.secondary)
+                }
+                Text("Pull down to refresh your setup steps.").font(.footnote).foregroundStyle(.secondary)
             }
             .padding(16)
             .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -404,11 +457,116 @@ private struct SetupCard: View {
                 NoticeCard(icon: "pause.circle", title: "New offers are paused",
                            text: store.offersPausedReason ?? "Your scheduled jobs are still here. Contact \(Site.supportEmail) to find out what is needed.")
                 if store.offersPausedCode == "current_agreement_required" {
-                    Button("Review the agreement") { openURL(Site.page("/assembler/my-assignments")) }
+                    Button("Review and sign the agreement") { signing = true }
                         .buttonStyle(PrimaryButtonStyle())
                 }
             }
+            .sheet(isPresented: $signing) { AgreementSheet(legalName: store.profile?.fullName ?? "").environmentObject(store) }
         }
+    }
+}
+
+private struct SetupStep<Action: View>: View {
+    let number: Int
+    let done: Bool
+    let title: String
+    let detail: String?
+    @ViewBuilder let action: Action
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle().fill(done ? Brand.sky : Brand.surface).frame(width: 28, height: 28)
+                if done {
+                    Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(Brand.ink)
+                } else {
+                    Text("\(number)").font(.caption.bold()).foregroundStyle(.secondary)
+                }
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(done ? .secondary : .primary)
+                if let detail, !done { Text(detail).font(.footnote).foregroundStyle(.secondary) }
+                if !done { action }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+/// The contractor agreement and Code of Conduct, signed in the app with the same
+/// wording and server step as assembler/verify-identity.html.
+private struct AgreementSheet: View {
+    let legalName: String
+    @EnvironmentObject private var store: EaserStore
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    @State private var typedName = ""
+    @State private var agreeContract = false
+    @State private var agreeConduct = false
+    @State private var working = false
+
+    private var nameMatches: Bool {
+        return !legalName.isEmpty && Self.normalized(typedName) == Self.normalized(legalName)
+    }
+
+    /// Same comparison as the server: trimmed, single spaces, case-insensitive.
+    private static func normalized(_ value: String) -> String {
+        value.lowercased().split(separator: " ").joined(separator: " ")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Before you can receive jobs, we need your contractor agreement and Code of Conduct acceptance on file.")
+                    Button("Read the Independent Contractor Agreement") { openURL(Site.page("/assembler/contractor-agreement")) }
+                    Button("Read the Code of Conduct and Terms of Service") { openURL(Site.page("/terms")) }
+                }
+                Section {
+                    TextField("Full legal name", text: $typedName)
+                        .textContentType(.name)
+                        .autocorrectionDisabled()
+                } header: {
+                    Text("Sign with your full legal name")
+                } footer: {
+                    if !typedName.isEmpty && !nameMatches {
+                        Text("Type your name exactly as it is on your application: \(legalName). Contact \(Site.supportEmail) if it needs correcting.")
+                    }
+                }
+                Section {
+                    Toggle(isOn: $agreeContract) {
+                        Text("I have read the Independent Contractor Agreement in full and agree to be legally bound by its terms.")
+                            .font(.subheadline)
+                    }
+                    Toggle(isOn: $agreeConduct) {
+                        Text("I agree to the AssembleAtEase Code of Conduct and Terms of Service, and I understand identity verification is required before I can receive jobs.")
+                            .font(.subheadline)
+                    }
+                }
+                Section {
+                    Button {
+                        working = true
+                        Task {
+                            let next = await store.signAgreement(fullName: typedName)
+                            working = false
+                            if store.setup?.requiresAgreement == false || next != nil {
+                                dismiss()
+                                if let next { openURL(next) }
+                            }
+                        }
+                    } label: {
+                        if working { ProgressView() } else { Text("Sign and continue").fontWeight(.semibold) }
+                    }
+                    .disabled(!(nameMatches && agreeContract && agreeConduct) || working)
+                }
+            }
+            .navigationTitle("Contractor agreement")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(working) }
+            }
+        }
+        .interactiveDismissDisabled(working)
     }
 }
 
@@ -569,6 +727,7 @@ private struct JobsView: View {
     }
 
     private var emptyText: String {
+        if store.jobsLocked { return "Jobs appear here once your account is approved. Your setup steps are on Today." }
         switch segment {
         case .offers: return "No offers right now."
         case .upcoming: return "No upcoming jobs."

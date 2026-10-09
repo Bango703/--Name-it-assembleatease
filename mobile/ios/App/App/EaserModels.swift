@@ -550,3 +550,37 @@ struct LinkEnvelope: Decodable {
         url = (c.string("onboardingUrl") ?? c.string("url")).flatMap { URL(string: $0) }
     }
 }
+
+/// Onboarding state from /api/assembler/verification-link (GET), the same
+/// endpoint the website's verify-identity page uses.
+struct SetupStatus: Decodable {
+    let fullName: String
+    let identityVerified: Bool
+    let requiresAgreement: Bool
+    let priorAgreementOnFile: Bool
+    let applicationStatus: String?
+    let establishedEaser: Bool
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        fullName = c.string("fullName") ?? ""
+        identityVerified = c.bool("identityVerified") ?? false
+        requiresAgreement = c.bool("requiresAgreement") ?? true
+        priorAgreementOnFile = c.bool("priorAgreementOnFile") ?? false
+        applicationStatus = c.string("applicationStatus")
+        establishedEaser = c.bool("establishedEaser") ?? false
+    }
+
+    var approved: Bool { establishedEaser || (applicationStatus ?? "").lowercased() == "approved" }
+}
+
+struct VerificationStart: Decodable {
+    let verificationURL: URL?
+    let alreadyVerified: Bool
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        verificationURL = c.string("verificationUrl").flatMap { URL(string: $0) }
+        alreadyVerified = c.bool("alreadyVerified") ?? false
+    }
+}

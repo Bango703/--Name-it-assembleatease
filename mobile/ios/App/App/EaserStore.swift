@@ -39,6 +39,9 @@ final class EaserStore: ObservableObject {
     @Published var jobs: [EaserJob] = []
     @Published var newOffersAllowed = true
     @Published var offersPausedCode: String?
+    /// The server refuses the job list until the account is approved: a status, not an error.
+    @Published var jobsLocked = false
+    @Published var setup: SetupStatus?
     @Published var offersPausedReason: String?
     /// Set from the scene: the app refreshes on its own only while it is on screen.
     var appActive = true
@@ -165,8 +168,15 @@ final class EaserStore: ObservableObject {
                     case .success(let value):
                         apply(value)
                         loadProblem = nil
+                        jobsLocked = false
                     case .failure(let error):
-                        loadProblem = error.localizedDescription
+                        if (error as? EaserError)?.status == 403 {
+                            jobsLocked = true
+                            jobs = []
+                            loadProblem = nil
+                        } else {
+                            loadProblem = error.localizedDescription
+                        }
                     }
                     loadedOnce = true
                 case .profile(let result):
@@ -181,6 +191,13 @@ final class EaserStore: ObservableObject {
             }
         }
         loadedOnce = true
+        // Setup steps are only asked for while something is unfinished; an approved
+        // Easer never calls the onboarding endpoint.
+        if jobsLocked || readiness?.isReady == false {
+            setup = try? await api.get("/api/assembler/verification-link", as: SetupStatus.self)
+        } else {
+            setup = nil
+        }
         // Retried here because on relaunch the token can arrive before the profile.
         await pushTokenChanged(PushRelay.shared.fcmToken)
     }
@@ -479,6 +496,48 @@ final class EaserStore: ObservableObject {
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)
         }
+    }
+
+    // MARK: Onboarding: agreement, identity, approval
+
+    /// Records the signed agreement and Code of Conduct exactly as the website does
+    /// (verification-link POST with the Easer's own session). Returns Stripe's
+    /// identity page when verification is still needed.
+    func signAgreement(fullName: String) async -> URL? {
+        do {
+            let data = try await api.call("POST", "/api/assembler/verification-link", body: [
+                "fullName": fullName.trimmingCharacters(in: .whitespacesAndNewlines),
+                "contractorAgreementSigned": true,
+                "codeOfConductAccepted": true,
+            ])
+            let start = try? JSONDecoder().decode(VerificationStart.self, from: data)
+            banner = Banner(text: start?.verificationURL != nil
+                            ? "Agreement signed. Next, verify your identity with Stripe."
+                            : "Agreement signed.", kind: .success)
+            await refresh()
+            return start?.verificationURL
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+            return nil
+        }
+    }
+
+    /// Starts Stripe identity verification once the agreement is on file.
+    func identityVerificationLink() async -> URL? {
+        do {
+            let data = try await api.call("POST", "/api/assembler/verification-link", body: [:])
+            let start = try? JSONDecoder().decode(VerificationStart.self, from: data)
+            if start?.alreadyVerified == true {
+                banner = Banner(text: "Your identity is already verified.", kind: .success)
+                await refresh()
+                return nil
+            }
+            if let url = start?.verificationURL { return url }
+            banner = Banner(text: "Identity verification could not be started. Try again.", kind: .problem)
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+        }
+        return nil
     }
 
     // MARK: Payouts
