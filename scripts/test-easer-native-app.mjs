@@ -158,7 +158,7 @@ assert.match(swift['EaserModels.swift'], /case "starter": return "Starter Pro"/)
 assert.match(profilePage, /starter: 'Starter Pro'/, 'level labels match the website');
 
 // ── 8d. Audit fixes (2026-10-09) ────────────────────────────────────────────
-assert.match(store, /loadedOnce = true\s*\n\s*\/\/[^\n]*\n\s*await pushTokenChanged\(PushRelay\.shared\.fcmToken\)/, 'job alerts register after the profile loads, not only when the token changes');
+assert.match(store, /loadedOnce = true[\s\S]{0,700}?await pushTokenChanged\(PushRelay\.shared\.fcmToken\)/, 'job alerts register after the profile loads, not only when the token changes');
 assert.match(swift['AppDelegate.swift'], /PushRelay\.shared\.arrivals \+= 1/, 'an alert arriving while the app is open reloads the jobs');
 assert.match(swift['EaserViews.swift'], /reloadedFor == id/, 'tapping an alert for a job not yet loaded reloads once, then says it is gone');
 assert.match(swift['EaserViews.swift'], /if store\.appActive \{ await store\.refreshJobs\(\) \}/, 'the open app keeps offers current');
@@ -174,6 +174,25 @@ assert.match(assignments, /status === BOOKING_STATUS\.COMPLETED && !b\._return_v
 // ── 8e. Speed: each part of the screen shows when its data arrives ────────────
 assert.match(store, /withTaskGroup\(of: LoadedPart\.self\)/, 'screens load progressively');
 assert.match(store, /for await part in group/, 'results are applied as they arrive, not after the slowest one');
+
+// ── 8f. Onboarding inside the app (2026-10-09) ──────────────────────────────
+// "Finish setup" used to open the website in Safari, which is not signed in, so a
+// new Easer could not finish. The app now signs the agreement itself.
+const verify = read('api/assembler/verification-link.js');
+for (const field of ['contractorAgreementSigned', 'codeOfConductAccepted', 'fullName', 'verificationUrl', 'alreadyVerified', 'requiresAgreement', 'identityVerified']) {
+  assert.ok(verify.includes(field) && all.includes(`"${field}"`), `onboarding field ${field} matches the server`);
+}
+assert.match(verify, /auth\.startsWith\('Bearer '\)/, 'the endpoint accepts the app session');
+const verifyPage = read('assembler/verify-identity.html');
+for (const sentence of [
+  'I have read the Independent Contractor Agreement in full and agree to be legally bound by its terms.',
+  'and I understand identity verification is required before I can receive jobs.',
+]) {
+  assert.ok(verifyPage.replace(/<[^>]+>/g, '').includes(sentence) && swift['EaserViews.swift'].includes(sentence), `consent wording matches the website: ${sentence}`);
+}
+assert.doesNotMatch(swift['EaserViews.swift'], /Button\("Finish setup"\)/, 'no setup button that sends a signed-in Easer to a signed-out browser');
+assert.match(store, /status == 403[\s\S]{0,80}jobsLocked = true/, 'an account not approved yet is a status, not "Jobs could not be loaded"');
+assert.match(store, /if jobsLocked \|\| readiness\?\.isReady == false/, 'approved Easers never call the onboarding endpoint');
 
 // ── 8. The website is untouched by the app build ─────────────────────────────
 assert.equal(JSON.parse(read('mobile/capacitor.config.json')).server.url, 'https://www.assembleatease.com/app', 'Android keeps its existing shell; iOS no longer reads this');
