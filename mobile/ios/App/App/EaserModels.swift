@@ -184,6 +184,26 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     var isOffer: Bool { needsAcceptance && offerToken != nil }
     var isActive: Bool { ["en_route", "arrived", "in_progress"].contains(status) }
     var isHelper: Bool { crewRole == "helper" }
+
+    /// Appointment order: date, then the start of the arrival window ("9:00 AM - 11:00 AM").
+    var startSortKey: String {
+        String((date ?? "9999-12-31").prefix(10)) + String(format: "%04d", Self.startMinutes(time))
+    }
+
+    static func startMinutes(_ raw: String?) -> Int {
+        guard let raw,
+              let regex = try? NSRegularExpression(pattern: "(\\d{1,2})(?::(\\d{2}))?\\s*([AaPp][Mm])"),
+              let match = regex.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)) else { return 0 }
+        func group(_ index: Int) -> String? {
+            guard let range = Range(match.range(at: index), in: raw) else { return nil }
+            return String(raw[range])
+        }
+        var hour = Int(group(1) ?? "0") ?? 0
+        let minute = Int(group(2) ?? "0") ?? 0
+        let pm = (group(3) ?? "").lowercased() == "pm"
+        if hour == 12 { hour = pm ? 12 : 0 } else if pm { hour += 12 }
+        return hour * 60 + minute
+    }
     /// AssembleAtEase asked for more photos and none has arrived yet.
     var photosRequested: Bool { evidenceRequested && !evidenceUploaded && acceptedAt != nil }
     /// Same rule as the web dashboard: accepted, confirmed, not started.
@@ -230,6 +250,9 @@ struct EaserJob: Decodable, Identifiable, Hashable {
 struct AssignmentsEnvelope: Decodable {
     let bookings: [EaserJob]
     let newOffersAllowed: Bool
+    /// The server's own words for why new offers are paused (my-assignments meta.warnings).
+    let pausedCode: String?
+    let pausedReason: String?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
@@ -239,6 +262,21 @@ struct AssignmentsEnvelope: Decodable {
         } else {
             newOffersAllowed = true
         }
+        var code: String?
+        var reason: String?
+        if let meta = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("meta")),
+           var list = try? meta.nestedUnkeyedContainer(forKey: DynamicKey("warnings")) {
+            while !list.isAtEnd {
+                guard let item = try? list.nestedContainer(keyedBy: DynamicKey.self) else { break }
+                let itemCode = item.string("code")
+                if code == nil, itemCode == "current_agreement_required" || itemCode == "new_offers_paused" {
+                    code = itemCode
+                    reason = item.string("message")
+                }
+            }
+        }
+        pausedCode = code
+        pausedReason = reason
     }
 }
 

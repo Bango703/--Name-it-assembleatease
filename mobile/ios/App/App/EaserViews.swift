@@ -47,7 +47,20 @@ struct EaserRootView: View {
             if phase == .signedIn { Task { await store.pushTokenChanged(relay.fcmToken) } }
         }
         .onChange(of: scenePhase) { _, phase in
+            store.appActive = phase == .active
             if phase == .active && store.phase == .signedIn { Task { await store.refresh() } }
+        }
+        .onChange(of: relay.arrivals) { _, _ in
+            if store.phase == .signedIn { Task { await store.refresh() } }
+        }
+        .task(id: store.phase) {
+            // Offers expire in minutes: while the app is open and signed in, jobs reload every minute.
+            guard store.phase == .signedIn else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000_000)
+                if Task.isCancelled { break }
+                if store.appActive { await store.refreshJobs() }
+            }
         }
     }
 }
@@ -205,6 +218,7 @@ private struct MainTabsView: View {
     @ObservedObject private var relay = PushRelay.shared
     @State private var tab: Tab = .today
     @State private var linkedJob: JobRef?
+    @State private var reloadedFor: String?
 
     var body: some View {
         TabView(selection: $tab) {
@@ -243,9 +257,26 @@ private struct MainTabsView: View {
     }
 
     private func openLinkedJob(_ id: String?) {
-        guard let id, store.job(id) != nil else { return }
-        linkedJob = JobRef(id: id)
-        relay.openJobID = nil
+        guard let id else { return }
+        if store.job(id) != nil {
+            linkedJob = JobRef(id: id)
+            relay.openJobID = nil
+            reloadedFor = nil
+            return
+        }
+        guard store.loadedOnce else { return }
+        if reloadedFor == id {
+            // Still not on this account after a fresh load: taken by another Easer or withdrawn.
+            relay.openJobID = nil
+            reloadedFor = nil
+            store.banner = Banner(text: "That job is no longer available.", kind: .problem)
+            return
+        }
+        reloadedFor = id
+        Task {
+            await store.refresh()
+            openLinkedJob(relay.openJobID)
+        }
     }
 }
 
@@ -369,8 +400,14 @@ private struct SetupCard: View {
             .padding(16)
             .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         } else if !store.newOffersAllowed {
-            NoticeCard(icon: "pause.circle", title: "New offers are paused",
-                       text: "Your scheduled jobs are still here. Open Account to see what is needed.")
+            VStack(alignment: .leading, spacing: 10) {
+                NoticeCard(icon: "pause.circle", title: "New offers are paused",
+                           text: store.offersPausedReason ?? "Your scheduled jobs are still here. Contact \(Site.supportEmail) to find out what is needed.")
+                if store.offersPausedCode == "current_agreement_required" {
+                    Button("Review the agreement") { openURL(Site.page("/assembler/my-assignments")) }
+                        .buttonStyle(PrimaryButtonStyle())
+                }
+            }
         }
     }
 }
@@ -415,6 +452,7 @@ private struct EmptyTodayCard: View {
 private struct JobCard: View {
     let job: EaserJob
     let emphasis: Bool
+    @EnvironmentObject private var store: EaserStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -435,7 +473,7 @@ private struct JobCard: View {
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.leading)
                 Spacer()
-                Text(job.payText)
+                Text(store.payText(for: job))
                     .font(emphasis ? Font.title3.bold() : Font.headline)
                     .foregroundStyle(.primary)
             }
@@ -541,12 +579,13 @@ private struct JobsView: View {
 
 private struct JobRow: View {
     let job: EaserJob
+    @EnvironmentObject private var store: EaserStore
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(job.title).font(.headline)
                 Spacer()
-                Text(job.payText).font(.subheadline.weight(.semibold))
+                Text(store.payText(for: job)).font(.subheadline.weight(.semibold))
             }
             Text([job.when, job.statusLabel].filter { !$0.isEmpty }.joined(separator: " · "))
                 .font(.subheadline)
@@ -609,7 +648,10 @@ struct JobDetailView: View {
                 }
 
                 DetailBlock(title: job.isFinished ? "Earnings" : "Estimated earnings") {
-                    Text(job.payText).font(.title.bold())
+                    Text(store.payText(for: job)).font(.title.bold())
+                    if job.isFinished, let earned = store.earning(for: job) {
+                        Text(earned.statusLabel).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark)
+                    }
                     if job.isOffer, let left = Format.timeLeft(until: job.offerExpiresAt) {
                         Text(left).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.attention)
                     }

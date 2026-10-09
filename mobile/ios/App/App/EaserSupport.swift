@@ -152,16 +152,22 @@ final class OneTimeLocation: NSObject, CLLocationManagerDelegate {
             self.continuation = continuation
             switch manager.authorizationStatus {
             case .notDetermined:
+                // Time spent reading the prompt does not count against the fix.
                 manager.requestWhenInUseAuthorization()
+                giveUp(after: 45)
             case .authorizedWhenInUse, .authorizedAlways:
                 manager.requestLocation()
+                giveUp(after: timeoutSeconds)
             default:
                 finish(nil)
             }
-            Task { @MainActor in
-                try? await Task.sleep(nanoseconds: UInt64(timeoutSeconds * 1_000_000_000))
-                self.finish(nil)
-            }
+        }
+    }
+
+    private func giveUp(after seconds: Double) {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            self.finish(nil)
         }
     }
 
@@ -176,7 +182,10 @@ final class OneTimeLocation: NSObject, CLLocationManagerDelegate {
         Task { @MainActor in
             switch status {
             case .authorizedWhenInUse, .authorizedAlways:
-                if self.continuation != nil { self.manager.requestLocation() }
+                if self.continuation != nil {
+                    self.manager.requestLocation()
+                    self.giveUp(after: 8)
+                }
             case .denied, .restricted:
                 self.finish(nil)
             default:

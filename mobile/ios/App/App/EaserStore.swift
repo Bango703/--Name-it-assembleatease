@@ -9,6 +9,8 @@ final class PushRelay: ObservableObject {
     static let shared = PushRelay()
     @Published var fcmToken: String?
     @Published var openJobID: String?
+    /// Bumped when a job alert arrives while the app is open, so the screens reload.
+    @Published var arrivals = 0
 
     func jobID(from userInfo: [AnyHashable: Any]) -> String? {
         if let id = userInfo["jobId"] as? String, !id.isEmpty { return id }
@@ -36,6 +38,10 @@ final class EaserStore: ObservableObject {
     @Published var readiness: Readiness?
     @Published var jobs: [EaserJob] = []
     @Published var newOffersAllowed = true
+    @Published var offersPausedCode: String?
+    @Published var offersPausedReason: String?
+    /// Set from the scene: the app refreshes on its own only while it is on screen.
+    var appActive = true
     @Published var earnings: EarningsEnvelope?
     @Published var notices: [EaserNotice] = []
     @Published var loadedOnce = false
@@ -129,7 +135,7 @@ final class EaserStore: ObservableObject {
 
         let (p, j, r, e, n) = await (profileResult, jobsResult, readinessResult, earningsResult, noticesResult)
         if case .success(let value) = p { profile = value }
-        if case .success(let value) = j { jobs = value.bookings; newOffersAllowed = value.newOffersAllowed }
+        if case .success(let value) = j { apply(value) }
         if case .success(let value) = r { readiness = value.readiness }
         if case .success(let value) = e { earnings = value }
         if case .success(let value) = n { notices = value.notifications }
@@ -140,10 +146,36 @@ final class EaserStore: ObservableObject {
             loadProblem = nil
         }
         loadedOnce = true
-        if let pending = PushRelay.shared.openJobID, job(pending) == nil {
-            // A tapped notification for a job this account cannot see is cleared, not left hanging.
-            PushRelay.shared.openJobID = nil
+        // Retried here because on relaunch the token can arrive before the profile.
+        await pushTokenChanged(PushRelay.shared.fcmToken)
+    }
+
+    private func apply(_ value: AssignmentsEnvelope) {
+        jobs = value.bookings
+        newOffersAllowed = value.newOffersAllowed
+        offersPausedCode = value.pausedCode
+        offersPausedReason = value.pausedReason
+    }
+
+    /// The light, frequent reload: jobs only. Offers expire, so the open app keeps current.
+    func refreshJobs() async {
+        guard api.session != nil, phase == .signedIn else { return }
+        if let value = try? await api.get("/api/booking/my-assignments", as: AssignmentsEnvelope.self) {
+            apply(value)
+            loadProblem = nil
         }
+    }
+
+    func earning(for job: EaserJob) -> Earning? {
+        earnings?.earnings.first { $0.bookingID == job.id }
+    }
+
+    /// Before completion: the server's estimate. After: the recorded earning, never a guess.
+    func payText(for job: EaserJob) -> String {
+        guard job.isFinished else { return job.payText }
+        if let earned = earning(for: job) { return Format.money(cents: earned.amountCents) }
+        guard earnings != nil else { return "\u{2014}" }
+        return ["cancelled", "declined", "refunded"].contains(job.status) ? "No payout" : "Processing"
     }
 
     private func capture<T>(_ work: @escaping () async throws -> T) async -> Result<T, Error> {
@@ -152,9 +184,11 @@ final class EaserStore: ObservableObject {
 
     func job(_ id: String) -> EaserJob? { jobs.first { $0.id == id } }
 
-    var offers: [EaserJob] { jobs.filter { $0.needsAcceptance } }
+    var offers: [EaserJob] { jobs.filter { $0.needsAcceptance }.sorted { $0.startSortKey < $1.startSortKey } }
     var activeJob: EaserJob? { jobs.first { $0.isActive } }
-    var upcoming: [EaserJob] { jobs.filter { !$0.needsAcceptance && !$0.isActive && !$0.isFinished } }
+    var upcoming: [EaserJob] {
+        jobs.filter { !$0.needsAcceptance && !$0.isActive && !$0.isFinished }.sorted { $0.startSortKey < $1.startSortKey }
+    }
     var past: [EaserJob] { jobs.filter { $0.isFinished } }
     var unreadCount: Int { notices.filter { !$0.read }.count }
 

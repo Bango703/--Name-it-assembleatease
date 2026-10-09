@@ -152,6 +152,20 @@ assert.doesNotMatch(all, /opens in Safari/, 'no mechanics in customer- or Easer-
 assert.match(swift['EaserModels.swift'], /case "starter": return "Starter Pro"/);
 assert.match(profilePage, /starter: 'Starter Pro'/, 'level labels match the website');
 
+// ── 8d. Audit fixes (2026-10-09) ────────────────────────────────────────────
+assert.match(store, /loadedOnce = true\s*\n\s*\/\/[^\n]*\n\s*await pushTokenChanged\(PushRelay\.shared\.fcmToken\)/, 'job alerts register after the profile loads, not only when the token changes');
+assert.match(swift['AppDelegate.swift'], /PushRelay\.shared\.arrivals \+= 1/, 'an alert arriving while the app is open reloads the jobs');
+assert.match(swift['EaserViews.swift'], /reloadedFor == id/, 'tapping an alert for a job not yet loaded reloads once, then says it is gone');
+assert.match(swift['EaserViews.swift'], /if store\.appActive \{ await store\.refreshJobs\(\) \}/, 'the open app keeps offers current');
+assert.match(store, /sorted \{ \$0\.startSortKey < \$1\.startSortKey \}/, 'Up next is the soonest job, not the most recently assigned');
+assert.match(assignments, /order\('assigned_at', \{ ascending: false \}\)/, 'the server order is by assignment, which is why the app sorts');
+for (const code of ['current_agreement_required', 'new_offers_paused']) {
+  assert.ok(assignments.includes(`'${code}'`) && swift['EaserModels.swift'].includes(`"${code}"`), `paused-offer reason ${code} comes from the server`);
+}
+assert.doesNotMatch(swift['EaserViews.swift'], /Open Account to see what is needed/, 'no pointer to a screen that does not have the answer');
+assert.match(store, /func payText\(for job: EaserJob\)[\s\S]*earning\(for: job\)/, 'finished jobs show the recorded earning, not "Pay to be confirmed"');
+assert.match(assignments, /status === BOOKING_STATUS\.COMPLETED && !b\._return_visit_open\) return;/, 'the server sends no estimate for completed jobs');
+
 // ── 8. The website is untouched by the app build ─────────────────────────────
 assert.equal(JSON.parse(read('mobile/capacitor.config.json')).server.url, 'https://www.assembleatease.com/app', 'Android keeps its existing shell; iOS no longer reads this');
 
