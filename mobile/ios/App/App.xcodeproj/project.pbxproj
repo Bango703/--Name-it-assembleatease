@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E79253287AFF2FA24758A1FE /* EaserAccountViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B7D4CA0CE2D8E19C5BF37B /* EaserAccountViews.swift */; };
 		ECEEA0346EA710E5EAA22643 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 28DDF1AF7DBB75E111EE13BE /* PrivacyInfo.xcprivacy */; };
 		62DEA74AB385F71DF0942393 /* EaserSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E96B49669C94509C5B713F3C /* EaserSupport.swift */; };
 		B9D30A393C005D2ACB0AABC2 /* EaserModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25476047CEB710CBCBA89DD /* EaserModels.swift */; };
@@ -26,6 +27,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		76B7D4CA0CE2D8E19C5BF37B /* EaserAccountViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserAccountViews.swift; sourceTree = "<group>"; };
 		28DDF1AF7DBB75E111EE13BE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E96B49669C94509C5B713F3C /* EaserSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserSupport.swift; sourceTree = "<group>"; };
 		D25476047CEB710CBCBA89DD /* EaserModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserModels.swift; sourceTree = "<group>"; };
@@ -82,6 +84,7 @@
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				AA11E0000000000000000001 /* GoogleService-Info.plist */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
+				76B7D4CA0CE2D8E19C5BF37B /* EaserAccountViews.swift */,
 				28DDF1AF7DBB75E111EE13BE /* PrivacyInfo.xcprivacy */,
 				E96B49669C94509C5B713F3C /* EaserSupport.swift */,
 				D25476047CEB710CBCBA89DD /* EaserModels.swift */,
@@ -183,6 +186,7 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				E79253287AFF2FA24758A1FE /* EaserAccountViews.swift in Sources */,
 				62DEA74AB385F71DF0942393 /* EaserSupport.swift in Sources */,
 				B9D30A393C005D2ACB0AABC2 /* EaserModels.swift in Sources */,
 				4E76051AEAA64D4894A9793D /* EaserAPI.swift in Sources */,

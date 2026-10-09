@@ -8,6 +8,8 @@ struct EaserSession: Codable, Equatable {
     var refreshToken: String
     var userID: String
     var expiresAt: Date
+    /// From the sign-in response. The profile table is not read for it.
+    var email: String?
 }
 
 struct DynamicKey: CodingKey {
@@ -36,7 +38,6 @@ struct EaserProfile: Decodable {
     let id: String
     let role: String?
     let fullName: String?
-    let email: String?
     let isAvailable: Bool
     let closureStatus: String?
     /// A data: URL or https URL, exactly as the website stores it. Customers see it on their booking.
@@ -47,10 +48,42 @@ struct EaserProfile: Decodable {
         id = c.string("id") ?? ""
         role = c.string("role")
         fullName = c.string("full_name")
-        email = c.string("email")
         isAvailable = c.bool("is_available") ?? false
         closureStatus = c.string("account_closure_status")
         profilePhoto = c.string("profile_photo")
+        phone = c.string("phone")
+        city = c.string("city")
+        state = c.string("state")
+        zip = c.string("zip")
+        tier = c.string("tier")
+        rating = c.number("rating")
+        reviewCount = Int(c.number("review_count") ?? 0)
+        createdAt = c.string("created_at")
+        identityVerified = c.bool("identity_verified") ?? false
+    }
+
+    let phone: String?
+    let city: String?
+    let state: String?
+    let zip: String?
+    let tier: String?
+    let rating: Double?
+    let reviewCount: Int
+    let createdAt: String?
+    /// Once verified, name and location are locked; the server refuses changes (owner review).
+    let identityVerified: Bool
+
+    /// Same labels as assembler/profile.html.
+    var levelLabel: String {
+        switch tier ?? "" {
+        case "pending": return "Application Pending"
+        case "starter": return "Starter Pro"
+        case "professional": return "Professional"
+        case "elite": return "Elite Pro"
+        case "suspended": return "Suspended"
+        case "": return "Easer"
+        default: return tier ?? "Easer"
+        }
     }
 
     var firstName: String {
@@ -389,5 +422,93 @@ struct CustomerPhotosEnvelope: Decodable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         photos = (try? c.decodeIfPresent([CustomerPhoto].self, forKey: DynamicKey("photos"))) ?? []
+    }
+}
+
+struct TextAlerts: Decodable {
+    let enabled: Bool
+    let hasPhone: Bool
+    let optedOut: Bool
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        enabled = c.bool("enabled") ?? false
+        hasPhone = c.bool("hasPhone") ?? false
+        optedOut = c.bool("optedOut") ?? false
+    }
+}
+
+struct EaserReview: Decodable, Identifiable {
+    let id: String
+    let rating: Int
+    let comment: String
+    let customerFirstName: String
+    let createdAt: String?
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id") ?? UUID().uuidString
+        rating = max(0, min(5, Int(c.number("rating") ?? 0)))
+        comment = c.string("comment") ?? ""
+        customerFirstName = c.string("customerFirstName") ?? "Customer"
+        createdAt = c.string("createdAt")
+    }
+}
+
+struct ReviewsEnvelope: Decodable {
+    let reviews: [EaserReview]
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        reviews = (try? c.decodeIfPresent([EaserReview].self, forKey: DynamicKey("reviews"))) ?? []
+    }
+}
+
+/// Stripe Connect payout setup, as /api/assembler/connect-status reports it.
+struct ConnectStatus: Decodable {
+    let enabled: Bool
+    let payoutsEnabled: Bool
+    let hasAccount: Bool
+    let message: String?
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        enabled = c.bool("enabled") ?? false
+        payoutsEnabled = c.bool("payoutsEnabled") ?? false
+        hasAccount = c.string("accountId") != nil
+        if let connect = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("connect")) {
+            message = connect.string("message")
+        } else {
+            message = nil
+        }
+    }
+}
+
+/// An instant payout offer, priced by the server. Shown only when Stripe says it can be sent.
+struct InstantQuote: Decodable {
+    let available: Bool
+    let grossCents: Double
+    let feePct: Double
+    let feeCents: Double
+    let netCents: Double
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        available = (c.bool("instantAvailable") ?? false) && (c.bool("eligible") ?? false)
+        grossCents = c.number("grossCents") ?? 0
+        feePct = c.number("feePct") ?? 0
+        feeCents = c.number("feeCents") ?? 0
+        netCents = c.number("netCents") ?? 0
+    }
+}
+
+struct PayoutPreference: Decodable {
+    let preference: String
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        preference = c.string("preference") ?? ""
+    }
+}
+
+struct LinkEnvelope: Decodable {
+    let url: URL?
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        url = (c.string("onboardingUrl") ?? c.string("url")).flatMap { URL(string: $0) }
     }
 }

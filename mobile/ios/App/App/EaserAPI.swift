@@ -78,7 +78,8 @@ final class EaserAPI {
         }
         let expiresIn = (json["expires_in"] as? Double) ?? 3600
         let next = EaserSession(accessToken: access, refreshToken: refresh, userID: userID,
-                                expiresAt: Date().addingTimeInterval(expiresIn))
+                                expiresAt: Date().addingTimeInterval(expiresIn),
+                                email: (user["email"] as? String) ?? session?.email)
         session = next
         SessionVault.save(next)
     }
@@ -150,7 +151,7 @@ final class EaserAPI {
         let current = try await validSession()
         var parts = URLComponents(url: Self.supabase.appendingPathComponent("rest/v1/profiles"), resolvingAgainstBaseURL: false)!
         parts.queryItems = [
-            URLQueryItem(name: "select", value: "id,role,full_name,email,is_available,account_closure_status,profile_photo"),
+            URLQueryItem(name: "select", value: "id,role,full_name,phone,city,state,zip,profile_photo,rating,review_count,created_at,tier,is_available,identity_verified,account_closure_status"),
             URLQueryItem(name: "id", value: "eq." + current.userID),
         ]
         let data = try await supabaseRequest(url: parts.url!, method: "GET", body: nil)
@@ -168,6 +169,27 @@ final class EaserAPI {
     /// Profile photo, saved the way the website saves it (assembler/profile.html).
     func setProfilePhoto(_ dataURL: String) async throws {
         try await updateOwnProfile(["profile_photo": dataURL])
+    }
+
+    /// Contact details, through the same protected function. The server refuses
+    /// name and location changes once identity is verified.
+    func updateDetails(_ updates: [String: Any]) async throws {
+        try await updateOwnProfile(updates)
+    }
+
+    /// Sends the same password reset email as the website's Forgot password page.
+    func sendPasswordReset(to email: String) async throws {
+        var parts = URLComponents(url: Self.supabase.appendingPathComponent("auth/v1/recover"), resolvingAgainstBaseURL: false)!
+        parts.queryItems = [URLQueryItem(name: "redirect_to", value: Site.base.absoluteString + "/auth/set-password")]
+        var request = URLRequest(url: parts.url!)
+        request.httpMethod = "POST"
+        request.setValue(Self.publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["email": email])
+        let (data, response) = try await send(request)
+        guard (200..<300).contains(response.statusCode) else {
+            throw EaserError(message: Self.reason(in: data) ?? "The reset email could not be sent. Try again in a minute.", status: response.statusCode)
+        }
     }
 
     private func updateOwnProfile(_ updates: [String: Any]) async throws {

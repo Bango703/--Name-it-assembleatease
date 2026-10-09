@@ -90,21 +90,28 @@ private struct SignInView: View {
     @State private var password = ""
     @State private var working = false
     @State private var problem: String?
+    @State private var confirmReset = false
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    BrandLogo(size: 64)
+            VStack(spacing: 22) {
+                VStack(spacing: 8) {
+                    BrandLogo(size: 96)
+                        .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+                        .padding(.bottom, 6)
                     Text("Easer")
-                        .font(.largeTitle.bold())
+                        .font(.system(size: 36, weight: .bold))
                     Text("by AssembleAtEase")
                         .font(.headline)
                         .foregroundStyle(.secondary)
                     Text("Your job offers, schedule and earnings.")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.top, 40)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 36)
+                .padding(.bottom, 6)
 
                 VStack(spacing: 12) {
                     TextField("Email", text: $email)
@@ -124,6 +131,7 @@ private struct SignInView: View {
                     Text(problem)
                         .font(.subheadline)
                         .foregroundStyle(Brand.attention)
+                        .multilineTextAlignment(.center)
                 }
 
                 Button {
@@ -134,24 +142,46 @@ private struct SignInView: View {
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(working)
 
-                Button("Forgot password?") { openURL(Site.page("/auth/forgot-password")) }
-                    .font(.subheadline)
+                Button("Forgot password?") { forgotPassword() }
+                    .font(.subheadline.weight(.semibold))
 
-                Divider()
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("New to AssembleAtEase?")
-                        .font(.headline)
-                    Text("Apply to become an Easer. Your application opens in Safari.")
+                VStack(spacing: 10) {
+                    Text("Want to work with AssembleAtEase?")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Button("Apply to become an Easer") { openURL(Site.page("/assembler/apply")) }
                         .buttonStyle(SecondaryButtonStyle())
                 }
+                .padding(.top, 26)
             }
             .padding(24)
         }
         .scrollDismissesKeyboard(.interactively)
+        .confirmationDialog("Reset your password?", isPresented: $confirmReset, titleVisibility: .visible) {
+            Button("Send reset link") { Task { await sendReset() } }
+        } message: {
+            Text("We'll email \(email.trimmingCharacters(in: .whitespacesAndNewlines)) a link to set a new password.")
+        }
+    }
+
+    private func forgotPassword() {
+        let clean = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard clean.contains("@") else {
+            problem = "Enter your email above, then tap Forgot password."
+            return
+        }
+        problem = nil
+        confirmReset = true
+    }
+
+    private func sendReset() async {
+        let clean = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        do {
+            try await store.api.sendPasswordReset(to: clean)
+            store.banner = Banner(text: "Check \(clean) for a link to set a new password.", kind: .success)
+        } catch {
+            problem = error.localizedDescription
+        }
     }
 
     private func submit() async {
@@ -1102,7 +1132,7 @@ private struct MessageBubble: View {
 
 private struct EarningsView: View {
     @EnvironmentObject private var store: EaserStore
-    @Environment(\.openURL) private var openURL
+    private let recentCount = 5
 
     var body: some View {
         NavigationStack {
@@ -1115,53 +1145,36 @@ private struct EarningsView: View {
                             MoneyTile(title: "Paid", cents: summary.paidCents)
                         }
                         if summary.onHoldCents > 0 {
-                            HStack {
-                                Text("On hold")
-                                Spacer()
-                                Text(Format.money(cents: summary.onHoldCents)).fontWeight(.semibold)
+                            LabeledContent("On hold") {
+                                Text(Format.money(cents: summary.onHoldCents)).fontWeight(.semibold).foregroundStyle(Brand.attention)
                             }
                         }
-                        HStack {
-                            Text("Total earned")
-                            Spacer()
+                        LabeledContent("Total earned") {
                             Text(Format.money(cents: summary.totalEarnedCents)).fontWeight(.semibold)
                         }
                     }
                 }
 
-                Section("History") {
+                Section {
                     let rows = store.earnings?.earnings ?? []
                     if rows.isEmpty {
                         Text(store.loadedOnce ? "Earnings from completed jobs will appear here." : "Loading")
                             .foregroundStyle(.secondary)
                     }
-                    ForEach(rows) { earning in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(earning.service).font(.headline)
-                                Spacer()
-                                Text(Format.money(cents: earning.amountCents)).fontWeight(.semibold)
-                            }
-                            HStack {
-                                Text(earning.statusLabel)
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(earning.disposition == "paid" ? Brand.skyDark : Color.secondary)
-                                if let day = Format.day(earning.earnedAt) {
-                                    Text("· " + day).font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                            if !earning.statusMessage.isEmpty {
-                                Text(earning.statusMessage).font(.footnote).foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.vertical, 2)
+                    ForEach(rows.prefix(recentCount)) { EarningRow(earning: $0) }
+                    if rows.count > recentCount {
+                        NavigationLink("See all \(rows.count)") { EarningsHistoryView() }
                     }
+                } header: {
+                    Text("Recent")
                 }
 
                 Section {
-                    Button("Payout settings") { openURL(Site.page("/assembler/payouts")) }
-                } footer: {
-                    Text("Payout details are managed on the AssembleAtEase website and open in Safari.")
+                    NavigationLink {
+                        PayoutsView()
+                    } label: {
+                        Label("Payouts", systemImage: "building.columns")
+                    }
                 }
             }
             .navigationTitle("Earnings")
@@ -1176,7 +1189,7 @@ private struct MoneyTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(Format.money(cents: cents)).font(.title3.bold())
+            Text(Format.money(cents: cents)).font(.title3.bold()).monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -1240,6 +1253,18 @@ private struct AccountView: View {
     @State private var closing = false
     @State private var changingPhoto = false
 
+    private var online: Bool { store.profile?.isAvailable == true }
+
+    /// Job alerts reach an Easer only while they are online, so the row says so.
+    private var alertStatus: String {
+        guard online else { return "Paused while you're offline" }
+        switch store.alertsAuthorized {
+        case .some(true): return "On"
+        case .some(false): return "Off"
+        case .none: return "Not set up"
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -1248,45 +1273,69 @@ private struct AccountView: View {
                         Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 64)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(store.profile?.fullName ?? "Easer").font(.headline)
-                            if let email = store.profile?.email { Text(email).font(.subheadline).foregroundStyle(.secondary) }
-                            Button("Change photo") { changingPhoto = true }
-                                .font(.subheadline.weight(.semibold))
-                                .buttonStyle(.borderless)
-                                .padding(.top, 2)
+                            if let email = store.email { Text(email).font(.subheadline).foregroundStyle(.secondary) }
+                            Text(store.profile?.levelLabel ?? "Easer").font(.caption.weight(.semibold)).foregroundStyle(Brand.skyDark)
                         }
                     }
+                    Button("Change photo") { changingPhoto = true }
+                }
+
+                Section {
                     Toggle("Available for jobs", isOn: Binding(
-                        get: { store.profile?.isAvailable == true },
+                        get: { online },
                         set: { value in Task { await store.setAvailable(value) } }
                     ))
                     .disabled(store.availabilityBusy || store.profile?.closureHeld == true)
+                } footer: {
+                    Text(online ? "New job offers can reach you." : "You won't get job offers until you go online.")
                 }
 
-                Section("Job alerts") {
-                    switch store.alertsAuthorized {
-                    case .some(true):
-                        Label("Job alerts are on", systemImage: "bell.badge")
-                    case .some(false):
-                        Button("Turn on job alerts in Settings") {
+                Section {
+                    Button {
+                        if store.alertsAuthorized == false {
                             if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                        } else if store.alertsAuthorized == nil {
+                            Task { await store.requestAlertsIfNeeded() }
                         }
-                    case .none:
-                        Button("Turn on job alerts") { Task { await store.requestAlertsIfNeeded() } }
+                    } label: {
+                        LabeledContent {
+                            Text(alertStatus)
+                        } label: {
+                            Label("Job alerts", systemImage: "bell")
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    Toggle(isOn: Binding(
+                        get: { store.textAlerts?.enabled == true },
+                        set: { value in Task { await store.setTextAlerts(value) } }
+                    )) {
+                        Label("Text me job offers", systemImage: "message")
+                    }
+                    .disabled(store.textAlerts == nil || store.textAlerts?.hasPhone == false)
+                } header: {
+                    Text("Notifications")
+                } footer: {
+                    if store.textAlerts?.hasPhone == false {
+                        Text("Add a phone number in Profile to get job texts.")
+                    } else if store.alertsAuthorized == false && online {
+                        Text("Job alerts are turned off in iPhone Settings. Tap to open Settings.")
+                    } else {
+                        Text("Message and data rates may apply. Reply STOP to any text to turn texts off.")
                     }
                 }
 
                 Section("Your work") {
-                    Button("Profile, skills and documents") { openURL(Site.page("/assembler/profile")) }
-                    Button("Payout settings") { openURL(Site.page("/assembler/payouts")) }
+                    NavigationLink { ProfileView() } label: { Label("Profile", systemImage: "person.text.rectangle") }
+                    NavigationLink { PayoutsView() } label: { Label("Payouts", systemImage: "building.columns") }
                 }
 
                 Section("Help") {
-                    Button("Call \(Site.supportPhoneDisplay)") {
+                    Button {
                         if let url = URL(string: "tel:" + Site.supportPhone) { openURL(url) }
-                    }
-                    Button("Email \(Site.supportEmail)") {
+                    } label: { Label("Call \(Site.supportPhoneDisplay)", systemImage: "phone") }
+                    Button {
                         if let url = URL(string: "mailto:" + Site.supportEmail) { openURL(url) }
-                    }
+                    } label: { Label("Email support", systemImage: "envelope") }
                 }
 
                 Section("Legal") {
@@ -1306,6 +1355,15 @@ private struct AccountView: View {
                 }
             }
             .navigationTitle("Account")
+            .refreshable {
+                await store.refresh()
+                await store.loadProfileExtras()
+                await store.refreshAlertStatus(registerIfAllowed: false)
+            }
+            .task {
+                await store.loadProfileExtras()
+                await store.refreshAlertStatus(registerIfAllowed: false)
+            }
             .confirmationDialog("Sign out of Easer?", isPresented: $confirmSignOut, titleVisibility: .visible) {
                 Button("Sign out", role: .destructive) { Task { await store.signOut() } }
             } message: {
@@ -1358,7 +1416,9 @@ private struct CloseAccountSheet: View {
 }
 
 /// Customers see this photo on their booking ("who's coming"), so it is a clear face photo.
-private struct ProfilePhotoSheet: View {
+struct ProfilePhotoSheet: View {
+    init() {}
+
     @EnvironmentObject private var store: EaserStore
     @Environment(\.dismiss) private var dismiss
     @State private var photo: UIImage?
