@@ -284,7 +284,9 @@ assert.match(
 assert.match(ownerEaserMigrationSource, /assignment_token, status, source, payment_status ON public\.bookings/);
 assert.match(ownerEaserMigrationSource, /v_readiness_guard_required[\s\S]*Assigned Easer is not ready and eligible for jobs/);
 assert.match(assignSource, /ownerEaserManual = isOwnerManualLiveFlow\(booking, assembler\)/);
-assert.match(assignSource, /ownerEaserLiveManual = ownerManualConfirmed && ownerEaserManual/);
+// Migration 107 adds the demo (App Review) Easer on an offline TEST booking;
+// the owner-Easer half of the condition is unchanged.
+assert.match(assignSource, /ownerEaserLiveManual = ownerManualConfirmed\s*&& \(ownerEaserManual \|\| await isDemoTestLiveFlow\(sb, booking, assemblerId\)\)/);
 assert.match(assignSource, /\.select\('id, role,[^']*is_owner/);
 assert.match(assignSource, /recordOnlyOwnerManualCompleted && !ownerEaserManual/);
 assert.match(assignSource, /code: 'OWNER_EASER_REQUIRED'/);
@@ -293,8 +295,11 @@ assert.match(assignSource, /code: 'OWNER_EASER_REQUIRED'/);
 // this guard protects, not the spelling of the condition.
 assert.match(assignSource, /!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual/);
 assert.match(assignSource, /const paymentBlock = describeDispatchPaymentBlock\(booking[^)]*\);[\s\S]{0,200}?res\.status\(409\)/);
-assert.match(acceptSource, /ownerEaserLiveManual[\s\S]*isOwnerManualLiveFlow\(booking, actorProfile\)/);
-assert.match(statusSource, /ownerEaserLiveManual[\s\S]*isOwnerManualLiveFlow\(booking, profile\)/);
+assert.match(acceptSource, /ownerEaserLiveManual = await isOfflineLiveFlow\(sb, booking, actorProfile\)/);
+assert.match(statusSource, /ownerEaserLiveManual = await isOfflineLiveFlow\(sb, booking, profile\)/);
+assert.match(await fs.readFile(new URL('../api/_owner-easer.js', import.meta.url), 'utf8'),
+  /export async function isOfflineLiveFlow\(sb, booking, profile\) \{\s*if \(isOwnerManualLiveFlow\(booking, profile\)\) return true;/,
+  'the shared live-flow rule still starts from the owner-Easer exception');
 
 // Completion must never capture Stripe for this lane, must serialize the money
 // write, must pin mutable collection inputs, and must remain a manual payout.
@@ -307,7 +312,10 @@ assert.match(offlineCompletionSource, /operationType:\s*'completion_easer'/);
 assert.match(offlineCompletionSource, /\.eq\('financial_operation_key', operationKey\)/);
 assert.match(offlineCompletionSource, /\.eq\('payment_collected', booking\.payment_collected === true\)/);
 assert.match(offlineCompletionSource, /completionUpdate\.is\('payment_method', null\)/);
-assert.match(offlineCompletionSource, /payout_mode_snapshot: split\.assemblerDueCents > 0 \? 'manual' : null/);
+// Owner-Easer completions stay on the manual payout rail; only a demo (App
+// Review) test job is excluded, because it owes nobody anything.
+assert.match(offlineCompletionSource, /payout_mode_snapshot: split\.assemblerDueCents > 0 && !demoTestJob \? 'manual' : null/);
+assert.match(offlineCompletionSource, /payout_status: split\.assemblerDueCents > 0 && !demoTestJob \? 'pending' : null/);
 assert.match(offlineCompletionSource, /offlineMethodFeeCents\(booking\.payment_method, totalCents\)/);
 assert.doesNotMatch(offlineCompletionSource, /on_hold_customer_collection/);
 assert.doesNotMatch(offlineCompletionSource, /paymentIntents\.capture|captureOrRecoverBookingPayment/);
@@ -318,7 +326,7 @@ assert.match(completionSource, /OFFLINE_STRIPE_STATE_CONFLICT/);
 assert.match(assemblersSource, /identity_verified, is_owner,/);
 assert.match(assemblersSource, /const readiness = await getEaserReadiness\(normalized\)/);
 assert.match(assemblersSource, /if \(!readiness\.isReady\) continue/);
-assert.match(ownerSource, /ownerEaserOnly[\s\S]*eligibleAssemblers\.filter\(function\(a\) \{ return a\.is_owner === true; \}\)/);
+assert.match(ownerSource, /ownerEaserOnly[\s\S]*eligibleAssemblers\.filter\(function\(a\) \{\s*return a\.is_owner === true \|\| \(b\.is_test_booking === true && a\.is_demo_account === true\);\s*\}\)/);
 assert.match(ownerSource, /Complete from Easer Dashboard/);
 assert.match(ownerSource, /b\.status === 'en_route' \|\| b\.status === 'arrived'/);
 assert.match(dropSource, /OWNER_MANUAL_REDISPATCH_BLOCKED/);

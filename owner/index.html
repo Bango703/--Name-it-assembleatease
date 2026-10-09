@@ -7471,7 +7471,7 @@ window.intelQuick = intelQuick;
       // reads as "this job cannot be reassigned" on every assigned booking.
       // The currently assigned Easer is left out: picking them is a no-op that
       // still costs a write and a notification.
-      fillAssignChoices(eligibleAssemblers.filter(function(a) { return a.id !== b.assembler_id; }),
+      fillAssignChoices(eligibleAssemblers.filter(function(a) { return a.id !== b.assembler_id && (a.is_demo_account !== true || b.is_test_booking === true); }),
         'No other eligible Easer is available right now.');
       controls.style.display = 'none';
     } else {
@@ -7486,17 +7486,25 @@ window.intelQuick = intelQuick;
         }
         return;
       }
-      var readyOwnerChoices = eligibleAssemblers.filter(function(a) { return a.is_owner === true; });
+      // Demo (App Review) accounts are offered only on a booking marked as a test;
+      // the server refuses them anywhere else (api/_demo-accounts.js).
+      var readyOwnerChoices = eligibleAssemblers.filter(function(a) {
+        return a.is_owner === true || (b.is_test_booking === true && a.is_demo_account === true);
+      });
       var assignmentChoices = allowOwnerManualCompleted
         ? (ownerEaserProfile ? [ownerEaserProfile] : [])
-        : (allowOwnerManualLive ? readyOwnerChoices : eligibleAssemblers);
+        : (allowOwnerManualLive ? readyOwnerChoices : eligibleAssemblers.filter(function(a) {
+            return a.is_demo_account !== true || b.is_test_booking === true;
+          }));
       var ownerMissingItems = ownerEaserProfile && Array.isArray(ownerEaserProfile.missing_items)
         ? ownerEaserProfile.missing_items.join(', ')
         : '';
       status.textContent = allowOwnerManualCompleted
         ? 'Completed owner booking — only the configured owner-Easer account may be credited for payout tracking.'
         : (allowOwnerManualLive
-          ? 'Only the configured owner-Easer account may work this offline booking.'
+          ? (b.is_test_booking === true
+            ? 'Test booking: your owner-Easer account or a demo account can work it.'
+            : 'Only the configured owner-Easer account may work this offline booking.')
           : 'No Easer assigned yet.');
       if (allowOwnerManualCompleted) {
         status.textContent = ownerEaserProfile

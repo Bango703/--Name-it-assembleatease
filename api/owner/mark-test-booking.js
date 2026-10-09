@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
+import { isDemoEaser } from '../_demo-accounts.js';
 
 /**
  * POST /api/owner/mark-test-booking — owner marks one booking as internal, or
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error: loadError } = await sb
     .from('bookings')
-    .select('id, ref, customer_name, status, is_test_booking, amount_charged, payout_amount, paid_out_at, stripe_transfer_id')
+    .select('id, ref, customer_name, status, is_test_booking, assembler_id, amount_charged, payout_amount, paid_out_at, stripe_transfer_id')
     .eq('id', bookingId)
     .maybeSingle();
 
@@ -70,6 +71,14 @@ export default async function handler(req, res) {
         error: 'This booking moved real money, so it cannot be marked as a test. Marking it would remove settled revenue from your own figures.',
       });
     }
+  }
+
+  // A demo (App Review) account may only hold test bookings, so a booking it
+  // holds cannot be turned into a real one under it.
+  if (!isTest && booking.assembler_id && await isDemoEaser(sb, booking.assembler_id)) {
+    return res.status(409).json({
+      error: 'A demo account is assigned to this booking. Release it before marking the booking as real.',
+    });
   }
 
   // Compare-and-set: if the flag changed under us, say so rather than clobber.

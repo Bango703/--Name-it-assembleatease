@@ -21,6 +21,11 @@
 
 const GUARD_REASONS = Object.freeze([
   {
+    match: 'A demo account can only be given test bookings',
+    code: 'DEMO_ACCOUNT_REAL_BOOKING',
+    owner: 'This is a demo account. It can only be given bookings marked as a test. No assignment was changed.',
+  },
+  {
     match: 'Active crew allocations require review before changing the lead Easer',
     code: 'CREW_HANDOFF_REQUIRES_REVIEW',
     owner: 'This booking has crew pay allocations. Review the crew and earnings before changing its lead Easer. No assignment or pay was changed.',

@@ -96,4 +96,54 @@ const hardening = await read('api/migrations/031_security_privilege_hardening.sq
 const allowed = hardening.match(/v_allowed_keys CONSTANT text\[\] := ARRAY\[([^\]]*)\]/)?.[1] || '';
 assert.ok(allowed && !/is_demo_account/.test(allowed), 'is_demo_account must never be Easer-editable');
 
-console.log('demo Easer accounts: test bookings only, enforced in dispatch, assign, crew and accept');
+// ── A demo account can run a whole TEST job (migration 107) ─────────────────
+// App Review must be able to accept, travel, arrive, start and complete. The
+// only booking with no customer card is an owner-created offline booking, so a
+// demo Easer on an offline TEST booking gets the owner-Easer's exception, and
+// nothing else does.
+const { isDemoTestLiveFlow, isOfflineLiveFlow } = await import('../api/_owner-easer.js');
+let lookups = 0;
+const demoSb = flag => ({ from: () => { lookups++; const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: { is_demo_account: flag }, error: null }) }; return q; } });
+const offlineTest = { source: 'owner_manual', payment_status: 'offline_recorded', is_test_booking: true };
+assert.equal(await isDemoTestLiveFlow(demoSb(true), offlineTest, 'd1'), true, 'demo Easer + offline test booking works the live flow');
+assert.equal(await isDemoTestLiveFlow(demoSb(false), offlineTest, 'e1'), false, 'a normal Easer never gets the exception');
+lookups = 0;
+for (const booking of [
+  { ...offlineTest, is_test_booking: false },
+  { ...offlineTest, payment_status: 'authorized' },
+  { ...offlineTest, source: 'online' },
+]) {
+  assert.equal(await isDemoTestLiveFlow(demoSb(true), booking, 'd1'), false, `no exception for ${JSON.stringify(booking)}`);
+}
+assert.equal(lookups, 0, 'real bookings never even look the flag up');
+assert.equal(await isOfflineLiveFlow(demoSb(false), { source: 'owner_manual', payment_status: 'offline_recorded' }, { id: 'o', is_owner: true, role: 'assembler' }), true,
+  'the owner-Easer exception is unchanged');
+
+assert.match(assign, /ownerManualConfirmed\s*&& \(ownerEaserManual \|\| await isDemoTestLiveFlow\(sb, booking, assemblerId\)\)/, 'assign: demo on offline test booking skips the card gate only');
+assert.match(assign, /if \(recordOnlyOwnerManualCompleted && !ownerEaserManual\)/, 'crediting completed offline work stays owner-only');
+assert.match(accept, /await isOfflineLiveFlow\(sb, booking, actorProfile\)/, 'accept uses the shared rule');
+const status = await read('api/booking/easer-status.js');
+assert.match(status, /await isOfflineLiveFlow\(sb, booking, profile\)/, 'on the way / arrived / start use the shared rule');
+const complete = await read('api/booking/assembler-complete.js');
+assert.match(complete, /payout_status: split\.assemblerDueCents > 0 && !demoTestJob \? 'pending' : null/, 'a demo test job owes no payout');
+assert.match(complete, /payout_mode_snapshot: split\.assemblerDueCents > 0 && !demoTestJob \? 'manual' : null/);
+const payouts = await read('api/owner/payouts.js');
+assert.match(payouts, /r\.assemblerId && r\.isTestBooking !== true/, 'test bookings never appear as money owed');
+const myAssignments = await read('api/booking/my-assignments.js');
+assert.match(myAssignments, /same_day_easer_bonus_cents, is_test_booking'\)/, 'the job list loads the test flag it decides on');
+const markTest = await read('api/owner/mark-test-booking.js');
+assert.match(markTest, /!isTest && booking\.assembler_id && await isDemoEaser\(sb, booking\.assembler_id\)/, 'a demo-held test booking cannot be turned real');
+const assemblersApi = await read('api/booking/assemblers.js');
+assert.match(assemblersApi, /is_demo_account: demoIds\.has\(normalized\.id\)/, 'the dashboard is told which Easers are demo accounts');
+const ownerPage = await read('owner/index.html');
+assert.match(ownerPage, /a\.is_owner === true \|\| \(b\.is_test_booking === true && a\.is_demo_account === true\)/, 'dashboard offers demo accounts on offline test bookings');
+assert.ok((ownerPage.match(/a\.is_demo_account !== true \|\| b\.is_test_booking === true/g) || []).length >= 2, 'dashboard never offers demo accounts on real bookings');
+
+const m107 = await read('api/migrations/107_demo_test_job_flow.sql');
+assert.match(m107, /v_demo_test_easer := COALESCE\(NEW\.source, 'online'\) = 'owner_manual'\s+AND NEW\.payment_status = 'offline_recorded'\s+AND COALESCE\(NEW\.is_test_booking, FALSE\) = TRUE\s+AND COALESCE\(v_profile\.is_demo_account, FALSE\) = TRUE;/);
+assert.match(m107, /AND NOT v_record_only_owner_manual AND NOT v_owner_manual_easer AND NOT v_demo_test_easer;/, 'only the payment gate is relaxed');
+assert.match(m107, /RAISE EXCEPTION 'A demo account can only be given test bookings'/, 'the database refuses a demo account on a real booking');
+assert.match(m107, /public\.current_required_agreement_version\(\)/, 'agreement version still read from its single source');
+assert.match(m107, /VALUES \(107, 'demo_test_job_flow'\)/);
+
+console.log('demo Easer accounts: test bookings only, enforced in dispatch, assign, crew, accept and the database; a demo can run a whole test job with no payout');
