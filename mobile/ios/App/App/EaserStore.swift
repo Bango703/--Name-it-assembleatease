@@ -271,6 +271,80 @@ final class EaserStore: ObservableObject {
         }
     }
 
+    // MARK: Profile photo
+
+    /// Customers see this photo on their booking, so it is saved only when the server confirms.
+    func updateProfilePhoto(_ image: UIImage) async -> Bool {
+        guard let dataURL = ProfilePhotoPrep.dataURL(from: image) else {
+            banner = Banner(text: "That photo could not be prepared. Try a different photo.", kind: .problem)
+            return false
+        }
+        do {
+            try await api.setProfilePhoto(dataURL)
+            profile = try await api.profile()
+            banner = Banner(text: "Profile photo saved.", kind: .success)
+            return true
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+            return false
+        }
+    }
+
+    // MARK: Releasing a job, extra photos, damage
+
+    /// The reliability cost of releasing, calculated by the server before anything changes.
+    func releaseImpact(_ job: EaserJob) async throws -> ReleaseImpact? {
+        let data = try await api.call("POST", "/api/booking/drop-job", body: ["bookingId": job.id, "preview": true])
+        return try? JSONDecoder().decode(ReleasePreviewEnvelope.self, from: data).impact
+    }
+
+    static let releaseReasons = ["Emergency", "Vehicle issue", "Running too late", "Schedule conflict", "Other"]
+
+    func release(_ job: EaserJob, reason: String, note: String) async -> Bool {
+        busyJobs.insert(job.id)
+        defer { busyJobs.remove(job.id) }
+        do {
+            let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+            var body: [String: Any] = ["bookingId": job.id, "reason": reason]
+            body["note"] = trimmed.isEmpty ? NSNull() : String(trimmed.prefix(1200))
+            _ = try await api.call("POST", "/api/booking/drop-job", body: body)
+            banner = Banner(text: "You have been released from this job. It will be offered to another Easer.", kind: .success)
+            await refresh()
+            return true
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+            return false
+        }
+    }
+
+    func customerPhotos(for job: EaserJob) async -> [CustomerPhoto] {
+        (try? await api.get("/api/booking/customer-photos?bookingId=" + EaserAPI.query(job.id), as: CustomerPhotosEnvelope.self).photos) ?? []
+    }
+
+    /// A photo AssembleAtEase asked for, or a damage report. Damage needs a description.
+    func sendPhoto(_ image: UIImage, for job: EaserJob, damageNote: String?) async -> Bool {
+        guard let jpeg = PhotoPrep.jpeg(from: image) else {
+            banner = Banner(text: "That photo could not be prepared. Take a new one and try again.", kind: .problem)
+            return false
+        }
+        var body: [String: Any] = [
+            "bookingId": job.id,
+            "fileBase64": jpeg.base64EncodedString(),
+            "mimeType": "image/jpeg",
+            "evidenceType": damageNote == nil ? "completion_photo" : "damage_claim",
+        ]
+        if let damageNote { body["notes"] = damageNote }
+        do {
+            _ = try await api.call("POST", "/api/booking/upload-evidence", body: body)
+            banner = Banner(text: damageNote == nil ? "Photo sent to AssembleAtEase." : "Damage report sent. AssembleAtEase will follow up.", kind: .success)
+            await refresh()
+            return true
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+            return false
+        }
+    }
+
     // MARK: Inbox and messages
 
     func markRead(_ ids: [String]) async {

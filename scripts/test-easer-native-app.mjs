@@ -96,6 +96,42 @@ assert.match(privacy, /<key>NSPrivacyTracking<\/key>\s*<false\/>/);
 assert.match(privacy, /NSPrivacyAccessedAPICategoryUserDefaults[\s\S]*CA92\.1/);
 assert.doesNotMatch(all, /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u, 'no emoji');
 
+// ── 8a. Full job tree: release, photo requests, damage, customer photos ─────
+for (const field of ['_can_self_drop', 'evidence_requested_at', '_evidence_uploaded']) {
+  assert.ok(all.includes(`"${field}"`), `app reads ${field}`);
+  assert.ok(assignments.includes(field), `${field} is sent by my-assignments`);
+}
+const dropJob = read('api/booking/drop-job.js');
+const serverReasons = JSON.parse(dropJob.match(/DROP_REASONS = new Set\((\[[^\]]+\])\)/)[1].replace(/'/g, '"'));
+const appReasons = JSON.parse(store.match(/releaseReasons = (\[[^\]]+\])/)[1]);
+assert.deepEqual(appReasons, serverReasons, 'release reasons are the server\'s list');
+assert.match(store, /"preview": true/, 'the reliability cost is shown before releasing');
+assert.match(swift['EaserModels.swift'], /status == "confirmed" && selfDropAllowed/, 'release offered only before travel, as on the web');
+const webAssign = read('assembler/my-assignments.html');
+for (const sentence of [
+  'You accepted this job less than 15 minutes ago, so cancelling now has no reliability strike.',
+  'The job is more than 24 hours away, so cancelling now has no reliability strike.',
+  ' This cancellation will pause new jobs until AssembleAtEase reviews your account.',
+]) {
+  assert.ok(webAssign.includes(sentence) && swift['EaserModels.swift'].includes(sentence), `release warning matches the web: ${sentence.trim()}`);
+}
+const evidenceTypes = read('api/booking/upload-evidence.js');
+for (const type of ['completion_photo', 'damage_claim']) assert.ok(evidenceTypes.includes(`'${type}'`) && store.includes(`"${type}"`), `evidence type ${type}`);
+assert.match(evidenceTypes, /damage_claim' && cleanNotes\.length < 10/);
+assert.match(all, /count >= 10/, 'damage report asks for the same minimum description as the server');
+
+// ── 8b. Profile photo and logo ──────────────────────────────────────────────
+assert.match(swift['EaserAPI.swift'], /select", value: "[^"]*profile_photo/, 'profile photo is read');
+assert.match(swift['EaserAPI.swift'], /"profile_photo": dataURL/, 'profile photo saved through the protected function');
+const profilePage = read('assembler/profile.html');
+assert.match(profilePage, /const MAX = 384;/);
+assert.match(profilePage, /photoBase64\.length > 350000/);
+assert.match(swift['EaserSupport.swift'], /maxEdgePixels: CGFloat = 384\b[\s\S]*maxDataURLLength = 350000\b/, 'same profile photo size as the website');
+const logoAsset = readFileSync(`${APP}/Assets.xcassets/AAELogo.imageset/AAELogo.jpg`);
+assert.ok(logoAsset.equals(readFileSync('images/logo.jpg')), 'the in-app logo is the real AAE logo file');
+assert.match(swift['EaserSupport.swift'], /Image\("AAELogo"\)/);
+assert.doesNotMatch(all, /wrench\.and\.screwdriver/, 'no stand-in symbol where the logo belongs');
+
 // ── 8. The website is untouched by the app build ─────────────────────────────
 assert.equal(JSON.parse(read('mobile/capacitor.config.json')).server.url, 'https://www.assembleatease.com/app', 'Android keeps its existing shell; iOS no longer reads this');
 
