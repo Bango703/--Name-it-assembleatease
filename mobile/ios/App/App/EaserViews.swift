@@ -514,6 +514,14 @@ private struct AgreementSheet: View {
     @State private var agreeConduct = false
     @State private var working = false
 
+    /// The first thing still missing, in the order the form asks for it.
+    private var blockedReason: String? {
+        if typedName.trimmingCharacters(in: .whitespaces).isEmpty { return "Type your full name to sign." }
+        if !nameMatches { return legalName.isEmpty ? "Your account name could not be loaded." : "Your name must match \(legalName) exactly." }
+        if !agreeContract || !agreeConduct { return "Turn on both agreements to continue." }
+        return nil
+    }
+
     private var nameMatches: Bool {
         return !legalName.isEmpty && Self.normalized(typedName) == Self.normalized(legalName)
     }
@@ -538,8 +546,10 @@ private struct AgreementSheet: View {
                 } header: {
                     Text("Sign with your full legal name")
                 } footer: {
-                    if !typedName.isEmpty && !nameMatches {
-                        Text("Type your name exactly as it is on your application: \(legalName). Contact \(Site.supportEmail) if it needs correcting.")
+                    if legalName.isEmpty {
+                        Text("Your account name could not be loaded. Close this and pull down on Today to refresh.")
+                    } else {
+                        Text("Type it exactly as it is on your account: \(legalName). Contact \(Site.supportEmail) if it needs correcting.")
                     }
                 }
                 Section {
@@ -566,7 +576,10 @@ private struct AgreementSheet: View {
                     } label: {
                         if working { ProgressView() } else { Text("Sign and continue").fontWeight(.semibold) }
                     }
-                    .disabled(!(nameMatches && agreeContract && agreeConduct) || working)
+                    .disabled(blockedReason != nil || working)
+                } footer: {
+                    // A disabled button always says what it is waiting for.
+                    if let blockedReason { Text(blockedReason) }
                 }
             }
             .navigationTitle("Contractor agreement")
@@ -1060,6 +1073,10 @@ private struct PhotoSheet: View {
                 } label: {
                     if submitting {
                         ProgressView().tint(Brand.ink)
+                    } else if photo == nil {
+                        Text("Add a photo to continue")
+                    } else if !ready {
+                        Text("Describe what happened")
                     } else {
                         Text(mode == .completion ? "Submit completion" : (mode == .damage ? "Send report" : "Send photo"))
                     }
@@ -1175,6 +1192,8 @@ private struct ReleaseSheet: View {
                         if working { ProgressView() } else { Text("Cancel this job") }
                     }
                     .disabled(reason.isEmpty || working)
+                } footer: {
+                    if reason.isEmpty { Text("Choose a reason to continue.") }
                 }
             }
             .navigationTitle("Can't make this job")
