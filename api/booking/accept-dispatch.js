@@ -12,6 +12,7 @@ import { isLegacyAssignmentTokenFresh } from './_dispatch-safety.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
+import { demoBookingBlock, isDemoEaser } from '../_demo-accounts.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -282,6 +283,10 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: publicReadinessError(readiness), missingItems: publicMissingItems(readiness) });
       }
     }
+    {
+      const demoBlock = demoBookingBlock(booking, await isDemoEaser(sb, assemblerId));
+      if (demoBlock) return res.status(403).json({ error: demoBlock.message, code: demoBlock.code });
+    }
     let feeSnapshot;
     try {
       feeSnapshot = buildEaserFeeSnapshot(booking, easer, { snapshottedAt: now });
@@ -371,6 +376,10 @@ export default async function handler(req, res) {
 
   if (!isDispatch && !isAssignment) {
     return res.status(403).json({ error: 'Invalid or expired offer token' });
+  }
+  {
+    const demoBlock = demoBookingBlock(booking, await isDemoEaser(sb, assemblerId));
+    if (demoBlock) return res.status(403).json({ error: demoBlock.message, code: demoBlock.code });
   }
 
   // Accepting is the other half of staffing, not the start of work. PR #163 let

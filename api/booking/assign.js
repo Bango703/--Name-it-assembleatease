@@ -15,6 +15,7 @@ import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
 import { verifyOwnerManualCustomerFundsForPayout } from '../owner/_manual-payment-truth.js';
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
+import { demoBookingBlock, isDemoEaser } from '../_demo-accounts.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -184,6 +185,8 @@ export default async function handler(req, res) {
     if (!readiness.isReady) return res.status(400).json({ error: readinessError(readiness), missingItems: readiness.missingItems });
     assemblerTier = readiness.tier;
   }
+  const demoBlock = demoBookingBlock(booking, await isDemoEaser(sb, assemblerId));
+  if (demoBlock) return res.status(409).json({ error: demoBlock.message, code: demoBlock.code });
 
   // Generate secure assignment token
   const assignedAt = new Date().toISOString();

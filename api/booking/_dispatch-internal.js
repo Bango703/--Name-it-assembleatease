@@ -10,6 +10,7 @@ import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { logActivity } from './_activity.js';
 import { DISPATCH_HISTORY_EXCLUSION_STATUSES } from './_dispatch-safety.js';
 import { loadEaserStrikes } from '../_easer-reliability.js';
+import { loadDemoEaserIds, withoutDemoEasers } from '../_demo-accounts.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -57,8 +58,10 @@ async function sendSoftJobNudges(sb, offeredEaserIds, bookingZip) {
       .or('account_closure_status.is.null,account_closure_status.eq.cancelled');
     if (error || !candidates?.length) return;
     const offered = new Set(offeredEaserIds || []);
+    const demoEaserIds = await loadDemoEaserIds(sb);
     for (const e of candidates) {
       if (offered.has(e.id) || !e.email) continue;      // already got the real offer
+      if (demoEaserIds.has(e.id)) continue;             // demo accounts are never nudged toward real work
       if (e.is_available === true) continue;            // already online — no nudge needed
       if (String(e.zip || '').trim().slice(0, 3) !== zipPrefix) continue; // different service area
       const first = String(e.full_name || 'there').split(' ')[0] || 'there';
@@ -155,6 +158,9 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     easer,
     readiness: await getEaserReadiness(easer),
   })));
+  // Demo (App Review) accounts get test bookings only. Read with its own query,
+  // so this is a no-op until migration 106 adds the column.
+  const demoEaserIds = await loadDemoEaserIds(sb);
   let eligible = readinessPairs.filter(({ easer, readiness }) => {
     if (!readiness.isReady) return false;
     // When re-dispatching a job a Pro just dropped, don't bounce it straight back
@@ -174,6 +180,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     if (!isSameServiceMarket(bookingZip, easer.zip)) return false;
     return true;
   }).map(({ easer }) => easer);
+  eligible = withoutDemoEasers(eligible, demoEaserIds, booking);
 
   if (!eligible.length) return { dispatched: 0, message: 'No available Easers in service area' };
 
