@@ -125,25 +125,60 @@ final class EaserStore: ObservableObject {
     // MARK: Loading
 
     /// Each part loads on its own: a slow earnings ledger never hides a job offer.
+    private enum LoadedPart {
+        case profile(Result<EaserProfile, Error>)
+        case jobs(Result<AssignmentsEnvelope, Error>)
+        case readiness(Result<ReadinessEnvelope, Error>)
+        case earnings(Result<EarningsEnvelope, Error>)
+        case notices(Result<NoticesEnvelope, Error>)
+    }
+
+    /// Each part is shown the moment it arrives: a slow earnings ledger never
+    /// holds back a job offer, and the first screen paints as fast as its jobs.
     func refresh() async {
         guard api.session != nil else { return }
-        async let profileResult = capture { try await self.api.profile() }
-        async let jobsResult = capture { try await self.api.get("/api/booking/my-assignments", as: AssignmentsEnvelope.self) }
-        async let readinessResult = capture { try await self.api.get("/api/assembler/readiness", as: ReadinessEnvelope.self) }
-        async let earningsResult = capture { try await self.api.get("/api/assembler/earnings", as: EarningsEnvelope.self) }
-        async let noticesResult = capture { try await self.api.get("/api/assembler/notifications", as: NoticesEnvelope.self) }
-
-        let (p, j, r, e, n) = await (profileResult, jobsResult, readinessResult, earningsResult, noticesResult)
-        if case .success(let value) = p { profile = value }
-        if case .success(let value) = j { apply(value) }
-        if case .success(let value) = r { readiness = value.readiness }
-        if case .success(let value) = e { earnings = value }
-        if case .success(let value) = n { notices = value.notifications }
-
-        if case .failure(let error) = j {
-            loadProblem = error.localizedDescription
-        } else {
-            loadProblem = nil
+        await withTaskGroup(of: LoadedPart.self) { group in
+            group.addTask {
+                let result = await self.capture { try await self.api.get("/api/booking/my-assignments", as: AssignmentsEnvelope.self) }
+                return .jobs(result)
+            }
+            group.addTask {
+                let result = await self.capture { try await self.api.profile() }
+                return .profile(result)
+            }
+            group.addTask {
+                let result = await self.capture { try await self.api.get("/api/assembler/readiness", as: ReadinessEnvelope.self) }
+                return .readiness(result)
+            }
+            group.addTask {
+                let result = await self.capture { try await self.api.get("/api/assembler/notifications", as: NoticesEnvelope.self) }
+                return .notices(result)
+            }
+            group.addTask {
+                let result = await self.capture { try await self.api.get("/api/assembler/earnings", as: EarningsEnvelope.self) }
+                return .earnings(result)
+            }
+            for await part in group {
+                switch part {
+                case .jobs(let result):
+                    switch result {
+                    case .success(let value):
+                        apply(value)
+                        loadProblem = nil
+                    case .failure(let error):
+                        loadProblem = error.localizedDescription
+                    }
+                    loadedOnce = true
+                case .profile(let result):
+                    if case .success(let value) = result { profile = value }
+                case .readiness(let result):
+                    if case .success(let value) = result { readiness = value.readiness }
+                case .notices(let result):
+                    if case .success(let value) = result { notices = value.notifications }
+                case .earnings(let result):
+                    if case .success(let value) = result { earnings = value }
+                }
+            }
         }
         loadedOnce = true
         // Retried here because on relaunch the token can arrive before the profile.
