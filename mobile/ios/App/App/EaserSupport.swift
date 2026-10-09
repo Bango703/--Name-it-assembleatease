@@ -219,6 +219,86 @@ enum PhotoPrep {
     }
 }
 
+/// Mirrors assembler/profile.html: longest edge 384 px, JPEG, at most 350,000
+/// characters as a data: URL (quality 0.8, then 0.62).
+enum ProfilePhotoPrep {
+    static let maxEdgePixels: CGFloat = 384
+    static let maxDataURLLength = 350000
+
+    static func dataURL(from image: UIImage) -> String? {
+        let size = image.size
+        let longest = max(size.width, size.height)
+        let scale = longest > maxEdgePixels ? maxEdgePixels / longest : 1
+        let target = CGSize(width: max(1, (size.width * scale).rounded()), height: max(1, (size.height * scale).rounded()))
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let resized = UIGraphicsImageRenderer(size: target, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: target))
+        }
+        for quality in [CGFloat(0.8), CGFloat(0.62)] {
+            if let data = resized.jpegData(compressionQuality: quality) {
+                let url = "data:image/jpeg;base64," + data.base64EncodedString()
+                if url.count <= maxDataURLLength { return url }
+            }
+        }
+        return nil
+    }
+
+    /// The stored value as an image, when it is an inline data: URL.
+    static func image(from value: String?) -> UIImage? {
+        guard let value, value.hasPrefix("data:image/"), let comma = value.firstIndex(of: ",") else { return nil }
+        guard let data = Data(base64Encoded: String(value[value.index(after: comma)...])) else { return nil }
+        return UIImage(data: data)
+    }
+}
+
+/// The AssembleAtEase logo: the real AAE monogram (images/logo.jpg), never a stand-in.
+struct BrandLogo: View {
+    var size: CGFloat = 64
+    var body: some View {
+        Image("AAELogo")
+            .resizable()
+            .scaledToFill()
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+            .accessibilityLabel("AssembleAtEase")
+    }
+}
+
+/// The Easer's profile photo, or their initials when there is none.
+struct Avatar: View {
+    let photo: String?
+    let name: String?
+    var size: CGFloat = 40
+
+    var body: some View {
+        Group {
+            if let image = ProfilePhotoPrep.image(from: photo) {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else if let photo, photo.hasPrefix("https://"), let url = URL(string: photo) {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image { image.resizable().scaledToFill() } else { initials }
+                }
+            } else {
+                initials
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+        .accessibilityLabel("Profile photo")
+    }
+
+    private var initials: some View {
+        let letters = (name ?? "").split(separator: " ").prefix(2).compactMap { $0.first }.map(String.init).joined().uppercased()
+        return ZStack {
+            Circle().fill(Brand.sky.opacity(0.2))
+            Text(letters.isEmpty ? "E" : letters)
+                .font(.system(size: size * 0.4, weight: .semibold))
+                .foregroundStyle(Brand.skyDark)
+        }
+    }
+}
+
 struct PrimaryButtonStyle: ButtonStyle {
     var enabled = true
     func makeBody(configuration: Configuration) -> some View {

@@ -39,6 +39,8 @@ struct EaserProfile: Decodable {
     let email: String?
     let isAvailable: Bool
     let closureStatus: String?
+    /// A data: URL or https URL, exactly as the website stores it. Customers see it on their booking.
+    let profilePhoto: String?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
@@ -48,6 +50,7 @@ struct EaserProfile: Decodable {
         email = c.string("email")
         isAvailable = c.bool("is_available") ?? false
         closureStatus = c.string("account_closure_status")
+        profilePhoto = c.string("profile_photo")
     }
 
     var firstName: String {
@@ -110,6 +113,9 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     let crewRole: String?
     let returnVisitOpen: Bool
     let items: [JobItem]
+    let evidenceRequested: Bool
+    let evidenceUploaded: Bool
+    let selfDropAllowed: Bool
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
@@ -133,6 +139,9 @@ struct EaserJob: Decodable, Identifiable, Hashable {
         crewRole = c.string("_crew_role")
         returnVisitOpen = c.bool("_return_visit_open") ?? false
         items = (try? c.decodeIfPresent([JobItem].self, forKey: DynamicKey("_booking_items"))) ?? []
+        evidenceRequested = c.string("evidence_requested_at") != nil
+        evidenceUploaded = c.bool("_evidence_uploaded") ?? false
+        selfDropAllowed = c.bool("_can_self_drop") ?? true
     }
 
     static let finishedStatuses: Set<String> = ["completed", "cancelled", "declined", "refunded"]
@@ -142,6 +151,10 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     var isOffer: Bool { needsAcceptance && offerToken != nil }
     var isActive: Bool { ["en_route", "arrived", "in_progress"].contains(status) }
     var isHelper: Bool { crewRole == "helper" }
+    /// AssembleAtEase asked for more photos and none has arrived yet.
+    var photosRequested: Bool { evidenceRequested && !evidenceUploaded && acceptedAt != nil }
+    /// Same rule as the web dashboard: accepted, confirmed, not started.
+    var canRelease: Bool { acceptedAt != nil && status == "confirmed" && selfDropAllowed && !isHelper }
 
     var title: String { service ?? "Service job" }
     var when: String { [Format.day(date), time].compactMap { $0 }.joined(separator: " · ") }
@@ -314,5 +327,67 @@ struct MessagesEnvelope: Decodable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         messages = (try? c.decodeIfPresent([JobMessage].self, forKey: DynamicKey("messages"))) ?? []
+    }
+}
+
+/// What releasing a job costs, as the server calculates it (drop-job preview).
+struct ReleaseImpact: Decodable {
+    let kind: String
+    let strikesAdded: Int
+    let strikesBefore: Int
+    let windowDays: Int
+    let pauseAtStrikes: Int
+    let willPause: Bool
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        kind = c.string("kind") ?? ""
+        strikesAdded = Int(c.number("strikesAdded") ?? 0)
+        strikesBefore = Int(c.number("strikesBefore") ?? 0)
+        windowDays = Int(c.number("windowDays") ?? 0)
+        pauseAtStrikes = Int(c.number("pauseAtStrikes") ?? 0)
+        willPause = c.bool("willPause") ?? false
+    }
+
+    /// The same sentences as the web dashboard (assembler/my-assignments.html reliabilityImpactText).
+    var text: String {
+        let plural = strikesAdded == 1 ? "" : "s"
+        let cost: String
+        switch kind {
+        case "grace": cost = "You accepted this job less than 15 minutes ago, so cancelling now has no reliability strike."
+        case "advance": cost = "The job is more than 24 hours away, so cancelling now has no reliability strike."
+        case "same_day": cost = "The job is today. Cancelling counts as \(strikesAdded) reliability strikes."
+        default: cost = "The job starts in less than 24 hours. Cancelling counts as \(strikesAdded) reliability strike\(plural)."
+        }
+        let before = strikesBefore == 1 ? "" : "s"
+        let standing = " You have \(strikesBefore) strike\(before) in the last \(windowDays) days; at \(pauseAtStrikes), new jobs pause."
+        let pause = willPause ? " This cancellation will pause new jobs until AssembleAtEase reviews your account." : ""
+        return cost + standing + pause
+    }
+}
+
+struct ReleasePreviewEnvelope: Decodable {
+    let impact: ReleaseImpact?
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        impact = try? c.decodeIfPresent(ReleaseImpact.self, forKey: DynamicKey("impact"))
+    }
+}
+
+struct CustomerPhoto: Decodable, Identifiable {
+    let id: String
+    let url: URL?
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id") ?? UUID().uuidString
+        url = c.string("signed_url").flatMap { URL(string: $0) }
+    }
+}
+
+struct CustomerPhotosEnvelope: Decodable {
+    let photos: [CustomerPhoto]
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        photos = (try? c.decodeIfPresent([CustomerPhoto].self, forKey: DynamicKey("photos"))) ?? []
     }
 }

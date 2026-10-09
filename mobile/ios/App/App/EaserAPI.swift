@@ -150,7 +150,7 @@ final class EaserAPI {
         let current = try await validSession()
         var parts = URLComponents(url: Self.supabase.appendingPathComponent("rest/v1/profiles"), resolvingAgainstBaseURL: false)!
         parts.queryItems = [
-            URLQueryItem(name: "select", value: "id,role,full_name,email,is_available,account_closure_status"),
+            URLQueryItem(name: "select", value: "id,role,full_name,email,is_available,account_closure_status,profile_photo"),
             URLQueryItem(name: "id", value: "eq." + current.userID),
         ]
         let data = try await supabaseRequest(url: parts.url!, method: "GET", body: nil)
@@ -162,8 +162,17 @@ final class EaserAPI {
     /// Availability goes through the same protected database function as the
     /// website (update_own_easer_profile_safe), which enforces its own rules.
     func setAvailable(_ available: Bool) async throws {
+        try await updateOwnProfile(["is_available": available])
+    }
+
+    /// Profile photo, saved the way the website saves it (assembler/profile.html).
+    func setProfilePhoto(_ dataURL: String) async throws {
+        try await updateOwnProfile(["profile_photo": dataURL])
+    }
+
+    private func updateOwnProfile(_ updates: [String: Any]) async throws {
         let url = Self.supabase.appendingPathComponent("rest/v1/rpc/update_own_easer_profile_safe")
-        _ = try await supabaseRequest(url: url, method: "POST", body: ["p_updates": ["is_available": available]])
+        _ = try await supabaseRequest(url: url, method: "POST", body: ["p_updates": updates])
     }
 
     private func supabaseRequest(url: URL, method: String, body: [String: Any]?) async throws -> Data {

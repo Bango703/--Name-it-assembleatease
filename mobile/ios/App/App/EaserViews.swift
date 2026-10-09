@@ -55,9 +55,7 @@ struct EaserRootView: View {
 private struct LaunchView: View {
     var body: some View {
         VStack(spacing: 14) {
-            Image(systemName: "wrench.and.screwdriver.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(Brand.sky)
+            BrandLogo(size: 88)
             ProgressView()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -97,9 +95,7 @@ private struct SignInView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Image(systemName: "wrench.and.screwdriver.fill")
-                        .font(.system(size: 34))
-                        .foregroundStyle(Brand.sky)
+                    BrandLogo(size: 64)
                     Text("Easer")
                         .font(.largeTitle.bold())
                     Text("by AssembleAtEase")
@@ -262,6 +258,11 @@ private struct TodayView: View {
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Hi, \(store.profile?.firstName ?? "there")")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 34)
+                }
+            }
             .navigationDestination(for: JobRef.self) { JobDetailView(jobID: $0.id) }
             .refreshable { await store.refresh() }
         }
@@ -527,12 +528,19 @@ private struct JobRow: View {
 
 // MARK: - Job detail
 
+private enum PhotoSheetMode: String, Identifiable {
+    case completion, requested, damage
+    var id: String { rawValue }
+}
+
 struct JobDetailView: View {
     let jobID: String
     @EnvironmentObject private var store: EaserStore
     @Environment(\.openURL) private var openURL
     @State private var confirmDecline = false
-    @State private var completing = false
+    @State private var photoSheet: PhotoSheetMode?
+    @State private var releasing = false
+    @State private var customerPhotos: [CustomerPhoto] = []
 
     var body: some View {
         Group {
@@ -555,6 +563,19 @@ struct JobDetailView: View {
                     StatusPill(text: job.statusLabel, strong: job.needsAcceptance || job.isActive)
                     Text(job.title).font(.title2.bold())
                     if let ref = job.ref { Text(ref).font(.footnote).foregroundStyle(.secondary) }
+                }
+
+                if job.photosRequested {
+                    DetailBlock(title: "Photos requested") {
+                        Text("AssembleAtEase asked for more photos of this job. Your payout continues once one arrives.")
+                            .foregroundStyle(.secondary)
+                        Button {
+                            photoSheet = .requested
+                        } label: {
+                            Label("Add photo", systemImage: "camera")
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                    }
                 }
 
                 DetailBlock(title: job.isFinished ? "Earnings" : "Estimated earnings") {
@@ -589,6 +610,31 @@ struct JobDetailView: View {
                     DetailBlock(title: "Notes from the customer") { Text(details) }
                 }
 
+                if !customerPhotos.isEmpty {
+                    DetailBlock(title: "Photos from the customer") {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach(customerPhotos) { photo in
+                                    if let url = photo.url {
+                                        Link(destination: url) {
+                                            AsyncImage(url: url) { phase in
+                                                if let image = phase.image {
+                                                    image.resizable().scaledToFill()
+                                                } else {
+                                                    Brand.surface
+                                                }
+                                            }
+                                            .frame(width: 104, height: 104)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                        }
+                                        .accessibilityLabel("Open customer photo")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if job.acceptedAt != nil && !job.isFinished {
                     DetailBlock(title: "Contact") {
                         if let name = job.customerName { Label(name, systemImage: "person") }
@@ -602,12 +648,33 @@ struct JobDetailView: View {
                         }
                     }
                 }
+
+                if job.acceptedAt != nil {
+                    DetailBlock(title: "Something wrong?") {
+                        Button {
+                            photoSheet = .damage
+                        } label: {
+                            Label("Report damage", systemImage: "exclamationmark.triangle")
+                        }
+                        if job.canRelease {
+                            Button(role: .destructive) {
+                                releasing = true
+                            } label: {
+                                Label("I can't make this job", systemImage: "calendar.badge.minus")
+                            }
+                        }
+                    }
+                }
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .refreshable { await store.refresh() }
+        .refreshable {
+            await store.refresh()
+            await loadCustomerPhotos(job)
+        }
+        .task(id: job.acceptedAt) { await loadCustomerPhotos(job) }
         .safeAreaInset(edge: .bottom) { actionBar(job) }
         .confirmationDialog("Decline this offer?", isPresented: $confirmDecline, titleVisibility: .visible) {
             Button("Decline offer", role: .destructive) { Task { await store.decline(job) } }
@@ -615,7 +682,14 @@ struct JobDetailView: View {
         } message: {
             Text("The job will be offered to another Easer.")
         }
-        .sheet(isPresented: $completing) { CompletionSheet(job: job).environmentObject(store) }
+        .sheet(item: $photoSheet) { mode in PhotoSheet(job: job, mode: mode).environmentObject(store) }
+        .sheet(isPresented: $releasing) { ReleaseSheet(job: job).environmentObject(store) }
+    }
+
+    /// Customer photos are shown once the job is accepted, as on the website.
+    private func loadCustomerPhotos(_ job: EaserJob) async {
+        guard job.acceptedAt != nil else { customerPhotos = []; return }
+        customerPhotos = await store.customerPhotos(for: job)
     }
 
     @ViewBuilder
@@ -645,7 +719,7 @@ struct JobDetailView: View {
                     Button("Start job") { Task { await store.startJob(job) } }
                         .buttonStyle(PrimaryButtonStyle())
                 case .complete:
-                    Button("Complete job") { completing = true }
+                    Button("Complete job") { photoSheet = .completion }
                         .buttonStyle(PrimaryButtonStyle())
                 case .noAction:
                     if job.isHelper && !job.isFinished {
@@ -678,47 +752,54 @@ private struct DetailBlock<Content: View>: View {
     }
 }
 
-// MARK: - Completion
+// MARK: - Photos: completion, requested, damage
 
-private struct CompletionSheet: View {
+private struct PhotoSheet: View {
     let job: EaserJob
+    let mode: PhotoSheetMode
     @EnvironmentObject private var store: EaserStore
     @Environment(\.dismiss) private var dismiss
     @State private var photo: UIImage?
-    @State private var pickerItem: PhotosPickerItem?
-    @State private var showCamera = false
+    @State private var note = ""
     @State private var submitting = false
+
+    private var title: String {
+        switch mode {
+        case .completion: return "Complete job"
+        case .requested: return "Add photo"
+        case .damage: return "Report damage"
+        }
+    }
+
+    private var explanation: String {
+        switch mode {
+        case .completion: return "Add a photo of the finished work. It is required to complete the job and protects you if a question comes up later."
+        case .requested: return "Add the photo AssembleAtEase asked for."
+        case .damage: return "Add a clear photo of the damage and describe what happened. AssembleAtEase follows up with you and the customer."
+        }
+    }
+
+    private var noteReady: Bool { note.trimmingCharacters(in: .whitespacesAndNewlines).count >= 10 }
+    private var ready: Bool { photo != nil && (mode != .damage || noteReady) }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("Add a photo of the finished work. It is required to complete the job and protects you if a question comes up later.")
-                        .foregroundStyle(.secondary)
-
-                    if let photo {
-                        Image(uiImage: photo)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: .infinity)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-
-                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                        Button {
-                            showCamera = true
-                        } label: {
-                            Label(photo == nil ? "Take photo" : "Retake photo", systemImage: "camera")
+                    Text(explanation).foregroundStyle(.secondary)
+                    PhotoChooser(photo: $photo)
+                    if mode == .damage {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("What happened").font(.headline)
+                            TextField("Describe the damage", text: $note, axis: .vertical)
+                                .lineLimit(3...6)
+                                .padding(12)
+                                .background(Brand.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            if !note.isEmpty && !noteReady {
+                                Text("Add a little more detail.").font(.footnote).foregroundStyle(Brand.attention)
+                            }
                         }
-                        .buttonStyle(SecondaryButtonStyle())
                     }
-                    PhotosPicker(selection: $pickerItem, matching: .images) {
-                        Label("Choose from library", systemImage: "photo.on.rectangle")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity, minHeight: 52)
-                            .background(Brand.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-                    .foregroundStyle(.primary)
                 }
                 .padding(16)
             }
@@ -727,38 +808,153 @@ private struct CompletionSheet: View {
                     guard let photo else { return }
                     submitting = true
                     Task {
-                        let done = await store.complete(job, photo: photo)
+                        let done: Bool
+                        switch mode {
+                        case .completion: done = await store.complete(job, photo: photo)
+                        case .requested: done = await store.sendPhoto(photo, for: job, damageNote: nil)
+                        case .damage: done = await store.sendPhoto(photo, for: job, damageNote: note.trimmingCharacters(in: .whitespacesAndNewlines))
+                        }
                         submitting = false
                         if done { dismiss() }
                     }
                 } label: {
-                    if submitting { ProgressView().tint(Brand.ink) } else { Text("Submit completion") }
+                    if submitting {
+                        ProgressView().tint(Brand.ink)
+                    } else {
+                        Text(mode == .completion ? "Submit completion" : (mode == .damage ? "Send report" : "Send photo"))
+                    }
                 }
-                .buttonStyle(PrimaryButtonStyle(enabled: photo != nil))
-                .disabled(photo == nil || submitting)
+                .buttonStyle(PrimaryButtonStyle(enabled: ready))
+                .disabled(!ready || submitting)
                 .padding(16)
                 .background(.bar)
             }
-            .navigationTitle("Complete job")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }.disabled(submitting)
                 }
             }
-            .onChange(of: pickerItem) { _, item in
-                guard let item else { return }
-                Task {
-                    if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-                        photo = image
-                    }
-                }
-            }
-            .fullScreenCover(isPresented: $showCamera) {
-                CameraPicker(image: $photo).ignoresSafeArea()
-            }
         }
         .interactiveDismissDisabled(submitting)
+    }
+}
+
+/// Take a photo or choose one. Camera access is asked for only when the Easer taps Take photo.
+private struct PhotoChooser: View {
+    @Binding var photo: UIImage?
+    @State private var pickerItem: PhotosPickerItem?
+    @State private var showCamera = false
+
+    var body: some View {
+        VStack(spacing: 12) {
+            if let photo {
+                Image(uiImage: photo)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button {
+                    showCamera = true
+                } label: {
+                    Label(photo == nil ? "Take photo" : "Retake photo", systemImage: "camera")
+                }
+                .buttonStyle(SecondaryButtonStyle())
+            }
+            PhotosPicker(selection: $pickerItem, matching: .images) {
+                Label("Choose from library", systemImage: "photo.on.rectangle")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .background(Brand.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            .foregroundStyle(.primary)
+        }
+        .onChange(of: pickerItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                    photo = image
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPicker(image: $photo).ignoresSafeArea()
+        }
+    }
+}
+
+// MARK: - Releasing a job
+
+private struct ReleaseSheet: View {
+    let job: EaserJob
+    @EnvironmentObject private var store: EaserStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var impactText: String?
+    @State private var impactProblem: String?
+    @State private var reason = ""
+    @State private var note = ""
+    @State private var working = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("You will be removed from this job and it will be offered to another Easer.")
+                    if let impactText {
+                        Text(impactText).foregroundStyle(Brand.attention)
+                    } else if let impactProblem {
+                        Text(impactProblem).foregroundStyle(.secondary)
+                    } else {
+                        HStack { ProgressView(); Text("Checking what this means for your reliability").foregroundStyle(.secondary) }
+                    }
+                }
+                Section("Reason") {
+                    Picker("Reason", selection: $reason) {
+                        Text("Choose a reason").tag("")
+                        ForEach(EaserStore.releaseReasons, id: \.self) { Text($0).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                }
+                Section("Anything else (optional)") {
+                    TextField("Tell us anything else we should know", text: $note, axis: .vertical)
+                        .lineLimit(2...5)
+                }
+                Section {
+                    Button(role: .destructive) {
+                        working = true
+                        Task {
+                            let done = await store.release(job, reason: reason, note: note)
+                            working = false
+                            if done { dismiss() }
+                        }
+                    } label: {
+                        if working { ProgressView() } else { Text("Cancel this job") }
+                    }
+                    .disabled(reason.isEmpty || working)
+                }
+            }
+            .navigationTitle("Can't make this job")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Keep job") { dismiss() }.disabled(working) }
+            }
+            .task {
+                do {
+                    if let impact = try await store.releaseImpact(job) {
+                        impactText = impact.text
+                    } else {
+                        impactProblem = "The reliability cost could not be loaded. Cancelling within 24 hours of the job counts as a strike."
+                    }
+                } catch {
+                    impactProblem = error.localizedDescription
+                }
+            }
+        }
+        .interactiveDismissDisabled(working)
     }
 }
 
@@ -1042,14 +1238,22 @@ private struct AccountView: View {
     @Environment(\.openURL) private var openURL
     @State private var confirmSignOut = false
     @State private var closing = false
+    @State private var changingPhoto = false
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(store.profile?.fullName ?? "Easer").font(.headline)
-                        if let email = store.profile?.email { Text(email).font(.subheadline).foregroundStyle(.secondary) }
+                    HStack(spacing: 14) {
+                        Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 64)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(store.profile?.fullName ?? "Easer").font(.headline)
+                            if let email = store.profile?.email { Text(email).font(.subheadline).foregroundStyle(.secondary) }
+                            Button("Change photo") { changingPhoto = true }
+                                .font(.subheadline.weight(.semibold))
+                                .buttonStyle(.borderless)
+                                .padding(.top, 2)
+                        }
                     }
                     Toggle("Available for jobs", isOn: Binding(
                         get: { store.profile?.isAvailable == true },
@@ -1108,6 +1312,7 @@ private struct AccountView: View {
                 Text("Job alerts stop on this phone until you sign in again.")
             }
             .sheet(isPresented: $closing) { CloseAccountSheet().environmentObject(store) }
+            .sheet(isPresented: $changingPhoto) { ProfilePhotoSheet().environmentObject(store) }
         }
     }
 }
@@ -1149,5 +1354,60 @@ private struct CloseAccountSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
         }
+    }
+}
+
+/// Customers see this photo on their booking ("who's coming"), so it is a clear face photo.
+private struct ProfilePhotoSheet: View {
+    @EnvironmentObject private var store: EaserStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var photo: UIImage?
+    @State private var saving = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 18) {
+                    if let photo {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 140, height: 140)
+                            .clipShape(Circle())
+                    } else {
+                        Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 140)
+                    }
+                    Text("Customers see this photo on their booking so they know who is coming. Use a clear photo of your face.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    PhotoChooser(photo: $photo)
+                }
+                .padding(16)
+            }
+            .safeAreaInset(edge: .bottom) {
+                Button {
+                    guard let photo else { return }
+                    saving = true
+                    Task {
+                        let done = await store.updateProfilePhoto(photo)
+                        saving = false
+                        if done { dismiss() }
+                    }
+                } label: {
+                    if saving { ProgressView().tint(Brand.ink) } else { Text("Save photo") }
+                }
+                .buttonStyle(PrimaryButtonStyle(enabled: photo != nil))
+                .disabled(photo == nil || saving)
+                .padding(16)
+                .background(.bar)
+            }
+            .navigationTitle("Profile photo")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
+            }
+        }
+        .interactiveDismissDisabled(saving)
     }
 }
