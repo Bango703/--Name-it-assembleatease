@@ -290,7 +290,8 @@ export function publicMissingItems(readiness = {}) {
   if (missing.some(item => /phone/i.test(item))) publicItems.push('Phone number added');
   if (missing.some(item => /contractor agreement/i.test(item))) publicItems.push('Contractor agreement accepted');
   if (missing.some(item => /code of conduct/i.test(item))) publicItems.push('Code of Conduct accepted');
-  if (missing.some(item => /availability/i.test(item))) publicItems.push('Availability enabled');
+  if (missing.some(item => /job texts/i.test(item))) publicItems.push('Job texts turned on');
+  if (missing.some(item => /availability|online and available/i.test(item))) publicItems.push('Availability enabled');
   if (missing.some(item => /stripe|payout/i.test(item))) publicItems.push('Payout setup complete');
   if (missing.some(item => /account closure/i.test(item))) publicItems.push('Account available for jobs');
   return publicItems;

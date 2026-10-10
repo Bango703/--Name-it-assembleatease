@@ -380,9 +380,36 @@ private struct AvailabilityCard: View {
 
 /// Shown only when a real step blocks job offers. Every step is done inside the
 /// app; only Stripe's identity check opens Stripe's own page.
-extension EaserStore {
-    /// A step still blocks job offers (the server's readiness verdict).
-    var needsSetup: Bool { jobsLocked || readiness?.isReady == false }
+/// Remaining setup items, each with its action where the app can do it.
+private struct SetupItemRows: View {
+    @EnvironmentObject private var store: EaserStore
+    let items: [String]
+    @State private var working = false
+
+    var body: some View {
+        ForEach(items, id: \.self) { item in
+            if item.lowercased().contains("job texts") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(item, systemImage: "circle").font(.subheadline).foregroundStyle(.secondary)
+                    Button {
+                        working = true
+                        Task {
+                            await store.setTextAlerts(true)
+                            working = false
+                        }
+                    } label: {
+                        if working { ProgressView().tint(Brand.ink) } else { Text("Turn on job texts") }
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(working)
+                    Text("Message and data rates may apply. Reply STOP to any text to turn texts off.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            } else {
+                Label(item, systemImage: "circle").font(.subheadline).foregroundStyle(.secondary)
+            }
+        }
+    }
 }
 
 private struct SetupCard: View {
@@ -394,9 +421,10 @@ private struct SetupCard: View {
     private var needsSetup: Bool { store.needsSetup }
 
     /// Items the three steps below do not already cover, in the server's words.
+    /// Going online is not a setup step: the online switch handles it.
     private var otherItems: [String] {
         let covered = ["contractor agreement", "code of conduct", "identity", "approv"]
-        return (store.readiness?.missingItems ?? []).filter { item in
+        return store.setupItems.filter { item in
             !covered.contains { item.lowercased().contains($0) }
         }
     }
@@ -442,9 +470,7 @@ private struct SetupCard: View {
                 if !otherItems.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Also needed").font(.subheadline.weight(.semibold))
-                        ForEach(otherItems, id: \.self) { item in
-                            Label(item, systemImage: "circle").font(.subheadline).foregroundStyle(.secondary)
-                        }
+                        SetupItemRows(items: otherItems)
                     }
                 }
             }
@@ -454,9 +480,7 @@ private struct SetupCard: View {
         } else if needsSetup {
             VStack(alignment: .leading, spacing: 10) {
                 Label("Finish setting up to get jobs", systemImage: "checklist").font(.headline)
-                ForEach(store.readiness?.missingItems ?? [], id: \.self) { item in
-                    Label(item, systemImage: "circle").font(.subheadline).foregroundStyle(.secondary)
-                }
+                SetupItemRows(items: store.setupItems)
                 Text("Pull down to refresh your setup steps.").font(.footnote).foregroundStyle(.secondary)
             }
             .padding(16)

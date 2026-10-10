@@ -8,6 +8,9 @@ export function toPublicEaserReadiness(readiness = {}) {
     agreementCurrent: readiness.agreementCurrent === true,
     codeOfConductAccepted: readiness.codeOfConductAccepted === true,
     missingItems: publicMissingItems(readiness),
+    // Whether every step other than going online is done. The app needs this to
+    // tell "still has setup steps" from "just offline": isReady is false in both.
+    requirementsReady: typeof readiness.requirementsReady === 'boolean' ? readiness.requirementsReady : null,
     accountStatus: readiness.accountStatus || null,
     suspended: readiness.accountStatus === 'suspended',
   };

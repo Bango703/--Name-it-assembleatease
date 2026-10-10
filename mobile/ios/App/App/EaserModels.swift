@@ -99,10 +99,13 @@ struct Readiness: Decodable {
     let isReady: Bool
     let missingItems: [String]
     let suspended: Bool
+    /// Every step other than going online is done (nil from an older server).
+    let requirementsReady: Bool?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         isReady = c.bool("isReady") ?? false
+        requirementsReady = c.bool("requirementsReady")
         missingItems = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("missingItems"))) ?? []
         suspended = c.bool("suspended") ?? false
     }
