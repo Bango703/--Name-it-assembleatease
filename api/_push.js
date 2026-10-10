@@ -133,7 +133,9 @@ export async function sendPushToUser(userId, payload, meta = {}) {
     console.error('[push] native push error:', e && (e.message || String(e)));
     native = { skipped: true, reason: 'native_push_error', error: e && e.message, sent: 0, failed: 0, logRows: [] };
   }
-  if (native.skipped) return web;
+  // The web result stays the answer, but the app's own reason is never hidden:
+  // "skipped" with no cause is how a missing Firebase key went unnoticed.
+  if (native.skipped) return { ...web, native: { skipped: true, reason: native.reason || null, error: native.error || null } };
 
   let nativeLogError = null;
   if (native.logRows?.length) {
