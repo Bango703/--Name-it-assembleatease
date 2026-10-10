@@ -68,6 +68,7 @@ assert.deepEqual(publicReadiness, {
   agreementCurrent: true,
   codeOfConductAccepted: true,
   missingItems: ['Application approved', 'Payout setup complete'],
+  requirementsReady: null,
   accountStatus: null,
   suspended: false,
 });

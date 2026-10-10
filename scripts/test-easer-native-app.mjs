@@ -205,7 +205,23 @@ assert.match(swift['EaserViews.swift'], /store\.profile\?\.closureHeld == true \
 assert.match(swift['EaserViews.swift'], /\.disabled\(blockedReason != nil \|\| working\)[\s\S]{0,200}if let blockedReason \{ Text\(blockedReason\) \}/, 'the Sign button never sits disabled without saying why (Article 14)');
 assert.doesNotMatch(swift['EaserViews.swift'], /Button\("Finish setup"\)/, 'no setup button that sends a signed-in Easer to a signed-out browser');
 assert.match(store, /status == 403[\s\S]{0,80}jobsLocked = true/, 'an account not approved yet is a status, not "Jobs could not be loaded"');
-assert.match(store, /if jobsLocked \|\| readiness\?\.isReady == false/, 'approved Easers never call the onboarding endpoint');
+assert.match(store, /if needsSetup \{\s*setup = try\? await api\.get/, 'approved Easers never call the onboarding endpoint');
+
+// ── 8g. Offline is not unfinished setup (2026-10-09) ────────────────────────
+// The server counts being offline as "not ready" (isReady false). The app hid
+// the online switch, and refused to go online, whenever isReady was false, so
+// a fully set-up Easer could never go online. Setup is decided by
+// requirementsReady (every step except going online); the switch fixes the rest.
+const readinessApi = read('api/assembler/readiness.js');
+assert.match(readinessApi, /requirementsReady: typeof readiness\.requirementsReady === 'boolean'/, 'the server says whether setup, apart from going online, is done');
+assert.match(store, /if let done = r\.requirementsReady \{ return done \}/, 'setup is decided by requirementsReady, never by isReady');
+assert.match(store, /var needsSetup: Bool \{ jobsLocked \|\| setupComplete == false \}/);
+assert.doesNotMatch(store, /if !ready\.isReady/, 'going online is never refused for being offline');
+assert.match(store, /func setAvailable[\s\S]{0,700}if needsSetup \{/, 'only real setup steps block going online');
+const readinessRules = read('api/_easer-readiness.js');
+assert.match(readinessRules, /\/job texts\/i\.test\(item\)\)\) publicItems\.push\('Job texts turned on'\)/, 'a missing job-text consent is named to the Easer');
+assert.match(readinessRules, /\/availability\|online and available\/i/, 'being offline is named to the Easer');
+assert.match(swift['EaserViews.swift'], /Text\("Turn on job texts"\)/, 'the setup card can turn job texts on itself');
 
 // ── 8. The website is untouched by the app build ─────────────────────────────
 assert.equal(JSON.parse(read('mobile/capacitor.config.json')).server.url, 'https://www.assembleatease.com/app', 'Android keeps its existing shell; iOS no longer reads this');

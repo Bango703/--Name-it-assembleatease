@@ -31,6 +31,20 @@ struct Banner: Identifiable, Equatable {
 
 @MainActor
 final class EaserStore: ObservableObject {
+    /// Every step other than going online is done. Offline alone is not "setup":
+    /// the server counts being offline as not ready, so isReady cannot decide this.
+    var setupComplete: Bool? {
+        guard let r = readiness else { return nil }
+        if let done = r.requirementsReady { return done }
+        return r.missingItems.allSatisfy { $0 == "Availability enabled" }
+    }
+
+    /// A step other than going online still blocks job offers.
+    var needsSetup: Bool { jobsLocked || setupComplete == false }
+
+    /// The server's remaining setup items, without going online.
+    var setupItems: [String] { (readiness?.missingItems ?? []).filter { $0 != "Availability enabled" } }
+
     /// Counts closings of the in-app browser, so a screen that sent the Easer to
     /// Stripe can ask the server for the result the moment they come back.
     @Published var browserCloses = 0
@@ -196,7 +210,7 @@ final class EaserStore: ObservableObject {
         loadedOnce = true
         // Setup steps are only asked for while something is unfinished; an approved
         // Easer never calls the onboarding endpoint.
-        if jobsLocked || readiness?.isReady == false {
+        if needsSetup {
             setup = try? await api.get("/api/assembler/verification-link", as: SetupStatus.self)
         } else {
             setup = nil
@@ -348,8 +362,9 @@ final class EaserStore: ObservableObject {
                     banner = Banner(text: "Your account is paused. Contact \(Site.supportEmail) to reactivate it.", kind: .problem)
                     return
                 }
-                if !ready.isReady {
-                    let missing = ready.missingItems.joined(separator: ", ")
+                // Being offline is what this switch fixes, so only the other steps block it.
+                if needsSetup {
+                    let missing = setupItems.joined(separator: ", ")
                     banner = Banner(text: missing.isEmpty ? "Finish your setup before going online." : "Still needed before going online: \(missing)", kind: .problem)
                     return
                 }
@@ -459,6 +474,8 @@ final class EaserStore: ObservableObject {
             let data = try await api.call("POST", "/api/assembler/sms-preference", body: ["enabled": on])
             textAlerts = try? JSONDecoder().decode(TextAlerts.self, from: data)
             banner = Banner(text: on ? "Job texts are on." : "Job texts are off.", kind: .success)
+            // Job texts are a setup step; the setup card updates from the server.
+            await refresh()
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)
         }
