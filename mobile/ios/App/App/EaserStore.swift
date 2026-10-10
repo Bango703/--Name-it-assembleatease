@@ -354,7 +354,7 @@ final class EaserStore: ObservableObject {
         guard let me = profile, me.isAvailable != on else { return }
         if on {
             if me.closureHeld {
-                banner = Banner(text: "Your account closure request is open, so you cannot go online.", kind: .problem)
+                banner = Banner(text: "Your account closure request is open.", kind: .problem)
                 return
             }
             if let ready = readiness {
@@ -418,7 +418,7 @@ final class EaserStore: ObservableObject {
             var body: [String: Any] = ["bookingId": job.id, "reason": reason]
             body["note"] = trimmed.isEmpty ? NSNull() : String(trimmed.prefix(1200))
             _ = try await api.call("POST", "/api/booking/drop-job", body: body)
-            banner = Banner(text: "You have been released from this job. It will be offered to another Easer.", kind: .success)
+            banner = Banner(text: "You're off this job.", kind: .success)
             await refresh()
             return true
         } catch {
@@ -597,7 +597,7 @@ final class EaserStore: ObservableObject {
         do {
             _ = try await api.call("POST", "/api/assembler/payout-preference", body: ["preference": value])
             payoutPreference = value
-            banner = Banner(text: "Preferred payout method saved. AssembleAtEase will confirm the payment details with you.", kind: .success)
+            banner = Banner(text: "Payout method saved.", kind: .success)
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)
         }
@@ -657,7 +657,7 @@ final class EaserStore: ObservableObject {
     func requestClosure(reason: String) async -> Bool {
         do {
             try await api.call("POST", "/api/assembler/request-account-closure", body: ["reason": reason])
-            banner = Banner(text: "Your closure request was received. You are offline and AssembleAtEase will confirm by email.", kind: .success)
+            banner = Banner(text: "Closure request received. You're offline.", kind: .success)
             await refresh()
             return true
         } catch {

@@ -357,7 +357,7 @@ private struct AvailabilityCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(online ? "You're online" : "You're offline")
                     .font(.headline)
-                Text(online ? "New job offers can reach you." : "Go online when you're ready for job offers.")
+                Text(online ? "Job offers are on." : "Go online to get job offers.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -432,7 +432,7 @@ private struct SetupCard: View {
     var body: some View {
         if store.profile?.closureHeld == true {
             NoticeCard(icon: "person.crop.circle.badge.xmark", title: "Account closure requested",
-                       text: "You are offline while AssembleAtEase reviews your request.")
+                       text: "Your request is in review.")
         } else if store.readiness?.suspended == true {
             NoticeCard(icon: "pause.circle", title: "Your account is paused",
                        text: "Contact \(Site.supportEmail) to reactivate it.")
@@ -481,7 +481,6 @@ private struct SetupCard: View {
             VStack(alignment: .leading, spacing: 10) {
                 Label("Finish setting up to get jobs", systemImage: "checklist").font(.headline)
                 SetupItemRows(items: store.setupItems)
-                Text("Pull down to refresh your setup steps.").font(.footnote).foregroundStyle(.secondary)
             }
             .padding(16)
             .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -559,7 +558,7 @@ private struct AgreementSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Before you can receive jobs, we need your contractor agreement and Code of Conduct acceptance on file.")
+                    Text("Read both documents, then sign below.")
                     Button("Read the Independent Contractor Agreement") { openURL(Site.page("/assembler/contractor-agreement")) }
                     Button("Read the Code of Conduct and Terms of Service") { openURL(Site.page("/terms")) }
                 }
@@ -573,7 +572,7 @@ private struct AgreementSheet: View {
                     if legalName.isEmpty {
                         Text("Your account name could not be loaded. Close this and pull down on Today to refresh.")
                     } else {
-                        Text("Type it exactly as it is on your account: \(legalName). Contact \(Site.supportEmail) if it needs correcting.")
+                        Text("Name on your account: \(legalName). For changes, contact AssembleAtEase.")
                     }
                 }
                 Section {
@@ -773,7 +772,7 @@ private struct JobsView: View {
     }
 
     private var emptyText: String {
-        if store.jobsLocked { return "Jobs appear here once your account is approved. Your setup steps are on Today." }
+        if store.jobsLocked { return "Your setup steps are on Today." }
         switch segment {
         case .offers: return "No offers right now."
         case .upcoming: return "No upcoming jobs."
@@ -822,7 +821,7 @@ struct JobDetailView: View {
                 content(job)
             } else {
                 ContentUnavailableView("This job is no longer available", systemImage: "briefcase",
-                                       description: Text("It may have been taken by another Easer or changed by AssembleAtEase."))
+                                       description: Text("This job is no longer available."))
             }
         }
         .navigationTitle("Job")
@@ -841,7 +840,7 @@ struct JobDetailView: View {
 
                 if job.photosRequested {
                     DetailBlock(title: "Photos requested") {
-                        Text("AssembleAtEase asked for more photos of this job. Your payout continues once one arrives.")
+                        Text("AssembleAtEase needs another photo of this job.")
                             .foregroundStyle(.secondary)
                         Button {
                             photoSheet = .requested
@@ -956,8 +955,6 @@ struct JobDetailView: View {
         .confirmationDialog("Decline this offer?", isPresented: $confirmDecline, titleVisibility: .visible) {
             Button("Decline offer", role: .destructive) { Task { await store.decline(job) } }
             Button("Keep offer", role: .cancel) {}
-        } message: {
-            Text("The job will be offered to another Easer.")
         }
         .sheet(item: $photoSheet) { mode in PhotoSheet(job: job, mode: mode).environmentObject(store) }
         .sheet(isPresented: $releasing) { ReleaseSheet(job: job).environmentObject(store) }
@@ -1050,9 +1047,9 @@ private struct PhotoSheet: View {
 
     private var explanation: String {
         switch mode {
-        case .completion: return "Add a photo of the finished work. It is required to complete the job and protects you if a question comes up later."
+        case .completion: return "Add a photo of the finished work."
         case .requested: return "Add the photo AssembleAtEase asked for."
-        case .damage: return "Add a clear photo of the damage and describe what happened. AssembleAtEase follows up with you and the customer."
+        case .damage: return "Add a photo of the damage and describe what happened."
         }
     }
 
@@ -1183,13 +1180,13 @@ private struct ReleaseSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("You will be removed from this job and it will be offered to another Easer.")
+                    Text("You'll be removed from this job.")
                     if let impactText {
                         Text(impactText).foregroundStyle(Brand.attention)
                     } else if let impactProblem {
                         Text(impactProblem).foregroundStyle(.secondary)
                     } else {
-                        HStack { ProgressView(); Text("Checking what this means for your reliability").foregroundStyle(.secondary) }
+                        HStack { ProgressView(); Text("Loading").foregroundStyle(.secondary) }
                     }
                 }
                 Section("Reason") {
@@ -1504,7 +1501,6 @@ private struct AccountView: View {
     @Environment(\.openURL) private var openURL
     @State private var confirmSignOut = false
     @State private var closing = false
-    @State private var changingPhoto = false
 
     private var online: Bool { store.profile?.isAvailable == true }
 
@@ -1522,18 +1518,19 @@ private struct AccountView: View {
         NavigationStack {
             List {
                 Section {
-                    HStack(spacing: 14) {
-                        Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 64)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(store.profile?.fullName ?? "Easer").font(.headline)
-                            if let email = store.email {
-                                Text(email).font(.subheadline).foregroundStyle(.secondary)
-                                    .lineLimit(1).truncationMode(.middle)
+                    NavigationLink { ProfileView() } label: {
+                        HStack(spacing: 14) {
+                            Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 64)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(store.profile?.fullName ?? "Easer").font(.headline)
+                                if let email = store.email {
+                                    Text(email).font(.subheadline).foregroundStyle(.secondary)
+                                        .lineLimit(1).truncationMode(.middle)
+                                }
+                                Text(store.profile?.levelLabel ?? "Easer").font(.caption.weight(.semibold)).foregroundStyle(Brand.skyDark)
                             }
-                            Text(store.profile?.levelLabel ?? "Easer").font(.caption.weight(.semibold)).foregroundStyle(Brand.skyDark)
                         }
                     }
-                    Button("Change photo") { changingPhoto = true }
                 }
 
                 Section {
@@ -1543,8 +1540,8 @@ private struct AccountView: View {
                     ))
                     .disabled(store.availabilityBusy || store.profile?.closureHeld == true || store.needsSetup)
                 } footer: {
-                    Text(store.needsSetup ? "Available once setup on the Today tab is finished."
-                         : online ? "New job offers can reach you." : "You won't get job offers until you go online.")
+                    Text(store.needsSetup ? "Finish setup on Today first."
+                         : online ? "You're online." : "Go online to get job offers.")
                 }
 
                 Section {
@@ -1624,10 +1621,9 @@ private struct AccountView: View {
             .confirmationDialog("Sign out of Easer?", isPresented: $confirmSignOut, titleVisibility: .visible) {
                 Button("Sign out", role: .destructive) { Task { await store.signOut() } }
             } message: {
-                Text("Job alerts stop on this phone until you sign in again.")
+                Text("Job alerts stop on this phone.")
             }
             .sheet(isPresented: $closing) { CloseAccountSheet().environmentObject(store) }
-            .sheet(isPresented: $changingPhoto) { ProfilePhotoSheet().environmentObject(store) }
         }
     }
 }
@@ -1642,7 +1638,7 @@ private struct CloseAccountSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("You will go offline right away and stop receiving job offers. AssembleAtEase confirms by email. Records the law requires us to keep, such as completed jobs and payouts, are kept.")
+                    Text("You'll go offline right away. AssembleAtEase confirms by email. Completed jobs and payout records are kept as required by law.")
                         .font(.subheadline)
                 }
                 Section("Reason (optional)") {
@@ -1694,7 +1690,7 @@ struct ProfilePhotoSheet: View {
                     } else {
                         Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 140)
                     }
-                    Text("Customers see this photo on their booking so they know who is coming. Use a clear photo of your face.")
+                    Text("Customers see this photo. Use a clear photo of your face.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
