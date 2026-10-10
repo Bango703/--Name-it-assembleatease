@@ -152,4 +152,10 @@ assert.equal((ownerPage.match(/pushTestBookingToggle\(b, notices, btns\);/g) || 
 // A blank email failed as "Failed to save the booking" (the column is NOT NULL).
 assert.match(await read('api/owner/create-booking.js'), /if \(!cleanEmail\) \{\s*return res\.status\(400\)\.json\(\{ error: 'Customer email is required\.'/);
 
+// A demo account is paid nothing, so it never reaches live Stripe payout setup,
+// which verifies a real person and bank (owner question, 2026-10-10).
+assert.match(await read('api/_announcements.js'), /if \(demo && a\.target_rule === 'payout_setup_incomplete'\) continue;/, 'no "Set up payouts" action for a demo account');
+assert.match(await read('api/cron/easer-announcements.js'), /if \(demoIds\.has\(easer\.id\)\) continue;/, 'no payout setup reminders to a demo account');
+assert.match(await read('api/assembler/connect-link.js'), /if \(await isDemoEaser\(sb, user\.id\)\) \{\s*return res\.status\(403\)/, 'the payout setup link refuses a demo account');
+
 console.log('demo Easer accounts: test bookings only, enforced in dispatch, assign, crew, accept and the database; a demo can run a whole test job with no payout');
