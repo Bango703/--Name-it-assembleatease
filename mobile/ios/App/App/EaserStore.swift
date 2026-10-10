@@ -29,8 +29,14 @@ struct Banner: Identifiable, Equatable {
     let kind: Kind
 }
 
+enum AppTab: Hashable { case today, jobs, earnings, inbox, account }
+
 @MainActor
 final class EaserStore: ObservableObject {
+    /// The selected tab, so an inbox item can open the screen it is about.
+    @Published var tab: AppTab = .today
+    /// What the platform needs from the Easer (payout setup, a policy to acknowledge).
+    @Published var requiredActions: [RequiredAction] = []
     /// Every step other than going online is done. Offline alone is not "setup":
     /// the server counts being offline as not ready, so isReady cannot decide this.
     var setupComplete: Bool? {
@@ -97,6 +103,7 @@ final class EaserStore: ObservableObject {
 
     func start() async {
         guard api.session != nil else { phase = .signedOut; return }
+        restoreSnapshot()
         phase = .signedIn
         await refresh()
         await refreshAlertStatus(registerIfAllowed: true)
@@ -131,6 +138,10 @@ final class EaserStore: ObservableObject {
     }
 
     private func endSession(message: String?) {
+        cache?.clear()
+        requiredActions = []
+        textAlerts = nil
+        tab = .today
         api.signOut()
         profile = nil
         readiness = nil
@@ -154,6 +165,46 @@ final class EaserStore: ObservableObject {
         case readiness(Result<ReadinessEnvelope, Error>)
         case earnings(Result<EarningsEnvelope, Error>)
         case notices(Result<NoticesEnvelope, Error>)
+        case texts(Result<TextAlerts, Error>)
+        case actions(Result<RequiredActionsEnvelope, Error>)
+    }
+
+    private var cache: SnapshotCache? { api.session.map { SnapshotCache(userID: $0.userID) } }
+
+    /// Reads one screen's data and keeps the raw answer for the next launch.
+    private func fetch<T: Decodable>(_ path: String, keep key: String, as type: T.Type) async throws -> T {
+        let data = try await api.getData(path)
+        let value: T
+        do {
+            value = try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            throw EaserError(message: "This screen could not be loaded right now. Pull down to try again.", status: 0)
+        }
+        cache?.save(data, as: key)
+        return value
+    }
+
+    private func fetchProfile() async throws -> EaserProfile {
+        let data = try await api.profileData()
+        let me = try EaserAPI.decodeProfile(data)
+        cache?.save(data, as: "profile")
+        return me
+    }
+
+    /// The app opens on the last answers it had, then the refresh replaces them.
+    private func restoreSnapshot() {
+        guard let cache else { return }
+        let decoder = JSONDecoder()
+        if let data = cache.load("profile"), let me = try? EaserAPI.decodeProfile(data) { profile = me }
+        if let data = cache.load("jobs"), let value = try? decoder.decode(AssignmentsEnvelope.self, from: data) {
+            apply(value)
+            loadedOnce = true
+        }
+        if let data = cache.load("readiness"), let value = try? decoder.decode(ReadinessEnvelope.self, from: data) { readiness = value.readiness }
+        if let data = cache.load("notices"), let value = try? decoder.decode(NoticesEnvelope.self, from: data) { notices = value.notifications }
+        if let data = cache.load("earnings"), let value = try? decoder.decode(EarningsEnvelope.self, from: data) { earnings = value }
+        if let data = cache.load("texts"), let value = try? decoder.decode(TextAlerts.self, from: data) { textAlerts = value }
+        if let data = cache.load("actions"), let value = try? decoder.decode(RequiredActionsEnvelope.self, from: data) { requiredActions = value.actions }
     }
 
     /// Each part is shown the moment it arrives: a slow earnings ledger never
@@ -162,24 +213,32 @@ final class EaserStore: ObservableObject {
         guard api.session != nil else { return }
         await withTaskGroup(of: LoadedPart.self) { group in
             group.addTask {
-                let result = await self.capture { try await self.api.get("/api/booking/my-assignments", as: AssignmentsEnvelope.self) }
+                let result = await self.capture { try await self.fetch("/api/booking/my-assignments", keep: "jobs", as: AssignmentsEnvelope.self) }
                 return .jobs(result)
             }
             group.addTask {
-                let result = await self.capture { try await self.api.profile() }
+                let result = await self.capture { try await self.fetchProfile() }
                 return .profile(result)
             }
             group.addTask {
-                let result = await self.capture { try await self.api.get("/api/assembler/readiness", as: ReadinessEnvelope.self) }
+                let result = await self.capture { try await self.fetch("/api/assembler/readiness", keep: "readiness", as: ReadinessEnvelope.self) }
                 return .readiness(result)
             }
             group.addTask {
-                let result = await self.capture { try await self.api.get("/api/assembler/notifications", as: NoticesEnvelope.self) }
+                let result = await self.capture { try await self.fetch("/api/assembler/notifications", keep: "notices", as: NoticesEnvelope.self) }
                 return .notices(result)
             }
             group.addTask {
-                let result = await self.capture { try await self.api.get("/api/assembler/earnings", as: EarningsEnvelope.self) }
+                let result = await self.capture { try await self.fetch("/api/assembler/earnings", keep: "earnings", as: EarningsEnvelope.self) }
                 return .earnings(result)
+            }
+            group.addTask {
+                let result = await self.capture { try await self.fetch("/api/assembler/sms-preference", keep: "texts", as: TextAlerts.self) }
+                return .texts(result)
+            }
+            group.addTask {
+                let result = await self.capture { try await self.fetch("/api/assembler/required-actions", keep: "actions", as: RequiredActionsEnvelope.self) }
+                return .actions(result)
             }
             for await part in group {
                 switch part {
@@ -207,6 +266,10 @@ final class EaserStore: ObservableObject {
                     if case .success(let value) = result { notices = value.notifications }
                 case .earnings(let result):
                     if case .success(let value) = result { earnings = value }
+                case .texts(let result):
+                    if case .success(let value) = result { textAlerts = value }
+                case .actions(let result):
+                    if case .success(let value) = result { requiredActions = value.actions }
                 }
             }
         }
@@ -229,10 +292,27 @@ final class EaserStore: ObservableObject {
         offersPausedReason = value.pausedReason
     }
 
+    /// Required actions that are not already a setup step on Today: job texts are
+    /// a readiness step, so they show there once, not twice.
+    var openRequiredActions: [RequiredAction] {
+        requiredActions.filter { $0.rule != "sms_consent_missing" }
+    }
+
+    /// "I understand" on a policy notice. The server records it; nothing changes on hope.
+    func acknowledge(_ action: RequiredAction) async {
+        do {
+            _ = try await api.call("POST", "/api/assembler/acknowledge-announcement", body: ["key": action.key])
+            banner = Banner(text: "Saved.", kind: .success)
+            await refresh()
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+        }
+    }
+
     /// The light, frequent reload: jobs only. Offers expire, so the open app keeps current.
     func refreshJobs() async {
         guard api.session != nil, phase == .signedIn else { return }
-        if let value = try? await api.get("/api/booking/my-assignments", as: AssignmentsEnvelope.self) {
+        if let value = try? await fetch("/api/booking/my-assignments", keep: "jobs", as: AssignmentsEnvelope.self) {
             apply(value)
             loadProblem = nil
         }

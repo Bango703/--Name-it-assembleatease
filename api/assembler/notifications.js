@@ -32,16 +32,36 @@ const NOTIFICATION_COPY = {
   easer_account_closed: ['Account closed', 'Your account closure is complete.'],
 };
 
-function copyFor(type) {
+// A required action is logged as easer_required_action_<key> for its email and
+// required_action_<key>_<step> for its push. Both are one thing to the Easer.
+export function requiredActionKey(type) {
+  const t = String(type || '');
+  if (t.startsWith('easer_required_action_')) return t.slice('easer_required_action_'.length);
+  if (t.startsWith('required_action_')) return t.slice('required_action_'.length).replace(/_\d+$/, '');
+  return null;
+}
+
+function copyFor(type, actionTitles = new Map()) {
   const exact = NOTIFICATION_COPY[type];
   if (exact) return exact;
-  if (String(type || '').startsWith('easer_required_action_')) {
-    return ['Action required', 'Open your profile to complete a required account step.'];
+  const actionKey = requiredActionKey(type);
+  if (actionKey) {
+    return [actionTitles.get(actionKey) || 'Action needed', 'Tap to take care of it.'];
   }
   if (String(type || '').startsWith('easer_tier_')) {
     return ['Professional level updated', 'Your professional level has been updated.'];
   }
-  return ['Account update', 'A new update is available.'];
+  return ['Account update', 'Tap to view.'];
+}
+
+// Where the app opens an item: the job, Payouts, Account, or Today (where
+// required actions and setup steps are shown).
+export function actionFor(row) {
+  const type = String(row.notification_type || '');
+  if (row.booking_id) return 'job';
+  if (/payout/i.test(type)) return 'payouts';
+  if (/^easer_(phone_required|suspended|reinstated|tier_|coaching|account_clos)/.test(type)) return 'account';
+  return 'today';
 }
 
 function hrefFor(row) {
@@ -51,8 +71,8 @@ function hrefFor(row) {
   return '/assembler/profile';
 }
 
-function formatNotification(row) {
-  const [title, detail] = copyFor(row.notification_type);
+function formatNotification(row, actionTitles) {
+  const [title, detail] = copyFor(row.notification_type, actionTitles);
   return {
     id: row.id,
     title,
@@ -61,6 +81,7 @@ function formatNotification(row) {
     read: Boolean(row.recipient_read_at),
     bookingId: row.booking_id || null,
     href: hrefFor(row),
+    action: actionFor(row),
   };
 }
 
@@ -132,15 +153,26 @@ export default async function handler(req, res) {
     });
   }
 
+  // Required actions are named by their announcement's own title. A lookup
+  // failure only means the generic title is used; the inbox still loads.
+  const actionTitles = new Map();
+  if ((rows || []).some(row => requiredActionKey(row.notification_type))) {
+    const { data: announcements } = await sb.from('easer_announcements').select('key, title');
+    for (const a of announcements || []) if (a?.key && a?.title) actionTitles.set(a.key, a.title);
+  }
+
   // Email and push may represent the same business event. Show one item, using
   // the newest row, so the Easer sees an inbox rather than delivery plumbing.
   const seen = new Set();
   const notifications = [];
   for (const row of rows || []) {
-    const key = `${row.notification_type || 'update'}:${row.booking_id || ''}`;
+    const actionKey = requiredActionKey(row.notification_type);
+    const key = actionKey
+      ? `required_action:${actionKey}`
+      : `${row.notification_type || 'update'}:${row.booking_id || ''}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    notifications.push(formatNotification(row));
+    notifications.push(formatNotification(row, actionTitles));
     if (notifications.length >= 30) break;
   }
 

@@ -158,6 +158,15 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     let evidenceRequested: Bool
     let evidenceUploaded: Bool
     let selfDropAllowed: Bool
+    let enRouteAt: String?
+    let arrivedAt: String?
+    let startedAt: String?
+    let completedAt: String?
+    let payEstimateHiCents: Double?
+    let sameDayBonusCents: Double?
+    let crewSize: Int
+    /// When a step is not open yet: stage (en_route, arrived, in_progress) to the time it opens.
+    let stageOpensAt: [String: String]
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
@@ -185,6 +194,41 @@ struct EaserJob: Decodable, Identifiable, Hashable {
         evidenceRequested = c.string("evidence_requested_at") != nil
         evidenceUploaded = c.bool("_evidence_uploaded") ?? false
         selfDropAllowed = c.bool("_can_self_drop") ?? true
+        enRouteAt = c.string("en_route_at")
+        arrivedAt = c.string("checked_in_at")
+        startedAt = c.string("job_started_at")
+        completedAt = c.string("completed_at")
+        payEstimateHiCents = c.number("_pay_estimate_hi")
+        sameDayBonusCents = c.number("_same_day_bonus_cents")
+        crewSize = Int(c.number("_crew_size") ?? 1)
+        var opens: [String: String] = [:]
+        if let gates = try? c.decodeIfPresent([String: StageGate].self, forKey: DynamicKey("_stage_availability")) {
+            for (stage, gate) in gates where !gate.allowed {
+                if let at = gate.earliestAt { opens[stage] = at }
+            }
+        }
+        stageOpensAt = opens
+    }
+
+    /// The server's verdict on one job step (my-assignments _stage_availability).
+    struct StageGate: Decodable {
+        let allowed: Bool
+        let earliestAt: String?
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: DynamicKey.self)
+            allowed = c.bool("allowed") ?? true
+            earliestAt = c.string("earliestAt")
+        }
+    }
+
+    /// When the next step opens, if it is not open yet.
+    var nextStepOpensAt: String? {
+        switch nextStep {
+        case .startTravel: return stageOpensAt["en_route"]
+        case .arrived: return stageOpensAt["arrived"]
+        case .startJob: return stageOpensAt["in_progress"]
+        default: return nil
+        }
     }
 
     static let finishedStatuses: Set<String> = ["completed", "cancelled", "declined", "refunded"]
@@ -357,15 +401,50 @@ struct EaserNotice: Decodable, Identifiable {
     let createdAt: String?
     let read: Bool
     let bookingID: String?
+    /// Where tapping it goes: job, payouts, account or today (the server decides).
+    let action: String?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
+        action = c.string("action")
         id = c.string("id") ?? UUID().uuidString
         title = c.string("title") ?? "Update"
         detail = c.string("detail") ?? ""
         createdAt = c.string("createdAt")
         read = c.bool("read") ?? false
         bookingID = c.string("bookingId")
+    }
+}
+
+/// Something the platform needs from the Easer (payout setup, a policy to
+/// acknowledge), from /api/assembler/required-actions.
+struct RequiredAction: Decodable, Identifiable {
+    let key: String
+    let rule: String?
+    let title: String
+    let body: String
+    let actionLabel: String?
+    let actionURL: String?
+    let ackRequired: Bool
+    var id: String { key }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        key = c.string("key") ?? UUID().uuidString
+        rule = c.string("rule")
+        title = c.string("title") ?? "Action needed"
+        body = c.string("body") ?? ""
+        actionLabel = c.string("actionLabel")
+        actionURL = c.string("actionUrl")
+        ackRequired = c.bool("ackRequired") ?? false
+    }
+}
+
+struct RequiredActionsEnvelope: Decodable {
+    let actions: [RequiredAction]
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        actions = (try? c.decodeIfPresent([RequiredAction].self, forKey: DynamicKey("actions"))) ?? []
     }
 }
 

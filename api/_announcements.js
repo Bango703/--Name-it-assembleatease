@@ -163,6 +163,9 @@ export async function getEaserRequiredActions(sb, profile) {
       ackRequired: rule.ackRequired === true,
       key: a.key,
       type: a.type,
+      // Which rule this is (payout_setup_incomplete, policy_acknowledgment,
+      // sms_consent_missing): the app decides what its button does from it.
+      rule: a.target_rule || null,
       title: a.title,
       body: a.body,
       actionLabel: a.action_label || null,
