@@ -385,10 +385,21 @@ private struct SetupItemRows: View {
     @EnvironmentObject private var store: EaserStore
     let items: [String]
     @State private var working = false
+    @State private var uploadingPhoto = false
 
     var body: some View {
         ForEach(items, id: \.self) { item in
-            if item.lowercased().contains("job texts") {
+            if item.lowercased().contains("profile photo") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(item, systemImage: "person.crop.circle.badge.exclamationmark").font(.subheadline.weight(.semibold))
+                    if let note = store.readiness?.photoRequestNote, !note.isEmpty {
+                        Text(note).font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    Button("Upload new photo") { uploadingPhoto = true }
+                        .buttonStyle(PrimaryButtonStyle())
+                }
+                .sheet(isPresented: $uploadingPhoto) { ProfilePhotoSheet().environmentObject(store) }
+            } else if item.lowercased().contains("job texts") {
                 VStack(alignment: .leading, spacing: 6) {
                     Label(item, systemImage: "circle").font(.subheadline).foregroundStyle(.secondary)
                     Button {
@@ -436,7 +447,8 @@ private struct SetupCard: View {
         } else if store.readiness?.suspended == true {
             NoticeCard(icon: "pause.circle", title: "Your account is paused",
                        text: "Contact \(Site.supportEmail) to reactivate it.")
-        } else if needsSetup, let setup = store.setup {
+        } else if needsSetup, let setup = store.setup,
+                  setup.requiresAgreement || !setup.identityVerified || !setup.approved {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Finish setting up to get jobs").font(.headline)
                 SetupStep(number: 1, done: !setup.requiresAgreement,
@@ -479,7 +491,7 @@ private struct SetupCard: View {
             .sheet(isPresented: $signing) { AgreementSheet(legalName: setup.fullName).environmentObject(store) }
         } else if needsSetup {
             VStack(alignment: .leading, spacing: 10) {
-                Label("Finish setting up to get jobs", systemImage: "checklist").font(.headline)
+                Label("Action needed", systemImage: "exclamationmark.circle").font(.headline)
                 SetupItemRows(items: store.setupItems)
             }
             .padding(16)
@@ -1534,17 +1546,6 @@ private struct AccountView: View {
                 }
 
                 Section {
-                    Toggle("Available for jobs", isOn: Binding(
-                        get: { online },
-                        set: { value in Task { await store.setAvailable(value) } }
-                    ))
-                    .disabled(store.availabilityBusy || store.profile?.closureHeld == true || store.needsSetup)
-                } footer: {
-                    Text(store.needsSetup ? "Finish setup on Today first."
-                         : online ? "You're online." : "Go online to get job offers.")
-                }
-
-                Section {
                     Button {
                         if store.alertsAuthorized == false {
                             if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
@@ -1576,11 +1577,6 @@ private struct AccountView: View {
                     } else {
                         Text("Message and data rates may apply. Reply STOP to any text to turn texts off.")
                     }
-                }
-
-                Section("Your work") {
-                    NavigationLink { ProfileView() } label: { Label("Profile", systemImage: "person.text.rectangle") }
-                    NavigationLink { PayoutsView() } label: { Label("Payouts", systemImage: "building.columns") }
                 }
 
                 Section("Help") {

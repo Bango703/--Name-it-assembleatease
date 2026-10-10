@@ -8,5 +8,5 @@ export const EASER_READINESS_FIELDS = Object.freeze([
   'application_fee_paid', 'payment_confirmed', 'application_fee_waived', 'fee_waived_by_owner',
   'application_decision_key', 'application_fee_refunded', 'application_fee_refunded_cents',
   'application_fee_refund_pending_cents', 'application_fee_refund_review_required_at',
-  'account_closure_status', 'stripe_connect_account_id',
+  'account_closure_status', 'stripe_connect_account_id', 'profile_photo_requested_at',
 ]);

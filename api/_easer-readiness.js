@@ -151,6 +151,8 @@ export async function getEaserReadiness(profile = {}, options = {}) {
     tierEligible: ACTIVE_EASER_TIERS.includes(tier),
     available: profile.is_available === true,
     phoneAvailable: normalizeUsPhone(profile.phone) !== null,
+    // The owner asked for a new profile photo (migration 108); cleared on upload.
+    profilePhotoRequested: profile.profile_photo_requested_at != null,
     jobTextsEnabled: Boolean(
       normalizeUsPhone(profile.phone)
       && profile.sms_consent_at
@@ -217,6 +219,7 @@ export async function getEaserReadiness(profile = {}, options = {}) {
   if (!flags.tierEligible) missingItems.push('Valid Easer tier');
   if (!flags.phoneAvailable) missingItems.push('Valid 10-digit U.S. phone number on file');
   if (!flags.jobTextsEnabled) missingItems.push('Job texts enabled');
+  if (flags.profilePhotoRequested) missingItems.push('New profile photo requested');
   const availabilityItemIndex = missingItems.length;
   // Named, not generic: these are the two the database used to reject silently.
   if (flags.applicationFeeRefundBlocking) {
@@ -291,6 +294,7 @@ export function publicMissingItems(readiness = {}) {
   if (missing.some(item => /contractor agreement/i.test(item))) publicItems.push('Contractor agreement accepted');
   if (missing.some(item => /code of conduct/i.test(item))) publicItems.push('Code of Conduct accepted');
   if (missing.some(item => /job texts/i.test(item))) publicItems.push('Job texts turned on');
+  if (missing.some(item => /profile photo/i.test(item))) publicItems.push('New profile photo');
   if (missing.some(item => /availability|online and available/i.test(item))) publicItems.push('Availability enabled');
   if (missing.some(item => /stripe|payout/i.test(item))) publicItems.push('Payout setup complete');
   if (missing.some(item => /account closure/i.test(item))) publicItems.push('Account available for jobs');

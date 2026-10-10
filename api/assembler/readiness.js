@@ -2,7 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { authenticateBearerUser, respondWithEaserAccessError } from '../_easer-access.js';
 import { getEaserReadiness, publicMissingItems } from '../_easer-readiness.js';
 
-export function toPublicEaserReadiness(readiness = {}) {
+export function toPublicEaserReadiness(readiness = {}, profile = null) {
   return {
     isReady: readiness.isReady === true,
     agreementCurrent: readiness.agreementCurrent === true,
@@ -11,6 +11,8 @@ export function toPublicEaserReadiness(readiness = {}) {
     // Whether every step other than going online is done. The app needs this to
     // tell "still has setup steps" from "just offline": isReady is false in both.
     requirementsReady: typeof readiness.requirementsReady === 'boolean' ? readiness.requirementsReady : null,
+    // The owner's note with a photo request, shown beside the upload button.
+    photoRequestNote: profile?.profile_photo_requested_at ? (profile.profile_photo_request_note || null) : null,
     accountStatus: readiness.accountStatus || null,
     suspended: readiness.accountStatus === 'suspended',
   };
@@ -26,7 +28,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: profile, error } = await sb
     .from('profiles')
-    .select('id, role, status, application_status, tier, is_available, phone, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, sms_consent_at, sms_opted_out_at, stripe_connect_account_id')
+    .select('id, role, status, application_status, tier, is_available, phone, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, sms_consent_at, sms_opted_out_at, stripe_connect_account_id, profile_photo_requested_at, profile_photo_request_note')
     .eq('id', authenticated.user.id)
     .maybeSingle();
 
@@ -43,7 +45,7 @@ export default async function handler(req, res) {
 
   try {
     const readiness = await getEaserReadiness(profile, { requireAvailability: false });
-    return res.status(200).json({ readiness: toPublicEaserReadiness(readiness) });
+    return res.status(200).json({ readiness: toPublicEaserReadiness(readiness, profile) });
   } catch (readinessError) {
     console.error('[easer-readiness] Verification failed:', readinessError?.message || readinessError);
     return res.status(503).json({

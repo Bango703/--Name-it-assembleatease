@@ -66,7 +66,10 @@ final class EaserStore: ObservableObject {
     @Published var notices: [EaserNotice] = []
     @Published var loadedOnce = false
     @Published var loadProblem: String?
-    @Published var banner: Banner?
+    @Published var banner: Banner? {
+        // A cancelled request has no message; it is never shown.
+        didSet { if banner?.text.isEmpty == true { banner = nil } }
+    }
     @Published var busyJobs: Set<String> = []
     @Published var availabilityBusy = false
     @Published var alertsAuthorized: Bool?
@@ -191,7 +194,7 @@ final class EaserStore: ObservableObject {
                             jobsLocked = true
                             jobs = []
                             loadProblem = nil
-                        } else {
+                        } else if (error as? EaserError)?.isCancelled != true {
                             loadProblem = error.localizedDescription
                         }
                     }
@@ -393,6 +396,8 @@ final class EaserStore: ObservableObject {
             try await api.setProfilePhoto(dataURL)
             profile = try await api.profile()
             banner = Banner(text: "Profile photo saved.", kind: .success)
+            // A requested photo is a setup step; Today updates from the server.
+            await refresh()
             return true
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)

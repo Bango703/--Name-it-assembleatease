@@ -201,7 +201,34 @@ for (const sentence of [
 }
 assert.doesNotMatch(all, /Site\.page\("\/assembler\/verify-identity"\)/, 'identity check starts from the app session, not a signed-out web page');
 assert.match(swift['EaserViews.swift'], /if !store\.needsSetup \{ AvailabilityCard\(\) \}/, 'no online switch the server would refuse while setup is unfinished');
-assert.match(swift['EaserViews.swift'], /store\.profile\?\.closureHeld == true \|\| store\.needsSetup\)/, 'Account availability is disabled until setup is done');
+// One place for each thing (owner, 2026-10-09: "there should not be 2 areas to do the same thing").
+const once = (pattern, what) => assert.equal((all.match(pattern) || []).length, 1, `${what} appears exactly once`);
+once(/Toggle\("Available for jobs"/g, 'the online switch (Today)');
+once(/\bPayoutsView\(\)/g, 'the Payouts link (Earnings)');
+once(/\bEarningsHistoryView\(\)/g, 'the earnings history link (Earnings)');
+once(/\bProfileView\(\)/g, 'the Profile link (Account header)');
+assert.doesNotMatch(swift['EaserAccountViews.swift'], /identityVerificationLink/, 'identity is a Today setup step, not a second button in Profile');
+
+// ── 8j. A requested profile photo blocks offers until uploaded (migration 108) ─
+const m108 = read('api/migrations/108_profile_photo_request.sql');
+assert.match(m108, /ADD COLUMN IF NOT EXISTS profile_photo_requested_at TIMESTAMPTZ/);
+assert.match(m108, /NEW\.profile_photo IS DISTINCT FROM OLD\.profile_photo THEN\s*NEW\.profile_photo_requested_at := NULL;/, 'uploading a photo clears the request in the database');
+assert.ok('profiles_zz_clear_photo_request' > 'profiles_guard_self_update', 'the clearing trigger runs after the self-update guard');
+assert.match(m108, /OR v_profile\.profile_photo_requested_at IS NOT NULL/, 'the assignment trigger agrees with readiness');
+assert.match(read('api/_easer-readiness.js'), /if \(flags\.profilePhotoRequested\) missingItems\.push\('New profile photo requested'\)/, 'readiness, the one rule, blocks offers');
+const updateApi = read('api/assembler/update.js');
+assert.match(updateApi, /profile_photo_requested_at: new Date\(\)\.toISOString\(\),[\s\S]{0,120}is_available: false,/, 'the request takes the Easer offline');
+assert.match(updateApi, /sendPushToUser\(assemblerId, \{\s*title: 'New profile photo needed'/, 'and reaches their phone');
+assert.match(read('api/assembler/notifications.js'), /easer_photo_request: \['New profile photo needed'/, 'and their inbox');
+assert.match(swift['EaserViews.swift'], /Button\("Upload new photo"\) \{ uploadingPhoto = true \}/, 'Today offers the upload right there');
+assert.match(store, /setProfilePhoto\(dataURL\)[\s\S]{0,400}await refresh\(\)/, 'the requirement clears on screen after upload');
+
+// ── 8k. "No connection" only when there is none ────────────────────────────
+const apiSwift = swift['EaserAPI.swift'];
+assert.match(apiSwift, /case \.cancelled:\s*throw EaserError\.cancelled/, 'a cancelled refresh is never shown as no connection');
+assert.match(apiSwift, /case \.notConnectedToInternet, \.networkConnectionLost/, 'no connection means the network is actually gone');
+assert.match(apiSwift, /A dropped read is retried once, quietly/, 'a dropped read is retried before anything is shown');
+assert.match(store, /\(error as\? EaserError\)\?\.isCancelled != true/, 'a cancelled load never becomes a problem card');
 assert.match(swift['EaserViews.swift'], /\.disabled\(blockedReason != nil \|\| working\)[\s\S]{0,200}if let blockedReason \{ Text\(blockedReason\) \}/, 'the Sign button never sits disabled without saying why (Article 14)');
 assert.doesNotMatch(swift['EaserViews.swift'], /Button\("Finish setup"\)/, 'no setup button that sends a signed-in Easer to a signed-out browser');
 assert.match(store, /status == 403[\s\S]{0,80}jobsLocked = true/, 'an account not approved yet is a status, not "Jobs could not be loaded"');
