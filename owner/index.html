@@ -7465,7 +7465,7 @@ window.intelQuick = intelQuick;
         : ' &bull; <span style="color:var(--muted)">not accepted yet</span>';
       status.innerHTML = 'Assigned to: <strong>' + esc(aName) + '</strong>' + accepted
         + (ownerEaserOnly
-          ? ' &bull; <span style="color:#155e75">Owner-Easer offline flow</span>'
+          ? ' &bull; <span style="color:#155e75">' + (b.is_test_booking === true ? 'Test booking' : 'Owner-Easer offline flow') + '</span>'
           : ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>'
             + (isAccepted ? '' : ' <button onclick="releaseAssignment(\'' + b.id + '\',this)" class="btn" style="font-size:0.72rem;padding:2px 8px">Release</button>')
             // Confirmed no-show: accepted, never started, appointment day reached. The server checks the start time.
