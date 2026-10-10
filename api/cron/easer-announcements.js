@@ -5,6 +5,7 @@ import { logCron } from './_cron-logger.js';
 import { loadActiveAnnouncements, ruleFor, isReminderDue } from '../_announcements.js';
 import { minSendIntervalMs, remainingDailyBudget } from '../_send-governor.js';
 import { acquireNotificationLease, releaseNotificationLease } from '../_notification-policy.js';
+import { loadDemoEaserIds } from '../_demo-accounts.js';
 
 const SITE = 'https://www.assembleatease.com';
 // Per-run cap AND a pace. The loop is sequential, but a sequential loop still
@@ -79,8 +80,11 @@ export async function processAnnouncement(sb, a, counters, dependencies = {}) {
 
   // 4) Send reminders to still-incomplete Easers whose cadence is due.
   const channels = Array.isArray(a.channels) ? a.channels : [];
+  // Demo (App Review) accounts are never reminded to set up live payouts.
+  const demoIds = a.target_rule === 'payout_setup_incomplete' ? await loadDemoEaserIds(sb) : new Set();
   for (const easer of incomplete) {
     if (counters.sent >= (counters.runCap || MAX_PER_RUN)) break;
+    if (demoIds.has(easer.id)) continue;
     const leaseKey = `announcement:${a.id}:${easer.id}`;
     const lease = await acquire(sb, leaseKey);
     if (!lease.ok) {

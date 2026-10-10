@@ -9,6 +9,7 @@ import {
 } from '../_stripe-connect.js';
 import { deriveAssemblerStatus } from '../_assembler-state.js';
 import { isEaserClosureBlocking, normalizeEaserClosureStatus } from '../_easer-closure.js';
+import { isDemoEaser } from '../_demo-accounts.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -39,6 +40,9 @@ export default async function handler(req, res) {
 
   if (profileErr || !profile) return res.status(404).json({ error: 'Profile not found' });
   if (profile.role !== 'assembler') return res.status(403).json({ error: 'Only Easers can use this endpoint' });
+  if (await isDemoEaser(sb, user.id)) {
+    return res.status(403).json({ error: "Payouts aren't set up on demo accounts.", code: 'DEMO_ACCOUNT' });
+  }
   if (isEaserClosureBlocking(profile)) {
     return res.status(409).json({
       error: 'Resolve your account closure request before starting or changing payout setup.',

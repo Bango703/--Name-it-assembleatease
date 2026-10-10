@@ -6,6 +6,7 @@
 
 import { isStripeConnectEnabled, refreshConnectPayoutState } from './_stripe-connect.js';
 import { isSmsEnabled } from './_sms.js';
+import { isDemoEaser } from './_demo-accounts.js';
 
 // Each rule decides, from a plain profile row, whether an Easer still NEEDS the
 // action (`incomplete`) and how to bulk-select those Easers (`query`). `active`
@@ -147,9 +148,15 @@ export async function getEaserRequiredActions(sb, profile) {
   if (!profile?.id) return [];
   const announcements = await loadActiveAnnouncements(sb);
   const out = [];
+  // A demo (App Review) account is paid nothing, so it is never sent to live
+  // Stripe payout setup, which verifies a real person and bank.
+  const demo = announcements.some(a => a.target_rule === 'payout_setup_incomplete')
+    ? await isDemoEaser(sb, profile.id)
+    : false;
   for (const a of announcements) {
     const rule = ruleFor(a);
     if (!rule || !rule.incomplete(profile)) continue;
+    if (demo && a.target_rule === 'payout_setup_incomplete') continue;
     if (rule.ackRequired) {
       const { data: delivery, error } = await sb.from('easer_announcement_deliveries')
         .select('dismissed_at')
