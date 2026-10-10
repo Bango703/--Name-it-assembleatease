@@ -28,6 +28,26 @@ export function loadFirebaseServiceAccount(env = process.env) {
   }
 }
 
+/**
+ * Why the configured key is unusable, in words that never include the key:
+ * whether it is set, its length and first character, whether it parses, and
+ * which required field names are missing. Null when the key is usable.
+ */
+export function firebaseServiceAccountProblem(env = process.env) {
+  const raw = String(env.FIREBASE_SERVICE_ACCOUNT || '').trim();
+  if (!raw) return 'FIREBASE_SERVICE_ACCOUNT is not set in this deployment';
+  let parsed;
+  try {
+    parsed = JSON.parse(raw.startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8'));
+  } catch (_) {
+    // Never echo the parser's message: it quotes part of the value.
+    return `FIREBASE_SERVICE_ACCOUNT is not valid JSON (length ${raw.length}, starts with character code ${raw.charCodeAt(0)}, ends with ${raw.charCodeAt(raw.length - 1)})`;
+  }
+  if (!parsed || typeof parsed !== 'object') return 'FIREBASE_SERVICE_ACCOUNT is not a JSON object';
+  const missing = ['client_email', 'private_key', 'project_id'].filter(k => !parsed[k]);
+  return missing.length ? `FIREBASE_SERVICE_ACCOUNT is missing: ${missing.join(', ')}` : null;
+}
+
 function base64url(input) {
   return Buffer.from(input).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
@@ -82,7 +102,7 @@ export function buildFcmMessage(token, payload) {
 // Send to every installed app for this user. Returns rows for notification_log.
 export async function sendNativePushToUser(sb, userId, payload, meta = {}, { env = process.env, fetchImpl = fetch } = {}) {
   const account = loadFirebaseServiceAccount(env);
-  if (!account) return { skipped: true, reason: 'native_push_not_configured', sent: 0, failed: 0, logRows: [] };
+  if (!account) return { skipped: true, reason: 'native_push_not_configured', error: firebaseServiceAccountProblem(env), sent: 0, failed: 0, logRows: [] };
 
   const { data: tokens, error } = await sb.from('native_push_tokens').select('token, platform').eq('user_id', userId);
   if (error) {
