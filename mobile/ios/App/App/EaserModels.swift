@@ -142,6 +142,9 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     let acceptedAt: String?
     let offerLocation: String?
     let offerToken: String?
+    /// The token accept-dispatch needs: a dispatch offer's, or, for a job the
+    /// owner assigned directly, the booking's assignment token (as the website sends).
+    let acceptToken: String?
     let offerExpiresAt: String?
     let canDecline: Bool
     let payEstimateCents: Double?
@@ -168,6 +171,7 @@ struct EaserJob: Decodable, Identifiable, Hashable {
         acceptedAt = c.string("assembler_accepted_at")
         offerLocation = c.string("_offer_location")
         offerToken = c.string("_offer_token")
+        acceptToken = offerToken ?? c.string("assignment_token")
         offerExpiresAt = c.string("_offer_expires_at")
         canDecline = c.bool("_can_decline") ?? false
         payEstimateCents = c.number("_pay_estimate_lo")
