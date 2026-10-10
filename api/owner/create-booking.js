@@ -81,6 +81,9 @@ export default async function handler(req, res) {
 
   // ── Email optional but validated when present (drives reminders + reviews) ──
   const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!cleanEmail) {
+    return res.status(400).json({ error: 'Customer email is required.', code: 'CUSTOMER_EMAIL_REQUIRED' });
+  }
   if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cleanEmail)) {
     return res.status(400).json({ error: 'Enter a valid email address or leave it blank.', code: 'INVALID_EMAIL' });
   }

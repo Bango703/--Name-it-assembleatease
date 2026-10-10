@@ -1554,7 +1554,7 @@ window.intelQuick = intelQuick;
       </div>
       <div>
         <label class="modal-label">Email</label>
-        <input type="email" class="modal-input" id="ocb-email" placeholder="Optional"/>
+        <input type="email" class="modal-input" id="ocb-email" placeholder="customer@example.com"/>
       </div>
     </div>
     <label class="modal-label">Service *</label>
@@ -5032,6 +5032,7 @@ window.intelQuick = intelQuick;
       // Same money-neutral post-completion actions as an online completed booking, so
       // offline jobs can also request a review and rebook the customer.
       if (b.status === 'completed') addCompletedCustomerActions(b, btns);
+      pushTestBookingToggle(b, notices, btns);
       renderOwnerActionCollection(notices, btns);
       return;
     }
@@ -5287,13 +5288,20 @@ window.intelQuick = intelQuick;
     if (!['cancelled', 'declined'].includes(b.status)) {
       btns.push('<button class="btn" data-action="fix-customer-email" data-id="' + b.id + '">Fix Customer Email</button>');
     }
+    pushTestBookingToggle(b, notices, btns);
+    renderOwnerActionCollection(notices, btns);
+  }
+
+  // One test-booking toggle for every booking, online or offline. The offline
+  // (owner_manual) action list returned before reaching it, so an offline
+  // booking could never be marked as a test, which the App Review demo job needs.
+  function pushTestBookingToggle(b, notices, btns) {
     if (b.is_test_booking === true) {
       notices.push('<div style="flex-basis:100%;background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.8rem;color:var(--muted);font-size:0.78rem;line-height:1.5"><strong>Internal test booking.</strong> On the record, excluded from every figure on this dashboard and from the summary emails.</div>');
       btns.push('<button class="btn" data-action="unmark-test" data-id="' + b.id + '">Put Back Into Business</button>');
     } else {
       btns.push('<button class="btn" data-action="mark-test" data-id="' + b.id + '">Mark As Test Booking</button>');
     }
-    renderOwnerActionCollection(notices, btns);
   }
 
   var pendingAction = null;

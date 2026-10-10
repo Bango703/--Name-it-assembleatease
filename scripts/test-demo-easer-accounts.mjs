@@ -146,4 +146,10 @@ assert.match(m107, /RAISE EXCEPTION 'A demo account can only be given test booki
 assert.match(m107, /public\.current_required_agreement_version\(\)/, 'agreement version still read from its single source');
 assert.match(m107, /VALUES \(107, 'demo_test_job_flow'\)/);
 
+// The owner can mark an OFFLINE booking as a test: the offline action list
+// returned before the toggle, so the demo job could never be set up.
+assert.equal((ownerPage.match(/pushTestBookingToggle\(b, notices, btns\);/g) || []).length, 2, 'test toggle on online and offline bookings');
+// A blank email failed as "Failed to save the booking" (the column is NOT NULL).
+assert.match(await read('api/owner/create-booking.js'), /if \(!cleanEmail\) \{\s*return res\.status\(400\)\.json\(\{ error: 'Customer email is required\.'/);
+
 console.log('demo Easer accounts: test bookings only, enforced in dispatch, assign, crew, accept and the database; a demo can run a whole test job with no payout');
