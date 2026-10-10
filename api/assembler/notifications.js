@@ -20,6 +20,7 @@ const NOTIFICATION_COPY = {
   easer_tier_changed: ['Professional level updated', 'Your professional level has been updated.'],
   easer_coaching: ['Performance update', 'A new performance update is available.'],
   easer_phone_required: ['Phone number needed', 'Add a phone number to receive job updates.'],
+  easer_photo_request: ['New profile photo needed', 'Upload a new profile photo to get job offers again.'],
   easer_application_received: ['Application received', 'Your application was received successfully.'],
   easer_application_rejected: ['Application status updated', 'Open your profile to review your application status.'],
   easer_onboarding_link_reissued: ['Setup link ready', 'A new account setup link is available.'],

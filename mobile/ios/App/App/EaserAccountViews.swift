@@ -19,7 +19,6 @@ struct ProfileView: View {
     @State private var saving = false
     @State private var changingPhoto = false
     @State private var confirmReset = false
-    @State private var startingVerification = false
 
     private var locked: Bool { store.profile?.identityVerified == true }
 
@@ -113,18 +112,6 @@ struct ProfileView: View {
                 LabeledContent("Identity") {
                     Text(locked ? "Verified" : "Not verified")
                         .foregroundStyle(locked ? Brand.skyDark : Brand.attention)
-                }
-                if !locked {
-                    Button {
-                        startingVerification = true
-                        Task {
-                            if let url = await store.identityVerificationLink() { openURL(url) }
-                            startingVerification = false
-                        }
-                    } label: {
-                        if startingVerification { ProgressView() } else { Text("Verify your identity") }
-                    }
-                    .disabled(startingVerification)
                 }
                 if let since = Format.day(store.profile?.createdAt) {
                     LabeledContent("Member since", value: since)
@@ -293,7 +280,6 @@ struct PayoutsView: View {
             }
 
             Section {
-                NavigationLink("Earnings history") { EarningsHistoryView() }
             }
         }
         .navigationTitle("Payouts")

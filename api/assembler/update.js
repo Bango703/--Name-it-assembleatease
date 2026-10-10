@@ -27,6 +27,7 @@ import { isEaserClosureBlocking, normalizeEaserClosureStatus } from '../_easer-c
 import { loadLedgerFirstFinanceRows } from '../owner/_finance-ledger.js';
 import { CONTRACTOR_AGREEMENT_VERSION } from '../_assembler-onboarding.js';
 import { logActivity } from '../booking/_activity.js';
+import { sendPushToUser } from '../_push.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -1287,8 +1288,15 @@ export default async function handler(req, res) {
     const note = (photoNote || '').trim();
     // Remove the current photo so a poor or unclear one stops showing to customers
     // (e.g. on the tracking page) right away; the Easer re-uploads from their profile.
+    // The request is a readiness requirement (migration 108): the Easer goes
+    // offline and gets no offers until a new photo is uploaded, which clears it.
     const { error: clearErr } = await sb.from('profiles')
-      .update({ profile_photo: null })
+      .update({
+        profile_photo: null,
+        profile_photo_requested_at: new Date().toISOString(),
+        profile_photo_request_note: note || null,
+        is_available: false,
+      })
       .eq('id', assemblerId)
       .eq('role', 'assembler');
     if (clearErr) {
@@ -1303,14 +1311,22 @@ export default async function handler(req, res) {
       html: buildEaserAccountEmail({
         heading: 'Update your profile photo',
         firstName: pFirstName,
-        bodyHtml: `<p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0 0 16px">Your profile photo is one of the first things a customer sees before you arrive at their home, so it needs to be clear and professional. We've removed your current photo and would like you to upload a new one.</p>`
+        bodyHtml: `<p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0 0 16px">Upload a new profile photo to get job offers again.</p>`
           + (note ? `<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px 16px;margin:0 0 16px"><div style="font-size:0.8rem;font-weight:800;letter-spacing:0.03em;text-transform:uppercase;color:#0369a1;margin-bottom:6px">What we need</div><div style="font-size:0.92rem;color:#334155;line-height:1.6">${esc(note)}</div></div>` : '')
-          + `<p style="font-size:0.9rem;color:#52525b;line-height:1.7;margin:0">A good photo is a clear, well-lit headshot of your face &mdash; no sunglasses, hats, logos, or group shots. Tap below to update it in your profile.</p>`,
+          + `<p style="font-size:0.9rem;color:#52525b;line-height:1.7;margin:0">Use a clear, well-lit photo of your face. No sunglasses, hats, logos or group photos.</p>`,
         ctaText: 'Update my photo',
         ctaUrl: 'https://www.assembleatease.com/assembler/profile',
       }),
       meta: { notificationType: 'easer_photo_request', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
     }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+
+    // The Easer's phone, not only their inbox: the app opens to the upload step.
+    await sendPushToUser(assemblerId, {
+      title: 'New profile photo needed',
+      body: 'Upload a new profile photo to get job offers again.',
+      url: '/assembler/profile',
+    }, { notificationType: 'easer_photo_request', recipientType: 'easer' })
+      .catch(e => console.error('request_photo push error:', e?.message || e));
 
     await logActivity(sb, {
       bookingId: null,

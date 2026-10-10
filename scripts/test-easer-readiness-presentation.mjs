@@ -43,7 +43,8 @@ for (const available of [true, false]) {
 
 // Every real job proof field must be loaded; null and false are stored evidence,
 // but missing, inherited, and undefined values cannot support a ready label.
-assert.equal(EASER_REQUIREMENTS_FIELDS.length, 20);
+// 21 since migration 108 added profile_photo_requested_at (owner photo request).
+assert.equal(EASER_REQUIREMENTS_FIELDS.length, 21);
 for (const field of EASER_REQUIREMENTS_FIELDS) {
   for (const storedValue of [null, false]) {
     assert.equal((await read({ ...baseProfile, [field]: storedValue })).requirementsVerified, true,

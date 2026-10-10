@@ -8,6 +8,10 @@ struct EaserError: LocalizedError {
     var errorDescription: String? { message }
 
     static let offline = EaserError(message: "No connection. Check your signal and try again.", status: 0)
+    static let unreachable = EaserError(message: "AssembleAtEase could not be reached. Pull down to try again.", status: 0)
+    /// A request the app itself cancelled (a newer refresh replaced it). Never shown.
+    static let cancelled = EaserError(message: "", status: -1)
+    var isCancelled: Bool { status == -1 }
     static let signedOut = EaserError(message: "Please sign in again.", status: 401)
 }
 
@@ -138,7 +142,14 @@ final class EaserAPI {
     }
 
     func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
-        let data = try await call("GET", path)
+        var data = Data()
+        do {
+            data = try await call("GET", path)
+        } catch let error as EaserError where error.status == 0 {
+            // A dropped read is retried once, quietly, before anything is shown.
+            try await Task.sleep(nanoseconds: 1_200_000_000)
+            data = try await call("GET", path)
+        }
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
@@ -227,8 +238,20 @@ final class EaserAPI {
             return (data, httpResponse)
         } catch let error as EaserError {
             throw error
+        } catch let error as URLError {
+            // Only a real network loss is called one; anything else is named honestly.
+            switch error.code {
+            case .cancelled:
+                throw EaserError.cancelled
+            case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff:
+                throw EaserError.offline
+            default:
+                throw EaserError.unreachable
+            }
+        } catch is CancellationError {
+            throw EaserError.cancelled
         } catch {
-            throw EaserError.offline
+            throw EaserError.unreachable
         }
     }
 

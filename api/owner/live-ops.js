@@ -224,7 +224,7 @@ export default async function handler(req, res) {
       // whether or not they had consented, while dispatch and assign (which do
       // select it) saw the truth. test-readiness-select-parity.mjs now keeps
       // this list and the readiness module in step.
-      .select('id, full_name, email, tier, rating, completed_jobs, is_available, has_membership, city, phone, status, application_status, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, payment_confirmed, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, sms_consent_at, sms_opted_out_at, stripe_connect_account_id')
+      .select('id, full_name, email, tier, rating, completed_jobs, is_available, has_membership, city, phone, status, application_status, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, payment_confirmed, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, sms_consent_at, sms_opted_out_at, stripe_connect_account_id, profile_photo_requested_at')
       .eq('role', 'assembler'),
     sb.from('dispatch_offers')
       .select('id, booking_id, easer_id, notification_sent, expires_at')

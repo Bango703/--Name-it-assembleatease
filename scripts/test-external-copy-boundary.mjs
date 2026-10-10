@@ -69,6 +69,7 @@ assert.deepEqual(publicReadiness, {
   codeOfConductAccepted: true,
   missingItems: ['Application approved', 'Payout setup complete'],
   requirementsReady: null,
+  photoRequestNote: null,
   accountStatus: null,
   suspended: false,
 });
@@ -218,7 +219,7 @@ for (const oldPublicError of [
   assert.equal(feeFinalizeApi.includes(oldPublicError), false, `Application payment response still contains: ${oldPublicError}`);
 }
 
-assert.match(readinessApi, /readiness: toPublicEaserReadiness\(readiness\)/);
+assert.match(readinessApi, /readiness: toPublicEaserReadiness\(readiness, profile\)/);
 // The internal-to-public label mapping lives beside the internal labels in
 // api/_easer-readiness.js, so both readiness.js and accept-dispatch.js read one copy.
 assert.match(easerReadinessModule, /Application approved/);

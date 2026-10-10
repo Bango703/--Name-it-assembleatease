@@ -101,11 +101,14 @@ struct Readiness: Decodable {
     let suspended: Bool
     /// Every step other than going online is done (nil from an older server).
     let requirementsReady: Bool?
+    /// The owner's note when a new profile photo was requested.
+    let photoRequestNote: String?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         isReady = c.bool("isReady") ?? false
         requirementsReady = c.bool("requirementsReady")
+        photoRequestNote = c.string("photoRequestNote")
         missingItems = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("missingItems"))) ?? []
         suspended = c.bool("suspended") ?? false
     }
