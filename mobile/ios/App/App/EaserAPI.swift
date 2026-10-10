@@ -141,15 +141,18 @@ final class EaserAPI {
         throw EaserError.signedOut
     }
 
-    func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
-        var data = Data()
+    /// The raw answer to a read. A dropped read is retried once, quietly, before anything is shown.
+    func getData(_ path: String) async throws -> Data {
         do {
-            data = try await call("GET", path)
+            return try await call("GET", path)
         } catch let error as EaserError where error.status == 0 {
-            // A dropped read is retried once, quietly, before anything is shown.
             try await Task.sleep(nanoseconds: 1_200_000_000)
-            data = try await call("GET", path)
+            return try await call("GET", path)
         }
+    }
+
+    func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
+        let data = try await getData(path)
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
@@ -159,16 +162,24 @@ final class EaserAPI {
 
     /// The signed-in person's own profile row, read under their own permissions.
     func profile() async throws -> EaserProfile {
+        try Self.decodeProfile(try await profileData())
+    }
+
+    static func decodeProfile(_ data: Data) throws -> EaserProfile {
+        let rows = try JSONDecoder().decode([EaserProfile].self, from: data)
+        guard let row = rows.first else { throw EaserError(message: "Your Easer profile could not be found.", status: 404) }
+        return row
+    }
+
+    /// The raw profile row, so the store can keep it for the next launch.
+    func profileData() async throws -> Data {
         let current = try await validSession()
         var parts = URLComponents(url: Self.supabase.appendingPathComponent("rest/v1/profiles"), resolvingAgainstBaseURL: false)!
         parts.queryItems = [
             URLQueryItem(name: "select", value: "id,role,full_name,phone,city,state,zip,profile_photo,rating,review_count,created_at,tier,is_available,identity_verified,account_closure_status"),
             URLQueryItem(name: "id", value: "eq." + current.userID),
         ]
-        let data = try await supabaseRequest(url: parts.url!, method: "GET", body: nil)
-        let rows = try JSONDecoder().decode([EaserProfile].self, from: data)
-        guard let row = rows.first else { throw EaserError(message: "Your Easer profile could not be found.", status: 404) }
-        return row
+        return try await supabaseRequest(url: parts.url!, method: "GET", body: nil)
     }
 
     /// Availability goes through the same protected database function as the

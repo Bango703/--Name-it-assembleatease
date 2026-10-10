@@ -204,7 +204,10 @@ assert.match(swift['EaserViews.swift'], /if !store\.needsSetup \{ AvailabilityCa
 // One place for each thing (owner, 2026-10-09: "there should not be 2 areas to do the same thing").
 const once = (pattern, what) => assert.equal((all.match(pattern) || []).length, 1, `${what} appears exactly once`);
 once(/Toggle\("Available for jobs"/g, 'the online switch (Today)');
-once(/\bPayoutsView\(\)/g, 'the Payouts link (Earnings)');
+once(/NavigationLink\s*\{\s*PayoutsView\(\)/g, 'the Payouts menu entry (Earnings)');
+// Contextual openings (an inbox item about payouts, the "Set up payouts" action) are the
+// action itself, not a second menu: only those two may present it as a sheet.
+assert.equal((all.match(/NavigationStack \{ PayoutsView\(\) \}/g) || []).length, 2, 'Payouts opens in context only from the inbox item and the required action');
 once(/\bEarningsHistoryView\(\)/g, 'the earnings history link (Earnings)');
 once(/\bProfileView\(\)/g, 'the Profile link (Account header)');
 assert.doesNotMatch(swift['EaserAccountViews.swift'], /identityVerificationLink/, 'identity is a Today setup step, not a second button in Profile');
@@ -265,6 +268,27 @@ const accountViews = swift['EaserAccountViews.swift'];
 assert.equal((all.match(/Button\("Change photo"\)/g) || []).length, 1, 'one place to change the profile photo');
 assert.doesNotMatch(accountViews, /label: "Earned"/, 'earnings total lives on the Earnings tab only');
 assert.ok(accountViews.indexOf('Section("Reviews")') < accountViews.indexOf('Text("Contact details")'), 'reviews sit near the top of Profile');
+
+// ── 8l. Opens on real content, every inbox item goes somewhere (2026-10-10) ──
+// Owner: jobs popped in a second after launch, the online switch showed off and
+// flipped on, the job-texts switch did the same, and inbox items for payouts and
+// the policy did nothing. Each had one cause; each is held here.
+assert.match(store, /guard api\.session != nil else \{ phase = \.signedOut; return \}\s*restoreSnapshot\(\)\s*phase = \.signedIn/, 'the app opens on the last answers it had (stale-while-revalidate)');
+assert.match(store, /private func endSession[\s\S]{0,80}cache\?\.clear\(\)/, 'the device copy is removed on sign-out');
+assert.match(swift['EaserSupport.swift'], /completeFileProtectionUntilFirstUserAuthentication/, 'the device copy uses iOS data protection');
+for (const path of ['/api/assembler/sms-preference', '/api/assembler/required-actions']) {
+  assert.ok(store.includes(`fetch("${path}"`), `${path} loads with everything else, not when a screen opens`);
+}
+assert.match(swift['EaserViews.swift'], /if store\.availabilityBusy \|\| store\.profile == nil \{\s*ProgressView\(\)/, 'the online switch never shows off before the profile is known');
+const inboxApi = read('api/assembler/notifications.js');
+assert.match(inboxApi, /action: actionFor\(row\)/, 'every inbox item says where it goes');
+assert.doesNotMatch(inboxApi, /A new update is available/, 'no item that says nothing');
+assert.match(inboxApi, /`required_action:\$\{actionKey\}`/, 'a required action is one inbox item, not an email copy and a push copy');
+assert.match(swift['EaserViews.swift'], /switch notice\.action \{\s*case "payouts": showingPayouts = true/, 'the app opens what the item is about');
+assert.match(store, /\/api\/assembler\/acknowledge-announcement/, 'a policy can be acknowledged in the app');
+assert.match(read('api/_announcements.js'), /rule: a\.target_rule \|\| null/, 'the server says which rule an action came from');
+assert.match(swift['EaserViews.swift'], /Button\("Opens at \\\(opens\)"\)/, 'a step not open yet says when it opens instead of failing on tap');
+assert.match(swift['EaserModels.swift'], /_stage_availability/, 'the server decides when each step opens');
 
 // ── 8g. Offline is not unfinished setup (2026-10-09) ────────────────────────
 // The server counts being offline as "not ready" (isReady false). The app hid

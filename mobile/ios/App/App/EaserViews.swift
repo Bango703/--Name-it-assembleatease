@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import MapKit
 import UIKit
 
 struct JobRef: Identifiable, Hashable { let id: String }
@@ -217,31 +218,29 @@ private struct SignInView: View {
 // MARK: - Tabs
 
 private struct MainTabsView: View {
-    enum Tab: Hashable { case today, jobs, earnings, inbox, account }
     @EnvironmentObject private var store: EaserStore
     @ObservedObject private var relay = PushRelay.shared
-    @State private var tab: Tab = .today
     @State private var linkedJob: JobRef?
     @State private var reloadedFor: String?
 
     var body: some View {
-        TabView(selection: $tab) {
+        TabView(selection: $store.tab) {
             TodayView()
                 .tabItem { Label("Today", systemImage: "sun.max") }
-                .tag(Tab.today)
+                .tag(AppTab.today)
             JobsView()
                 .tabItem { Label("Jobs", systemImage: "briefcase") }
-                .tag(Tab.jobs)
+                .tag(AppTab.jobs)
             EarningsView()
                 .tabItem { Label("Earnings", systemImage: "dollarsign.circle") }
-                .tag(Tab.earnings)
+                .tag(AppTab.earnings)
             InboxView()
                 .tabItem { Label("Inbox", systemImage: "tray") }
                 .badge(store.unreadCount)
-                .tag(Tab.inbox)
+                .tag(AppTab.inbox)
             AccountView()
                 .tabItem { Label("Account", systemImage: "person.crop.circle") }
-                .tag(Tab.account)
+                .tag(AppTab.account)
         }
         // A tapped job notification opens that job, not a generic screen.
         .onChange(of: relay.openJobID) { _, id in openLinkedJob(id) }
@@ -296,6 +295,7 @@ private struct TodayView: View {
                     // Until setup is done the server refuses to put an Easer online,
                     // so the switch is not offered; the steps come first.
                     if !store.needsSetup { AvailabilityCard() }
+                    RequiredActionsCard()
                     SetupCard()
                     if let problem = store.loadProblem, store.jobs.isEmpty, !store.jobsLocked {
                         NoticeCard(icon: "wifi.exclamationmark", title: "Jobs could not be loaded", text: problem)
@@ -362,7 +362,7 @@ private struct AvailabilityCard: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            if store.availabilityBusy {
+            if store.availabilityBusy || store.profile == nil {
                 ProgressView()
             } else {
                 Toggle("Available for jobs", isOn: Binding(
@@ -850,6 +850,10 @@ struct JobDetailView: View {
                     if let ref = job.ref { Text(ref).font(.footnote).foregroundStyle(.secondary) }
                 }
 
+                if job.acceptedAt != nil && !job.isHelper {
+                    DetailBlock(title: "Progress") { JobProgress(job: job) }
+                }
+
                 if job.photosRequested {
                     DetailBlock(title: "Photos requested") {
                         Text("AssembleAtEase needs another photo of this job.")
@@ -868,12 +872,26 @@ struct JobDetailView: View {
                     if job.isFinished, let earned = store.earning(for: job) {
                         Text(earned.statusLabel).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark)
                     }
+                    if !job.isFinished, let hi = job.payEstimateHiCents, let lo = job.payEstimateCents, hi > lo {
+                        Text("Up to \(Format.money(cents: hi))").font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    if let bonus = job.sameDayBonusCents, bonus > 0 {
+                        Label("Includes \(Format.money(cents: bonus)) same-day bonus", systemImage: "bolt.fill")
+                            .font(.subheadline).foregroundStyle(Brand.skyDark)
+                    }
+                    if job.crewSize > 1 {
+                        Label("Crew of \(job.crewSize)", systemImage: "person.2")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
                     if job.isOffer, let left = Format.timeLeft(until: job.offerExpiresAt) {
                         Text(left).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.attention)
                     }
                 }
 
                 DetailBlock(title: "When and where") {
+                    if !job.isFinished {
+                        JobMapCard(query: job.place, exact: job.acceptedAt != nil && job.address != nil)
+                    }
                     if !job.when.isEmpty { Label(job.when, systemImage: "calendar") }
                     Label(job.place, systemImage: "mappin.and.ellipse")
                     if job.acceptedAt != nil, let address = job.address, !job.isFinished {
@@ -995,15 +1013,21 @@ struct JobDetailView: View {
                         Button("Accept job") { Task { await store.accept(job) } }
                             .buttonStyle(PrimaryButtonStyle())
                     }
-                case .startTravel:
-                    Button("Start travel") { Task { await store.startTravel(job) } }
-                        .buttonStyle(PrimaryButtonStyle())
-                case .arrived:
-                    Button("I've arrived") { Task { await store.arrived(job) } }
-                        .buttonStyle(PrimaryButtonStyle())
-                case .startJob:
-                    Button("Start job") { Task { await store.startJob(job) } }
-                        .buttonStyle(PrimaryButtonStyle())
+                case .startTravel, .arrived, .startJob:
+                    if let opens = Format.clock(job.nextStepOpensAt) {
+                        Button("Opens at \(opens)") {}
+                            .buttonStyle(PrimaryButtonStyle(enabled: false))
+                            .disabled(true)
+                    } else if job.nextStep == .startTravel {
+                        Button("Start travel") { Task { await store.startTravel(job) } }
+                            .buttonStyle(PrimaryButtonStyle())
+                    } else if job.nextStep == .arrived {
+                        Button("I've arrived") { Task { await store.arrived(job) } }
+                            .buttonStyle(PrimaryButtonStyle())
+                    } else {
+                        Button("Start job") { Task { await store.startJob(job) } }
+                            .buttonStyle(PrimaryButtonStyle())
+                    }
                 case .complete:
                     Button("Complete job") { photoSheet = .completion }
                         .buttonStyle(PrimaryButtonStyle())
@@ -1019,6 +1043,143 @@ struct JobDetailView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, job.nextStep == .noAction && !job.isHelper ? 0 : 12)
         .background(job.nextStep == .noAction && !job.isHelper ? AnyShapeStyle(Color.clear) : AnyShapeStyle(Material.bar))
+    }
+}
+
+/// Accepted, On the way, Arrived, Started, Done, with the time each happened.
+private struct JobProgress: View {
+    let job: EaserJob
+
+    var body: some View {
+        let steps: [(String, String?)] = [
+            ("Accepted", job.acceptedAt),
+            ("On the way", job.enRouteAt),
+            ("Arrived", job.arrivedAt),
+            ("Started", job.startedAt),
+            ("Done", job.status == "completed" ? (job.completedAt ?? job.startedAt) : nil),
+        ]
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(spacing: 0) {
+                        Circle()
+                            .fill(step.1 != nil ? Brand.sky : Color.gray.opacity(0.3))
+                            .frame(width: 12, height: 12)
+                        if index < steps.count - 1 {
+                            Rectangle()
+                                .fill(steps[index + 1].1 != nil ? Brand.sky : Color.gray.opacity(0.25))
+                                .frame(width: 2, height: 22)
+                        }
+                    }
+                    Text(step.0)
+                        .font(.subheadline.weight(step.1 != nil ? .semibold : .regular))
+                        .foregroundStyle(step.1 != nil ? Color.primary : Color.secondary)
+                    Spacer()
+                    if let time = Format.clock(step.1) {
+                        Text(time).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// A map of the job: the exact spot once accepted, the area before.
+private struct JobMapCard: View {
+    let query: String
+    let exact: Bool
+    @State private var coordinate: CLLocationCoordinate2D?
+
+    var body: some View {
+        Group {
+            if let coordinate {
+                Map(initialPosition: .region(MKCoordinateRegion(center: coordinate,
+                                                                latitudinalMeters: exact ? 700 : 5000,
+                                                                longitudinalMeters: exact ? 700 : 5000)),
+                    interactionModes: []) {
+                    if exact {
+                        Marker("Job", coordinate: coordinate)
+                            .tint(Brand.skyDark)
+                    } else {
+                        MapCircle(center: coordinate, radius: 1200)
+                            .foregroundStyle(Brand.sky.opacity(0.25))
+                    }
+                }
+                .frame(height: 170)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .accessibilityLabel(exact ? "Map of the job address" : "Map of the job area")
+            }
+        }
+        .task(id: query) {
+            guard !query.isEmpty else { return }
+            if let place = try? await CLGeocoder().geocodeAddressString(query).first, let location = place.location {
+                coordinate = location.coordinate
+            }
+        }
+    }
+}
+
+/// What the platform needs from the Easer, each with the one button that does it.
+private struct RequiredActionsCard: View {
+    @EnvironmentObject private var store: EaserStore
+    @Environment(\.openURL) private var openURL
+    @State private var working: String?
+    @State private var showingPayouts = false
+
+    var body: some View {
+        if !store.openRequiredActions.isEmpty {
+            VStack(alignment: .leading, spacing: 14) {
+                Label("Action needed", systemImage: "exclamationmark.circle").font(.headline)
+                ForEach(store.openRequiredActions) { action in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(action.title).font(.subheadline.weight(.semibold))
+                        if !action.body.isEmpty {
+                            Text(action.body).font(.subheadline).foregroundStyle(.secondary)
+                        }
+                        button(for: action)
+                    }
+                    if action.id != store.openRequiredActions.last?.id { Divider() }
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .sheet(isPresented: $showingPayouts) {
+                NavigationStack { PayoutsView() }.environmentObject(store)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func button(for action: RequiredAction) -> some View {
+        if action.rule == "payout_setup_incomplete" {
+            Button(action.actionLabel ?? "Set up payouts") { showingPayouts = true }
+                .buttonStyle(PrimaryButtonStyle())
+        } else if action.ackRequired {
+            if let url = link(action.actionURL) {
+                Button("Read it") { openURL(url) }.buttonStyle(SecondaryButtonStyle())
+            }
+            Button {
+                working = action.id
+                Task {
+                    await store.acknowledge(action)
+                    working = nil
+                }
+            } label: {
+                if working == action.id { ProgressView().tint(Brand.ink) } else { Text(action.actionLabel ?? "I understand") }
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .disabled(working != nil)
+        } else if let url = link(action.actionURL) {
+            Button(action.actionLabel ?? "Open") { openURL(url) }.buttonStyle(PrimaryButtonStyle())
+        }
+    }
+
+    /// A site path ("/assembler/payouts") or a full link, as a URL.
+    private func link(_ raw: String?) -> URL? {
+        guard let raw, !raw.isEmpty else { return nil }
+        if raw.hasPrefix("/") { return Site.page(raw) }
+        return URL(string: raw)
     }
 }
 
@@ -1462,6 +1623,20 @@ private struct MoneyTile: View {
 private struct InboxView: View {
     @EnvironmentObject private var store: EaserStore
     @State private var path: [JobRef] = []
+    @State private var showingPayouts = false
+
+    /// The job, Payouts, Account, or Today, where required actions and setup steps live.
+    private func open(_ notice: EaserNotice) {
+        if let id = notice.bookingID, store.job(id) != nil {
+            path.append(JobRef(id: id))
+            return
+        }
+        switch notice.action {
+        case "payouts": showingPayouts = true
+        case "account": store.tab = .account
+        default: store.tab = .today
+        }
+    }
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -1473,7 +1648,7 @@ private struct InboxView: View {
                 ForEach(store.notices) { notice in
                     Button {
                         if !notice.read { Task { await store.markRead([notice.id]) } }
-                        if let id = notice.bookingID, store.job(id) != nil { path.append(JobRef(id: id)) }
+                        open(notice)
                     } label: {
                         HStack(alignment: .top, spacing: 10) {
                             Circle()
@@ -1491,6 +1666,9 @@ private struct InboxView: View {
                     }
                     .foregroundStyle(.primary)
                 }
+            }
+            .sheet(isPresented: $showingPayouts) {
+                NavigationStack { PayoutsView() }.environmentObject(store)
             }
             .navigationTitle("Inbox")
             .navigationDestination(for: JobRef.self) { JobDetailView(jobID: $0.id) }

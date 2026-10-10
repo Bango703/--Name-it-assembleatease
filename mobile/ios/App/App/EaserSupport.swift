@@ -18,6 +18,33 @@ enum Brand {
 /// sheet over the app, never in the Safari app, so an Easer never leaves the app
 /// mid-setup and lands back where they started. Calls, email and Settings links
 /// keep their system behaviour.
+/// The last good answer to each read, kept on this device for the signed-in
+/// Easer. The app opens on it at once and replaces it the moment the server
+/// answers (stale-while-revalidate), so nothing pops in or flips on launch.
+/// Cleared on sign-out; stored with iOS data protection.
+struct SnapshotCache {
+    let userID: String
+
+    private var directory: URL {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("easer-snapshot-" + userID, isDirectory: true)
+    }
+
+    func save(_ data: Data, as key: String) {
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try? data.write(to: directory.appendingPathComponent(key + ".json"),
+                        options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+    }
+
+    func load(_ key: String) -> Data? {
+        try? Data(contentsOf: directory.appendingPathComponent(key + ".json"))
+    }
+
+    func clear() {
+        try? FileManager.default.removeItem(at: directory)
+    }
+}
+
 @MainActor
 enum InAppBrowser {
     static func action(onClose: @escaping () -> Void) -> OpenURLAction {
@@ -127,6 +154,20 @@ enum Format {
         plain.formatOptions = [.withInternetDateTime]
         if let date = plain.date(from: raw) { return date }
         return dayIn.date(from: String(raw.prefix(10)))
+    }
+
+    private static let clockOut: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US")
+        f.timeZone = TimeZone(identifier: "America/Chicago")
+        f.dateFormat = "h:mm a"
+        return f
+    }()
+
+    /// "2026-10-10T21:00:00Z" becomes "4:00 PM" (Central).
+    static func clock(_ raw: String?) -> String? {
+        guard let date = timestamp(raw) else { return nil }
+        return clockOut.string(from: date)
     }
 
     static func relative(_ raw: String?) -> String? {
