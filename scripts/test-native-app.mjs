@@ -90,7 +90,7 @@ assert.match(vercelIgnore, /^codemagic\.yaml$/m);
 
 // ── 2. Push: web result unchanged when there is no app to reach ──────────────
 const push = read('api/_push.js');
-assert.match(push, /if \(native\.skipped\) return web;/, 'no app configured or installed means the web push result, unchanged');
+assert.match(push, /if \(native\.skipped\) return \{ \.\.\.web, native: \{ skipped: true, reason: native\.reason \|\| null/, 'no app configured or installed means the web push result, unchanged, plus the app\'s reason (never hidden)');
 {
   const r = await sendNativePushToUser({}, 'u1', { title: 'x' }, {}, { env: {} });
   assert.equal(r.skipped, true);
