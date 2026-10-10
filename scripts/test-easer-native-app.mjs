@@ -207,6 +207,16 @@ assert.doesNotMatch(swift['EaserViews.swift'], /Button\("Finish setup"\)/, 'no s
 assert.match(store, /status == 403[\s\S]{0,80}jobsLocked = true/, 'an account not approved yet is a status, not "Jobs could not be loaded"');
 assert.match(store, /if needsSetup \{\s*setup = try\? await api\.get/, 'approved Easers never call the onboarding endpoint');
 
+// ── 8h. A job the owner assigned can be accepted (2026-10-09) ───────────────
+// accept-dispatch requires a token. An owner-assigned job has no dispatch offer,
+// only bookings.assignment_token; the app sent only the offer token, so every
+// owner-assigned job was refused with "bookingId and token are required".
+assert.match(read('api/booking/my-assignments.js'), /assignment_token/, 'the job list carries the assignment token');
+assert.match(read('assembler/my-assignments.html'), /b\._offer_token \|\| b\.dispatch_token \|\| b\.assignment_token/, 'the website sends the assignment token');
+assert.match(swift['EaserModels.swift'], /acceptToken = offerToken \?\? c\.string\("assignment_token"\)/, 'the app reads it too');
+assert.match(store, /if let token = job\.acceptToken \{ body\["token"\] = token \}/, 'and accepts with it');
+assert.match(read('api/booking/accept-dispatch.js'), /if \(!bookingId \|\| !token\)/, 'accept still requires a token, so this is load-bearing');
+
 // ── 8g. Offline is not unfinished setup (2026-10-09) ────────────────────────
 // The server counts being offline as "not ready" (isReady false). The app hid
 // the online switch, and refused to go online, whenever isReady was false, so

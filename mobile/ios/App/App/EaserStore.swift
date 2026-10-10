@@ -265,7 +265,7 @@ final class EaserStore: ObservableObject {
 
     func accept(_ job: EaserJob) async {
         var body: [String: Any] = ["bookingId": job.id]
-        if let token = job.offerToken { body["token"] = token }
+        if let token = job.acceptToken { body["token"] = token }
         await perform(job, success: "Job accepted. It is in your schedule.") {
             _ = try await self.api.call("POST", "/api/booking/accept-dispatch", body: body)
         }
