@@ -54,8 +54,30 @@ struct ProfileView: View {
                     Stat(value: "\(store.earnings?.summary?.completedJobs ?? 0)", label: "Jobs done")
                     Divider()
                     Stat(value: ratingText, label: "Rating")
-                    Divider()
-                    Stat(value: Format.money(cents: store.earnings?.summary?.totalEarnedCents ?? 0), label: "Earned")
+                }
+            }
+
+            Section("Reviews") {
+                if store.reviews.isEmpty {
+                    Text("No reviews yet.").foregroundStyle(.secondary)
+                }
+                ForEach(store.reviews) { review in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 2) {
+                            ForEach(0..<5, id: \.self) { index in
+                                Image(systemName: index < review.rating ? "star.fill" : "star")
+                                    .font(.caption)
+                                    .foregroundStyle(index < review.rating ? Brand.sky : Color.secondary)
+                            }
+                            Spacer()
+                            if let day = Format.day(review.createdAt) {
+                                Text(day).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        if !review.comment.isEmpty { Text(review.comment).font(.subheadline) }
+                        Text(review.customerFirstName).font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 2)
                 }
             }
 
@@ -82,7 +104,7 @@ struct ProfileView: View {
                 Text("Contact details")
             } footer: {
                 if locked {
-                    Text("Your verified name and location are locked. Contact \(Site.supportEmail) if they need to be corrected.")
+                    Text("For changes, contact AssembleAtEase.")
                 }
             }
 
@@ -110,29 +132,6 @@ struct ProfileView: View {
                 Button("Reset password") { confirmReset = true }
             }
 
-            Section("Reviews") {
-                if store.reviews.isEmpty {
-                    Text("Reviews from customers will appear here.").foregroundStyle(.secondary)
-                }
-                ForEach(store.reviews) { review in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 2) {
-                            ForEach(0..<5, id: \.self) { index in
-                                Image(systemName: index < review.rating ? "star.fill" : "star")
-                                    .font(.caption)
-                                    .foregroundStyle(index < review.rating ? Brand.sky : Color.secondary)
-                            }
-                            Spacer()
-                            if let day = Format.day(review.createdAt) {
-                                Text(day).font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                        if !review.comment.isEmpty { Text(review.comment).font(.subheadline) }
-                        Text(review.customerFirstName).font(.caption).foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
@@ -249,7 +248,7 @@ struct PayoutsView: View {
                         }
                         .disabled(opening)
                     } footer: {
-                        Text("Bank details are entered on Stripe's secure page, never in this app.")
+                        EmptyView()
                     }
 
                     if let quote = store.instantQuote, quote.available {
@@ -268,7 +267,7 @@ struct PayoutsView: View {
                         } header: {
                             Text("Get paid now")
                         } footer: {
-                            Text("Usually arrives within 30 minutes. Or wait and get the full \(Format.money(cents: quote.grossCents)) free on the standard schedule. The fee is charged by Stripe; AssembleAtEase adds nothing.")
+                            Text("Arrives in about 30 minutes. Standard payouts are free.")
                         }
                     }
                 } else {
@@ -286,7 +285,7 @@ struct PayoutsView: View {
                     } header: {
                         Text("How you get paid")
                     } footer: {
-                        Text("AssembleAtEase pays you after each completed job and confirms the payment details with you.")
+                        Text("Paid after each completed job.")
                     }
                 }
             } else if store.payoutsProblem == nil {
@@ -387,7 +386,7 @@ struct EarningsHistoryView: View {
         List {
             let rows = store.earnings?.earnings ?? []
             if rows.isEmpty {
-                Text("Earnings from completed jobs will appear here.").foregroundStyle(.secondary)
+                Text("No earnings yet.").foregroundStyle(.secondary)
             }
             ForEach(rows) { EarningRow(earning: $0) }
         }

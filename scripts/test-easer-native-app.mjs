@@ -217,6 +217,28 @@ assert.match(swift['EaserModels.swift'], /acceptToken = offerToken \?\? c\.strin
 assert.match(store, /if let token = job\.acceptToken \{ body\["token"\] = token \}/, 'and accepts with it');
 assert.match(read('api/booking/accept-dispatch.js'), /if \(!bookingId \|\| !token\)/, 'accept still requires a token, so this is load-bearing');
 
+// ── 8i. Copy states the fact and the action, never the reason (2026-10-09) ───
+// Owner: "stop explaining to Easer." Every visible string is checked for the
+// connectors that carry an explanation. The two legal consent sentences (which
+// must match the website word for word) are the only exceptions.
+const legalConsent = [
+  'I agree to the AssembleAtEase Code of Conduct and Terms of Service, and I understand identity verification is required before I can receive jobs.',
+];
+const visible = [];
+for (const [file, text] of Object.entries(swift)) {
+  for (const m of text.matchAll(/(?:Text|Label|Button|NoticeCard|Banner)\(\s*(?:text:\s*)?"([^"]+)"|(?:text|title|detail|description):\s*"([^"]+)"|return "([^"]+)"/g)) {
+    const str = m[1] || m[2] || m[3];
+    if (str && !legalConsent.includes(str)) visible.push(`${file}: ${str}`);
+  }
+}
+const explaining = /\b(because|so that|so they|so you|until you|while you|in order to|protects you|which means)\b|, so /i;
+const offenders = visible.filter(line => explaining.test(line));
+assert.deepEqual(offenders, [], `Easer copy explains instead of stating:\n${offenders.join('\n')}`);
+const accountViews = swift['EaserAccountViews.swift'];
+assert.equal((all.match(/Button\("Change photo"\)/g) || []).length, 1, 'one place to change the profile photo');
+assert.doesNotMatch(accountViews, /label: "Earned"/, 'earnings total lives on the Earnings tab only');
+assert.ok(accountViews.indexOf('Section("Reviews")') < accountViews.indexOf('Text("Contact details")'), 'reviews sit near the top of Profile');
+
 // ── 8g. Offline is not unfinished setup (2026-10-09) ────────────────────────
 // The server counts being offline as "not ready" (isReady false). The app hid
 // the online switch, and refused to go online, whenever isReady was false, so
