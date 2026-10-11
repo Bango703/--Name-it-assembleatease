@@ -161,7 +161,7 @@ assert.match(store, /"acknowledgedFeeCents": Int\(quote\.feeCents\.rounded\(\)\)
 assert.match(swift['EaserModels.swift'], /instantAvailable"\) \?\? false\) && \(c\.bool\("eligible"\)/, 'instant payout shown only when the server says it can be sent');
 const smsApi = read('api/assembler/sms-preference.js');
 for (const field of ['enabled', 'hasPhone', 'optedOut']) assert.ok(smsApi.includes(field) && swift['EaserModels.swift'].includes(`"${field}"`), `text alert ${field}`);
-assert.match(swift['EaserViews.swift'], /guard online else \{ return "Paused" \}/, 'job alerts never claim to be on while the Easer is offline');
+assert.match(swift['EaserViews.swift'], /alertsNeeded: Bool \{ store\.alertsChecked && store\.alertsAuthorized != true \}/, 'the notifications notice waits for iOS to answer, so it never flashes on launch');
 assert.doesNotMatch(all, /opens in Safari/, 'no mechanics in customer- or Easer-facing copy');
 assert.match(swift['EaserModels.swift'], /case "starter": return "Starter Pro"/);
 assert.match(profilePage, /starter: 'Starter Pro'/, 'level labels match the website');
@@ -209,7 +209,9 @@ once(/NavigationLink\s*\{\s*PayoutsView\(\)/g, 'the Payouts menu entry (Earnings
 // action itself, not a second menu: only those two may present it as a sheet.
 assert.equal((all.match(/NavigationStack \{ PayoutsView\(\) \}/g) || []).length, 2, 'Payouts opens in context only from the inbox item and the required action');
 once(/\bEarningsHistoryView\(\)/g, 'the earnings history link (Earnings)');
-once(/\bProfileView\(\)/g, 'the Profile link (Account header)');
+once(/\bAccountHeader\(\)/g, 'the profile header (Account)');
+once(/NavigationLink \{ PersonalInfoView\(\) \}/g, 'Personal information (Account)');
+assert.doesNotMatch(all, /struct ProfileView\b/, 'no second profile page inside Account');
 assert.doesNotMatch(swift['EaserAccountViews.swift'], /identityVerificationLink/, 'identity is a Today setup step, not a second button in Profile');
 
 // ── 8j. A requested profile photo blocks offers until uploaded (migration 108) ─
@@ -265,9 +267,9 @@ const explaining = /\b(because|so that|so they|so you|until you|while you|in ord
 const offenders = visible.filter(line => explaining.test(line));
 assert.deepEqual(offenders, [], `Easer copy explains instead of stating:\n${offenders.join('\n')}`);
 const accountViews = swift['EaserAccountViews.swift'];
-assert.equal((all.match(/Button\("Change photo"\)/g) || []).length, 1, 'one place to change the profile photo');
+assert.equal((all.match(/accessibilityLabel\("Change profile photo"\)/g) || []).length, 1, 'one place to change the profile photo');
 assert.doesNotMatch(accountViews, /label: "Earned"/, 'earnings total lives on the Earnings tab only');
-assert.ok(accountViews.indexOf('Section("Reviews")') < accountViews.indexOf('Text("Your details")'), 'reviews sit near the top of Profile');
+assert.equal((all.match(/NavigationLink \{ ReviewsView\(\) \}/g) || []).length, 1, 'Reviews sits under the Account header');
 
 // ── 8l. Opens on real content, every inbox item goes somewhere (2026-10-10) ──
 // Owner: jobs popped in a second after launch, the online switch showed off and
@@ -308,8 +310,29 @@ assert.match(accountViews, /LabeledContent\("Location", value: location\)/, 'cit
 assert.match(accountViews, /checkmark\.seal\.fill/, 'verified shows as a badge beside the name');
 assert.equal((all.match(/LabeledContent\("Email"/g) || []).length, 1, 'the email appears once, in Profile');
 assert.doesNotMatch(swift['EaserViews.swift'], /Text\(email\)/, 'the Account header does not repeat the email');
-assert.match(swift['EaserViews.swift'], /Label\("App notifications", systemImage: "bell"\)/, 'app notifications and text messages are named as two channels');
-assert.match(swift['EaserViews.swift'], /Label\("Text messages", systemImage: "message"\)/);
+
+// ── 8o. One Account, reasons on decline, a real completion (2026-10-11) ─────
+// Owner: "account and profile feels like a double account"; "when updating phone
+// there's no save button"; "full name must be centered with the tier level";
+// "app notifications and text messages are still there even if it's on or off";
+// "when an Easer declines an offer there's nothing asking why".
+assert.doesNotMatch(swift['EaserViews.swift'], /Label\("(App notifications|Text messages|Job alerts)"/, 'no notification switches in Account: notifications are required, job texts are a Today setup step');
+assert.match(accountViews, /ToolbarItem\(placement: \.confirmationAction\) \{\s*if changed \{/, 'Save sits in the top bar, where the keyboard cannot cover it');
+assert.match(accountViews, /\.overlay\(alignment: \.trailing\) \{\s*if verified/, 'the verified badge sits outside the name, so the name stays centered');
+const decliningPage = read('assembler/my-assignments.html');
+const webReasons = [...decliningPage.matchAll(/data-reason="([a-z_]+)">([^<]+)</g)].map(m => [m[1], m[2]]);
+const appDeclineReasons = [...store.matchAll(/DeclineReason\(code: "([a-z_]+)", label: "([^"]+)"\)/g)].map(m => [m[1], m[2]]);
+assert.ok(webReasons.length >= 4, 'website decline reasons found');
+assert.deepEqual(appDeclineReasons, webReasons, 'decline reasons are the website\'s list');
+assert.match(swift['EaserViews.swift'], /confirmationDialog\("Why are you declining\?"/, 'declining asks why');
+assert.match(swift['EaserViews.swift'], /Button\("Decline without a reason"\)/, 'a reason is never required to decline');
+const declineApi = read('api/booking/decline-dispatch.js');
+for (const [code] of appDeclineReasons) assert.ok(declineApi.includes(`  ${code}: '`), `the owner sees a label for ${code}`);
+assert.doesNotMatch(declineApi, /esc\(String\(reason\)/, 'the owner never sees a raw reason code');
+assert.match(store, /notificationOccurred\(\.success\)\s*justCompleted = CompletedJob/, 'completing a job is felt and shown');
+assert.match(swift['EaserViews.swift'], /if mode == \.completion, let done = store\.justCompleted, done\.id == job\.id/, 'the completion screen replaces the photo form in the same sheet');
+assert.match(store, /if let known = knownOfferIDs, !offerIDs\.subtracting\(known\)\.isEmpty, appActive/, 'a new offer is felt while the app is open, never on first load');
+assert.doesNotMatch(all, /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u, 'no emojis');
 
 // ── 8g. Offline is not unfinished setup (2026-10-09) ────────────────────────
 // The server counts being offline as "not ready" (isReady false). The app hid

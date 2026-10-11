@@ -6,6 +6,19 @@ import { logActivity } from './_activity.js';
 import { DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 import { declineDispatchOffer, finalizeDispatchRound, holdDispatchForPaymentReconciliation, notifyOwnerManualDispatch } from './_dispatch-safety.js';
 
+// The reason codes the Easer app and website send (my-assignments decline sheet).
+const DECLINE_REASON_LABELS = {
+  scheduling_conflict: 'Scheduling conflict',
+  too_far: 'Location too far',
+  not_my_skill: 'Outside service scope',
+  unavailable: 'Currently unavailable',
+  other: 'Other',
+};
+
+function declineReasonLabel(reason) {
+  return DECLINE_REASON_LABELS[reason] || String(reason).slice(0, 300);
+}
+
 /**
  * POST /api/booking/decline-dispatch
  * Easer declines a dispatch offer.
@@ -99,7 +112,7 @@ export default async function handler(req, res) {
       eventType: 'assignment_declined',
       actor: 'easer',
       description: `${assigned.assembler_name || 'Easer'} declined an owner-assigned job`
-        + (reason ? ` — ${String(reason).slice(0, 300)}` : ''),
+        + (reason ? ` — ${declineReasonLabel(reason)}` : ''),
     }).catch(() => {});
 
     // The owner assigned this by hand, so the owner must be told by hand — there
@@ -109,7 +122,7 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Easer declined an assigned job — ${assigned.ref}`,
       html: `<p><strong>${esc(assigned.assembler_name || 'The assigned Easer')}</strong> declined <strong>${esc(assigned.ref)}</strong>.</p>
-             ${reason ? `<p>Reason: ${esc(String(reason).slice(0, 300))}</p>` : ''}
+             ${reason ? `<p>Reason: ${esc(declineReasonLabel(reason))}</p>` : ''}
              <p>The booking is unassigned and flagged for manual assignment. Nothing was charged or paid.</p>`,
       replyTo: ownerEmail(),
       meta: { bookingId: assigned.id, notificationType: 'easer_declined_assignment', recipientType: 'owner', disableDedupe: true },
@@ -219,13 +232,6 @@ export default async function handler(req, res) {
 
   // Notify owner of the individual decline. Notification failure never changes
   // the successfully persisted offer state.
-  const reasonLabels = {
-    scheduling_conflict: 'Scheduling conflict',
-    too_far: 'Location too far',
-    not_my_skill: 'Outside service scope',
-    unavailable: 'Currently unavailable',
-    other: 'Other',
-  };
   const declineEmail = await sendEmail({
     to:   ownerEmail(),
     from: 'AssembleAtEase <booking@assembleatease.com>',
@@ -233,7 +239,7 @@ export default async function handler(req, res) {
     html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
       <h3 style="color:#f59e0b">Job Offer Declined</h3>
       <p><strong>${esc(easerName)}</strong> declined the offer for booking <strong>${esc(booking?.ref || '')}</strong> (${esc(booking?.service || '')}).</p>
-      <p><strong>Reason:</strong> ${esc(reasonLabels[reason] || reason || 'No reason given')}</p>
+      <p><strong>Reason:</strong> ${esc(reason ? declineReasonLabel(reason) : 'No reason given')}</p>
       <p>The dispatch engine will automatically retry if other Easers are available.</p>
       <p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">View in owner dashboard</a></p>
     </div>`,

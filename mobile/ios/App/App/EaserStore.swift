@@ -31,12 +31,38 @@ struct Banner: Identifiable, Equatable {
 
 enum AppTab: Hashable { case today, jobs, earnings, inbox, account }
 
+/// One reason an Easer can give for declining an offer. The codes are the
+/// website's (assembler/my-assignments.html decline sheet).
+struct DeclineReason: Identifiable, Hashable {
+    let code: String
+    let label: String
+    var id: String { code }
+}
+
+/// A job the Easer just completed, for the completion screen.
+struct CompletedJob: Identifiable {
+    let id: String
+    let title: String
+    let pay: String?
+}
+
 @MainActor
 final class EaserStore: ObservableObject {
     /// The selected tab, so an inbox item can open the screen it is about.
     @Published var tab: AppTab = .today
     /// What the platform needs from the Easer (payout setup, a policy to acknowledge).
     @Published var requiredActions: [RequiredAction] = []
+    /// Set when a job is completed; the completion screen shows it once.
+    @Published var justCompleted: CompletedJob?
+    /// Offers already seen, so only a new one is felt (nil until the first list).
+    private var knownOfferIDs: Set<String>?
+
+    static let declineReasons: [DeclineReason] = [
+        DeclineReason(code: "scheduling_conflict", label: "Scheduling conflict"),
+        DeclineReason(code: "too_far", label: "Too far from my location"),
+        DeclineReason(code: "not_my_skill", label: "Not in my service scope"),
+        DeclineReason(code: "unavailable", label: "Currently unavailable"),
+    ]
     /// Every step other than going online is done. Offline alone is not "setup":
     /// the server counts being offline as not ready, so isReady cannot decide this.
     var setupComplete: Bool? {
@@ -79,6 +105,8 @@ final class EaserStore: ObservableObject {
     @Published var busyJobs: Set<String> = []
     @Published var availabilityBusy = false
     @Published var alertsAuthorized: Bool?
+    /// True once iOS has told us the notification permission at least once.
+    @Published var alertsChecked = false
     @Published var textAlerts: TextAlerts?
     @Published var reviews: [EaserReview] = []
     @Published var connect: ConnectStatus?
@@ -286,6 +314,12 @@ final class EaserStore: ObservableObject {
     }
 
     private func apply(_ value: AssignmentsEnvelope) {
+        // A new offer arriving while the app is open is felt, like a ride offer.
+        let offerIDs = Set(value.bookings.filter { $0.needsAcceptance }.map(\.id))
+        if let known = knownOfferIDs, !offerIDs.subtracting(known).isEmpty, appActive {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        knownOfferIDs = offerIDs
         jobs = value.bookings
         newOffersAllowed = value.newOffersAllowed
         offersPausedCode = value.pausedCode
@@ -354,8 +388,8 @@ final class EaserStore: ObservableObject {
         }
     }
 
-    func decline(_ job: EaserJob) async {
-        var body: [String: Any] = ["bookingId": job.id, "reason": NSNull()]
+    func decline(_ job: EaserJob, reason: String?) async {
+        var body: [String: Any] = ["bookingId": job.id, "reason": reason ?? NSNull()]
         if let token = job.offerToken { body["token"] = token }
         await perform(job, success: "Offer declined.") {
             _ = try await self.api.call("POST", "/api/booking/decline-dispatch", body: body)
@@ -408,7 +442,8 @@ final class EaserStore: ObservableObject {
             }
             try await api.call("POST", "/api/booking/assembler-complete", body: ["bookingId": job.id])
             evidenceUploaded.remove(job.id)
-            banner = Banner(text: "Job complete. Nice work.", kind: .success)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            justCompleted = CompletedJob(id: job.id, title: job.title, pay: job.payEstimateCents.map { Format.money(cents: $0) })
             await refresh()
             return true
         } catch {
@@ -758,6 +793,7 @@ final class EaserStore: ObservableObject {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         let allowed = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
         alertsAuthorized = settings.authorizationStatus == .notDetermined ? nil : allowed
+        alertsChecked = true
         if allowed && registerIfAllowed { UIApplication.shared.registerForRemoteNotifications() }
     }
 
@@ -770,6 +806,7 @@ final class EaserStore: ObservableObject {
         }
         let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])) ?? false
         alertsAuthorized = granted
+        alertsChecked = true
         if granted { UIApplication.shared.registerForRemoteNotifications() }
     }
 
