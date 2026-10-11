@@ -33,7 +33,14 @@ struct ProfileView: View {
             Section {
                 VStack(spacing: 10) {
                     Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 96)
-                    Text(store.profile?.fullName ?? "Easer").font(.title2.bold())
+                    HStack(spacing: 6) {
+                        Text(store.profile?.fullName ?? "Easer").font(.title2.bold())
+                        if locked {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundStyle(Brand.skyDark)
+                                .accessibilityLabel("Identity verified")
+                        }
+                    }
                     Text(store.profile?.levelLabel ?? "Easer")
                         .font(.caption.weight(.semibold))
                         .padding(.horizontal, 10)
@@ -81,11 +88,21 @@ struct ProfileView: View {
             }
 
             Section {
-                LabeledField(label: "Full name", text: $fullName, locked: locked, content: .name)
-                LabeledField(label: "Phone", text: $phone, locked: false, content: .telephoneNumber, keyboard: .phonePad)
-                LabeledField(label: "City", text: $city, locked: locked, content: .addressCity)
-                LabeledField(label: "State", text: $state, locked: locked, content: .addressState)
-                LabeledField(label: "ZIP", text: $zip, locked: locked, content: .postalCode, keyboard: .numberPad)
+                if locked {
+                    LabeledContent("Name", value: fullName.isEmpty ? "Not set" : fullName)
+                    LabeledField(label: "Phone", text: $phone, locked: false, content: .telephoneNumber, keyboard: .phonePad)
+                    LabeledContent("Location", value: location)
+                } else {
+                    LabeledField(label: "Full name", text: $fullName, locked: false, content: .name)
+                    LabeledField(label: "Phone", text: $phone, locked: false, content: .telephoneNumber, keyboard: .phonePad)
+                    LabeledField(label: "City", text: $city, locked: false, content: .addressCity)
+                    LabeledField(label: "State", text: $state, locked: false, content: .addressState)
+                    LabeledField(label: "ZIP", text: $zip, locked: false, content: .postalCode, keyboard: .numberPad)
+                }
+                LabeledContent("Email", value: store.email ?? "On file")
+                if let since = Format.day(store.profile?.createdAt) {
+                    LabeledContent("Member since", value: since)
+                }
                 if changed {
                     Button {
                         saving = true
@@ -100,21 +117,18 @@ struct ProfileView: View {
                     .disabled(saving)
                 }
             } header: {
-                Text("Contact details")
+                Text("Your details")
             } footer: {
                 if locked {
                     Text("For changes, contact AssembleAtEase.")
                 }
             }
 
-            Section("Account and security") {
-                LabeledContent("Email", value: store.email ?? "On file")
-                LabeledContent("Identity") {
-                    Text(locked ? "Verified" : "Not verified")
-                        .foregroundStyle(locked ? Brand.skyDark : Brand.attention)
-                }
-                if let since = Format.day(store.profile?.createdAt) {
-                    LabeledContent("Member since", value: since)
+            Section("Security") {
+                if !locked {
+                    LabeledContent("Identity") {
+                        Text("Not verified").foregroundStyle(Brand.attention)
+                    }
                 }
                 Button("Reset password") { confirmReset = true }
             }
@@ -137,6 +151,13 @@ struct ProfileView: View {
             Text("We'll email \(store.email ?? "you") a link to set a new password.")
         }
         .sheet(isPresented: $changingPhoto) { ProfilePhotoSheet().environmentObject(store) }
+    }
+
+    /// "Austin, TX 78745", leaving out what is not on file.
+    private var location: String {
+        let cityState = [city, state].map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: ", ")
+        let full = [cityState, zip.trimmingCharacters(in: .whitespaces)].filter { !$0.isEmpty }.joined(separator: " ")
+        return full.isEmpty ? "Not set" : full
     }
 
     private var ratingText: String {
