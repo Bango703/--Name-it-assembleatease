@@ -162,4 +162,10 @@ assert.match(await read('api/assembler/connect-link.js'), /if \(await isDemoEase
 // leaving the reviewer nothing to accept (2026-10-11).
 assert.match(await read('api/cron/stale-booking.js'), /\.lt\('assigned_at', acceptCutoff\)[\s\S]{0,300}\.eq\('is_test_booking', false\)/, 'a test booking is never auto-released');
 
+// The App Review job raised HIGH and MEDIUM Live Ops alerts (2026-10-11).
+const liveOps = await read('api/owner/live-ops.js');
+assert.match(liveOps, /\.select\('id'\)\.in\('id', alertBookingIds\)\.eq\('is_test_booking', true\)/, 'test bookings raise no Live Ops alert');
+assert.match(liveOps, /alerts: businessAlerts\.sort/);
+assert.match(liveOps, /alertCount: businessAlerts\.length/, 'the alert count is the length of the alert list');
+
 console.log('demo Easer accounts: test bookings only, enforced in dispatch, assign, crew, accept and the database; a demo can run a whole test job with no payout');

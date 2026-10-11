@@ -940,6 +940,18 @@ export default async function handler(req, res) {
   // with its sample size so a small number cannot be mistaken for a finding.
   const trustSignals = computeLeakageSignals({ bookings, easers, nowMs: now.getTime() });
 
+  // A test booking (the App Review job) is not operations work: it stays on the
+  // board, but raises no alert. Looked up on its own, so a failure only means
+  // the alerts are shown unfiltered.
+  const alertBookingIds = [...new Set(alerts.map(a => a.bookingId).filter(Boolean))];
+  let testBookingIds = new Set();
+  if (alertBookingIds.length) {
+    const { data: testRows, error: testError } = await sb.from('bookings')
+      .select('id').in('id', alertBookingIds).eq('is_test_booking', true);
+    if (!testError) testBookingIds = new Set((testRows || []).map(r => r.id));
+  }
+  const businessAlerts = alerts.filter(a => !testBookingIds.has(a.bookingId));
+
   return res.status(200).json({
     generatedAt: now.toISOString(),
     selfDiagnosed,
@@ -966,8 +978,8 @@ export default async function handler(req, res) {
       arrived: arrived.length,
       inProgress: inProgress.length,
       returnVisitsOpen: operationalBookings.filter(booking => booking.return_visit_required).length,
-      alertCount: alerts.length,
-      criticalAlerts: alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length,
+      alertCount: businessAlerts.length,
+      criticalAlerts: businessAlerts.filter(a => a.severity === 'critical' || a.severity === 'high').length,
       runtimeErrors: runtimeErrors.length,
       failedNotifications: failedNotifications.length,
       unnotifiedActiveOffers: activeOffers.filter(offer => offer.notification_sent !== true).length,
@@ -980,7 +992,7 @@ export default async function handler(req, res) {
       freeEasers: freeEasers.length,
       todayJobs: todayAll.length,
     },
-    alerts: alerts.sort((a, b) => {
+    alerts: businessAlerts.sort((a, b) => {
       const order = { critical: 0, high: 1, medium: 2, low: 3 };
       return order[a.severity] - order[b.severity];
     }),
