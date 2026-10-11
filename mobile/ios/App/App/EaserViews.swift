@@ -53,7 +53,12 @@ struct EaserRootView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             store.appActive = phase == .active
-            if phase == .active && store.phase == .signedIn { Task { await store.refresh() } }
+            if phase == .active && store.phase == .signedIn {
+                Task {
+                    await store.refresh()
+                    await store.refreshAlertStatus(registerIfAllowed: true)
+                }
+            }
         }
         .onChange(of: relay.arrivals) { _, _ in
             if store.phase == .signedIn { Task { await store.refresh() } }
@@ -983,8 +988,11 @@ struct JobDetailView: View {
         }
         .task(id: job.acceptedAt) { await loadCustomerPhotos(job) }
         .safeAreaInset(edge: .bottom) { actionBar(job) }
-        .confirmationDialog("Decline this offer?", isPresented: $confirmDecline, titleVisibility: .visible) {
-            Button("Decline offer", role: .destructive) { Task { await store.decline(job) } }
+        .confirmationDialog("Why are you declining?", isPresented: $confirmDecline, titleVisibility: .visible) {
+            ForEach(EaserStore.declineReasons) { reason in
+                Button(reason.label) { Task { await store.decline(job, reason: reason.code) } }
+            }
+            Button("Decline without a reason") { Task { await store.decline(job, reason: nil) } }
             Button("Keep offer", role: .cancel) {}
         }
         .sheet(item: $photoSheet) { mode in PhotoSheet(job: job, mode: mode).environmentObject(store) }
@@ -1044,6 +1052,33 @@ struct JobDetailView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, job.nextStep == .noAction && !job.isHelper ? 0 : 12)
         .background(job.nextStep == .noAction && !job.isHelper ? AnyShapeStyle(Color.clear) : AnyShapeStyle(Material.bar))
+    }
+}
+
+/// Shown once when a job is completed: the check, the job, the estimate.
+private struct JobCompleteView: View {
+    let done: CompletedJob
+    let finish: () -> Void
+    @State private var appeared = false
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(Brand.sky)
+                .symbolEffect(.bounce, value: appeared)
+            Text("Job complete").font(.title2.bold())
+            Text(done.title).font(.headline).foregroundStyle(.secondary)
+            if let pay = done.pay {
+                Text("Estimated earnings \(pay)").font(.subheadline)
+            }
+            Button("Done", action: finish)
+                .buttonStyle(PrimaryButtonStyle())
+                .padding(.top, 8)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear { appeared = true }
     }
 }
 
@@ -1137,10 +1172,29 @@ private struct RequiredActionsCard: View {
     @State private var working: String?
     @State private var showingPayouts = false
 
+    /// Notifications are how offers arrive; shown only once iOS has answered.
+    private var alertsNeeded: Bool { store.alertsChecked && store.alertsAuthorized != true }
+
     var body: some View {
-        if !store.openRequiredActions.isEmpty {
+        if !store.openRequiredActions.isEmpty || alertsNeeded {
             VStack(alignment: .leading, spacing: 14) {
                 Label("Action needed", systemImage: "exclamationmark.circle").font(.headline)
+                if alertsNeeded {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(store.alertsAuthorized == false ? "Notifications are off" : "Turn on notifications")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Job offers arrive as notifications.").font(.subheadline).foregroundStyle(.secondary)
+                        Button(store.alertsAuthorized == false ? "Open Settings" : "Turn on") {
+                            if store.alertsAuthorized == false {
+                                if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                            } else {
+                                Task { await store.requestAlertsIfNeeded() }
+                            }
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                    }
+                    if !store.openRequiredActions.isEmpty { Divider() }
+                }
                 ForEach(store.openRequiredActions) { action in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(action.title).font(.subheadline.weight(.semibold))
@@ -1241,6 +1295,19 @@ private struct PhotoSheet: View {
     private var ready: Bool { photo != nil && (mode != .damage || noteReady) }
 
     var body: some View {
+        // The completion moment replaces the form in the same sheet.
+        if mode == .completion, let done = store.justCompleted, done.id == job.id {
+            JobCompleteView(done: done) {
+                store.justCompleted = nil
+                dismiss()
+            }
+            .onDisappear { if store.justCompleted?.id == job.id { store.justCompleted = nil } }
+        } else {
+            form
+        }
+    }
+
+    private var form: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
@@ -1273,7 +1340,7 @@ private struct PhotoSheet: View {
                         case .damage: done = await store.sendPhoto(photo, for: job, damageNote: note.trimmingCharacters(in: .whitespacesAndNewlines))
                         }
                         submitting = false
-                        if done { dismiss() }
+                        if done && mode != .completion { dismiss() }
                     }
                 } label: {
                     if submitting {
@@ -1703,65 +1770,21 @@ private struct AccountView: View {
     @State private var confirmSignOut = false
     @State private var closing = false
 
-    private var online: Bool { store.profile?.isAvailable == true }
-
-    /// Job alerts reach an Easer only while they are online, so the row says so.
-    private var alertStatus: String {
-        guard online else { return "Paused" }
-        switch store.alertsAuthorized {
-        case .some(true): return "On"
-        case .some(false): return "Off"
-        case .none: return "Not set up"
-        }
-    }
-
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    NavigationLink { ProfileView() } label: {
-                        HStack(spacing: 14) {
-                            Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 64)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(store.profile?.fullName ?? "Easer").font(.headline)
-                                Text(store.profile?.levelLabel ?? "Easer").font(.caption.weight(.semibold)).foregroundStyle(Brand.skyDark)
-                                Text("View profile").font(.subheadline).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
+                Section { AccountHeader() }
 
                 Section {
-                    Button {
-                        if store.alertsAuthorized == false {
-                            if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
-                        } else if store.alertsAuthorized == nil {
-                            Task { await store.requestAlertsIfNeeded() }
-                        }
-                    } label: {
+                    NavigationLink { PersonalInfoView() } label: {
+                        Label("Personal information", systemImage: "person.text.rectangle")
+                    }
+                    NavigationLink { ReviewsView() } label: {
                         LabeledContent {
-                            Text(alertStatus)
+                            Text("\(store.profile?.reviewCount ?? 0)")
                         } label: {
-                            Label("App notifications", systemImage: "bell")
+                            Label("Reviews", systemImage: "star")
                         }
-                    }
-                    .foregroundStyle(.primary)
-                    Toggle(isOn: Binding(
-                        get: { store.textAlerts?.enabled == true },
-                        set: { value in Task { await store.setTextAlerts(value) } }
-                    )) {
-                        Label("Text messages", systemImage: "message")
-                    }
-                    .disabled(store.textAlerts == nil || store.textAlerts?.hasPhone == false)
-                } header: {
-                    Text("Notifications")
-                } footer: {
-                    if store.textAlerts?.hasPhone == false {
-                        Text("Add a phone number in Profile to get job texts.")
-                    } else if store.alertsAuthorized == false && online {
-                        Text("App notifications are off in iPhone Settings. Tap to open Settings.")
-                    } else {
-                        Text("Message and data rates may apply. Reply STOP to any text to turn texts off.")
                     }
                 }
 

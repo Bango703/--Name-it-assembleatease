@@ -1,15 +1,76 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Profile
+// MARK: - Account
 
-/// The Easer's profile: photo, level, stats, contact details, identity, reviews.
+/// The top of the Account tab: photo, name, level, jobs and rating, the way
+/// DoorDash, Instacart and Uber open theirs. One place; no second profile page.
+struct AccountHeader: View {
+    @EnvironmentObject private var store: EaserStore
+    @State private var changingPhoto = false
+
+    private var verified: Bool { store.profile?.identityVerified == true }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Button { changingPhoto = true } label: {
+                Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 96)
+                    .overlay(alignment: .bottomTrailing) {
+                        Image(systemName: "camera.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(7)
+                            .background(Brand.skyDark, in: Circle())
+                    }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Change profile photo")
+
+            // The badge sits outside the name's own width, so the name stays centered.
+            Text(store.profile?.fullName ?? "Easer")
+                .font(.title2.bold())
+                .multilineTextAlignment(.center)
+                .overlay(alignment: .trailing) {
+                    if verified {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(Brand.skyDark)
+                            .offset(x: 26)
+                            .accessibilityLabel("Identity verified")
+                    }
+                }
+
+            Text(store.profile?.levelLabel ?? "Easer")
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(Brand.sky.opacity(0.18), in: Capsule())
+                .foregroundStyle(Brand.skyDark)
+
+            HStack {
+                Stat(value: "\(store.earnings?.summary?.completedJobs ?? 0)", label: "Jobs done")
+                Divider().frame(height: 32)
+                Stat(value: ratingText, label: "Rating")
+            }
+            .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .sheet(isPresented: $changingPhoto) { ProfilePhotoSheet().environmentObject(store) }
+    }
+
+    private var ratingText: String {
+        guard let rating = store.profile?.rating, (store.profile?.reviewCount ?? 0) > 0 else { return "New" }
+        return String(format: "%.1f", rating)
+    }
+}
+
+/// Name, phone, location, email. Verified facts are plain text; the phone is the
+/// one input, saved from the top bar where the keyboard cannot cover it.
 /// Mirrors assembler/profile.html; the server decides what may change.
-struct ProfileView: View {
+struct PersonalInfoView: View {
     init() {}
 
     @EnvironmentObject private var store: EaserStore
-    @Environment(\.openURL) private var openURL
     @State private var fullName = ""
     @State private var phone = ""
     @State private var city = ""
@@ -17,7 +78,6 @@ struct ProfileView: View {
     @State private var zip = ""
     @State private var loaded = false
     @State private var saving = false
-    @State private var changingPhoto = false
     @State private var confirmReset = false
 
     private var locked: Bool { store.profile?.identityVerified == true }
@@ -30,63 +90,6 @@ struct ProfileView: View {
 
     var body: some View {
         List {
-            Section {
-                VStack(spacing: 10) {
-                    Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 96)
-                    HStack(spacing: 6) {
-                        Text(store.profile?.fullName ?? "Easer").font(.title2.bold())
-                        if locked {
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundStyle(Brand.skyDark)
-                                .accessibilityLabel("Identity verified")
-                        }
-                    }
-                    Text(store.profile?.levelLabel ?? "Easer")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Brand.sky.opacity(0.18), in: Capsule())
-                        .foregroundStyle(Brand.skyDark)
-                    Button("Change photo") { changingPhoto = true }
-                        .font(.subheadline.weight(.semibold))
-                        .buttonStyle(.borderless)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-            }
-
-            Section {
-                HStack {
-                    Stat(value: "\(store.earnings?.summary?.completedJobs ?? 0)", label: "Jobs done")
-                    Divider()
-                    Stat(value: ratingText, label: "Rating")
-                }
-            }
-
-            Section("Reviews") {
-                if store.reviews.isEmpty {
-                    Text("No reviews yet.").foregroundStyle(.secondary)
-                }
-                ForEach(store.reviews) { review in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 2) {
-                            ForEach(0..<5, id: \.self) { index in
-                                Image(systemName: index < review.rating ? "star.fill" : "star")
-                                    .font(.caption)
-                                    .foregroundStyle(index < review.rating ? Brand.sky : Color.secondary)
-                            }
-                            Spacer()
-                            if let day = Format.day(review.createdAt) {
-                                Text(day).font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                        if !review.comment.isEmpty { Text(review.comment).font(.subheadline) }
-                        Text(review.customerFirstName).font(.caption).foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
-
             Section {
                 if locked {
                     LabeledContent("Name", value: fullName.isEmpty ? "Not set" : fullName)
@@ -103,21 +106,6 @@ struct ProfileView: View {
                 if let since = Format.day(store.profile?.createdAt) {
                     LabeledContent("Member since", value: since)
                 }
-                if changed {
-                    Button {
-                        saving = true
-                        Task {
-                            _ = await store.saveDetails(fullName: fullName, phone: phone, city: city, state: state, zip: zip)
-                            saving = false
-                            fill()
-                        }
-                    } label: {
-                        if saving { ProgressView() } else { Text("Save changes").fontWeight(.semibold) }
-                    }
-                    .disabled(saving)
-                }
-            } header: {
-                Text("Your details")
             } footer: {
                 if locked {
                     Text("For changes, contact AssembleAtEase.")
@@ -132,25 +120,38 @@ struct ProfileView: View {
                 }
                 Button("Reset password") { confirmReset = true }
             }
-
         }
-        .navigationTitle("Profile")
+        .navigationTitle("Personal information")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                if changed {
+                    Button {
+                        saving = true
+                        Task {
+                            _ = await store.saveDetails(fullName: fullName, phone: phone, city: city, state: state, zip: zip)
+                            saving = false
+                            fill()
+                        }
+                    } label: {
+                        if saving { ProgressView() } else { Text("Save").fontWeight(.semibold) }
+                    }
+                    .disabled(saving)
+                }
+            }
+        }
         .refreshable {
             await store.refresh()
-            await store.loadProfileExtras()
             fill()
         }
         .task {
             if !loaded { fill(); loaded = true }
-            await store.loadProfileExtras()
         }
         .confirmationDialog("Send a password reset email?", isPresented: $confirmReset, titleVisibility: .visible) {
             Button("Send email") { Task { await store.sendPasswordReset() } }
         } message: {
             Text("We'll email \(store.email ?? "you") a link to set a new password.")
         }
-        .sheet(isPresented: $changingPhoto) { ProfilePhotoSheet().environmentObject(store) }
     }
 
     /// "Austin, TX 78745", leaving out what is not on file.
@@ -160,11 +161,6 @@ struct ProfileView: View {
         return full.isEmpty ? "Not set" : full
     }
 
-    private var ratingText: String {
-        guard let rating = store.profile?.rating, (store.profile?.reviewCount ?? 0) > 0 else { return "New" }
-        return String(format: "%.1f", rating)
-    }
-
     private func fill() {
         guard let me = store.profile else { return }
         fullName = me.fullName ?? ""
@@ -172,6 +168,42 @@ struct ProfileView: View {
         city = me.city ?? ""
         state = me.state ?? ""
         zip = me.zip ?? ""
+    }
+}
+
+/// What customers said, newest first.
+struct ReviewsView: View {
+    init() {}
+    @EnvironmentObject private var store: EaserStore
+
+    var body: some View {
+        List {
+            if store.reviews.isEmpty {
+                Text("No reviews yet.").foregroundStyle(.secondary)
+            }
+            ForEach(store.reviews) { review in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 2) {
+                        ForEach(0..<5, id: \.self) { index in
+                            Image(systemName: index < review.rating ? "star.fill" : "star")
+                                .font(.caption)
+                                .foregroundStyle(index < review.rating ? Brand.sky : Color.secondary)
+                        }
+                        Spacer()
+                        if let day = Format.day(review.createdAt) {
+                            Text(day).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    if !review.comment.isEmpty { Text(review.comment).font(.subheadline) }
+                    Text(review.customerFirstName).font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 2)
+            }
+        }
+        .navigationTitle("Reviews")
+        .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await store.loadProfileExtras() }
+        .task { await store.loadProfileExtras() }
     }
 }
 
