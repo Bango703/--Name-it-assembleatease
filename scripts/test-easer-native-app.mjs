@@ -317,7 +317,12 @@ assert.doesNotMatch(swift['EaserViews.swift'], /Text\(email\)/, 'the Account hea
 // "app notifications and text messages are still there even if it's on or off";
 // "when an Easer declines an offer there's nothing asking why".
 assert.doesNotMatch(swift['EaserViews.swift'], /Label\("(App notifications|Text messages|Job alerts)"/, 'no notification switches in Account: notifications are required, job texts are a Today setup step');
-assert.match(accountViews, /ToolbarItem\(placement: \.confirmationAction\) \{\s*if changed \{/, 'Save sits in the top bar, where the keyboard cannot cover it');
+// Owner, same day: "no edit nothing on phone number, no save ... the phone number
+// is out of line with the other information". Every detail is one aligned row;
+// the phone opens its own screen with Save above the keyboard.
+assert.match(accountViews, /NavigationLink \{ EditDetailView\(field: \.phone\) \} label: \{ LabeledContent\("Phone"/, 'the phone is an aligned row that opens its own edit screen');
+assert.match(accountViews, /\.safeAreaInset\(edge: \.bottom\) \{[\s\S]{0,500}Text\("Save"\)[\s\S]{0,200}PrimaryButtonStyle\(enabled: canSave\)/, 'Save is a full-width button above the keyboard, always visible');
+assert.doesNotMatch(accountViews, /struct LabeledField\b|TextField\([^)]*\)[\s\S]{0,40}\.frame\(width: 90/, 'no inline text box breaking the row alignment');
 assert.match(accountViews, /\.overlay\(alignment: \.trailing\) \{\s*if verified/, 'the verified badge sits outside the name, so the name stays centered');
 const decliningPage = read('assembler/my-assignments.html');
 const webReasons = [...decliningPage.matchAll(/data-reason="([a-z_]+)">([^<]+)</g)].map(m => [m[1], m[2]]);
