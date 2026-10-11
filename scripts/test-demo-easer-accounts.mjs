@@ -158,4 +158,8 @@ assert.match(await read('api/_announcements.js'), /if \(demo && a\.target_rule =
 assert.match(await read('api/cron/easer-announcements.js'), /if \(demoIds\.has\(easer\.id\)\) continue;/, 'no payout setup reminders to a demo account');
 assert.match(await read('api/assembler/connect-link.js'), /if \(await isDemoEaser\(sb, user\.id\)\) \{\s*return res\.status\(403\)/, 'the payout setup link refuses a demo account');
 
+// The App Review job sat unaccepted for 24 hours and stale-booking released it,
+// leaving the reviewer nothing to accept (2026-10-11).
+assert.match(await read('api/cron/stale-booking.js'), /\.lt\('assigned_at', acceptCutoff\)[\s\S]{0,300}\.eq\('is_test_booking', false\)/, 'a test booking is never auto-released');
+
 console.log('demo Easer accounts: test bookings only, enforced in dispatch, assign, crew, accept and the database; a demo can run a whole test job with no payout');
