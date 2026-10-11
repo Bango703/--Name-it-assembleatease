@@ -594,8 +594,11 @@ struct ConnectStatus: Decodable {
     let payoutsEnabled: Bool
     let hasAccount: Bool
     let message: String?
+    /// A demo (App Review) account: no payouts, nothing to set up.
+    let demo: Bool
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
+        demo = c.bool("demo") ?? false
         enabled = c.bool("enabled") ?? false
         payoutsEnabled = c.bool("payoutsEnabled") ?? false
         hasAccount = c.string("accountId") != nil

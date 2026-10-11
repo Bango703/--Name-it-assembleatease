@@ -7,6 +7,7 @@ import {
   isStripeConnectEnabled,
   normalizeStripeConnectAccountId,
 } from '../_stripe-connect.js';
+import { isDemoEaser } from '../_demo-accounts.js';
 
 function deriveUiState(profile, requirementsDue) {
   if (!normalizeStripeConnectAccountId(profile?.stripe_connect_account_id)) {
@@ -52,6 +53,13 @@ export default async function handler(req, res) {
 
   if (profileErr || !profile) return res.status(404).json({ error: 'Profile not found' });
   if (profile.role !== 'assembler') return res.status(403).json({ error: 'Only Easers can use this endpoint' });
+  if (await isDemoEaser(sb, user.id)) {
+    return res.status(200).json({
+      enabled: false,
+      demo: true,
+      connect: { code: 'demo', label: 'Demo account', message: "Payouts aren't set up on demo accounts." },
+    });
+  }
 
   let requirementsCurrentlyDue = [];
 

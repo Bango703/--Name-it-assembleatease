@@ -290,6 +290,15 @@ assert.match(read('api/_announcements.js'), /rule: a\.target_rule \|\| null/, 't
 assert.match(swift['EaserViews.swift'], /Button\("Opens at \\\(opens\)"\)/, 'a step not open yet says when it opens instead of failing on tap');
 assert.match(swift['EaserModels.swift'], /_stage_availability/, 'the server decides when each step opens');
 
+// ── 8m. Review of build 15 screenshots (2026-10-11) ─────────────────────────
+// The map drew nothing until it knew the place, so its lookup (attached to that
+// nothing) never ran: a placeholder must be on screen from the start.
+assert.match(swift['EaserViews.swift'], /\} else if coordinate == nil \{\s*RoundedRectangle/, 'the map has something on screen while it looks the place up');
+assert.match(swift['EaserViews.swift'], /\.listRowBackground\(Color\.clear\)\s*\.listRowSeparator\(\.hidden\)/, 'no stray line under the Jobs picker');
+assert.match(read('api/assembler/connect-status.js'), /if \(await isDemoEaser\(sb, user\.id\)\) \{[\s\S]{0,80}demo: true/, 'a demo account is told payouts are not set up, not offered live setup');
+assert.match(swift['EaserAccountViews.swift'], /if let connect = store\.connect, connect\.demo \{/, 'the Payouts screen shows the demo state');
+assert.match(store, /updates\["phone"\] = Format\.e164\(phone\)/, 'a phone is saved in one form however it is shown');
+
 // ── 8g. Offline is not unfinished setup (2026-10-09) ────────────────────────
 // The server counts being offline as "not ready" (isReady false). The app hid
 // the online switch, and refused to go online, whenever isReady was false, so

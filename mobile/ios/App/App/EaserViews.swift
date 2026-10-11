@@ -764,6 +764,7 @@ private struct JobsView: View {
                 }
                 .pickerStyle(.segmented)
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
 
                 if rows.isEmpty {
@@ -1089,10 +1090,18 @@ private struct JobMapCard: View {
     let query: String
     let exact: Bool
     @State private var coordinate: CLLocationCoordinate2D?
+    @State private var notFound = false
 
     var body: some View {
         Group {
-            if let coordinate {
+            if notFound {
+                EmptyView()
+            } else if coordinate == nil {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Brand.surface)
+                    .frame(height: 170)
+                    .overlay(ProgressView())
+            } else if let coordinate {
                 Map(initialPosition: .region(MKCoordinateRegion(center: coordinate,
                                                                 latitudinalMeters: exact ? 700 : 5000,
                                                                 longitudinalMeters: exact ? 700 : 5000)),
@@ -1114,6 +1123,8 @@ private struct JobMapCard: View {
             guard !query.isEmpty else { return }
             if let place = try? await CLGeocoder().geocodeAddressString(query).first, let location = place.location {
                 coordinate = location.coordinate
+            } else {
+                notFound = true
             }
         }
     }
