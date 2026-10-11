@@ -267,7 +267,7 @@ assert.deepEqual(offenders, [], `Easer copy explains instead of stating:\n${offe
 const accountViews = swift['EaserAccountViews.swift'];
 assert.equal((all.match(/Button\("Change photo"\)/g) || []).length, 1, 'one place to change the profile photo');
 assert.doesNotMatch(accountViews, /label: "Earned"/, 'earnings total lives on the Earnings tab only');
-assert.ok(accountViews.indexOf('Section("Reviews")') < accountViews.indexOf('Text("Contact details")'), 'reviews sit near the top of Profile');
+assert.ok(accountViews.indexOf('Section("Reviews")') < accountViews.indexOf('Text("Your details")'), 'reviews sit near the top of Profile');
 
 // ── 8l. Opens on real content, every inbox item goes somewhere (2026-10-10) ──
 // Owner: jobs popped in a second after launch, the online switch showed off and
@@ -298,6 +298,18 @@ assert.match(swift['EaserViews.swift'], /\.listRowBackground\(Color\.clear\)\s*\
 assert.match(read('api/assembler/connect-status.js'), /if \(await isDemoEaser\(sb, user\.id\)\) \{[\s\S]{0,80}demo: true/, 'a demo account is told payouts are not set up, not offered live setup');
 assert.match(swift['EaserAccountViews.swift'], /if let connect = store\.connect, connect\.demo \{/, 'the Payouts screen shows the demo state');
 assert.match(store, /updates\["phone"\] = Format\.e164\(phone\)/, 'a phone is saved in one form however it is shown');
+
+// ── 8n. Profile reads like a profile, not a locked form (2026-10-11) ────────
+// Owner: "contact details should look better than the things with a bunch of
+// locks"; the email showed on Account and again in Profile; "job alerts on" next
+// to "texts off" read as a contradiction.
+assert.match(accountViews, /if locked \{\s*LabeledContent\("Name"/, 'verified details are plain, readable text');
+assert.match(accountViews, /LabeledContent\("Location", value: location\)/, 'city, state and ZIP are one line');
+assert.match(accountViews, /checkmark\.seal\.fill/, 'verified shows as a badge beside the name');
+assert.equal((all.match(/LabeledContent\("Email"/g) || []).length, 1, 'the email appears once, in Profile');
+assert.doesNotMatch(swift['EaserViews.swift'], /Text\(email\)/, 'the Account header does not repeat the email');
+assert.match(swift['EaserViews.swift'], /Label\("App notifications", systemImage: "bell"\)/, 'app notifications and text messages are named as two channels');
+assert.match(swift['EaserViews.swift'], /Label\("Text messages", systemImage: "message"\)/);
 
 // ── 8g. Offline is not unfinished setup (2026-10-09) ────────────────────────
 // The server counts being offline as "not ready" (isReady false). The app hid

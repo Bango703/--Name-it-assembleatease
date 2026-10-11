@@ -1724,11 +1724,8 @@ private struct AccountView: View {
                             Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 64)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(store.profile?.fullName ?? "Easer").font(.headline)
-                                if let email = store.email {
-                                    Text(email).font(.subheadline).foregroundStyle(.secondary)
-                                        .lineLimit(1).truncationMode(.middle)
-                                }
                                 Text(store.profile?.levelLabel ?? "Easer").font(.caption.weight(.semibold)).foregroundStyle(Brand.skyDark)
+                                Text("View profile").font(.subheadline).foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -1745,7 +1742,7 @@ private struct AccountView: View {
                         LabeledContent {
                             Text(alertStatus)
                         } label: {
-                            Label("Job alerts", systemImage: "bell")
+                            Label("App notifications", systemImage: "bell")
                         }
                     }
                     .foregroundStyle(.primary)
@@ -1753,7 +1750,7 @@ private struct AccountView: View {
                         get: { store.textAlerts?.enabled == true },
                         set: { value in Task { await store.setTextAlerts(value) } }
                     )) {
-                        Label("Text me job offers", systemImage: "message")
+                        Label("Text messages", systemImage: "message")
                     }
                     .disabled(store.textAlerts == nil || store.textAlerts?.hasPhone == false)
                 } header: {
@@ -1762,7 +1759,7 @@ private struct AccountView: View {
                     if store.textAlerts?.hasPhone == false {
                         Text("Add a phone number in Profile to get job texts.")
                     } else if store.alertsAuthorized == false && online {
-                        Text("Job alerts are turned off in iPhone Settings. Tap to open Settings.")
+                        Text("App notifications are off in iPhone Settings. Tap to open Settings.")
                     } else {
                         Text("Message and data rates may apply. Reply STOP to any text to turn texts off.")
                     }
