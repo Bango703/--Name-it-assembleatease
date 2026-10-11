@@ -571,7 +571,8 @@ final class EaserStore: ObservableObject {
         guard let me = profile else { return false }
         var updates: [String: Any] = [:]
         func clean(_ value: String) -> String { value.trimmingCharacters(in: .whitespacesAndNewlines) }
-        if clean(phone) != (me.phone ?? "") { updates["phone"] = clean(phone) }
+        // Saved in one form (+1XXXXXXXXXX) however it was typed or shown.
+        if Format.phoneDigits(phone) != Format.phoneDigits(me.phone ?? "") { updates["phone"] = Format.e164(phone) ?? clean(phone) }
         if !me.identityVerified {
             if clean(fullName) != (me.fullName ?? "") { updates["full_name"] = clean(fullName) }
             if clean(city) != (me.city ?? "") { updates["city"] = clean(city) }

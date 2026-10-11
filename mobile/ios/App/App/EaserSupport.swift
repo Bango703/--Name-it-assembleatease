@@ -170,6 +170,26 @@ enum Format {
         return clockOut.string(from: date)
     }
 
+    /// The ten digits of a U.S. number, without a leading 1.
+    static func phoneDigits(_ raw: String) -> String {
+        let digits = raw.filter(\.isNumber)
+        return digits.count == 11 && digits.hasPrefix("1") ? String(digits.dropFirst()) : digits
+    }
+
+    /// "+15125550142" shown as "(512) 555-0142". Anything else as written.
+    static func phone(_ raw: String?) -> String {
+        guard let raw, !raw.isEmpty else { return "" }
+        let d = phoneDigits(raw)
+        guard d.count == 10 else { return raw }
+        return "(\(d.prefix(3))) \(d.dropFirst(3).prefix(3))-\(d.suffix(4))"
+    }
+
+    /// The stored form, +1XXXXXXXXXX, or nil when it is not a U.S. number.
+    static func e164(_ raw: String) -> String? {
+        let d = phoneDigits(raw)
+        return d.count == 10 ? "+1" + d : nil
+    }
+
     static func relative(_ raw: String?) -> String? {
         guard let date = timestamp(raw) else { return nil }
         let f = RelativeDateTimeFormatter()

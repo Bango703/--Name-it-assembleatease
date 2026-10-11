@@ -25,7 +25,7 @@ struct ProfileView: View {
     private var changed: Bool {
         guard let me = store.profile else { return false }
         func same(_ a: String, _ b: String?) -> Bool { a.trimmingCharacters(in: .whitespacesAndNewlines) == (b ?? "") }
-        return !same(phone, me.phone) || (!locked && (!same(fullName, me.fullName) || !same(city, me.city) || !same(state, me.state) || !same(zip, me.zip)))
+        return Format.phoneDigits(phone) != Format.phoneDigits(me.phone ?? "") || (!locked && (!same(fullName, me.fullName) || !same(city, me.city) || !same(state, me.state) || !same(zip, me.zip)))
     }
 
     var body: some View {
@@ -147,7 +147,7 @@ struct ProfileView: View {
     private func fill() {
         guard let me = store.profile else { return }
         fullName = me.fullName ?? ""
-        phone = me.phone ?? ""
+        phone = Format.phone(me.phone)
         city = me.city ?? ""
         state = me.state ?? ""
         zip = me.zip ?? ""
@@ -211,7 +211,9 @@ struct PayoutsView: View {
                 Section { Text(problem).foregroundStyle(.secondary) }
             }
 
-            if let connect = store.connect {
+            if let connect = store.connect, connect.demo {
+                Section { Text(connect.message ?? "Payouts aren't set up on demo accounts.").foregroundStyle(.secondary) }
+            } else if let connect = store.connect {
                 if connect.enabled {
                     Section {
                         Label(connect.payoutsEnabled ? "Payouts are on" : "Set up payouts",
