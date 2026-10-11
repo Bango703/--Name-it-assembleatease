@@ -64,43 +64,30 @@ struct AccountHeader: View {
     }
 }
 
-/// Name, phone, location, email. Verified facts are plain text; the phone is the
-/// one input, saved from the top bar where the keyboard cannot cover it.
+/// Name, phone, location, email: one aligned row each, the way Uber and DoorDash
+/// list them. A detail that can change opens its own screen with Save.
 /// Mirrors assembler/profile.html; the server decides what may change.
 struct PersonalInfoView: View {
     init() {}
 
     @EnvironmentObject private var store: EaserStore
-    @State private var fullName = ""
-    @State private var phone = ""
-    @State private var city = ""
-    @State private var state = ""
-    @State private var zip = ""
-    @State private var loaded = false
-    @State private var saving = false
     @State private var confirmReset = false
 
     private var locked: Bool { store.profile?.identityVerified == true }
-
-    private var changed: Bool {
-        guard let me = store.profile else { return false }
-        func same(_ a: String, _ b: String?) -> Bool { a.trimmingCharacters(in: .whitespacesAndNewlines) == (b ?? "") }
-        return Format.phoneDigits(phone) != Format.phoneDigits(me.phone ?? "") || (!locked && (!same(fullName, me.fullName) || !same(city, me.city) || !same(state, me.state) || !same(zip, me.zip)))
-    }
 
     var body: some View {
         List {
             Section {
                 if locked {
-                    LabeledContent("Name", value: fullName.isEmpty ? "Not set" : fullName)
-                    LabeledField(label: "Phone", text: $phone, locked: false, content: .telephoneNumber, keyboard: .phonePad)
+                    LabeledContent("Name", value: name)
+                } else {
+                    NavigationLink { EditDetailView(field: .name) } label: { LabeledContent("Name", value: name) }
+                }
+                NavigationLink { EditDetailView(field: .phone) } label: { LabeledContent("Phone", value: phone) }
+                if locked {
                     LabeledContent("Location", value: location)
                 } else {
-                    LabeledField(label: "Full name", text: $fullName, locked: false, content: .name)
-                    LabeledField(label: "Phone", text: $phone, locked: false, content: .telephoneNumber, keyboard: .phonePad)
-                    LabeledField(label: "City", text: $city, locked: false, content: .addressCity)
-                    LabeledField(label: "State", text: $state, locked: false, content: .addressState)
-                    LabeledField(label: "ZIP", text: $zip, locked: false, content: .postalCode, keyboard: .numberPad)
+                    NavigationLink { EditDetailView(field: .location) } label: { LabeledContent("Location", value: location) }
                 }
                 LabeledContent("Email", value: store.email ?? "On file")
                 if let since = Format.day(store.profile?.createdAt) {
@@ -108,7 +95,7 @@ struct PersonalInfoView: View {
                 }
             } footer: {
                 if locked {
-                    Text("For changes, contact AssembleAtEase.")
+                    Text("For name or location changes, contact AssembleAtEase.")
                 }
             }
 
@@ -123,30 +110,7 @@ struct PersonalInfoView: View {
         }
         .navigationTitle("Personal information")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                if changed {
-                    Button {
-                        saving = true
-                        Task {
-                            _ = await store.saveDetails(fullName: fullName, phone: phone, city: city, state: state, zip: zip)
-                            saving = false
-                            fill()
-                        }
-                    } label: {
-                        if saving { ProgressView() } else { Text("Save").fontWeight(.semibold) }
-                    }
-                    .disabled(saving)
-                }
-            }
-        }
-        .refreshable {
-            await store.refresh()
-            fill()
-        }
-        .task {
-            if !loaded { fill(); loaded = true }
-        }
+        .refreshable { await store.refresh() }
         .confirmationDialog("Send a password reset email?", isPresented: $confirmReset, titleVisibility: .visible) {
             Button("Send email") { Task { await store.sendPasswordReset() } }
         } message: {
@@ -154,20 +118,126 @@ struct PersonalInfoView: View {
         }
     }
 
-    /// "Austin, TX 78745", leaving out what is not on file.
-    private var location: String {
-        let cityState = [city, state].map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: ", ")
-        let full = [cityState, zip.trimmingCharacters(in: .whitespaces)].filter { !$0.isEmpty }.joined(separator: " ")
-        return full.isEmpty ? "Not set" : full
+    private var name: String {
+        let value = store.profile?.fullName ?? ""
+        return value.isEmpty ? "Not set" : value
     }
 
-    private func fill() {
-        guard let me = store.profile else { return }
-        fullName = me.fullName ?? ""
-        phone = Format.phone(me.phone)
-        city = me.city ?? ""
-        state = me.state ?? ""
-        zip = me.zip ?? ""
+    private var phone: String {
+        let value = Format.phone(store.profile?.phone)
+        return value.isEmpty ? "Add" : value
+    }
+
+    /// "Austin, TX 78745", leaving out what is not on file.
+    private var location: String {
+        let me = store.profile
+        let cityState = [me?.city ?? "", me?.state ?? ""].map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: ", ")
+        let full = [cityState, (me?.zip ?? "").trimmingCharacters(in: .whitespaces)].filter { !$0.isEmpty }.joined(separator: " ")
+        return full.isEmpty ? "Not set" : full
+    }
+}
+
+/// One detail on its own screen. Save sits above the keyboard and lights up
+/// once the new value is complete and different.
+private struct EditDetailView: View {
+    enum Field { case name, phone, location }
+
+    let field: Field
+    @EnvironmentObject private var store: EaserStore
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var focused: Bool
+    @State private var fullName = ""
+    @State private var phone = ""
+    @State private var city = ""
+    @State private var state = ""
+    @State private var zip = ""
+    @State private var loaded = false
+    @State private var saving = false
+
+    private var title: String {
+        switch field {
+        case .name: return "Name"
+        case .phone: return "Phone number"
+        case .location: return "Location"
+        }
+    }
+
+    private func trimmed(_ value: String) -> String { value.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    private var complete: Bool {
+        switch field {
+        case .name: return trimmed(fullName).count >= 2
+        case .phone: return Format.e164(phone) != nil
+        case .location: return !trimmed(city).isEmpty && !trimmed(state).isEmpty && zip.filter(\.isNumber).count == 5
+        }
+    }
+
+    private var changed: Bool {
+        guard let me = store.profile else { return false }
+        switch field {
+        case .name: return trimmed(fullName) != (me.fullName ?? "")
+        case .phone: return Format.phoneDigits(phone) != Format.phoneDigits(me.phone ?? "")
+        case .location: return trimmed(city) != (me.city ?? "") || trimmed(state) != (me.state ?? "") || trimmed(zip) != (me.zip ?? "")
+        }
+    }
+
+    private var canSave: Bool { complete && changed && !saving }
+
+    var body: some View {
+        Form {
+            Section {
+                switch field {
+                case .name:
+                    TextField("Full name", text: $fullName)
+                        .textContentType(.name)
+                        .focused($focused)
+                case .phone:
+                    TextField("Phone number", text: $phone)
+                        .textContentType(.telephoneNumber)
+                        .keyboardType(.phonePad)
+                        .focused($focused)
+                case .location:
+                    TextField("City", text: $city)
+                        .textContentType(.addressCity)
+                        .focused($focused)
+                    TextField("State", text: $state)
+                        .textContentType(.addressState)
+                        .textInputAutocapitalization(.characters)
+                    TextField("ZIP", text: $zip)
+                        .textContentType(.postalCode)
+                        .keyboardType(.numberPad)
+                }
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                saving = true
+                Task {
+                    let saved = await store.saveDetails(fullName: fullName, phone: phone, city: city, state: state, zip: zip)
+                    saving = false
+                    if saved { dismiss() }
+                }
+            } label: {
+                if saving { ProgressView().tint(Brand.ink) } else { Text("Save") }
+            }
+            .buttonStyle(PrimaryButtonStyle(enabled: canSave))
+            .disabled(!canSave)
+            .padding(16)
+            .background(.bar)
+        }
+        .task {
+            guard !loaded, let me = store.profile else { return }
+            loaded = true
+            fullName = me.fullName ?? ""
+            phone = Format.phone(me.phone)
+            city = me.city ?? ""
+            state = me.state ?? ""
+            zip = me.zip ?? ""
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            focused = true
+        }
     }
 }
 
@@ -216,29 +286,6 @@ private struct Stat: View {
             Text(label).font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-private struct LabeledField: View {
-    let label: String
-    @Binding var text: String
-    let locked: Bool
-    let content: UITextContentType
-    var keyboard: UIKeyboardType = .default
-
-    var body: some View {
-        HStack {
-            Text(label).frame(width: 90, alignment: .leading)
-            if locked {
-                Text(text.isEmpty ? "Not set" : text).foregroundStyle(.secondary)
-                Spacer()
-                Image(systemName: "lock.fill").font(.caption).foregroundStyle(.tertiary)
-            } else {
-                TextField(label, text: $text)
-                    .textContentType(content)
-                    .keyboardType(keyboard)
-            }
-        }
     }
 }
 
