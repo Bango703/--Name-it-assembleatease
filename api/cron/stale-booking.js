@@ -35,6 +35,9 @@ export default async function handler(req, res) {
     .eq('status', 'confirmed')
     .is('assembler_accepted_at', null)
     .lt('assigned_at', acceptCutoff)
+    // A test booking (the App Review job) is never offered to real Easers, so
+    // releasing it helps no one and leaves the reviewer with nothing to accept.
+    .eq('is_test_booking', false)
     .limit(20);
   if (unacceptedError) {
     console.error('Stale-booking unaccepted lookup error:', unacceptedError);
