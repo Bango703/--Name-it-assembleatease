@@ -61,7 +61,7 @@ const EASER_SUPPORT_TYPES = Object.freeze({
 
 export default async function handler(req, res) {
   const ip = String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
-  if (!(await rateLimit(ip, 'booking'))) {
+  if (!(await rateLimit(ip, req.method === 'GET' ? 'booking_read' : 'booking'))) {
     return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
   }
 

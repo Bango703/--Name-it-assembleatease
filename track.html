@@ -1029,7 +1029,7 @@ function setCustomerCommunicationStatus(message, isError) {
 function renderCustomerCommunication(messages, photos) {
   var section = document.getElementById('bookingCommunication');
   if (!section || !currentBooking || !currentMutationToken) return;
-  section.style.display = '';
+  section.style.display = 'block';
   // Label the box with who the server actually delivers to (message_recipient,
   // same rule the message API routes with).
   var toPro = currentBooking.message_recipient === 'pro';
@@ -1075,7 +1075,14 @@ async function loadCustomerCommunication() {
       window.__aaeScrolledToMessages = true;
       setTimeout(function(){ var s = document.getElementById('bookingCommunication'); if (s) s.scrollIntoView({ behavior: 'smooth', block: 'start' }); var t = document.getElementById('customerMessage'); if (t) t.focus({ preventScroll: true }); }, 400);
     }
-  } catch (_) { setCustomerCommunicationStatus('Messages are temporarily unavailable. Please try again.', true); }
+  } catch (_) {
+    // The box stays usable (sending still works) and the page tries again itself.
+    var section = document.getElementById('bookingCommunication');
+    if (section) section.style.display = 'block';
+    setCustomerCommunicationStatus('Messages could not load. Trying again.', true);
+    clearTimeout(window.__aaeCommRetry);
+    window.__aaeCommRetry = setTimeout(loadCustomerCommunication, 8000);
+  }
 }
 
 (function bindCustomerCommunication() {

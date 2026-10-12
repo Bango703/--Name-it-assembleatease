@@ -63,7 +63,7 @@ async function signedPhotos(sb, bookingId) {
 export default async function handler(req, res) {
   if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed' });
   const ip = String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
-  if (!(await rateLimit(ip, 'booking'))) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+  if (!(await rateLimit(ip, req.method === 'GET' ? 'booking_read' : 'booking'))) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
   const sb = getSupabase();
 
   if (req.method === 'GET') {

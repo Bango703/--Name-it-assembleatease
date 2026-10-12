@@ -9,7 +9,14 @@ const track = await read('track.html');
 const owner = await read('owner/index.html');
 const easer = await read('assembler/my-assignments.html');
 
-assert.match(message, /rateLimit\(ip, 'booking'\)/);
+// Reading is not writing: the tracking page refreshes every 25 s, the Easer app
+// reads the same booking, and both often share one household connection. With
+// one write-sized limit (5 a minute) the customer's own page locked itself out
+// (2026-10-12). Sending keeps the strict limit.
+for (const [name, file] of [['message', message], ['customer-photos', photos]]) {
+  assert.match(file, /rateLimit\(ip, req\.method === 'GET' \? 'booking_read' : 'booking'\)/, `${name}: reads use the read limit, writes the strict one`);
+}
+assert.match(await read('api/_ratelimit.js'), /booking_read: buildLimiter\('rl:booking_read', 60, '60 s'\)/);
 assert.match(message, /safeTokenHashMatch\(token, guestBooking\.guest_mutation_token_hash\)/);
 assert.match(message, /bookingEmailMatches\(guestBooking, email\)/);
 assert.match(message, /return res\.status\(404\)\.json\(\{ error: 'Booking not found' \}\)/);
@@ -20,7 +27,7 @@ assert.match(message, /sender\.eq\.customer/);
 
 assert.match(photos, /safeTokenHashMatch\(token, data\.guest_mutation_token_hash\)/);
 assert.match(photos, /bookingEmailMatches\(data, email\)/);
-assert.match(photos, /MAX_BYTES = 5 \* 1024 \* 1024/);
+assert.match(photos, /MAX_BYTES = MAX_UPLOAD_BYTES/, 'the one shared upload limit (api/_upload-limits.js)');
 assert.match(photos, /magicMatches\(mimeType, buf\)/);
 assert.match(photos, /booking_customer_photos/);
 assert.match(photos, /customer-uploads\//);
@@ -37,9 +44,16 @@ assert.match(migration, /file_size_bytes <= 5242880/);
 assert.doesNotMatch(migration, /completion_photo|payout/);
 
 assert.match(track, /bookingCommunication/);
+// 2026-10-12: the stylesheet hides the box (display:none) and the page "showed"
+// it by clearing the inline style, so it stayed hidden for every customer since
+// it shipped. It is shown with an explicit value, and a failed load shows it too.
+assert.match(track, /\.booking-communication\{[^}]*display:none\}/, 'the box starts hidden by the stylesheet');
+assert.doesNotMatch(track, /section\.style\.display = ''/, 'clearing the inline style never shows a box the stylesheet hides');
+assert.match(track, /function renderCustomerCommunication[\s\S]{0,200}section\.style\.display = 'block'/, 'the box is shown once the booking is open');
+assert.match(track, /catch \(_\) \{[\s\S]{0,200}section\.style\.display = 'block'[\s\S]{0,200}setTimeout\(loadCustomerCommunication, 8000\)/, 'a failed load keeps the box and retries by itself');
 assert.match(track, /currentMutationToken/);
 assert.match(track, /customer-photos/);
-assert.match(track, /5 \* 1024 \* 1024/);
+assert.match(track, /window\.AAE_UPLOAD\.prepare\(file\)/, 'the page shrinks the photo before sending');
 assert.match(owner, /customer-photos\?bookingId/);
 assert.match(owner, /Customer Photos \(Private\)/);
 assert.match(easer, /customer-photos\?bookingId/);
