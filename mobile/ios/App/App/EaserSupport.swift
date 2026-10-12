@@ -104,7 +104,7 @@ enum Site {
     static let base = URL(string: "https://www.assembleatease.com")!
     static func page(_ path: String) -> URL { URL(string: base.absoluteString + path)! }
     static let supportPhone = "+19792325139"
-    static let supportPhoneDisplay = "(979) 232-5139"
+    static let supportPhoneDisplay = "979-232-5139"
     static let supportEmail = "service@assembleatease.com"
 }
 
@@ -176,12 +176,20 @@ enum Format {
         return digits.count == 11 && digits.hasPrefix("1") ? String(digits.dropFirst()) : digits
     }
 
-    /// "+15125550142" shown as "(512) 555-0142". Anything else as written.
+    /// "+15125550142" shown as "512-555-0142". Anything else as written.
     static func phone(_ raw: String?) -> String {
         guard let raw, !raw.isEmpty else { return "" }
         let d = phoneDigits(raw)
         guard d.count == 10 else { return raw }
-        return "(\(d.prefix(3))) \(d.dropFirst(3).prefix(3))-\(d.suffix(4))"
+        return "\(d.prefix(3))-\(d.dropFirst(3).prefix(3))-\(d.suffix(4))"
+    }
+
+    /// A number as it is typed: digits only, dashes added as it grows (512-555-0142).
+    static func typingPhone(_ raw: String) -> String {
+        let d = String(phoneDigits(raw).prefix(10))
+        if d.count <= 3 { return d }
+        if d.count <= 6 { return "\(d.prefix(3))-\(d.dropFirst(3))" }
+        return "\(d.prefix(3))-\(d.dropFirst(3).prefix(3))-\(d.dropFirst(6))"
     }
 
     /// The stored form, +1XXXXXXXXXX, or nil when it is not a U.S. number.
@@ -434,7 +442,7 @@ struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
-            .frame(maxWidth: .infinity, minHeight: 52)
+            .frame(maxWidth: .infinity, minHeight: 56)
             .background((enabled ? Brand.sky : Color.gray.opacity(0.35)).opacity(configuration.isPressed ? 0.8 : 1),
                         in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .foregroundStyle(Brand.ink)
@@ -445,7 +453,7 @@ struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
-            .frame(maxWidth: .infinity, minHeight: 52)
+            .frame(maxWidth: .infinity, minHeight: 56)
             .background(Brand.surface.opacity(configuration.isPressed ? 0.7 : 1),
                         in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .foregroundStyle(.primary)

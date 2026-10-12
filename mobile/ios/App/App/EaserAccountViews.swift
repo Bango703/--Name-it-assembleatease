@@ -293,10 +293,14 @@ private struct PhoneChangeView: View {
                     Section { LabeledContent("Current", value: current) }
                 }
                 Section {
-                    TextField("Phone number", text: $phone)
+                    TextField("512-555-0142", text: $phone)
                         .textContentType(.telephoneNumber)
                         .keyboardType(.phonePad)
                         .focused($focus, equals: .number)
+                        .onChange(of: phone) { _, value in
+                            let shown = Format.typingPhone(value)
+                            if shown != value { phone = shown }
+                        }
                 } header: {
                     Text("New mobile number")
                 } footer: {

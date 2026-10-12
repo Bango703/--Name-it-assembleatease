@@ -360,6 +360,21 @@ assert.match(readinessRules, /\/job texts\/i\.test\(item\)\)\) publicItems\.push
 assert.match(readinessRules, /\/availability\|online and available\/i/, 'being offline is named to the Easer');
 assert.match(swift['EaserViews.swift'], /Text\("Turn on job texts"\)/, 'the setup card can turn job texts on itself');
 
+// ── 8p. Neutral fallbacks, dashed phones, the job screen's bottom (2026-10-12) ─
+// Owner: changing a phone number showed "this job is no longer available" (a
+// reply with no reason fell back to a job sentence); "all phone numbers must
+// have the - format"; the job's Accept/Decline competed with the tab bar.
+const api = swift['EaserAPI.swift'];
+const fallbacks = api.slice(api.indexOf('private static func fallback'), api.indexOf('static func query'));
+assert.doesNotMatch(fallbacks, /\bjob\b/i, 'a reply with no reason never names a job; the same fallback serves every call');
+const support = swift['EaserSupport.swift'];
+assert.match(support, /return "\\\(d\.prefix\(3\)\)-\\\(d\.dropFirst\(3\)\.prefix\(3\)\)-\\\(d\.suffix\(4\)\)"/, 'phones are shown as 512-555-0142');
+assert.match(support, /supportPhoneDisplay = "\d{3}-\d{3}-\d{4}"/, 'the support number is shown with dashes');
+assert.doesNotMatch(all, /"\(\d{3}\) \d{3}-\d{4}"/, 'no phone shown as (512) 555-0142');
+assert.match(accountViews, /Format\.typingPhone\(value\)/, 'a phone is dashed as it is typed');
+assert.match(swift['EaserViews.swift'], /\.toolbar\(\.hidden, for: \.tabBar\)/, 'the job screen gives its action panel the bottom of the screen');
+assert.doesNotMatch(swift['EaserViews.swift'], /ContentUnavailableView\("This job is no longer available", systemImage: "briefcase",\s*description: Text\("This job is no longer available\."\)\)/, 'no sentence said twice');
+
 // ── 8. The website is untouched by the app build ─────────────────────────────
 assert.equal(JSON.parse(read('mobile/capacitor.config.json')).server.url, 'https://www.assembleatease.com/app', 'Android keeps its existing shell; iOS no longer reads this');
 
