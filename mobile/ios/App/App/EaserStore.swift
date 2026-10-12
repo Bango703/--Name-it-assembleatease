@@ -602,12 +602,12 @@ final class EaserStore: ObservableObject {
     }
 
     /// Saves only what changed. The server decides which fields may change.
-    func saveDetails(fullName: String, phone: String, city: String, state: String, zip: String) async -> Bool {
+    /// The phone number changes only through a texted code (sendPhoneCode /
+    /// confirmPhoneCode); the database refuses it here (migration 109).
+    func saveDetails(fullName: String, city: String, state: String, zip: String) async -> Bool {
         guard let me = profile else { return false }
         var updates: [String: Any] = [:]
         func clean(_ value: String) -> String { value.trimmingCharacters(in: .whitespacesAndNewlines) }
-        // Saved in one form (+1XXXXXXXXXX) however it was typed or shown.
-        if Format.phoneDigits(phone) != Format.phoneDigits(me.phone ?? "") { updates["phone"] = Format.e164(phone) ?? clean(phone) }
         if !me.identityVerified {
             if clean(fullName) != (me.fullName ?? "") { updates["full_name"] = clean(fullName) }
             if clean(city) != (me.city ?? "") { updates["city"] = clean(city) }
@@ -624,6 +624,33 @@ final class EaserStore: ObservableObject {
             banner = Banner(text: error.localizedDescription, kind: .problem)
             return false
         }
+    }
+
+    // MARK: Phone number
+
+    /// Texts a 6-digit code to a new number. The number on file keeps getting
+    /// texts until the code is entered. Returns the problem to show, or nil once sent.
+    func sendPhoneCode(to phone: String) async -> String? {
+        do {
+            _ = try await api.call("POST", "/api/assembler/phone-verification", body: ["action": "send", "phone": phone])
+            return nil
+        } catch {
+            let message = error.localizedDescription
+            return message.isEmpty ? "The code could not be sent. Try again." : message
+        }
+    }
+
+    /// Saves the new number once the texted code matches. Returns the problem to show, or nil once saved.
+    func confirmPhoneCode(_ code: String) async -> String? {
+        do {
+            _ = try await api.call("POST", "/api/assembler/phone-verification", body: ["action": "verify", "code": code])
+        } catch {
+            let message = error.localizedDescription
+            return message.isEmpty ? "The code could not be checked. Try again." : message
+        }
+        banner = Banner(text: "Phone number updated.", kind: .success)
+        await refresh()
+        return nil
     }
 
     func sendPasswordReset() async {
