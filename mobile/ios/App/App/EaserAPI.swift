@@ -289,9 +289,9 @@ final class EaserAPI {
 
     private static func fallback(for status: Int) -> String {
         switch status {
-        case 403: return "This job is not available to your account."
-        case 404: return "This job is no longer available."
-        case 409: return "This job changed a moment ago. Pull down to see the latest."
+        case 403: return "Your account can't do that."
+        case 404: return "That is no longer available. Pull down to refresh."
+        case 409: return "That changed a moment ago. Pull down to see the latest."
         case 429: return "Too many tries. Wait a minute and try again."
         case 500...599: return "AssembleAtEase is not responding right now. Try again in a minute."
         default: return "That did not go through. Try again."

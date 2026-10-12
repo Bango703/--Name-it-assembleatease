@@ -838,12 +838,13 @@ struct JobDetailView: View {
             if let job = store.job(jobID) {
                 content(job)
             } else {
-                ContentUnavailableView("This job is no longer available", systemImage: "briefcase",
-                                       description: Text("This job is no longer available."))
+                ContentUnavailableView("This job is no longer available", systemImage: "briefcase")
             }
         }
         .navigationTitle("Job")
         .navigationBarTitleDisplayMode(.inline)
+        // Accept, travel and complete own the bottom of the screen, as on Uber and DoorDash.
+        .toolbar(.hidden, for: .tabBar)
     }
 
     @ViewBuilder
@@ -874,7 +875,7 @@ struct JobDetailView: View {
                 }
 
                 DetailBlock(title: job.isFinished ? "Earnings" : "Estimated earnings") {
-                    Text(store.payText(for: job)).font(.title.bold())
+                    Text(store.payText(for: job)).font(.largeTitle.bold())
                     if job.isFinished, let earned = store.earning(for: job) {
                         Text(earned.statusLabel).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark)
                     }
@@ -1052,6 +1053,9 @@ struct JobDetailView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, job.nextStep == .noAction && !job.isHelper ? 0 : 12)
         .background(job.nextStep == .noAction && !job.isHelper ? AnyShapeStyle(Color.clear) : AnyShapeStyle(Material.bar))
+        .overlay(alignment: .top) {
+            if !(job.nextStep == .noAction && !job.isHelper) { Divider() }
+        }
     }
 }
 
@@ -1134,7 +1138,7 @@ private struct JobMapCard: View {
             } else if coordinate == nil {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Brand.surface)
-                    .frame(height: 170)
+                    .frame(height: 130)
                     .overlay(ProgressView())
             } else if let coordinate {
                 Map(initialPosition: .region(MKCoordinateRegion(center: coordinate,
@@ -1149,7 +1153,7 @@ private struct JobMapCard: View {
                             .foregroundStyle(Brand.sky.opacity(0.25))
                     }
                 }
-                .frame(height: 170)
+                .frame(height: 130)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .accessibilityLabel(exact ? "Map of the job address" : "Map of the job area")
             }
