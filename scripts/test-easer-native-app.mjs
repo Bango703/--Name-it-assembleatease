@@ -402,6 +402,10 @@ const noticeCopy = read('api/assembler/notifications.js');
 const assignCopy = noticeCopy.match(/assignment_confirmation: \[([^\]]+)\]/);
 assert.ok(assignCopy && !/schedul/i.test(assignCopy[1]), 'an assignment notice never says the job is scheduled');
 assert.match(assignCopy[1], /accept/i, 'it says what to do: accept');
+// A customer reschedule returns the job to waiting for acceptance; the button
+// is Accept, so the notice names it (it said "confirm availability").
+const rescheduleCopy = noticeCopy.match(/reschedule_easer_reconfirmation: \[([^\]]+)\]/);
+assert.ok(rescheduleCopy && /accept/i.test(rescheduleCopy[1]) && !/confirm availability/i.test(rescheduleCopy[1]), 'the reschedule notice names the action the app offers');
 const assignApi = read('api/booking/assign.js');
 assert.match(assignApi, /title: 'New job',\s*body:\s*\(booking\.service \|\| 'Service'\) \+ ' · ' \+ formatAppointmentDateShort\(booking\.date\)/, 'the push shows a readable date');
 assert.doesNotMatch(assignApi, /\(booking\.date \|\| ''\)/, 'no raw stored date in a push');

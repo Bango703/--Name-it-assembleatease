@@ -13,7 +13,8 @@ const NOTIFICATION_COPY = {
   easer_job_cancelled: ['Job cancelled', 'This job is no longer on your schedule.'],
   owner_message: ['New message', 'You have a new message about this job.'],
   evidence_request: ['Photos requested', 'Open the job to review the requested photos.'],
-  reschedule_easer_reconfirmation: ['Schedule changed', 'Review the updated appointment and confirm availability.'],
+  // The job returns to waiting for acceptance (api/booking/reschedule.js); Accept is the action.
+  reschedule_easer_reconfirmation: ['Schedule changed', 'Review the new time and accept the job.'],
   owner_edit_easer_reconfirmation: ['Job details changed', 'Review the updated job details and confirm availability.'],
   easer_payout_recorded: ['Payout recorded', 'Your payout status has been updated.'],
   easer_suspended: ['Account status changed', 'Open your profile to review your current account status.'],
