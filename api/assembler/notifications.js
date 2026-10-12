@@ -6,7 +6,8 @@ import {
 
 const NOTIFICATION_COPY = {
   approval: ['Account approved', "You're approved. Finish any remaining setup steps to start getting jobs."],
-  assignment_confirmation: ['Job scheduled', 'A job has been added to your schedule.'],
+  // Sent when the owner assigns a job. It is not on the schedule until accepted.
+  assignment_confirmation: ['New job', 'Review the job and accept it.'],
   dispatch_offer: ['New job offer', 'A new job offer is ready for you to review.'],
   easer_work_available: ['Work available', 'New work may be available in your service area.'],
   easer_job_cancelled: ['Job cancelled', 'This job is no longer on your schedule.'],

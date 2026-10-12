@@ -395,6 +395,17 @@ assert.match(swift['EaserViews.swift'], /if let work = job\.workSummary/, 'the j
 // Furniture Assembly name". The job screen leads with the items too.
 assert.match(swift['EaserViews.swift'], /Text\(job\.title\)\.font\(\.title2\.bold\(\)\)[\s\S]{0,120}if let work = job\.workSummary \{\s*Text\(work\)/, 'the job screen names the items under the service');
 
+// ── 8r. An assigned job is not "on your schedule" until accepted (2026-10-12) ─
+// Owner: the inbox said "A job has been added to your schedule" for a job the
+// app showed as "Waiting for you to accept"; the push printed 2026-10-15.
+const noticeCopy = read('api/assembler/notifications.js');
+const assignCopy = noticeCopy.match(/assignment_confirmation: \[([^\]]+)\]/);
+assert.ok(assignCopy && !/schedul/i.test(assignCopy[1]), 'an assignment notice never says the job is scheduled');
+assert.match(assignCopy[1], /accept/i, 'it says what to do: accept');
+const assignApi = read('api/booking/assign.js');
+assert.match(assignApi, /title: 'New job',\s*body:\s*\(booking\.service \|\| 'Service'\) \+ ' · ' \+ formatAppointmentDateShort\(booking\.date\)/, 'the push shows a readable date');
+assert.doesNotMatch(assignApi, /\(booking\.date \|\| ''\)/, 'no raw stored date in a push');
+
 // ── 8. The website is untouched by the app build ─────────────────────────────
 assert.equal(JSON.parse(read('mobile/capacitor.config.json')).server.url, 'https://www.assembleatease.com/app', 'Android keeps its existing shell; iOS no longer reads this');
 
