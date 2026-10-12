@@ -375,6 +375,23 @@ assert.match(accountViews, /Format\.typingPhone\(value\)/, 'a phone is dashed as
 assert.match(swift['EaserViews.swift'], /\.toolbar\(\.hidden, for: \.tabBar\)/, 'the job screen gives its action panel the bottom of the screen');
 assert.doesNotMatch(swift['EaserViews.swift'], /ContentUnavailableView\("This job is no longer available", systemImage: "briefcase",\s*description: Text\("This job is no longer available\."\)\)/, 'no sentence said twice');
 
+// ── 8q. The job's items read as the server sends them (2026-10-12) ──────────
+// _booking_items is grouped ([{ label, items: [{ name, quantity, isAddOn,
+// subgroup }] }]). The app decoded each GROUP as an item, so every job listed
+// "Item" once per service and no add-on was ever shown.
+const itemsLoader = read('api/booking/_booking-items.js');
+assert.match(itemsLoader, /\(\{ label, items \}\)/, 'the server groups items by service');
+for (const key of ['name', 'quantity', 'isAddOn', 'subgroup']) assert.match(itemsLoader, new RegExp(`\\b${key}:`), `the server sends ${key}`);
+const models = swift['EaserModels.swift'];
+assert.match(models, /struct JobItemGroup: Decodable[\s\S]{0,400}c\.contains\(DynamicKey\("items"\)\)[\s\S]{0,200}c\.string\("label"\)/, 'the app reads each group and its label');
+assert.match(models, /isAddOn = c\.bool\("isAddOn"\)/, 'add-ons are read');
+assert.match(models, /detail = c\.string\("subgroup"\)/);
+assert.match(models, /decodeIfPresent\(\[JobItemGroup\]\.self, forKey: DynamicKey\("_booking_items"\)\)/, 'the job list holds groups, not a flat guess');
+assert.match(models, /per\\s\+\(\\d\+\)/, 'a pack counts as its pieces, as on the website');
+assert.match(read('assembler/my-assignments.html'), /\/\\\(\\s\*per\\s\+\(\\d\+\)\\s\+\[\^\)\]\*\\\)\/i/, 'the website uses the same pack rule');
+assert.match(swift['EaserViews.swift'], /if item\.isAddOn \{\s*Text\("Add-on"\)/, 'an add-on is marked as one');
+assert.match(swift['EaserViews.swift'], /if let work = job\.workSummary/, 'the job card shows the work at a glance');
+
 // ── 8. The website is untouched by the app build ─────────────────────────────
 assert.equal(JSON.parse(read('mobile/capacitor.config.json')).server.url, 'https://www.assembleatease.com/app', 'Android keeps its existing shell; iOS no longer reads this');
 

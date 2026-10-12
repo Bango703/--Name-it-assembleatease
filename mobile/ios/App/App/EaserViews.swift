@@ -697,6 +697,9 @@ private struct JobCard: View {
                     .font(emphasis ? Font.title3.bold() : Font.headline)
                     .foregroundStyle(.primary)
             }
+            if let work = job.workSummary {
+                Label(work, systemImage: "shippingbox").font(.subheadline).foregroundStyle(.secondary)
+            }
             if !job.when.isEmpty {
                 Label(job.when, systemImage: "calendar").font(.subheadline).foregroundStyle(.secondary)
             }
@@ -911,10 +914,16 @@ struct JobDetailView: View {
                     }
                 }
 
-                if !job.items.isEmpty {
+                if !job.itemGroups.isEmpty {
                     DetailBlock(title: "What you're assembling") {
-                        ForEach(Array(job.items.enumerated()), id: \.offset) { _, item in
-                            Text(item.quantity > 1 ? "\(item.quantity) × \(item.name)" : item.name)
+                        ForEach(Array(job.itemGroups.enumerated()), id: \.offset) { index, group in
+                            if index > 0 { Divider() }
+                            if let label = group.label, job.itemGroups.count > 1 || label != job.title {
+                                Text(label).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark)
+                            }
+                            ForEach(Array(group.items.enumerated()), id: \.offset) { _, item in
+                                ScopeRow(item: item)
+                            }
                         }
                     }
                 }
@@ -1055,6 +1064,34 @@ struct JobDetailView: View {
         .background(job.nextStep == .noAction && !job.isHelper ? AnyShapeStyle(Color.clear) : AnyShapeStyle(Material.bar))
         .overlay(alignment: .top) {
             if !(job.nextStep == .noAction && !job.isHelper) { Divider() }
+        }
+    }
+}
+
+/// One item of the job: name and count, the service it was booked under, and an
+/// Add-on mark, as the website's job sheet shows it.
+private struct ScopeRow: View {
+    let item: JobItem
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.quantity > 1 ? "\(item.name) ×\(item.quantity)" : item.name)
+                    .font(.body.weight(.medium))
+                if let detail = item.detail {
+                    Text(detail).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 8)
+            if item.isAddOn {
+                Text("Add-on")
+                    .font(.caption2.weight(.bold))
+                    .textCase(.uppercase)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Brand.sky.opacity(0.15), in: Capsule())
+                    .foregroundStyle(Brand.skyDark)
+            }
         }
     }
 }

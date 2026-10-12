@@ -116,14 +116,48 @@ struct Readiness: Decodable {
 
 struct ReadinessEnvelope: Decodable { let readiness: Readiness }
 
+/// One line of the job's scope, as api/booking/_booking-items.js sends it and
+/// assembler/my-assignments.html shows it: a pack ("Wall anchors (per 4 pack)")
+/// counts as its pieces, and an add-on is marked as one.
 struct JobItem: Decodable, Hashable {
     let name: String
     let quantity: Int
+    let isAddOn: Bool
+    /// The service the item was booked under, when it differs from its group.
+    let detail: String?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
-        name = c.string("name") ?? "Item"
-        quantity = max(1, Int(c.number("quantity") ?? 1))
+        let raw = (c.string("name") ?? "").trimmingCharacters(in: .whitespaces)
+        var count = max(1, Int(c.number("quantity") ?? 1))
+        if let pack = raw.range(of: #"\(\s*per\s+(\d+)\s+[^)]*\)"#, options: [.regularExpression, .caseInsensitive]) {
+            let digits = raw[pack].filter(\.isNumber)
+            if let size = Int(digits), size > 0 { count *= size }
+        }
+        name = raw.replacingOccurrences(of: #"\s*\(\s*per\b[^)]*\)"#, with: "", options: [.regularExpression, .caseInsensitive])
+            .trimmingCharacters(in: .whitespaces)
+        quantity = count
+        isAddOn = c.bool("isAddOn") ?? false
+        detail = c.string("subgroup")
+    }
+}
+
+/// The items of one service on the job ("Furniture Assembly": desk, bookcase).
+struct JobItemGroup: Decodable, Hashable {
+    let label: String?
+    let items: [JobItem]
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        if c.contains(DynamicKey("items")) {
+            label = c.string("label")
+            items = ((try? c.decodeIfPresent([JobItem].self, forKey: DynamicKey("items"))) ?? []).filter { !$0.name.isEmpty }
+        } else {
+            // An ungrouped item from an older response.
+            label = nil
+            let item = try JobItem(from: decoder)
+            items = item.name.isEmpty ? [] : [item]
+        }
     }
 }
 
@@ -154,7 +188,7 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     let customQuote: Bool
     let crewRole: String?
     let returnVisitOpen: Bool
-    let items: [JobItem]
+    let itemGroups: [JobItemGroup]
     let evidenceRequested: Bool
     let evidenceUploaded: Bool
     let selfDropAllowed: Bool
@@ -190,7 +224,7 @@ struct EaserJob: Decodable, Identifiable, Hashable {
         customQuote = c.bool("_custom_quote") ?? false
         crewRole = c.string("_crew_role")
         returnVisitOpen = c.bool("_return_visit_open") ?? false
-        items = (try? c.decodeIfPresent([JobItem].self, forKey: DynamicKey("_booking_items"))) ?? []
+        itemGroups = ((try? c.decodeIfPresent([JobItemGroup].self, forKey: DynamicKey("_booking_items"))) ?? []).filter { !$0.items.isEmpty }
         evidenceRequested = c.string("evidence_requested_at") != nil
         evidenceUploaded = c.bool("_evidence_uploaded") ?? false
         selfDropAllowed = c.bool("_can_self_drop") ?? true
@@ -234,6 +268,22 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     static let finishedStatuses: Set<String> = ["completed", "cancelled", "declined", "refunded"]
 
     var isFinished: Bool { Self.finishedStatuses.contains(status) && !returnVisitOpen }
+    /// "2 Desks · +1 more": the work at a glance, add-ons left out (as on the website's job list).
+    var workSummary: String? {
+        let work = itemGroups.flatMap(\.items).filter { !$0.isAddOn }
+        guard let first = work.first else { return nil }
+        let name = first.quantity > 1 ? "\(first.quantity) \(Self.plural(first.name))" : first.name
+        return work.count > 1 ? "\(name) · +\(work.count - 1) more" : name
+    }
+
+    private static func plural(_ name: String) -> String {
+        let lower = name.lowercased()
+        if lower.hasSuffix("s") { return name }
+        if ["x", "z", "ch", "sh"].contains(where: { lower.hasSuffix($0) }) { return name + "es" }
+        if lower.hasSuffix("y"), let before = lower.dropLast().last, !"aeiou".contains(before) { return String(name.dropLast()) + "ies" }
+        return name + "s"
+    }
+
     var needsAcceptance: Bool { acceptedAt == nil && !isFinished }
     var isOffer: Bool { needsAcceptance && offerToken != nil }
     var isActive: Bool { ["en_route", "arrived", "in_progress"].contains(status) }
