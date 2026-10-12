@@ -299,7 +299,10 @@ assert.match(swift['EaserViews.swift'], /\} else if coordinate == nil \{\s*Round
 assert.match(swift['EaserViews.swift'], /\.listRowBackground\(Color\.clear\)\s*\.listRowSeparator\(\.hidden\)/, 'no stray line under the Jobs picker');
 assert.match(read('api/assembler/connect-status.js'), /if \(await isDemoEaser\(sb, user\.id\)\) \{[\s\S]{0,80}demo: true/, 'a demo account is told payouts are not set up, not offered live setup');
 assert.match(swift['EaserAccountViews.swift'], /if let connect = store\.connect, connect\.demo \{/, 'the Payouts screen shows the demo state');
-assert.match(store, /updates\["phone"\] = Format\.e164\(phone\)/, 'a phone is saved in one form however it is shown');
+// A new phone is sent in one form (+1XXXXXXXXXX) to the code endpoint, never
+// written by the details save (scripts/test-easer-phone-verification.mjs).
+assert.match(swift['EaserAccountViews.swift'], /let target = Format\.e164\(phone\) \?\? phone/, 'a phone is sent in one form however it is shown');
+assert.doesNotMatch(store, /updates\["phone"\]/, 'the details save never writes the phone');
 
 // ── 8n. Profile reads like a profile, not a locked form (2026-10-11) ────────
 // Owner: "contact details should look better than the things with a bunch of
@@ -319,9 +322,11 @@ assert.doesNotMatch(swift['EaserViews.swift'], /Text\(email\)/, 'the Account hea
 assert.doesNotMatch(swift['EaserViews.swift'], /Label\("(App notifications|Text messages|Job alerts)"/, 'no notification switches in Account: notifications are required, job texts are a Today setup step');
 // Owner, same day: "no edit nothing on phone number, no save ... the phone number
 // is out of line with the other information". Every detail is one aligned row;
-// the phone opens its own screen with Save above the keyboard.
-assert.match(accountViews, /NavigationLink \{ EditDetailView\(field: \.phone\) \} label: \{ LabeledContent\("Phone"/, 'the phone is an aligned row that opens its own edit screen');
+// the phone opens its own screen with its button above the keyboard (Send code,
+// then Confirm, since 2026-10-12: a new number is confirmed by a texted code).
+assert.match(accountViews, /NavigationLink \{ PhoneChangeView\(\) \} label: \{ LabeledContent\("Phone"/, 'the phone is an aligned row that opens its own edit screen');
 assert.match(accountViews, /\.safeAreaInset\(edge: \.bottom\) \{[\s\S]{0,500}Text\("Save"\)[\s\S]{0,200}PrimaryButtonStyle\(enabled: canSave\)/, 'Save is a full-width button above the keyboard, always visible');
+assert.match(accountViews, /\.safeAreaInset\(edge: \.bottom\) \{[\s\S]{0,400}Text\(sentTo == nil \? "Send code" : "Confirm"\)[\s\S]{0,200}PrimaryButtonStyle\(enabled: ready\)/, 'the phone screen button sits above the keyboard');
 assert.doesNotMatch(accountViews, /struct LabeledField\b|TextField\([^)]*\)[\s\S]{0,40}\.frame\(width: 90/, 'no inline text box breaking the row alignment');
 assert.match(accountViews, /\.overlay\(alignment: \.trailing\) \{\s*if verified/, 'the verified badge sits outside the name, so the name stays centered');
 const decliningPage = read('assembler/my-assignments.html');

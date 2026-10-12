@@ -244,6 +244,18 @@
                 <label for="phone">Phone number</label>
                 <input type="tel" id="phone" class="form-control" inputmode="tel" autocomplete="tel" placeholder="512-555-0123" maxlength="12" />
                 <span class="field-error" id="phone-error"></span>
+                <div id="phone-verify" hidden style="margin-top:0.6rem;padding:0.75rem;border:1px solid var(--pro-border, #e2e8f0);border-radius:10px">
+                  <p id="phone-verify-sent" style="margin:0 0 0.5rem;font-size:0.82rem;color:var(--pro-text)"></p>
+                  <div style="display:flex;gap:0.5rem">
+                    <input type="text" id="phone-code" class="form-control" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code" aria-label="6-digit code" />
+                    <button type="button" id="phone-code-confirm" class="btn btn-teal btn-sm">Confirm</button>
+                  </div>
+                  <span class="field-error" id="phone-code-error"></span>
+                  <div style="display:flex;gap:1rem;margin-top:0.5rem">
+                    <button type="button" id="phone-code-resend" style="background:none;border:none;padding:0;font-size:0.78rem;font-weight:600;color:var(--pro-teal);cursor:pointer">Send a new code</button>
+                    <button type="button" id="phone-code-cancel" style="background:none;border:none;padding:0;font-size:0.78rem;color:var(--pro-muted);cursor:pointer">Keep current number</button>
+                  </div>
+                </div>
               </div>
               <div style="display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:0.75rem" class="location-grid">
                 <div class="form-group">
@@ -369,6 +381,8 @@
 <script>
   let photoBase64 = null;
   let persistedProfilePhoto = '';
+  let persistedPhone = '';
+  let pendingPhone = null;
   let currentUserId = null;  // set after auth; lets the photo picker save immediately
   const usdFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
@@ -411,6 +425,7 @@
     if (!savedProfile) return;
     var fullName = String(savedProfile.full_name || document.getElementById('full-name').value || '').trim();
     persistedProfilePhoto = safeProfilePhoto(savedProfile.profile_photo);
+    persistedPhone = savedProfile.phone || '';
     document.getElementById('full-name').value = fullName;
     document.getElementById('phone').value = formatUsPhone(savedProfile.phone || '');
     document.getElementById('city').value = savedProfile.city || '';
@@ -433,6 +448,37 @@
     if (digits.length <= 3) return digits;
     if (digits.length <= 6) return digits.slice(0, 3) + '-' + digits.slice(3);
     return digits.slice(0, 3) + '-' + digits.slice(3, 6) + '-' + digits.slice(6);
+  }
+
+  // A new phone number is saved only once the code texted to it is entered
+  // (api/assembler/phone-verification.js, migration 109). The number on file
+  // keeps getting texts until then.
+  async function phoneVerificationRequest(body) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const resp = await fetch('/api/assembler/phone-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (session ? session.access_token : '') },
+      body: JSON.stringify(body)
+    });
+    let data = null;
+    try { data = await resp.json(); } catch (e) { data = null; }
+    if (!resp.ok || !data || !data.ok) throw new Error((data && data.error) || 'That could not be done. Try again.');
+    return data;
+  }
+
+  async function sendPhoneCode(phone) {
+    const data = await phoneVerificationRequest({ action: 'send', phone: phone });
+    pendingPhone = phone;
+    document.getElementById('phone-verify-sent').textContent = 'Code sent to ' + (data.phone || formatUsPhone(phone)) + '.';
+    document.getElementById('phone-code').value = '';
+    document.getElementById('phone-code-error').textContent = '';
+    document.getElementById('phone-verify').hidden = false;
+    document.getElementById('phone-code').focus();
+  }
+
+  function hidePhoneVerify() {
+    pendingPhone = null;
+    document.getElementById('phone-verify').hidden = true;
   }
 
   function collapseBasicSection() {
@@ -744,6 +790,7 @@
 
     document.getElementById('full-name').value   = profile.full_name   || '';
     document.getElementById('phone').value       = formatUsPhone(profile.phone || '');
+    persistedPhone = profile.phone || '';
     document.getElementById('city').value        = profile.city        || '';
     document.getElementById('state').value       = profile.state       || '';
     document.getElementById('zip').value         = profile.zip         || '';
@@ -949,14 +996,14 @@
       let hasError = false;
       if (!fullNameEl.readOnly && !fullName) { APP.fieldError('full-name', 'Full name is required.'); hasError = true; }
       if (phoneRaw && !phone) { APP.fieldError('phone', 'Enter a valid 10-digit U.S. phone number.'); hasError = true; }
+      if (!phoneRaw && persistedPhone) { APP.fieldError('phone', 'Enter a mobile number.'); hasError = true; }
       if (hasError) return;
+      const phoneChanged = !!phone && phone !== normalizeUsPhone(persistedPhone);
 
       APP.setLoading('save-btn', true, 'Saving...');
       try {
         const cityEl = document.getElementById('city');
-        const updates = {
-          phone: phone || null,
-        };
+        const updates = {};
         // Only update locked fields if they are not readonly (non-verified users)
         if (!fullNameEl.readOnly) updates.full_name = fullName;
         if (!cityEl.readOnly) {
@@ -966,25 +1013,73 @@
         }
         if (photoBase64) updates.profile_photo = photoBase64;
 
-        const { data: savedData, error } = await API.updateProfile(user.id, updates);
-        if (error) {
-          console.error('[profile] updateProfile error:', error);
-          throw error;
+        if (Object.keys(updates).length) {
+          const { data: savedData, error } = await API.updateProfile(user.id, updates);
+          if (error) {
+            console.error('[profile] updateProfile error:', error);
+            throw error;
+          }
+          if (!savedData) {
+            console.error('[profile] updateProfile returned no data — possible RLS policy missing or row not found');
+            throw new Error('Profile could not be saved. You may need to sign out and back in.');
+          }
+          applySavedProfile(savedData);
+          photoBase64 = null;
         }
-        if (!savedData) {
-          console.error('[profile] updateProfile returned no data — possible RLS policy missing or row not found');
-          throw new Error('Profile could not be saved. You may need to sign out and back in.');
+        if (phoneChanged) {
+          document.getElementById('phone').value = formatUsPhone(phone);
+          await sendPhoneCode(phone);
+        } else {
+          collapseBasicSection();
+          APP.showAlert('page-alert', 'Profile saved successfully!', 'success');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        applySavedProfile(savedData);
-        photoBase64 = null;
-        collapseBasicSection();
-        APP.showAlert('page-alert', 'Profile saved successfully!', 'success');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
         APP.showAlert('page-alert', err.message || 'Failed to save profile. Please try again.', 'error');
       } finally {
         APP.setLoading('save-btn', false, 'Save');
       }
+    });
+
+    document.getElementById('phone-code').addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    });
+
+    document.getElementById('phone-code-confirm').addEventListener('click', async function () {
+      const btn = this;
+      const errEl = document.getElementById('phone-code-error');
+      const code = document.getElementById('phone-code').value;
+      errEl.textContent = '';
+      if (code.length !== 6) { errEl.textContent = 'Enter the 6-digit code.'; return; }
+      btn.disabled = true; btn.textContent = 'Checking...';
+      try {
+        const data = await phoneVerificationRequest({ action: 'verify', code: code });
+        persistedPhone = data.phone;
+        document.getElementById('phone').value = formatUsPhone(data.phone);
+        hidePhoneVerify();
+        updateCompletion();
+        collapseBasicSection();
+        APP.showAlert('page-alert', 'Phone number updated.', 'success');
+      } catch (err) {
+        errEl.textContent = err.message;
+      } finally {
+        btn.disabled = false; btn.textContent = 'Confirm';
+      }
+    });
+
+    document.getElementById('phone-code-resend').addEventListener('click', async function () {
+      const btn = this;
+      const errEl = document.getElementById('phone-code-error');
+      errEl.textContent = '';
+      if (!pendingPhone) return;
+      btn.disabled = true;
+      try { await sendPhoneCode(pendingPhone); } catch (err) { errEl.textContent = err.message; }
+      finally { btn.disabled = false; }
+    });
+
+    document.getElementById('phone-code-cancel').addEventListener('click', function () {
+      hidePhoneVerify();
+      document.getElementById('phone').value = formatUsPhone(persistedPhone);
     });
 
     document.getElementById('change-password-btn').addEventListener('click', async () => {
