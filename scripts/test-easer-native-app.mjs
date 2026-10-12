@@ -391,6 +391,9 @@ assert.match(models, /per\\s\+\(\\d\+\)/, 'a pack counts as its pieces, as on th
 assert.match(read('assembler/my-assignments.html'), /\/\\\(\\s\*per\\s\+\(\\d\+\)\\s\+\[\^\)\]\*\\\)\/i/, 'the website uses the same pack rule');
 assert.match(swift['EaserViews.swift'], /if item\.isAddOn \{\s*Text\("Add-on"\)/, 'an add-on is marked as one');
 assert.match(swift['EaserViews.swift'], /if let work = job\.workSummary/, 'the job card shows the work at a glance');
+// Owner: "easer should have furniture information rather than just the
+// Furniture Assembly name". The job screen leads with the items too.
+assert.match(swift['EaserViews.swift'], /Text\(job\.title\)\.font\(\.title2\.bold\(\)\)[\s\S]{0,120}if let work = job\.workSummary \{\s*Text\(work\)/, 'the job screen names the items under the service');
 
 // ── 8. The website is untouched by the app build ─────────────────────────────
 assert.equal(JSON.parse(read('mobile/capacitor.config.json')).server.url, 'https://www.assembleatease.com/app', 'Android keeps its existing shell; iOS no longer reads this');

@@ -857,6 +857,10 @@ struct JobDetailView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     StatusPill(text: job.statusLabel, strong: job.needsAcceptance || job.isActive)
                     Text(job.title).font(.title2.bold())
+                    // What is being built, not only the service name.
+                    if let work = job.workSummary {
+                        Text(work).font(.headline).foregroundStyle(.primary)
+                    }
                     if let ref = job.ref { Text(ref).font(.footnote).foregroundStyle(.secondary) }
                 }
 
