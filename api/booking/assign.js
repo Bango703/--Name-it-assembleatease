@@ -484,8 +484,8 @@ export default async function handler(req, res) {
 
   // Push notification — delivery failure never rolls back the assignment.
   const pushResult = await sendPushToUser(assemblerId, {
-    title: 'New Job Assigned',
-    body:  (booking.service || 'Service') + ' · ' + (booking.date || '') + (booking.time ? ' · ' + booking.time : ''),
+    title: 'New job',
+    body:  (booking.service || 'Service') + ' · ' + formatAppointmentDateShort(booking.date) + (booking.time ? ' · ' + formatSlotShort(booking.time) : '') + '. Review and accept.',
     url:   '/assembler/my-assignments',
     jobId: booking.id,
     urgent: true,
