@@ -33,6 +33,8 @@ struct CustomerApp: App {
             }
             .animation(.easeInOut(duration: 0.2), value: store.banner)
             .environmentObject(store)
+            .environmentObject(store.flow)
+            .onOpenURL { url in CardSheet.handle(url) }
             .environment(\.openURL, InAppBrowser.action {
                 store.browserCloses += 1
                 Task { await store.refresh() }

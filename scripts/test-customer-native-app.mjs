@@ -125,6 +125,80 @@ const app = Object.values(customer).join('\n');
   }
 }
 
+// ── 4c. Booking in the app (owner, 2026-10-13: "booking still goes through
+// website"). The server owns the catalog, the total, how it is paid and every
+// refusal; the app builds the order by item name and hands cards to Stripe. ───
+{
+  const flow = customer['CustomerBooking.swift'];
+  const models = customer['CustomerModels.swift'];
+  const catalogApi = read('api/booking/catalog.js');
+  const bookingApi = read('api/booking.js');
+  const preview = read('api/booking/promo-preview.js');
+
+  // One catalog: the endpoint reads the same file the server prices against.
+  assert.match(catalogApi, /getBookingCatalog\(\)/, 'the catalog is the pricing catalog');
+  for (const field of ['price_cents', 'add_on', 'custom_quote', 'popular', 'today_open_slots', 'first_date', 'last_date', 'terms_version', 'privacy_notice_version']) {
+    assert.ok(catalogApi.includes(field) && models.includes(`"${field}"`), `catalog field ${field}`);
+  }
+
+  // The windows offered are exactly the ones a new booking accepts.
+  const { BOOKING_TIME_SLOTS, openBookingSlots } = await import('../api/booking/_booking-slots.js');
+  const allowed = bookingApi.match(/const allowedSlots = \[([\s\S]*?)\];/);
+  assert.ok(allowed, 'api/booking.js still checks allowedSlots');
+  assert.deepEqual([...allowed[1].matchAll(/'([^']+)'/g)].map(m => m[1]), [...BOOKING_TIME_SLOTS], 'catalog windows match what a booking accepts');
+  assert.deepEqual(openBookingSlots('2026-10-13', new Date('2026-10-14T05:30:00Z')), [], 'a day that has passed offers nothing');
+  assert.equal(openBookingSlots('2026-10-20', new Date('2026-10-14T05:30:00Z')).length, BOOKING_TIME_SLOTS.length);
+
+  // The total and the plan come from the server; the website's call is unchanged without a date.
+  assert.match(preview, /summary: checkoutSummary\(pricingWithPromo, promo\)/);
+  assert.match(preview, /plan: checkoutPlan\(/);
+  assert.match(preview, /appointmentDate \? sameDayFeeForAppointment\(appointmentDate\) : 0/, 'no date, no same-day fee: the website preview behaves as before');
+  const { checkoutSummary, checkoutPlan } = await import('../api/booking/_checkout.js');
+  const { calculateBookingPricing } = await import('../api/_pricing.js');
+  const priced = calculateBookingPricing({
+    services: ['Furniture Assembly', 'Mounting & Hanging'],
+    itemsByService: {
+      'Furniture Assembly': [{ name: 'Bed frame — queen', qty: 2 }, { name: 'Dresser (up to 6 drawers)', qty: 1 }],
+      'Mounting & Hanging': [{ name: 'TV 41"–55" (standard wall)', qty: 1 }],
+    },
+    zip: '78701',
+  });
+  const summary = checkoutSummary({ ...priced, promoDiscountCents: 0 }, null);
+  assert.equal(summary.rows.reduce((s, r) => s + r.cents, 0), summary.total_cents, 'the rows add up to the total');
+  assert.equal(summary.total_cents, priced.totalCents);
+  assert.equal(checkoutPlan({ totalCents: 0, hasCustomQuote: true, date: '2026-10-20' }).kind, 'quote');
+  assert.equal(checkoutPlan({ totalCents: 5000, hasCustomQuote: true, date: '2026-10-20' }).kind, 'quote', 'a custom-quote item makes the order a quote, as on the website');
+
+  // The app never prices: it sends names and quantities, renders the server's rows and button.
+  assert.doesNotMatch(flow, /priceCents\s*[*+]/, 'no price math in the app');
+  assert.doesNotMatch(flow, /"price":/, 'the order carries no price');
+  assert.match(flow, /"name": item\.name, "qty": qty/);
+  assert.match(flow, /flow\.preview\?\.plan\?\.button/, 'the button is the server\'s');
+  assert.match(flow, /ForEach\(Array\(summary\.rows\.enumerated\(\)\)/, 'the total is the server\'s rows');
+  assert.match(flow, /order\["termsVersion"\] = catalog\?\.termsVersion/, 'the Terms version is the server\'s current one');
+  assert.match(flow, /order\["promoPreviewTotalCents"\]/, 'a changed offer is caught by the server (PROMO_CHANGED)');
+  assert.match(flow, /Optional: Text me appointment and service updates from AssembleAtEase at the number above\. Message frequency varies\. Message and data rates may apply\. Consent is not a condition of purchase\. Reply STOP to opt out or HELP for help\./,
+    'the text-message consent words are the website\'s, word for word');
+  assert.ok(read('book.html').includes('Optional: Text me appointment and service updates from AssembleAtEase at the number above.'), 'and the website still says them');
+  // A retry reuses the booking it already made instead of minting another (book.html does the same).
+  assert.match(flow, /held\.fingerprint == orderPrint/);
+  // A card hold that went through is confirmed without asking the customer again (Rule 16).
+  assert.match(flow, /await confirm\(created\)/);
+
+  // Cards go to Stripe's sheet, over the server's client secret.
+  const payments = customer['CustomerPayments.swift'];
+  assert.match(payments, /PaymentSheet\(paymentIntentClientSecret: secret/);
+  assert.match(payments, /PaymentSheet\(setupIntentClientSecret: secret/);
+  const project = read('mobile/ios/Customer/project.yml');
+  assert.match(project, /url: https:\/\/github\.com\/stripe\/stripe-ios-spm/);
+  assert.match(project, /product: StripePaymentSheet/);
+  const plist = read('mobile/ios/Customer/Support/Info.plist');
+  const scheme = payments.match(/returnURL = "([a-z-]+):\/\//)?.[1];
+  assert.ok(scheme && plist.includes(`<string>${scheme}</string>`), 'the bank-verification return link is registered');
+  assert.match(plist, /<key>NSCameraUsageDescription<\/key>/, 'card scanning has its permission line');
+  assert.doesNotMatch(easer.toString() + Object.values(easer).join('\n'), /import Stripe/, 'the Easer app takes no payments');
+}
+
 // ── 5. App Store basics ──────────────────────────────────────────────────────
 {
   const views = customer['CustomerViews.swift'];

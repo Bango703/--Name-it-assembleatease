@@ -35,6 +35,21 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.assembleatease.customer.stripe</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>assembleatease-customer</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Scan a card to fill in its number.</string>
+	<key>AAEApplePayMerchantID</key>
+	<string></string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose photos of the space or the items so your pro arrives ready.</string>
 </dict>
