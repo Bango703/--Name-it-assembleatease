@@ -155,6 +155,8 @@ struct BookingDetail: Decodable {
     let windowDays: Int
     let payment: PaymentSummary?
 
+    /// Finished bookings show no change buttons and a quieter card.
+    var isPast: Bool { ["completed", "cancelled", "declined", "refunded"].contains(status) }
     /// Decided by the server (track.js can_reschedule, from reschedule.js's own gates).
     let canReschedule: Bool
     /// The server sends a cancellation preview only while cancelling is possible.

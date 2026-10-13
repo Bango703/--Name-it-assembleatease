@@ -104,6 +104,27 @@ const app = Object.values(customer).join('\n');
   assert.doesNotMatch(track, /var serviceItems = Math\.max\(0, total - tax - call\)/, 'the page no longer does its own price math');
 }
 
+// ── 4b. Every field a screen reads exists on its model (build 2 failed on
+// detail.isPast after the model lost it; nothing here compiles Swift) ─────────
+{
+  const models = customer['CustomerModels.swift'];
+  const views = Object.values(customer).join('\n');
+  const block = (name) => {
+    const start = models.indexOf(`struct ${name}:`);
+    const next = models.indexOf('\nstruct ', start + 1);
+    return models.slice(start, next < 0 ? undefined : next);
+  };
+  for (const [variable, type] of [['detail', 'BookingDetail'], ['booking', 'BookingSummary'], ['proposal', 'ProposedTime'], ['payment', 'PaymentSummary'], ['message', 'CustomerMessage']]) {
+    const body = block(type);
+    assert.ok(body.length > 0, `${type} exists`);
+    const used = new Set([...views.matchAll(new RegExp(`\\b${variable}\\??\\.([a-zA-Z]+)`, 'g'))].map(m => m[1]));
+    assert.ok(used.size > 0, `${variable} is read somewhere`);
+    for (const member of used) {
+      assert.ok(new RegExp(`(let|var) ${member}\\b`).test(body), `${type} has ${member} (used as ${variable}.${member})`);
+    }
+  }
+}
+
 // ── 5. App Store basics ──────────────────────────────────────────────────────
 {
   const views = customer['CustomerViews.swift'];
