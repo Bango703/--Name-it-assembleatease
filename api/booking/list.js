@@ -256,6 +256,24 @@ export default async function handler(req, res) {
       });
     }
 
+    // What Easers said about the customer after the job (migration 110). Optional:
+    // without the table, or on a failed read, the booking shows nothing extra.
+    try {
+      const { data: feedbackRows, error: feedbackError } = await sb.from('customer_feedback')
+        .select('booking_id, easer_id, rating, flagged, flag_reason, note, created_at')
+        .in('booking_id', bookingIds);
+      if (!feedbackError) {
+        const byBooking = new Map();
+        (feedbackRows || []).forEach(row => {
+          if (!byBooking.has(row.booking_id)) byBooking.set(row.booking_id, []);
+          byBooking.get(row.booking_id).push(row);
+        });
+        data.forEach(booking => { booking._customer_feedback = byBooking.get(booking.id) || []; });
+      }
+    } catch (feedbackLoadError) {
+      console.error('[list] customer feedback load failed:', feedbackLoadError?.message || feedbackLoadError);
+    }
+
     if (unreadMsgs && unreadMsgs.length) {
       const unreadByBooking = new Map();
       unreadMsgs.forEach(message => {

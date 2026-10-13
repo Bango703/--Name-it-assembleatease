@@ -201,6 +201,18 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     let crewSize: Int
     /// When a step is not open yet: stage (en_route, arrived, in_progress) to the time it opens.
     let stageOpensAt: [String: String]
+    /// The customer-not-home clock (api/booking/customer-unavailable.js).
+    let customerUnavailable: CustomerUnavailable?
+    /// Where a reschedule moved the job from.
+    let previousSlot: PreviousSlot?
+    /// Tips the customer gave on this job (paid to the Easer's own Stripe account).
+    let tips: TipSummary?
+    /// The latest time this Easer proposed for the job.
+    let timeProposal: TimeProposal?
+    /// Extra work requested on this job, newest last. Description and status only.
+    let extraWork: [ExtraWorkRequest]
+    /// Whether this Easer has rated the customer.
+    let customerFeedback: CustomerFeedbackGiven?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
@@ -242,6 +254,12 @@ struct EaserJob: Decodable, Identifiable, Hashable {
             }
         }
         stageOpensAt = opens
+        customerUnavailable = try? c.decodeIfPresent(CustomerUnavailable.self, forKey: DynamicKey("_customer_unavailable"))
+        previousSlot = try? c.decodeIfPresent(PreviousSlot.self, forKey: DynamicKey("_previous_slot"))
+        tips = try? c.decodeIfPresent(TipSummary.self, forKey: DynamicKey("_tips"))
+        timeProposal = try? c.decodeIfPresent(TimeProposal.self, forKey: DynamicKey("_time_proposal"))
+        extraWork = (try? c.decodeIfPresent([ExtraWorkRequest].self, forKey: DynamicKey("_extra_work"))) ?? []
+        customerFeedback = try? c.decodeIfPresent(CustomerFeedbackGiven.self, forKey: DynamicKey("_customer_feedback"))
     }
 
     /// The server's verdict on one job step (my-assignments _stage_availability).
@@ -436,11 +454,230 @@ struct EarningsSummary: Decodable {
 struct EarningsEnvelope: Decodable {
     let earnings: [Earning]
     let summary: EarningsSummary?
+    /// Tips are the Easer's own money (api/assembler/_easer-tips.js), shown beside earnings.
+    let tips: TipsEnvelope?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         earnings = (try? c.decodeIfPresent([Earning].self, forKey: DynamicKey("earnings"))) ?? []
         summary = try? c.decodeIfPresent(EarningsSummary.self, forKey: DynamicKey("summary"))
+        tips = try? c.decodeIfPresent(TipsEnvelope.self, forKey: DynamicKey("tips"))
+    }
+}
+
+// MARK: - Job lifecycle (owner audit, 2026-10-12)
+
+/// The customer-not-home state of a job: when it was reported and when the wait ends.
+struct CustomerUnavailable: Decodable, Hashable {
+    let reportedAt: String?
+    let waitUntil: String?
+    let canReportNoShow: Bool
+    let noShowReportedAt: String?
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        reportedAt = c.string("reportedAt")
+        waitUntil = c.string("waitUntil")
+        canReportNoShow = c.bool("canReportNoShow") ?? false
+        noShowReportedAt = c.string("noShowReportedAt")
+    }
+    var waitEnds: Date? { Format.timestamp(waitUntil) }
+}
+
+struct PreviousSlot: Decodable, Hashable {
+    let date: String?
+    let time: String?
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        date = c.string("date")
+        time = c.string("time")
+    }
+}
+
+struct TipSummary: Decodable, Hashable {
+    let count: Int
+    let amountCents: Double
+    let feeCents: Double
+    let netCents: Double
+    let feePending: Bool
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        count = Int(c.number("count") ?? 0)
+        amountCents = c.number("amountCents") ?? 0
+        feeCents = c.number("feeCents") ?? 0
+        netCents = c.number("netCents") ?? 0
+        feePending = c.bool("feePending") ?? false
+    }
+}
+
+struct TipItem: Decodable, Identifiable, Hashable {
+    let id: String
+    let ref: String?
+    let service: String?
+    let date: String?
+    let amountCents: Double
+    let netCents: Double
+    let createdAt: String?
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id") ?? UUID().uuidString
+        ref = c.string("ref")
+        service = c.string("service")
+        date = c.string("date")
+        amountCents = c.number("amountCents") ?? 0
+        netCents = c.number("netCents") ?? 0
+        createdAt = c.string("createdAt")
+    }
+}
+
+struct TipsEnvelope: Decodable {
+    let summary: TipSummary?
+    let items: [TipItem]
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        summary = try? c.decodeIfPresent(TipSummary.self, forKey: DynamicKey("summary"))
+        items = (try? c.decodeIfPresent([TipItem].self, forKey: DynamicKey("items"))) ?? []
+    }
+}
+
+struct TimeProposal: Decodable, Hashable {
+    let id: String?
+    let date: String?
+    let time: String?
+    let status: String
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id")
+        date = c.string("date")
+        time = c.string("time")
+        status = c.string("status") ?? "pending"
+    }
+    var isPending: Bool { status == "pending" }
+}
+
+struct ExtraWorkRequest: Decodable, Hashable, Identifiable {
+    let id: String
+    let description: String
+    let status: String
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id") ?? UUID().uuidString
+        description = c.string("description") ?? "Extra work"
+        status = c.string("status") ?? ""
+    }
+    /// The change-order status (api/booking/_change-orders.js) in the Easer's words.
+    var statusLabel: String {
+        switch status {
+        case "pending_customer_approval": return "Waiting for the customer"
+        case "authorized", "captured": return "Approved"
+        case "declined": return "Declined"
+        case "refunded": return "Refunded"
+        default: return "Closed"
+        }
+    }
+    var approved: Bool { status == "authorized" || status == "captured" }
+}
+
+struct CustomerFeedbackGiven: Decodable, Hashable {
+    let rating: Int?
+    let flagged: Bool
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        rating = c.number("rating").map { Int($0) }
+        flagged = c.bool("flagged") ?? false
+    }
+}
+
+/// The Easer's reliability standing (api/assembler/reliability.js).
+struct Reliability: Decodable {
+    let strikes: Int
+    let windowDays: Int
+    let pauseAtStrikes: Int
+    let paused: Bool
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        strikes = Int(c.number("strikes") ?? 0)
+        windowDays = Int(c.number("windowDays") ?? 90)
+        pauseAtStrikes = Int(c.number("pauseAtStrikes") ?? 3)
+        paused = c.bool("paused") ?? false
+    }
+}
+
+/// One time range on one day, 24-hour "HH:MM".
+struct WorkWindow: Codable, Hashable {
+    var start: String
+    var end: String
+}
+
+/// The services an Easer takes and the hours they work (api/assembler/work-preferences.js).
+/// nil services means every service; nil availability means any time.
+struct WorkPreferences: Decodable {
+    let allServices: [String]
+    let weekdays: [String]
+    let services: [String]?
+    let availability: [String: [WorkWindow]]?
+    let unavailable: Bool
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        allServices = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("allServices"))) ?? []
+        weekdays = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("weekdays"))) ?? ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+        services = try? c.decodeIfPresent([String].self, forKey: DynamicKey("services"))
+        availability = try? c.decodeIfPresent([String: [WorkWindow]].self, forKey: DynamicKey("availability"))
+        unavailable = c.bool("unavailable") ?? false
+    }
+}
+
+/// One catalog item the Easer can add on site (api/booking/extra-work.js). No prices.
+struct ExtraWorkCatalogItem: Decodable, Hashable, Identifiable {
+    let name: String
+    let group: String?
+    let addOn: Bool
+    var id: String { name }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        name = c.string("name") ?? ""
+        group = c.string("group")
+        addOn = c.bool("addOn") ?? false
+    }
+}
+
+struct ExtraWorkService: Decodable, Hashable, Identifiable {
+    let name: String
+    let items: [ExtraWorkCatalogItem]
+    var id: String { name }
+    init(name: String, items: [ExtraWorkCatalogItem]) {
+        self.name = name
+        self.items = items
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        name = c.string("name") ?? ""
+        items = (try? c.decodeIfPresent([ExtraWorkCatalogItem].self, forKey: DynamicKey("items"))) ?? []
+    }
+}
+
+struct ExtraWorkOptions: Decodable {
+    let canAdd: Bool
+    let reason: String?
+    let services: [ExtraWorkService]
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        canAdd = c.bool("canAdd") ?? false
+        reason = c.string("reason")
+        services = (try? c.decodeIfPresent([ExtraWorkService].self, forKey: DynamicKey("services"))) ?? []
+    }
+}
+
+struct TimeProposalOptions: Decodable {
+    let slots: [String]
+    let windowDays: Int
+    let canPropose: Bool
+    let reason: String?
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        slots = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("slots"))) ?? []
+        windowDays = Int(c.number("windowDays") ?? 30)
+        canPropose = c.bool("canPropose") ?? false
+        reason = c.string("reason")
     }
 }
 

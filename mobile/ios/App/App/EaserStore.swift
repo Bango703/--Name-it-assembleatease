@@ -95,6 +95,8 @@ final class EaserStore: ObservableObject {
     /// Set from the scene: the app refreshes on its own only while it is on screen.
     var appActive = true
     @Published var earnings: EarningsEnvelope?
+    /// Strikes in the window and whether new jobs are paused (api/assembler/reliability.js).
+    @Published var reliability: Reliability?
     @Published var notices: [EaserNotice] = []
     @Published var loadedOnce = false
     @Published var loadProblem: String?
@@ -195,6 +197,7 @@ final class EaserStore: ObservableObject {
         case notices(Result<NoticesEnvelope, Error>)
         case texts(Result<TextAlerts, Error>)
         case actions(Result<RequiredActionsEnvelope, Error>)
+        case reliability(Result<Reliability, Error>)
     }
 
     private var cache: SnapshotCache? { api.session.map { SnapshotCache(userID: $0.userID) } }
@@ -268,6 +271,10 @@ final class EaserStore: ObservableObject {
                 let result = await self.capture { try await self.fetch("/api/assembler/required-actions", keep: "actions", as: RequiredActionsEnvelope.self) }
                 return .actions(result)
             }
+            group.addTask {
+                let result = await self.capture { try await self.fetch("/api/assembler/reliability", keep: "reliability", as: Reliability.self) }
+                return .reliability(result)
+            }
             for await part in group {
                 switch part {
                 case .jobs(let result):
@@ -298,6 +305,8 @@ final class EaserStore: ObservableObject {
                     if case .success(let value) = result { textAlerts = value }
                 case .actions(let result):
                     if case .success(let value) = result { requiredActions = value.actions }
+                case .reliability(let result):
+                    if case .success(let value) = result { reliability = value }
                 }
             }
         }
@@ -463,6 +472,145 @@ final class EaserStore: ObservableObject {
             banner = Banner(text: error.localizedDescription, kind: .problem)
         }
         await refresh()
+    }
+
+    // MARK: Help and the rest of the job (owner audit, 2026-10-12)
+
+    /// The kinds of help an Easer asks for from a job (api/booking/_easer-support.js).
+    static let helpTopics: [(type: String, title: String)] = [
+        ("job_issue", "Problem with the job"),
+        ("cannot_make", "I can't make this job"),
+        ("customer_unavailable", "Customer isn't here"),
+        ("safety_concern", "Safety concern"),
+        ("other", "Something else"),
+    ]
+
+    /// Sends a help request to AssembleAtEase about this job. Returns the problem to show, or nil once sent.
+    func requestHelp(_ job: EaserJob, type: String, note: String) async -> String? {
+        let title = Self.helpTopics.first(where: { $0.type == type })?.title ?? "Help request"
+        let body = note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "[\(title)]" : "[\(title)]\n\(note)"
+        do {
+            _ = try await api.call("POST", "/api/booking/message", body: ["bookingId": job.id, "body": body, "sender": "assembler", "supportType": type])
+            banner = Banner(text: type == "safety_concern" ? "Urgent report sent." : "Sent to AssembleAtEase.", kind: .success)
+            return nil
+        } catch {
+            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+        }
+    }
+
+    /// Customer isn't here: tells the customer and starts the wait, or after the
+    /// wait reports a no-show (api/booking/customer-unavailable.js).
+    func customerUnavailable(_ job: EaserJob, action: String, note: String = "") async -> String? {
+        busyJobs.insert(job.id)
+        defer { busyJobs.remove(job.id) }
+        do {
+            _ = try await api.call("POST", "/api/booking/customer-unavailable", body: ["bookingId": job.id, "action": action, "note": note])
+            banner = Banner(text: action == "start" ? "The customer was told you're here." : "No-show reported. You can leave.", kind: .success)
+            await refreshJobs()
+            return nil
+        } catch {
+            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+        }
+    }
+
+    /// Running late: one message to the customer through the platform.
+    func runningLate(_ job: EaserJob, minutes: Int) async {
+        await perform(job, success: "The customer was told.") {
+            _ = try await self.api.call("POST", "/api/booking/message", body: [
+                "bookingId": job.id,
+                "body": "Running about \(minutes) minutes late. I'm on my way.",
+                "sender": "assembler",
+                "target": "customer",
+            ])
+        }
+    }
+
+    func extraWorkOptions(_ job: EaserJob) async -> ExtraWorkOptions? {
+        try? await api.get("/api/booking/extra-work?bookingId=" + EaserAPI.query(job.id), as: ExtraWorkOptions.self)
+    }
+
+    /// Sends catalog items to the customer to approve. Returns the problem to show, or nil once sent.
+    func requestExtraWork(_ job: EaserJob, items: [(service: String, name: String, qty: Int)], note: String) async -> String? {
+        let payload: [[String: Any]] = items.map { ["service": $0.service, "name": $0.name, "qty": $0.qty] }
+        do {
+            let data = try await api.call("POST", "/api/booking/extra-work", body: ["bookingId": job.id, "items": payload, "note": note])
+            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["message"] as? String
+            banner = Banner(text: message ?? "Sent to the customer to approve.", kind: .success)
+            await refreshJobs()
+            return nil
+        } catch {
+            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+        }
+    }
+
+    func timeProposalOptions(_ job: EaserJob) async -> TimeProposalOptions? {
+        try? await api.get("/api/booking/time-proposal?bookingId=" + EaserAPI.query(job.id), as: TimeProposalOptions.self)
+    }
+
+    /// Proposes a new time to the customer. Returns the problem to show, or nil once sent.
+    func proposeTime(_ job: EaserJob, date: String, time: String, note: String) async -> String? {
+        do {
+            _ = try await api.call("POST", "/api/booking/time-proposal", body: ["bookingId": job.id, "action": "propose", "date": date, "time": time, "note": note])
+            banner = Banner(text: "Sent to the customer.", kind: .success)
+            await refreshJobs()
+            return nil
+        } catch {
+            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+        }
+    }
+
+    func withdrawTimeProposal(_ job: EaserJob) async {
+        await perform(job, success: "Proposed time withdrawn.") {
+            _ = try await self.api.call("POST", "/api/booking/time-proposal", body: ["bookingId": job.id, "action": "withdraw"])
+        }
+    }
+
+    /// Reasons an Easer can flag a customer (api/booking/customer-feedback.js).
+    static let customerFlagReasons: [(code: String, label: String)] = [
+        ("safety", "Safety concern"),
+        ("conduct", "Rude or abusive"),
+        ("payment", "Asked to pay outside the app"),
+        ("access", "Could not access the home"),
+        ("other", "Other"),
+    ]
+
+    /// Private rating of the customer after the job. Returns the problem to show, or nil once saved.
+    func rateCustomer(_ job: EaserJob, rating: Int?, flagReason: String?, note: String) async -> String? {
+        var body: [String: Any] = ["bookingId": job.id, "flagged": flagReason != nil, "note": note]
+        if let rating { body["rating"] = rating }
+        if let flagReason { body["flagReason"] = flagReason }
+        do {
+            _ = try await api.call("POST", "/api/booking/customer-feedback", body: body)
+            banner = Banner(text: "Thanks. Only AssembleAtEase sees this.", kind: .success)
+            await refreshJobs()
+            return nil
+        } catch {
+            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+        }
+    }
+
+    func workPreferences() async -> WorkPreferences? {
+        try? await api.get("/api/assembler/work-preferences", as: WorkPreferences.self)
+    }
+
+    /// Saves services (nil = all) and weekly hours (nil = any time). Returns the problem to show, or nil once saved.
+    func saveWorkPreferences(services: [String]?, availability: [String: [WorkWindow]]?) async -> String? {
+        var body: [String: Any] = [:]
+        body["services"] = services.map { $0 as Any } ?? NSNull()
+        if let availability {
+            var days: [String: Any] = [:]
+            for (day, windows) in availability { days[day] = windows.map { ["start": $0.start, "end": $0.end] } }
+            body["availability"] = days
+        } else {
+            body["availability"] = NSNull()
+        }
+        do {
+            _ = try await api.call("POST", "/api/assembler/work-preferences", body: body)
+            banner = Banner(text: "Work preferences saved.", kind: .success)
+            return nil
+        } catch {
+            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+        }
     }
 
     // MARK: Availability

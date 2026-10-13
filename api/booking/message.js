@@ -17,47 +17,15 @@ import {
 import { customerOwnsBooking } from './_customer-booking-auth.js';
 import { evaluateCustomerContactRelease } from './_customer-contact-release.js';
 import { inspectRelayMessage } from './_relay-contact-guard.js';
+import { EASER_SUPPORT_TYPES } from './_easer-support.js';
 import {
   OPERATION_CASE_SEVERITIES,
   OPERATION_CASE_SOURCES,
-  OPERATION_CASE_TYPES,
   createOperationCase,
   operationCasePublicStatus,
 } from '../_operation-cases.js';
 
 const SITE = 'https://www.assembleatease.com';
-const EASER_SUPPORT_TYPES = Object.freeze({
-  job_issue: {
-    caseType: OPERATION_CASE_TYPES.SUPPORT,
-    severity: OPERATION_CASE_SEVERITIES.NORMAL,
-    subject: 'Easer reported a job issue',
-    notificationType: 'easer_job_issue',
-  },
-  cannot_make: {
-    caseType: OPERATION_CASE_TYPES.SUPPORT,
-    severity: OPERATION_CASE_SEVERITIES.HIGH,
-    subject: 'Easer requested release from an assignment',
-    notificationType: 'easer_release_request',
-  },
-  customer_unavailable: {
-    caseType: OPERATION_CASE_TYPES.SUPPORT,
-    severity: OPERATION_CASE_SEVERITIES.HIGH,
-    subject: 'Customer unavailable at appointment',
-    notificationType: 'easer_customer_unavailable',
-  },
-  safety_concern: {
-    caseType: OPERATION_CASE_TYPES.SAFETY,
-    severity: OPERATION_CASE_SEVERITIES.CRITICAL,
-    subject: 'Urgent Easer safety concern',
-    notificationType: 'easer_safety_concern',
-  },
-  other: {
-    caseType: OPERATION_CASE_TYPES.SUPPORT,
-    severity: OPERATION_CASE_SEVERITIES.NORMAL,
-    subject: 'Easer requested job support',
-    notificationType: 'easer_support_request',
-  },
-});
 
 export default async function handler(req, res) {
   const ip = String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();

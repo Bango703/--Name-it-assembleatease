@@ -301,6 +301,7 @@ private struct TodayView: View {
                     // so the switch is not offered; the steps come first.
                     if !store.needsSetup { AvailabilityCard() }
                     RequiredActionsCard()
+                    ReliabilityCard()
                     SetupCard()
                     if let problem = store.loadProblem, store.jobs.isEmpty, !store.jobsLocked {
                         NoticeCard(icon: "wifi.exclamationmark", title: "Jobs could not be loaded", text: problem)
@@ -835,6 +836,10 @@ struct JobDetailView: View {
     @State private var photoSheet: PhotoSheetMode?
     @State private var releasing = false
     @State private var customerPhotos: [CustomerPhoto] = []
+    @State private var helping = false
+    @State private var addingWork = false
+    @State private var proposingTime = false
+    @State private var ratingCustomer = false
 
     var body: some View {
         Group {
@@ -900,11 +905,21 @@ struct JobDetailView: View {
                     if job.isOffer, let left = Format.timeLeft(until: job.offerExpiresAt) {
                         Text(left).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.attention)
                     }
+                    if let tips = job.tips, tips.count > 0 {
+                        Label("Tip \(Format.money(cents: tips.amountCents))", systemImage: "heart.fill")
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark)
+                        Text(tips.feePending ? "Paid to your Stripe account." : "You keep \(Format.money(cents: tips.netCents)) after Stripe's fee.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
 
                 DetailBlock(title: "When and where") {
                     if !job.isFinished {
                         JobMapCard(query: job.place, exact: job.acceptedAt != nil && job.address != nil)
+                    }
+                    if let previous = job.previousSlot, !job.isFinished {
+                        Label("Moved from \([Format.day(previous.date), previous.time].compactMap { $0 }.joined(separator: " · "))", systemImage: "arrow.uturn.backward")
+                            .font(.subheadline).foregroundStyle(Brand.attention)
                     }
                     if !job.when.isEmpty { Label(job.when, systemImage: "calendar") }
                     Label(job.place, systemImage: "mappin.and.ellipse")
@@ -975,18 +990,84 @@ struct JobDetailView: View {
                     }
                 }
 
-                if job.acceptedAt != nil {
-                    DetailBlock(title: "Something wrong?") {
-                        Button {
-                            photoSheet = .damage
-                        } label: {
-                            Label("Report damage", systemImage: "exclamationmark.triangle")
+                // The rest of the job: proposed time, customer not here, extra work,
+                // changes, help and the customer rating (owner audit, 2026-10-12).
+                Group {
+                    if let proposal = job.timeProposal, proposal.isPending, !job.isFinished {
+                        DetailBlock(title: "New time you proposed") {
+                            Label([Format.day(proposal.date), proposal.time].compactMap { $0 }.joined(separator: " · "), systemImage: "calendar.badge.clock")
+                            Text("Waiting on the customer.").font(.subheadline).foregroundStyle(.secondary)
+                            Button("Withdraw") { Task { await store.withdrawTimeProposal(job) } }
+                                .buttonStyle(.borderless)
                         }
-                        if job.canRelease {
-                            Button(role: .destructive) {
-                                releasing = true
+                    }
+
+                    if job.status == "arrived" && job.acceptedAt != nil && !job.isHelper {
+                        CustomerNotHereBlock(job: job)
+                    }
+
+                    if !job.extraWork.isEmpty {
+                        DetailBlock(title: "Extra work") {
+                            ForEach(job.extraWork) { request in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(request.description).font(.subheadline)
+                                    Text(request.statusLabel).font(.caption.weight(.semibold))
+                                        .foregroundStyle(request.approved ? Brand.skyDark : .secondary)
+                                }
+                            }
+                        }
+                    }
+
+                    if job.acceptedAt != nil && !job.isFinished && !job.isHelper {
+                        DetailBlock(title: "Job changes") {
+                            if job.status == "confirmed" || job.status == "en_route" {
+                                Menu {
+                                    ForEach([10, 20, 30], id: \.self) { minutes in
+                                        Button("\(minutes) minutes") { Task { await store.runningLate(job, minutes: minutes) } }
+                                    }
+                                } label: {
+                                    Label("Running late", systemImage: "clock.badge.exclamationmark")
+                                }
+                            }
+                            if job.status == "confirmed" && job.timeProposal?.isPending != true {
+                                Button { proposingTime = true } label: { Label("Propose a new time", systemImage: "calendar.badge.clock") }
+                            }
+                            Button { addingWork = true } label: { Label("Add work", systemImage: "plus.circle") }
+                        }
+                    }
+
+                    if job.acceptedAt != nil {
+                        DetailBlock(title: "Something wrong?") {
+                            if !job.isFinished {
+                                Button { helping = true } label: { Label("Get help with this job", systemImage: "questionmark.circle") }
+                            }
+                            Button {
+                                photoSheet = .damage
                             } label: {
-                                Label("I can't make this job", systemImage: "calendar.badge.minus")
+                                Label("Report damage", systemImage: "exclamationmark.triangle")
+                            }
+                            if job.canRelease {
+                                Button(role: .destructive) {
+                                    releasing = true
+                                } label: {
+                                    Label("I can't make this job", systemImage: "calendar.badge.minus")
+                                }
+                            }
+                        }
+                    }
+
+                    if job.status == "completed" {
+                        DetailBlock(title: "How was the customer?") {
+                            if let feedback = job.customerFeedback {
+                                if feedback.flagged {
+                                    Label("You flagged a concern", systemImage: "flag.fill").foregroundStyle(Brand.attention)
+                                }
+                                if let rating = feedback.rating {
+                                    Label("You rated them \(rating) of 5", systemImage: "star.fill").foregroundStyle(Brand.skyDark)
+                                }
+                            } else {
+                                Text("Only AssembleAtEase sees this.").font(.subheadline).foregroundStyle(.secondary)
+                                Button { ratingCustomer = true } label: { Label("Rate the customer", systemImage: "star") }
                             }
                         }
                     }
@@ -1011,6 +1092,16 @@ struct JobDetailView: View {
         }
         .sheet(item: $photoSheet) { mode in PhotoSheet(job: job, mode: mode).environmentObject(store) }
         .sheet(isPresented: $releasing) { ReleaseSheet(job: job).environmentObject(store) }
+        .sheet(isPresented: $helping) {
+            HelpSheet(job: job) {
+                helping = false
+                releasing = true
+            }
+            .environmentObject(store)
+        }
+        .sheet(isPresented: $addingWork) { AddWorkSheet(job: job).environmentObject(store) }
+        .sheet(isPresented: $proposingTime) { ProposeTimeSheet(job: job).environmentObject(store) }
+        .sheet(isPresented: $ratingCustomer) { RateCustomerSheet(job: job).environmentObject(store) }
     }
 
     /// Customer photos are shown once the job is accepted, as on the website.
@@ -1069,6 +1160,478 @@ struct JobDetailView: View {
         .overlay(alignment: .top) {
             if !(job.nextStep == .noAction && !job.isHelper) { Divider() }
         }
+    }
+}
+
+// MARK: - The rest of the job (owner audit, 2026-10-12)
+
+/// Help from inside a job, the same requests the website's support panel sends
+/// (api/booking/message.js supportType). Customer-not-home has its own card.
+private struct HelpSheet: View {
+    let job: EaserJob
+    let openRelease: () -> Void
+    @EnvironmentObject private var store: EaserStore
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    @State private var topic: String?
+    @State private var note = ""
+    @State private var sending = false
+    @State private var problem: String?
+
+    private var topics: [(type: String, title: String)] {
+        EaserStore.helpTopics.filter { $0.type != "customer_unavailable" }
+    }
+
+    private var canSend: Bool {
+        guard let topic, !sending else { return false }
+        let length = note.trimmingCharacters(in: .whitespacesAndNewlines).count
+        switch topic {
+        case "safety_concern": return length >= 10
+        case "cannot_make": return true
+        default: return length >= 3
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Button {
+                        if let url = URL(string: "tel:" + Site.supportPhone) { openURL(url) }
+                    } label: {
+                        Label("Call AssembleAtEase", systemImage: "phone")
+                    }
+                }
+                Section("What do you need help with?") {
+                    ForEach(Array(topics.enumerated()), id: \.offset) { _, item in
+                        Button {
+                            if item.type == "cannot_make" && job.canRelease {
+                                openRelease()
+                            } else {
+                                topic = item.type
+                                problem = nil
+                            }
+                        } label: {
+                            HStack {
+                                Text(item.title).foregroundStyle(.primary)
+                                Spacer()
+                                if topic == item.type {
+                                    Image(systemName: "checkmark").foregroundStyle(Brand.skyDark)
+                                }
+                            }
+                        }
+                    }
+                }
+                if let topic {
+                    if topic == "safety_concern" {
+                        Section {
+                            Text("If anyone is in danger, call 911. Move to a safe place first.")
+                                .foregroundStyle(Brand.attention)
+                        }
+                    }
+                    Section {
+                        TextField(topic == "safety_concern" ? "What is happening" : "Add details", text: $note, axis: .vertical)
+                            .lineLimit(3...6)
+                    } footer: {
+                        if let problem { Text(problem).foregroundStyle(Brand.attention) }
+                    }
+                }
+            }
+            .navigationTitle("Get help")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if topic != nil {
+                    Button {
+                        Task { await send() }
+                    } label: {
+                        if sending { ProgressView().tint(Brand.ink) } else { Text(topic == "safety_concern" ? "Send urgent report" : "Send") }
+                    }
+                    .buttonStyle(PrimaryButtonStyle(enabled: canSend))
+                    .disabled(!canSend)
+                    .padding(16)
+                    .background(.bar)
+                }
+            }
+        }
+    }
+
+    private func send() async {
+        guard let topic else { return }
+        sending = true
+        problem = await store.requestHelp(job, type: topic, note: note)
+        sending = false
+        if problem == nil { dismiss() }
+    }
+}
+
+/// Customer isn't here: tell the customer and wait, then report a no-show
+/// (api/booking/customer-unavailable.js). The clock is the server's.
+private struct CustomerNotHereBlock: View {
+    let job: EaserJob
+    @EnvironmentObject private var store: EaserStore
+    @State private var working = false
+    @State private var problem: String?
+
+    var body: some View {
+        DetailBlock(title: "Customer isn't here?") {
+            if let state = job.customerUnavailable {
+                if state.noShowReportedAt != nil {
+                    Label("No-show reported. You can leave.", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(Brand.skyDark)
+                    Text("AssembleAtEase confirms it with the customer.").font(.subheadline).foregroundStyle(.secondary)
+                } else {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        let left = max(0, Int((state.waitEnds ?? context.date).timeIntervalSince(context.date)))
+                        VStack(alignment: .leading, spacing: 10) {
+                            if left > 0 {
+                                Text("The customer was told you're here.")
+                                Text("Wait \(left / 60):\(String(format: "%02d", left % 60))")
+                                    .font(.title3.monospacedDigit().weight(.semibold))
+                            } else {
+                                Text("The wait is over.")
+                            }
+                            Button {
+                                Task { await act("no_show") }
+                            } label: {
+                                if working { ProgressView().tint(Brand.ink) } else { Text("Report a no-show") }
+                            }
+                            .buttonStyle(PrimaryButtonStyle(enabled: left == 0 && !working))
+                            .disabled(left > 0 || working)
+                        }
+                    }
+                }
+            } else {
+                Text("Tell the customer you're here and wait 15 minutes.").font(.subheadline).foregroundStyle(.secondary)
+                Button {
+                    Task { await act("start") }
+                } label: {
+                    if working { ProgressView() } else { Text("Customer isn't here") }
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .disabled(working)
+            }
+            if let problem {
+                Text(problem).font(.footnote).foregroundStyle(Brand.attention)
+            }
+        }
+    }
+
+    private func act(_ action: String) async {
+        working = true
+        problem = await store.customerUnavailable(job, action: action)
+        working = false
+    }
+}
+
+/// Add work on site: pick catalog items; the customer approves before anything is
+/// charged (api/booking/extra-work.js). No prices on this screen (Rule 3).
+private struct AddWorkSheet: View {
+    struct Picked: Identifiable, Hashable {
+        let service: String
+        let name: String
+        var qty: Int
+        var id: String { service + "|" + name }
+    }
+
+    let job: EaserJob
+    @EnvironmentObject private var store: EaserStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var options: ExtraWorkOptions?
+    @State private var loading = true
+    @State private var search = ""
+    @State private var picked: [Picked] = []
+    @State private var note = ""
+    @State private var sending = false
+    @State private var problem: String?
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if loading {
+                    ProgressView()
+                } else if let options, !options.canAdd {
+                    ContentUnavailableView("Extra work can't be added here", systemImage: "plus.circle",
+                                           description: Text(options.reason ?? "Use Get help on this job."))
+                } else if let options {
+                    List {
+                        if !picked.isEmpty {
+                            Section {
+                                ForEach($picked) { $item in
+                                    Stepper(value: $item.qty, in: 1...20) {
+                                        Text("\(item.name) ×\(item.qty)")
+                                    }
+                                }
+                                .onDelete { picked.remove(atOffsets: $0) }
+                                TextField("Note for the customer (optional)", text: $note, axis: .vertical)
+                                    .lineLimit(1...4)
+                            } header: {
+                                Text("Adding")
+                            } footer: {
+                                if let problem {
+                                    Text(problem).foregroundStyle(Brand.attention)
+                                } else {
+                                    Text("The customer gets a request to approve.")
+                                }
+                            }
+                        }
+                        ForEach(filtered(options.services)) { service in
+                            Section(service.name) {
+                                ForEach(service.items) { item in
+                                    Button {
+                                        toggle(service: service.name, name: item.name)
+                                    } label: {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(item.name).foregroundStyle(.primary)
+                                                if let group = item.group {
+                                                    Text(group).font(.caption).foregroundStyle(.secondary)
+                                                }
+                                            }
+                                            Spacer()
+                                            if picked.contains(where: { $0.service == service.name && $0.name == item.name }) {
+                                                Image(systemName: "checkmark.circle.fill").foregroundStyle(Brand.skyDark)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .searchable(text: $search, prompt: "Search items")
+                } else {
+                    ContentUnavailableView("Could not load the catalog", systemImage: "wifi.exclamationmark",
+                                           description: Text("Close this and try again."))
+                }
+            }
+            .navigationTitle("Add work")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if !picked.isEmpty {
+                    Button {
+                        Task { await send() }
+                    } label: {
+                        if sending { ProgressView().tint(Brand.ink) } else { Text("Send to the customer") }
+                    }
+                    .buttonStyle(PrimaryButtonStyle(enabled: !sending))
+                    .disabled(sending)
+                    .padding(16)
+                    .background(.bar)
+                }
+            }
+            .task {
+                options = await store.extraWorkOptions(job)
+                loading = false
+            }
+        }
+    }
+
+    private func filtered(_ services: [ExtraWorkService]) -> [ExtraWorkService] {
+        let term = search.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !term.isEmpty else { return services }
+        return services.compactMap { service in
+            let items = service.items.filter { $0.name.lowercased().contains(term) || ($0.group ?? "").lowercased().contains(term) }
+            return items.isEmpty ? nil : ExtraWorkService(name: service.name, items: items)
+        }
+    }
+
+    private func toggle(service: String, name: String) {
+        if let index = picked.firstIndex(where: { $0.service == service && $0.name == name }) {
+            picked.remove(at: index)
+        } else {
+            picked.append(Picked(service: service, name: name, qty: 1))
+        }
+        problem = nil
+    }
+
+    private func send() async {
+        sending = true
+        problem = await store.requestExtraWork(job, items: picked.map { (service: $0.service, name: $0.name, qty: $0.qty) }, note: note)
+        sending = false
+        if problem == nil { dismiss() }
+    }
+}
+
+/// Propose a new time instead of dropping the job. The customer accepts it on
+/// their booking page (api/booking/time-proposal.js).
+private struct ProposeTimeSheet: View {
+    let job: EaserJob
+    @EnvironmentObject private var store: EaserStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var options: TimeProposalOptions?
+    @State private var loading = true
+    @State private var date = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+    @State private var slot = ""
+    @State private var note = ""
+    @State private var sending = false
+    @State private var problem: String?
+
+    private static let isoDay: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "America/Chicago")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private func lastDay(_ options: TimeProposalOptions) -> Date {
+        Calendar.current.date(byAdding: .day, value: max(1, options.windowDays), to: Date()) ?? Date()
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if loading {
+                    ProgressView()
+                } else if let options, !options.canPropose {
+                    ContentUnavailableView("A new time can't be proposed", systemImage: "calendar.badge.clock",
+                                           description: Text(options.reason ?? "Use Get help on this job."))
+                } else if let options {
+                    Form {
+                        Section {
+                            DatePicker("Date", selection: $date, in: Date()...lastDay(options), displayedComponents: .date)
+                            Picker("Time", selection: $slot) {
+                                ForEach(options.slots, id: \.self) { Text($0).tag($0) }
+                            }
+                        } header: {
+                            Text("Booked: \(job.when)")
+                        }
+                        Section {
+                            TextField("Note for the customer (optional)", text: $note, axis: .vertical)
+                                .lineLimit(1...4)
+                        } footer: {
+                            if let problem {
+                                Text(problem).foregroundStyle(Brand.attention)
+                            } else {
+                                Text("The customer accepts it or keeps the booked time.")
+                            }
+                        }
+                    }
+                } else {
+                    ContentUnavailableView("Could not load", systemImage: "wifi.exclamationmark",
+                                           description: Text("Close this and try again."))
+                }
+            }
+            .navigationTitle("Propose a new time")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if options?.canPropose == true {
+                    Button {
+                        Task { await send() }
+                    } label: {
+                        if sending { ProgressView().tint(Brand.ink) } else { Text("Send to the customer") }
+                    }
+                    .buttonStyle(PrimaryButtonStyle(enabled: !slot.isEmpty && !sending))
+                    .disabled(slot.isEmpty || sending)
+                    .padding(16)
+                    .background(.bar)
+                }
+            }
+            .task {
+                options = await store.timeProposalOptions(job)
+                if slot.isEmpty { slot = options?.slots.first ?? "" }
+                loading = false
+            }
+        }
+    }
+
+    private func send() async {
+        sending = true
+        problem = await store.proposeTime(job, date: Self.isoDay.string(from: date), time: slot, note: note)
+        sending = false
+        if problem == nil { dismiss() }
+    }
+}
+
+/// The Easer's private rating of the customer (api/booking/customer-feedback.js).
+private struct RateCustomerSheet: View {
+    let job: EaserJob
+    @EnvironmentObject private var store: EaserStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var rating = 0
+    @State private var flagging = false
+    @State private var reason = ""
+    @State private var note = ""
+    @State private var saving = false
+    @State private var problem: String?
+
+    private var ready: Bool {
+        if saving { return false }
+        if flagging {
+            return !reason.isEmpty && (reason != "other" || !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        return rating > 0
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack(spacing: 14) {
+                        ForEach(1...5, id: \.self) { star in
+                            Button {
+                                rating = star
+                            } label: {
+                                Image(systemName: star <= rating ? "star.fill" : "star")
+                                    .font(.title2)
+                                    .foregroundStyle(star <= rating ? Brand.sky : Color.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(star) of 5")
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                } header: {
+                    Text("How was working with this customer?")
+                } footer: {
+                    Text("Only AssembleAtEase sees this.")
+                }
+                Section {
+                    Toggle("Flag a concern", isOn: $flagging)
+                    if flagging {
+                        Picker("What happened", selection: $reason) {
+                            Text("Choose").tag("")
+                            ForEach(Array(EaserStore.customerFlagReasons.enumerated()), id: \.offset) { _, flag in Text(flag.label).tag(flag.code) }
+                        }
+                    }
+                    TextField("Add details (optional)", text: $note, axis: .vertical)
+                        .lineLimit(2...5)
+                } footer: {
+                    if let problem { Text(problem).foregroundStyle(Brand.attention) }
+                }
+            }
+            .navigationTitle("Rate the customer")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+            }
+            .safeAreaInset(edge: .bottom) {
+                Button {
+                    Task { await save() }
+                } label: {
+                    if saving { ProgressView().tint(Brand.ink) } else { Text("Save") }
+                }
+                .buttonStyle(PrimaryButtonStyle(enabled: ready))
+                .disabled(!ready)
+                .padding(16)
+                .background(.bar)
+            }
+        }
+    }
+
+    private func save() async {
+        saving = true
+        problem = await store.rateCustomer(job, rating: rating > 0 ? rating : nil, flagReason: flagging ? reason : nil, note: note)
+        saving = false
+        if problem == nil { dismiss() }
     }
 }
 
@@ -1715,6 +2278,34 @@ private struct EarningsView: View {
                     Text("Recent")
                 }
 
+                if let tips = store.earnings?.tips, let summary = tips.summary, summary.count > 0 {
+                    Section {
+                        LabeledContent("Tips received") {
+                            Text(Format.money(cents: summary.amountCents)).fontWeight(.semibold)
+                        }
+                        if !summary.feePending {
+                            LabeledContent("You keep") {
+                                Text(Format.money(cents: summary.netCents)).fontWeight(.semibold).foregroundStyle(Brand.skyDark)
+                            }
+                        }
+                        ForEach(tips.items.prefix(recentCount)) { tip in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(tip.service ?? "Job").font(.subheadline)
+                                    Text([tip.ref, Format.day(tip.date)].compactMap { $0 }.joined(separator: " · "))
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Text(Format.money(cents: tip.amountCents)).monospacedDigit()
+                            }
+                        }
+                    } header: {
+                        Text("Tips")
+                    } footer: {
+                        Text("Tips are paid to your Stripe account.")
+                    }
+                }
+
                 Section {
                     NavigationLink {
                         PayoutsView()
@@ -1725,6 +2316,32 @@ private struct EarningsView: View {
             }
             .navigationTitle("Earnings")
             .refreshable { await store.refresh() }
+        }
+    }
+}
+
+/// Strikes and the pause, shown only when there is one (api/assembler/reliability.js).
+private struct ReliabilityCard: View {
+    @EnvironmentObject private var store: EaserStore
+
+    var body: some View {
+        if let standing = store.reliability, standing.paused || standing.strikes > 0 {
+            VStack(alignment: .leading, spacing: 8) {
+                Label(standing.paused ? "New jobs are paused" : "Reliability", systemImage: standing.paused ? "pause.circle.fill" : "exclamationmark.shield")
+                    .font(.headline)
+                    .foregroundStyle(standing.paused ? Brand.attention : .primary)
+                Text("\(standing.strikes) strike\(standing.strikes == 1 ? "" : "s") in the last \(standing.windowDays) days. New jobs pause at \(standing.pauseAtStrikes).")
+                    .font(.subheadline)
+                if standing.paused {
+                    Text("AssembleAtEase reviews your account.").font(.subheadline).foregroundStyle(.secondary)
+                } else {
+                    Text("Cancelling within 24 hours of a job is 1 strike; on the day of the job, 2.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
     }
 }
@@ -1830,6 +2447,9 @@ private struct AccountView: View {
                         } label: {
                             Label("Reviews", systemImage: "star")
                         }
+                    }
+                    NavigationLink { WorkPreferencesView() } label: {
+                        Label("Work preferences", systemImage: "slider.horizontal.3")
                     }
                 }
 

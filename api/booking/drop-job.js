@@ -8,6 +8,8 @@ import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, EASER_RELIABILITY_POLICY, classi
 import { appointmentTimestampMs } from './_appt-date.js';
 import { loadEaserStrikeSummary, recordEaserCancellation, pauseEaserIfOverLimit } from '../_easer-reliability.js';
 import { finalizeDispatchRound, holdDispatchForPaymentReconciliation, notifyOwnerManualDispatch } from './_dispatch-safety.js';
+import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
+import { isDemoEaser } from '../_demo-accounts.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -63,12 +65,12 @@ export default async function handler(req, res) {
   if (booking.status !== BOOKING_STATUS.CONFIRMED) {
     return res.status(409).json({ error: 'This job is already in progress — please contact support to be released.' });
   }
-  if (booking.source === 'owner_manual' && booking.payment_status === 'offline_recorded') {
-    return res.status(409).json({
-      error: 'This job cannot be dropped from the Easer app. Contact support if the assignment must change.',
-      code: 'OWNER_MANUAL_REDISPATCH_BLOCKED',
-    });
-  }
+  // An owner-created offline job was paid outside the card flow, so it is never
+  // re-offered to the marketplace. Only the owner's own account and the App
+  // Review account can hold one; releasing it returns it to the owner to assign.
+  const returnToOwner = isOwnerManualOfflineBooking(booking);
+  // The App Review account works a test job; releasing it carries no strike.
+  const demoTestJob = returnToOwner && booking.is_test_booking === true && await isDemoEaser(sb, user.id);
   if (booking.financial_operation_key) {
     return res.status(409).json({ error: 'This job is temporarily unavailable. Refresh or contact support before dropping it.' });
   }
@@ -82,12 +84,13 @@ export default async function handler(req, res) {
   // ── Reliability: what this cancellation costs, decided by the one rule ────
   let appointmentMs = null;
   try { appointmentMs = appointmentTimestampMs(booking.date, booking.time); } catch (_) { appointmentMs = null; }
-  const classification = classifyEaserCancellation({
+  const classified = classifyEaserCancellation({
     acceptedAtMs: new Date(booking.assembler_accepted_at).getTime(),
     nowMs: now.getTime(),
     appointmentMs,
     appointmentDate: booking.date || null,
   });
+  const classification = demoTestJob ? { ...classified, strikes: 0 } : classified;
   let strikeSummary;
   try {
     strikeSummary = await loadEaserStrikeSummary(sb, user.id, { nowMs: now.getTime() });
@@ -114,7 +117,7 @@ export default async function handler(req, res) {
   // but the authenticated user must still hold the Easer role.
   const { data: easerProfile, error: easerProfileError } = await sb
     .from('profiles')
-    .select('role, full_name')
+    .select('role, full_name, is_owner')
     .eq('id', user.id)
     .maybeSingle();
   if (easerProfileError) {
@@ -125,6 +128,9 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'An Easer account is required to release an assigned job.' });
   }
   const easerName = easerProfile.full_name || 'A Pro';
+  if (returnToOwner && easerProfile.is_owner === true) {
+    return res.status(409).json({ error: 'Reassign this job from the owner dashboard.', code: 'OWNER_OWN_JOB' });
+  }
 
   // ── Release the job (atomic CAS on assembler_id) ──────────────────────────
   // Reset dispatch counters so it re-dispatches as a brand-new job (not counting
@@ -139,8 +145,8 @@ export default async function handler(req, res) {
     dispatch_attempt:      0,
     dispatch_offered_to:   [],
     dispatch_offered_at:   null,
-    needs_manual_dispatch: false,
-    dispatch_paused:       false,
+    needs_manual_dispatch: returnToOwner,
+    dispatch_paused:       returnToOwner,
     dispatch_token:        null,
     assignment_token:      null,
     easer_fee_snapshot_easer_id: null,
@@ -171,7 +177,7 @@ export default async function handler(req, res) {
   adjustActiveJobs(sb, user.id, -1).catch(() => {});
 
   // The strike is recorded and checked, then the pause applied if it reaches the limit.
-  const strikeRecord = await recordEaserCancellation(sb, {
+  const strikeRecord = demoTestJob ? { ok: true } : await recordEaserCancellation(sb, {
     booking, easerId: user.id, easerName, classification, reason: reason || null, note: note || null,
   });
   if (!strikeRecord.ok) console.error('drop-job: reliability strike not recorded', strikeRecord.error);
@@ -203,7 +209,17 @@ export default async function handler(req, res) {
   let finalization = null;
   let redispatchError = offerCleanupError || null;
 
-  if (!offerCleanupError) {
+  if (returnToOwner) {
+    finalization = { action: 'manual_required' };
+    await notifyOwnerManualDispatch(sb, {
+      booking,
+      source: 'drop-job',
+      reason: `${easerName} released an owner-created job. Assign it from the dashboard.`,
+      metadata: { droppedBy: user.id, demoTestJob },
+    }).catch(() => {});
+  }
+
+  if (!offerCleanupError && !returnToOwner) {
     try {
       redispatch = await dispatchBooking(bookingId, { excludeEaserId: user.id });
     } catch (error) {
@@ -224,7 +240,7 @@ export default async function handler(req, res) {
     }
   }
 
-  if (redispatchError || (!redispatch?.dispatched && redispatch?.code !== 'DISPATCH_PAYMENT_NOT_VERIFIED')) {
+  if (!returnToOwner && (redispatchError || (!redispatch?.dispatched && redispatch?.code !== 'DISPATCH_PAYMENT_NOT_VERIFIED'))) {
     try {
       finalization = await finalizeDispatchRound(sb, {
         bookingId,

@@ -387,6 +387,19 @@
         <span id="cancelFeeMsg"></span>
       </div>
 
+      <!-- A new time the pro proposed (api/booking/time-proposal.js) -->
+      <div id="proposalCard" style="display:none;margin:1rem 0;padding:1rem;border:1.5px solid var(--cyan, #00BFFF);border-radius:14px;background:#f0fbff">
+        <div style="font-weight:700;color:var(--ink);margin-bottom:0.35rem" id="proposalTitle">Your pro proposed a new time</div>
+        <div style="font-size:0.88rem;color:var(--muted)" id="proposalBooked"></div>
+        <div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin:0.25rem 0" id="proposalNew"></div>
+        <div style="font-size:0.85rem;color:var(--muted);margin-bottom:0.6rem" id="proposalNote"></div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          <button type="button" class="btn btn-cyan" id="proposalAccept" style="padding:0.7rem 1rem">Accept new time</button>
+          <button type="button" class="btn-portal" id="proposalKeep" style="width:auto;padding:0.7rem 1rem">Keep my time</button>
+        </div>
+        <div style="font-size:0.8rem;margin-top:0.5rem" id="proposalStatus" role="status"></div>
+      </div>
+
       <!-- Actions -->
       <div class="booking-card-actions" id="bookingActions">
         <button class="btn-portal" id="btnRescheduleOpen" onclick="openRescheduleModal()" style="display:none">
@@ -793,7 +806,55 @@ function tcLoadBooking(email, b) {
 }
 
 // ── Render ─────────────────────────────────────────────────
+function renderProposal(b) {
+  var card = document.getElementById('proposalCard');
+  if (!card) return;
+  var p = b && b.easer_time_proposal;
+  if (!p || !currentMutationToken) { card.style.display = 'none'; return; }
+  document.getElementById('proposalTitle').textContent = (b.pro_first_name || 'Your pro') + ' proposed a new time';
+  document.getElementById('proposalBooked').textContent = 'Booked: ' + formatDate(b.date) + (b.time ? ' at ' + b.time : '');
+  document.getElementById('proposalNew').textContent = 'Proposed: ' + formatDate(p.date) + ' at ' + p.time;
+  document.getElementById('proposalNote').textContent = p.note || '';
+  document.getElementById('proposalStatus').textContent = '';
+  card.setAttribute('data-proposal-id', p.id);
+  card.setAttribute('data-date', p.date);
+  card.setAttribute('data-time', p.time);
+  card.style.display = 'block';
+}
+
+async function answerProposal(accept) {
+  var card = document.getElementById('proposalCard');
+  var status = document.getElementById('proposalStatus');
+  var buttons = [document.getElementById('proposalAccept'), document.getElementById('proposalKeep')];
+  buttons.forEach(function(b) { b.disabled = true; });
+  status.style.color = 'var(--muted)';
+  status.textContent = 'Saving…';
+  try {
+    var proposalId = card.getAttribute('data-proposal-id');
+    var res = accept
+      ? await fetch('/api/booking/reschedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: currentEmail, ref: currentBooking.ref, token: currentMutationToken, date: card.getAttribute('data-date'), time: card.getAttribute('data-time'), proposalId: proposalId }) })
+      : await fetch('/api/booking/time-proposal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'decline', email: currentEmail, ref: currentBooking.ref, token: currentMutationToken, proposalId: proposalId }) });
+    var data = await res.json().catch(function() { return {}; });
+    if (!res.ok) throw new Error(data.error || 'That did not go through. Try again.');
+    if (data.guestMutationToken) currentMutationToken = data.guestMutationToken;
+    card.style.display = 'none';
+    await silentRefreshBooking();
+  } catch (error) {
+    status.style.color = '#991b1b';
+    status.textContent = error.message;
+    buttons.forEach(function(b) { b.disabled = false; });
+  }
+}
+
+(function bindProposal() {
+  var accept = document.getElementById('proposalAccept');
+  var keep = document.getElementById('proposalKeep');
+  if (accept) accept.addEventListener('click', function() { answerProposal(true); });
+  if (keep) keep.addEventListener('click', function() { answerProposal(false); });
+})();
+
 function renderBooking(b) {
+  renderProposal(b);
   document.getElementById('bRef').textContent      = b.ref;
   document.getElementById('bService').textContent  = b.service;
   document.getElementById('bName').textContent     = b.customer_name;

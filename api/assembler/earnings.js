@@ -3,6 +3,7 @@ import { normalizeEaserClosureStatus } from '../_easer-closure.js';
 import { getSupabase } from '../_supabase.js';
 import { loadLedgerFirstFinanceRows } from '../owner/_finance-ledger.js';
 import { summarizeEaserEarnings, toEaserEarningDto } from './_earnings.js';
+import { loadEaserTips } from './_easer-tips.js';
 
 /**
  * GET /api/assembler/earnings
@@ -60,8 +61,18 @@ export default async function handler(req, res) {
     .map(toEaserEarningDto)
     .sort((a, b) => Date.parse(b.earned_at || 0) - Date.parse(a.earned_at || 0));
 
+  // Tips are the Easer's own money (paid to their Stripe account), shown beside
+  // earnings. A failure to read them never hides the earnings.
+  let tips = null;
+  try {
+    tips = await loadEaserTips(sb, authenticated.user.id);
+  } catch (error) {
+    console.error('[assembler-earnings] Tips load failed:', error.message || error);
+  }
+
   return res.status(200).json({
     earnings,
     summary: summarizeEaserEarnings(earnings),
+    tips,
   });
 }
