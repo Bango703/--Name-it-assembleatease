@@ -1791,15 +1791,24 @@
     if (type === 'customer_unavailable') {
       workflow.innerHTML = supportPanelHtml(
         'Customer unavailable',
-        'The booking, appointment, current job status, and request time will be attached automatically.',
+        'The customer is told you are here, and the 15-minute wait starts.',
         '<textarea id="customer-unavailable-note" maxlength="1200" rows="2" placeholder="Add anything else we should know (optional)" style="width:100%;box-sizing:border-box;margin-top:0.65rem;border:1px solid var(--pro-border-md);border-radius:9px;padding:0.65rem;font:inherit;font-size:0.78rem;resize:vertical"></textarea>'
-          + '<button type="button" id="customer-unavailable-submit" class="btn btn-teal" style="width:100%;min-height:44px;margin-top:0.55rem;border-radius:10px">Notify Support</button>'
+          + '<button type="button" id="customer-unavailable-submit" class="btn btn-teal" style="width:100%;min-height:44px;margin-top:0.55rem;border-radius:10px">Tell the customer and wait</button>'
       );
       workflow.style.display = 'block';
+      // The same timed flow as the job card (api/booking/customer-unavailable.js).
       document.getElementById('customer-unavailable-submit').addEventListener('click', async function() {
         var note = document.getElementById('customer-unavailable-note').value.trim();
-        var message = '[Customer unavailable]\nI cannot reach the customer at the appointment.' + (note ? '\nAdditional details: ' + note : '');
-        await submitStructuredSupport(this, message, 'customer_unavailable', 'Support has been notified. Continue following the job instructions unless the situation is unsafe.');
+        var submit = this;
+        submit.disabled = true;
+        try {
+          await lifeRequest('POST', '/api/booking/customer-unavailable', { bookingId: selectedBookingId, action: 'start', note: note });
+          showSupportStatus('The customer was told you are here. After 15 minutes, report a no-show from the job.', 'success');
+          await reloadAndReopen();
+        } catch (error) {
+          submit.disabled = false;
+          showSupportStatus(error.message, 'error');
+        }
       });
       return;
     }
@@ -1969,6 +1978,204 @@
     }
   }
 
+  // ── The rest of the job (owner audit, 2026-10-12) ─────────────────────────
+  // Same server actions as the iPhone app: customer not home, running late,
+  // propose a new time, add work, tips, the time a reschedule moved from, and
+  // the private customer rating. Each card renders the server's fields only.
+  var LIFE_BOX = 'margin-bottom:1rem;border:1px solid var(--pro-border);border-radius:12px;background:#fff;padding:0.85rem 0.9rem';
+  var LIFE_TITLE = 'font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.4rem';
+  var LIFE_BTN = 'min-height:40px;border-radius:10px;font-size:0.82rem;margin:0.35rem 0.35rem 0 0';
+  var LIFE_INPUT = 'width:100%;box-sizing:border-box;margin-top:0.45rem;border:1px solid var(--pro-border-md);border-radius:9px;padding:0.55rem;font:inherit;font-size:0.82rem';
+  var EXTRA_WORK_LABEL = { pending_customer_approval: 'Waiting for the customer', authorized: 'Approved', captured: 'Approved', declined: 'Declined', refunded: 'Refunded' };
+  var CUSTOMER_FLAG_LABEL = { safety: 'Safety concern', conduct: 'Rude or abusive', payment: 'Asked to pay outside the app', access: 'Could not access the home', other: 'Other' };
+  var _lifeTimer = null;
+
+  function renderJobLifecycle(b, accepted, isCompleted) {
+    var html = '';
+    var lead = accepted && b._crew_role !== 'helper';
+    if (b._previous_slot && b._previous_slot.date && !isCompleted) {
+      html += '<div style="margin-bottom:0.75rem;font-size:0.8rem;color:#92400e">Moved from ' + esc(formatDate(b._previous_slot.date)) + (b._previous_slot.time ? ' &bull; ' + esc(b._previous_slot.time) : '') + '</div>';
+    }
+    if (b._tips && b._tips.count > 0) {
+      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">Tip</div><div style="font-size:0.95rem;font-weight:700;color:var(--pro-text)">' + formatMoneyCents(b._tips.amountCents) + '</div>'
+        + '<div style="font-size:0.75rem;color:var(--pro-muted)">' + (b._tips.feePending ? 'Paid to your Stripe account.' : 'You keep ' + formatMoneyCents(b._tips.netCents) + ' after Stripe\'s fee.') + '</div></div>';
+    }
+    if (b._time_proposal && b._time_proposal.status === 'pending' && !isCompleted) {
+      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">New time you proposed</div><div style="font-size:0.86rem;color:var(--pro-text)">' + esc(formatDate(b._time_proposal.date)) + ' &bull; ' + esc(b._time_proposal.time || '') + '</div>'
+        + '<div style="font-size:0.75rem;color:var(--pro-muted)">Waiting on the customer.</div>'
+        + '<button type="button" class="btn" data-life="withdraw-time" style="' + LIFE_BTN + '">Withdraw</button></div>';
+    }
+    if (lead && b.status === 'arrived') {
+      var cu = b._customer_unavailable;
+      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">Customer isn\'t here?</div>';
+      if (cu && cu.noShowReportedAt) {
+        html += '<div style="font-size:0.86rem;color:var(--pro-text)">No-show reported. You can leave.</div><div style="font-size:0.75rem;color:var(--pro-muted)">AssembleAtEase confirms it with the customer.</div>';
+      } else if (cu) {
+        html += '<div style="font-size:0.84rem;color:var(--pro-text)">The customer was told you\'re here.</div>'
+          + '<div id="life-wait" data-wait-until="' + esc(cu.waitUntil || '') + '" style="font-size:1.05rem;font-weight:700;margin-top:0.25rem"></div>'
+          + '<button type="button" class="btn btn-teal" id="life-no-show" data-life="no-show" style="' + LIFE_BTN + '" disabled>Report a no-show</button>';
+      } else {
+        html += '<div style="font-size:0.78rem;color:var(--pro-muted)">Tell the customer you\'re here and wait 15 minutes.</div>'
+          + '<button type="button" class="btn" data-life="customer-unavailable" style="' + LIFE_BTN + '">Customer isn\'t here</button>';
+      }
+      html += '</div>';
+    }
+    if (Array.isArray(b._extra_work) && b._extra_work.length) {
+      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">Extra work</div>' + b._extra_work.map(function(w) {
+        return '<div style="font-size:0.84rem;color:var(--pro-text);margin-top:0.3rem">' + esc(w.description) + '<div style="font-size:0.72rem;font-weight:700;color:' + (w.status === 'authorized' || w.status === 'captured' ? 'var(--pro-teal)' : 'var(--pro-muted)') + '">' + esc(EXTRA_WORK_LABEL[w.status] || 'Closed') + '</div></div>';
+      }).join('') + '</div>';
+    }
+    if (lead && !isCompleted) {
+      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">Job changes</div><div>'
+        + (b.status === 'confirmed' || b.status === 'en_route'
+          ? '<select id="life-late" style="' + LIFE_INPUT + ';width:auto;margin-right:0.35rem"><option value="">Running late?</option><option value="10">10 minutes</option><option value="20">20 minutes</option><option value="30">30 minutes</option></select>'
+          : '')
+        + (b.status === 'confirmed' && !(b._time_proposal && b._time_proposal.status === 'pending')
+          ? '<button type="button" class="btn" data-life="open-propose" style="' + LIFE_BTN + '">Propose a new time</button>' : '')
+        + '<button type="button" class="btn" data-life="open-work" style="' + LIFE_BTN + '">Add work</button>'
+        + '</div><div id="life-form"></div><div id="life-status" role="status" style="font-size:0.78rem;margin-top:0.4rem"></div></div>';
+    }
+    if (b.status === 'completed') {
+      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">How was the customer?</div>';
+      if (b._customer_feedback) {
+        html += '<div style="font-size:0.84rem;color:var(--pro-text)">' + (b._customer_feedback.flagged ? 'You flagged a concern. ' : '') + (b._customer_feedback.rating ? 'You rated them ' + b._customer_feedback.rating + ' of 5.' : '') + '</div>';
+      } else {
+        html += '<div style="font-size:0.75rem;color:var(--pro-muted)">Only AssembleAtEase sees this.</div>'
+          + '<select id="life-rating" style="' + LIFE_INPUT + '"><option value="">Rating</option><option value="5">5 - Great</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1 - Poor</option></select>'
+          + '<select id="life-flag" style="' + LIFE_INPUT + '"><option value="">No concern</option>' + Object.keys(CUSTOMER_FLAG_LABEL).map(function(k) { return '<option value="' + k + '">Flag: ' + CUSTOMER_FLAG_LABEL[k] + '</option>'; }).join('') + '</select>'
+          + '<textarea id="life-feedback-note" rows="2" maxlength="1000" placeholder="Add details (optional)" style="' + LIFE_INPUT + '"></textarea>'
+          + '<button type="button" class="btn btn-teal" data-life="rate" style="' + LIFE_BTN + '">Save</button>'
+          + '<div id="life-status" role="status" style="font-size:0.78rem;margin-top:0.4rem"></div>';
+      }
+      html += '</div>';
+    }
+    return html;
+  }
+
+  function lifeStatus(message, tone) {
+    var el = document.getElementById('life-status');
+    if (!el) { if (message) alertLife(message); return; }
+    el.textContent = message || '';
+    el.style.color = tone === 'error' ? '#b91c1c' : tone === 'success' ? 'var(--pro-teal)' : 'var(--pro-muted)';
+  }
+  function alertLife(message) { showSupportStatus(message, 'info'); }
+
+  async function lifeRequest(method, path, body) {
+    var response = await fetch(path, {
+      method: method,
+      headers: Object.assign({ 'Authorization': 'Bearer ' + (await getToken()) }, body ? { 'Content-Type': 'application/json' } : {}),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    var data = await response.json().catch(function() { return {}; });
+    if (!response.ok || data.error) throw new Error(data.error || 'That did not go through. Try again.');
+    return data;
+  }
+
+  async function reloadAndReopen() {
+    try {
+      var resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+      if (resp.ok) {
+        var fresh = await resp.json();
+        allAssignments = fresh.bookings || [];
+        renderAssignments(filterList(allAssignments, currentFilter));
+        updateFilterCounts(allAssignments);
+      }
+    } catch (_) { /* the current view stays */ }
+    if (selectedBookingId) window.openDetail(selectedBookingId);
+  }
+
+  function startLifeTimer() {
+    clearInterval(_lifeTimer);
+    var waitEl = document.getElementById('life-wait');
+    if (!waitEl) return;
+    var until = Date.parse(waitEl.getAttribute('data-wait-until'));
+    function tick() {
+      var left = Math.max(0, Math.round((until - Date.now()) / 1000));
+      var button = document.getElementById('life-no-show');
+      if (!document.body.contains(waitEl)) { clearInterval(_lifeTimer); return; }
+      waitEl.textContent = left > 0 ? 'Wait ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') : 'The wait is over.';
+      if (button) button.disabled = left > 0;
+      if (left <= 0) clearInterval(_lifeTimer);
+    }
+    tick();
+    _lifeTimer = setInterval(tick, 1000);
+  }
+
+  document.getElementById('asgn-modal-body').addEventListener('change', async function(event) {
+    if (event.target.id !== 'life-late' || !event.target.value) return;
+    var minutes = event.target.value;
+    event.target.disabled = true;
+    try {
+      await lifeRequest('POST', '/api/booking/message', { bookingId: selectedBookingId, body: 'Running about ' + minutes + ' minutes late. I\'m on my way.', sender: 'assembler', target: 'customer' });
+      lifeStatus('The customer was told.', 'success');
+    } catch (error) {
+      lifeStatus(error.message, 'error');
+    } finally {
+      event.target.disabled = false;
+      event.target.value = '';
+    }
+  });
+
+  document.getElementById('asgn-modal-body').addEventListener('click', async function(event) {
+    var button = event.target.closest('[data-life]');
+    if (!button) return;
+    var action = button.getAttribute('data-life');
+    var bookingId = selectedBookingId;
+    var form = document.getElementById('life-form');
+    try {
+      if (action === 'customer-unavailable' || action === 'no-show') {
+        button.disabled = true;
+        await lifeRequest('POST', '/api/booking/customer-unavailable', { bookingId: bookingId, action: action === 'no-show' ? 'no_show' : 'start' });
+        await reloadAndReopen();
+      } else if (action === 'withdraw-time') {
+        button.disabled = true;
+        await lifeRequest('POST', '/api/booking/time-proposal', { bookingId: bookingId, action: 'withdraw' });
+        await reloadAndReopen();
+      } else if (action === 'open-propose') {
+        var options = await lifeRequest('GET', '/api/booking/time-proposal?bookingId=' + encodeURIComponent(bookingId));
+        if (!options.canPropose) { lifeStatus(options.reason || 'A new time cannot be proposed here.', 'error'); return; }
+        form.innerHTML = '<input type="date" id="life-date" style="' + LIFE_INPUT + '" min="' + new Date().toISOString().slice(0, 10) + '">'
+          + '<select id="life-slot" style="' + LIFE_INPUT + '">' + options.slots.map(function(s) { return '<option>' + esc(s) + '</option>'; }).join('') + '</select>'
+          + '<textarea id="life-note" rows="2" maxlength="300" placeholder="Note for the customer (optional)" style="' + LIFE_INPUT + '"></textarea>'
+          + '<button type="button" class="btn btn-teal" data-life="send-propose" style="' + LIFE_BTN + '">Send to the customer</button>';
+      } else if (action === 'send-propose') {
+        var date = document.getElementById('life-date').value;
+        if (!date) { lifeStatus('Choose a date.', 'error'); return; }
+        button.disabled = true;
+        await lifeRequest('POST', '/api/booking/time-proposal', { bookingId: bookingId, action: 'propose', date: date, time: document.getElementById('life-slot').value, note: document.getElementById('life-note').value.trim() });
+        await reloadAndReopen();
+      } else if (action === 'open-work') {
+        var work = await lifeRequest('GET', '/api/booking/extra-work?bookingId=' + encodeURIComponent(bookingId));
+        if (!work.canAdd) { lifeStatus(work.reason || 'Extra work cannot be added here.', 'error'); return; }
+        form.innerHTML = '<select id="life-item" style="' + LIFE_INPUT + '">' + work.services.map(function(service) {
+            return '<optgroup label="' + esc(service.name) + '">' + service.items.map(function(item) {
+              return '<option value="' + esc(service.name) + '|' + esc(item.name) + '">' + esc(item.name) + '</option>';
+            }).join('') + '</optgroup>';
+          }).join('') + '</select>'
+          + '<input type="number" id="life-qty" min="1" max="20" value="1" style="' + LIFE_INPUT + ';width:6rem">'
+          + '<textarea id="life-note" rows="2" maxlength="300" placeholder="Note for the customer (optional)" style="' + LIFE_INPUT + '"></textarea>'
+          + '<button type="button" class="btn btn-teal" data-life="send-work" style="' + LIFE_BTN + '">Send to the customer</button>'
+          + '<div style="font-size:0.72rem;color:var(--pro-muted);margin-top:0.3rem">The customer gets a request to approve.</div>';
+      } else if (action === 'send-work') {
+        var picked = document.getElementById('life-item').value.split('|');
+        button.disabled = true;
+        var sent = await lifeRequest('POST', '/api/booking/extra-work', { bookingId: bookingId, items: [{ service: picked[0], name: picked.slice(1).join('|'), qty: Number(document.getElementById('life-qty').value) || 1 }], note: document.getElementById('life-note').value.trim() });
+        await reloadAndReopen();
+        lifeStatus(sent.message || 'Sent to the customer to approve.', 'success');
+      } else if (action === 'rate') {
+        var rating = document.getElementById('life-rating').value;
+        var flag = document.getElementById('life-flag').value;
+        if (!rating && !flag) { lifeStatus('Choose a rating or flag a concern.', 'error'); return; }
+        button.disabled = true;
+        await lifeRequest('POST', '/api/booking/customer-feedback', { bookingId: bookingId, rating: rating ? Number(rating) : null, flagged: !!flag, flagReason: flag || null, note: document.getElementById('life-feedback-note').value.trim() });
+        await reloadAndReopen();
+      }
+    } catch (error) {
+      button.disabled = false;
+      lifeStatus(error.message, 'error');
+    }
+  });
+
   window.openDetail = function(bookingId) {
     const b = allAssignments.find(x => x.id === bookingId);
     if (!b) return;
@@ -2065,6 +2272,8 @@
 
       accepted && !isCompleted && b.details ? '<div style="margin-bottom:1rem;border:1px solid var(--pro-border);border-radius:12px;background:#f8fafc;padding:0.85rem 0.9rem"><div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.3rem">Customer notes</div><div style="font-size:0.86rem;color:var(--pro-text);line-height:1.6">' + esc(b.details) + '</div></div>' : '',
 
+      renderJobLifecycle(b, accepted, isCompleted),
+
       // Offer expiry countdown
       isPendingOffer && b._offer_expires_at ? '<div id="offer-timer-box-' + b.id + '" style="display:flex;align-items:center;gap:6px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:0.6rem 0.875rem;margin-bottom:0.875rem;font-size:0.82rem">'
         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
@@ -2076,6 +2285,7 @@
         + '<button id="decline-job-btn" class="btn" style="min-height:48px;border-radius:12px;color:#dc2626;border-color:rgba(239,68,68,0.25)">Decline</button>'
         + '</div>' : '',
     ].join('');
+    startLifeTimer();
 
     // Start offer countdown timer
     if (!accepted && b._offer_expires_at) {

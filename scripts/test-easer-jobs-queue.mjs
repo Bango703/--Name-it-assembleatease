@@ -138,7 +138,10 @@ for (const supportType of ['job_issue', 'cannot_make', 'customer_unavailable', '
 assert.match(jobsPage, /function renderSupportWorkflow\(type\)/);
 assert.match(jobsPage, /postSupportMessage\(body, _selectedSupportType \|\| null\)/,
   'Follow-up messages must not create duplicate Operations Cases.');
-assert.match(jobsPage, /The booking, appointment, current job status, and request time will be attached automatically/);
+// Customer unavailable runs the timed flow (api/booking/customer-unavailable.js,
+// owner audit 2026-10-12): the customer is told and the 15-minute wait starts.
+assert.match(jobsPage, /The customer is told you are here, and the 15-minute wait starts\./);
+assert.match(jobsPage, /lifeRequest\('POST', '\/api\/booking\/customer-unavailable', \{ bookingId: selectedBookingId, action: 'start', note: note \}\)/);
 assert.match(jobsPage, /Your assignment remains active until support confirms a change/,
   'A release request must not imply that the booking was already mutated.');
 assert.match(jobsPage, /If anyone is in immediate danger, call 911/);
@@ -152,8 +155,12 @@ assert.match(jobsPage, /canSelfDrop: hasActiveAssignmentForSupport\s*&& b\.statu
 assert.match(jobsPage, /if \(canSelfDrop\) loadCancellationImpact\(\)/,
   'The reliability cost is loaded before a self-cancel can be confirmed.');
 
-assert.match(messageApi, /const EASER_SUPPORT_TYPES = Object\.freeze/);
-assert.match(messageApi, /safety_concern:[\s\S]*OPERATION_CASE_TYPES\.SAFETY[\s\S]*OPERATION_CASE_SEVERITIES\.CRITICAL/);
+// The list of help types lives in one shared module (2026-10-12), read by the
+// message API and the customer-not-home flow.
+const supportTypes = await readFile(new URL('../api/booking/_easer-support.js', import.meta.url), 'utf8');
+assert.match(supportTypes, /export const EASER_SUPPORT_TYPES = Object\.freeze/);
+assert.match(supportTypes, /safety_concern:[\s\S]*OPERATION_CASE_TYPES\.SAFETY[\s\S]*OPERATION_CASE_SEVERITIES\.CRITICAL/);
+assert.match(messageApi, /import \{ EASER_SUPPORT_TYPES \} from '\.\/_easer-support\.js';/);
 assert.match(messageApi, /supportType && resolvedSender !== 'assembler'/,
   'Only the assigned Easer path may create structured Easer support cases.');
 assert.match(messageApi, /createOperationCase\(sb,[\s\S]*sourceRef: `easer-support-message:\$\{message\.id\}`/);

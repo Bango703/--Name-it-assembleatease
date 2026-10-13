@@ -329,7 +329,11 @@ assert.match(assemblersSource, /if \(!readiness\.isReady\) continue/);
 assert.match(ownerSource, /ownerEaserOnly[\s\S]*eligibleAssemblers\.filter\(function\(a\) \{\s*return a\.is_owner === true \|\| \(b\.is_test_booking === true && a\.is_demo_account === true\);\s*\}\)/);
 assert.match(ownerSource, /Complete from Easer Dashboard/);
 assert.match(ownerSource, /b\.status === 'en_route' \|\| b\.status === 'arrived'/);
-assert.match(dropSource, /OWNER_MANUAL_REDISPATCH_BLOCKED/);
+// A released offline job goes back to the owner, never back out to dispatch.
+assert.match(dropSource, /const returnToOwner = isOwnerManualOfflineBooking\(booking\)/);
+assert.match(dropSource, /if \(!offerCleanupError && !returnToOwner\) \{\s*try \{\s*redispatch = await dispatchBooking/);
+assert.match(dropSource, /needs_manual_dispatch: returnToOwner,/);
+assert.match(dropSource, /if \(returnToOwner && easerProfile\.is_owner === true\)/, 'the owner reassigns their own job from the dashboard');
 assert.match(assignmentsSource, /_can_self_drop = !isOwnerManualLiveFlow\(booking, easerProfile\)/);
 
 // Customer identity remains first-name-only in public/transactional surfaces.

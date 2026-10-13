@@ -8,6 +8,7 @@ import { loadCustomerFacingCompletionPhoto } from './_completion-evidence.js';
 import { evaluateCancellationPolicy } from './_cancellation-policy-truth.js';
 import { cancellationPreview } from './_cancellation-fee-summary.js';
 import { customerMessageRecipient } from './_message-routing.js';
+import { loadOpenProposal } from './_time-proposals.js';
 
 /**
  * POST /api/booking/track
@@ -183,6 +184,15 @@ export default async function handler(req, res) {
   }
 
   // Return only safe/public fields — never expose Stripe IDs, phone, raw payment data
+  // A new time the assigned pro proposed, for the customer to accept or decline
+  // here (api/booking/time-proposal.js; accepting goes through reschedule).
+  const openProposal = booking.assembler_id && booking.assembler_accepted_at && booking.status === BOOKING_STATUS.CONFIRMED
+    ? await loadOpenProposal(sb, booking.id)
+    : null;
+  const easerTimeProposal = openProposal && openProposal.easer_id === booking.assembler_id
+    ? { id: openProposal.id, date: openProposal.proposed_date, time: openProposal.proposed_time, note: openProposal.note || null }
+    : null;
+
   const safe = {
     id: booking.id,
     ref: booking.ref,
@@ -236,6 +246,7 @@ export default async function handler(req, res) {
     pro_jobs: proJobs,
     pro_tier: proTier,
     completion_photo_url: completionPhotoUrl,
+    easer_time_proposal: easerTimeProposal,
   };
 
   return res.status(200).json({ booking: safe });

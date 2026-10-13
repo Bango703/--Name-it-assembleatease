@@ -357,6 +357,161 @@ private struct PhoneChangeView: View {
     }
 }
 
+/// The services an Easer takes and the hours they work. Dispatch reads the same
+/// settings (api/_easer-work-preferences.js); unset means every service, any time.
+struct WorkPreferencesView: View {
+    init() {}
+
+    private struct DayHours: Identifiable {
+        let key: String
+        var on: Bool
+        var start: Date
+        var end: Date
+        var id: String { key }
+    }
+
+    private static let dayNames: [String: String] = [
+        "sun": "Sunday", "mon": "Monday", "tue": "Tuesday", "wed": "Wednesday",
+        "thu": "Thursday", "fri": "Friday", "sat": "Saturday",
+    ]
+
+    private static let clock: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
+    @EnvironmentObject private var store: EaserStore
+    @State private var loaded = false
+    @State private var allServicesList: [String] = []
+    @State private var everyService = true
+    @State private var chosen: Set<String> = []
+    @State private var anyTime = true
+    @State private var days: [DayHours] = []
+    @State private var saving = false
+    @State private var problem: String?
+
+    var body: some View {
+        List {
+            if !loaded {
+                Section { HStack { ProgressView(); Text("Loading").foregroundStyle(.secondary) } }
+            } else {
+                Section {
+                    Toggle("Every service", isOn: $everyService)
+                    if !everyService {
+                        ForEach(allServicesList, id: \.self) { service in
+                            Toggle(service, isOn: Binding(
+                                get: { chosen.contains(service) },
+                                set: { on in if on { chosen.insert(service) } else { chosen.remove(service) } }
+                            ))
+                        }
+                    }
+                } header: {
+                    Text("Services you take")
+                }
+
+                Section {
+                    Toggle("Any day, any time", isOn: $anyTime)
+                    if !anyTime {
+                        ForEach($days) { $day in
+                            Toggle(Self.dayNames[day.key] ?? day.key, isOn: $day.on)
+                            if day.on {
+                                DatePicker("From", selection: $day.start, displayedComponents: .hourAndMinute)
+                                DatePicker("To", selection: $day.end, displayedComponents: .hourAndMinute)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("When you work")
+                } footer: {
+                    if let problem {
+                        Text(problem).foregroundStyle(Brand.attention)
+                    } else {
+                        Text("Offers come only for these services and hours.")
+                    }
+                }
+            }
+        }
+        .navigationTitle("Work preferences")
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            if loaded {
+                Button {
+                    Task { await save() }
+                } label: {
+                    if saving { ProgressView().tint(Brand.ink) } else { Text("Save") }
+                }
+                .buttonStyle(PrimaryButtonStyle(enabled: !saving))
+                .disabled(saving)
+                .padding(16)
+                .background(.bar)
+            }
+        }
+        .task {
+            guard !loaded else { return }
+            await load()
+        }
+    }
+
+    private func time(_ hhmm: String, fallback: String) -> Date {
+        Self.clock.date(from: hhmm) ?? Self.clock.date(from: fallback) ?? Date()
+    }
+
+    private func load() async {
+        let prefs = await store.workPreferences()
+        allServicesList = prefs?.allServices ?? []
+        everyService = prefs?.services == nil
+        chosen = Set(prefs?.services ?? allServicesList)
+        anyTime = prefs?.availability == nil
+        let order = prefs?.weekdays ?? ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+        days = order.map { key in
+            let window = prefs?.availability?[key]?.first
+            return DayHours(
+                key: key,
+                on: prefs?.availability == nil ? true : window != nil,
+                start: time(window?.start ?? "08:00", fallback: "08:00"),
+                end: time(window?.end ?? "20:00", fallback: "20:00")
+            )
+        }
+        loaded = true
+    }
+
+    private func save() async {
+        problem = nil
+        let services: [String]? = everyService ? nil : allServicesList.filter { chosen.contains($0) }
+        if let services, services.isEmpty {
+            problem = "Choose at least one service."
+            return
+        }
+        var availability: [String: [WorkWindow]]? = nil
+        if !anyTime {
+            var map: [String: [WorkWindow]] = [:]
+            for day in days {
+                let start = Self.clock.string(from: day.start)
+                let end = Self.clock.string(from: day.end)
+                if day.on {
+                    if end <= start {
+                        problem = "\(Self.dayNames[day.key] ?? day.key) must end after it starts."
+                        return
+                    }
+                    map[day.key] = [WorkWindow(start: start, end: end)]
+                } else {
+                    map[day.key] = []
+                }
+            }
+            if map.values.allSatisfy({ $0.isEmpty }) {
+                problem = "Turn on at least one day."
+                return
+            }
+            availability = map
+        }
+        saving = true
+        problem = await store.saveWorkPreferences(services: services, availability: availability)
+        saving = false
+    }
+}
+
 /// What customers said, newest first.
 struct ReviewsView: View {
     init() {}

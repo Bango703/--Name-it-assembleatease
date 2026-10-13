@@ -11,6 +11,7 @@ import { logActivity } from './_activity.js';
 import { DISPATCH_HISTORY_EXCLUSION_STATUSES } from './_dispatch-safety.js';
 import { loadEaserStrikes } from '../_easer-reliability.js';
 import { loadDemoEaserIds, withoutDemoEasers } from '../_demo-accounts.js';
+import { loadWorkPreferences, easerTakesBooking } from '../_easer-work-preferences.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -183,6 +184,17 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   eligible = withoutDemoEasers(eligible, demoEaserIds, booking);
 
   if (!eligible.length) return { dispatched: 0, message: 'No available Easers in service area' };
+
+  // Work preferences (migration 110): the services an Easer takes and the hours
+  // they work. Read with its own query and failing open, so an Easer with none
+  // set, or a database without the columns, dispatches exactly as before.
+  const workPreferences = await loadWorkPreferences(sb, eligible.map(e => e.id));
+  if (workPreferences.size) {
+    eligible = eligible.filter(e => easerTakesBooking(workPreferences.get(e.id), booking).ok);
+    if (!eligible.length) {
+      return { dispatched: 0, message: 'No Easer in the area takes this service at this time' };
+    }
+  }
 
   // ── Authoritative same-day workload from bookings table ───────────────────
   // Query real active job counts for the booking's scheduled date.

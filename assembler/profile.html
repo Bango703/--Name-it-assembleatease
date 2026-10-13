@@ -322,6 +322,17 @@
         </div>
         <div id="sms-pref-status" role="status" aria-live="polite" style="font-size:0.8rem;margin-top:0.75rem;display:none"></div>
       </div>
+      <!-- The services an Easer takes and the hours they work (api/assembler/work-preferences.js).
+           Dispatch reads the same settings; unset means every service, any time. -->
+      <div class="form-section" id="work-pref-section" style="display:none">
+        <div class="form-section-title">Work preferences</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;margin-bottom:0.5rem"><input type="checkbox" id="work-all-services" checked> Every service</label>
+        <div id="work-services" style="display:none;margin:0 0 0.75rem 1.5rem;font-size:0.82rem"></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;margin-bottom:0.5rem"><input type="checkbox" id="work-any-time" checked> Any day, any time</label>
+        <div id="work-days" style="display:none;margin:0 0 0.75rem 1.5rem;font-size:0.82rem"></div>
+        <button type="button" class="btn btn-teal" id="work-save" style="min-height:40px">Save work preferences</button>
+        <div id="work-status" role="status" aria-live="polite" style="font-size:0.8rem;margin-top:0.6rem"></div>
+      </div>
       <!-- Billing escape hatch for an accidental/legacy subscription only. -->
       <div class="form-section" id="membership-section" style="display:none;border-color:rgba(0,191,255,0.3);background:linear-gradient(135deg,rgba(0,191,255,0.04),rgba(0,131,143,0.06))">
         <div class="form-section-title" style="color:#00BFFF">Legacy Membership Billing</div>
@@ -899,6 +910,77 @@
             toggle.disabled = false;
             say("That could not be saved. Please try again.", "bad");
           });
+      });
+    })(session.access_token);
+
+    // Work preferences: services and weekly hours, saved on the server.
+    (function initWorkPreferences(token) {
+      var section = document.getElementById('work-pref-section');
+      if (!section) return;
+      var DAY_NAMES = { sun: 'Sunday', mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday' };
+      var allBox = document.getElementById('work-all-services');
+      var anyBox = document.getElementById('work-any-time');
+      var servicesEl = document.getElementById('work-services');
+      var daysEl = document.getElementById('work-days');
+      var status = document.getElementById('work-status');
+      var state = null;
+      function say(message, tone) {
+        status.textContent = message || '';
+        status.style.color = tone === 'bad' ? '#b91c1c' : tone === 'good' ? 'var(--pro-teal)' : 'var(--pro-muted)';
+      }
+      function render(data) {
+        state = data;
+        section.style.display = '';
+        allBox.checked = data.services === null;
+        anyBox.checked = data.availability === null;
+        servicesEl.innerHTML = data.allServices.map(function (name) {
+          var on = data.services === null || data.services.indexOf(name) !== -1;
+          return '<label style="display:block;margin:0.2rem 0"><input type="checkbox" class="work-service" value="' + name.replace(/"/g, '&quot;') + '"' + (on ? ' checked' : '') + '> ' + name.replace(/</g, '&lt;') + '</label>';
+        }).join('');
+        daysEl.innerHTML = data.weekdays.map(function (day) {
+          var w = data.availability && data.availability[day] && data.availability[day][0];
+          var on = data.availability === null || !!w;
+          return '<div style="display:flex;align-items:center;gap:6px;margin:0.25rem 0;flex-wrap:wrap"><label style="min-width:7.5rem"><input type="checkbox" class="work-day" data-day="' + day + '"' + (on ? ' checked' : '') + '> ' + DAY_NAMES[day] + '</label>'
+            + '<input type="time" class="work-start" data-day="' + day + '" value="' + ((w && w.start) || '08:00') + '"> to <input type="time" class="work-end" data-day="' + day + '" value="' + ((w && w.end) || '20:00') + '"></div>';
+        }).join('');
+        servicesEl.style.display = allBox.checked ? 'none' : '';
+        daysEl.style.display = anyBox.checked ? 'none' : '';
+      }
+      allBox.addEventListener('change', function () { servicesEl.style.display = allBox.checked ? 'none' : ''; });
+      anyBox.addEventListener('change', function () { daysEl.style.display = anyBox.checked ? 'none' : ''; });
+      fetch('/api/assembler/work-preferences', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d && d.ok) render(d); })
+        .catch(function () { /* the section stays hidden rather than guess */ });
+      document.getElementById('work-save').addEventListener('click', function () {
+        if (!state) return;
+        var services = allBox.checked ? null : Array.prototype.map.call(servicesEl.querySelectorAll('.work-service:checked'), function (b) { return b.value; });
+        var availability = null;
+        if (!anyBox.checked) {
+          availability = {};
+          state.weekdays.forEach(function (day) {
+            var on = daysEl.querySelector('.work-day[data-day="' + day + '"]').checked;
+            var start = daysEl.querySelector('.work-start[data-day="' + day + '"]').value;
+            var end = daysEl.querySelector('.work-end[data-day="' + day + '"]').value;
+            availability[day] = on ? [{ start: start, end: end }] : [];
+          });
+        }
+        var button = this;
+        button.disabled = true;
+        say('Saving…');
+        fetch('/api/assembler/work-preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ services: services, availability: availability })
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            button.disabled = false;
+            if (!res.ok || !res.d || !res.d.ok) { say((res.d && res.d.error) || 'That could not be saved. Try again.', 'bad'); return; }
+            render(res.d);
+            say('Work preferences saved.', 'good');
+          })
+          .catch(function () { button.disabled = false; say('That could not be saved. Try again.', 'bad'); });
       });
     })(session.access_token);
     var performancePromise = loadCanonicalPerformance(session.access_token);

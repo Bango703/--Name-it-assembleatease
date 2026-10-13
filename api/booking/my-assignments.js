@@ -15,11 +15,11 @@ import {
   computeBookingSplitFromSnapshot,
   SALES_TAX_RATE,
 } from '../_source-of-truth.js';
-import { isOwnerManualLiveFlow, isOwnerManualOfflineBooking } from '../_owner-easer.js';
-import { isDemoEaser } from '../_demo-accounts.js';
+import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 import { loadCrew } from './_crew.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 import { evaluateCustomerContactRelease, maskCustomerNameForEaser } from './_customer-contact-release.js';
+import { loadEaserJobExtras, applyEaserJobExtras } from './_easer-job-extras.js';
 
 const EASER_JOB_STAGES = Object.freeze(['en_route', 'arrived', 'in_progress']);
 
@@ -395,15 +395,13 @@ export default async function handler(req, res) {
 
   // ── 3. Merge and add pay estimates ──────────────────────────────────────
   const allBookings = [...offerBookings, ...(assignedBookings || [])];
-  // Looked up only when this Easer holds an offline test booking (App Review).
-  const easerIsDemo = allBookings.some(b => isOwnerManualOfflineBooking(b) && b.is_test_booking === true)
-    ? await isDemoEaser(sb, user.id)
-    : false;
   allBookings.forEach(booking => {
     booking._return_visit_open = booking.status === BOOKING_STATUS.COMPLETED
       && booking.return_visit_required === true;
-    booking._can_self_drop = !isOwnerManualLiveFlow(booking, easerProfile)
-      && !(easerIsDemo && isOwnerManualOfflineBooking(booking) && booking.is_test_booking === true);
+    // Released jobs go back to the owner when they cannot be re-offered
+    // (api/booking/drop-job.js), so every Easer may release except the owner on
+    // their own offline job. A demo account on a test job releases with no strike.
+    booking._can_self_drop = !isOwnerManualLiveFlow(booking, easerProfile);
     const appointmentDate = booking.return_visit_required ? booking.return_visit_date : booking.date;
     const appointmentTime = booking.return_visit_required ? booking.return_visit_time : booking.time;
     booking._stage_availability = Object.fromEntries(EASER_JOB_STAGES.map(stage => {
@@ -510,6 +508,9 @@ export default async function handler(req, res) {
       b._custom_quote = true; // signal to UI: price TBD
     }
   });
+
+  const jobExtras = await loadEaserJobExtras(sb, allBookings, user.id);
+  allBookings.forEach(booking => applyEaserJobExtras(booking, jobExtras.get(booking.id)));
 
   // The Easer response carries only the user's earnings and job-operation truth.
   // Raw customer-payment, refund, review, fee, and Stripe-transfer fields remain

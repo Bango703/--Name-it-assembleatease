@@ -9,9 +9,10 @@ import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { appointmentTimestampMs, parseIsoCalendarDate } from './_appt-date.js';
 import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './_booking-window.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
+import { matchingProposal, settleProposalsAfterReschedule } from './_time-proposals.js';
 
-const MAX_RESCHEDULES = 2;
-const TIME_SLOTS = [
+export const MAX_RESCHEDULES = 2;
+export const TIME_SLOTS = [
   '8:00 AM - 10:00 AM',
   '10:00 AM - 12:00 PM',
   '12:00 PM - 2:00 PM',
@@ -36,6 +37,28 @@ export function validatePublishedRescheduleSlot(date, time) {
   return { ok: true, normalizedTime, error: null };
 }
 
+/**
+ * A move the card hold cannot follow without support. Returns the customer
+ * message and code, or null. Used here and by api/booking/time-proposal.js so an
+ * Easer never proposes a time this path would then refuse.
+ */
+export function reschedulePaymentConflict(booking, date) {
+  const movingToScheduledAuthorization = needsScheduledAuthorization(date);
+  if (booking.payment_status === 'authorized' && movingToScheduledAuthorization) {
+    return {
+      error: 'This date is outside the current card-authorization window. Contact support so we can move the appointment without leaving an expired hold.',
+      code: 'PAYMENT_RESCHEDULE_ASSISTANCE_REQUIRED',
+    };
+  }
+  if (booking.payment_status === 'card_saved' && !movingToScheduledAuthorization) {
+    return {
+      error: 'This earlier date requires card verification now. Contact support so we can move and confirm the appointment securely.',
+      code: 'PAYMENT_RESCHEDULE_ASSISTANCE_REQUIRED',
+    };
+  }
+  return null;
+}
+
 function deliveryFailed(result) {
   return !result?.ok;
 }
@@ -50,7 +73,7 @@ export default async function handler(req, res) {
   const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
   if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
 
-  const { email, ref, token, date, time } = req.body || {};
+  const { email, ref, token, date, time, proposalId } = req.body || {};
   if (!email || !ref || !token || !date || !time) {
     return res.status(400).json({ error: 'Booking access token, email, reference, new date, and new time are required.' });
   }
@@ -94,19 +117,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: message });
   }
 
-  const movingToScheduledAuthorization = needsScheduledAuthorization(date);
-  if (booking.payment_status === 'authorized' && movingToScheduledAuthorization) {
-    return res.status(409).json({
-      error: 'This date is outside the current card-authorization window. Contact support so we can move the appointment without leaving an expired hold.',
-      code: 'PAYMENT_RESCHEDULE_ASSISTANCE_REQUIRED',
-    });
-  }
-  if (booking.payment_status === 'card_saved' && !movingToScheduledAuthorization) {
-    return res.status(409).json({
-      error: 'This earlier date requires card verification now. Contact support so we can move and confirm the appointment securely.',
-      code: 'PAYMENT_RESCHEDULE_ASSISTANCE_REQUIRED',
-    });
-  }
+  const paymentConflict = reschedulePaymentConflict(booking, date);
+  if (paymentConflict) return res.status(409).json(paymentConflict);
 
   if (date === booking.date && normalizedTime === normalizeSlot(booking.time)) {
     return res.status(400).json({ error: 'That is already your scheduled date and time.' });
@@ -121,7 +133,13 @@ export default async function handler(req, res) {
       code: 'RESCHEDULE_TRUTH_UNAVAILABLE',
     });
   }
-  if (priorReschedules >= MAX_RESCHEDULES) {
+  // Accepting the assigned Easer's own proposed time keeps them: they chose it,
+  // so there is nothing to reconfirm (api/booking/_time-proposals.js). It is the
+  // pro's move, not the customer's: it does not count toward the reschedule limit
+  // and does not forfeit the free-cancellation window (Rule 9).
+  const acceptedProposal = await matchingProposal(sb, { proposalId, booking, date, time: normalizedTime });
+  const countsAsReschedule = !acceptedProposal;
+  if (countsAsReschedule && priorReschedules >= MAX_RESCHEDULES) {
     return res.status(409).json({
       error: `This booking has already been rescheduled ${MAX_RESCHEDULES} times. Please call (979) 232-5139 for further changes.`,
       code: 'RESCHEDULE_LIMIT_REACHED',
@@ -131,7 +149,7 @@ export default async function handler(req, res) {
   const oldDate = booking.date;
   const oldTime = booking.time;
   const now = new Date().toISOString();
-  const reconfirmationRequired = Boolean(booking.assembler_id);
+  const reconfirmationRequired = Boolean(booking.assembler_id) && !acceptedProposal;
   const assignmentToken = reconfirmationRequired ? randomUUID() : booking.assignment_token;
   const nextGuestMutationToken = randomToken(32);
   const nextGuestMutationTokenHash = sha256(nextGuestMutationToken);
@@ -147,7 +165,7 @@ export default async function handler(req, res) {
     date,
     time,
     rescheduled_at: now,
-    reschedule_count: priorReschedules + 1,
+    reschedule_count: countsAsReschedule ? priorReschedules + 1 : priorReschedules,
     guest_mutation_token_hash: nextGuestMutationTokenHash,
     reminder_sent: false,
     arrival_nudge_count: 0,
@@ -224,25 +242,39 @@ export default async function handler(req, res) {
     if (offerCleanupError) console.error('Reschedule dispatch offer cleanup failed:', offerCleanupError);
   }
 
-  const remaining = MAX_RESCHEDULES - (priorReschedules + 1);
+  const remaining = MAX_RESCHEDULES - (countsAsReschedule ? priorReschedules + 1 : priorReschedules);
   await logActivity(sb, {
     bookingId: booking.id,
     eventType: 'rescheduled',
     actorType: 'guest',
     actorName: booking.customer_name || 'Guest customer',
-    description: `Customer rescheduled from ${oldDate} ${oldTime} to ${date} ${time}. Reschedule ${priorReschedules + 1} of ${MAX_RESCHEDULES}.`,
+    description: countsAsReschedule
+      ? `Customer rescheduled from ${oldDate} ${oldTime} to ${date} ${time}. Reschedule ${priorReschedules + 1} of ${MAX_RESCHEDULES}.`
+      : `Customer accepted the pro's proposed time: moved from ${oldDate} ${oldTime} to ${date} ${time}. Not counted as a customer reschedule.`,
     metadata: {
       oldDate,
       oldTime,
       newDate: date,
       newTime: time,
-      rescheduleNumber: priorReschedules + 1,
+      rescheduleNumber: countsAsReschedule ? priorReschedules + 1 : null,
       easerReconfirmationRequired: reconfirmationRequired,
+      easerProposalAccepted: acceptedProposal ? acceptedProposal.id : null,
       dispatchAttemptFrom: booking.dispatch_attempt ?? null,
       dispatchAttemptTo: booking.status === BOOKING_STATUS.CONFIRMED ? currentDispatchAttempt + 1 : booking.dispatch_attempt ?? null,
       dispatchOfferCleanupError,
     },
   });
+  await settleProposalsAfterReschedule(sb, booking.id, acceptedProposal?.id || null);
+  if (acceptedProposal) {
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'easer_time_proposal_accepted',
+      actorType: 'guest',
+      actorName: booking.customer_name || 'Guest customer',
+      description: `Customer accepted ${booking.assembler_name || 'the Easer'}'s proposed time: ${date} ${normalizedTime}`,
+      metadata: { proposalId: acceptedProposal.id, assemblerId: booking.assembler_id },
+    });
+  }
   if (reconfirmationRequired) {
     await logActivity(sb, {
       bookingId: booking.id,
@@ -277,7 +309,9 @@ export default async function handler(req, res) {
       statusBg: '#f0f9ff',
       headline: 'Your appointment has been rescheduled.',
       bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> appointment is now set for <strong>${esc(formatAppointmentDate(date))}</strong> at <strong>${esc(time)}</strong>.</p>
-        <p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">Cancelling now carries the reschedule cancellation fee. ${remaining > 0 ? `You can reschedule ${remaining} more time if needed.` : 'This was your final self-service reschedule.'}</p>
+        ${countsAsReschedule
+          ? `<p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">Cancelling now carries the reschedule cancellation fee. ${remaining > 0 ? `You can reschedule ${remaining} more time if needed.` : 'This was your final self-service reschedule.'}</p>`
+          : '<p style="margin:0 0 16px;font-size:14px;color:#52525b">This is the time your pro proposed. Your cancellation terms are unchanged.</p>'}
         <p style="margin:0"><a href="${esc(nextTrackUrl)}">Open your updated secure tracking link</a></p>`,
     }),
     meta: { bookingId: booking.id, notificationType: 'reschedule_customer', recipientType: 'customer', disableDedupe: true },
@@ -329,6 +363,22 @@ export default async function handler(req, res) {
       notifications.push({ recipient: 'easer', ...easerResult });
     } else {
       notifications.push({ recipient: 'easer', ok: false, error: 'Assigned Easer email is missing' });
+    }
+  }
+
+  if (acceptedProposal) {
+    const { data: easer } = await sb.from('profiles').select('email, full_name').eq('id', booking.assembler_id).maybeSingle();
+    if (easer?.email) {
+      const easerResult = await sendEmail({
+        to: easer.email,
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: `New time accepted — ${booking.ref}`,
+        replyTo: ownerEmail(),
+        html: `<p>Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')},</p>
+          <p>The customer accepted your new time for booking <strong>${esc(booking.ref)}</strong>: <strong>${esc(formatAppointmentDate(date))}</strong> at <strong>${esc(normalizedTime)}</strong>. The job stays yours.</p>`,
+        meta: { bookingId: booking.id, notificationType: 'easer_time_proposal_accepted', recipientType: 'easer', recipientUserId: booking.assembler_id, disableDedupe: true },
+      }).catch(err => ({ ok: false, error: err?.message || String(err) }));
+      notifications.push({ recipient: 'easer', ...easerResult });
     }
   }
 

@@ -3638,6 +3638,7 @@ window.intelQuick = intelQuick;
       (b._change_order_summary && b._change_order_summary.billableTotalCents > 0)
         ? field('Total With Approved Extras', '<strong>' + fmt$(Number(b.total_price || 0) + b._change_order_summary.billableTotalCents) + '</strong> <span style="font-size:0.7rem;color:var(--muted)">(' + fmt$(b.total_price) + ' original + ' + fmt$(b._change_order_summary.billableTotalCents) + ' approved)</span>') : '',
       b.details ? field('Details', esc(b.details)) : '',
+      customerFeedbackField(b),
       field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + esc(b.assembler_tier) + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (hasValidUsPhone(b.assembler_phone) ? ' &bull; <a href="tel:' + esc(b.assembler_phone) + '" style="color:var(--teal);text-decoration:none">' + esc(formatUsPhone(b.assembler_phone)) + '</a>' : ' <span style="color:var(--red)">&bull; valid phone required</span>') : '<span style="color:var(--muted)">Unassigned</span>'),
       field('Source', (b.source === 'manual' || b.source === 'owner_manual') ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
       b.rebooked_from_booking_id ? field('Rebooked From', esc(rebookedFrom && rebookedFrom.ref ? rebookedFrom.ref : 'Cancelled booking')) : '',
@@ -3803,6 +3804,7 @@ window.intelQuick = intelQuick;
         'Booking assigned while dispatching — offers cancelled': 'An Easer accepted while this was dispatching, so the remaining offers were withdrawn. The booking is assigned — no action needed.',
         'No eligible Easers in system': 'No Easer currently passes every readiness gate. Open the Easers tab and check Job Readiness — the panel lists the exact missing items.',
         'No available Easers in service area': 'Every Easer failed a readiness gate. Open the Easers tab and check Job Readiness for the exact missing items.',
+        'No Easer in the area takes this service at this time': 'Every ready Easer nearby has set work preferences that leave out this service or this time. Assign someone directly via Easer Assignment, or ask an Easer to widen their services or hours.',
         'All eligible Easers already received offers': 'Everyone eligible has already been offered this job and has not accepted. Wait for the offers to expire, or assign someone directly via Easer Assignment.',
         'Booking locked by a financial operation or reconciliation review': 'A payment, refund, cancellation, or payout action is mid-flight on this booking. Dispatch stays blocked until it finishes — do not start another money action.',
         'Booking not found': 'This booking no longer exists. Refresh the dashboard.',
@@ -6914,6 +6916,18 @@ window.intelQuick = intelQuick;
   // Additional approved work on a live booking. The original authorization is
   // never resized — each change order carries its own, captured with the job —
   // so the customer's real obligation is base + approved change orders.
+  // What the Easer said about the customer after the job (api/booking/customer-feedback.js).
+  var CUSTOMER_FLAG_LABELS = { safety: 'Safety concern', conduct: 'Rude or abusive', payment: 'Asked to pay outside the app', access: 'Could not access the home', other: 'Other' };
+  function customerFeedbackField(b) {
+    var rows = Array.isArray(b && b._customer_feedback) ? b._customer_feedback : [];
+    if (!rows.length) return '';
+    return field('Easer Feedback on Customer', rows.map(function(r) {
+      return (r.rating ? r.rating + ' of 5' : 'No rating')
+        + (r.flagged ? ' &bull; <strong style="color:var(--red)">Flagged: ' + esc(CUSTOMER_FLAG_LABELS[r.flag_reason] || 'Concern') + '</strong>' : '')
+        + (r.note ? '<div style="font-size:0.75rem;color:var(--muted)">' + esc(r.note) + '</div>' : '');
+    }).join('<br>'));
+  }
+
   function changeOrdersHtml(b) {
     var sum = b && b._change_order_summary;
     // No failure state is rendered here at all. A change-order lookup failure is
@@ -6933,6 +6947,7 @@ window.intelQuick = intelQuick;
       var st = statusStyle[o.status] || ['#475569', '#f1f5f9', '#e2e8f0', o.status];
       return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--border)">'
         + '<div style="min-width:0"><div style="font-size:0.79rem;color:var(--text)">' + esc(o.description) + '</div>'
+        + (o.created_by === 'easer' ? '<div style="font-size:0.68rem;color:var(--muted)">Added by the Easer on site</div>' : '')
         + '<span style="display:inline-block;margin-top:2px;font-size:0.64rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:' + st[0] + ';background:' + st[1] + ';border:1px solid ' + st[2] + ';border-radius:4px;padding:0 5px">' + st[3] + '</span></div>'
         + '<div style="text-align:right;white-space:nowrap"><strong style="font-size:0.8rem">' + fmt$(o.total_cents) + '</strong>'
         + (o.status === 'pending_customer_approval' ? '<div><button class="btn" style="font-size:0.66rem;padding:1px 6px;margin-top:3px" data-void-change-order="' + o.id + '">Withdraw</button></div>' : '')
