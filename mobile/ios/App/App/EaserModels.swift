@@ -686,14 +686,21 @@ struct EaserNotice: Decodable, Identifiable {
     let title: String
     let detail: String
     let createdAt: String?
-    let read: Bool
+    var read: Bool
     let bookingID: String?
-    /// Where tapping it goes: job, payouts, account or today (the server decides).
+    /// Where its button goes: job, job_customer_messages, job_team_messages,
+    /// payouts, account, personal_info, today or none (api/assembler/notifications.js).
     let action: String?
+    /// The button's words, or nil when there is nothing to open.
+    let actionLabel: String?
+    /// jobs, money or account.
+    let category: String
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         action = c.string("action")
+        actionLabel = c.string("actionLabel")
+        category = c.string("category") ?? "account"
         id = c.string("id") ?? UUID().uuidString
         title = c.string("title") ?? "Update"
         detail = c.string("detail") ?? ""
@@ -737,11 +744,23 @@ struct RequiredActionsEnvelope: Decodable {
 
 struct NoticesEnvelope: Decodable {
     let notifications: [EaserNotice]
+    /// Where the next older page starts; nil at the oldest.
+    let nextBefore: String?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         notifications = (try? c.decodeIfPresent([EaserNotice].self, forKey: DynamicKey("notifications"))) ?? []
+        nextBefore = c.string("nextBefore")
     }
+}
+
+/// The Easer's two conversations on a job. The server stamps each message with
+/// one (api/booking/_message-routing.js easerMessageThread).
+enum MessageThread: String {
+    case customer
+    case team
+
+    var title: String { self == .customer ? "Customer" : "AssembleAtEase" }
 }
 
 struct JobMessage: Decodable, Identifiable {
@@ -749,6 +768,7 @@ struct JobMessage: Decodable, Identifiable {
     let sender: String
     let body: String
     let createdAt: String?
+    let thread: MessageThread
     var fromMe: Bool { sender == "assembler" }
 
     init(from decoder: Decoder) throws {
@@ -757,14 +777,9 @@ struct JobMessage: Decodable, Identifiable {
         sender = c.string("sender") ?? ""
         body = c.string("body") ?? ""
         createdAt = c.string("created_at")
-    }
-
-    var senderLabel: String {
-        switch sender {
-        case "assembler": return "You"
-        case "customer": return "Customer"
-        default: return "AssembleAtEase"
-        }
+        let recipient = c.string("recipient_type") ?? ""
+        thread = MessageThread(rawValue: c.string("thread") ?? "")
+            ?? ((sender == "customer" || recipient == "customer") ? .customer : .team)
     }
 }
 

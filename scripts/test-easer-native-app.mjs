@@ -206,8 +206,10 @@ const once = (pattern, what) => assert.equal((all.match(pattern) || []).length, 
 once(/Toggle\("Available for jobs"/g, 'the online switch (Today)');
 once(/NavigationLink\s*\{\s*PayoutsView\(\)/g, 'the Payouts menu entry (Earnings)');
 // Contextual openings (an inbox item about payouts, the "Set up payouts" action) are the
-// action itself, not a second menu: only those two may present it as a sheet.
-assert.equal((all.match(/NavigationStack \{ PayoutsView\(\) \}/g) || []).length, 2, 'Payouts opens in context only from the inbox item and the required action');
+// action itself, not a second menu: the required action presents it as a sheet, the
+// inbox item's own button pushes it.
+assert.equal((all.match(/NavigationStack \{ PayoutsView\(\) \}/g) || []).length, 1, 'Payouts opens as a sheet only from the required action');
+once(/NavigationLink\(label\) \{ PayoutsView\(\) \}/g, 'the inbox item button to Payouts');
 once(/\bEarningsHistoryView\(\)/g, 'the earnings history link (Earnings)');
 once(/\bAccountHeader\(\)/g, 'the profile header (Account)');
 once(/NavigationLink \{ PersonalInfoView\(\) \}/g, 'Personal information (Account)');
@@ -224,7 +226,7 @@ assert.match(read('api/_easer-readiness.js'), /if \(flags\.profilePhotoRequested
 const updateApi = read('api/assembler/update.js');
 assert.match(updateApi, /profile_photo_requested_at: new Date\(\)\.toISOString\(\),[\s\S]{0,120}is_available: false,/, 'the request takes the Easer offline');
 assert.match(updateApi, /sendPushToUser\(assemblerId, \{\s*title: 'New profile photo needed'/, 'and reaches their phone');
-assert.match(read('api/assembler/notifications.js'), /easer_photo_request: \['New profile photo needed'/, 'and their inbox');
+assert.match(read('api/assembler/notifications.js'), /easer_photo_request: notice\('New profile photo needed'/, 'and their inbox');
 assert.match(swift['EaserViews.swift'], /Button\("Upload new photo"\) \{ uploadingPhoto = true \}/, 'Today offers the upload right there');
 assert.match(store, /setProfilePhoto\(dataURL\)[\s\S]{0,400}await refresh\(\)/, 'the requirement clears on screen after upload');
 
@@ -283,10 +285,10 @@ for (const path of ['/api/assembler/sms-preference', '/api/assembler/required-ac
 }
 assert.match(swift['EaserViews.swift'], /if store\.availabilityBusy \|\| store\.profile == nil \{\s*ProgressView\(\)/, 'the online switch never shows off before the profile is known');
 const inboxApi = read('api/assembler/notifications.js');
-assert.match(inboxApi, /action: actionFor\(row\)/, 'every inbox item says where it goes');
+assert.match(inboxApi, /const action = actionFor\(row, announcements\);/, 'every inbox item says where it goes');
 assert.doesNotMatch(inboxApi, /A new update is available/, 'no item that says nothing');
 assert.match(inboxApi, /`required_action:\$\{actionKey\}`/, 'a required action is one inbox item, not an email copy and a push copy');
-assert.match(swift['EaserViews.swift'], /switch notice\.action \{\s*case "payouts": showingPayouts = true/, 'the app opens what the item is about');
+assert.match(swift['EaserViews.swift'], /switch notice\.action \{\s*case "job":/, 'the app opens what the item is about');
 assert.match(store, /\/api\/assembler\/acknowledge-announcement/, 'a policy can be acknowledged in the app');
 assert.match(read('api/_announcements.js'), /rule: a\.target_rule \|\| null/, 'the server says which rule an action came from');
 assert.match(swift['EaserViews.swift'], /Button\("Opens at \\\(opens\)"\)/, 'a step not open yet says when it opens instead of failing on tap');
@@ -399,12 +401,12 @@ assert.match(swift['EaserViews.swift'], /Text\(job\.title\)\.font\(\.title2\.bol
 // Owner: the inbox said "A job has been added to your schedule" for a job the
 // app showed as "Waiting for you to accept"; the push printed 2026-10-15.
 const noticeCopy = read('api/assembler/notifications.js');
-const assignCopy = noticeCopy.match(/assignment_confirmation: \[([^\]]+)\]/);
+const assignCopy = noticeCopy.match(/assignment_confirmation: notice\(([^)]+)\)/);
 assert.ok(assignCopy && !/schedul/i.test(assignCopy[1]), 'an assignment notice never says the job is scheduled');
 assert.match(assignCopy[1], /accept/i, 'it says what to do: accept');
 // A customer reschedule returns the job to waiting for acceptance; the button
 // is Accept, so the notice names it (it said "confirm availability").
-const rescheduleCopy = noticeCopy.match(/reschedule_easer_reconfirmation: \[([^\]]+)\]/);
+const rescheduleCopy = noticeCopy.match(/reschedule_easer_reconfirmation: notice\(([^)]+)\)/);
 assert.ok(rescheduleCopy && /accept/i.test(rescheduleCopy[1]) && !/confirm availability/i.test(rescheduleCopy[1]), 'the reschedule notice names the action the app offers');
 const assignApi = read('api/booking/assign.js');
 assert.match(assignApi, /title: 'New job',\s*body:\s*\(booking\.service \|\| 'Service'\) \+ ' · ' \+ formatAppointmentDateShort\(booking\.date\)/, 'the push shows a readable date');

@@ -6,7 +6,7 @@ import { messageDirectionLabel } from '../_owner-inbox.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
 import { safeTokenHashMatch, guestManageUrl } from '../_payment-security.js';
-import { customerMessageRecipient } from './_message-routing.js';
+import { customerMessageRecipient, easerMessageThread } from './_message-routing.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
 import { logActivity } from './_activity.js';
 import {
@@ -22,6 +22,7 @@ import {
   OPERATION_CASE_SEVERITIES,
   OPERATION_CASE_SOURCES,
   createOperationCase,
+  operationCaseOwnerStatusLabel,
   operationCasePublicStatus,
 } from '../_operation-cases.js';
 
@@ -93,9 +94,15 @@ export default async function handler(req, res) {
     if (!ownerRequest) {
       // Assignment alone is not message ownership: after reassignment, role-
       // only rows could disclose the prior Easer's thread. Legacy rows with no
-      // user identity intentionally remain owner-only.
+      // user identity intentionally remain owner-only. A customer message is
+      // shown only when it was delivered to the assigned Easer: what the
+      // customer wrote to AssembleAtEase stays between them (a crew helper sees
+      // the lead's customer thread, never the customer's notes to the team).
+      const customerToCrew = bk.assembler_id
+        ? `,and(sender.eq.customer,recipient_user_id.eq.${bk.assembler_id}),and(recipient_type.eq.customer,sender_user_id.eq.${bk.assembler_id})`
+        : '';
       messagesQuery = messagesQuery.or(
-        `sender_user_id.eq.${easerAccess.user.id},recipient_user_id.eq.${easerAccess.user.id},sender.eq.customer`,
+        `sender_user_id.eq.${easerAccess.user.id},recipient_user_id.eq.${easerAccess.user.id}${customerToCrew}`,
       );
     }
     const { data: msgs, error: msgsErr } = await messagesQuery
@@ -192,9 +199,28 @@ export default async function handler(req, res) {
       if (!countErr) unreadRemaining = Number(count || 0);
     }
 
+    // A help request from the Easer opened an Operations Case (sourceRef
+    // easer-support-message:<id>). The owner's thread names that case on the
+    // message, so the request and its case are one thing, not two places.
+    let caseByMessage = new Map();
+    if (ownerRequest && (msgs || []).some(m => m.sender === 'assembler')) {
+      const { data: caseRows } = await sb
+        .from('operations_cases')
+        .select('id, case_ref, status, subject, source_ref')
+        .eq('booking_id', bk.id)
+        .like('source_ref', 'easer-support-message:%');
+      caseByMessage = new Map((caseRows || []).map(row => [
+        String(row.source_ref).slice('easer-support-message:'.length),
+        { id: row.id, ref: row.case_ref || null, statusLabel: operationCaseOwnerStatusLabel(row.status), subject: row.subject || null },
+      ]));
+    }
+
     return res.status(200).json({
       // The owner sees who wrote to whom; the wording comes from api/_owner-inbox.js.
-      messages: ownerRequest ? (msgs || []).map(m => ({ ...m, direction: messageDirectionLabel(m) })) : (msgs || []),
+      // The Easer gets each row's thread (customer or team) from _message-routing.js.
+      messages: ownerRequest
+        ? (msgs || []).map(m => ({ ...m, direction: messageDirectionLabel(m), case: caseByMessage.get(m.id) || null }))
+        : (msgs || []).map(m => ({ ...m, thread: easerMessageThread(m) })),
       markedRead,
       unreadRemaining,
       readError,

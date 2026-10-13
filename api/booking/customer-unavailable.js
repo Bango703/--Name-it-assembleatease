@@ -50,12 +50,13 @@ export default async function handler(req, res) {
     return res.status(409).json({ error: "Tap I've arrived first.", code: 'NOT_ARRIVED' });
   }
 
-  const { data: history, error: historyError } = await sb.from('activity_logs')
+  const loadHistory = () => sb.from('activity_logs')
     .select('event_type, created_at')
     .eq('booking_id', booking.id)
     .in('event_type', ['customer_unavailable_reported', 'customer_no_show_reported'])
     .order('created_at', { ascending: false })
     .limit(10);
+  const { data: history, error: historyError } = await loadHistory();
   if (historyError) return res.status(503).json({ error: 'The job could not be loaded. Try again.' });
   const state = customerUnavailableState(history || []);
   const easerName = booking.assembler_name || 'Easer';
@@ -65,6 +66,7 @@ export default async function handler(req, res) {
     // Asking twice keeps the first clock.
     if (state) return res.status(200).json({ ok: true, ...state });
 
+    const startedAt = new Date().toISOString();
     const logged = await logActivity(sb, {
       bookingId: booking.id,
       eventType: 'customer_unavailable_reported',
@@ -100,7 +102,9 @@ export default async function handler(req, res) {
       }).catch(error => ({ ok: false, error: error?.message || String(error) })) : Promise.resolve({ ok: false, skipped: 'no_email' }),
     ]);
 
-    const fresh = customerUnavailableState([{ event_type: 'customer_unavailable_reported', created_at: new Date().toISOString() }]);
+    // The clock the Easer sees is the stored one, so the no-show check agrees with it.
+    const { data: stored } = await loadHistory();
+    const fresh = customerUnavailableState(stored?.length ? stored : [{ event_type: 'customer_unavailable_reported', created_at: startedAt }]);
     return res.status(200).json({
       ok: true,
       ...fresh,
