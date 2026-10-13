@@ -33,7 +33,7 @@ One-time Apple setup for the customer app:
 
 1. Identifiers: register `com.assembleatease.customer` (Push Notifications on).
 2. App Store Connect: New App, iOS, name "AssembleAtEase", that bundle ID,
-   SKU `assembleatease-customer`.
+   SKU `assembleatease-customer`. Done 2026-10-13: Apple app 6822339934.
 3. Codemagic: start the `customer-ios` workflow on `main`.
 
 ## Android: web shell (unchanged)
