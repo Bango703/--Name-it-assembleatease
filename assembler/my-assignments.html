@@ -384,6 +384,10 @@
         <div id="support-workflow" style="display:none"></div>
         <div id="support-status" role="status" aria-live="polite" style="display:none;font-size:0.76rem;line-height:1.5;margin:0.65rem 0"></div>
         <div id="support-conversation" style="display:none">
+          <div id="asgn-thread-tabs" role="tablist" aria-label="Conversation" style="display:flex;gap:0.4rem;margin-bottom:0.6rem">
+            <button type="button" class="asgn-thread-tab" role="tab" data-thread="customer" style="padding:0.35rem 0.8rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">Customer</button>
+            <button type="button" class="asgn-thread-tab" role="tab" data-thread="team" style="padding:0.35rem 0.8rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">AssembleAtEase</button>
+          </div>
           <div class="msg-thread" id="asgn-msg-thread" style="display:none"></div>
           <div id="asgn-customer-photos" style="display:none;margin:0 0 .75rem;padding:.7rem 0;border-top:1px solid var(--pro-border);font-size:.76rem;color:var(--pro-muted)"></div>
           <div class="msg-input-row">
@@ -424,6 +428,8 @@
   var _selectedSupportType = '';
   // True while the composer is addressed to the CUSTOMER rather than support.
   var _relayToCustomer = false;
+  // This job's messages as the server returned them; each carries its thread.
+  var _threadMessages = [];
   var _supportRequestInFlight = false;
   var _detailReturnFocus = null;
 
@@ -1583,6 +1589,12 @@
 
     // Message send
     document.getElementById('asgn-msg-send').addEventListener('click', sendMsg);
+    document.getElementById('asgn-thread-tabs').addEventListener('click', function(e) {
+      var tab = e.target.closest('.asgn-thread-tab');
+      if (!tab) return;
+      setMessageThread(tab.getAttribute('data-thread'));
+      showSupportStatus('', 'info');
+    });
     document.getElementById('asgn-msg-input').addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
     });
@@ -1624,7 +1636,7 @@
     }
   });
 
-  async function refreshThread(bId) {
+  async function refreshThread(bId, openLatest) {
     var thread = document.getElementById('asgn-msg-thread');
     try {
         var response = await fetch('/api/booking/message?bookingId=' + encodeURIComponent(bId), {
@@ -1632,26 +1644,60 @@
         });
         var data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Could not load messages.');
-        var msgs = Array.isArray(data.messages) ? data.messages : [];
-        if (!msgs.length) {
-          thread.innerHTML = '';
-          thread.style.display = 'none';
-        } else {
-          thread.style.display = 'block';
-          document.getElementById('support-conversation').style.display = 'block';
-          thread.innerHTML = msgs.map(function(m) {
-            var isMe = m.sender === 'assembler';
-            return '<div style="display:flex;justify-content:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:0.6rem">'
-              + '<div style="max-width:80%;padding:0.55rem 0.85rem;border-radius:12px;font-size:0.875rem;line-height:1.5;'
-              + (isMe ? 'background:var(--teal);color:#fff;border-radius:12px 12px 2px 12px' : 'background:var(--pro-surface);color:var(--pro-text);border:1px solid var(--pro-border);border-radius:12px 12px 12px 2px') + '">' + esc(m.body) + '</div></div>';
-          }).join('');
-          thread.scrollTop = thread.scrollHeight;
-        }
+        _threadMessages = Array.isArray(data.messages) ? data.messages : [];
+        // A job opened from a customer's reply opens on the customer conversation.
+        var latest = _threadMessages[_threadMessages.length - 1];
+        if (openLatest && latest && latest.thread === 'customer' && latest.sender === 'customer') setMessageThread('customer');
+        else renderThreadMessages();
+        // Existing conversations stay one tap away once Support is opened.
+        if (_threadMessages.length) document.getElementById('support-conversation').style.display = 'block';
     } catch (error) {
+      _threadMessages = [];
       thread.style.display = 'block';
       thread.innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Could not load messages.</div>';
     }
     loadCustomerPhotosForEaser(bId);
+  }
+
+  // The Easer has two conversations on a job: with the customer, and with
+  // AssembleAtEase. Only the one the composer is addressed to is shown, and the
+  // server decides which thread each message belongs to (m.thread).
+  function renderThreadMessages() {
+    var thread = document.getElementById('asgn-msg-thread');
+    var which = _relayToCustomer ? 'customer' : 'team';
+    document.querySelectorAll('.asgn-thread-tab').forEach(function(tab) {
+      var selected = tab.getAttribute('data-thread') === which;
+      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+      tab.style.borderColor = selected ? 'var(--pro-teal)' : 'var(--pro-border-md)';
+      tab.style.background = selected ? 'rgba(0,191,255,0.08)' : '#fff';
+      tab.style.color = selected ? 'var(--pro-teal)' : 'var(--pro-soft)';
+    });
+    var send = document.getElementById('asgn-msg-send');
+    if (send) send.setAttribute('aria-label', which === 'customer' ? 'Send message to the customer' : 'Send message to AssembleAtEase');
+    var msgs = _threadMessages.filter(function(m) { return m.thread === which; });
+    thread.style.display = 'block';
+    if (!msgs.length) {
+      thread.innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:0.75rem">'
+        + (which === 'customer' ? 'No messages with the customer yet.' : 'No messages with AssembleAtEase yet.') + '</div>';
+      return;
+    }
+    thread.innerHTML = msgs.map(function(m) {
+      var isMe = m.sender === 'assembler';
+      var who = isMe ? 'You' : (which === 'customer' ? 'Customer' : 'AssembleAtEase');
+      return '<div style="display:flex;flex-direction:column;align-items:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:0.6rem">'
+        + '<div style="font-size:0.68rem;color:var(--pro-muted);margin-bottom:0.15rem">' + esc(who) + '</div>'
+        + '<div style="max-width:80%;padding:0.55rem 0.85rem;border-radius:12px;font-size:0.875rem;line-height:1.5;'
+        + (isMe ? 'background:var(--teal);color:#fff;border-radius:12px 12px 2px 12px' : 'background:var(--pro-surface);color:var(--pro-text);border:1px solid var(--pro-border);border-radius:12px 12px 12px 2px') + '">' + esc(m.body) + '</div></div>';
+    }).join('');
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  function setMessageThread(which) {
+    _relayToCustomer = which === 'customer';
+    if (_relayToCustomer) _selectedSupportType = '';
+    var input = document.getElementById('asgn-msg-input');
+    if (input) input.placeholder = _relayToCustomer ? 'Message the customer' : 'Message AssembleAtEase';
+    renderThreadMessages();
   }
 
   async function loadCustomerPhotosForEaser(bId) {
@@ -1706,8 +1752,9 @@
 
   function renderSupportWorkflow(type) {
     if (!_supportContext) return;
-    _selectedSupportType = type || '';
     _relayToCustomer = false;
+    renderThreadMessages();
+    _selectedSupportType = type || '';
     showSupportStatus('', 'info');
     var workflow = document.getElementById('support-workflow');
     var conversation = document.getElementById('support-conversation');
@@ -2203,7 +2250,11 @@
 
     // Tightened hierarchy: status -> when -> where -> customer -> booked scope
     // -> payout -> next job action.
-    const mapsHref = b.address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.address) : '';
+    // Turn-by-turn to the address: Apple Maps on an iPhone, Google Maps elsewhere
+    // (both links open the maps app when it is installed).
+    const mapsHref = b.address
+      ? (/iPhone|iPad|iPod/.test(navigator.userAgent) ? 'https://maps.apple.com/?daddr=' : 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=') + encodeURIComponent(b.address)
+      : '';
     const pinSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
     const payoutPill = !isCompleted && payEst
       ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.35rem 0.9rem;font-size:0.95rem;margin-bottom:0.75rem"><strong style="color:var(--pro-teal)">' + payEst + '</strong><span style="color:var(--pro-muted);font-size:0.72rem">' + (accepted ? 'Your payout' : 'Estimated payout') + '</span></div>'
@@ -2218,7 +2269,7 @@
     const contactActions = b.customer_phone
       ? '<div style="display:flex;gap:0.4rem;flex-shrink:0">'
           + '<a href="tel:' + esc(b.customer_phone) + '" style="display:inline-flex;align-items:center;background:var(--pro-teal);color:#fff;font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;text-decoration:none">Call</a>'
-          + '<a href="sms:' + esc(b.customer_phone) + '" style="display:inline-flex;align-items:center;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;text-decoration:none;border:1px solid rgba(0,191,255,0.4)">Text</a>'
+          + '<button type="button" class="asgn-contact-relay" data-booking-id="' + esc(b.id) + '" style="display:inline-flex;align-items:center;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;border:1px solid rgba(0,191,255,0.4);cursor:pointer;font-family:inherit">Message</button>'
         + '</div>'
       : (contactHeld
           ? '<button type="button" class="asgn-contact-relay" data-booking-id="' + esc(b.id) + '" style="display:inline-flex;align-items:center;flex-shrink:0;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;border:1px solid rgba(0,191,255,0.4);cursor:pointer;font-family:inherit">Message</button>'
@@ -2608,8 +2659,7 @@
     var relayButton = document.querySelector('#asgn-modal-body .asgn-contact-relay');
     if (relayButton) {
       relayButton.addEventListener('click', function() {
-        _relayToCustomer = true;
-        _selectedSupportType = '';
+        setMessageThread('customer');
         setSupportPanelOpen(true);
         showSupportStatus('Your message goes to the customer through AssembleAtEase. Contact details and payment arrangements stay on the platform.', 'info');
         showSupportConversation('Ask the customer about access, parking, or the job');
@@ -2625,7 +2675,7 @@
     // remain available after the Easer deliberately opens Support.
     setSupportPanelOpen(false);
     // Load messages from Supabase
-    refreshThread(bookingId);
+    refreshThread(bookingId, true);
   };
 </script>
 

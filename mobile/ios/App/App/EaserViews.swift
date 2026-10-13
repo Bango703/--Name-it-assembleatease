@@ -380,7 +380,7 @@ private struct AvailabilityCard: View {
             }
         }
         .padding(16)
-        .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
@@ -493,7 +493,7 @@ private struct SetupCard: View {
                 }
             }
             .padding(16)
-            .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Brand.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .sheet(isPresented: $signing) { AgreementSheet(legalName: setup.fullName).environmentObject(store) }
         } else if needsSetup {
             VStack(alignment: .leading, spacing: 10) {
@@ -501,7 +501,7 @@ private struct SetupCard: View {
                 SetupItemRows(items: store.setupItems)
             }
             .padding(16)
-            .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Brand.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         } else if !store.newOffersAllowed {
             VStack(alignment: .leading, spacing: 10) {
                 NoticeCard(icon: "pause.circle", title: "New offers are paused",
@@ -647,7 +647,7 @@ private struct NoticeCard: View {
             Spacer(minLength: 0)
         }
         .padding(16)
-        .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
@@ -666,7 +666,7 @@ private struct EmptyTodayCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
@@ -715,10 +715,10 @@ private struct JobCard: View {
             }
         }
         .padding(16)
-        .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(emphasis ? Brand.sky : Color.clear, lineWidth: 2)
+                .stroke(emphasis ? Brand.sky : Color(uiColor: .separator), lineWidth: emphasis ? 2 : 1)
         )
     }
 
@@ -840,6 +840,8 @@ struct JobDetailView: View {
     @State private var addingWork = false
     @State private var proposingTime = false
     @State private var ratingCustomer = false
+    @State private var choosingMapsApp = false
+    @AppStorage(NavigationApp.storageKey) private var navigationApp = ""
 
     var body: some View {
         Group {
@@ -925,11 +927,25 @@ struct JobDetailView: View {
                     Label(job.place, systemImage: "mappin.and.ellipse")
                     if job.acceptedAt != nil, let address = job.address, !job.isFinished {
                         Button {
-                            if let url = URL(string: "http://maps.apple.com/?daddr=" + EaserAPI.query(address)) { openURL(url) }
+                            if let app = NavigationApp(rawValue: navigationApp) {
+                                Directions.open(address, in: app)
+                            } else {
+                                choosingMapsApp = true
+                            }
                         } label: {
                             Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond")
                         }
                         .buttonStyle(SecondaryButtonStyle())
+                        .confirmationDialog("Open directions in", isPresented: $choosingMapsApp, titleVisibility: .visible) {
+                            ForEach(NavigationApp.allCases) { app in
+                                Button(app.title) {
+                                    navigationApp = app.rawValue
+                                    Directions.open(address, in: app)
+                                }
+                            }
+                        } message: {
+                            Text("Change this any time in Account.")
+                        }
                     }
                 }
 
@@ -983,9 +999,14 @@ struct JobDetailView: View {
                             Button { openURL(url) } label: { Label("Call customer", systemImage: "phone") }
                         }
                         NavigationLink {
-                            MessagesView(job: job)
+                            MessagesView(job: job, thread: .customer)
                         } label: {
-                            Label("Messages", systemImage: "bubble.left.and.bubble.right")
+                            Label("Message customer", systemImage: "bubble.left.and.bubble.right")
+                        }
+                        NavigationLink {
+                            MessagesView(job: job, thread: .team)
+                        } label: {
+                            Label("Message AssembleAtEase", systemImage: "questionmark.bubble")
                         }
                     }
                 }
@@ -1773,6 +1794,33 @@ private struct JobMapCard: View {
     }
 }
 
+/// The maps app an Easer drives with, chosen once and kept on this phone.
+enum NavigationApp: String, CaseIterable, Identifiable {
+    case apple
+    case google
+
+    static let storageKey = "navigationApp"
+    var id: String { rawValue }
+    var title: String { self == .apple ? "Apple Maps" : "Google Maps" }
+}
+
+/// Turn-by-turn to a job address, opened in the maps app itself. Opened with
+/// UIApplication rather than openURL, which shows web links inside the app.
+enum Directions {
+    static func open(_ address: String, in app: NavigationApp) {
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: "&+=?#")
+        let destination = address.addingPercentEncoding(withAllowedCharacters: allowed) ?? address
+        let link: String
+        switch app {
+        case .apple: link = "maps://?daddr=\(destination)&dirflg=d"
+        // The Google Maps universal link opens the Google Maps app when it is installed.
+        case .google: link = "https://www.google.com/maps/dir/?api=1&destination=\(destination)&travelmode=driving"
+        }
+        if let url = URL(string: link) { UIApplication.shared.open(url) }
+    }
+}
+
 /// What the platform needs from the Easer, each with the one button that does it.
 private struct RequiredActionsCard: View {
     @EnvironmentObject private var store: EaserStore
@@ -1816,7 +1864,7 @@ private struct RequiredActionsCard: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Brand.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .sheet(isPresented: $showingPayouts) {
                 NavigationStack { PayoutsView() }.environmentObject(store)
             }
@@ -1868,7 +1916,7 @@ private struct DetailBlock<Content: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -2132,31 +2180,54 @@ private struct CameraPicker: UIViewControllerRepresentable {
 private struct MessagesView: View {
     let job: EaserJob
     @EnvironmentObject private var store: EaserStore
+    @State private var thread: MessageThread
     @State private var messages: [JobMessage] = []
     @State private var draft = ""
-    @State private var toCustomer = true
     @State private var sending = false
     @State private var problem: String?
     @State private var loaded = false
 
+    init(job: EaserJob, thread: MessageThread) {
+        self.job = job
+        _thread = State(initialValue: thread)
+    }
+
+    private var shown: [JobMessage] { messages.filter { $0.thread == thread } }
+
+    private var customerFirstName: String {
+        job.customerName?.split(separator: " ").first.map(String.init) ?? "Customer"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
+            Picker("Conversation", selection: $thread) {
+                Text("Customer").tag(MessageThread.customer)
+                Text("AssembleAtEase").tag(MessageThread.team)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 10) {
-                        if loaded && messages.isEmpty {
-                            Text("No messages yet.")
+                        if loaded && shown.isEmpty {
+                            Text(thread == .customer ? "No messages with \(customerFirstName) yet." : "No messages with AssembleAtEase yet.")
                                 .foregroundStyle(.secondary)
                                 .padding(.top, 40)
                         }
-                        ForEach(messages) { message in
-                            MessageBubble(message: message).id(message.id)
+                        ForEach(shown) { message in
+                            MessageBubble(message: message, otherName: thread == .customer ? customerFirstName : "AssembleAtEase").id(message.id)
                         }
                     }
                     .padding(16)
                 }
-                .onChange(of: messages.count) { _, _ in
-                    if let last = messages.last { proxy.scrollTo(last.id, anchor: .bottom) }
+                .onChange(of: shown.count) { _, _ in
+                    if let last = shown.last { proxy.scrollTo(last.id, anchor: .bottom) }
+                }
+                .onChange(of: thread) { _, _ in
+                    problem = nil
+                    if let last = shown.last { proxy.scrollTo(last.id, anchor: .bottom) }
                 }
             }
             .refreshable { await load() }
@@ -2165,13 +2236,8 @@ private struct MessagesView: View {
                 if let problem {
                     Text(problem).font(.footnote).foregroundStyle(Brand.attention)
                 }
-                Picker("Send to", selection: $toCustomer) {
-                    Text("Customer").tag(true)
-                    Text("AssembleAtEase").tag(false)
-                }
-                .pickerStyle(.segmented)
                 HStack(alignment: .bottom, spacing: 10) {
-                    TextField("Message", text: $draft, axis: .vertical)
+                    TextField(thread == .customer ? "Message \(customerFirstName)" : "Message AssembleAtEase", text: $draft, axis: .vertical)
                         .lineLimit(1...4)
                         .padding(10)
                         .background(Brand.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -2181,13 +2247,13 @@ private struct MessagesView: View {
                         if sending { ProgressView() } else { Image(systemName: "arrow.up.circle.fill").font(.system(size: 32)) }
                     }
                     .disabled(sending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .accessibilityLabel("Send message")
+                    .accessibilityLabel(thread == .customer ? "Send to \(customerFirstName)" : "Send to AssembleAtEase")
                 }
             }
             .padding(12)
             .background(.bar)
         }
-        .navigationTitle("Messages")
+        .navigationTitle(thread.title)
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
     }
@@ -2208,7 +2274,7 @@ private struct MessagesView: View {
         sending = true
         defer { sending = false }
         do {
-            try await store.send(text, about: job, toCustomer: toCustomer)
+            try await store.send(text, about: job, toCustomer: thread == .customer)
             draft = ""
             await load()
         } catch {
@@ -2219,11 +2285,12 @@ private struct MessagesView: View {
 
 private struct MessageBubble: View {
     let message: JobMessage
+    let otherName: String
     var body: some View {
         HStack {
             if message.fromMe { Spacer(minLength: 40) }
             VStack(alignment: message.fromMe ? .trailing : .leading, spacing: 4) {
-                Text(message.senderLabel).font(.caption2).foregroundStyle(.secondary)
+                Text(message.fromMe ? "You" : otherName).font(.caption2).foregroundStyle(.secondary)
                 Text(message.body)
                     .padding(12)
                     .background(message.fromMe ? Brand.sky.opacity(0.22) : Brand.surface,
@@ -2341,7 +2408,7 @@ private struct ReliabilityCard: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Brand.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
     }
 }
@@ -2362,56 +2429,69 @@ private struct MoneyTile: View {
 
 private struct InboxView: View {
     @EnvironmentObject private var store: EaserStore
-    @State private var path: [JobRef] = []
-    @State private var showingPayouts = false
+    @State private var path = NavigationPath()
+    @State private var filter = "all"
+    @State private var loadingOlder = false
 
-    /// The job, Payouts, Account, or Today, where required actions and setup steps live.
-    private func open(_ notice: EaserNotice) {
-        if let id = notice.bookingID, store.job(id) != nil {
-            path.append(JobRef(id: id))
-            return
-        }
-        switch notice.action {
-        case "payouts": showingPayouts = true
-        case "account": store.tab = .account
-        default: store.tab = .today
-        }
+    private var shown: [EaserNotice] {
+        filter == "all" ? store.notices : store.notices.filter { $0.category == filter }
     }
 
     var body: some View {
         NavigationStack(path: $path) {
             List {
-                if store.notices.isEmpty {
-                    Text(store.loadedOnce ? "Job updates will appear here." : "Loading")
+                Picker("Show", selection: $filter) {
+                    Text("All").tag("all")
+                    Text("Jobs").tag("jobs")
+                    Text("Money").tag("money")
+                    Text("Account").tag("account")
+                }
+                .pickerStyle(.segmented)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
+                if shown.isEmpty {
+                    Text(store.loadedOnce ? (filter == "all" ? "Job updates will appear here." : "Nothing here yet.") : "Loading")
                         .foregroundStyle(.secondary)
                 }
-                ForEach(store.notices) { notice in
-                    Button {
-                        if !notice.read { Task { await store.markRead([notice.id]) } }
-                        open(notice)
-                    } label: {
-                        HStack(alignment: .top, spacing: 10) {
-                            Circle()
-                                .fill(notice.read ? Color.clear : Brand.sky)
-                                .frame(width: 8, height: 8)
-                                .padding(.top, 6)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(notice.title).font(notice.read ? Font.body : Font.body.weight(.semibold))
-                                Text(notice.detail).font(.subheadline).foregroundStyle(.secondary)
-                                if let when = Format.relative(notice.createdAt) {
-                                    Text(when).font(.caption).foregroundStyle(.tertiary)
-                                }
-                            }
-                        }
+
+                let unread = shown.filter { !$0.read }
+                let earlier = shown.filter { $0.read }
+                if !unread.isEmpty {
+                    Section("New") {
+                        ForEach(unread) { NoticeRow(notice: $0) }
                     }
-                    .foregroundStyle(.primary)
+                }
+                if !earlier.isEmpty {
+                    Section(unread.isEmpty ? "" : "Earlier") {
+                        ForEach(earlier) { NoticeRow(notice: $0) }
+                    }
+                }
+
+                if store.noticesNextBefore != nil {
+                    Button {
+                        loadingOlder = true
+                        Task {
+                            await store.loadOlderNotices()
+                            loadingOlder = false
+                        }
+                    } label: {
+                        if loadingOlder { ProgressView() } else { Text("Show older") }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .disabled(loadingOlder)
                 }
             }
-            .sheet(isPresented: $showingPayouts) {
-                NavigationStack { PayoutsView() }.environmentObject(store)
-            }
             .navigationTitle("Inbox")
+            .navigationDestination(for: NoticeRef.self) { NoticeDetailView(noticeID: $0.id) }
             .navigationDestination(for: JobRef.self) { JobDetailView(jobID: $0.id) }
+            .navigationDestination(for: MessagesRef.self) { ref in
+                if let job = store.job(ref.jobID) {
+                    MessagesView(job: job, thread: ref.thread)
+                } else {
+                    Text("This job is no longer on your schedule.").foregroundStyle(.secondary)
+                }
+            }
             .toolbar {
                 if store.unreadCount > 0 {
                     Button("Mark all read") {
@@ -2424,11 +2504,115 @@ private struct InboxView: View {
     }
 }
 
+struct NoticeRef: Hashable { let id: String }
+struct MessagesRef: Hashable {
+    let jobID: String
+    let thread: MessageThread
+}
+
+private struct NoticeRow: View {
+    let notice: EaserNotice
+
+    var body: some View {
+        NavigationLink(value: NoticeRef(id: notice.id)) {
+            HStack(alignment: .top, spacing: 10) {
+                Circle()
+                    .fill(notice.read ? Color.clear : Brand.sky)
+                    .frame(width: 8, height: 8)
+                    .padding(.top, 6)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(notice.title).font(notice.read ? Font.body : Font.body.weight(.semibold))
+                    Text(notice.detail).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                    if let when = Format.relative(notice.createdAt) {
+                        Text(when).font(.caption).foregroundStyle(.tertiary)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// One inbox item in full: what happened, which job, and the one button that
+/// goes to it (api/assembler/notifications.js decides the button).
+private struct NoticeDetailView: View {
+    let noticeID: String
+    @EnvironmentObject private var store: EaserStore
+
+    private var notice: EaserNotice? { store.notices.first { $0.id == noticeID } }
+
+    var body: some View {
+        List {
+            if let notice {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(notice.title).font(.title3.bold())
+                        if let when = Format.relative(notice.createdAt) {
+                            Text(when).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Text(notice.detail).font(.body)
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                let job = notice.bookingID.flatMap { store.job($0) }
+                if let job {
+                    Section("Job") {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(job.title).font(.headline)
+                            if !job.when.isEmpty { Text(job.when).font(.subheadline).foregroundStyle(.secondary) }
+                        }
+                    }
+                }
+
+                if let label = notice.actionLabel {
+                    Section {
+                        actionButton(notice, job: job, label: label)
+                    }
+                }
+            } else {
+                Text("This update is no longer in your inbox.").foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle("Update")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if let notice, !notice.read { await store.markRead([notice.id]) }
+        }
+    }
+
+    @ViewBuilder
+    private func actionButton(_ notice: EaserNotice, job: EaserJob?, label: String) -> some View {
+        switch notice.action {
+        case "job":
+            if let job { NavigationLink(label, value: JobRef(id: job.id)) } else { goneJob }
+        case "job_customer_messages", "job_team_messages":
+            if let job {
+                NavigationLink(label, value: MessagesRef(jobID: job.id, thread: notice.action == "job_customer_messages" ? .customer : .team))
+            } else { goneJob }
+        case "payouts":
+            NavigationLink(label) { PayoutsView() }
+        case "personal_info":
+            NavigationLink(label) { PersonalInfoView() }
+        case "account":
+            Button(label) { store.tab = .account }
+        case "today":
+            Button(label) { store.tab = .today }
+        default:
+            EmptyView()
+        }
+    }
+
+    private var goneJob: some View {
+        Text("This job is no longer on your schedule.").foregroundStyle(.secondary)
+    }
+}
+
 // MARK: - Account
 
 private struct AccountView: View {
     @EnvironmentObject private var store: EaserStore
     @Environment(\.openURL) private var openURL
+    @AppStorage(NavigationApp.storageKey) private var navigationApp = ""
     @State private var confirmSignOut = false
     @State private var closing = false
 
@@ -2450,6 +2634,12 @@ private struct AccountView: View {
                     }
                     NavigationLink { WorkPreferencesView() } label: {
                         Label("Work preferences", systemImage: "slider.horizontal.3")
+                    }
+                    Picker(selection: $navigationApp) {
+                        Text("Ask each time").tag("")
+                        ForEach(NavigationApp.allCases) { app in Text(app.title).tag(app.rawValue) }
+                    } label: {
+                        Label("Directions app", systemImage: "arrow.triangle.turn.up.right.diamond")
                     }
                 }
 

@@ -9,3 +9,12 @@
 export function customerMessageRecipient(booking) {
   return booking?.assembler_id && booking?.assembler_accepted_at ? 'assembler' : 'owner';
 }
+
+// Which of the Easer's two conversations a message belongs to. An Easer has a
+// thread with the customer and a separate thread with AssembleAtEase; a message
+// is in the customer thread when the customer wrote it or received it, and in
+// the AssembleAtEase thread otherwise. message.js stamps it on every row it
+// returns to an Easer, so the app and the web dashboard never sort for themselves.
+export function easerMessageThread(message = {}) {
+  return message.sender === 'customer' || message.recipient_type === 'customer' ? 'customer' : 'team';
+}

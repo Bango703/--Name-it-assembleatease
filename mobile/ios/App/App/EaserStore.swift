@@ -98,6 +98,8 @@ final class EaserStore: ObservableObject {
     /// Strikes in the window and whether new jobs are paused (api/assembler/reliability.js).
     @Published var reliability: Reliability?
     @Published var notices: [EaserNotice] = []
+    /// Where older inbox items start; nil when every item is loaded.
+    @Published var noticesNextBefore: String?
     @Published var loadedOnce = false
     @Published var loadProblem: String?
     @Published var banner: Banner? {
@@ -178,6 +180,7 @@ final class EaserStore: ObservableObject {
         jobs = []
         earnings = nil
         notices = []
+        noticesNextBefore = nil
         loadedOnce = false
         loadProblem = nil
         evidenceUploaded = []
@@ -232,7 +235,10 @@ final class EaserStore: ObservableObject {
             loadedOnce = true
         }
         if let data = cache.load("readiness"), let value = try? decoder.decode(ReadinessEnvelope.self, from: data) { readiness = value.readiness }
-        if let data = cache.load("notices"), let value = try? decoder.decode(NoticesEnvelope.self, from: data) { notices = value.notifications }
+        if let data = cache.load("notices"), let value = try? decoder.decode(NoticesEnvelope.self, from: data) {
+            notices = value.notifications
+            noticesNextBefore = value.nextBefore
+        }
         if let data = cache.load("earnings"), let value = try? decoder.decode(EarningsEnvelope.self, from: data) { earnings = value }
         if let data = cache.load("texts"), let value = try? decoder.decode(TextAlerts.self, from: data) { textAlerts = value }
         if let data = cache.load("actions"), let value = try? decoder.decode(RequiredActionsEnvelope.self, from: data) { requiredActions = value.actions }
@@ -298,7 +304,10 @@ final class EaserStore: ObservableObject {
                 case .readiness(let result):
                     if case .success(let value) = result { readiness = value.readiness }
                 case .notices(let result):
-                    if case .success(let value) = result { notices = value.notifications }
+                    if case .success(let value) = result {
+                        notices = value.notifications
+                        noticesNextBefore = value.nextBefore
+                    }
                 case .earnings(let result):
                     if case .success(let value) = result { earnings = value }
                 case .texts(let result):
@@ -929,10 +938,23 @@ final class EaserStore: ObservableObject {
     func markRead(_ ids: [String]) async {
         guard !ids.isEmpty else { return }
         do {
+            // Shown as read only after the server saved it.
             try await api.call("POST", "/api/assembler/notifications", body: ["ids": ids])
-            if let fresh = try? await api.get("/api/assembler/notifications", as: NoticesEnvelope.self) {
-                notices = fresh.notifications
-            }
+            let saved = Set(ids)
+            for index in notices.indices where saved.contains(notices[index].id) { notices[index].read = true }
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+        }
+    }
+
+    /// The next older page of the inbox.
+    func loadOlderNotices() async {
+        guard let before = noticesNextBefore else { return }
+        do {
+            let page = try await api.get("/api/assembler/notifications?before=" + EaserAPI.query(before), as: NoticesEnvelope.self)
+            let known = Set(notices.map(\.id))
+            notices += page.notifications.filter { !known.contains($0.id) }
+            noticesNextBefore = page.nextBefore
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)
         }

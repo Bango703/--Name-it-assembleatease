@@ -6645,8 +6645,14 @@ window.intelQuick = intelQuick;
       var senderClass = m.sender === 'owner' ? 'owner' : 'customer';
       // Who wrote to whom is decided on the server (api/_owner-inbox.js).
       var senderLabel = m.direction || 'Message';
+      // A help request from the Easer opened a case; the server names it here.
+      var caseLink = m.case && m.case.id
+        ? '<button type="button" class="msg-case-link" data-message-case="' + esc(m.case.id) + '">'
+          + 'Case ' + esc(m.case.ref || '') + ' &middot; ' + esc(m.case.statusLabel || '') + ' &rarr;</button>'
+        : '';
       return '<div class="msg ' + senderClass + '">'
         + '<div>' + esc(m.body) + '</div>'
+        + caseLink
         + '<div class="msg-time">' + senderLabel + ' &bull; ' + formatDateTime(m.created_at) + '</div>'
         + '</div>';
     }).join('');
@@ -6654,6 +6660,13 @@ window.intelQuick = intelQuick;
   }
 
   document.getElementById('msg-send').addEventListener('click', sendMessage);
+  $msgThread.addEventListener('click', function(e) {
+    var link = e.target.closest('[data-message-case]');
+    if (!link) return;
+    if (window.OwnerCases && typeof window.OwnerCases.open === 'function') window.OwnerCases.open(link.getAttribute('data-message-case'));
+    var nav = document.querySelector('.sidebar-nav [data-view="cases"]');
+    if (nav) nav.click();
+  });
   $msgInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
   function applyMsgTarget(t) {

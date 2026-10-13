@@ -4,35 +4,89 @@ import {
   respondWithEaserAccessError,
 } from '../_easer-access.js';
 
-const NOTIFICATION_COPY = {
-  approval: ['Account approved', "You're approved. Finish any remaining setup steps to start getting jobs."],
-  // Sent when the owner assigns a job. It is not on the schedule until accepted.
-  assignment_confirmation: ['New job', 'Review the job and accept it.'],
-  dispatch_offer: ['New job offer', 'A new job offer is ready for you to review.'],
-  easer_work_available: ['Work available', 'New work may be available in your service area.'],
-  easer_job_cancelled: ['Job cancelled', 'This job is no longer on your schedule.'],
-  owner_message: ['New message', 'You have a new message about this job.'],
-  evidence_request: ['Photos requested', 'Open the job to review the requested photos.'],
-  // The job returns to waiting for acceptance (api/booking/reschedule.js); Accept is the action.
-  reschedule_easer_reconfirmation: ['Schedule changed', 'Review the new time and accept the job.'],
-  owner_edit_easer_reconfirmation: ['Job details changed', 'Review the updated job details and confirm availability.'],
-  easer_payout_recorded: ['Payout recorded', 'Your payout status has been updated.'],
-  easer_suspended: ['Account status changed', 'Open your profile to review your current account status.'],
-  easer_reinstated: ['Account available', 'Your account status has been restored.'],
-  easer_tier_changed: ['Professional level updated', 'Your professional level has been updated.'],
-  easer_coaching: ['Performance update', 'A new performance update is available.'],
-  easer_phone_required: ['Phone number needed', 'Add a phone number to receive job updates.'],
-  easer_photo_request: ['New profile photo needed', 'Upload a new profile photo to get job offers again.'],
-  easer_application_received: ['Application received', 'Your application was received successfully.'],
-  easer_application_rejected: ['Application status updated', 'Open your profile to review your application status.'],
-  easer_onboarding_link_reissued: ['Setup link ready', 'A new account setup link is available.'],
-  identity_resume_link_reissued: ['Verification link ready', 'A new identity verification link is available.'],
-  identity_verified_applicant: ['Identity verified', 'Your identity verification is complete.'],
-  identity_failed_applicant: ['Verification action needed', 'Open your profile to continue identity verification.'],
-  easer_account_closure_requested: ['Closure requested', 'Your account closure request was received.'],
-  easer_account_closure_cancelled_confirmation: ['Closure cancelled', 'Your account will remain open.'],
-  easer_account_closed: ['Account closed', 'Your account closure is complete.'],
-};
+// Every notice an Easer can get, as one inbox item: what happened (title and
+// detail), where tapping it goes (action), the button that goes there, and its
+// group in the inbox (jobs, money or account). Copy states the fact and the
+// next step, never why.
+//
+// action: job | job_customer_messages | job_team_messages | payouts | account
+//         | personal_info | today | none
+const JOBS = 'jobs';
+const MONEY = 'money';
+const ACCOUNT = 'account';
+
+function notice(title, detail, action, actionLabel, category) {
+  return { title, detail, action, actionLabel, category };
+}
+
+export const NOTIFICATION_COPY = Object.freeze({
+  // Jobs
+  assignment_confirmation: notice('New job', 'AssembleAtEase sent you a job. Review it and accept it.', 'job', 'Review job', JOBS),
+  dispatch_offer: notice('New job offer', 'Review the offer and accept it before it expires.', 'job', 'Review offer', JOBS),
+  easer_work_available: notice('Work available', 'New jobs are available in your area. Go online to get offers.', 'today', 'Open Today', JOBS),
+  crew_added: notice('Added to a crew', 'AssembleAtEase added you as a helper on this job.', 'job', 'View job', JOBS),
+  easer_job_cancelled: notice('Job cancelled', 'The customer cancelled this job. It is off your schedule.', 'job', 'View job', JOBS),
+  reschedule_easer_reconfirmation: notice('Schedule changed', 'The customer moved this job. Review the new time and accept the job.', 'job', 'Review new time', JOBS),
+  owner_edit_easer_reconfirmation: notice('Job details changed', 'AssembleAtEase updated this job. Review the changes and confirm you can still do it.', 'job', 'Review changes', JOBS),
+  easer_time_proposal_accepted: notice('New time accepted', 'The customer accepted the time you proposed. The job is on the new time.', 'job', 'View job', JOBS),
+  easer_time_proposal_declined: notice('New time declined', 'The customer kept the original time.', 'job', 'View job', JOBS),
+  scheduled_payment_easer_hold: notice('Job on hold', 'Do not travel to this job until it is confirmed.', 'job', 'View job', JOBS),
+  scheduled_payment_easer_cleared: notice('Job confirmed', 'The hold on this job is cleared. Plan for it as normal.', 'job', 'View job', JOBS),
+  arrival_nudge: notice('Check in on arrival', 'Tap Arrived when you are on site. If you are running late, tell the customer from the job.', 'job', 'Open job', JOBS),
+  evidence_request: notice('Photos requested', 'AssembleAtEase asked for photos of this job. Open the job to upload them.', 'job', 'Upload photos', JOBS),
+  completion: notice('Job completed', 'This job is marked complete. Your earnings for it are in Payouts.', 'payouts', 'Open Payouts', JOBS),
+  easer_no_show_recorded: notice('No-show recorded', 'A no-show was recorded on this job. If you were there, message AssembleAtEase from the job.', 'job_team_messages', 'Message AssembleAtEase', JOBS),
+
+  // Messages
+  owner_message: notice('Message from AssembleAtEase', 'AssembleAtEase sent you a message about this job.', 'job_team_messages', 'Open messages', JOBS),
+  customer_message: notice('Message from the customer', 'The customer sent you a message about this job.', 'job_customer_messages', 'Open messages', JOBS),
+
+  // Money
+  easer_bonus_added: notice('Bonus added', 'AssembleAtEase added a bonus to this job. It is paid with the job.', 'job', 'View job', MONEY),
+  easer_payout_recorded: notice('Payout recorded', 'A payout was recorded for this job. Payouts shows the amount.', 'payouts', 'Open Payouts', MONEY),
+  easer_payout_transferred: notice('Payment sent', 'Your earnings for this job were sent to your Stripe account.', 'payouts', 'Open Payouts', MONEY),
+  easer_membership_active: notice('Membership active', 'Your Easer membership is active.', 'account', 'Open Account', MONEY),
+
+  // Account
+  approval: notice('Account approved', 'You are approved. Finish the remaining setup steps to get jobs.', 'today', 'See setup steps', ACCOUNT),
+  easer_welcome: notice('Welcome to AssembleAtEase', 'Your Easer account is set up. Finish the setup steps on Today to get jobs.', 'today', 'See setup steps', ACCOUNT),
+  easer_suspended: notice('Account paused', 'You will not get new jobs while your account is paused. Contact AssembleAtEase.', 'account', 'Open Account', ACCOUNT),
+  easer_reinstated: notice('Account active again', 'Your account is active again. Go online to get offers.', 'today', 'Open Today', ACCOUNT),
+  easer_deactivated: notice('Account deactivated', 'Your account is deactivated. You will not get new jobs.', 'account', 'Open Account', ACCOUNT),
+  easer_reactivated: notice('Account access restored', 'You can sign in and get jobs again.', 'today', 'Open Today', ACCOUNT),
+  easer_tier_changed: notice('Professional level updated', 'Your professional level changed. Account shows your current level.', 'account', 'Open Account', ACCOUNT),
+  easer_coaching: notice('Performance update', 'Review your ratings and reliability on Account.', 'account', 'Open Account', ACCOUNT),
+  easer_phone_required: notice('Phone number needed', 'Add a mobile number to get job texts.', 'personal_info', 'Add phone number', ACCOUNT),
+  easer_photo_request: notice('New profile photo needed', 'Upload a new profile photo on Account to get job offers again.', 'account', 'Change photo', ACCOUNT),
+  easer_application_received: notice('Application received', 'Your application was received.', 'none', null, ACCOUNT),
+  easer_application_rejected: notice('Application not approved', 'Your application was not approved. Check your email for details.', 'none', null, ACCOUNT),
+  easer_application_waitlisted: notice('Application waitlisted', 'Your application is on the waitlist.', 'none', null, ACCOUNT),
+  easer_application_payment_failed: notice('Application payment failed', 'Your application payment did not go through. Check your email for the next step.', 'none', null, ACCOUNT),
+  easer_application_fee_dispute_easer: notice('Application payment needs attention', 'Check your email for the next step.', 'none', null, ACCOUNT),
+  easer_application_fee_refund_easer: notice('Application fee updated', 'Your application fee status changed. Check your email for details.', 'none', null, ACCOUNT),
+  easer_application_fee_hold_cleared: notice('Application payment hold cleared', 'The hold on your application payment is cleared.', 'none', null, ACCOUNT),
+  easer_onboarding_link_reissued: notice('Setup link ready', 'A new account setup link was emailed to you.', 'none', null, ACCOUNT),
+  identity_resume_link_reissued: notice('Verification link ready', 'Finish identity verification from Today.', 'today', 'Open Today', ACCOUNT),
+  identity_verified_applicant: notice('Identity verified', 'Your identity verification is complete.', 'today', 'Open Today', ACCOUNT),
+  identity_failed_applicant: notice('Verification needs another try', 'Identity verification did not finish. Try again from Today.', 'today', 'Open Today', ACCOUNT),
+  easer_account_closure_requested: notice('Closure requested', 'Your account closure request was received. You are offline.', 'account', 'Open Account', ACCOUNT),
+  easer_account_closure_cancelled_confirmation: notice('Closure cancelled', 'Your account stays open.', 'account', 'Open Account', ACCOUNT),
+  easer_account_closed: notice('Account closed', 'Your account is closed.', 'none', null, ACCOUNT),
+  push_test: notice('Test notification', 'Notifications work on this phone.', 'none', null, ACCOUNT),
+});
+
+// One event sent on two channels under two names (email and push or text) is
+// one inbox item.
+const SAME_AS = Object.freeze({
+  evidence_requested: 'evidence_request',
+  customer_message_easer: 'customer_message',
+});
+export function canonicalNoticeType(type) {
+  return SAME_AS[type] || type;
+}
+
+// Never inbox items: a sign-in code is used once, in the moment.
+const NOT_INBOX = new Set(['easer_phone_verification']);
 
 // A required action is logged as easer_required_action_<key> for its email and
 // required_action_<key>_<step> for its push. Both are one thing to the Easer.
@@ -43,47 +97,54 @@ export function requiredActionKey(type) {
   return null;
 }
 
-function copyFor(type, actionTitles = new Map()) {
-  const exact = NOTIFICATION_COPY[type];
+export function noticeFor(type, announcements = new Map()) {
+  const exact = NOTIFICATION_COPY[canonicalNoticeType(type)];
   if (exact) return exact;
   const actionKey = requiredActionKey(type);
   if (actionKey) {
-    return [actionTitles.get(actionKey) || 'Action needed', 'Tap to take care of it.'];
+    const a = announcements.get(actionKey);
+    return notice(
+      a?.title || 'Action needed',
+      a?.body ? String(a.body).slice(0, 400) : 'Open Today to take care of it.',
+      'today',
+      a?.action_label || 'Take care of it',
+      ACCOUNT,
+    );
   }
-  if (String(type || '').startsWith('easer_tier_')) {
-    return ['Professional level updated', 'Your professional level has been updated.'];
-  }
-  return ['Account update', 'Tap to view.'];
+  if (String(type || '').startsWith('easer_tier_')) return NOTIFICATION_COPY.easer_tier_changed;
+  // A type with no entry here still says something and goes somewhere; the
+  // native-app test lists every Easer type so this stays a fallback.
+  return notice('Account update', 'Open Account to see your current status.', 'account', 'Open Account', ACCOUNT);
 }
 
-// Where the app opens an item: the job, Payouts, Account, or Today (where
-// required actions and setup steps are shown).
-export function actionFor(row) {
-  const type = String(row.notification_type || '');
-  if (row.booking_id) return 'job';
-  if (/payout/i.test(type)) return 'payouts';
-  if (/^easer_(phone_required|suspended|reinstated|tier_|coaching|account_clos)/.test(type)) return 'account';
-  return 'today';
+// Where the app opens an item. A job item without its job falls back to Today.
+export function actionFor(row, announcements) {
+  const action = noticeFor(row.notification_type, announcements).action;
+  if (action.startsWith('job') && !row.booking_id) return 'today';
+  return action;
 }
 
-function hrefFor(row) {
-  const type = String(row.notification_type || '');
-  if (row.booking_id) return `/assembler/my-assignments?job=${encodeURIComponent(row.booking_id)}`;
-  if (/payout/i.test(type)) return '/assembler/payouts';
-  return '/assembler/profile';
+function hrefFor(row, action) {
+  if (action.startsWith('job')) return `/assembler/my-assignments?job=${encodeURIComponent(row.booking_id)}`;
+  if (action === 'payouts') return '/assembler/payouts';
+  if (action === 'account' || action === 'personal_info') return '/assembler/profile';
+  return '/assembler/';
 }
 
-function formatNotification(row, actionTitles) {
-  const [title, detail] = copyFor(row.notification_type, actionTitles);
+function formatNotification(row, announcements) {
+  const item = noticeFor(row.notification_type, announcements);
+  const action = actionFor(row, announcements);
   return {
     id: row.id,
-    title,
-    detail,
+    title: item.title,
+    detail: item.detail,
     createdAt: row.sent_at,
     read: Boolean(row.recipient_read_at),
     bookingId: row.booking_id || null,
-    href: hrefFor(row),
-    action: actionFor(row),
+    href: hrefFor(row, action),
+    action,
+    actionLabel: action === 'today' && item.action !== 'today' ? 'Open Today' : item.actionLabel,
+    category: item.category,
   };
 }
 
@@ -138,14 +199,20 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  const { data: rows, error: notificationError } = await sb
+  // Older pages: ?before=<createdAt of the last item shown>.
+  const beforeParam = String(req.query?.before || '').trim();
+  const before = beforeParam && Number.isFinite(Date.parse(beforeParam)) ? new Date(beforeParam).toISOString() : null;
+  const SCAN = 100;
+  let inboxQuery = sb
     .from('notification_log')
     .select('id, booking_id, notification_type, sent_at, recipient_read_at')
     .eq('recipient_user_id', authenticated.user.id)
     .eq('recipient_type', 'easer')
-    .in('status', ['queued', 'provider_accepted', 'sent', 'delivered'])
+    .in('status', ['queued', 'provider_accepted', 'sent', 'delivered']);
+  if (before) inboxQuery = inboxQuery.lt('sent_at', before);
+  const { data: rows, error: notificationError } = await inboxQuery
     .order('sent_at', { ascending: false })
-    .limit(100);
+    .limit(SCAN);
 
   if (notificationError) {
     console.error('[easer-notifications] Inbox lookup failed:', notificationError.message || notificationError);
@@ -155,31 +222,39 @@ export default async function handler(req, res) {
     });
   }
 
-  // Required actions are named by their announcement's own title. A lookup
-  // failure only means the generic title is used; the inbox still loads.
-  const actionTitles = new Map();
+  // Required actions are named and described by their announcement. A lookup
+  // failure only means the generic wording is used; the inbox still loads.
+  const announcements = new Map();
   if ((rows || []).some(row => requiredActionKey(row.notification_type))) {
-    const { data: announcements } = await sb.from('easer_announcements').select('key, title');
-    for (const a of announcements || []) if (a?.key && a?.title) actionTitles.set(a.key, a.title);
+    const { data: found } = await sb.from('easer_announcements').select('key, title, body, action_label');
+    for (const a of found || []) if (a?.key && a?.title) announcements.set(a.key, a);
   }
 
   // Email and push may represent the same business event. Show one item, using
   // the newest row, so the Easer sees an inbox rather than delivery plumbing.
+  const PAGE = 30;
   const seen = new Set();
   const notifications = [];
+  let scanned = 0;
   for (const row of rows || []) {
+    scanned += 1;
+    if (NOT_INBOX.has(row.notification_type)) continue;
     const actionKey = requiredActionKey(row.notification_type);
     const key = actionKey
       ? `required_action:${actionKey}`
-      : `${row.notification_type || 'update'}:${row.booking_id || ''}`;
+      : `${canonicalNoticeType(row.notification_type) || 'update'}:${row.booking_id || ''}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    notifications.push(formatNotification(row, actionTitles));
-    if (notifications.length >= 30) break;
+    notifications.push(formatNotification(row, announcements));
+    if (notifications.length >= PAGE) break;
   }
+  const last = (rows || [])[scanned - 1];
+  const hasMore = scanned < (rows || []).length || (rows || []).length === SCAN;
 
   return res.status(200).json({
     notifications,
     unreadCount: notifications.filter(item => !item.read).length,
+    // Where the next page starts; null when this is the oldest.
+    nextBefore: hasMore && last ? last.sent_at : null,
   });
 }

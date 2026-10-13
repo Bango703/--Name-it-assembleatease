@@ -146,6 +146,7 @@ body{font-family:'DM Sans', 'DM Sans Fallback',sans-serif;background:var(--bg);c
 .msg.owner{background:var(--teal-glow);border:1px solid rgba(29,158,117,0.2);align-self:flex-end;color:var(--text)}
 .msg.customer{background:var(--elevated);border:1px solid var(--border-md);align-self:flex-start;color:var(--text)}
 .msg-time{font-size:0.68rem;color:var(--muted);margin-top:3px}
+.msg-case-link{display:inline-block;margin-top:6px;padding:3px 9px;border:1px solid var(--teal);border-radius:999px;background:transparent;color:var(--teal);font-size:0.72rem;font-weight:700;cursor:pointer;font-family:inherit}
 .msg-empty{font-size:0.85rem;color:var(--muted);text-align:center;padding:2rem 0}
 .msg-compose{display:flex;gap:0.5rem;align-items:flex-end}
 .msg-input{flex:1;padding:0.6rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;line-height:1.5;outline:none;resize:vertical;min-height:96px;max-height:280px}

@@ -10,7 +10,11 @@ enum Brand {
     static let sky = Color(red: 0, green: 191.0 / 255.0, blue: 1)
     static let skyDark = Color(red: 0, green: 153.0 / 255.0, blue: 204.0 / 255.0)
     static let ink = Color(red: 13.0 / 255.0, green: 17.0 / 255.0, blue: 23.0 / 255.0)
-    static let surface = Color(uiColor: .secondarySystemBackground)
+    /// Fields, pills and placeholders inside a card: a step lighter than the card in dark mode.
+    static let surface = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor.tertiarySystemBackground : UIColor.secondarySystemBackground })
+    /// A card on a grouped page: white in light mode, raised grey in dark mode,
+    /// so a card never disappears into a black page.
+    static let card = Color(uiColor: .secondarySystemGroupedBackground)
     static let attention = Color(red: 0.85, green: 0.47, blue: 0.02)
 }
 

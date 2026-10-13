@@ -94,7 +94,7 @@ function db(tables) {
 
 // ── 4. Booking thread in the dashboard ──────────────────────────────────────
 const msgApi = read('api/booking/message.js');
-assert.match(msgApi, /ownerRequest \? \(msgs \|\| \[\]\)\.map\(m => \(\{ \.\.\.m, direction: messageDirectionLabel\(m\) \}\)\)/, 'owner reads carry the server label');
+assert.match(msgApi, /ownerRequest\s*\? \(msgs \|\| \[\]\)\.map\(m => \(\{ \.\.\.m, direction: messageDirectionLabel\(m\), case: caseByMessage\.get\(m\.id\) \|\| null \}\)\)/, 'owner reads carry the server label and the case a help request opened');
 const dash = read('owner/index.html');
 assert.doesNotMatch(dash, /'Easer to Owner' : 'Customer to Owner'/, 'no hardcoded "to Owner" label for direct messages');
 assert.match(dash, /var senderLabel = m\.direction \|\| 'Message';/);
