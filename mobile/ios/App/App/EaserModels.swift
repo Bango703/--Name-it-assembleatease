@@ -3,36 +3,8 @@ import Foundation
 // Field names are the server's. Every field is optional and decoded one at a
 // time, so one unexpected value never empties a whole list on an Easer's phone.
 
-struct EaserSession: Codable, Equatable {
-    var accessToken: String
-    var refreshToken: String
-    var userID: String
-    var expiresAt: Date
-    /// From the sign-in response. The profile table is not read for it.
-    var email: String?
-}
-
-struct DynamicKey: CodingKey {
-    var stringValue: String
-    var intValue: Int? { nil }
-    init(_ string: String) { stringValue = string }
-    init?(stringValue: String) { self.stringValue = stringValue }
-    init?(intValue: Int) { return nil }
-}
-
-extension KeyedDecodingContainer where Key == DynamicKey {
-    func string(_ key: String) -> String? {
-        if let value = try? decodeIfPresent(String.self, forKey: DynamicKey(key)) { return value }
-        if let value = try? decodeIfPresent(Double.self, forKey: DynamicKey(key)) { return String(value) }
-        return nil
-    }
-    func number(_ key: String) -> Double? {
-        if let value = try? decodeIfPresent(Double.self, forKey: DynamicKey(key)) { return value }
-        if let text = try? decodeIfPresent(String.self, forKey: DynamicKey(key)) { return Double(text) }
-        return nil
-    }
-    func bool(_ key: String) -> Bool? { (try? decodeIfPresent(Bool.self, forKey: DynamicKey(key))) ?? nil }
-}
+/// The Easer app's session is the shared one (mobile/ios/Shared/AppFoundation.swift).
+typealias EaserSession = AppSession
 
 struct EaserProfile: Decodable {
     let id: String

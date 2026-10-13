@@ -510,10 +510,13 @@ await check('customer ID ownership cannot fall back to email when a customer ID 
   assert.match(customerCancel, /const ownsBooking = customerOwnsBooking\(booking, user\)/);
 });
 
-await check('guest route uses exact email matching before secure-token verification', () => {
+await check('guest route uses exact email matching before secure-token verification', async () => {
+  // The link check moved to api/booking/_customer-access.js: email first, then the token.
   const handler = guestCancel.slice(guestCancel.indexOf('export default async function handler'));
-  const emailCheck = handler.indexOf('!booking || !bookingEmailMatches(booking, email)');
-  const tokenCheck = handler.indexOf('!safeTokenHashMatch(token, booking.guest_mutation_token_hash)');
+  assert.ok(handler.includes('customerBookingAccess(sb, req, booking, { email, token })'));
+  const access = await readFile(new URL('../api/booking/_customer-access.js', import.meta.url), 'utf8');
+  const emailCheck = access.indexOf('bookingEmailMatches(booking, email)');
+  const tokenCheck = access.indexOf('safeTokenHashMatch(token, booking.guest_mutation_token_hash)');
   assert.ok(emailCheck >= 0 && tokenCheck > emailCheck);
 });
 

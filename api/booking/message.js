@@ -10,11 +10,11 @@ import { customerMessageRecipient, easerMessageThread } from './_message-routing
 import { bookingEmailMatches } from './_guest-booking-auth.js';
 import { logActivity } from './_activity.js';
 import {
-  authenticateBearerUser,
   requireAssignedWorkEaser,
   respondWithEaserAccessError,
 } from '../_easer-access.js';
 import { customerOwnsBooking } from './_customer-booking-auth.js';
+import { customerAccountUser, customerBookingAccess } from './_customer-access.js';
 import { evaluateCustomerContactRelease } from './_customer-contact-release.js';
 import { inspectRelayMessage } from './_relay-contact-guard.js';
 import { EASER_SUPPORT_TYPES } from './_easer-support.js';
@@ -61,6 +61,25 @@ export default async function handler(req, res) {
         .order('created_at', { ascending: true });
       if (guestMessageError) return res.status(500).json({ error: 'Failed to fetch messages' });
       return res.status(200).json({ messages: guestMessages || [] });
+    }
+    // The customer app: a signed-in customer reads the same conversation the
+    // booking page shows (?as=customer&ref=...).
+    if (!ownerRequest && req.query?.as === 'customer') {
+      if (bookingId || !ref) return res.status(404).json({ error: 'Booking not found' });
+      const { data: ownBooking } = await sb.from('bookings')
+        .select('id, ref, customer_id, customer_email')
+        .eq('ref', String(ref).trim().toUpperCase())
+        .maybeSingle();
+      if (!ownBooking || !(await customerBookingAccess(sb, req, ownBooking)).ok) {
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+      const { data: ownMessages, error: ownMessageError } = await sb.from('messages')
+        .select('id, booking_id, sender, sender_user_id, recipient_type, recipient_user_id, body, created_at, read_at')
+        .eq('booking_id', ownBooking.id)
+        .or('sender.eq.customer,recipient_type.eq.customer')
+        .order('created_at', { ascending: true });
+      if (ownMessageError) return res.status(500).json({ error: 'Failed to fetch messages' });
+      return res.status(200).json({ messages: ownMessages || [] });
     }
     let easerAccess = null;
     if (!ownerRequest) {
@@ -279,11 +298,11 @@ export default async function handler(req, res) {
     resolvedSender = 'customer';
     resolvedRecipient = 'owner';
   } else {
-    const authenticated = await authenticateBearerUser(req);
-    if (!authenticated.ok) {
-      return res.status(authenticated.status).json({ error: authenticated.error });
-    }
-    authenticatedUser = authenticated.user;
+    // A signed-in customer (the customer app). Only a confirmed email is proof
+    // of owning the bookings sent to it (api/booking/_customer-access.js).
+    const customer = await customerAccountUser(sb, req);
+    if (!customer) return res.status(401).json({ error: 'Sign in again to send this message.' });
+    authenticatedUser = customer;
     resolvedSender = 'customer';
     resolvedRecipient = 'owner';
   }

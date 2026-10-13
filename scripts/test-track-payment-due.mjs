@@ -53,7 +53,9 @@ assert.equal(isStandardRecoveryBooking({}), false, 'an empty booking is not paya
 // ── 3. Both doors use the same key ──────────────────────────────────────────
 // If these ever diverge, the tracking page would hand over a token the
 // recovery page rejects, and the customer meets an error instead of a form.
-for (const file of ['api/booking/track.js', 'api/booking/payment-recovery.js']) {
+// track.js checks through api/booking/_customer-access.js, which reads it.
+assert.match(await read('api/booking/track.js'), /customerBookingAccess\(/, 'track.js gates through the shared access check');
+for (const file of ['api/booking/_customer-access.js', 'api/booking/payment-recovery.js']) {
   assert.match(await read(file), /guest_mutation_token_hash/,
     `${file} must gate on the same stored token hash`);
 }

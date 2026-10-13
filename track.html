@@ -875,53 +875,28 @@ function renderBooking(b) {
       returnScope.style.display = 'none';
     }
   }
-  var isOwnerManualPayment = b.owner_manual_payment === true;
-  var displayTotal = isOwnerManualPayment
-    ? b.total_price
-    : (b.amount_charged != null ? b.amount_charged : b.total_price);
-  var paymentStatus = String(b.payment_status || '');
-  var totalLabel = isOwnerManualPayment
-    ? 'Booking Total'
-    : ['captured','partially_refunded','refunded','cancellation_fee_captured'].includes(paymentStatus)
-    ? 'Total Charged'
-    : (paymentStatus === 'authorized' ? 'Total Authorized' : (paymentStatus === 'deposit_paid' ? 'Deposit Paid' : 'Booking Total'));
-  document.getElementById('bPriceLabel').textContent = totalLabel;
-  document.getElementById('bPrice').textContent    = displayTotal ? formatUsdCents(displayTotal) : '—';
-
-  // Customer breakdown — subtotal / service call / tax / total (reconciles to total).
+  // The price breakdown comes worked out from the server
+  // (api/booking/_customer-payment-summary.js), the same one the app shows.
+  var summary = b.payment_summary || { total_label: 'Booking Total', total_cents: 0, rows: [], note: null };
+  document.getElementById('bPriceLabel').textContent = summary.total_label;
+  document.getElementById('bPrice').textContent    = summary.total_cents ? formatUsdCents(summary.total_cents) : '—';
   (function(){
     var bd = document.getElementById('priceBreakdown');
     if (!bd) return;
-    var total = Number(displayTotal) || 0;
-    var rawRefunded = Math.max(0, Number(b.refund_amount) || 0);
-    var refunded = isOwnerManualPayment ? rawRefunded : Math.min(total, rawRefunded);
-    var tax   = Number(b.tax_amount) || 0;
-    var call  = Number(b.service_call_fee) || 0;
-    if (total <= 0) { bd.style.display = 'none'; return; }
-    var serviceItems = Math.max(0, total - tax - call);
-    function money(c){ return formatUsdCents(c); }
-    function row(label, val, strong){
-      return '<div class="price-breakdown-row">'
-        + '<span>' + label + '</span>'
-        + '<span class="price-breakdown-value' + (strong ? ' strong' : '') + '">' + money(val) + '</span></div>';
-    }
-    var serviceRows =
-        row('Service &amp; items', serviceItems)
-      + (call > 0 ? row('Service call fee', call) : '')
-      + (tax  > 0 ? row('Sales tax', tax) : '');
-    if (isOwnerManualPayment) {
-      var grossPayments = Math.max(0, Number(b.gross_payment_cents) || 0);
-      var netPayments = Math.max(0, Number(b.amount_collected_cents) || 0);
-      bd.innerHTML = serviceRows
-        + row('Booking total', total, true)
-        + (grossPayments > 0 ? row('Payment received (gross)', grossPayments) : '')
-        + (refunded > 0 ? row('Refunded', -refunded) : '')
-        + (grossPayments > 0 || refunded > 0 ? row('Net payments retained', netPayments) : '')
-        + row('Remaining amount due', Number(b.remaining_balance_cents) || 0, true)
-        + (refunded > 0 ? '<div style="margin-top:0.55rem;font-size:0.75rem;color:#475569;line-height:1.45">The refund shown above does not create a new amount due.</div>' : '');
-    } else {
-      bd.innerHTML = serviceRows
-        + (refunded > 0 ? row('Refunded', -refunded) + row('Net charged after refund', total - refunded, true) : '');
+    if (!summary.rows.length) { bd.style.display = 'none'; return; }
+    bd.textContent = '';
+    summary.rows.forEach(function(r){
+      var row = document.createElement('div'); row.className = 'price-breakdown-row';
+      var label = document.createElement('span'); label.textContent = r.label;
+      var value = document.createElement('span'); value.className = 'price-breakdown-value' + (r.strong ? ' strong' : '');
+      value.textContent = formatUsdCents(r.cents);
+      row.appendChild(label); row.appendChild(value); bd.appendChild(row);
+    });
+    if (summary.note) {
+      var note = document.createElement('div');
+      note.style.cssText = 'margin-top:0.55rem;font-size:0.75rem;color:#475569;line-height:1.45';
+      note.textContent = summary.note;
+      bd.appendChild(note);
     }
     bd.style.display = '';
   })();
@@ -932,7 +907,7 @@ function renderBooking(b) {
     var box = document.getElementById('payDueBox');
     if (!box) return;
     if (!b.payment_action_required || !currentMutationToken) { box.style.display = 'none'; return; }
-    var totalCents = Number(displayTotal) || 0;
+    var totalCents = Number(summary.total_cents) || 0;
     var remaining = Number(b.remaining_balance_cents) || 0;
     var partlyPaid = remaining > 0 && remaining < totalCents;
     if (partlyPaid) {

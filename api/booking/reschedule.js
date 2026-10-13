@@ -3,15 +3,17 @@ import { formatAppointmentDate } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
-import { safeTokenHashMatch, randomToken, sha256 } from '../_payment-security.js';
+import { randomToken, sha256 } from '../_payment-security.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { appointmentTimestampMs, parseIsoCalendarDate } from './_appt-date.js';
 import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './_booking-window.js';
-import { bookingEmailMatches } from './_guest-booking-auth.js';
+import { customerBookingAccess, usesCustomerAccount } from './_customer-access.js';
 import { matchingProposal, settleProposalsAfterReschedule } from './_time-proposals.js';
 
 export const MAX_RESCHEDULES = 2;
+/** The statuses a customer may still move themselves (read by track.js for the button). */
+export const RESCHEDULABLE_STATUSES = Object.freeze([BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED]);
 export const TIME_SLOTS = [
   '8:00 AM - 10:00 AM',
   '10:00 AM - 12:00 PM',
@@ -74,7 +76,8 @@ export default async function handler(req, res) {
   if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
 
   const { email, ref, token, date, time, proposalId } = req.body || {};
-  if (!email || !ref || !token || !date || !time) {
+  const viaAccount = usesCustomerAccount(req, { token });
+  if (!ref || !date || !time || (!viaAccount && (!email || !token))) {
     return res.status(400).json({ error: 'Booking access token, email, reference, new date, and new time are required.' });
   }
 
@@ -106,11 +109,11 @@ export default async function handler(req, res) {
     console.error('Reschedule lookup error:', fetchErr);
     return res.status(500).json({ error: 'Unable to look up booking. Please try again.' });
   }
-  if (!booking || !bookingEmailMatches(booking, email) || !safeTokenHashMatch(token, booking.guest_mutation_token_hash)) {
+  if (!booking || !(await customerBookingAccess(sb, req, booking, { email, token })).ok) {
     return res.status(403).json({ error: 'This reschedule link is invalid or expired. Open the latest tracking link and try again.' });
   }
 
-  if (![BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED].includes(booking.status)) {
+  if (!RESCHEDULABLE_STATUSES.includes(booking.status)) {
     const message = [BOOKING_STATUS.EN_ROUTE, BOOKING_STATUS.ARRIVED, BOOKING_STATUS.IN_PROGRESS].includes(booking.status)
       ? 'Your Easer is already on the way or working. Please call (979) 232-5139 to make changes.'
       : 'This booking can no longer be rescheduled. Please call (979) 232-5139.';

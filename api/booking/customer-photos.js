@@ -3,8 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { verifyOwner } from '../_email.js';
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
-import { bookingEmailMatches } from './_guest-booking-auth.js';
-import { safeTokenHashMatch } from '../_payment-security.js';
+import { customerBookingAccess, usesCustomerAccount } from './_customer-access.js';
 
 import { MAX_UPLOAD_BYTES } from '../_upload-limits.js';
 
@@ -28,13 +27,13 @@ function magicMatches(mime, buf) {
 
 const notFound = res => res.status(404).json({ error: 'Booking not found' });
 
-async function loadGuestBooking(sb, { email, ref, token }) {
-  if (!email || !ref || !token) return null;
+async function loadGuestBooking(req, sb, { email, ref, token }) {
+  if (!ref || (!usesCustomerAccount(req, { token }) && (!email || !token))) return null;
   const { data } = await sb.from('bookings')
-    .select('id, ref, customer_email, guest_mutation_token_hash')
+    .select('id, ref, customer_id, customer_email, guest_mutation_token_hash')
     .eq('ref', String(ref).trim().toUpperCase())
     .maybeSingle();
-  return data && bookingEmailMatches(data, email) && safeTokenHashMatch(token, data.guest_mutation_token_hash) ? data : null;
+  return data && (await customerBookingAccess(sb, req, data, { email, token })).ok ? data : null;
 }
 
 async function loadAuthorizedBooking(req, sb, input) {
@@ -70,7 +69,7 @@ export default async function handler(req, res) {
     const { bookingId, email, ref, token } = req.query || {};
     let booking;
     if (email || token || ref) {
-      if (bookingId || !(booking = await loadGuestBooking(sb, { email, ref, token }))) return notFound(res);
+      if (bookingId || !(booking = await loadGuestBooking(req, sb, { email, ref, token }))) return notFound(res);
     } else {
       booking = await loadAuthorizedBooking(req, sb, { bookingId });
       if (booking?.accessError) return respondWithEaserAccessError(res, booking.accessError);
@@ -81,7 +80,7 @@ export default async function handler(req, res) {
   }
 
   const { email, ref, token, fileBase64, mimeType } = req.body || {};
-  const booking = await loadGuestBooking(sb, { email, ref, token });
+  const booking = await loadGuestBooking(req, sb, { email, ref, token });
   if (!booking) return notFound(res);
   if (!Object.hasOwn(MIME_EXT, mimeType)) return res.status(400).json({ error: 'Use a JPEG, PNG, WebP, HEIC, or HEIF image.' });
   if (typeof fileBase64 !== 'string' || !fileBase64) return res.status(400).json({ error: 'Choose an image to upload.' });

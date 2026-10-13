@@ -112,3 +112,37 @@ workflows:
         # build without review. External beta review needs a Beta App Description and
         # is not wanted until the Easer flow passes on a real iPhone (EASER-NATIVE-APP).
         submit_to_testflight: false
+
+  customer-ios:
+    name: AssembleAtEase Customer - iOS (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: AssembleAtEase App Store Connect
+    environment:
+      # Same toolchain as the Easer app (easer-ios).
+      xcode: 26.5
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.assembleatease.customer
+    scripts:
+      - name: Generate the Xcode project
+        # The customer app is described in mobile/ios/Customer/project.yml and
+        # shares mobile/ios/Shared with the Easer app; XcodeGen writes the project.
+        script: |
+          set -euo pipefail
+          brew install xcodegen
+          cd mobile/ios/Customer && xcodegen generate
+      - name: Use signing profiles
+        script: xcode-project use-profiles --project mobile/ios/Customer/Customer.xcodeproj
+      - name: Set build number
+        script: cd mobile/ios/Customer && agvtool new-version -all "$BUILD_NUMBER"
+      - name: Build signed IPA
+        script: xcode-project build-ipa --project mobile/ios/Customer/Customer.xcodeproj --scheme Customer
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Upload only, like the Easer app: internal testers get every processed build.
+        submit_to_testflight: false

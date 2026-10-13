@@ -16,6 +16,10 @@ const read = (f) => readFileSync(f, 'utf8');
 const APP = 'mobile/ios/App/App';
 const swiftFiles = readdirSync(APP).filter(f => f.endsWith('.swift'));
 const swift = Object.fromEntries(swiftFiles.map(f => [f, read(`${APP}/${f}`)]));
+// Code both iPhone apps share (mobile/ios/Shared, 2026-10-13) is read as part of
+// the Easer file it came from, so every check below still covers it.
+swift['EaserSupport.swift'] += '\n' + read('mobile/ios/Shared/AppFoundation.swift');
+swift['EaserAPI.swift'] += '\n' + read('mobile/ios/Shared/APIClient.swift');
 const all = Object.values(swift).join('\n');
 
 // ── 1. Native, Easer-only, not the website ───────────────────────────────────
@@ -232,7 +236,7 @@ assert.match(store, /setProfilePhoto\(dataURL\)[\s\S]{0,400}await refresh\(\)/, 
 
 // ── 8k. "No connection" only when there is none ────────────────────────────
 const apiSwift = swift['EaserAPI.swift'];
-assert.match(apiSwift, /case \.cancelled:\s*throw EaserError\.cancelled/, 'a cancelled refresh is never shown as no connection');
+assert.match(apiSwift, /case \.cancelled:\s*throw AppError\.cancelled/, 'a cancelled refresh is never shown as no connection');
 assert.match(apiSwift, /case \.notConnectedToInternet, \.networkConnectionLost/, 'no connection means the network is actually gone');
 assert.match(apiSwift, /A dropped read is retried once, quietly/, 'a dropped read is retried before anything is shown');
 assert.match(store, /\(error as\? EaserError\)\?\.isCancelled != true/, 'a cancelled load never becomes a problem card');

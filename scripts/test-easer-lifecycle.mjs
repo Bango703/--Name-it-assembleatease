@@ -262,8 +262,9 @@ const commonDeps = (db) => ({
   const { handler } = await loadHandler('api/booking/time-proposal.js', {
     ...commonDeps(db),
     rateLimit: async () => true,
-    safeTokenHashMatch: (t, h) => t === 'tok' && h === 'h',
-    bookingEmailMatches: (b, e) => b.customer_email === e,
+    // The booking-link check (api/booking/_customer-access.js), with this test's token.
+    usesCustomerAccount: (req, { token } = {}) => !token && /^Bearer /.test(req.headers?.authorization || ''),
+    customerBookingAccess: async (_sb, _req, b, { email, token } = {}) => ({ ok: !!token && b.customer_email === email && token === 'tok' && b.guest_mutation_token_hash === 'h' }),
     appointmentTimestampMs: appt.appointmentTimestampMs,
     formatAppointmentDate: appt.formatAppointmentDate,
     formatAppointmentDateShort: appt.formatAppointmentDateShort,
