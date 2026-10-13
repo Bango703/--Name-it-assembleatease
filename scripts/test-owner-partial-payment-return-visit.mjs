@@ -73,7 +73,9 @@ assert.doesNotMatch(
 assert.match(ownerUi, /Record Customer Payment/);
 assert.match(ownerUi, /Schedule Return Visit/);
 assert.match(ownerUi, /remainingBalanceCents/);
-assert.match(trackUi, /Payment received/);
+// The breakdown wording is built on the server and rendered by the page (2026-10-13).
+assert.match(await readFile('api/booking/_customer-payment-summary.js', 'utf8'), /Payment received/);
+assert.match(trackUi, /b\.payment_summary/);
 assert.match(trackUi, /Work remaining/);
 assert.match(liveOps, /is_return_visit/);
 assert.match(liveOps, /returnVisitsOpen/);

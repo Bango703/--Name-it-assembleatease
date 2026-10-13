@@ -7,7 +7,7 @@ import { logActivity } from './_activity.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeBookingSplitAtFeePct } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { writeFinancialAudit, writeFinancialAuditRequired } from '../_financial-audit.js';
-import { safeTokenHashMatch } from '../_payment-security.js';
+import { customerBookingAccess, usesCustomerAccount } from './_customer-access.js';
 import { reserveBookingFinancialOperation } from './_financial-operation.js';
 import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
@@ -91,7 +91,8 @@ export default async function handler(req, res) {
   if (!ok) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
 
   const { email, ref, token } = req.body || {};
-  if (!email || !ref || !token) return res.status(400).json({ error: 'A secure booking link, email, and booking reference are required.' });
+  const viaAccount = usesCustomerAccount(req, { token });
+  if (!ref || (!viaAccount && (!email || !token))) return res.status(400).json({ error: 'A secure booking link, email, and booking reference are required.' });
 
   const sb = getSupabase();
   const { data: booking, error: fetchErr } = await sb
@@ -104,11 +105,13 @@ export default async function handler(req, res) {
     console.error('Guest cancel lookup error:', fetchErr);
     return res.status(500).json({ error: 'Unable to look up booking. Please try again.' });
   }
-  if (!booking || !bookingEmailMatches(booking, email)) {
+  if (!booking) {
     return res.status(404).json({ error: 'Booking not found. Check your reference and email.' });
   }
-  if (!safeTokenHashMatch(token, booking.guest_mutation_token_hash)) {
-    return res.status(403).json({ error: 'This secure booking link is invalid. Use the link in your confirmation email or contact support.' });
+  if (!(await customerBookingAccess(sb, req, booking, { email, token })).ok) {
+    return viaAccount || !bookingEmailMatches(booking, email)
+      ? res.status(404).json({ error: 'Booking not found. Check your reference and email.' })
+      : res.status(403).json({ error: 'This secure booking link is invalid. Use the link in your confirmation email or contact support.' });
   }
 
   const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.CANCELLED);

@@ -1,14 +1,18 @@
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
-import { safeTokenHashMatch } from '../_payment-security.js';
 import { canRecoverPaymentNow } from './_pending-payment-recovery.js';
-import { bookingEmailMatches } from './_guest-booking-auth.js';
+import { customerBookingAccess, usesCustomerAccount } from './_customer-access.js';
 import { loadCustomerFacingCompletionPhoto } from './_completion-evidence.js';
 import { evaluateCancellationPolicy } from './_cancellation-policy-truth.js';
 import { cancellationPreview } from './_cancellation-fee-summary.js';
 import { customerMessageRecipient } from './_message-routing.js';
 import { loadOpenProposal } from './_time-proposals.js';
+import { customerStatusLabel } from './_customer-status.js';
+import { customerPaymentSummary } from './_customer-payment-summary.js';
+import { loadBookingItems } from './_booking-items.js';
+import { TIME_SLOTS, MAX_RESCHEDULES, RESCHEDULABLE_STATUSES } from './reschedule.js';
+import { BOOKING_WINDOW_DAYS } from './_booking-window.js';
 
 /**
  * POST /api/booking/track
@@ -27,7 +31,8 @@ export default async function handler(req, res) {
   if (!ok) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
 
   const { email, ref, token } = req.body || {};
-  if (!email || !ref || !token) {
+  const viaAccount = usesCustomerAccount(req, { token });
+  if (!ref || (!viaAccount && (!email || !token))) {
     return res.status(400).json({ error: 'Open the secure link in your latest booking email, or request a new link below.' });
   }
 
@@ -42,49 +47,13 @@ export default async function handler(req, res) {
     console.error('Track lookup error:', { message: error.message, code: error.code, ref: ref.toUpperCase().trim() });
     return res.status(500).json({ error: 'Unable to look up booking. Please try again.' });
   }
-  if (!booking || !bookingEmailMatches(booking, email) || !safeTokenHashMatch(token, booking.guest_mutation_token_hash)) {
+  if (!booking || !(await customerBookingAccess(sb, req, booking, { email, token })).ok) {
     return res.status(404).json({
       error: 'This secure booking link is invalid or expired. Request a new link and try again.',
     });
   }
 
-  // Derive clean customer-facing status label
-  function getCustomerLabel(b) {
-    if (b.status === BOOKING_STATUS.CANCELLED) return { label: 'Booking cancelled', detail: null };
-    if (b.status === BOOKING_STATUS.DECLINED)  return { label: 'Booking could not be confirmed', detail: 'Please contact us to reschedule.' };
-    if (b.return_visit_required) {
-      return {
-        label: 'Return appointment scheduled',
-        detail: `We will return ${b.return_visit_date || 'on the confirmed date'}${b.return_visit_time ? ` at ${b.return_visit_time}` : ''} to complete the remaining work.`,
-      };
-    }
-    if (b.status === BOOKING_STATUS.COMPLETED) {
-      const paymentProcessed = b.payment_collected === true
-        || ['captured', 'deposit_paid', 'partially_refunded', 'refunded'].includes(String(b.payment_status || '').toLowerCase());
-      return {
-        label: 'Job complete — thank you!',
-        detail: paymentProcessed ? 'Payment has been processed.' : 'Your booking is complete.',
-      };
-    }
-    if (b.status === BOOKING_STATUS.IN_PROGRESS) return { label: 'Work is underway', detail: null };
-    if (b.status === BOOKING_STATUS.ARRIVED)     return { label: 'Your service pro has arrived', detail: null };
-    if (b.status === BOOKING_STATUS.EN_ROUTE)    return { label: 'Your service pro is on the way', detail: null };
-    if (b.status === BOOKING_STATUS.CONFIRMED && b.payment_status === 'card_saved') {
-      return {
-        label: 'Appointment reserved',
-        detail: 'Your card is saved securely. We will verify it closer to your appointment and contact you only if another confirmation is needed.',
-      };
-    }
-    if (b.assembler_accepted_at && b.assembler_name) {
-      const first = (b.assembler_name || '').split(' ')[0];
-      return { label: `${first} is confirmed for your job`, detail: `Arriving ${b.date}${b.time ? ' at ' + b.time.split('-')[0].trim() : ''}.` };
-    }
-    if (b.assembler_id) return { label: 'Matching you with a service pro', detail: 'Your pro will confirm shortly.' };
-    if (b.status === BOOKING_STATUS.CONFIRMED) return { label: 'Matching you with a service pro', detail: 'We will notify you once your service pro is confirmed.' };
-    return { label: 'Booking received', detail: 'We will confirm your appointment shortly.' };
-  }
-
-  const customerStatus = getCustomerLabel(booking);
+  const customerStatus = customerStatusLabel(booking);
 
   let amountCollectedCents = null;
   let grossPaymentCents = null;
@@ -193,6 +162,15 @@ export default async function handler(req, res) {
     ? { id: openProposal.id, date: openProposal.proposed_date, time: openProposal.proposed_time, note: openProposal.note || null }
     : null;
 
+  // What was booked, with the customer's own prices (same loader as owner and
+  // Easer). A failed read shows no list rather than blocking the booking.
+  let items = [];
+  try {
+    items = (await loadBookingItems(booking.id, { sb, includePricing: true })).get(booking.id) || [];
+  } catch (itemsError) {
+    console.error('Track booking items unavailable:', itemsError?.message || itemsError);
+  }
+
   const safe = {
     id: booking.id,
     ref: booking.ref,
@@ -247,7 +225,14 @@ export default async function handler(req, res) {
     pro_tier: proTier,
     completion_photo_url: completionPhotoUrl,
     easer_time_proposal: easerTimeProposal,
+    items,
+    // The times a reschedule may choose, from the rule reschedule.js enforces.
+    reschedule_options: { slots: TIME_SLOTS, window_days: BOOKING_WINDOW_DAYS },
+    // The same gates api/booking/reschedule.js applies first (status, then the limit).
+    can_reschedule: RESCHEDULABLE_STATUSES.includes(booking.status) && rescheduleCount < MAX_RESCHEDULES,
   };
+  // The price breakdown, worked out once here for the page and the app.
+  safe.payment_summary = customerPaymentSummary(safe);
 
   return res.status(200).json({ booking: safe });
 }

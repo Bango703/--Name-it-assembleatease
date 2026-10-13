@@ -24,6 +24,8 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
+		5A4E0F0C1D2E3F4051627302 /* AppFoundation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A4E0F0C1D2E3F4051627301 /* AppFoundation.swift */; };
+		5A4E0F0C1D2E3F4051627304 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A4E0F0C1D2E3F4051627303 /* APIClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,6 +48,8 @@
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		5A4E0F0C1D2E3F4051627301 /* AppFoundation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppFoundation.swift; path = ../Shared/AppFoundation.swift; sourceTree = SOURCE_ROOT; };
+		5A4E0F0C1D2E3F4051627303 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = APIClient.swift; path = ../Shared/APIClient.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +95,7 @@
 				C1B5AAD52E45A815E66307DB /* EaserAPI.swift */,
 				0C31A064211D2AE538C3CAA7 /* EaserStore.swift */,
 				AD00B975214483417FDAE1BC /* EaserViews.swift */,
+				5A4E0F0C1D2E3F4051627305 /* Shared */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -99,6 +104,15 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		5A4E0F0C1D2E3F4051627305 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				5A4E0F0C1D2E3F4051627301 /* AppFoundation.swift */,
+				5A4E0F0C1D2E3F4051627303 /* APIClient.swift */,
+			);
+			name = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -192,6 +206,8 @@
 				4E76051AEAA64D4894A9793D /* EaserAPI.swift in Sources */,
 				7BA8B188B2DCDE31863793D5 /* EaserStore.swift in Sources */,
 				2CA541A01CC9B6E0326F0459 /* EaserViews.swift in Sources */,
+				5A4E0F0C1D2E3F4051627302 /* AppFoundation.swift in Sources */,
+				5A4E0F0C1D2E3F4051627304 /* APIClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

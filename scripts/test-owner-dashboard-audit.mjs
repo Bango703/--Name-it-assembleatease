@@ -152,7 +152,9 @@ assert.match(paymentList, /amount_paid_cents/);
 assert.match(paymentList, /totalPriceCents: isOwnerManual \? 0/);
 assert.match(paymentRecorder, /OWNER_MANUAL_INVOICE_ALREADY_PAID/);
 assert.match(trackApi, /Refunds reduce net retained revenue but do not silently create a new/);
-assert.match(trackUi, /does not create a new amount due/);
+// Built once on the server and rendered by the page (2026-10-13).
+assert.match(trackUi, /b\.payment_summary/);
+assert.match(await readFile('api/booking/_customer-payment-summary.js', 'utf8'), /does not create a new amount due/);
 assert.match(payoutApi, /notificationDelivered/);
 assert.match(refundApi, /customer_refund_processed/);
 assert.match(refundApi, /notificationError/);

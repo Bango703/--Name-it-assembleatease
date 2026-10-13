@@ -227,11 +227,19 @@ assert.match(list, /Number\(booking\.total_price \|\| 0\) - \(paymentEvents\.len
 assert.match(list, /manual_stripe_refundable_cents/, 'owner UI maximum must come from server-derived ledger truth');
 assert.match(track, /amountPaidTowardInvoice = \(paymentEvents \|\| \[\]\)\.length \? ledgerGross/, 'customer balance must use gross verified payments');
 assert.match(track, /gross_payment_cents: grossPaymentCents/, 'customer tracking must separate gross payments from net retained');
-const trackPage = read('track.html');
-assert.match(trackPage, /Payment received \(gross\)/, 'customer must see gross manual payments separately');
-assert.match(trackPage, /Net payments retained/, 'customer must see net retained after refunds');
-assert.match(trackPage, /refund shown above does not create a new amount due/, 'customer must never be told a refund created a new balance');
-assert.match(trackPage, /isOwnerManualPayment[\s\S]*Booking Total/, 'manual booking must keep the agreed booking total visible');
+// The customer's breakdown is built once on the server (2026-10-13) and rendered
+// by the booking page and the customer app.
+assert.match(read('track.html'), /var summary = b\.payment_summary/, 'the booking page renders the server breakdown');
+const manualSummary = (await import('../api/booking/_customer-payment-summary.js')).customerPaymentSummary({
+  owner_manual_payment: true, total_price: 20000, refund_amount: 5000, gross_payment_cents: 20000,
+  amount_collected_cents: 15000, remaining_balance_cents: 0, payment_status: 'captured',
+});
+const manualRows = Object.fromEntries(manualSummary.rows.map(r => [r.label, r.cents]));
+assert.equal(manualRows['Payment received (gross)'], 20000, 'customer must see gross manual payments separately');
+assert.equal(manualRows['Net payments retained'], 15000, 'customer must see net retained after refunds');
+assert.equal(manualRows['Remaining amount due'], 0, 'a refund never creates a new amount due');
+assert.match(manualSummary.note, /refund shown above does not create a new amount due/, 'customer must never be told a refund created a new balance');
+assert.equal(manualSummary.total_label, 'Booking Total', 'manual booking must keep the agreed booking total visible');
 assert.match(payoutTruth, /hasPendingRefund/, 'pending manual Stripe refunds must block payout');
 assert.match(payoutTruth, /succeededRefundedCents !== Number\(event\.refunded_cents/, 'payout must require exact Stripe/refund-ledger agreement');
 assert.match(paymentRecorder, /record_owner_manual_payment_event_v5/, 'new payments must preserve gross invoice satisfaction after refunds');

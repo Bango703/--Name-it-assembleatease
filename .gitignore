@@ -45,3 +45,6 @@ secrets.js
 mobile/node_modules/
 mobile/android/app/google-services.json
 mobile/ios/App/App/GoogleService-Info.plist
+
+# Customer iPhone app: Codemagic generates this from mobile/ios/Customer/project.yml
+mobile/ios/Customer/Customer.xcodeproj/

@@ -248,7 +248,8 @@ assert.doesNotMatch(legacyAccept, /\.from\(['"]bookings['"]\)|\.update\(/, 'Lega
 assert.match(legacyAccept, /status\(410\)/);
 
 const trackApi = source('api/booking/track.js');
-assert.match(trackApi, /safeTokenHashMatch/);
+assert.match(trackApi, /customerBookingAccess\(sb, req, booking, \{ email, token \}\)/);
+assert.match(source('api/booking/_customer-access.js'), /bookingEmailMatches\(booking, email\) && safeTokenHashMatch\(token, booking\.guest_mutation_token_hash\)/);
 assert.match(trackApi, /email, ref, token/);
 
 const ownerPage = source('owner/index.html');

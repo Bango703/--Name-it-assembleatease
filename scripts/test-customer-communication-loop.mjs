@@ -25,8 +25,8 @@ assert.match(message, /notificationType: 'customer_message'/);
 assert.match(message, /assembler_accepted_at/);
 assert.match(message, /sender\.eq\.customer/);
 
-assert.match(photos, /safeTokenHashMatch\(token, data\.guest_mutation_token_hash\)/);
-assert.match(photos, /bookingEmailMatches\(data, email\)/);
+// The link or app sign-in check lives in one place (api/booking/_customer-access.js).
+assert.match(photos, /customerBookingAccess\(sb, req, data, \{ email, token \}\)\)\.ok/);
 assert.match(photos, /MAX_BYTES = MAX_UPLOAD_BYTES/, 'the one shared upload limit (api/_upload-limits.js)');
 assert.match(photos, /magicMatches\(mimeType, buf\)/);
 assert.match(photos, /booking_customer_photos/);

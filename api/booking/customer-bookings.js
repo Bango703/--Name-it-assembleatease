@@ -1,6 +1,8 @@
 import { getSupabase } from '../_supabase.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { customerOwnsBooking, normalizeCustomerEmail } from './_customer-booking-auth.js';
+import { customerAccountUser } from './_customer-access.js';
+import { customerStatusLabel } from './_customer-status.js';
 
 /**
  * GET /api/booking/customer-bookings
@@ -12,19 +14,11 @@ import { customerOwnsBooking, normalizeCustomerEmail } from './_customer-booking
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-
-  const token = auth.slice(7);
   const sb = getSupabase();
-
-  // Verify JWT and get user
-  const { data: { user }, error: authErr } = await sb.auth.getUser(token);
-  if (authErr || !user) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
-  }
+  // Only a confirmed email proves the bookings sent to it are this person's
+  // (api/booking/_customer-access.js, the customer app's sign-in).
+  const user = await customerAccountUser(sb, req);
+  if (!user) return res.status(401).json({ error: 'Sign in again to see your bookings.' });
 
   const email = normalizeCustomerEmail(user.email);
   if (!email) {
@@ -33,7 +27,7 @@ export default async function handler(req, res) {
 
   const { status } = req.query;
 
-  const select = 'id, ref, service, customer_name, customer_email, date, time, address, details, status, created_at, assembler_id, assigned_at, assembler_accepted_at';
+  const select = 'id, ref, service, customer_id, customer_name, customer_email, date, time, address, details, status, created_at, assembler_id, assembler_name, assembler_accepted_at, payment_status, payment_collected, return_visit_required, return_visit_date, return_visit_time';
   const applyStatus = query => (status && status !== 'all' ? query.eq('status', status) : query);
   const [boundResult, legacyResult] = await Promise.all([
     applyStatus(sb.from('bookings').select(select).eq('customer_id', user.id)),
@@ -51,23 +45,25 @@ export default async function handler(req, res) {
     ...(legacyResult.data || []),
   ].filter(booking => customerOwnsBooking(booking, user)).map(booking => [booking.id, booking])).values()]
     .sort((a, b) => Date.parse(b.created_at || '') - Date.parse(a.created_at || ''));
-  const assemblerIds = [...new Set(bookings.filter(b => b.assembler_id).map(b => b.assembler_id))];
-
-  let assemblerMap = {};
-  if (assemblerIds.length) {
-    const { data: assemblers } = await sb
-      .from('profiles')
-      .select('id, full_name')
-      .in('id', assemblerIds);
-    if (assemblers) {
-      assemblers.forEach(a => { assemblerMap[a.id] = a.full_name; });
-    }
-  }
-
-  const enriched = bookings.map(b => ({
-    ...b,
-    assembler_name: assemblerMap[b.assembler_id] || null,
-  }));
+  // What the customer sees of each booking: the same status words as the
+  // booking page, and the pro's first name only once they have accepted.
+  const enriched = bookings.map(b => {
+    const status = customerStatusLabel(b);
+    return {
+      id: b.id,
+      ref: b.ref,
+      service: b.service,
+      date: b.date,
+      time: b.time,
+      address: b.address,
+      details: b.details,
+      status: b.status,
+      created_at: b.created_at,
+      customer_status: status.label,
+      customer_status_detail: status.detail,
+      pro_first_name: b.assembler_accepted_at && b.assembler_name ? String(b.assembler_name).split(' ')[0] : null,
+    };
+  });
 
   // Compute stats
   const CONFIRMED_OR_IN_FLIGHT = new Set([

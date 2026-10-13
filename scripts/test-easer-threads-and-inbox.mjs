@@ -265,7 +265,7 @@ async function call(handler, { method = 'GET', body = {}, query = {} } = {}) {
 // ── 4. Dark mode: a card never disappears into the page ──────────────────────
 {
   const views = read('mobile/ios/App/App/EaserViews.swift');
-  const support = read('mobile/ios/App/App/EaserSupport.swift');
+  const support = read('mobile/ios/Shared/AppFoundation.swift');
   assert.match(support, /static let card = Color\(uiColor: \.secondarySystemGroupedBackground\)/);
   assert.doesNotMatch(views, /\.background\(Color\(uiColor: \.systemBackground\), in: RoundedRectangle/, 'black on black in dark mode');
   assert.match(views, /\.stroke\(emphasis \? Brand\.sky : Color\(uiColor: \.separator\), lineWidth: emphasis \? 2 : 1\)/, 'every job card has an edge');

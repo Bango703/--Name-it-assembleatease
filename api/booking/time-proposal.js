@@ -2,12 +2,12 @@ import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendSms } from '../_sms.js';
-import { safeTokenHashMatch, guestManageUrl } from '../_payment-security.js';
+import { guestManageUrl } from '../_payment-security.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
 import { appointmentTimestampMs, formatAppointmentDate, formatAppointmentDateShort, formatSlotShort } from './_appt-date.js';
 import { validateBookingWindowDate, BOOKING_WINDOW_DAYS } from './_booking-window.js';
-import { bookingEmailMatches } from './_guest-booking-auth.js';
+import { customerBookingAccess, usesCustomerAccount } from './_customer-access.js';
 import { logActivity } from './_activity.js';
 import { TIME_SLOTS, validatePublishedRescheduleSlot, reschedulePaymentConflict } from './reschedule.js';
 import { loadOpenProposal, PROPOSAL_STATUS } from './_time-proposals.js';
@@ -166,11 +166,12 @@ async function customerDecline(req, res, sb) {
   const ip = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
   if (!(await rateLimit(ip, 'booking'))) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
   const { ref, email, token, proposalId } = req.body || {};
-  if (!ref || !email || !token || !proposalId) return res.status(400).json({ error: 'Open the latest link to your booking and try again.' });
+  const viaAccount = usesCustomerAccount(req, { token });
+  if (!ref || !proposalId || (!viaAccount && (!email || !token))) return res.status(400).json({ error: 'Open the latest link to your booking and try again.' });
   const { data: booking } = await sb.from('bookings')
-    .select('id, ref, customer_email, guest_mutation_token_hash, assembler_id, assembler_name')
+    .select('id, ref, customer_id, customer_email, guest_mutation_token_hash, assembler_id, assembler_name')
     .eq('ref', String(ref).trim().toUpperCase()).maybeSingle();
-  if (!booking || !bookingEmailMatches(booking, email) || !safeTokenHashMatch(token, booking.guest_mutation_token_hash)) {
+  if (!booking || !(await customerBookingAccess(sb, req, booking, { email, token })).ok) {
     return res.status(404).json({ error: 'Booking not found' });
   }
   const open = await loadOpenProposal(sb, booking.id);
