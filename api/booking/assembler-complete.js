@@ -20,6 +20,7 @@ import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { captureOrRecoverBookingPayment } from './_stripe-booking-payment.js';
 import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
 import { isOwnerManualLiveFlow, isDemoTestLiveFlow } from '../_owner-easer.js';
+import { notifyCustomerApp } from '../_customer-push.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -484,6 +485,8 @@ export default async function handler(req, res) {
       meta: { bookingId: booking.id, notificationType: 'payment_receipt', recipientType: 'customer' },
     });
   } catch (e) { console.error('Assembler-complete customer email error:', e); }
+  // The customer app, when installed: a notification, and the tracker ends.
+  await notifyCustomerApp(sb, booking.id, 'completed');
 
   // ── Email assembler their payout breakdown ───────────────────────────────
   try {
@@ -763,6 +766,8 @@ async function completeOfflineOwnerManualBooking(sb, res, {
       });
     }
   } catch (e) { console.error('Offline completion customer email error:', e); }
+  // The customer app, when installed: a notification, and the tracker ends.
+  await notifyCustomerApp(sb, booking.id, 'completed');
 
   // Owner earnings summary (owner = the performing Easer here). Completion and
   // collection remain separate truths; never claim funds were collected unless

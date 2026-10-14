@@ -9,6 +9,8 @@ import {
 import { sameDayFeeForAppointment } from '../_source-of-truth.js';
 import { parseIsoCalendarDate } from './_appt-date.js';
 import { checkoutPlan, checkoutSummary } from './_checkout.js';
+import { getAvailableBalanceCents, maxRedeemableCents, totalsAfterAssembleCash, verifyRedemptionToken } from '../_assemblecash.js';
+import { getMinimumPretaxBookingCents } from '../_source-of-truth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -18,7 +20,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests. Please wait a moment and try again.' });
   }
 
-  const { services, items, zip, email, promoCode, isQuoteRequest, date } = req.body || {};
+  const { services, items, zip, email, promoCode, isQuoteRequest, date, assemblecashToken } = req.body || {};
   const serviceList = Array.isArray(services) ? services : [];
   // A date makes the preview the booking's own price (same-day fee included) and
   // adds how it is paid. Without one it stays the website's promo check.
@@ -43,10 +45,38 @@ export default async function handler(req, res) {
   });
   const pricingWithPromo = applyPromotionToPricing(pricing, promo);
 
+  // AssembleCash the booking would apply: the same balance, cap and floor as
+  // api/booking.js, so the summary shows the total the card is held for. The
+  // pricing block above stays before AssembleCash; the booking checks the
+  // promo against that figure before it applies the credit.
+  let assemblecash = null;
+  if (assemblecashToken && isQuoteRequest !== true && pricingWithPromo.totalCents > 0
+      && verifyRedemptionToken(assemblecashToken, email)) {
+    const balanceCents = await getAvailableBalanceCents(sb, email);
+    const redeemCents = maxRedeemableCents({
+      balanceCents,
+      pretaxBaseCents: pricingWithPromo.promoAdjustedItemSubtotalCents,
+      marginFloorCents: getMinimumPretaxBookingCents(pricingWithPromo.callZone) || 0,
+    });
+    if (redeemCents > 0) {
+      assemblecash = {
+        redeemCents,
+        balanceCents,
+        totals: totalsAfterAssembleCash({
+          promoAdjustedItemSubtotalCents: pricingWithPromo.promoAdjustedItemSubtotalCents,
+          serviceCallFeeCents: pricingWithPromo.serviceCallFeeCents,
+          sameDayFeeCents: pricingWithPromo.sameDayFeeCents,
+          redeemCents,
+        }),
+      };
+    }
+  }
+
   return res.status(200).json({
     success: true,
     ...buildPromotionPreviewPayload(pricingWithPromo, promo),
-    summary: checkoutSummary(pricingWithPromo, promo),
-    plan: checkoutPlan({ totalCents: pricingWithPromo.totalCents, hasCustomQuote: pricingWithPromo.hasCustomQuote, date: appointmentDate }),
+    summary: checkoutSummary(pricingWithPromo, promo, assemblecash),
+    assemblecash: assemblecash ? { applied_cents: assemblecash.redeemCents, balance_cents: assemblecash.balanceCents } : null,
+    plan: checkoutPlan({ totalCents: assemblecash ? assemblecash.totals.totalCents : pricingWithPromo.totalCents, hasCustomQuote: pricingWithPromo.hasCustomQuote, date: appointmentDate }),
   });
 }

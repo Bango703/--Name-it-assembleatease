@@ -13,6 +13,7 @@ import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { isOfflineLiveFlow } from '../_owner-easer.js';
 import { demoBookingBlock, isDemoEaser } from '../_demo-accounts.js';
+import { notifyCustomerApp } from '../_customer-push.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -589,6 +590,8 @@ async function sendNotifications(sb, booking, easer, assemblerId) {
     }).catch(err => ({ ok: false, error: err?.message || String(err) }));
     results.push({ recipient: 'customer', ...result });
   }
+  // The customer app, when installed: a notification and the lock-screen tracker.
+  await notifyCustomerApp(sb, bookingId, 'accepted');
 
   // Owner: "Job Accepted"
   const ownerResult = await sendEmail({

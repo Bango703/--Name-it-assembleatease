@@ -140,7 +140,7 @@ struct BookingsView: View {
                         Text("No bookings yet").font(.headline)
                         Text("Bookings made with \(store.email ?? "your email") show up here, including ones made on the website.")
                             .font(.subheadline).foregroundStyle(.secondary)
-                        Button("Book a service") { store.tab = .home }
+                        Button("Book a service") { store.tab = .services }
                             .buttonStyle(PrimaryButtonStyle())
                     }
                     .padding(.vertical, 8)
@@ -247,8 +247,7 @@ struct BookingDetailView: View {
                     if detail.status == "completed" && !detail.items.isEmpty {
                         Button {
                             if store.flow.rebook(detail.items) > 0 {
-                                store.tab = .home
-                                store.flow.path = [.schedule]
+                                store.continueBooking()
                             } else {
                                 store.banner = CustomerBanner(text: "Those items are no longer offered. Pick from Services.", kind: .problem)
                             }
@@ -767,6 +766,16 @@ struct CustomerAccountView: View {
                             Text("\(store.finishedJobs.count)").foregroundStyle(.secondary)
                         }
                     }
+                }
+
+                Section {
+                    HStack {
+                        accountRow("star.circle", "AssembleCash")
+                        Spacer()
+                        Text(wholeDollars(store.account?.assemblecashCents ?? 0)).foregroundStyle(.secondary).monospacedDigit()
+                    }
+                } footer: {
+                    Text("Earned on completed jobs. It comes off your next booking at checkout.")
                 }
 
                 Section {

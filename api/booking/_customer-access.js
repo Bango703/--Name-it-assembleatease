@@ -1,6 +1,6 @@
 import { safeTokenHashMatch } from '../_payment-security.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
-import { customerOwnsBooking } from './_customer-booking-auth.js';
+import { customerOwnsBooking, normalizeCustomerEmail } from './_customer-booking-auth.js';
 
 /**
  * THE check that a request may act on a customer's booking. Read by every
@@ -62,4 +62,26 @@ export async function customerBookingAccess(sb, req, booking, { email, token } =
   const user = await customerAccountUser(sb, req);
   if (!user || !customerOwnsBooking(booking, user)) return { ok: false };
   return { ok: true, via: 'account', email: booking.customer_email, user };
+}
+
+/**
+ * Every booking a signed-in customer owns: bound to the account, or (legacy,
+ * not yet bound) sent to its confirmed email. Read by the app's booking list
+ * and inbox so the two never disagree. `select` must include customer_id and
+ * customer_email; `narrow` may add a filter to both queries. Newest first.
+ */
+export async function customerAccountBookings(sb, user, select, narrow = (query) => query) {
+  const email = normalizeCustomerEmail(user?.email);
+  if (!email) return { bookings: [], error: null };
+  const [bound, legacy] = await Promise.all([
+    narrow(sb.from('bookings').select(select).eq('customer_id', user.id)),
+    narrow(sb.from('bookings').select(select).is('customer_id', null).ilike('customer_email', email)),
+  ]);
+  const error = bound.error || legacy.error || null;
+  if (error) return { bookings: [], error };
+  const bookings = [...new Map([...(bound.data || []), ...(legacy.data || [])]
+    .filter(booking => customerOwnsBooking(booking, user))
+    .map(booking => [booking.id, booking])).values()]
+    .sort((a, b) => Date.parse(b.created_at || '') - Date.parse(a.created_at || ''));
+  return { bookings, error: null };
 }

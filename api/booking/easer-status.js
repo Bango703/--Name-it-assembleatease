@@ -17,6 +17,7 @@ import {
 import { getTransitionError } from './_workflow-engine.js';
 import { guestManageUrl } from '../_payment-security.js';
 import { isOfflineLiveFlow } from '../_owner-easer.js';
+import { notifyCustomerApp } from '../_customer-push.js';
 
 const STAGES = {
   [EASER_STAGE.EN_ROUTE]:    { status: BOOKING_STATUS.EN_ROUTE,    field: 'en_route_at',    label: 'On the way' },
@@ -310,6 +311,9 @@ export default async function handler(req, res) {
       meta: { bookingId, notificationType: stage, recipientType: 'customer' },
     }).catch(err => ({ ok: false, error: err?.message || String(err) }));
   }
+
+  // The customer app, when installed: a notification and the lock-screen tracker.
+  await notifyCustomerApp(sb, bookingId, stage);
 
   const notificationFailures = [];
   if (!ownerNotice?.ok) notificationFailures.push({ recipient: 'owner', error: ownerNotice?.error || 'Owner email failed' });

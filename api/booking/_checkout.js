@@ -32,19 +32,22 @@ function taxLabel() {
  * The price breakdown a customer reads before booking, in the order and words
  * book.html uses. Rows add up to the total.
  */
-export function checkoutSummary(pricingWithPromo, promo) {
+export function checkoutSummary(pricingWithPromo, promo, assemblecash = null) {
   const p = pricingWithPromo || {};
   const cents = (value) => Math.max(0, Math.round(Number(value) || 0));
-  const total = cents(p.totalCents);
+  // AssembleCash, when applied, replaces the tax and total (_assemblecash.js totalsAfterAssembleCash).
+  const credit = assemblecash && cents(assemblecash.redeemCents) > 0 ? assemblecash : null;
+  const total = credit ? cents(credit.totals.totalCents) : cents(p.totalCents);
   const customOnly = !!p.hasCustomQuote && cents(p.itemSubtotalCents) === 0;
   const rows = [];
   if (total > 0) {
     rows.push({ label: 'Subtotal', cents: cents(p.itemSubtotalCents) });
     if (cents(p.discountCents) > 0) rows.push({ label: `Bundle discount (${p.discountPct}%)`, cents: -cents(p.discountCents) });
     if (cents(p.promoDiscountCents) > 0) rows.push({ label: promo?.label || 'Promo discount', cents: -cents(p.promoDiscountCents) });
+    if (credit) rows.push({ label: 'AssembleCash applied', cents: -cents(credit.redeemCents) });
     if (cents(p.serviceCallFeeCents) > 0) rows.push({ label: 'Service call fee', cents: cents(p.serviceCallFeeCents) });
     if (cents(p.sameDayFeeCents) > 0) rows.push({ label: 'Same-day service', cents: cents(p.sameDayFeeCents) });
-    rows.push({ label: taxLabel(), cents: cents(p.taxCents) });
+    rows.push({ label: taxLabel(), cents: credit ? cents(credit.totals.taxCents) : cents(p.taxCents) });
   }
   return {
     rows,

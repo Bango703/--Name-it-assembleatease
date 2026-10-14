@@ -19,6 +19,29 @@ final class CustomerAPI: APIClient {
         try adopt(tokenResponse: data)
     }
 
+    func accountSummary() async throws -> AccountSummary {
+        try await get("/api/customer/account", as: AccountSummary.self)
+    }
+
+    func inbox() async throws -> [InboxConversation] {
+        try await get("/api/customer/inbox", as: InboxEnvelope.self).conversations
+    }
+
+    // MARK: Notifications (api/customer/push.js)
+
+    func registerPush(token: String) async throws {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        try await call("POST", "/api/customer/push", body: ["token": token, "platform": "ios", "appVersion": version])
+    }
+
+    func unregisterPush(token: String) async throws {
+        try await call("DELETE", "/api/customer/push", body: ["token": token])
+    }
+
+    func registerTracker(ref: String, activityToken: String, fcmToken: String) async throws {
+        try await call("POST", "/api/customer/push", body: ["ref": ref, "activityToken": activityToken, "fcmToken": fcmToken])
+    }
+
     func deleteAccount() async throws {
         try await call("DELETE", "/api/customer/account")
     }

@@ -66,6 +66,9 @@ final class BookingFlow: ObservableObject {
     @Published var problem: String?
     @Published var booked: JustBooked?
 
+    /// From Account (api/customer/account.js); the server applies the balance.
+    var assemblecashToken: String?
+
     /// Runs after a booking is made, so the Bookings tab shows it.
     var onBooked: (() async -> Void)?
 
@@ -301,6 +304,7 @@ final class BookingFlow: ObservableObject {
             "promoCode": promoCode.trimmingCharacters(in: .whitespaces),
             "date": dayISO,
             "isQuoteRequest": quote,
+            "assemblecashToken": assemblecashToken ?? "",
         ]
     }
 
@@ -345,6 +349,8 @@ final class BookingFlow: ObservableObject {
         order["time"] = slot ?? ""
         order["details"] = details
         order["sms"] = textUpdates
+        // The token is reissued on every refresh; whether credit is used is what matters.
+        order["assemblecashToken"] = assemblecashToken == nil ? "" : "on"
         let data = (try? JSONSerialization.data(withJSONObject: order, options: [.sortedKeys])) ?? Data()
         return String(decoding: data, as: UTF8.self)
     }
@@ -479,6 +485,7 @@ final class BookingFlow: ObservableObject {
         pendingHold = nil
         pendingCard = nil
         loadedContactFor = nil
+        assemblecashToken = nil
         path = []
         booked = nil
     }
@@ -532,9 +539,12 @@ struct BundleCard: View {
     }
 }
 
-/// The order so far, and the way forward.
+/// The order so far, and the way forward. Shown wherever items can be added.
 struct CartBar: View {
     @EnvironmentObject private var flow: BookingFlow
+    @EnvironmentObject private var store: CustomerStore
+    /// Runs before moving on (the search sheet closes itself).
+    var beforeContinue: (() -> Void)? = nil
 
     var body: some View {
         if flow.itemCount > 0 {
@@ -545,7 +555,8 @@ struct CartBar: View {
                 }
                 Spacer()
                 Button {
-                    flow.path.append(.schedule)
+                    beforeContinue?()
+                    store.continueBooking()
                 } label: {
                     Text("Continue").padding(.horizontal, 22)
                 }
@@ -867,6 +878,7 @@ struct BookedView: View {
     let done: JustBooked
     @EnvironmentObject private var flow: BookingFlow
     @EnvironmentObject private var store: CustomerStore
+    @ObservedObject private var push = CustomerPush.shared
 
     var body: some View {
         VStack(spacing: 18) {
@@ -881,6 +893,15 @@ struct BookedView: View {
             }
             Text("A confirmation is on its way to \(flow.email).")
                 .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            if push.status == .notDetermined {
+                Button {
+                    Task { _ = await push.request() }
+                } label: {
+                    Label("Get updates from your pro", systemImage: "bell.badge")
+                }
+                .buttonStyle(.bordered)
+                .tint(Brand.skyDark)
+            }
             Spacer()
             Button("View booking") {
                 flow.booked = nil
