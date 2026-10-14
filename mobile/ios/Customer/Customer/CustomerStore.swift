@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 enum CustomerPhase: Equatable { case launching, signedOut, signedIn }
-enum CustomerTab: Hashable { case bookings, book, account }
+enum CustomerTab: Hashable { case home, bookings, account }
 
 struct CustomerBanner: Identifiable, Equatable {
     enum Kind { case success, problem }
@@ -16,7 +16,7 @@ struct CustomerBanner: Identifiable, Equatable {
 @MainActor
 final class CustomerStore: ObservableObject {
     @Published var phase: CustomerPhase = .launching
-    @Published var tab: CustomerTab = .bookings
+    @Published var tab: CustomerTab = .home
     @Published var bookings: [BookingSummary] = []
     @Published var loadedOnce = false
     @Published var loadProblem: String?
@@ -24,6 +24,9 @@ final class CustomerStore: ObservableObject {
     @Published var browserCloses = 0
     /// A booking to open on the Bookings tab (set after booking in the app).
     @Published var openRef: String?
+    /// From the customer's most recent booking, for the greeting.
+    @Published var firstName: String?
+    @Published var offer: CurrentOffer?
 
     let api: CustomerAPI
     /// The order being built on the Book tab.
@@ -55,6 +58,7 @@ final class CustomerStore: ObservableObject {
         cache = SnapshotCache(userID: session.userID)
         if let data = cache?.load("bookings"), let value = try? JSONDecoder().decode(BookingsEnvelope.self, from: data) {
             bookings = value.bookings
+            firstName = value.firstName
             loadedOnce = true
         }
         phase = .signedIn
@@ -107,8 +111,10 @@ final class CustomerStore: ObservableObject {
         loadedOnce = false
         loadProblem = nil
         openRef = nil
+        firstName = nil
+        offer = nil
         flow.reset()
-        tab = .bookings
+        tab = .home
         phase = .signedOut
     }
 
@@ -116,10 +122,12 @@ final class CustomerStore: ObservableObject {
 
     func refresh() async {
         guard phase == .signedIn else { return }
+        offer = await api.currentOffer()
         do {
             let data = try await api.getData("/api/booking/customer-bookings")
             let value = try JSONDecoder().decode(BookingsEnvelope.self, from: data)
             bookings = value.bookings
+            firstName = value.firstName ?? firstName
             cache?.save(data, as: "bookings")
             loadProblem = nil
         } catch let error as AppError where error.isCancelled {
@@ -142,4 +150,14 @@ final class CustomerStore: ObservableObject {
             return false
         }
     }
+}
+
+extension CustomerStore {
+    /// The next booking that is not finished, soonest first.
+    var nextBooking: BookingSummary? {
+        upcoming.sorted { ($0.date ?? "9999") < ($1.date ?? "9999") }.first
+    }
+
+    /// Finished jobs, for Book again.
+    var finishedJobs: [BookingSummary] { past.filter(\.isCompleted) }
 }

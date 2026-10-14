@@ -44,3 +44,21 @@ export function customerStatusLabel(b) {
   if (b.status === BOOKING_STATUS.CONFIRMED) return { label: 'Matching you with a service pro', detail: 'We will notify you once your service pro is confirmed.' };
   return { label: 'Booking received', detail: 'We will confirm your appointment shortly.' };
 }
+
+/**
+ * Where a booking is on its way to done, for the step tracker in the customer
+ * app: Booked, Pro confirmed, On the way, Arrived, Done. Null when there is
+ * nothing to track (cancelled, declined, or a return visit being arranged).
+ * Same fields as customerStatusLabel.
+ */
+export const CUSTOMER_PROGRESS_STEPS = Object.freeze(['Booked', 'Pro confirmed', 'On the way', 'Arrived', 'Done']);
+
+export function customerProgress(b) {
+  if (b.status === BOOKING_STATUS.CANCELLED || b.status === BOOKING_STATUS.DECLINED || b.return_visit_required) return null;
+  let step = 0;
+  if (b.status === BOOKING_STATUS.COMPLETED) step = 4;
+  else if (b.status === BOOKING_STATUS.ARRIVED || b.status === BOOKING_STATUS.IN_PROGRESS) step = 3;
+  else if (b.status === BOOKING_STATUS.EN_ROUTE) step = 2;
+  else if (b.assembler_accepted_at) step = 1;
+  return { step, steps: CUSTOMER_PROGRESS_STEPS };
+}

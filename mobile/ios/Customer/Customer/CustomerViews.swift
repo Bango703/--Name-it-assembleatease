@@ -140,7 +140,7 @@ struct BookingsView: View {
                         Text("No bookings yet").font(.headline)
                         Text("Bookings made with \(store.email ?? "your email") show up here, including ones made on the website.")
                             .font(.subheadline).foregroundStyle(.secondary)
-                        Button("Book a service") { store.tab = .book }
+                        Button("Book a service") { store.tab = .home }
                             .buttonStyle(PrimaryButtonStyle())
                     }
                     .padding(.vertical, 8)
@@ -180,17 +180,50 @@ struct BookingsView: View {
 
 private struct BookingRow: View {
     let booking: BookingSummary
+
+    private static let monthIn: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private var dayParts: (month: String, day: String)? {
+        guard let raw = booking.date, let date = Self.monthIn.date(from: String(raw.prefix(10))) else { return nil }
+        let month = DateFormatter()
+        month.dateFormat = "MMM"
+        let day = DateFormatter()
+        day.dateFormat = "d"
+        return (month.string(from: date).uppercased(), day.string(from: date))
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(booking.service).font(.headline)
-            if !booking.when.isEmpty {
-                Label(booking.when, systemImage: "calendar").font(.subheadline).foregroundStyle(.secondary)
+        HStack(alignment: .top, spacing: 14) {
+            VStack(spacing: 0) {
+                Text(dayParts?.month ?? "")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(booking.isPast ? Color.secondary : Brand.skyDark)
+                Text(dayParts?.day ?? "-")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(booking.isPast ? Color.secondary : Color.primary)
             }
-            Text(booking.statusLabel)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(booking.isPast ? Color.secondary : Brand.skyDark)
+            .frame(width: 50, height: 54)
+            .background(booking.isPast ? Brand.surface : Brand.sky.opacity(0.14), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(booking.service).font(.headline)
+                if let time = booking.time, !time.isEmpty {
+                    Text(time).font(.subheadline).foregroundStyle(.secondary)
+                }
+                Text(booking.statusLabel)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(booking.isPast ? Color.secondary : Brand.skyDark)
+                if !booking.isPast, let progress = booking.progress {
+                    ProgressTracker(progress: progress).padding(.top, 4)
+                }
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
     }
 }
 
@@ -211,6 +244,19 @@ struct BookingDetailView: View {
             if let detail {
                 VStack(alignment: .leading, spacing: 14) {
                     statusCard(detail)
+                    if detail.status == "completed" && !detail.items.isEmpty {
+                        Button {
+                            if store.flow.rebook(detail.items) > 0 {
+                                store.tab = .home
+                                store.flow.path = [.schedule]
+                            } else {
+                                store.banner = CustomerBanner(text: "Those items are no longer offered. Pick from Services.", kind: .problem)
+                            }
+                        } label: {
+                            Label("Book this again", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                    }
                     if let proposal = detail.proposal { proposalCard(detail, proposal) }
                     if detail.proFirstName != nil { proCard(detail) }
 
@@ -308,6 +354,9 @@ struct BookingDetailView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(detail.statusLabel).font(.title3.bold())
             if let text = detail.statusDetail { Text(text).font(.subheadline).foregroundStyle(.secondary) }
+            if !detail.isPast, let progress = detail.progress {
+                ProgressTracker(progress: progress).padding(.top, 6)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
@@ -662,35 +711,96 @@ struct BookingPhotosView: View {
 
 struct CustomerAccountView: View {
     @EnvironmentObject private var store: CustomerStore
+    @EnvironmentObject private var flow: BookingFlow
     @Environment(\.openURL) private var openURL
     @State private var confirmSignOut = false
     @State private var confirmDelete = false
     @State private var deleting = false
 
+    private var displayName: String {
+        let saved = flow.name.trimmingCharacters(in: .whitespaces)
+        if !saved.isEmpty { return saved }
+        return store.firstName ?? "Your account"
+    }
+
+    private var initials: String {
+        let letters = displayName.split(separator: " ").prefix(2).compactMap(\.first)
+        return letters.isEmpty ? "A" : String(letters).uppercased()
+    }
+
+    private var version: String {
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        return "Version \(short) (\(build))"
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    LabeledContent("Email", value: store.email ?? "")
+                    HStack(spacing: 14) {
+                        Text(initials)
+                            .font(.title2.bold())
+                            .foregroundStyle(Brand.ink)
+                            .frame(width: 60, height: 60)
+                            .background(Brand.sky, in: Circle())
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(displayName).font(.title3.bold())
+                            Text(store.email ?? "").font(.subheadline).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 6)
                 }
+
+                Section {
+                    Button { store.tab = .bookings } label: {
+                        HStack {
+                            accountRow("calendar", "Upcoming bookings")
+                            Spacer()
+                            Text("\(store.upcoming.count)").foregroundStyle(.secondary)
+                        }
+                    }
+                    Button { store.tab = .bookings } label: {
+                        HStack {
+                            accountRow("checkmark.circle", "Completed jobs")
+                            Spacer()
+                            Text("\(store.finishedJobs.count)").foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                Section {
+                    NavigationLink { YourDetailsView() } label: { accountRow("person.text.rectangle", "Your details") }
+                } footer: {
+                    Text("Your name, phone and address fill in each new booking.")
+                }
+
                 Section("Help") {
+                    Button { openURL(Site.page("/contact")) } label: { accountRow("questionmark.circle", "Help and contact") }
                     Button {
                         if let url = URL(string: "tel:" + Site.supportPhone) { openURL(url) }
-                    } label: { Label("Call \(Site.supportPhoneDisplay)", systemImage: "phone") }
+                    } label: { accountRow("phone", "Call \(Site.supportPhoneDisplay)") }
                     Button {
                         if let url = URL(string: "mailto:" + Site.supportEmail) { openURL(url) }
-                    } label: { Label("Email support", systemImage: "envelope") }
+                    } label: { accountRow("envelope", "Email \(Site.supportEmail)") }
                 }
-                Section("Legal") {
-                    Button("Privacy Policy") { openURL(Site.page("/privacy")) }
-                    Button("Terms of Service") { openURL(Site.page("/terms")) }
+
+                Section("About") {
+                    Button { openURL(Site.page("/pricing")) } label: { accountRow("tag", "Prices") }
+                    Button { openURL(Site.page("/about")) } label: { accountRow("info.circle", "About AssembleAtEase") }
+                    Button { openURL(Site.page("/terms")) } label: { accountRow("doc.text", "Terms of Service") }
+                    Button { openURL(Site.page("/privacy")) } label: { accountRow("hand.raised", "Privacy Policy") }
                 }
+
                 Section {
                     Button("Sign out") { confirmSignOut = true }
                     Button("Delete account", role: .destructive) { confirmDelete = true }
                         .disabled(deleting)
                 } footer: {
-                    Text("Deleting your account removes your sign-in. Your bookings stay on record and remain open from your booking emails.")
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Deleting your account removes your sign-in. Your bookings stay on record and remain open from your booking emails.")
+                        Text(version)
+                    }
                 }
             }
             .navigationTitle("Account")
@@ -707,6 +817,56 @@ struct CustomerAccountView: View {
                 }
             } message: {
                 Text("You can sign in again later with the same email.")
+            }
+        }
+    }
+
+    private func accountRow(_ symbol: String, _ title: String) -> some View {
+        Label {
+            Text(title).foregroundStyle(.primary)
+        } icon: {
+            Image(systemName: symbol).foregroundStyle(Brand.skyDark)
+        }
+    }
+}
+
+/// The name, phone and address each new booking starts with. Kept on this phone.
+private struct YourDetailsView: View {
+    @EnvironmentObject private var store: CustomerStore
+    @EnvironmentObject private var flow: BookingFlow
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        Form {
+            Section("Contact") {
+                TextField("Full name", text: $flow.name).textContentType(.name)
+                TextField("Phone", text: $flow.phone)
+                    .textContentType(.telephoneNumber)
+                    .keyboardType(.phonePad)
+                    .onChange(of: flow.phone) { _, value in
+                        let typed = Format.typingPhone(value)
+                        if typed != value { flow.phone = typed }
+                    }
+                LabeledContent("Email", value: store.email ?? "")
+            }
+            Section("Home address") {
+                TextField("Street address", text: $flow.street).textContentType(.streetAddressLine1)
+                TextField("Apt, suite or unit", text: $flow.unit).textContentType(.streetAddressLine2)
+                TextField("City", text: $flow.city).textContentType(.addressCity)
+                TextField("ZIP code", text: $flow.zip)
+                    .textContentType(.postalCode)
+                    .keyboardType(.numberPad)
+            }
+        }
+        .navigationTitle("Your details")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    flow.saveDetails()
+                    store.banner = CustomerBanner(text: "Your details are saved.", kind: .success)
+                    dismiss()
+                }
             }
         }
     }
