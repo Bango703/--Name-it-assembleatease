@@ -497,56 +497,57 @@ struct ProgressTracker: View {
 }
 
 /// A service as a photo card: the real finished work, the name and the From price over it.
+/// The card's size comes from a fixed base; the photo fills it as an overlay and is
+/// clipped there, so a wide photo can never push into the card beside it.
 private struct ServiceTile: View {
     let service: CatalogService
     let picked: Int
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            Group {
+        Rectangle()
+            .fill(Brand.sky.opacity(0.18))
+            .frame(maxWidth: .infinity)
+            .frame(height: 150)
+            .overlay {
                 if let photo = service.photo {
                     AsyncImage(url: photo) { phase in
                         if let image = phase.image {
                             image.resizable().scaledToFill()
                         } else {
-                            Brand.sky.opacity(0.18)
+                            Color.clear
                         }
                     }
-                } else {
-                    Brand.sky.opacity(0.18)
                 }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 150)
-            .clipped()
-
-            LinearGradient(colors: [.clear, .black.opacity(0.72)], startPoint: .center, endPoint: .bottom)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(service.name)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                Text(service.fromCents.map { "From " + wholeDollars($0) } ?? "Custom quote")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.9))
+            .overlay {
+                LinearGradient(colors: [.clear, .black.opacity(0.72)], startPoint: .center, endPoint: .bottom)
             }
-            .padding(12)
-        }
-        .frame(height: 150)
-        .overlay(alignment: .topTrailing) {
-            if picked > 0 {
-                Text("\(picked)")
-                    .font(.caption.weight(.bold))
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Brand.sky, in: Capsule())
-                    .foregroundStyle(Brand.ink)
-                    .padding(10)
+            .overlay(alignment: .bottomLeading) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(service.name)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                    Text(service.fromCents.map { "From " + wholeDollars($0) } ?? "Custom quote")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                }
+                .padding(12)
             }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .accessibilityElement(children: .combine)
+            .overlay(alignment: .topTrailing) {
+                if picked > 0 {
+                    Text("\(picked)")
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Brand.sky, in: Capsule())
+                        .foregroundStyle(Brand.ink)
+                        .padding(10)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .accessibilityElement(children: .combine)
     }
 }
 

@@ -381,6 +381,42 @@ const app = Object.values(customer).join('\n');
   assert.match(read('api/booking/reschedule.js'), /notificationType: 'easer_time_proposal_accepted', recipientType: 'easer' \}\)/);
 }
 
+// ── 4h. One chat in both apps (owner, 2026-10-14: "the chat system for easer and
+// customer dash can be better"; the Office and Fitness tiles drew over each other).
+// "Seen" is the server's read_at, never a guess; the inbox names the recipient the
+// server routes to. ───────────────────────────────────────────────────────────
+{
+  const foundation = shared['AppFoundation.swift'];
+  for (const part of ['struct ChatLine', 'struct ChatTranscript', 'struct ChatBubble', 'struct QuickReplies', 'struct ChatComposer']) {
+    assert.ok(foundation.includes(part), `${part} lives once, in the shared folder`);
+    for (const [name, src] of [...Object.entries(customer), ...Object.entries(easer)]) {
+      assert.ok(!src.includes(part), `${name} keeps its own copy of ${part}`);
+    }
+  }
+  assert.match(foundation, /lines\.last\(where: \{ \$0\.fromMe && \$0\.readAt != nil \}\)/, '"Seen" comes from read_at');
+  assert.match(customer['CustomerModels.swift'], /readAt = c\.string\("read_at"\)/);
+  assert.match(easer['EaserModels.swift'], /readAt = c\.string\("read_at"\)/);
+  const message = read('api/booking/message.js');
+  assert.ok((message.match(/read_at\)/g) || []).length >= 1 && message.includes("update({ read_at: new Date().toISOString() })"), 'opening a conversation stamps read_at');
+  const views = customer['CustomerViews.swift'];
+  const easerViews = easer['EaserViews.swift'];
+  for (const [name, src] of [['customer', views], ['Easer', easerViews]]) {
+    assert.match(src, /ChatTranscript\(/, `the ${name} app draws the shared transcript`);
+    assert.match(src, /ChatComposer\(/, `the ${name} app uses the shared composer`);
+    assert.match(src, /QuickReplies\(/, `the ${name} app offers quick replies`);
+    assert.match(src, /Task\.sleep\(nanoseconds: 10_000_000_000\)/, `an open ${name} chat refreshes on its own`);
+  }
+  assert.doesNotMatch(views, /struct CustomerBubble/);
+  assert.doesNotMatch(easerViews, /struct MessageBubble/);
+  assert.match(easerViews, /thread == \.customer && job\.isFinished/, 'a finished job closes the Easer-to-customer composer, as message.js does');
+  assert.match(read('api/customer/inbox.js'), /message_recipient: customerMessageRecipient\(booking\)/, 'the inbox names who a reply goes to');
+  assert.match(customer['CustomerModels.swift'], /messageRecipient = c\.string\("message_recipient"\)/);
+  assert.match(views, /conversation\.messageRecipient == "pro"/, 'an inbox conversation is titled with its real recipient');
+  const home = customer['CustomerHome.swift'];
+  const tile = home.slice(home.indexOf('private struct ServiceTile'), home.indexOf('private struct TrustRow'));
+  assert.match(tile, /\.frame\(height: 150\)[\s\S]*\.overlay[\s\S]*scaledToFill\(\)[\s\S]*\.clipShape\(/, 'a tile photo fills a fixed card and is clipped there, so it cannot cover the tile beside it');
+}
+
 // ── 5. App Store basics ──────────────────────────────────────────────────────
 {
   const views = customer['CustomerViews.swift'];

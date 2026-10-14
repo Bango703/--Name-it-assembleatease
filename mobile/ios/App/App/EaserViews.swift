@@ -2207,44 +2207,45 @@ private struct MessagesView: View {
         _thread = State(initialValue: thread)
     }
 
-    private var shown: [JobMessage] { messages.filter { $0.thread == thread } }
-
     private var customerFirstName: String {
         job.customerName?.split(separator: " ").first.map(String.init) ?? "Customer"
+    }
+
+    private var replies: [String] {
+        thread == .customer
+            ? ["On my way.", "I'm outside.", "Running about 10 minutes late.", "All done. Thank you!"]
+            : ["I need help with this job.", "Please call me."]
+    }
+
+    private var shown: [JobMessage] { messages.filter { $0.thread == thread } }
+
+    private var lines: [ChatLine] {
+        shown.map { message in
+            ChatLine(
+                id: message.id,
+                text: message.body,
+                fromMe: message.fromMe,
+                author: message.sender == "customer" ? customerFirstName : "AssembleAtEase",
+                sentAt: Format.timestamp(message.createdAt),
+                readAt: Format.timestamp(message.readAt)
+            )
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             Picker("Conversation", selection: $thread) {
-                Text("Customer").tag(MessageThread.customer)
+                Text(customerFirstName).tag(MessageThread.customer)
                 Text("AssembleAtEase").tag(MessageThread.team)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
 
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 10) {
-                        if loaded && shown.isEmpty {
-                            Text(thread == .customer ? "No messages with \(customerFirstName) yet." : "No messages with AssembleAtEase yet.")
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 40)
-                        }
-                        ForEach(shown) { message in
-                            MessageBubble(message: message, otherName: thread == .customer ? customerFirstName : "AssembleAtEase").id(message.id)
-                        }
-                    }
-                    .padding(16)
-                }
-                .onChange(of: shown.count) { _, _ in
-                    if let last = shown.last { proxy.scrollTo(last.id, anchor: .bottom) }
-                }
-                .onChange(of: thread) { _, _ in
-                    problem = nil
-                    if let last = shown.last { proxy.scrollTo(last.id, anchor: .bottom) }
-                }
-            }
+            ChatTranscript(
+                lines: lines,
+                emptyText: loaded ? (thread == .customer ? "No messages with \(customerFirstName) yet." : "No messages with AssembleAtEase yet.") : ""
+            )
             .refreshable { await load() }
 
             if thread == .customer && job.isFinished {
@@ -2258,31 +2259,35 @@ private struct MessagesView: View {
                 .padding(12)
                 .background(.bar)
             } else {
-            VStack(spacing: 8) {
-                if let problem {
-                    Text(problem).font(.footnote).foregroundStyle(Brand.attention)
-                }
-                HStack(alignment: .bottom, spacing: 10) {
-                    TextField(thread == .customer ? "Message \(customerFirstName)" : "Message AssembleAtEase", text: $draft, axis: .vertical)
-                        .lineLimit(1...4)
-                        .padding(10)
-                        .background(Brand.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    Button {
-                        Task { await send() }
-                    } label: {
-                        if sending { ProgressView() } else { Image(systemName: "arrow.up.circle.fill").font(.system(size: 32)) }
+                VStack(spacing: 6) {
+                    if let problem {
+                        Text(problem).font(.footnote).foregroundStyle(Brand.attention).padding(.horizontal, 12)
                     }
-                    .disabled(sending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .accessibilityLabel(thread == .customer ? "Send to \(customerFirstName)" : "Send to AssembleAtEase")
+                    if draft.isEmpty {
+                        QuickReplies(replies: replies) { text in Task { await send(text) } }
+                    }
+                    ChatComposer(draft: $draft,
+                                 placeholder: thread == .customer ? "Message \(customerFirstName)" : "Message AssembleAtEase",
+                                 sending: sending) {
+                        Task { await send(draft) }
+                    }
                 }
-            }
-            .padding(12)
-            .background(.bar)
+                .padding(.top, 8)
+                .background(.bar)
             }
         }
         .navigationTitle(thread.title)
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: thread) { _, _ in problem = nil }
         .task { await load() }
+        .task {
+            // No live socket: while the chat is open it checks every ten seconds.
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                if Task.isCancelled { break }
+                await load()
+            }
+        }
     }
 
     private func load() async {
@@ -2290,19 +2295,20 @@ private struct MessagesView: View {
             messages = try await store.messages(for: job)
             problem = nil
         } catch {
-            problem = error.localizedDescription
+            if messages.isEmpty { problem = error.localizedDescription }
         }
         loaded = true
     }
 
-    private func send() async {
-        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+    private func send(_ raw: String) async {
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !sending else { return }
         sending = true
         defer { sending = false }
         do {
             try await store.send(text, about: job, toCustomer: thread == .customer)
-            draft = ""
+            if raw == draft { draft = "" }
+            problem = nil
             await load()
         } catch {
             problem = error.localizedDescription
@@ -2310,26 +2316,6 @@ private struct MessagesView: View {
     }
 }
 
-private struct MessageBubble: View {
-    let message: JobMessage
-    let otherName: String
-    var body: some View {
-        HStack {
-            if message.fromMe { Spacer(minLength: 40) }
-            VStack(alignment: message.fromMe ? .trailing : .leading, spacing: 4) {
-                Text(message.fromMe ? "You" : otherName).font(.caption2).foregroundStyle(.secondary)
-                Text(message.body)
-                    .padding(12)
-                    .background(message.fromMe ? Brand.sky.opacity(0.22) : Brand.surface,
-                                in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                if let when = Format.relative(message.createdAt) {
-                    Text(when).font(.caption2).foregroundStyle(.tertiary)
-                }
-            }
-            if !message.fromMe { Spacer(minLength: 40) }
-        }
-    }
-}
 
 // MARK: - Earnings
 
