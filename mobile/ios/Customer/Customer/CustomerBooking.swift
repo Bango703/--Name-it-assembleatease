@@ -58,6 +58,9 @@ final class BookingFlow: ObservableObject {
     @Published var textUpdates = false
     @Published var suggestions: [AddressSuggestion] = []
     @Published var promoCode = ""
+    /// The bundle this order started from, sent with the booking as book.html does,
+    /// so the owner's bundle reporting counts it. It never changes the price.
+    private(set) var bundleSlug: String?
     @Published var agreed = false
     @Published var preview: CheckoutPreview?
     @Published var previewProblem: String?
@@ -109,6 +112,7 @@ final class BookingFlow: ObservableObject {
     func setQuantity(_ value: Int, for key: CartKey) {
         let clamped = min(99, max(0, value))
         if clamped == 0 { quantities.removeValue(forKey: key) } else { quantities[key] = clamped }
+        if quantities.isEmpty { bundleSlug = nil }
         preview = nil
     }
 
@@ -125,6 +129,7 @@ final class BookingFlow: ObservableObject {
             let key = CartKey(service: line.service, item: line.name)
             if quantity(key) == 0 { quantities[key] = 1 }
         }
+        bundleSlug = bundle.slug
         preview = nil
     }
 
@@ -371,6 +376,7 @@ final class BookingFlow: ObservableObject {
         order["termsVersion"] = catalog?.termsVersion ?? ""
         order["privacyNoticeVersion"] = catalog?.privacyNoticeVersion ?? ""
         order["smsConsent"] = textUpdates
+        order["bundleSlug"] = bundleSlug ?? ""
         if let setupID { order["setupIntentId"] = setupID }
         return order
     }
@@ -455,6 +461,7 @@ final class BookingFlow: ObservableObject {
         saveContact()
         booked = JustBooked(ref: created.ref, title: plan.isQuote ? "Quote requested" : "You're booked", note: plan.note)
         quantities = [:]
+        bundleSlug = nil
         slot = nil
         details = ""
         promoCode = ""
@@ -470,6 +477,7 @@ final class BookingFlow: ObservableObject {
     /// Signing out leaves nothing of this person's order on screen.
     func reset() {
         quantities = [:]
+        bundleSlug = nil
         slot = nil
         name = ""
         phone = ""
