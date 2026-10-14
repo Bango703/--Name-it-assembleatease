@@ -27,6 +27,7 @@ import {
 } from './_cancellation-operation.js';
 import { cancellationFeeSummaryHtml, customerCancellationResult } from './_cancellation-fee-summary.js';
 import { notifyCustomerApp } from '../_customer-push.js';
+import { sendPushToUser } from '../_push.js';
 
 async function cancelCustomerIntent(stripe, booking, row) {
   if (row.intent.status === 'canceled') return;
@@ -520,6 +521,12 @@ ${proTripCutCents > 0 ? '<p style="background:#eff6ff;border:1px solid #bfdbfe;b
           }),
           meta: { bookingId: booking.id, notificationType: 'easer_job_cancelled', recipientType: 'easer', recipientUserId: booking.assembler_id, disableDedupe: true },
         });
+        // Same event as the email above (one inbox item): a push reaches an Easer on the road.
+        await sendPushToUser(booking.assembler_id, {
+          title: 'Job cancelled',
+          body: `The customer cancelled ${booking.service || 'this job'} (${booking.ref}). It is off your schedule.`,
+          jobId: booking.id,
+        }, { bookingId: booking.id, notificationType: 'easer_job_cancelled', recipientType: 'easer' }).catch(() => {});
       }
     } catch (e) { console.error('Easer cancel notify error:', e); }
   }

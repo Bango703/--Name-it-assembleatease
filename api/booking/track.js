@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { CHANGE_ORDER_STATUS } from './_change-orders.js';
 import { canRecoverPaymentNow } from './_pending-payment-recovery.js';
 import { customerBookingAccess, usesCustomerAccount } from './_customer-access.js';
 import { loadCustomerFacingCompletionPhoto } from './_completion-evidence.js';
@@ -234,6 +235,29 @@ export default async function handler(req, res) {
   };
   // The price breakdown, worked out once here for the page and the app.
   safe.payment_summary = customerPaymentSummary(safe);
+
+  // Extra work the pro asked for, waiting on the customer (api/booking/change-order-approve.js).
+  {
+    const { data: pending, error: pendingError } = await sb.from('booking_change_orders')
+      .select('id, description, subtotal_cents, tax_cents, total_cents, approval_expires_at')
+      .eq('booking_id', booking.id)
+      .eq('status', CHANGE_ORDER_STATUS.PENDING_CUSTOMER_APPROVAL)
+      .is('approved_at', null);
+    safe.change_orders = pendingError ? [] : (pending || [])
+      .filter(row => !row.approval_expires_at || Date.parse(row.approval_expires_at) > Date.now())
+      .map(row => ({ id: row.id, description: row.description, subtotal_cents: row.subtotal_cents, tax_cents: row.tax_cents, total_cents: row.total_cents }));
+  }
+
+  // A finished job can be rated once (api/review.js); the app shows the stars or the rating given.
+  if (booking.status === BOOKING_STATUS.COMPLETED) {
+    const { data: review, error: reviewError } = await sb.from('reviews')
+      .select('rating').eq('booking_id', booking.id).maybeSingle();
+    safe.review = reviewError
+      ? { can_review: false, rating: null }
+      : { can_review: !review, rating: review?.rating ?? null };
+  } else {
+    safe.review = { can_review: false, rating: null };
+  }
 
   return res.status(200).json({ booking: safe });
 }

@@ -307,6 +307,17 @@ struct BookingDetailView: View {
             if let detail {
                 VStack(alignment: .leading, spacing: 16) {
                     heroCard(detail)
+                    ForEach(detail.changeOrders) { order in
+                        ChangeOrderCard(order: order) { await load() }
+                    }
+                    if detail.canReview || detail.myRating != nil {
+                        RatingCard(ref: detail.ref, proName: detail.proFirstName, canReview: detail.canReview, given: detail.myRating) {
+                            await load()
+                        }
+                    }
+                    if detail.status == "completed" && detail.proFirstName != nil {
+                        TipCard(ref: detail.ref)
+                    }
                     if !detail.isPast { actionBar(detail) }
                     if let proposal = detail.proposal { proposalCard(detail, proposal) }
                     if detail.proFirstName != nil { proCard(detail) }
@@ -554,6 +565,229 @@ struct BookingDetailView: View {
             }
             if let note = payment.note { Text(note).font(.caption).foregroundStyle(.secondary) }
         }
+    }
+}
+
+/// Extra work the pro asked for: what it is, what it adds, approve or decline.
+private struct ChangeOrderCard: View {
+    let order: ChangeOrder
+    let done: () async -> Void
+    @EnvironmentObject private var store: CustomerStore
+    @State private var working = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Extra work needs your OK", systemImage: "exclamationmark.bubble.fill")
+                .font(.headline)
+                .foregroundStyle(Brand.skyDark)
+            Text(order.summary).font(.subheadline)
+            VStack(spacing: 6) {
+                row("Additional work", order.subtotalCents)
+                row("Sales tax", order.taxCents)
+                Divider()
+                row("Added to your total", order.totalCents, strong: true)
+            }
+            Text("Charged with the job when it is finished.").font(.caption).foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                Button {
+                    Task { await answer(false) }
+                } label: { Text("Decline") }
+                .buttonStyle(SecondaryButtonStyle())
+                Button {
+                    Task { await answer(true) }
+                } label: {
+                    if working { ProgressView().tint(Brand.ink) } else { Text("Approve") }
+                }
+                .buttonStyle(PrimaryButtonStyle(enabled: !working))
+            }
+            .disabled(working)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Brand.sky, lineWidth: 2))
+    }
+
+    private func row(_ label: String, _ cents: Double, strong: Bool = false) -> some View {
+        HStack {
+            Text(label).font(strong ? .subheadline.weight(.semibold) : .subheadline)
+            Spacer()
+            Text(Format.money(cents: cents)).font(strong ? .subheadline.weight(.semibold) : .subheadline).monospacedDigit()
+        }
+    }
+
+    private func answer(_ approve: Bool) async {
+        working = true
+        defer { working = false }
+        do {
+            let verdict = try await store.api.answerChangeOrder(id: order.id, approve: approve)
+            store.banner = CustomerBanner(text: verdict.message, kind: verdict.ok ? .success : .problem)
+        } catch {
+            store.banner = CustomerBanner(text: error.localizedDescription, kind: .problem)
+        }
+        await done()
+    }
+}
+
+/// A tip for the pro after a finished job. It goes to the pro's own account.
+private struct TipCard: View {
+    let ref: String
+    @EnvironmentObject private var store: CustomerStore
+    @EnvironmentObject private var flow: BookingFlow
+    @State private var quote: TipQuote?
+    @State private var cents = 1000
+    @State private var working = false
+    @State private var problem: String?
+
+    private let choices = [500, 1000, 1500, 2000]
+
+    var body: some View {
+        Group {
+            if let quote {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let given = quote.alreadyTippedCents {
+                        Label("You tipped \(quote.easerFirstName) \(Format.money(cents: given)). Thank you.", systemImage: "heart.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Brand.skyDark)
+                    } else if !quote.canReceive {
+                        if let reason = quote.reason { Text(reason).font(.footnote).foregroundStyle(.secondary) }
+                    } else {
+                        Text("Tip \(quote.easerFirstName)").font(.headline)
+                        HStack(spacing: 8) {
+                            ForEach(choices, id: \.self) { value in
+                                Button {
+                                    cents = value
+                                } label: {
+                                    Text(wholeDollars(Double(value)))
+                                        .font(.subheadline.weight(.semibold))
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 44)
+                                        .background(cents == value ? Brand.sky : Brand.surface,
+                                                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                        .foregroundStyle(cents == value ? Brand.ink : Color.primary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .sensoryFeedback(.selection, trigger: cents)
+                        Button {
+                            Task { await send() }
+                        } label: {
+                            if working { ProgressView().tint(Brand.ink) } else { Text("Send \(wholeDollars(Double(cents))) tip") }
+                        }
+                        .buttonStyle(PrimaryButtonStyle(enabled: !working))
+                        .disabled(working)
+                        Text("All of it goes to \(quote.easerFirstName).").font(.caption).foregroundStyle(.secondary)
+                        if let problem { Text(problem).font(.footnote).foregroundStyle(Brand.attention) }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+        .task { await load() }
+    }
+
+    private func load() async {
+        quote = try? await store.api.tipQuote(ref: ref)
+    }
+
+    private func send() async {
+        working = true
+        problem = nil
+        defer { working = false }
+        do {
+            let key = try await store.api.stripeKey()
+            let start = try await store.api.startTip(ref: ref, cents: cents)
+            let outcome = await CardSheet.present(.payment(start.clientSecret), publishableKey: key,
+                                                  name: flow.name, email: store.email ?? "", phone: Format.e164(flow.phone) ?? "",
+                                                  stripeAccount: start.stripeAccount)
+            switch outcome {
+            case .done:
+                try await store.api.finishTip(ref: ref, succeeded: true)
+                store.banner = CustomerBanner(text: "Your tip is on its way. Thank you.", kind: .success)
+            case .cancelled:
+                try? await store.api.finishTip(ref: ref, succeeded: false)
+            case .failed(let reason):
+                try? await store.api.finishTip(ref: ref, succeeded: false)
+                problem = reason
+            }
+        } catch {
+            problem = error.localizedDescription
+        }
+        await load()
+    }
+}
+
+/// Rate a finished job: stars first, words optional. Once given, the rating shows.
+private struct RatingCard: View {
+    let ref: String
+    let proName: String?
+    let canReview: Bool
+    let given: Int?
+    let done: () async -> Void
+    @EnvironmentObject private var store: CustomerStore
+    @State private var stars = 0
+    @State private var words = ""
+    @State private var sending = false
+
+    private var who: String { proName ?? "your pro" }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let given, !canReview {
+                Text("You rated \(who)").font(.subheadline.weight(.semibold))
+                starRow(value: given, editable: false)
+            } else {
+                Text("How did \(who) do?").font(.headline)
+                starRow(value: stars, editable: true)
+                if stars > 0 {
+                    TextField("Add a few words (optional)", text: $words, axis: .vertical)
+                        .lineLimit(2...5)
+                        .padding(10)
+                        .background(Brand.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Button {
+                        Task { await submit() }
+                    } label: {
+                        if sending { ProgressView().tint(Brand.ink) } else { Text("Send rating") }
+                    }
+                    .buttonStyle(PrimaryButtonStyle(enabled: !sending))
+                    .disabled(sending)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func starRow(value: Int, editable: Bool) -> some View {
+        HStack(spacing: 10) {
+            ForEach(1...5, id: \.self) { index in
+                Image(systemName: index <= value ? "star.fill" : "star")
+                    .font(.title)
+                    .foregroundStyle(index <= value ? Brand.sky : Color(uiColor: .tertiaryLabel))
+                    .onTapGesture { if editable { stars = index } }
+                    .accessibilityLabel("\(index) star\(index == 1 ? "" : "s")")
+                    .accessibilityAddTraits(editable ? AccessibilityTraits.isButton : AccessibilityTraits())
+            }
+        }
+        .sensoryFeedback(.selection, trigger: stars)
+    }
+
+    private func submit() async {
+        let text = words.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !text.isEmpty && text.count < 10 {
+            store.banner = CustomerBanner(text: "Write at least a sentence, or leave the words empty.", kind: .problem)
+            return
+        }
+        sending = true
+        defer { sending = false }
+        let sent = await store.perform("Thanks. Your rating is in.") {
+            try await store.api.review(ref: ref, rating: stars, body: text)
+        }
+        if sent { await done() }
     }
 }
 

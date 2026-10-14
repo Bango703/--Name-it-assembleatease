@@ -11,6 +11,7 @@ import { customerBookingAccess, usesCustomerAccount } from './_customer-access.j
 import { logActivity } from './_activity.js';
 import { TIME_SLOTS, validatePublishedRescheduleSlot, reschedulePaymentConflict } from './reschedule.js';
 import { loadOpenProposal, PROPOSAL_STATUS } from './_time-proposals.js';
+import { notifyCustomerApp } from '../_customer-push.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -138,6 +139,7 @@ export default async function handler(req, res) {
       meta: { bookingId: booking.id, notificationType: 'easer_time_proposal', recipientType: 'customer', disableDedupe: true },
     }).catch(e => ({ ok: false, error: e?.message })) : Promise.resolve({ ok: false }),
   ]);
+  await notifyCustomerApp(sb, booking.id, 'time_proposed');
   await sendEmail({
     to: ownerEmail(),
     from: 'AssembleAtEase Bookings <booking@assembleatease.com>',

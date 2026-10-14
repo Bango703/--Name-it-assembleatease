@@ -322,6 +322,65 @@ const app = Object.values(customer).join('\n');
   assert.ok(views.indexOf('if detail.canCancel {') > views.indexOf('paymentCard(payment)'), 'cancel sits below the booking, not among the everyday actions');
 }
 
+// ── 4g. Both apps together (owner, 2026-10-14: a customer messaged the pro on a
+// finished job and the pro's app had nowhere to read it; customers could not
+// rate their pro). Every hand-off between the two apps has a sender and a reader.
+{
+  const { customerMessageRecipient } = await import('../api/booking/_message-routing.js');
+  const accepted = { assembler_id: 'e1', assembler_accepted_at: 'x' };
+  assert.equal(customerMessageRecipient({ ...accepted, status: 'en_route' }), 'assembler', 'during the job the customer talks to the pro');
+  for (const status of ['completed', 'cancelled', 'declined', 'refunded']) {
+    assert.equal(customerMessageRecipient({ ...accepted, status }), 'owner', `after ${status} the customer writes to AssembleAtEase`);
+  }
+  const easerViews = read('mobile/ios/App/App/EaserViews.swift');
+  assert.match(easerViews, /if job\.acceptedAt != nil && job\.isFinished \{\s*DetailBlock\(title: "Messages"\)/, 'a finished job still shows its conversations to the Easer');
+  assert.match(easerViews, /if thread == \.customer && job\.isFinished \{/, 'and the customer thread of a finished job reads, it does not send');
+
+  // Reviews and tips: the app is a second door to the same endpoints.
+  const review = read('api/review.js');
+  assert.match(review, /const viaApp = !token && usesCustomerAccount\(req\)/);
+  assert.match(review, /customerOwnsBooking\(booking, appCustomer\)/, 'only the owner of the booking reviews it from the app');
+  assert.match(review, /notificationType: 'customer_review', recipientType: 'easer'/, 'the Easer hears about a review');
+  const tip = read('api/booking/tip.js');
+  assert.match(tip, /const viaApp = !token && usesCustomerAccount\(req\)/);
+  assert.match(tip, /stripeAccount: accountId/, 'a tip is still created on the Easer\'s own account');
+  assert.match(tip, /notificationType: 'customer_tip', recipientType: 'easer'/, 'the Easer hears about a tip once Stripe confirms it');
+  assert.match(read('api/booking/track.js'), /safe\.review = /);
+  assert.match(customer['CustomerModels.swift'], /"can_review"/);
+  assert.match(customer['CustomerPayments.swift'], /client\.stripeAccount = stripeAccount/, 'the tip sheet pays the Easer\'s account');
+
+  // Extra work: the pro asks in the Easer app, the customer answers in theirs, the pro hears back.
+  const approve = read('api/booking/change-order-approve.js');
+  assert.match(approve, /const viaApp = !token && usesCustomerAccount\(req\)/);
+  assert.equal((approve.match(/stripe\.paymentIntents\.create\(/g) || []).length, 1, 'one authorization path for both doors');
+  assert.match(approve, /approval_token_hash: changeOrder\.approval_token_hash/, 'a failed card puts back the email link that existed');
+  assert.match(approve, /notificationType: 'change_order_approved', recipientType: 'easer'/);
+  assert.match(approve, /notificationType: 'change_order_declined', recipientType: 'easer'/);
+  assert.match(read('api/booking/track.js'), /safe\.change_orders = /);
+  assert.match(customer['CustomerModels.swift'], /"change_orders"/);
+
+  // Every Easer notice sent about these has words in the Easer inbox.
+  const catalog = read('api/assembler/notifications.js');
+  for (const type of ['customer_review', 'customer_tip', 'change_order_approved', 'change_order_declined']) {
+    assert.match(catalog, new RegExp(`${type}: notice\\(`), `the Easer inbox explains ${type}`);
+  }
+
+  // When the pro needs the customer, the customer's phone hears it too.
+  const { customerPushCopy } = await import('../api/_customer-push.js');
+  for (const event of ['time_proposed', 'not_home', 'extra_work']) {
+    assert.ok(customerPushCopy(event, { assembler_name: 'Trapper Jones' }, { description: 'Wall anchor' }), `${event} has words`);
+  }
+  assert.match(read('api/booking/time-proposal.js'), /notifyCustomerApp\(sb, booking\.id, 'time_proposed'\)/);
+  assert.match(read('api/booking/customer-unavailable.js'), /notifyCustomerApp\(sb, booking\.id, 'not_home'\)/);
+  assert.match(read('api/booking/_change-order-request.js'), /notifyCustomerApp\(sb, booking\.id, 'extra_work'/);
+  // When the customer changes the job, the Easer's phone hears it, not only their email.
+  for (const file of ['api/booking/guest-cancel.js', 'api/booking/customer-cancel.js']) {
+    assert.match(read(file), /notificationType: 'easer_job_cancelled', recipientType: 'easer' \}\)/, `${file} pushes the cancellation to the Easer`);
+  }
+  assert.match(read('api/booking/reschedule.js'), /notificationType: 'reschedule_easer_reconfirmation', recipientType: 'easer' \}\)/);
+  assert.match(read('api/booking/reschedule.js'), /notificationType: 'easer_time_proposal_accepted', recipientType: 'easer' \}\)/);
+}
+
 // ── 5. App Store basics ──────────────────────────────────────────────────────
 {
   const views = customer['CustomerViews.swift'];

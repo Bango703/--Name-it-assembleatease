@@ -38,6 +38,12 @@ export function customerPushCopy(event, booking, extra = {}) {
       return { title: 'Work has started', body: `${pro} started on your ${service}.` };
     case 'completed':
       return { title: 'Your job is done', body: `Your ${service} is complete. Tap to see the finished work.` };
+    case 'time_proposed':
+      return { title: `${pro} proposed a new time`, body: 'Accept it or keep your time.' };
+    case 'not_home':
+      return { title: `${pro} is at your home`, body: `${pro} can't reach you. Reply in the app or call us.` };
+    case 'extra_work':
+      return { title: 'Extra work needs your OK', body: String(extra.description || 'Open the booking to approve or decline.').slice(0, 140) };
     case 'message': {
       const from = extra.fromName || 'AssembleAtEase';
       const text = String(extra.body || '').replace(/\s+/g, ' ').trim();
@@ -118,7 +124,7 @@ export async function notifyCustomerApp(sb, bookingId, event, extra = {}, deps =
 const ENDS_TRACKER = new Set(['completed', 'cancelled']);
 
 async function updateLiveActivities(sb, booking, event, copy, deps) {
-  if (event === 'message') return;
+  if (['message', 'time_proposed', 'not_home', 'extra_work'].includes(event)) return;
   const { data: activities, error } = await sb.from('customer_live_activities')
     .select('id, fcm_token, activity_token')
     .eq('booking_id', booking.id)

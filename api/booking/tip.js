@@ -3,6 +3,9 @@ import { getSupabase } from '../_supabase.js';
 import { verifyReviewToken } from '../_review-token.js';
 import { rateLimit } from '../_ratelimit.js';
 import { logActivity } from './_activity.js';
+import { customerAccountUser, usesCustomerAccount } from './_customer-access.js';
+import { customerOwnsBooking } from './_customer-booking-auth.js';
+import { sendPushToUser } from '../_push.js';
 
 /**
  * POST /api/booking/tip — a customer sends a tip straight to their Easer.
@@ -51,29 +54,37 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
-  const { ref, email, token, action = 'quote', amountCents } = req.body || {};
-  if (!ref || !email || !token) {
+  const { ref, token, action = 'quote', amountCents } = req.body || {};
+  // Two doors, one tip: the review email's secure link, or the customer app's
+  // signed-in session on a booking it owns. Everything after is the same.
+  const viaApp = !token && usesCustomerAccount(req);
+  if (!ref || (!viaApp && (!req.body?.email || !token))) {
     return res.status(400).json({ error: 'This tip link is incomplete. Open the link from your review email again.' });
   }
 
   const sb = getSupabase();
-  const normalizedEmail = String(email).trim().toLowerCase();
+  const appCustomer = viaApp ? await customerAccountUser(sb, req) : null;
+  if (viaApp && !appCustomer) return res.status(401).json({ error: 'Sign in again to send a tip.' });
+  const normalizedEmail = String(viaApp ? appCustomer.email : req.body.email).trim().toLowerCase();
 
   const { data: booking, error: bookingErr } = await sb
     .from('bookings')
-    .select('id, ref, status, customer_email, customer_name, service, assembler_id, assembler_name, assembler_accepted_at, tip_declined_at')
+    .select('id, ref, status, customer_id, customer_email, customer_name, service, assembler_id, assembler_name, assembler_accepted_at, tip_declined_at')
     .eq('ref', String(ref).trim())
     .maybeSingle();
   if (bookingErr || !booking) return res.status(404).json({ error: 'Booking not found.' });
 
-  // Identical authorisation to a review: matching email, completed job, valid token.
-  if (!booking.customer_email || booking.customer_email.toLowerCase() !== normalizedEmail) {
+  // Identical authorisation to a review: matching email, completed job, valid token
+  // (or, in the app, the signed-in owner of the booking).
+  if (viaApp) {
+    if (!customerOwnsBooking(booking, appCustomer)) return res.status(404).json({ error: 'Booking not found.' });
+  } else if (!booking.customer_email || booking.customer_email.toLowerCase() !== normalizedEmail) {
     return res.status(403).json({ error: 'Email does not match this booking.' });
   }
   if (booking.status !== 'completed') {
     return res.status(400).json({ error: 'Tips can only be sent for completed jobs.' });
   }
-  if (!verifyReviewToken(token, { bookingId: booking.id, ref: booking.ref, email: booking.customer_email })) {
+  if (!viaApp && !verifyReviewToken(token, { bookingId: booking.id, ref: booking.ref, email: booking.customer_email })) {
     return res.status(403).json({
       error: 'This secure link is invalid or expired. Ask AssembleAtEase to send a new one.',
     });
@@ -191,6 +202,12 @@ export default async function handler(req, res) {
       description: `Customer tipped ${easerFirstName} $${(patch.amount_cents / 100).toFixed(2)}`,
       metadata: { easerId: easer.id, amountCents: patch.amount_cents, paymentIntentId: intent.id },
     }).catch(() => {});
+
+    await sendPushToUser(easer.id, {
+      title: `You got a $${(patch.amount_cents / 100).toFixed(2)} tip`,
+      body: `For ${booking.service || 'a job you finished'}. It goes straight to your account.`,
+      jobId: booking.id,
+    }, { bookingId: booking.id, notificationType: 'customer_tip', recipientType: 'easer' }).catch(() => {});
 
     return res.status(200).json({ ok: true, amountCents: patch.amount_cents, easerFirstName });
   }

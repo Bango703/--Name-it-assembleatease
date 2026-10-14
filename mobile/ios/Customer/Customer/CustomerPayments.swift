@@ -23,9 +23,16 @@ enum CardSheet {
     /// Registered under CFBundleURLTypes so a bank's verification page can return here.
     static let returnURL = "assembleatease-customer://stripe-redirect"
 
-    static func present(_ intent: CardSheetIntent, publishableKey: String, name: String, email: String, phone: String) async -> CardSheetOutcome {
+    /// `stripeAccount` is set for a tip: the intent lives on the Easer's own account.
+    static func present(_ intent: CardSheetIntent, publishableKey: String, name: String, email: String, phone: String,
+                        stripeAccount: String? = nil) async -> CardSheetOutcome {
         STPAPIClient.shared.publishableKey = publishableKey
         var configuration = PaymentSheet.Configuration()
+        if let stripeAccount, !stripeAccount.isEmpty {
+            let client = STPAPIClient(publishableKey: publishableKey)
+            client.stripeAccount = stripeAccount
+            configuration.apiClient = client
+        }
         configuration.merchantDisplayName = "AssembleAtEase"
         configuration.returnURL = returnURL
         configuration.allowsDelayedPaymentMethods = false

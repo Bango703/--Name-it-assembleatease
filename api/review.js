@@ -3,6 +3,9 @@ import { rateLimit } from './_ratelimit.js';
 import { logActivity } from './booking/_activity.js';
 import { verifyReviewToken } from './_review-token.js';
 import { shareReviewToSocials } from './_review-social.js';
+import { customerAccountUser, usesCustomerAccount } from './booking/_customer-access.js';
+import { customerOwnsBooking } from './booking/_customer-booking-auth.js';
+import { sendPushToUser } from './_push.js';
 
 export default async function handler(req, res) {
   const sb = getSupabase();
@@ -35,7 +38,13 @@ export default async function handler(req, res) {
   } catch (_) {}
 
   const payload = (req.body && typeof req.body === 'object') ? req.body : {};
-  const { ref, email, rating, body, token } = payload;
+  const { ref, rating, body, token } = payload;
+  // Two doors, one review: the secure link in the review email (ref + email +
+  // token), or the customer app's signed-in session on a booking it owns.
+  const viaApp = !token && usesCustomerAccount(req);
+  const appCustomer = viaApp ? await customerAccountUser(sb, req) : null;
+  if (viaApp && !appCustomer) return res.status(401).json({ error: 'Sign in again to leave a review.' });
+  const email = viaApp ? appCustomer.email : payload.email;
   // Opt-in only: the checkbox on review.html, unchecked by default.
   const shareConsent = payload.share_consent === true;
   const normalizedRef = String(ref || '').toUpperCase().trim();
@@ -48,7 +57,7 @@ export default async function handler(req, res) {
   if (!ref || !email || !rating) {
     return res.status(400).json({ error: 'Missing required fields: ref, email, rating' });
   }
-  if (!token) {
+  if (!token && !viaApp) {
     return res.status(403).json({ error: 'Use the secure review link sent to your booking email.' });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalizedEmail)) {
@@ -70,20 +79,24 @@ export default async function handler(req, res) {
   // Verify booking exists, is completed, and email matches
   const { data: booking, error: bErr } = await sb
     .from('bookings')
-    .select('id, ref, customer_name, service, status, customer_email, assembler_id, assembler_name')
+    .select('id, ref, customer_name, service, status, customer_email, customer_id, assembler_id, assembler_name')
     .eq('ref', normalizedRef)
     .single();
 
   if (bErr || !booking) {
     return res.status(404).json({ error: 'Booking not found. Check your reference number.' });
   }
-  if (!booking.customer_email || booking.customer_email.toLowerCase() !== normalizedEmail) {
+  if (viaApp) {
+    if (!customerOwnsBooking(booking, appCustomer)) {
+      return res.status(404).json({ error: 'Booking not found. Check your reference number.' });
+    }
+  } else if (!booking.customer_email || booking.customer_email.toLowerCase() !== normalizedEmail) {
     return res.status(403).json({ error: 'Email does not match this booking.' });
   }
   if (booking.status !== 'completed') {
     return res.status(400).json({ error: 'Reviews can only be left for completed jobs.' });
   }
-  if (!verifyReviewToken(token, {
+  if (!viaApp && !verifyReviewToken(token, {
     bookingId: booking.id,
     ref: booking.ref,
     email: booking.customer_email,
@@ -160,8 +173,14 @@ export default async function handler(req, res) {
     });
   }
 
-  // Recalculate Easer's average rating from all their approved reviews
+  // Recalculate Easer's average rating from all their approved reviews, and tell
+  // the Easer: the review shows in the Reviews screen of their app.
   if (booking.assembler_id) {
+    await sendPushToUser(booking.assembler_id, {
+      title: `New ${parsedRating}-star review`,
+      body: reviewBody ? reviewBody.slice(0, 140) : `For ${booking.service}.`,
+      jobId: booking.id,
+    }, { bookingId: booking.id, notificationType: 'customer_review', recipientType: 'easer' }).catch(() => {});
     recalcEaserRating(sb, booking.assembler_id).catch(e =>
       console.warn('Rating recalc failed (non-fatal):', e.message)
     );
