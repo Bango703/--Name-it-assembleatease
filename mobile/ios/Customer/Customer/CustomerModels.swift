@@ -156,6 +156,8 @@ struct BookingDetail: Decodable {
     let time: String?
     let address: String?
     let city: String?
+    /// What the customer wrote for the pro when booking (bookings.details).
+    let notes: String?
     let proFirstName: String?
     let proPhoto: String?
     let proRating: Double?
@@ -195,6 +197,7 @@ struct BookingDetail: Decodable {
         date = c.string("date")
         time = c.string("time")
         address = c.string("address")
+        notes = c.string("details")
         city = c.string("city")
         proFirstName = c.string("pro_first_name")
         proPhoto = c.string("pro_photo")

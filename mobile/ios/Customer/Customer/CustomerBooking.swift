@@ -55,6 +55,8 @@ final class BookingFlow: ObservableObject {
     @Published var city = ""
     @Published var zip = ""
     @Published var details = ""
+    /// What a custom-quote job is. Asked on the item itself, where "Describe your project" leads.
+    @Published var projectDescription = ""
     @Published var textUpdates = false
     @Published var promoCode = ""
     /// The bundle this order started from, sent with the booking as book.html does,
@@ -190,6 +192,26 @@ final class BookingFlow: ObservableObject {
         return out
     }
 
+    /// True when the order includes a custom-quote item.
+    var hasCustomQuote: Bool {
+        guard let catalog else { return false }
+        return catalog.services.contains { service in
+            service.groups.contains { group in
+                group.items.contains { $0.customQuote && quantity(CartKey(service: service.name, item: $0.name)) > 0 }
+            }
+        }
+    }
+
+    /// The one notes field the server keeps (bookings.details): the project first when
+    /// there is one, then the access notes, each labeled so the owner and the pro read
+    /// them apart.
+    var notesForServer: String {
+        let project = projectDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        let access = details.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard hasCustomQuote, !project.isEmpty else { return access }
+        return access.isEmpty ? "Project: \(project)" : "Project: \(project)\n\nAccess and parking: \(access)"
+    }
+
     // MARK: Day and window
 
     static let isoDay: DateFormatter = {
@@ -235,7 +257,22 @@ final class BookingFlow: ObservableObject {
         if zipDigits.count != 5 || !zipDigits.allSatisfy(\.isNumber) { return "Enter a 5-digit ZIP code." }
         if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Enter your name." }
         if Format.phoneDigits(phone).count != 10 { return "Enter a 10-digit phone number." }
+        if hasCustomQuote && projectDescription.trimmingCharacters(in: .whitespacesAndNewlines).count < 10 {
+            return "Describe the project."
+        }
         return nil
+    }
+
+    /// "Change items" returns to the last service list in this booking, not to Home.
+    /// An order started from a bundle on Home opens its first service.
+    func backToItems() {
+        if let index = path.lastIndex(where: { if case .service = $0 { return true } else { return false } }) {
+            path = Array(path.prefix(index + 1))
+        } else if let first = orderedServices.first {
+            path = [.service(first)]
+        } else {
+            path = []
+        }
     }
 
     /// Fills the address from an Apple Maps suggestion. The apartment stays as typed.
@@ -328,7 +365,7 @@ final class BookingFlow: ObservableObject {
         order["address"] = addressLine
         order["city"] = city
         order["time"] = slot ?? ""
-        order["details"] = details
+        order["details"] = notesForServer
         order["sms"] = textUpdates
         // The token is reissued on every refresh; whether credit is used is what matters.
         order["assemblecashToken"] = assemblecashToken == nil ? "" : "on"
@@ -344,7 +381,7 @@ final class BookingFlow: ObservableObject {
         order["city"] = city.trimmingCharacters(in: .whitespaces)
         order["state"] = "TX"
         order["time"] = slot ?? ""
-        order["details"] = details.trimmingCharacters(in: .whitespacesAndNewlines)
+        order["details"] = notesForServer
         order["paymentMethod"] = "card"
         order["promoPreviewApplied"] = quotePreview.promoApplied
         order["promoPreviewTotalCents"] = Int(quotePreview.totalCents.rounded())
@@ -440,6 +477,7 @@ final class BookingFlow: ObservableObject {
         bundleSlug = nil
         slot = nil
         details = ""
+        projectDescription = ""
         promoCode = ""
         agreed = false
         preview = nil
@@ -462,6 +500,7 @@ final class BookingFlow: ObservableObject {
         city = ""
         zip = ""
         details = ""
+        projectDescription = ""
         promoCode = ""
         agreed = false
         preview = nil
@@ -539,14 +578,22 @@ struct CartBar: View {
     @EnvironmentObject private var store: CustomerStore
     /// Runs before moving on (the search sheet closes itself).
     var beforeContinue: (() -> Void)? = nil
+    @State private var showOrder = false
 
     var body: some View {
         if flow.itemCount > 0 {
             HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(flow.itemCount == 1 ? "1 item" : "\(flow.itemCount) items").font(.headline)
-                    Text("Pick a time next").font(.caption).foregroundStyle(.secondary)
+                Button { showOrder = true } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(flow.itemCount == 1 ? "1 item" : "\(flow.itemCount) items").font(.headline).foregroundStyle(.primary)
+                        Label("View order", systemImage: "chevron.up")
+                            .labelStyle(.titleAndIcon)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Brand.skyDark)
+                    }
                 }
+                .buttonStyle(.plain)
+                .accessibilityHint("Shows every item, to change or remove")
                 Spacer()
                 Button {
                     beforeContinue?()
@@ -560,6 +607,82 @@ struct CartBar: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(.bar)
+            .sheet(isPresented: $showOrder) {
+                OrderEditor()
+                    .environmentObject(flow)
+                    .presentationDetents([.medium, .large])
+            }
+        }
+    }
+}
+
+/// The whole order in one place: every item with its quantity, swipe or minus to remove.
+struct OrderEditor: View {
+    @EnvironmentObject private var flow: BookingFlow
+    @Environment(\.dismiss) private var dismiss
+    /// Shown on the review step, where adding a different item means going back to the lists.
+    var onAddItems: (() -> Void)? = nil
+
+    private func item(for line: OrderLine) -> CatalogItem? {
+        guard let groups = flow.catalog?.service(named: line.service)?.groups else { return nil }
+        for group in groups {
+            if let match = group.items.first(where: { candidate in candidate.name == line.name }) { return match }
+        }
+        return nil
+    }
+
+    private func binding(for line: OrderLine) -> Binding<Int> {
+        Binding(
+            get: { flow.quantity(CartKey(service: line.service, item: line.name)) },
+            set: { flow.setQuantity($0, for: CartKey(service: line.service, item: line.name)) }
+        )
+    }
+
+    private var services: [String] {
+        var seen: [String] = []
+        for line in flow.lines where !seen.contains(line.service) { seen.append(line.service) }
+        return seen
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if flow.lines.isEmpty {
+                    ContentUnavailableView("Your order is empty", systemImage: "cart")
+                } else {
+                    ForEach(services, id: \.self) { service in
+                        Section(service) {
+                            ForEach(flow.lines.filter { $0.service == service }, id: \.name) { line in
+                                if let item = item(for: line) {
+                                    ItemRow(item: item, quantity: binding(for: line))
+                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                            Button("Remove", role: .destructive) {
+                                                flow.setQuantity(0, for: CartKey(service: line.service, item: line.name))
+                                            }
+                                        }
+                                }
+                            }
+                        }
+                    }
+                    if let onAddItems {
+                        Section {
+                            Button {
+                                dismiss()
+                                onAddItems()
+                            } label: {
+                                Label("Add items", systemImage: "plus.circle")
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Your order")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
         }
     }
 }
@@ -578,6 +701,9 @@ struct ServiceItemsView: View {
                                 get: { flow.quantity(CartKey(service: serviceName, item: item.name)) },
                                 set: { flow.setQuantity($0, for: CartKey(service: serviceName, item: item.name)) }
                             ))
+                            if item.customQuote && flow.quantity(CartKey(service: serviceName, item: item.name)) > 0 {
+                                ProjectDescriptionField()
+                            }
                         }
                     }
                 }
@@ -586,6 +712,18 @@ struct ServiceItemsView: View {
         .navigationTitle(serviceName)
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) { CartBar() }
+    }
+}
+
+/// The custom-quote description. One field, shown on the item and again before booking.
+struct ProjectDescriptionField: View {
+    @EnvironmentObject private var flow: BookingFlow
+
+    var body: some View {
+        TextField("Describe the project: what it is, the brand or size, how many, and where it goes",
+                  text: $flow.projectDescription, axis: .vertical)
+            .lineLimit(3...8)
+            .font(.subheadline)
     }
 }
 
@@ -755,6 +893,12 @@ private struct DetailsStepView: View {
                 LabeledContent("Email", value: flow.email)
             }
 
+            if flow.hasCustomQuote {
+                Section("Your project") {
+                    ProjectDescriptionField()
+                }
+            }
+
             Section("Notes for your pro") {
                 TextField("Gate code, parking, where the items are", text: $flow.details, axis: .vertical)
                     .lineLimit(2...5)
@@ -784,6 +928,7 @@ private struct DetailsStepView: View {
 private struct ReviewStepView: View {
     @EnvironmentObject private var flow: BookingFlow
     @Environment(\.openURL) private var openURL
+    @State private var editingOrder = false
 
     var body: some View {
         ScrollView {
@@ -792,7 +937,7 @@ private struct ReviewStepView: View {
                     ForEach(flow.lines, id: \.self) { line in
                         Text(line.quantity > 1 ? "\(line.quantity) × \(line.name)" : line.name).font(.subheadline)
                     }
-                    Button("Change items") { flow.path = [] }.font(.subheadline)
+                    Button("Edit order") { editingOrder = true }.font(.subheadline)
                 }
 
                 CustomerBlock(title: "When and where") {
@@ -859,6 +1004,17 @@ private struct ReviewStepView: View {
         .navigationTitle("Review")
         .navigationBarTitleDisplayMode(.inline)
         .task { await flow.refreshPreview() }
+        .sheet(isPresented: $editingOrder, onDismiss: {
+            if flow.itemCount == 0 {
+                flow.backToItems()
+            } else {
+                Task { await flow.refreshPreview() }
+            }
+        }) {
+            OrderEditor(onAddItems: { flow.backToItems() })
+                .environmentObject(flow)
+                .presentationDetents([.medium, .large])
+        }
         .safeAreaInset(edge: .bottom) {
             StepButton(title: flow.preview?.plan?.button ?? "Book now", problem: flow.reviewProblem, working: flow.working) {
                 Task { await flow.submit() }

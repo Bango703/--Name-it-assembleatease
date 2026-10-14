@@ -185,6 +185,8 @@ export default async function handler(req, res) {
     customer_name: booking.customer_name,
     address: booking.address,
     city: booking.city || null,
+    // The customer's own notes for the pro, so the app can show what was sent.
+    details: booking.details || null,
     total_price: booking.total_price || null,
     tax_amount: booking.tax_amount || 0,
     service_call_fee: booking.service_call_fee || 0,
