@@ -2,7 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { customerOwnsBooking, normalizeCustomerEmail } from './_customer-booking-auth.js';
 import { customerAccountBookings, customerAccountUser } from './_customer-access.js';
-import { customerProgress, customerStatusLabel } from './_customer-status.js';
+import { customerCheckoutUnfinished, customerProgress, customerStatusLabel } from './_customer-status.js';
 
 /**
  * GET /api/booking/customer-bookings
@@ -27,9 +27,11 @@ export default async function handler(req, res) {
 
   const { status } = req.query;
 
-  const select = 'id, ref, service, customer_id, customer_name, customer_email, date, time, address, details, status, created_at, assembler_id, assembler_name, assembler_accepted_at, payment_status, payment_collected, return_visit_required, return_visit_date, return_visit_time';
+  const select = 'id, ref, service, customer_id, customer_name, customer_email, date, time, address, details, status, created_at, assembler_id, assembler_name, assembler_accepted_at, payment_status, payment_collected, return_visit_required, return_visit_date, return_visit_time, stripe_payment_intent_id';
   const applyStatus = query => (status && status !== 'all' ? query.eq('status', status) : query);
-  const { bookings, error: listError } = await customerAccountBookings(sb, user, select, applyStatus);
+  const { bookings: owned, error: listError } = await customerAccountBookings(sb, user, select, applyStatus);
+  // An abandoned card checkout stays visible to the owner as an attempt, not to the customer as a booking.
+  const bookings = owned.filter(b => !customerCheckoutUnfinished(b));
   if (listError) {
     console.error('Customer bookings error:', listError);
     return res.status(500).json({ error: 'Failed to fetch bookings' });

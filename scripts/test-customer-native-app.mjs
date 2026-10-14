@@ -293,6 +293,35 @@ const app = Object.values(customer).join('\n');
   assert.match(read('mobile/ios/Customer/Support/Info.plist'), /<key>NSSupportsLiveActivities<\/key>\s*<true\/>/);
 }
 
+// ── 4f. Owner audit, 2026-10-14: an unfinished card checkout read as a booking;
+// the booking page was a five-line list; Home needed real work on it. ──────────
+{
+  const { customerCheckoutUnfinished } = await import('../api/booking/_customer-status.js');
+  assert.equal(customerCheckoutUnfinished({ status: 'pending', payment_status: 'pending', stripe_payment_intent_id: 'pi_1' }), true, 'card never held: not a booking to the customer');
+  assert.equal(customerCheckoutUnfinished({ status: 'pending', payment_status: 'failed', stripe_payment_intent_id: 'pi_1' }), true);
+  assert.equal(customerCheckoutUnfinished({ status: 'confirmed', payment_status: 'authorized', stripe_payment_intent_id: 'pi_1' }), false);
+  assert.equal(customerCheckoutUnfinished({ status: 'pending', payment_status: 'card_saved' }), false, 'a quote with a saved card is a real request');
+  assert.equal(customerCheckoutUnfinished({ status: 'confirmed', payment_status: 'card_saved' }), false, 'a future booking with a saved card is real');
+  const list = read('api/booking/customer-bookings.js');
+  assert.match(list, /owned\.filter\(b => !customerCheckoutUnfinished\(b\)\)/, 'the customer list leaves unfinished checkouts out');
+  assert.match(list, /stripe_payment_intent_id'/, 'and reads the field the rule needs');
+
+  // One real job photo per service, each used once, each file present.
+  const catalogSource = read('api/booking/catalog.js');
+  const photos = [...catalogSource.matchAll(/'(\/images\/real-[^']+)'/g)].map(m => m[1]);
+  assert.equal(photos.length, 6, 'six services, six photos');
+  assert.equal(new Set(photos).size, photos.length, 'no photo used twice');
+  for (const photo of photos) assert.ok(existsSync('.' + photo), `${photo} exists`);
+  assert.match(customer['CustomerModels.swift'], /"photo"/);
+
+  // The booking page: actions side by side, photos on their own, cancel last and quiet.
+  const views = customer['CustomerViews.swift'];
+  assert.doesNotMatch(views, /Need something\?/, 'no five-line action list');
+  assert.match(views, /ActionTile\(symbol: "bubble\.left\.fill", title: "Message"\)/);
+  assert.match(views, /private func photosCard\(/);
+  assert.ok(views.indexOf('if detail.canCancel {') > views.indexOf('paymentCard(payment)'), 'cancel sits below the booking, not among the everyday actions');
+}
+
 // ── 5. App Store basics ──────────────────────────────────────────────────────
 {
   const views = customer['CustomerViews.swift'];
