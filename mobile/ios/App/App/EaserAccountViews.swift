@@ -146,6 +146,8 @@ private struct EditDetailView: View {
     @EnvironmentObject private var store: EaserStore
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focused: Bool
+    /// Apple Maps city search; an Easer may live anywhere, so not limited to Texas.
+    @StateObject private var citySearch = AddressSearch(texasOnly: false)
     @State private var fullName = ""
     @State private var city = ""
     @State private var state = ""
@@ -191,6 +193,12 @@ private struct EditDetailView: View {
                     TextField("City", text: $city)
                         .textContentType(.addressCity)
                         .focused($focused)
+                        .onChange(of: city) { _, text in if focused { citySearch.update(text) } }
+                    AddressSuggestionList(search: citySearch) { picked in
+                        if !picked.city.isEmpty { city = picked.city }
+                        if !picked.state.isEmpty { state = picked.state }
+                        if !picked.zip.isEmpty { zip = picked.zip }
+                    }
                     TextField("State", text: $state)
                         .textContentType(.addressState)
                         .textInputAutocapitalization(.characters)

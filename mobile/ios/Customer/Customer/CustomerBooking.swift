@@ -56,7 +56,6 @@ final class BookingFlow: ObservableObject {
     @Published var zip = ""
     @Published var details = ""
     @Published var textUpdates = false
-    @Published var suggestions: [AddressSuggestion] = []
     @Published var promoCode = ""
     @Published var agreed = false
     @Published var preview: CheckoutPreview?
@@ -76,8 +75,6 @@ final class BookingFlow: ObservableObject {
     private var publishableKey: String?
     private var pendingHold: (fingerprint: String, created: CreatedBooking)?
     private var pendingCard: (fingerprint: String, setupID: String)?
-    private var suggestTask: Task<Void, Never>?
-    private var suppressSuggestions = false
     private var loadedContactFor: String?
 
     init(api: CustomerAPI) {
@@ -236,32 +233,12 @@ final class BookingFlow: ObservableObject {
         return nil
     }
 
-    func addressTyped(_ text: String) {
-        suggestTask?.cancel()
-        if suppressSuggestions {
-            suppressSuggestions = false
-            return
-        }
-        let query = text.trimmingCharacters(in: .whitespaces)
-        guard query.count >= 5 else {
-            suggestions = []
-            return
-        }
-        suggestTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 600_000_000)
-            guard !Task.isCancelled, let self else { return }
-            let found = (try? await self.api.addressSuggestions(for: query)) ?? []
-            guard !Task.isCancelled else { return }
-            self.suggestions = found.filter { $0.state == "TX" }
-        }
-    }
-
-    func use(_ suggestion: AddressSuggestion) {
-        suppressSuggestions = true
-        street = suggestion.street
-        if !suggestion.city.isEmpty { city = suggestion.city }
-        if !suggestion.zip.isEmpty { zip = suggestion.zip }
-        suggestions = []
+    /// Fills the address from an Apple Maps suggestion. The apartment stays as typed.
+    func apply(_ address: PickedAddress) {
+        street = address.street
+        if !address.city.isEmpty { city = address.city }
+        if !address.zip.isEmpty { zip = address.zip }
+        preview = nil
     }
 
     private var contactKey: String { "customer.contact.v1." + email.lowercased() }
@@ -274,7 +251,6 @@ final class BookingFlow: ObservableObject {
         if name.isEmpty { name = saved.name }
         if phone.isEmpty { phone = saved.phone }
         if street.isEmpty {
-            suppressSuggestions = true
             street = saved.street
             unit = saved.unit
             city = saved.city
@@ -728,6 +704,8 @@ private struct ScheduleStepView: View {
 
 private struct DetailsStepView: View {
     @EnvironmentObject private var flow: BookingFlow
+    @StateObject private var addressSearch = AddressSearch()
+    @FocusState private var streetFocused: Bool
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -735,14 +713,9 @@ private struct DetailsStepView: View {
             Section {
                 TextField("Street address", text: $flow.street)
                     .textContentType(.streetAddressLine1)
-                    .onChange(of: flow.street) { _, text in flow.addressTyped(text) }
-                ForEach(flow.suggestions) { suggestion in
-                    Button {
-                        flow.use(suggestion)
-                    } label: {
-                        Label(suggestion.label, systemImage: "mappin.circle").foregroundStyle(.primary).font(.subheadline)
-                    }
-                }
+                    .focused($streetFocused)
+                    .onChange(of: flow.street) { _, text in if streetFocused { addressSearch.update(text) } }
+                AddressSuggestionList(search: addressSearch) { flow.apply($0) }
                 TextField("Apt, suite or unit (optional)", text: $flow.unit)
                     .textContentType(.streetAddressLine2)
                 TextField("City", text: $flow.city)

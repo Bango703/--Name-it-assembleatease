@@ -412,6 +412,19 @@ const app = Object.values(customer).join('\n');
   assert.match(read('api/customer/inbox.js'), /message_recipient: customerMessageRecipient\(booking\)/, 'the inbox names who a reply goes to');
   assert.match(customer['CustomerModels.swift'], /messageRecipient = c\.string\("message_recipient"\)/);
   assert.match(views, /conversation\.messageRecipient == "pro"/, 'an inbox conversation is titled with its real recipient');
+  // Addresses (owner, 2026-10-14: "use Apple Maps ... anywhere an address has to be entered").
+  // One Apple Maps search in the shared folder; every address screen in both apps uses it.
+  assert.match(foundation, /final class AddressSearch: NSObject, ObservableObject, MKLocalSearchCompleterDelegate/);
+  assert.match(foundation, /completer\.resultTypes = \.address/);
+  const addressScreens = [
+    ['booking', customer['CustomerBooking.swift']],
+    ['customer details', customer['CustomerViews.swift']],
+    ['Easer location', easer['EaserAccountViews.swift']],
+  ];
+  for (const [name, src] of addressScreens) {
+    assert.match(src, /AddressSuggestionList\(search:/, `the ${name} screen fills addresses from Apple Maps`);
+  }
+  assert.doesNotMatch(app, /\/api\/address\/autocomplete/, 'the app has one address lookup, not two');
   const home = customer['CustomerHome.swift'];
   const tile = home.slice(home.indexOf('private struct ServiceTile'), home.indexOf('private struct TrustRow'));
   assert.match(tile, /\.frame\(height: 150\)[\s\S]*\.overlay[\s\S]*scaledToFill\(\)[\s\S]*\.clipShape\(/, 'a tile photo fills a fixed card and is clipped there, so it cannot cover the tile beside it');
