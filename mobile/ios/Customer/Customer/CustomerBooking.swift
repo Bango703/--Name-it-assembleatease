@@ -513,7 +513,7 @@ func serviceSymbol(_ name: String) -> String {
     case "Mounting & Hanging": return "tv"
     case "Smart Home": return "house"
     case "Outdoor & Playsets": return "tree"
-    case "Office Assembly": return "desktopcomputer"
+    case "Office Assembly": return "briefcase"
     case "Fitness Equipment": return "dumbbell"
     default: return "wrench.and.screwdriver"
     }
@@ -525,17 +525,27 @@ struct BundleCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(bundle.name).font(.headline)
-            Text(bundle.outcome).font(.caption).foregroundStyle(.secondary).lineLimit(3)
-            Spacer(minLength: 0)
-            Button("Add to order", action: add)
-                .font(.subheadline.weight(.semibold))
-                .buttonStyle(.borderless)
+            Image(systemName: "square.stack.3d.up.fill")
+                .font(.title3)
                 .foregroundStyle(Brand.skyDark)
+                .frame(width: 40, height: 40)
+                .background(Brand.sky.opacity(0.16), in: Circle())
+            Text(bundle.name).font(.headline).lineLimit(1)
+            Text(bundle.outcome)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(3, reservesSpace: true)
+            Spacer(minLength: 0)
+            Button(action: add) {
+                Label(bundle.included.count == 1 ? "Add 1 item" : "Add \(bundle.included.count) items", systemImage: "plus")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .buttonStyle(.bordered)
+            .tint(Brand.skyDark)
         }
-        .frame(width: 200, height: 150, alignment: .leading)
+        .frame(width: 220, height: 200, alignment: .leading)
         .padding(14)
-        .background(Brand.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
