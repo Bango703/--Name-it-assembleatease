@@ -1198,6 +1198,8 @@ struct CustomerAccountView: View {
 private struct YourDetailsView: View {
     @EnvironmentObject private var store: CustomerStore
     @EnvironmentObject private var flow: BookingFlow
+    @StateObject private var addressSearch = AddressSearch()
+    @FocusState private var streetFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -1214,7 +1216,11 @@ private struct YourDetailsView: View {
                 LabeledContent("Email", value: store.email ?? "")
             }
             Section("Home address") {
-                TextField("Street address", text: $flow.street).textContentType(.streetAddressLine1)
+                TextField("Street address", text: $flow.street)
+                    .textContentType(.streetAddressLine1)
+                    .focused($streetFocused)
+                    .onChange(of: flow.street) { _, text in if streetFocused { addressSearch.update(text) } }
+                AddressSuggestionList(search: addressSearch) { flow.apply($0) }
                 TextField("Apt, suite or unit", text: $flow.unit).textContentType(.streetAddressLine2)
                 TextField("City", text: $flow.city).textContentType(.addressCity)
                 TextField("ZIP code", text: $flow.zip)

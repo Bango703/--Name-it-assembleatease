@@ -438,32 +438,6 @@ struct CreatedBooking: Decodable {
     }
 }
 
-struct AddressSuggestion: Decodable, Hashable, Identifiable {
-    let street: String
-    let city: String
-    let state: String
-    let zip: String
-    let label: String
-    var id: String { label }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: DynamicKey.self)
-        street = c.string("street") ?? ""
-        city = c.string("city") ?? ""
-        state = c.string("state") ?? "TX"
-        zip = c.string("zip") ?? ""
-        label = c.string("label") ?? ""
-    }
-}
-
-struct AddressSuggestionsEnvelope: Decodable {
-    let suggestions: [AddressSuggestion]
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: DynamicKey.self)
-        suggestions = (try? c.decodeIfPresent([AddressSuggestion].self, forKey: DynamicKey("suggestions"))) ?? []
-    }
-}
-
 /// The offer running now (api/promo.js), shown on Home.
 struct CurrentOffer: Decodable, Hashable {
     let code: String

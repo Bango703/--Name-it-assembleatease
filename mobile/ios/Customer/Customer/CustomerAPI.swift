@@ -129,11 +129,6 @@ final class CustomerAPI: APIClient {
         return (try? JSONDecoder().decode(CurrentOfferEnvelope.self, from: data))?.offer
     }
 
-    func addressSuggestions(for text: String) async throws -> [AddressSuggestion] {
-        let data = try await publicCall("GET", "/api/address/autocomplete?q=" + Self.query(text))
-        return (try? JSONDecoder().decode(AddressSuggestionsEnvelope.self, from: data))?.suggestions ?? []
-    }
-
     func stripeKey() async throws -> String {
         let data = try await publicCall("GET", "/api/config/public-key")
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

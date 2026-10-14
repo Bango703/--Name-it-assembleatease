@@ -412,6 +412,19 @@ const app = Object.values(customer).join('\n');
   assert.match(read('api/customer/inbox.js'), /message_recipient: customerMessageRecipient\(booking\)/, 'the inbox names who a reply goes to');
   assert.match(customer['CustomerModels.swift'], /messageRecipient = c\.string\("message_recipient"\)/);
   assert.match(views, /conversation\.messageRecipient == "pro"/, 'an inbox conversation is titled with its real recipient');
+  // Addresses (owner, 2026-10-14: "use Apple Maps ... anywhere an address has to be entered").
+  // One Apple Maps search in the shared folder; every address screen in both apps uses it.
+  assert.match(foundation, /final class AddressSearch: NSObject, ObservableObject, MKLocalSearchCompleterDelegate/);
+  assert.match(foundation, /completer\.resultTypes = \.address/);
+  const addressScreens = [
+    ['booking', customer['CustomerBooking.swift']],
+    ['customer details', customer['CustomerViews.swift']],
+    ['Easer location', easer['EaserAccountViews.swift']],
+  ];
+  for (const [name, src] of addressScreens) {
+    assert.match(src, /AddressSuggestionList\(search:/, `the ${name} screen fills addresses from Apple Maps`);
+  }
+  assert.doesNotMatch(app, /\/api\/address\/autocomplete/, 'the app has one address lookup, not two');
   // A bundle booked in the app counts as that bundle in the owner's reporting, as on the website.
   const booking = customer['CustomerBooking.swift'];
   assert.match(booking, /bundleSlug = bundle\.slug/, 'adding a bundle remembers which one');

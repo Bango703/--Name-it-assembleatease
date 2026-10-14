@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import Security
 import SafariServices
+import MapKit
 
 // Shared by both iPhone apps: AssembleAtEase (customers, mobile/ios/Customer)
 // and Easer (mobile/ios/App). One brand, one session store, one way of opening
@@ -592,6 +593,125 @@ struct ChatComposer: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+    }
+}
+
+// MARK: - Address search (both apps)
+
+// Apple Maps fills in an address as it is typed: suggestions from the third
+// letter, and a picked suggestion fills street, city, state and ZIP in Apple's
+// own format. It runs on the phone (MapKit), so it needs no key, no location
+// permission and no round trip through our server. The server still decides
+// whether an address is in the service area; this only spares the typing.
+
+/// An address as Apple Maps resolved it.
+struct PickedAddress: Equatable {
+    let street: String
+    let city: String
+    let state: String
+    let zip: String
+}
+
+@MainActor
+final class AddressSearch: NSObject, ObservableObject, MKLocalSearchCompleterDelegate {
+    @Published private(set) var results: [MKLocalSearchCompletion] = []
+    private let completer = MKLocalSearchCompleter()
+    private let texasOnly: Bool
+    /// The text a pick just wrote into the field; it is not searched again.
+    private var picked: String?
+
+    /// `texasOnly` keeps suggestions to addresses we can serve.
+    init(texasOnly: Bool = true) {
+        self.texasOnly = texasOnly
+        super.init()
+        completer.delegate = self
+        completer.resultTypes = .address
+        // Centered on Texas so Austin streets come before same-named streets elsewhere.
+        completer.region = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 31.0, longitude: -99.3),
+            span: MKCoordinateSpan(latitudeDelta: 11, longitudeDelta: 13)
+        )
+    }
+
+    /// Call as the person types. Under three letters shows nothing.
+    func update(_ text: String) {
+        let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let picked, query == picked { return }
+        picked = nil
+        guard query.count >= 3 else {
+            clear()
+            return
+        }
+        completer.queryFragment = query
+    }
+
+    func clear() {
+        completer.cancel()
+        results = []
+    }
+
+    /// Looks up the full address behind a suggestion.
+    func resolve(_ completion: MKLocalSearchCompletion) async -> PickedAddress? {
+        results = []
+        let search = MKLocalSearch(request: MKLocalSearch.Request(completion: completion))
+        guard let place = (try? await search.start())?.mapItems.first?.placemark else { return nil }
+        let number = place.subThoroughfare ?? ""
+        let road = place.thoroughfare ?? ""
+        let street = [number, road].filter { !$0.isEmpty }.joined(separator: " ")
+        let address = PickedAddress(
+            street: street.isEmpty ? completion.title : street,
+            city: place.locality ?? "",
+            state: place.administrativeArea ?? "",
+            zip: String((place.postalCode ?? "").prefix(5))
+        )
+        picked = address.street
+        return address
+    }
+
+    nonisolated func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        MainActor.assumeIsolated {
+            let found = completer.results.filter { item in
+                guard texasOnly else { return true }
+                return item.subtitle.contains(", TX") || item.subtitle.contains("Texas") || item.title.contains(", TX")
+            }
+            results = Array(found.prefix(5))
+        }
+    }
+
+    nonisolated func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
+        MainActor.assumeIsolated { results = [] }
+    }
+}
+
+/// The suggestion rows under an address field.
+struct AddressSuggestionList: View {
+    @ObservedObject var search: AddressSearch
+    let pick: (PickedAddress) -> Void
+
+    var body: some View {
+        ForEach(search.results, id: \.self) { item in
+            Button {
+                Task {
+                    if let address = await search.resolve(item) { pick(address) }
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "mappin.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(Brand.skyDark)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.title).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
+                        if !item.subtitle.isEmpty {
+                            Text(item.subtitle).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Fills in the address")
+        }
     }
 }
 
