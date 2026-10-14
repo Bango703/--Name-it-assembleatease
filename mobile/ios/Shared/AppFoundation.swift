@@ -405,6 +405,196 @@ struct SecondaryButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - Chat (both apps)
+
+// One chat for the customer app and the Easer app, built from what DoorDash,
+// Uber and TaskRabbit settled on: day dividers and a time under every message,
+// messages from the same side grouped, "Seen" under the last message the other
+// side has opened (the server stamps read_at when they open the conversation),
+// one-tap quick replies, and a composer that sends on return.
+
+/// A message as the chat draws it, whichever app it came from.
+struct ChatLine: Identifiable, Equatable {
+    let id: String
+    let text: String
+    let fromMe: Bool
+    let author: String
+    let sentAt: Date?
+    let readAt: Date?
+}
+
+enum ChatFormat {
+    private static let time: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US")
+        f.dateFormat = "h:mm a"
+        return f
+    }()
+
+    private static let day: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US")
+        f.dateFormat = "EEEE, MMM d"
+        return f
+    }()
+
+    static func clock(_ date: Date) -> String { time.string(from: date) }
+
+    static func dayLabel(_ date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return "Today" }
+        if calendar.isDateInYesterday(date) { return "Yesterday" }
+        return day.string(from: date)
+    }
+}
+
+/// The conversation, newest at the bottom.
+struct ChatTranscript: View {
+    let lines: [ChatLine]
+    let emptyText: String
+
+    /// "Seen" goes under the newest message of mine the other side has opened.
+    private var seenID: String? {
+        lines.last(where: { $0.fromMe && $0.readAt != nil })?.id
+    }
+
+    private func startsDay(_ index: Int) -> Bool {
+        guard let sent = lines[index].sentAt else { return false }
+        guard index > 0, let before = lines[index - 1].sentAt else { return true }
+        return !Calendar.current.isDate(before, inSameDayAs: sent)
+    }
+
+    private func startsGroup(_ index: Int) -> Bool {
+        index == 0 || lines[index - 1].fromMe != lines[index].fromMe || startsDay(index)
+    }
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 6) {
+                    if lines.isEmpty {
+                        Text(emptyText)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 48)
+                            .padding(.horizontal, 24)
+                    }
+                    ForEach(Array(lines.enumerated()), id: \.element.id) { index, line in
+                        if startsDay(index), let sent = line.sentAt {
+                            Text(ChatFormat.dayLabel(sent))
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .background(Brand.surface, in: Capsule())
+                                .padding(.vertical, 8)
+                        }
+                        ChatBubble(line: line, showAuthor: startsGroup(index), seen: line.id == seenID)
+                            .id(line.id)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onAppear { if let last = lines.last { proxy.scrollTo(last.id, anchor: .bottom) } }
+            .onChange(of: lines.count) { _, _ in
+                if let last = lines.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
+            }
+        }
+    }
+}
+
+struct ChatBubble: View {
+    let line: ChatLine
+    let showAuthor: Bool
+    let seen: Bool
+
+    var body: some View {
+        HStack(alignment: .bottom) {
+            if line.fromMe { Spacer(minLength: 48) }
+            VStack(alignment: line.fromMe ? .trailing : .leading, spacing: 3) {
+                if showAuthor && !line.fromMe {
+                    Text(line.author).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                }
+                Text(line.text)
+                    .font(.body)
+                    .foregroundStyle(line.fromMe ? Brand.ink : Color.primary)
+                    .padding(.horizontal, 13).padding(.vertical, 9)
+                    .background(line.fromMe ? Brand.sky : Brand.surface,
+                                in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .textSelection(.enabled)
+                HStack(spacing: 4) {
+                    if let sent = line.sentAt { Text(ChatFormat.clock(sent)) }
+                    if seen { Text("· Seen").fontWeight(.semibold) }
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+            }
+            if !line.fromMe { Spacer(minLength: 48) }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// One-tap replies for the moments that come up on every job.
+struct QuickReplies: View {
+    let replies: [String]
+    let send: (String) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(replies, id: \.self) { reply in
+                    Button { send(reply) } label: {
+                        Text(reply)
+                            .font(.subheadline)
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .background(Brand.surface, in: Capsule())
+                            .overlay(Capsule().stroke(Brand.sky.opacity(0.5), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12)
+        }
+    }
+}
+
+/// The message box. Return sends; the button sends; nothing sends empty.
+struct ChatComposer: View {
+    @Binding var draft: String
+    let placeholder: String
+    let sending: Bool
+    let send: () -> Void
+
+    private var empty: Bool { draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 10) {
+            TextField(placeholder, text: $draft, axis: .vertical)
+                .lineLimit(1...5)
+                .submitLabel(.send)
+                .onSubmit { if !empty && !sending { send() } }
+                .padding(.horizontal, 12).padding(.vertical, 9)
+                .background(Brand.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            Button(action: send) {
+                if sending {
+                    ProgressView().frame(width: 34, height: 34)
+                } else {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 34))
+                        .foregroundStyle(empty ? Color(uiColor: .tertiaryLabel) : Brand.skyDark)
+                }
+            }
+            .disabled(empty || sending)
+            .accessibilityLabel("Send")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+}
+
 // MARK: - Server fields
 
 // Field names are the server's. Every field is optional and decoded one at a

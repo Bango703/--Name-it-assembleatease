@@ -740,6 +740,8 @@ struct JobMessage: Decodable, Identifiable {
     let sender: String
     let body: String
     let createdAt: String?
+    /// When the other side opened it: the server stamps read_at, the chat shows "Seen".
+    let readAt: String?
     let thread: MessageThread
     var fromMe: Bool { sender == "assembler" }
 
@@ -749,6 +751,7 @@ struct JobMessage: Decodable, Identifiable {
         sender = c.string("sender") ?? ""
         body = c.string("body") ?? ""
         createdAt = c.string("created_at")
+        readAt = c.string("read_at")
         let recipient = c.string("recipient_type") ?? ""
         thread = MessageThread(rawValue: c.string("thread") ?? "")
             ?? ((sender == "customer" || recipient == "customer") ? .customer : .team)

@@ -181,7 +181,7 @@ struct ActivityView: View {
                     }
                     ForEach(store.conversations) { conversation in
                         NavigationLink {
-                            CustomerMessagesView(ref: conversation.ref, recipient: conversation.proFirstName ?? "AssembleAtEase")
+                            CustomerMessagesView(ref: conversation.ref, recipient: conversation.messageRecipient == "pro" ? (conversation.proFirstName ?? "Your pro") : "AssembleAtEase", proName: conversation.proFirstName)
                         } label: {
                             ConversationRow(conversation: conversation)
                         }
@@ -442,7 +442,7 @@ struct BookingDetailView: View {
     private func actionBar(_ detail: BookingDetail) -> some View {
         HStack(spacing: 10) {
             NavigationLink {
-                CustomerMessagesView(ref: detail.ref, recipient: detail.messageRecipient == "pro" ? (detail.proFirstName ?? "Your pro") : "AssembleAtEase")
+                CustomerMessagesView(ref: detail.ref, recipient: detail.messageRecipient == "pro" ? (detail.proFirstName ?? "Your pro") : "AssembleAtEase", proName: detail.proFirstName)
             } label: {
                 ActionTile(symbol: "bubble.left.fill", title: "Message")
             }
@@ -903,99 +903,94 @@ struct RescheduleSheet: View {
 struct CustomerMessagesView: View {
     let ref: String
     let recipient: String
+    /// The pro's first name, so their messages stay theirs after the job moves to AssembleAtEase.
+    var proName: String? = nil
     @EnvironmentObject private var store: CustomerStore
+    @ObservedObject private var push = CustomerPush.shared
     @State private var messages: [CustomerMessage] = []
     @State private var draft = ""
     @State private var sending = false
     @State private var problem: String?
     @State private var loaded = false
 
+    private var toPro: Bool { recipient != "AssembleAtEase" }
+
+    private var replies: [String] {
+        toPro
+            ? ["I'm home and ready.", "Running a few minutes behind.", "Please call me when you arrive.", "Thank you!"]
+            : ["I have a question about my booking.", "Please call me.", "Thank you!"]
+    }
+
+    private var lines: [ChatLine] {
+        messages.map { message in
+            ChatLine(
+                id: message.id,
+                text: message.body,
+                fromMe: message.fromMe,
+                author: message.sender == "assembler" ? (proName ?? (toPro ? recipient : "Your pro")) : "AssembleAtEase",
+                sentAt: Format.timestamp(message.createdAt),
+                readAt: Format.timestamp(message.readAt)
+            )
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 10) {
-                        if loaded && messages.isEmpty {
-                            Text("No messages yet.").foregroundStyle(.secondary).padding(.top, 40)
-                        }
-                        ForEach(messages) { message in
-                            CustomerBubble(message: message).id(message.id)
-                        }
-                    }
-                    .padding(16)
+            ChatTranscript(lines: lines, emptyText: loaded ? "Send \(recipient) a message. Replies show up here and as a notification." : "")
+                .refreshable { await load() }
+            VStack(spacing: 6) {
+                if let problem {
+                    Text(problem).font(.footnote).foregroundStyle(Brand.attention).padding(.horizontal, 12)
                 }
-                .onChange(of: messages.count) { _, _ in
-                    if let last = messages.last { proxy.scrollTo(last.id, anchor: .bottom) }
+                if draft.isEmpty {
+                    QuickReplies(replies: replies) { text in Task { await send(text) } }
+                }
+                ChatComposer(draft: $draft, placeholder: "Message \(recipient)", sending: sending) {
+                    Task { await send(draft) }
                 }
             }
-            .refreshable { await load() }
-
-            VStack(spacing: 8) {
-                if let problem { Text(problem).font(.footnote).foregroundStyle(Brand.attention) }
-                HStack(alignment: .bottom, spacing: 10) {
-                    TextField("Message \(recipient)", text: $draft, axis: .vertical)
-                        .lineLimit(1...4)
-                        .padding(10)
-                        .background(Brand.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    Button {
-                        Task { await send() }
-                    } label: {
-                        if sending { ProgressView() } else { Image(systemName: "arrow.up.circle.fill").font(.system(size: 32)) }
-                    }
-                    .disabled(sending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .accessibilityLabel("Send to \(recipient)")
-                }
-            }
-            .padding(12)
+            .padding(.top, 8)
             .background(.bar)
         }
         .navigationTitle(recipient)
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
+        .task {
+            // No live socket: while the chat is open it checks every ten seconds,
+            // and a notification that arrives refreshes it at once.
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                if Task.isCancelled { break }
+                await load()
+            }
+        }
+        .onChange(of: push.received) { _, _ in Task { await load() } }
     }
 
     private func load() async {
         do {
             messages = try await store.api.messages(ref: ref)
             problem = nil
+        } catch let error as AppError where error.isCancelled {
+            return
         } catch {
-            problem = error.localizedDescription
+            if messages.isEmpty { problem = error.localizedDescription }
         }
         loaded = true
     }
 
-    private func send() async {
-        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+    private func send(_ raw: String) async {
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !sending else { return }
         sending = true
         defer { sending = false }
         do {
             try await store.api.send(text, ref: ref)
-            draft = ""
+            if raw == draft { draft = "" }
+            problem = nil
             await load()
         } catch {
             problem = error.localizedDescription
-        }
-    }
-}
-
-private struct CustomerBubble: View {
-    let message: CustomerMessage
-    var body: some View {
-        HStack {
-            if message.fromMe { Spacer(minLength: 40) }
-            VStack(alignment: message.fromMe ? .trailing : .leading, spacing: 4) {
-                Text(message.fromMe ? "You" : (message.sender == "assembler" ? "Your pro" : "AssembleAtEase"))
-                    .font(.caption2).foregroundStyle(.secondary)
-                Text(message.body)
-                    .padding(12)
-                    .background(message.fromMe ? Brand.sky.opacity(0.22) : Brand.surface,
-                                in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                if let when = Format.relative(message.createdAt) {
-                    Text(when).font(.caption2).foregroundStyle(.tertiary)
-                }
-            }
-            if !message.fromMe { Spacer(minLength: 40) }
         }
     }
 }

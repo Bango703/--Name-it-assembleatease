@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { customerAccountBookings, customerAccountUser } from '../booking/_customer-access.js';
+import { customerMessageRecipient } from '../booking/_message-routing.js';
 
 /**
  * GET /api/customer/inbox — the customer app's Inbox: one conversation per
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
   const user = await customerAccountUser(sb, req);
   if (!user) return res.status(401).json({ error: 'Sign in again to see your messages.' });
 
-  const { bookings, error } = await customerAccountBookings(sb, user, 'id, ref, service, date, time, status, customer_id, customer_email, created_at, assembler_name, assembler_accepted_at');
+  const { bookings, error } = await customerAccountBookings(sb, user, 'id, ref, service, date, time, status, customer_id, customer_email, created_at, assembler_id, assembler_name, assembler_accepted_at');
   if (error) return res.status(500).json({ error: 'Your messages could not be loaded right now.' });
   if (!bookings.length) return res.status(200).json({ conversations: [] });
 
@@ -40,6 +41,8 @@ export default async function handler(req, res) {
         service: booking.service,
         date: booking.date,
         pro_first_name: booking.assembler_accepted_at && booking.assembler_name ? String(booking.assembler_name).split(' ')[0] : null,
+        // Who a reply goes to, decided by the same rule message.js routes with.
+        message_recipient: customerMessageRecipient(booking) === 'assembler' ? 'pro' : 'team',
         last_body: message.body,
         last_from: message.sender === 'customer' ? 'you' : (message.sender === 'assembler' ? 'pro' : 'team'),
         last_at: message.created_at,

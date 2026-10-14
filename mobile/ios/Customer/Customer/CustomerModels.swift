@@ -232,6 +232,8 @@ struct CustomerMessage: Decodable, Identifiable, Hashable {
     let sender: String
     let body: String
     let createdAt: String?
+    /// When the other side opened it: the server stamps read_at, the chat shows "Seen".
+    let readAt: String?
     var fromMe: Bool { sender == "customer" }
 
     init(from decoder: Decoder) throws {
@@ -240,6 +242,7 @@ struct CustomerMessage: Decodable, Identifiable, Hashable {
         sender = c.string("sender") ?? ""
         body = c.string("body") ?? ""
         createdAt = c.string("created_at")
+        readAt = c.string("read_at")
     }
 }
 
@@ -503,6 +506,8 @@ struct InboxConversation: Decodable, Identifiable, Hashable {
     let service: String
     let date: String?
     let proFirstName: String?
+    /// "pro" or "team": who a reply goes to (api/booking/_message-routing.js).
+    let messageRecipient: String
     let lastBody: String
     let lastFrom: String
     let lastAt: String?
@@ -515,6 +520,7 @@ struct InboxConversation: Decodable, Identifiable, Hashable {
         service = c.string("service") ?? "Booking"
         date = c.string("date")
         proFirstName = c.string("pro_first_name")
+        messageRecipient = c.string("message_recipient") ?? "team"
         lastBody = c.string("last_body") ?? ""
         lastFrom = c.string("last_from") ?? "team"
         lastAt = c.string("last_at")
