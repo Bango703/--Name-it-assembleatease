@@ -448,6 +448,11 @@ const app = Object.values(customer).join('\n');
   // Owner, 2026-10-14: "in job review notes doesn't show", then a two-sided audit. The review
   // step shows the notes and who is booking; a return visit shows in both apps.
   assert.match(booking, /CustomerBlock\(title: "Notes for your pro"\)[\s\S]{0,1600}flow\.backToDetails\(\)/, 'the review step shows the notes, with a way back to change them');
+  // Owner, 2026-10-14: "at checkout can't edit when and where".
+  const whenWhere = booking.slice(booking.indexOf('CustomerBlock(title: "When and where")'), booking.indexOf('CustomerBlock(title: "Notes for your pro")'));
+  assert.match(whenWhere, /Button\("Change time"\) \{ flow\.backToSchedule\(\) \}/, 'the review step changes the time');
+  assert.match(whenWhere, /Button\("Change address"\) \{ flow\.backToDetails\(\) \}/, 'the review step changes the address');
+  assert.match(booking, /func backToSchedule\(\) \{\s*if let index = path\.lastIndex\(of: \.schedule\)/, 'back to the When step, keeping the order and details');
   assert.match(booking, /systemImage: "person"\)/, 'the review step shows the name and phone');
   assert.match(customer['CustomerModels.swift'], /returnVisit = c\.bool\("return_visit_required"\)/);
   assert.match(customer['CustomerViews.swift'], /CustomerBlock\(title: "Return visit"\)/, 'the customer sees the return visit, as track.html shows it');
