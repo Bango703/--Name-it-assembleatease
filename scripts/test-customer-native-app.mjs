@@ -471,7 +471,7 @@ const app = Object.values(customer).join('\n');
   // Owner, 2026-10-14, before App Review: the privacy manifest names every kind of
   // data the booking takes, and the App Store rating ask follows any rating.
   const manifest = read('mobile/ios/Customer/Support/PrivacyInfo.xcprivacy');
-  for (const type of ['EmailAddress', 'Name', 'PhoneNumber', 'PhysicalAddress', 'PhotosorVideos', 'PurchaseHistory', 'UserID']) {
+  for (const type of ['EmailAddress', 'Name', 'PhoneNumber', 'PhysicalAddress', 'PhotosorVideos', 'OtherUserContent', 'PurchaseHistory', 'PaymentInfo', 'UserID', 'DeviceID']) {
     assert.ok(manifest.includes('NSPrivacyCollectedDataType' + type + '<'), `the privacy manifest declares ${type}`);
   }
   assert.doesNotMatch(manifest, /<key>NSPrivacyTracking<\/key>\s*<true\/>/, 'no tracking');
