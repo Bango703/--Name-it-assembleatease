@@ -241,3 +241,185 @@ struct BookingPhotosEnvelope: Decodable {
         photos = (try? c.decodeIfPresent([BookingPhoto].self, forKey: DynamicKey("photos"))) ?? []
     }
 }
+
+// MARK: - Booking in the app
+// api/booking/catalog.js, api/booking/promo-preview.js and the booking create
+// endpoint. Prices shown here are the catalog's; the server prices the order.
+
+struct CatalogItem: Decodable, Hashable, Identifiable {
+    let name: String
+    let priceCents: Double
+    let addOn: Bool
+    let customQuote: Bool
+    let popular: Bool
+    var id: String { name }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        name = c.string("name") ?? ""
+        priceCents = c.number("price_cents") ?? 0
+        addOn = c.bool("add_on") ?? false
+        customQuote = c.bool("custom_quote") ?? false
+        popular = c.bool("popular") ?? false
+    }
+}
+
+struct CatalogGroup: Decodable, Hashable, Identifiable {
+    let name: String
+    let items: [CatalogItem]
+    var id: String { name }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        name = c.string("name") ?? ""
+        items = (try? c.decodeIfPresent([CatalogItem].self, forKey: DynamicKey("items"))) ?? []
+    }
+}
+
+struct CatalogService: Decodable, Hashable, Identifiable {
+    let name: String
+    let groups: [CatalogGroup]
+    var id: String { name }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        name = c.string("name") ?? ""
+        groups = (try? c.decodeIfPresent([CatalogGroup].self, forKey: DynamicKey("groups"))) ?? []
+    }
+}
+
+struct BundleLine: Decodable, Hashable {
+    let service: String
+    let name: String
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        service = c.string("service") ?? ""
+        name = c.string("name") ?? ""
+    }
+}
+
+struct CatalogBundle: Decodable, Hashable, Identifiable {
+    let slug: String
+    let name: String
+    let outcome: String
+    let included: [BundleLine]
+    var id: String { slug }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        slug = c.string("slug") ?? UUID().uuidString
+        name = c.string("name") ?? ""
+        outcome = c.string("outcome") ?? ""
+        included = (try? c.decodeIfPresent([BundleLine].self, forKey: DynamicKey("included"))) ?? []
+    }
+}
+
+struct BookingCatalog: Decodable {
+    let services: [CatalogService]
+    let bundles: [CatalogBundle]
+    let slots: [String]
+    let firstDate: String
+    let lastDate: String
+    let today: String
+    let todayOpenSlots: [String]
+    let termsVersion: String
+    let privacyNoticeVersion: String
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        services = (try? c.decodeIfPresent([CatalogService].self, forKey: DynamicKey("services"))) ?? []
+        bundles = (try? c.decodeIfPresent([CatalogBundle].self, forKey: DynamicKey("bundles"))) ?? []
+        slots = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("slots"))) ?? []
+        firstDate = c.string("first_date") ?? ""
+        lastDate = c.string("last_date") ?? ""
+        today = c.string("today") ?? ""
+        todayOpenSlots = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("today_open_slots"))) ?? []
+        termsVersion = c.string("terms_version") ?? ""
+        privacyNoticeVersion = c.string("privacy_notice_version") ?? ""
+    }
+
+    func service(named name: String) -> CatalogService? { services.first { $0.name == name } }
+
+    /// The windows a day offers: today only keeps the ones the server still accepts.
+    func windows(on day: String) -> [String] { day == today ? todayOpenSlots : slots }
+}
+
+/// How this order is paid for, decided by the server (api/booking/_checkout.js).
+struct CheckoutPlan: Decodable, Hashable {
+    let kind: String
+    let button: String
+    let note: String
+
+    var isQuote: Bool { kind == "quote" }
+    var savesCard: Bool { kind == "save_card" }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        kind = c.string("kind") ?? "pay_now"
+        button = c.string("button") ?? "Book now"
+        note = c.string("note") ?? ""
+    }
+}
+
+/// The server's price for this order before it is booked.
+struct CheckoutPreview: Decodable {
+    let summary: PaymentSummary?
+    let plan: CheckoutPlan?
+    let promoApplied: Bool
+    let promoReason: String
+    let totalCents: Double
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        summary = try? c.decodeIfPresent(PaymentSummary.self, forKey: DynamicKey("summary"))
+        plan = try? c.decodeIfPresent(CheckoutPlan.self, forKey: DynamicKey("plan"))
+        let promo = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("promo"))
+        promoApplied = promo?.bool("applied") ?? false
+        promoReason = promo?.string("reason") ?? "no_code"
+        let pricing = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("pricing"))
+        totalCents = pricing?.number("totalCents") ?? 0
+    }
+}
+
+/// What the server answers when an order becomes a booking.
+struct CreatedBooking: Decodable {
+    let ref: String
+    let bookingID: String
+    let guestToken: String
+    let clientSecret: String?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        ref = c.string("ref") ?? ""
+        bookingID = c.string("bookingId") ?? ""
+        guestToken = c.string("guestMutationToken") ?? ""
+        clientSecret = c.string("clientSecret")
+    }
+}
+
+struct AddressSuggestion: Decodable, Hashable, Identifiable {
+    let street: String
+    let city: String
+    let state: String
+    let zip: String
+    let label: String
+    var id: String { label }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        street = c.string("street") ?? ""
+        city = c.string("city") ?? ""
+        state = c.string("state") ?? "TX"
+        zip = c.string("zip") ?? ""
+        label = c.string("label") ?? ""
+    }
+}
+
+struct AddressSuggestionsEnvelope: Decodable {
+    let suggestions: [AddressSuggestion]
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        suggestions = (try? c.decodeIfPresent([AddressSuggestion].self, forKey: DynamicKey("suggestions"))) ?? []
+    }
+}

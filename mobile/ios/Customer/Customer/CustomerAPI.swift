@@ -52,6 +52,68 @@ final class CustomerAPI: APIClient {
         try await call("POST", "/api/booking/guest-cancel", body: ["ref": ref])
     }
 
+    // MARK: Booking (the same endpoints the website's booking page uses)
+
+    func catalog() async throws -> BookingCatalog {
+        let data = try await publicCall("GET", "/api/booking/catalog")
+        do {
+            return try JSONDecoder().decode(BookingCatalog.self, from: data)
+        } catch {
+            throw AppError(message: "Services could not be loaded right now. Pull down to try again.", status: 0)
+        }
+    }
+
+    /// The server's total and payment plan for an order. Nothing is booked.
+    func preview(_ order: [String: Any]) async throws -> CheckoutPreview {
+        let data = try await publicCall("POST", "/api/booking/promo-preview", body: order)
+        do {
+            return try JSONDecoder().decode(CheckoutPreview.self, from: data)
+        } catch {
+            throw AppError(message: "The total could not be loaded right now. Try again.", status: 0)
+        }
+    }
+
+    func addressSuggestions(for text: String) async throws -> [AddressSuggestion] {
+        let data = try await publicCall("GET", "/api/address/autocomplete?q=" + Self.query(text))
+        return (try? JSONDecoder().decode(AddressSuggestionsEnvelope.self, from: data))?.suggestions ?? []
+    }
+
+    func stripeKey() async throws -> String {
+        let data = try await publicCall("GET", "/api/config/public-key")
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let key = object["publishableKey"] as? String, !key.isEmpty else {
+            throw AppError(message: "Card payments are not available right now. Try again in a minute.", status: 0)
+        }
+        return key
+    }
+
+    /// A card saved for later: future appointments and custom quotes.
+    func cardSetup(name: String, email: String, purpose: String, date: String) async throws -> String {
+        let data = try await publicCall("POST", "/api/booking/setup-intent", body: [
+            "name": name, "email": email, "purpose": purpose, "date": date,
+        ])
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let secret = object["clientSecret"] as? String, !secret.isEmpty else {
+            throw AppError(message: "The card screen could not open. Try again.", status: 0)
+        }
+        return secret
+    }
+
+    func createBooking(_ order: [String: Any]) async throws -> CreatedBooking {
+        let data = try await publicCall("POST", "/api/booking", body: order)
+        guard let created = try? JSONDecoder().decode(CreatedBooking.self, from: data), !created.ref.isEmpty else {
+            throw AppError(message: "The booking could not be confirmed. Check Bookings before trying again.", status: 0)
+        }
+        return created
+    }
+
+    /// Tells the server the card hold went through, so the booking confirms and dispatches.
+    func confirmBooking(_ created: CreatedBooking) async throws {
+        try await publicCall("POST", "/api/booking-confirmed", body: [
+            "bookingId": created.bookingID, "guestMutationToken": created.guestToken,
+        ])
+    }
+
     // MARK: Messages
 
     func messages(ref: String) async throws -> [CustomerMessage] {

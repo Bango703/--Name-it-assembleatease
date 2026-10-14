@@ -127,9 +127,10 @@ struct BookingRef: Hashable { let ref: String }
 
 struct BookingsView: View {
     @EnvironmentObject private var store: CustomerStore
+    @State private var path: [BookingRef] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 if let problem = store.loadProblem, store.bookings.isEmpty {
                     Text(problem).foregroundStyle(.secondary)
@@ -166,6 +167,14 @@ struct BookingsView: View {
                 if !store.loadedOnce { ProgressView() }
             }
         }
+        .onAppear(perform: openRequested)
+        .onChange(of: store.openRef) { _, _ in openRequested() }
+    }
+
+    private func openRequested() {
+        guard let ref = store.openRef else { return }
+        store.openRef = nil
+        path = [BookingRef(ref: ref)]
     }
 }
 
@@ -645,40 +654,6 @@ struct BookingPhotosView: View {
             await load()
         } catch {
             problem = error.localizedDescription
-        }
-    }
-}
-
-// MARK: - Book
-
-struct BookView: View {
-    @EnvironmentObject private var store: CustomerStore
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Flat prices, set before you book.").font(.headline)
-                        Text("Furniture assembly, TV mounting, smart home, fitness equipment, outdoor and office setups.")
-                            .font(.subheadline).foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 6)
-                    Button { openURL(Site.page("/book")) } label: {
-                        Text("Start a booking")
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .listRowBackground(Color.clear)
-                }
-                Section {
-                    Button { openURL(Site.page("/bundles")) } label: { Label("Room-ready bundles", systemImage: "square.stack.3d.up") }
-                    Button { openURL(Site.page("/pricing")) } label: { Label("Prices", systemImage: "tag") }
-                } footer: {
-                    Text("Book with \(store.email ?? "your email") and the booking shows up under Bookings.")
-                }
-            }
-            .navigationTitle("Book")
         }
     }
 }

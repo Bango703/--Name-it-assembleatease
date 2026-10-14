@@ -2,7 +2,8 @@
 # from this file with XcodeGen (workflow customer-ios in codemagic.yaml); the
 # generated project is never committed. Sources: Customer/ plus the code both
 # apps share (../Shared). Assets: the same catalog as the Easer app, so the
-# logo is the one real AAE monogram.
+# logo is the one real AAE monogram. Card payments use Stripe's iOS SDK
+# (Swift Package Manager), the customer app only; the Easer app takes no payments.
 name: Customer
 options:
   bundleIdPrefix: com.assembleatease
@@ -16,10 +17,19 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     VERSIONING_SYSTEM: apple-generic
     DEVELOPMENT_TEAM: S8YYTR562D
+packages:
+  Stripe:
+    url: https://github.com/stripe/stripe-ios-spm
+    from: "26.14.0"
 targets:
   Customer:
     type: application
     platform: iOS
+    dependencies:
+      - package: Stripe
+        product: Stripe
+      - package: Stripe
+        product: StripePaymentSheet
     sources:
       - path: Customer
       - path: ../Shared

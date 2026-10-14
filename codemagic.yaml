@@ -133,6 +133,12 @@ workflows:
           set -euo pipefail
           brew install xcodegen
           cd mobile/ios/Customer && xcodegen generate
+      - name: Fetch Swift packages
+        # Stripe's iOS SDK (card sheet). Fetched on its own so a package problem
+        # shows here, not inside the archive log.
+        script: |
+          set -euo pipefail
+          cd mobile/ios/Customer && xcodebuild -resolvePackageDependencies -project Customer.xcodeproj -scheme Customer
       - name: Use signing profiles
         script: xcode-project use-profiles --project mobile/ios/Customer/Customer.xcodeproj
       - name: Set build number

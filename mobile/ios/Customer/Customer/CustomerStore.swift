@@ -22,8 +22,12 @@ final class CustomerStore: ObservableObject {
     @Published var loadProblem: String?
     @Published var banner: CustomerBanner?
     @Published var browserCloses = 0
+    /// A booking to open on the Bookings tab (set after booking in the app).
+    @Published var openRef: String?
 
-    let api = CustomerAPI()
+    let api: CustomerAPI
+    /// The order being built on the Book tab.
+    let flow: BookingFlow
     private var cache: SnapshotCache?
 
     var email: String? { api.session?.email }
@@ -31,7 +35,19 @@ final class CustomerStore: ObservableObject {
     var past: [BookingSummary] { bookings.filter { $0.isPast } }
 
     init() {
+        let client = CustomerAPI()
+        api = client
+        flow = BookingFlow(api: client)
         api.onSessionEnded = { [weak self] in self?.endSession() }
+        flow.onBooked = { [weak self] in
+            guard let self else { return }
+            await self.refresh()
+        }
+    }
+
+    func open(ref: String) {
+        tab = .bookings
+        openRef = ref
     }
 
     func start() async {
@@ -90,6 +106,8 @@ final class CustomerStore: ObservableObject {
         bookings = []
         loadedOnce = false
         loadProblem = nil
+        openRef = nil
+        flow.reset()
         tab = .bookings
         phase = .signedOut
     }
