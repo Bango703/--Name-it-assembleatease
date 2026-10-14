@@ -388,7 +388,10 @@ struct CheckoutPreview: Decodable {
     let plan: CheckoutPlan?
     let promoApplied: Bool
     let promoReason: String
+    /// Before AssembleCash: the figure the booking checks a promo against.
     let totalCents: Double
+    /// AssembleCash this booking would apply (already in the summary rows).
+    let assemblecashAppliedCents: Double
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
@@ -399,6 +402,8 @@ struct CheckoutPreview: Decodable {
         promoReason = promo?.string("reason") ?? "no_code"
         let pricing = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("pricing"))
         totalCents = pricing?.number("totalCents") ?? 0
+        let cash = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("assemblecash"))
+        assemblecashAppliedCents = cash?.number("applied_cents") ?? 0
     }
 }
 
@@ -463,5 +468,52 @@ struct CurrentOfferEnvelope: Decodable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         offer = try? c.decodeIfPresent(CurrentOffer.self, forKey: DynamicKey("promo"))
+    }
+}
+
+/// The signed-in customer's AssembleCash (api/customer/account.js GET).
+struct AccountSummary: Decodable {
+    let assemblecashCents: Double
+    /// Passed to the preview and the booking so the server applies the balance.
+    let assemblecashToken: String?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        let cash = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("assemblecash"))
+        assemblecashCents = cash?.number("balance_cents") ?? 0
+        assemblecashToken = cash?.string("token")
+    }
+}
+
+/// One conversation in Inbox (api/customer/inbox.js).
+struct InboxConversation: Decodable, Identifiable, Hashable {
+    let ref: String
+    let service: String
+    let date: String?
+    let proFirstName: String?
+    let lastBody: String
+    let lastFrom: String
+    let lastAt: String?
+    let unread: Int
+    var id: String { ref }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        ref = c.string("ref") ?? ""
+        service = c.string("service") ?? "Booking"
+        date = c.string("date")
+        proFirstName = c.string("pro_first_name")
+        lastBody = c.string("last_body") ?? ""
+        lastFrom = c.string("last_from") ?? "team"
+        lastAt = c.string("last_at")
+        unread = Int(c.number("unread") ?? 0)
+    }
+}
+
+struct InboxEnvelope: Decodable {
+    let conversations: [InboxConversation]
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        conversations = (try? c.decodeIfPresent([InboxConversation].self, forKey: DynamicKey("conversations"))) ?? []
     }
 }

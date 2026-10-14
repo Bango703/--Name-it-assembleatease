@@ -1,7 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { customerOwnsBooking, normalizeCustomerEmail } from './_customer-booking-auth.js';
-import { customerAccountUser } from './_customer-access.js';
+import { customerAccountBookings, customerAccountUser } from './_customer-access.js';
 import { customerProgress, customerStatusLabel } from './_customer-status.js';
 
 /**
@@ -29,22 +29,12 @@ export default async function handler(req, res) {
 
   const select = 'id, ref, service, customer_id, customer_name, customer_email, date, time, address, details, status, created_at, assembler_id, assembler_name, assembler_accepted_at, payment_status, payment_collected, return_visit_required, return_visit_date, return_visit_time';
   const applyStatus = query => (status && status !== 'all' ? query.eq('status', status) : query);
-  const [boundResult, legacyResult] = await Promise.all([
-    applyStatus(sb.from('bookings').select(select).eq('customer_id', user.id)),
-    applyStatus(sb.from('bookings').select(select).is('customer_id', null).ilike('customer_email', email)),
-  ]);
-
-  if (boundResult.error || legacyResult.error) {
-    console.error('Customer bookings error:', boundResult.error || legacyResult.error);
+  const { bookings, error: listError } = await customerAccountBookings(sb, user, select, applyStatus);
+  if (listError) {
+    console.error('Customer bookings error:', listError);
     return res.status(500).json({ error: 'Failed to fetch bookings' });
   }
 
-  // Enrich with assembler names where assigned
-  const bookings = [...new Map([
-    ...(boundResult.data || []),
-    ...(legacyResult.data || []),
-  ].filter(booking => customerOwnsBooking(booking, user)).map(booking => [booking.id, booking])).values()]
-    .sort((a, b) => Date.parse(b.created_at || '') - Date.parse(a.created_at || ''));
   // What the customer sees of each booking: the same status words as the
   // booking page, and the pro's first name only once they have accepted.
   const enriched = bookings.map(b => {

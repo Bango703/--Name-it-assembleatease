@@ -26,6 +26,7 @@ import {
   hasDurableCancellationFeeCaptureAudit,
   resolveOwnerCancellationReservation,
 } from './_cancellation-operation.js';
+import { notifyCustomerApp } from '../_customer-push.js';
 
 async function holdCancellationForReconciliation(sb, booking, operationKey, metadata = {}) {
   const { error: holdError, data: heldRows } = await sb.from('bookings').update({
@@ -639,5 +640,7 @@ export default async function handler(req, res) {
   const timelineResult = await logActivity(sb, { bookingId: booking.id, eventType: 'cancelled', actorType: 'owner', actorName: 'Owner', description: `Booking cancelled${reason ? ': ' + reason : ''}${overrideNote}${feeCaptured ? ' (fee charged: $' + (feeCaptured/100).toFixed(2) + ', ' + policy.feePct + '% ' + policy.tier + ')' : ''}${proTripCutCents ? ' (pro trip cut owed: $' + (proTripCutCents/100).toFixed(2) + ')' : ''}${refundAmount ? ' (refunded: $' + (refundAmount/100).toFixed(2) + ')' : ''}`, metadata: { reason, feeCaptured, refundAmount, tier: policy.tier, feePct: policy.feePct, proTripCutCents, ownerRecoveryTakeover: takeover, ownerOverrideWorkStarted: workStarted && ownerOverride } });
   const operationalFollowupRequired = !!dispatchCleanupError || !timelineResult.ok;
 
+  // A lock-screen tracker for this booking ends.
+  await notifyCustomerApp(sb, booking.id, 'cancelled');
   return res.status(cancellationCredits.ok ? 200 : 202).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.CANCELLED }, refundAmount, feeCaptured, withinCancellationWindow, tier: policy.tier, feePct: policy.feePct, proTripCutCents, rewardsReconciliationRequired: !cancellationCredits.ok, operationalFollowupRequired });
 }

@@ -50,6 +50,10 @@
 	<string>Scan a card to fill in its number.</string>
 	<key>AAEApplePayMerchantID</key>
 	<string></string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose photos of the space or the items so your pro arrives ready.</string>
 </dict>

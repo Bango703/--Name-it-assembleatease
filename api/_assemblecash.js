@@ -5,6 +5,7 @@
 // never break a booking or completion.
 import crypto from 'crypto';
 import { isMissingTableError } from './_promotions.js';
+import { TX_TAX_RATE } from './_pricing.js';
 
 export const ASSEMBLECASH = Object.freeze({
   EARN_RATE_PCT: 5,
@@ -174,6 +175,18 @@ export function maxRedeemableCents({ balanceCents, pretaxBaseCents, marginFloorC
   const floor = Math.max(0, Math.round(Number(marginFloorCents) || 0));
   const headroom = Math.max(0, base - floor);
   return Math.min(bal, ASSEMBLECASH.MAX_REDEEM_CENTS, headroom);
+}
+
+/**
+ * The booking's totals once AssembleCash comes off the pre-tax service base.
+ * THE one place this is worked out: api/booking.js charges it and
+ * api/booking/promo-preview.js shows it, so the total shown is the total held.
+ */
+export function totalsAfterAssembleCash({ promoAdjustedItemSubtotalCents, serviceCallFeeCents, sameDayFeeCents = 0, redeemCents }) {
+  const adjusted = Math.max(0, Math.round(Number(promoAdjustedItemSubtotalCents) || 0) - Math.max(0, Math.round(Number(redeemCents) || 0)));
+  const taxableSubtotalCents = adjusted + Math.max(0, Number(serviceCallFeeCents) || 0) + Math.max(0, Number(sameDayFeeCents) || 0);
+  const taxCents = Math.round(taxableSubtotalCents * TX_TAX_RATE);
+  return { taxableSubtotalCents, taxCents, totalCents: taxableSubtotalCents + taxCents };
 }
 
 // ── Redemption recording ─────────────────────────────────────────────────────

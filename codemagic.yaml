@@ -122,10 +122,32 @@ workflows:
     environment:
       # Same toolchain as the Easer app (easer-ios).
       xcode: 26.5
+      groups:
+        - firebase
       ios_signing:
+        # Also signs the lock-screen tracker, com.assembleatease.customer.live:
+        # Codemagic matches com.assembleatease.customer.* profiles.
         distribution_type: app_store
         bundle_identifier: com.assembleatease.customer
     scripts:
+      - name: Add the Firebase configuration
+        # FIREBASE_IOS_CUSTOMER_PLIST (base64 of the customer app's
+        # GoogleService-Info.plist, bundle com.assembleatease.customer) is in the
+        # firebase group. Without it the app builds and sends no notifications.
+        script: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, os, pathlib, plistlib, sys
+          raw = os.environ.get('FIREBASE_IOS_CUSTOMER_PLIST', '').strip()
+          if not raw:
+              print('FIREBASE_IOS_CUSTOMER_PLIST not set: building without notifications.')
+              sys.exit(0)
+          content = base64.b64decode(raw)
+          if plistlib.loads(content).get('BUNDLE_ID') != 'com.assembleatease.customer':
+              sys.exit('FIREBASE_IOS_CUSTOMER_PLIST is not the configuration for com.assembleatease.customer.')
+          pathlib.Path('mobile/ios/Customer/Support/GoogleService-Info.plist').write_bytes(content)
+          print('Firebase configuration added.')
+          PY
       - name: Generate the Xcode project
         # The customer app is described in mobile/ios/Customer/project.yml and
         # shares mobile/ios/Shared with the Easer app; XcodeGen writes the project.

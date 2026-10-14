@@ -25,6 +25,7 @@ import {
   operationCaseOwnerStatusLabel,
   operationCasePublicStatus,
 } from '../_operation-cases.js';
+import { notifyCustomerApp } from '../_customer-push.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -79,6 +80,12 @@ export default async function handler(req, res) {
         .or('sender.eq.customer,recipient_type.eq.customer')
         .order('created_at', { ascending: true });
       if (ownMessageError) return res.status(500).json({ error: 'Failed to fetch messages' });
+      // Opening the conversation in the app reads it (api/customer/inbox.js counts the rest).
+      const unreadIds = (ownMessages || []).filter(m => m.recipient_type === 'customer' && !m.read_at).map(m => m.id);
+      if (unreadIds.length) {
+        await sb.from('messages').update({ read_at: new Date().toISOString() }).in('id', unreadIds)
+          .then(({ error }) => { if (error) console.warn('[message] read mark skipped:', error.message); });
+      }
       return res.status(200).json({ messages: ownMessages || [] });
     }
     let easerAccess = null;
@@ -751,6 +758,14 @@ export default async function handler(req, res) {
     }).catch(activityError => {
       console.error('Message notification failure activity log error:', activityError?.message || activityError);
     });
+  }
+
+  // The customer app, when installed: a notification for a message to the customer.
+  if (resolvedRecipient === 'customer') {
+    const fromName = resolvedSender === 'assembler'
+      ? (String(booking.assembler_name || '').trim().split(/\s+/)[0] || 'Your pro')
+      : 'AssembleAtEase';
+    await notifyCustomerApp(sb, booking.id, 'message', { fromName, body: messageText });
   }
 
   const response = {

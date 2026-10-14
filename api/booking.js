@@ -28,6 +28,7 @@ import {
   reserveRedemption,
   attachRedemptionToBooking,
   releasePendingRedemption,
+  totalsAfterAssembleCash,
 } from './_assemblecash.js';
 import { buildCustomerConsentRecord, validateCustomerLegalConsent } from './_legal-consent.js';
 import {
@@ -410,10 +411,14 @@ export default async function handler(req, res) {
             pretaxBaseCents: pricingWithPromo.promoAdjustedItemSubtotalCents,
             marginFloorCents: minBookingCents || 0,
           });
-          const refreshedAdjustedSubtotal = Math.max(0, pricingWithPromo.promoAdjustedItemSubtotalCents - refreshedRedeem);
-          const refreshedTaxableSubtotal = refreshedAdjustedSubtotal + serviceCallFeeCents + appliedSameDayFeeCents;
-          const refreshedTax = Math.round(refreshedTaxableSubtotal * TX_TAX_RATE);
-          const refreshedTotal = refreshedTaxableSubtotal + refreshedTax;
+          const refreshed = totalsAfterAssembleCash({
+            promoAdjustedItemSubtotalCents: pricingWithPromo.promoAdjustedItemSubtotalCents,
+            serviceCallFeeCents,
+            sameDayFeeCents: appliedSameDayFeeCents,
+            redeemCents: refreshedRedeem,
+          });
+          const refreshedTax = refreshed.taxCents;
+          const refreshedTotal = refreshed.totalCents;
           return res.status(409).json({
             error: 'Your AssembleCash balance changed while this booking was being prepared. We refreshed the total.',
             code: 'ASSEMBLECASH_CHANGED',
@@ -440,10 +445,12 @@ export default async function handler(req, res) {
             },
           });
         }
-        const acAdjustedSubtotal = Math.max(0, pricingWithPromo.promoAdjustedItemSubtotalCents - reservedRedeem);
-        taxableSubtotalCents = acAdjustedSubtotal + serviceCallFeeCents + appliedSameDayFeeCents;
-        taxCents = Math.round(taxableSubtotalCents * TX_TAX_RATE);
-        amount = taxableSubtotalCents + taxCents;
+        ({ taxableSubtotalCents, taxCents, totalCents: amount } = totalsAfterAssembleCash({
+          promoAdjustedItemSubtotalCents: pricingWithPromo.promoAdjustedItemSubtotalCents,
+          serviceCallFeeCents,
+          sameDayFeeCents: appliedSameDayFeeCents,
+          redeemCents: reservedRedeem,
+        }));
         assemblecashRedeemedCents = reservedRedeem;
       }
     } catch (e) {

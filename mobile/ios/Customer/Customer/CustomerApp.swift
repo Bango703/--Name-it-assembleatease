@@ -1,9 +1,11 @@
 import SwiftUI
+import Combine
 
 /// AssembleAtEase for customers: find a service, book it, follow it, change it and message about it.
 /// Native SwiftUI over the existing AssembleAtEase server, like the Easer app.
 @main
 struct CustomerApp: App {
+    @UIApplicationDelegateAdaptor(CustomerAppDelegate.self) private var appDelegate
     @StateObject private var store = CustomerStore()
     @Environment(\.scenePhase) private var scenePhase
 
@@ -35,6 +37,18 @@ struct CustomerApp: App {
             .environmentObject(store)
             .environmentObject(store.flow)
             .onOpenURL { url in CardSheet.handle(url) }
+            .onReceive(CustomerPush.shared.$fcmToken) { token in
+                Task { await store.pushTokenChanged(token) }
+            }
+            .onReceive(CustomerPush.shared.$openedRef) { ref in
+                guard let ref else { return }
+                CustomerPush.shared.openedRef = nil
+                store.open(ref: ref)
+                Task { await store.refresh() }
+            }
+            .onReceive(CustomerPush.shared.$received.dropFirst()) { _ in
+                Task { await store.refresh() }
+            }
             .environment(\.openURL, InAppBrowser.action {
                 store.browserCloses += 1
                 Task { await store.refresh() }
@@ -77,9 +91,16 @@ struct CustomerTabsView: View {
             HomeView()
                 .tabItem { Label("Home", systemImage: "house") }
                 .tag(CustomerTab.home)
+            ServicesView()
+                .tabItem { Label("Services", systemImage: "square.grid.2x2") }
+                .tag(CustomerTab.services)
             BookingsView()
                 .tabItem { Label("Bookings", systemImage: "calendar") }
                 .tag(CustomerTab.bookings)
+            InboxView()
+                .tabItem { Label("Inbox", systemImage: "bubble.left.and.bubble.right") }
+                .badge(store.unreadCount)
+                .tag(CustomerTab.inbox)
             CustomerAccountView()
                 .tabItem { Label("Account", systemImage: "person.crop.circle") }
                 .tag(CustomerTab.account)

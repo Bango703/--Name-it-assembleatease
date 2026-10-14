@@ -158,3 +158,27 @@ export async function sendNativePushToUser(sb, userId, payload, meta = {}, { env
   const sent = logRows.filter((r) => r.status === 'sent').length;
   return { skipped: false, sent, failed: logRows.length - sent, logRows };
 }
+
+/**
+ * One FCM v1 message with the project's service account, for senders other
+ * than the Easer job alerts above (the customer app: api/_customer-push.js).
+ * Never throws. `gone` is true only when FCM says the device is unregistered.
+ */
+export async function sendFcmMessage(message, { env = process.env, fetchImpl = fetch } = {}) {
+  const account = loadFirebaseServiceAccount(env);
+  if (!account) return { ok: false, skipped: true, reason: 'native_push_not_configured' };
+  try {
+    const bearer = await accessToken(account, fetchImpl);
+    const resp = await fetchImpl(`https://fcm.googleapis.com/v1/projects/${account.project_id}/messages:send`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(message),
+    });
+    if (resp.ok) return { ok: true, status: resp.status };
+    const body = await resp.json().catch(() => ({}));
+    const code = body?.error?.details?.find?.((d) => d.errorCode)?.errorCode || body?.error?.status || '';
+    return { ok: false, status: resp.status, code, gone: resp.status === 404 || code === 'UNREGISTERED' };
+  } catch (e) {
+    return { ok: false, error: e?.message || String(e) };
+  }
+}

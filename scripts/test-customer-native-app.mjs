@@ -160,7 +160,7 @@ const app = Object.values(customer).join('\n');
   assert.equal(openBookingSlots('2026-10-20', new Date('2026-10-14T05:30:00Z')).length, BOOKING_TIME_SLOTS.length);
 
   // The total and the plan come from the server; the website's call is unchanged without a date.
-  assert.match(preview, /summary: checkoutSummary\(pricingWithPromo, promo\)/);
+  assert.match(preview, /summary: checkoutSummary\(pricingWithPromo, promo, assemblecash\)/);
   assert.match(preview, /plan: checkoutPlan\(/);
   assert.match(preview, /appointmentDate \? sameDayFeeForAppointment\(appointmentDate\) : 0/, 'no date, no same-day fee: the website preview behaves as before');
   const { checkoutSummary, checkoutPlan } = await import('../api/booking/_checkout.js');
@@ -228,9 +228,60 @@ const app = Object.values(customer).join('\n');
   assert.match(customer['CustomerModels.swift'], /"customer_progress"/);
   assert.match(read('api/booking/catalog.js'), /from_cents: fromCents\(groups\)/, '"From $X" comes from the catalog');
   assert.match(customer['CustomerModels.swift'], /"from_cents"/);
-  assert.match(customer['CustomerHome.swift'], /\.searchable\(/, 'search on Home');
+  assert.match(customer['CustomerHome.swift'], /TextField\("What do you need help with\?", text: \$query\)/, 'search on Home');
   assert.match(customer['CustomerHome.swift'], /ProgressTracker\(progress: progress\)/);
   assert.doesNotMatch(customer['CustomerHome.swift'], /status == "(en_route|arrived|in_progress)"/, 'the app does not work out the step itself');
+}
+
+// ── 4e. Notifications, lock-screen tracker, AssembleCash, Inbox (owner, 2026-10-13).
+{
+  const { liveActivityState, customerPushCopy } = await import('../api/_customer-push.js');
+  const attributes = read('mobile/ios/Customer/LiveShared/BookingActivityAttributes.swift');
+  const state = liveActivityState({ status: 'en_route', assembler_accepted_at: 'x', assembler_name: 'Trapper Jones', time: '10:00 AM – 12:00 PM' });
+  for (const key of Object.keys(state)) {
+    assert.match(attributes, new RegExp(`var ${key}: `), `the tracker's ${key} is a field the lock screen reads`);
+  }
+  assert.equal(state.step, 2);
+  assert.equal(state.proName, 'Trapper', 'first name only on the lock screen');
+  assert.equal(customerPushCopy('cancelled', {}), null, 'a cancellation the customer made sends no notification');
+  for (const [file, event] of [
+    ['api/booking/accept-dispatch.js', "'accepted'"],
+    ['api/booking/easer-status.js', 'stage'],
+    ['api/booking/assembler-complete.js', "'completed'"],
+    ['api/booking/message.js', "'message'"],
+    ['api/booking/guest-cancel.js', "'cancelled'"],
+    ['api/booking/customer-cancel.js', "'cancelled'"],
+    ['api/booking/cancel.js', "'cancelled'"],
+  ]) {
+    assert.ok(read(file).includes(`notifyCustomerApp(sb, `) && read(file).includes(event), `${file} tells the customer app (${event})`);
+  }
+  assert.match(read('api/_customer-push.js'), /export async function notifyCustomerApp[\s\S]*catch \(e\)/, 'a push failure never fails the booking action');
+  assert.ok(existsSync('api/migrations/111_customer_app_push.sql'));
+
+  // AssembleCash: the total shown is the total held.
+  const { totalsAfterAssembleCash } = await import('../api/_assemblecash.js');
+  assert.deepEqual(totalsAfterAssembleCash({ promoAdjustedItemSubtotalCents: 23800, serviceCallFeeCents: 500, sameDayFeeCents: 0, redeemCents: 2000 }),
+    { taxableSubtotalCents: 22300, taxCents: 1840, totalCents: 24140 });
+  assert.equal((read('api/booking.js').match(/totalsAfterAssembleCash\(/g) || []).length, 2, 'the booking charges with the shared calculation');
+  assert.match(read('api/booking/promo-preview.js'), /totals: totalsAfterAssembleCash\(/, 'the preview shows it with the same one');
+  assert.doesNotMatch(read('api/booking.js'), /promoAdjustedItemSubtotalCents - reservedRedeem/, 'no second copy of the math in the booking');
+  assert.match(read('api/customer/account.js'), /issueRedemptionToken\(email\)/);
+  assert.match(customer['CustomerBooking.swift'], /"assemblecashToken": assemblecashToken \?\? ""/);
+
+  // Inbox and Bookings list the same bookings.
+  assert.match(read('api/customer/inbox.js'), /customerAccountBookings\(/);
+  assert.match(read('api/booking/customer-bookings.js'), /customerAccountBookings\(/);
+
+  // Home: one search box, at most one suggestion; the catalog on Services.
+  const home = customer['CustomerHome.swift'];
+  assert.match(home, /SearchBox \{ searching = true \}/);
+  assert.match(home, /private var pick: Pick\?/, 'one suggestion, chosen in one place');
+  assert.match(read('mobile/ios/Customer/Customer/CustomerApp.swift'), /ServicesView\(\)[\s\S]*InboxView\(\)/);
+  const project = read('mobile/ios/Customer/project.yml');
+  assert.match(project, /CustomerLiveActivity:[\s\S]*PRODUCT_BUNDLE_IDENTIFIER: com\.assembleatease\.customer\.live/, 'the tracker extension shares the app prefix (Codemagic signs com.assembleatease.customer.*)');
+  assert.match(project, /product: FirebaseMessaging/);
+  assert.match(read('mobile/ios/Customer/Support/Customer.entitlements'), /aps-environment/);
+  assert.match(read('mobile/ios/Customer/Support/Info.plist'), /<key>NSSupportsLiveActivities<\/key>\s*<true\/>/);
 }
 
 // ── 5. App Store basics ──────────────────────────────────────────────────────

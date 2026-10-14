@@ -26,6 +26,7 @@ import {
   hasDurableCancellationFeeCaptureAudit,
 } from './_cancellation-operation.js';
 import { cancellationFeeSummaryHtml, customerCancellationResult } from './_cancellation-fee-summary.js';
+import { notifyCustomerApp } from '../_customer-push.js';
 
 async function cancelGuestIntent(stripe, booking, row) {
   if (row.intent.status === 'canceled') return;
@@ -496,5 +497,7 @@ ${proTripCutCents > 0 ? '<p style="background:#eff6ff;border:1px solid #bfdbfe;b
     feeCaptured, withinWindow, timestamp: new Date().toISOString(),
   }));
 
+  // A lock-screen tracker for this booking ends.
+  await notifyCustomerApp(sb, booking.id, 'cancelled');
   return res.status(cancellationCredits.ok ? 200 : 202).json({ success: true, feeCaptured, withinWindow, tier: policy.tier, feePct: policy.feePct, reason: policy.reason, customerMessage: customerCancellationResult({ policy, feeCaptured, holdReleased: stripeMutationRequired }), proTripCutCents, rewardsReconciliationRequired: !cancellationCredits.ok, operationalFollowupRequired: !!dispatchCleanupError || !timelineResult.ok });
 }

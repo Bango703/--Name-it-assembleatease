@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 enum CustomerPhase: Equatable { case launching, signedOut, signedIn }
-enum CustomerTab: Hashable { case home, bookings, account }
+enum CustomerTab: Hashable { case home, services, bookings, inbox, account }
 
 struct CustomerBanner: Identifiable, Equatable {
     enum Kind { case success, problem }
@@ -27,20 +27,27 @@ final class CustomerStore: ObservableObject {
     /// From the customer's most recent booking, for the greeting.
     @Published var firstName: String?
     @Published var offer: CurrentOffer?
+    /// AssembleCash balance and the token checkout uses to apply it.
+    @Published var account: AccountSummary?
+    @Published var conversations: [InboxConversation] = []
 
     let api: CustomerAPI
-    /// The order being built on the Book tab.
+    /// The order being built on the Services tab.
     let flow: BookingFlow
+    let push: CustomerPush
     private var cache: SnapshotCache?
+    private var registeredPushToken: String?
 
     var email: String? { api.session?.email }
     var upcoming: [BookingSummary] { bookings.filter { !$0.isPast } }
     var past: [BookingSummary] { bookings.filter { $0.isPast } }
+    var unreadCount: Int { conversations.reduce(0) { $0 + $1.unread } }
 
     init() {
         let client = CustomerAPI()
         api = client
         flow = BookingFlow(api: client)
+        push = CustomerPush.shared
         api.onSessionEnded = { [weak self] in self?.endSession() }
         flow.onBooked = { [weak self] in
             guard let self else { return }
@@ -51,6 +58,36 @@ final class CustomerStore: ObservableObject {
     func open(ref: String) {
         tab = .bookings
         openRef = ref
+    }
+
+    /// Browse a service: the Services tab, opened on it.
+    func browse(_ service: String) {
+        tab = .services
+        flow.path = [.service(service)]
+    }
+
+    /// The order is ready for a time: the Services tab, on the schedule step.
+    func continueBooking() {
+        tab = .services
+        flow.path = [.schedule]
+    }
+
+    func refreshInbox() async {
+        guard phase == .signedIn, let latest = try? await api.inbox() else { return }
+        conversations = latest
+    }
+
+    // MARK: Notifications
+
+    /// This phone gets booking updates for the signed-in customer.
+    func pushTokenChanged(_ token: String?) async {
+        guard phase == .signedIn, let token, token != registeredPushToken else { return }
+        do {
+            try await api.registerPush(token: token)
+            registeredPushToken = token
+        } catch {
+            // Not switched on yet on the server, or offline: retried on the next refresh.
+        }
     }
 
     func start() async {
@@ -88,6 +125,10 @@ final class CustomerStore: ObservableObject {
     }
 
     func signOut() {
+        if let token = registeredPushToken {
+            let client = api
+            Task { try? await client.unregisterPush(token: token) }
+        }
         api.signOut()
         endSession()
     }
@@ -113,6 +154,9 @@ final class CustomerStore: ObservableObject {
         openRef = nil
         firstName = nil
         offer = nil
+        account = nil
+        conversations = []
+        registeredPushToken = nil
         flow.reset()
         tab = .home
         phase = .signedOut
@@ -136,6 +180,14 @@ final class CustomerStore: ObservableObject {
             loadProblem = error.localizedDescription
         }
         loadedOnce = true
+        if let summary = try? await api.accountSummary() {
+            account = summary
+            flow.assemblecashToken = summary.assemblecashToken
+        }
+        if let latest = try? await api.inbox() { conversations = latest }
+        await push.refreshStatus()
+        await pushTokenChanged(push.fcmToken)
+        await LiveTracker.sync(bookings: bookings, api: api, fcmToken: push.fcmToken)
     }
 
     /// Runs one booking action and says how it went. The server's reason is shown as written.
