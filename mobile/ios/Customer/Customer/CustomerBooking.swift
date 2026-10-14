@@ -263,6 +263,13 @@ final class BookingFlow: ObservableObject {
         return nil
     }
 
+    /// Back to the Where step from the review, keeping everything typed.
+    func backToDetails() {
+        if let index = path.lastIndex(of: .details) {
+            path = Array(path.prefix(index + 1))
+        }
+    }
+
     /// "Change items" returns to the last service list in this booking, not to Home.
     /// An order started from a bundle on Home opens its first service.
     func backToItems() {
@@ -809,6 +816,8 @@ private struct StepButton: View {
 
 private struct ScheduleStepView: View {
     @EnvironmentObject private var flow: BookingFlow
+    @EnvironmentObject private var store: CustomerStore
+    @State private var signingIn = false
 
     var body: some View {
         Form {
@@ -842,8 +851,27 @@ private struct ScheduleStepView: View {
         }
         .safeAreaInset(edge: .bottom) {
             StepButton(title: "Continue", problem: flow.slot == nil ? "Pick an arrival window." : nil) {
-                flow.path.append(.details)
+                if store.phase == .signedIn {
+                    flow.path.append(.details)
+                } else {
+                    signingIn = true
+                }
             }
+        }
+        // Browsing needs no account; booking does. The order and the time stay as picked.
+        .sheet(isPresented: $signingIn) {
+            NavigationStack {
+                CustomerSignInView(message: "Sign in with your email to book.")
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) { Button("Cancel") { signingIn = false } }
+                    }
+            }
+            .environmentObject(store)
+        }
+        .onChange(of: store.phase) { _, phase in
+            guard phase == .signedIn, signingIn else { return }
+            signingIn = false
+            flow.path.append(.details)
         }
     }
 }
@@ -943,6 +971,32 @@ private struct ReviewStepView: View {
                 CustomerBlock(title: "When and where") {
                     Label(flow.whenText, systemImage: "calendar")
                     Label(flow.addressText, systemImage: "mappin.and.ellipse")
+                    Label([flow.name.trimmingCharacters(in: .whitespaces), Format.phone(flow.phone)]
+                            .filter { !$0.isEmpty }.joined(separator: " · "),
+                          systemImage: "person")
+                }
+
+                CustomerBlock(title: "Notes for your pro") {
+                    let project = flow.projectDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let access = flow.details.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if flow.hasCustomQuote && !project.isEmpty {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Your project").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                            Text(project).font(.subheadline)
+                        }
+                    }
+                    if !access.isEmpty {
+                        VStack(alignment: .leading, spacing: 2) {
+                            if flow.hasCustomQuote && !project.isEmpty {
+                                Text("Access and parking").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                            }
+                            Text(access).font(.subheadline)
+                        }
+                    }
+                    if access.isEmpty && !(flow.hasCustomQuote && !project.isEmpty) {
+                        Text("No notes").font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    Button(access.isEmpty ? "Add notes" : "Edit notes") { flow.backToDetails() }.font(.subheadline)
                 }
 
                 CustomerBlock(title: "Promo code") {

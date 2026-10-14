@@ -160,6 +160,13 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     let customQuote: Bool
     let crewRole: String?
     let returnVisitOpen: Bool
+    let returnVisitDate: String?
+    let returnVisitTime: String?
+    let returnVisitRemaining: String?
+    let returnVisitCompleted: String?
+    var returnVisitWhen: String {
+        [Format.day(returnVisitDate), returnVisitTime].compactMap { $0 }.joined(separator: " · ")
+    }
     let itemGroups: [JobItemGroup]
     let evidenceRequested: Bool
     let evidenceUploaded: Bool
@@ -208,6 +215,10 @@ struct EaserJob: Decodable, Identifiable, Hashable {
         customQuote = c.bool("_custom_quote") ?? false
         crewRole = c.string("_crew_role")
         returnVisitOpen = c.bool("_return_visit_open") ?? false
+        returnVisitDate = c.string("return_visit_date")
+        returnVisitTime = c.string("return_visit_time")
+        returnVisitRemaining = c.string("return_visit_remaining_scope")
+        returnVisitCompleted = c.string("return_visit_completed_scope")
         itemGroups = ((try? c.decodeIfPresent([JobItemGroup].self, forKey: DynamicKey("_booking_items"))) ?? []).filter { !$0.items.isEmpty }
         evidenceRequested = c.string("evidence_requested_at") != nil
         evidenceUploaded = c.bool("_evidence_uploaded") ?? false

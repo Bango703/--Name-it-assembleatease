@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { rateLimit, rateLimitKey } from '../_ratelimit.js';
@@ -17,9 +18,32 @@ import { normalizeEmail, generateAndStoreCode, verifyCode, ASSEMBLECASH } from '
  *
  * An email that belongs to an Easer or the owner is refused here: this route
  * only ever hands out customer sessions.
+ *
+ * App Review: Apple's reviewers cannot open an emailed code, and Apple asks for
+ * sign-in details that work every time. APP_REVIEW_EMAIL is the one customer
+ * account that accepts APP_REVIEW_CODE (6 digits) instead of an emailed code.
+ * Both unset = no such account. It is still a customer account, sees only its
+ * own bookings, and goes through the same rate limits as everyone else.
  */
 const PURPOSE = 'app_sign_in';
 const STAFF_ROLES = new Set(['assembler', 'admin', 'owner']);
+
+/** The App Review account, when both settings are present and well formed. */
+export function reviewAccount(env = process.env) {
+  const email = normalizeEmail(env.APP_REVIEW_EMAIL || '');
+  const code = String(env.APP_REVIEW_CODE || '').trim();
+  if (!email || !/^[0-9]{6}$/.test(code)) return null;
+  return { email, code };
+}
+
+/** True when this email is the review account and the code is its code. */
+export function reviewCodeMatches(email, code, env = process.env) {
+  const account = reviewAccount(env);
+  if (!account || normalizeEmail(email) !== account.email) return false;
+  const given = Buffer.from(String(code || ''));
+  const expected = Buffer.from(account.code);
+  return given.length === expected.length && crypto.timingSafeEqual(given, expected);
+}
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -35,6 +59,9 @@ export default async function handler(req, res) {
     const okEmail = await rateLimitKey('app-sign-in:' + email, 'track_link');
     const okIp = await rateLimitKey('app-sign-in-ip:' + ip, 'apply');
     if (!okEmail || !okIp) return res.status(429).json({ error: 'Too many codes requested. Wait a few minutes and try again.' });
+
+    // The review account's code is fixed; nothing is emailed.
+    if (reviewAccount()?.email === email) return res.status(200).json({ ok: true, expiresInMinutes: ASSEMBLECASH.CODE_TTL_MIN });
 
     let code;
     try {
@@ -71,9 +98,12 @@ export default async function handler(req, res) {
   const code = String((req.body || {}).code || '').trim();
   if (!/^\d{6}$/.test(code)) return res.status(400).json({ error: 'Enter the 6-digit code from your email.' });
 
-  let verified = false;
+  // The review account only ever accepts its own code.
+  const isReview = reviewAccount()?.email === email;
+  let verified = isReview && reviewCodeMatches(email, code);
+  if (isReview && !verified) return res.status(400).json({ error: 'That code is not right or has expired. Send a new code.' });
   try {
-    verified = await verifyCode(sb, email, code, PURPOSE);
+    if (!verified) verified = await verifyCode(sb, email, code, PURPOSE);
   } catch (error) {
     console.error('[customer-sign-in] verify failed:', error?.message || error);
     return res.status(503).json({ error: 'Your code could not be checked right now. Try again in a minute.' });

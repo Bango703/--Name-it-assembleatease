@@ -915,6 +915,28 @@ struct JobDetailView: View {
                     }
                 }
 
+                if job.returnVisitOpen {
+                    DetailBlock(title: "Return visit") {
+                        if !job.returnVisitWhen.isEmpty {
+                            Label(job.returnVisitWhen, systemImage: "calendar").font(.headline)
+                        } else {
+                            Text("AssembleAtEase will confirm the day.").foregroundStyle(.secondary)
+                        }
+                        if let left = job.returnVisitRemaining, !left.isEmpty {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Still to do").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                Text(left)
+                            }
+                        }
+                        if let done = job.returnVisitCompleted, !done.isEmpty {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Done on the first visit").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                Text(done)
+                            }
+                        }
+                    }
+                }
+
                 DetailBlock(title: "When and where") {
                     if !job.isFinished {
                         JobMapCard(query: job.place, exact: job.acceptedAt != nil && job.address != nil)

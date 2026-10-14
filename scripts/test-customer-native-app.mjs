@@ -445,6 +445,14 @@ const app = Object.values(customer).join('\n');
   assert.match(booking, /Button\("Edit order"\) \{ editingOrder = true \}/, 'the review step opens the order');
   assert.match(read('api/booking/track.js'), /details: booking\.details \|\| null/, 'the booking returns the customer their own notes');
   assert.match(customer['CustomerViews.swift'], /CustomerBlock\(title: "Your notes for the pro"\)/);
+  // Owner, 2026-10-14: "in job review notes doesn't show", then a two-sided audit. The review
+  // step shows the notes and who is booking; a return visit shows in both apps.
+  assert.match(booking, /CustomerBlock\(title: "Notes for your pro"\)[\s\S]{0,1600}flow\.backToDetails\(\)/, 'the review step shows the notes, with a way back to change them');
+  assert.match(booking, /systemImage: "person"\)/, 'the review step shows the name and phone');
+  assert.match(customer['CustomerModels.swift'], /returnVisit = c\.bool\("return_visit_required"\)/);
+  assert.match(customer['CustomerViews.swift'], /CustomerBlock\(title: "Return visit"\)/, 'the customer sees the return visit, as track.html shows it');
+  assert.match(easer['EaserModels.swift'], /returnVisitRemaining = c\.string\("return_visit_remaining_scope"\)/);
+  assert.match(easer['EaserViews.swift'], /DetailBlock\(title: "Return visit"\)/, 'the Easer sees when to go back and what is left');
   const home = customer['CustomerHome.swift'];
   const tile = home.slice(home.indexOf('private struct ServiceTile'), home.indexOf('private struct TrustRow'));
   assert.match(tile, /\.frame\(height: 150\)[\s\S]*\.overlay[\s\S]*scaledToFill\(\)[\s\S]*\.clipShape\(/, 'a tile photo fills a fixed card and is clipped there, so it cannot cover the tile beside it');
@@ -459,6 +467,31 @@ const app = Object.values(customer).join('\n');
   assert.match(read('api/customer/account.js'), /STAFF_ROLES\.has/, "an Easer's account is never deleted from the customer app");
   assert.match(views, /\.textContentType\(\.oneTimeCode\)/, 'the code fills from the email suggestion');
   assert.doesNotMatch(app, /SecureField|signIn\(email: [^,]+, password/, 'no password to remember');
+
+  // Owner, 2026-10-14, before App Review: the privacy manifest names every kind of
+  // data the booking takes, and the App Store rating ask follows any rating.
+  const manifest = read('mobile/ios/Customer/Support/PrivacyInfo.xcprivacy');
+  for (const type of ['EmailAddress', 'Name', 'PhoneNumber', 'PhysicalAddress', 'PhotosorVideos', 'OtherUserContent', 'PurchaseHistory', 'PaymentInfo', 'UserID', 'DeviceID']) {
+    assert.ok(manifest.includes('NSPrivacyCollectedDataType' + type + '<'), `the privacy manifest declares ${type}`);
+  }
+  assert.doesNotMatch(manifest, /<key>NSPrivacyTracking<\/key>\s*<true\/>/, 'no tracking');
+  const rating = views.slice(views.indexOf('private struct RatingCard'), views.indexOf('private struct ActionTile'));
+  assert.match(rating, /@Environment\(\\\.requestReview\)/, "Apple's rating sheet, not a custom one");
+  assert.doesNotMatch(rating, /if [^\n]*stars\s*>=?\s*[3-5][^\n]*\{[^}]*requestReview\(\)/, 'the App Store ask never depends on the stars given');
+
+  // Browse first (5.1.1(v)): Home, services and prices open without an account;
+  // sign-in is asked at Continue after the time is picked, and on Activity and Account.
+  const appFile = customer['CustomerApp.swift'];
+  assert.match(appFile, /case \.signedOut, \.signedIn:\s*\n(?:\s*\/\/[^\n]*\n)*\s*CustomerTabsView\(\)/, 'a signed-out customer lands on Home, not a sign-in wall');
+  assert.match(appFile, /if store\.phase == \.signedIn \{\s*ActivityView\(\)\s*\} else \{\s*CustomerSignInView\(/, 'Activity asks for sign-in when signed out');
+  assert.match(appFile, /if store\.phase == \.signedIn \{\s*CustomerAccountView\(\)\s*\} else \{\s*CustomerSignInView\(/, 'Account asks for sign-in when signed out');
+  const booking = customer['CustomerBooking.swift'];
+  const schedule = booking.slice(booking.indexOf('private struct ScheduleStepView'), booking.indexOf('private struct DetailsStepView'));
+  assert.match(schedule, /if store\.phase == \.signedIn \{\s*flow\.path\.append\(\.details\)\s*\} else \{\s*signingIn = true/, 'the details step, which uses the account email, is reached only signed in');
+  assert.match(schedule, /onChange\(of: store\.phase\)[\s\S]*?flow\.path\.append\(\.details\)/, 'signing in carries straight on to the details step');
+  assert.match(customer['CustomerStore.swift'], /phase = \.signedOut\s*\n\s*offer = await api\.currentOffer\(\)/, 'a guest sees the current offer');
+  assert.match(customer['CustomerAPI.swift'], /func catalog\(\)[\s\S]{0,120}publicCall\("GET", "\/api\/booking\/catalog"\)/, 'the catalog needs no account');
+  assert.match(customer['CustomerAPI.swift'], /publicCall\("POST", "\/api\/booking\/promo-preview"/, 'the price check needs no account');
 }
 
 console.log('PASS customer native app: separate app with its own bundle ID and workflow, shared code compiled by both, every endpoint and field matches the server, prices and permissions from the server, in-app account deletion.');

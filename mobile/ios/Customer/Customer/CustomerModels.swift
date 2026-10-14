@@ -158,6 +158,15 @@ struct BookingDetail: Decodable {
     let city: String?
     /// What the customer wrote for the pro when booking (bookings.details).
     let notes: String?
+    /// A second visit to finish the job (track.js return_visit_*).
+    let returnVisit: Bool
+    let returnVisitDate: String?
+    let returnVisitTime: String?
+    let workCompleted: String?
+    let workRemaining: String?
+    var returnVisitWhen: String {
+        [Format.day(returnVisitDate), returnVisitTime].compactMap { $0 }.joined(separator: " · ")
+    }
     let proFirstName: String?
     let proPhoto: String?
     let proRating: Double?
@@ -198,6 +207,11 @@ struct BookingDetail: Decodable {
         time = c.string("time")
         address = c.string("address")
         notes = c.string("details")
+        returnVisit = c.bool("return_visit_required") ?? false
+        returnVisitDate = c.string("return_visit_date")
+        returnVisitTime = c.string("return_visit_time")
+        workCompleted = c.string("work_completed")
+        workRemaining = c.string("work_remaining")
         city = c.string("city")
         proFirstName = c.string("pro_first_name")
         proPhoto = c.string("pro_photo")

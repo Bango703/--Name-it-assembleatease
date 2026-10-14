@@ -1,10 +1,15 @@
 import SwiftUI
 import PhotosUI
+import StoreKit
 
 // MARK: - Sign in
 
 /// Email, then the 6-digit code we email. No sign-in secret to remember.
 struct CustomerSignInView: View {
+    /// The line under the name before a code is sent.
+    var message: String? = nil
+    /// False on a tab, so switching to it does not raise the keyboard.
+    var autoFocus = true
     @EnvironmentObject private var store: CustomerStore
     @Environment(\.openURL) private var openURL
     @State private var email = ""
@@ -22,7 +27,7 @@ struct CustomerSignInView: View {
                 BrandLogo(size: 84).padding(.top, 48)
                 VStack(spacing: 6) {
                     Text("AssembleAtEase").font(.title.bold())
-                    Text(codeSent ? "Enter the code we sent to \(cleanEmail)." : "Sign in with the email you book with.")
+                    Text(codeSent ? "Enter the code we sent to \(cleanEmail)." : (message ?? "Sign in with the email you book with."))
                         .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
 
@@ -89,7 +94,7 @@ struct CustomerSignInView: View {
             .padding(24)
         }
         .scrollDismissesKeyboard(.interactively)
-        .onAppear { focused = true }
+        .onAppear { if autoFocus { focused = true } }
     }
 
     private var canSubmit: Bool {
@@ -321,6 +326,27 @@ struct BookingDetailView: View {
                     if !detail.isPast { actionBar(detail) }
                     if let proposal = detail.proposal { proposalCard(detail, proposal) }
                     if detail.proFirstName != nil { proCard(detail) }
+                    if detail.returnVisit {
+                        CustomerBlock(title: "Return visit") {
+                            if !detail.returnVisitWhen.isEmpty {
+                                Label(detail.returnVisitWhen, systemImage: "calendar")
+                            } else {
+                                Text("AssembleAtEase will confirm the day with you.").font(.subheadline).foregroundStyle(.secondary)
+                            }
+                            if let done = detail.workCompleted, !done.isEmpty {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Done").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                    Text(done).font(.subheadline)
+                                }
+                            }
+                            if let left = detail.workRemaining, !left.isEmpty {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Still to do").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                    Text(left).font(.subheadline)
+                                }
+                            }
+                        }
+                    }
                     if let notes = detail.notes?.trimmingCharacters(in: .whitespacesAndNewlines), !notes.isEmpty {
                         CustomerBlock(title: "Your notes for the pro") {
                             Text(notes).font(.subheadline).textSelection(.enabled)
@@ -733,6 +759,7 @@ private struct RatingCard: View {
     let given: Int?
     let done: () async -> Void
     @EnvironmentObject private var store: CustomerStore
+    @Environment(\.requestReview) private var requestReview
     @State private var stars = 0
     @State private var words = ""
     @State private var sending = false
@@ -792,7 +819,12 @@ private struct RatingCard: View {
         let sent = await store.perform("Thanks. Your rating is in.") {
             try await store.api.review(ref: ref, rating: stars, body: text)
         }
-        if sent { await done() }
+        if sent {
+            await done()
+            // Apple's own rating sheet, after any rating (never only after good ones).
+            // iOS decides whether it shows, at most three times a year.
+            requestReview()
+        }
     }
 }
 
