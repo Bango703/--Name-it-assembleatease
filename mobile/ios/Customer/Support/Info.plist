@@ -49,7 +49,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Scan a card to fill in its number.</string>
 	<key>AAEApplePayMerchantID</key>
-	<string></string>
+	<string>merchant.com.assembleatease</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>FirebaseAppDelegateProxyEnabled</key>
