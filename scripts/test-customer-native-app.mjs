@@ -412,6 +412,11 @@ const app = Object.values(customer).join('\n');
   assert.match(read('api/customer/inbox.js'), /message_recipient: customerMessageRecipient\(booking\)/, 'the inbox names who a reply goes to');
   assert.match(customer['CustomerModels.swift'], /messageRecipient = c\.string\("message_recipient"\)/);
   assert.match(views, /conversation\.messageRecipient == "pro"/, 'an inbox conversation is titled with its real recipient');
+  // A bundle booked in the app counts as that bundle in the owner's reporting, as on the website.
+  const booking = customer['CustomerBooking.swift'];
+  assert.match(booking, /bundleSlug = bundle\.slug/, 'adding a bundle remembers which one');
+  assert.match(booking, /order\["bundleSlug"\] = bundleSlug \?\? ""/, 'the booking carries the bundle');
+  assert.match(read('book.html'), /bundleSlug: BOOK\.bundleSlug \|\| ''/, 'the website sends the same field');
   const home = customer['CustomerHome.swift'];
   const tile = home.slice(home.indexOf('private struct ServiceTile'), home.indexOf('private struct TrustRow'));
   assert.match(tile, /\.frame\(height: 150\)[\s\S]*\.overlay[\s\S]*scaledToFill\(\)[\s\S]*\.clipShape\(/, 'a tile photo fills a fixed card and is clipped there, so it cannot cover the tile beside it');
