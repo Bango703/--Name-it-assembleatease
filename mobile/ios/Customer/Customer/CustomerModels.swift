@@ -171,6 +171,11 @@ struct BookingDetail: Decodable {
     let windowDays: Int
     let payment: PaymentSummary?
     let progress: BookingProgress?
+    /// Decided by the server (track.js review): a completed job can be rated once.
+    let canReview: Bool
+    let myRating: Int?
+    /// Extra work the pro asked for, waiting on this customer (track.js change_orders).
+    let changeOrders: [ChangeOrder]
 
     /// Finished bookings show no change buttons and a quieter card.
     var isPast: Bool { ["completed", "cancelled", "declined", "refunded"].contains(status) }
@@ -207,6 +212,10 @@ struct BookingDetail: Decodable {
         windowDays = Int(options?.number("window_days") ?? 0)
         canReschedule = c.bool("can_reschedule") ?? false
         progress = try? c.decodeIfPresent(BookingProgress.self, forKey: DynamicKey("customer_progress"))
+        let review = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("review"))
+        canReview = review?.bool("can_review") ?? false
+        myRating = review?.number("rating").map { Int($0) }
+        changeOrders = (try? c.decodeIfPresent([ChangeOrder].self, forKey: DynamicKey("change_orders"))) ?? []
     }
 
     var when: String {
@@ -518,5 +527,65 @@ struct InboxEnvelope: Decodable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         conversations = (try? c.decodeIfPresent([InboxConversation].self, forKey: DynamicKey("conversations"))) ?? []
+    }
+}
+
+/// Extra work waiting for the customer's answer (api/booking/change-order-approve.js).
+struct ChangeOrder: Decodable, Identifiable, Hashable {
+    let id: String
+    let summary: String
+    let subtotalCents: Double
+    let taxCents: Double
+    let totalCents: Double
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id") ?? ""
+        summary = c.string("description") ?? "Additional work"
+        subtotalCents = c.number("subtotal_cents") ?? 0
+        taxCents = c.number("tax_cents") ?? 0
+        totalCents = c.number("total_cents") ?? 0
+    }
+}
+
+/// Whether and how this job can be tipped (api/booking/tip.js quote).
+struct TipQuote: Decodable {
+    let easerFirstName: String
+    let canReceive: Bool
+    let alreadyTippedCents: Double?
+    let reason: String?
+    let minCents: Double
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        easerFirstName = c.string("easerFirstName") ?? "your pro"
+        canReceive = c.bool("canReceive") ?? false
+        let already = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("alreadyTipped"))
+        alreadyTippedCents = already?.number("amountCents")
+        reason = c.string("reason")
+        minCents = c.number("minCents") ?? 100
+    }
+}
+
+struct TipStart: Decodable {
+    let clientSecret: String
+    let stripeAccount: String
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        clientSecret = c.string("clientSecret") ?? ""
+        stripeAccount = c.string("stripeAccount") ?? ""
+    }
+}
+
+/// The server's answer to approve or decline: its own words, shown as written.
+struct ServerVerdict: Decodable {
+    let ok: Bool
+    let message: String
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        ok = c.bool("ok") ?? false
+        message = c.string("message") ?? ""
     }
 }

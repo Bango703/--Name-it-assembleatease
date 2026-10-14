@@ -8,6 +8,7 @@ import {
   CHANGE_ORDER_STATUS,
   CHANGE_ORDER_APPROVAL_TTL_MS,
 } from './_change-orders.js';
+import { notifyCustomerApp } from '../_customer-push.js';
 
 const SITE = process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com';
 
@@ -91,6 +92,8 @@ export async function createChangeOrderRequest(sb, { booking, description: clean
       disableDedupe: true,
     },
   });
+
+  await notifyCustomerApp(sb, booking.id, 'extra_work', { description: `${cleanDescription} (${money(priced.totalCents)})` });
 
   return { ok: true, created, priced, expiresAt, emailResult };
 }

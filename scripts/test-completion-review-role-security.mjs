@@ -155,7 +155,10 @@ const manualReviewRequest = read('api/review-request.js');
 const cronReviewRequest = read('api/cron/review-request.js');
 const reviewPage = read('review.html');
 assert.match(reviewApi, /verifyReviewToken\(token/);
-assert.match(reviewApi, /if \(!token\)/);
+// A review needs the emailed token, or the customer app's session on a booking it owns.
+assert.match(reviewApi, /if \(!token && !viaApp\)/);
+assert.match(reviewApi, /if \(viaApp\) \{\s*if \(!customerOwnsBooking\(booking, appCustomer\)\)/);
+assert.match(reviewApi, /if \(!viaApp && !verifyReviewToken\(token/);
 assert.doesNotMatch(reviewApi, /detail:\s*error\.message/);
 assert.match(manualReviewRequest, /issueReviewToken/);
 assert.match(manualReviewRequest, /token=\$\{encodeURIComponent\(reviewToken\)\}/);

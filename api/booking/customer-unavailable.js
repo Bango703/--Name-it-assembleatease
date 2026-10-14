@@ -7,6 +7,7 @@ import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer
 import { createOperationCase, OPERATION_CASE_SOURCES } from '../_operation-cases.js';
 import { logActivity } from './_activity.js';
 import { EASER_SUPPORT_TYPES, CUSTOMER_WAIT_MINUTES, customerUnavailableState } from './_easer-support.js';
+import { notifyCustomerApp } from '../_customer-push.js';
 
 const SITE = 'https://www.assembleatease.com';
 const SUPPORT_PHONE_DISPLAY = '979-232-5139';
@@ -101,6 +102,8 @@ export default async function handler(req, res) {
         meta: { bookingId: booking.id, notificationType: 'customer_unavailable_notice', recipientType: 'customer', disableDedupe: true },
       }).catch(error => ({ ok: false, error: error?.message || String(error) })) : Promise.resolve({ ok: false, skipped: 'no_email' }),
     ]);
+
+    await notifyCustomerApp(sb, booking.id, 'not_home');
 
     // The clock the Easer sees is the stored one, so the no-show check agrees with it.
     const { data: stored } = await loadHistory();

@@ -71,6 +71,33 @@ final class CustomerAPI: APIClient {
         try await call("POST", "/api/booking/time-proposal", body: ["action": "decline", "ref": ref, "proposalId": proposalID])
     }
 
+    /// A rating for a completed job (api/review.js, the same review the emailed link leaves).
+    func review(ref: String, rating: Int, body: String) async throws {
+        try await call("POST", "/api/review", body: ["ref": ref, "rating": rating, "body": body])
+    }
+
+    /// Approve or decline extra work. The server's own words come back either way.
+    func answerChangeOrder(id: String, approve: Bool) async throws -> ServerVerdict {
+        let data = try await call("POST", "/api/booking/change-order-approve", body: [
+            "changeOrderId": id, "decision": approve ? "approve" : "decline",
+        ])
+        return try JSONDecoder().decode(ServerVerdict.self, from: data)
+    }
+
+    func tipQuote(ref: String) async throws -> TipQuote {
+        let data = try await call("POST", "/api/booking/tip", body: ["ref": ref, "action": "quote"])
+        return try JSONDecoder().decode(TipQuote.self, from: data)
+    }
+
+    func startTip(ref: String, cents: Int) async throws -> TipStart {
+        let data = try await call("POST", "/api/booking/tip", body: ["ref": ref, "action": "send", "amountCents": cents])
+        return try JSONDecoder().decode(TipStart.self, from: data)
+    }
+
+    func finishTip(ref: String, succeeded: Bool) async throws {
+        try await call("POST", "/api/booking/tip", body: ["ref": ref, "action": succeeded ? "confirm" : "fail"])
+    }
+
     func cancel(ref: String) async throws {
         try await call("POST", "/api/booking/guest-cancel", body: ["ref": ref])
     }

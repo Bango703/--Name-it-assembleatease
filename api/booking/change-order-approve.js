@@ -5,10 +5,16 @@ import { sha256 } from '../_payment-security.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
 import { logActivity } from './_activity.js';
 import { CHANGE_ORDER_STATUS, changeOrderEligibility } from './_change-orders.js';
+import { customerAccountUser, usesCustomerAccount } from './_customer-access.js';
+import { customerOwnsBooking } from './_customer-booking-auth.js';
+import { sendPushToUser } from '../_push.js';
 
 /**
  * GET  /api/booking/change-order-approve?token=…  — the customer's approval page
  * POST /api/booking/change-order-approve          — they clicked Approve
+ * POST with { changeOrderId, decision } and the customer app's signed-in session
+ *      — the same approval from the app, answered as JSON instead of a page.
+ *      Everything after identifying the request is the same code.
  *
  * This is the only place a change order becomes money. It authorizes the extra
  * amount on the card already saved against the booking, with manual capture, so
@@ -25,39 +31,54 @@ export default async function handler(req, res) {
   res.setHeader('Referrer-Policy', 'no-referrer');
 
   const token = String((req.query?.token ?? req.body?.token) || '');
-  if (!token) return respondPage(res, 400, 'Missing link', 'This approval link is incomplete. Use the button in your email.');
+  const viaApp = !token && usesCustomerAccount(req);
+  // The email link gets a page; the app gets the same words as JSON.
+  const reply = (status, title, message) => (viaApp
+    ? res.status(status).json({ ok: status < 300, title, message })
+    : respondPage(res, status, title, message));
+  if (!token && !viaApp) return reply(400, 'Missing link', 'This approval link is incomplete. Use the button in your email.');
 
   const sb = getSupabase();
-  const tokenHash = sha256(token);
+  const tokenHash = token ? sha256(token) : null;
+  const appCustomer = viaApp ? await customerAccountUser(sb, req) : null;
+  if (viaApp && !appCustomer) return res.status(401).json({ ok: false, title: 'Sign in again', message: 'Sign in again to answer this request.' });
+  if (viaApp && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { data: changeOrder } = await sb
+  let changeOrderQuery = sb
     .from('booking_change_orders')
-    .select('id, booking_id, description, subtotal_cents, tax_cents, total_cents, status, approval_expires_at, approved_at, stripe_payment_intent_id')
-    .eq('approval_token_hash', tokenHash)
-    .maybeSingle();
+    .select('id, booking_id, description, subtotal_cents, tax_cents, total_cents, status, approval_expires_at, approved_at, stripe_payment_intent_id, approval_token_hash');
+  changeOrderQuery = viaApp
+    ? changeOrderQuery.eq('id', String(req.body?.changeOrderId || ''))
+    : changeOrderQuery.eq('approval_token_hash', tokenHash);
+  const { data: changeOrder } = viaApp && !/^[0-9a-f-]{36}$/i.test(String(req.body?.changeOrderId || ''))
+    ? { data: null }
+    : await changeOrderQuery.maybeSingle();
 
   if (!changeOrder) {
-    return respondPage(res, 404, 'Link not valid', 'This approval link is invalid or has already been used. If you still need to approve additional work, ask us to resend it.');
+    return reply(404, 'Link not valid', 'This approval link is invalid or has already been used. If you still need to approve additional work, ask us to resend it.');
   }
   if (changeOrder.status === CHANGE_ORDER_STATUS.VOIDED) {
-    return respondPage(res, 409, 'Withdrawn', 'This request for additional work was withdrawn. Nothing has been charged.');
+    return reply(409, 'Withdrawn', 'This request for additional work was withdrawn. Nothing has been charged.');
   }
   if (changeOrder.status === CHANGE_ORDER_STATUS.DECLINED) {
-    return respondPage(res, 409, 'Already declined', 'You previously declined this additional work. Nothing has been charged.');
+    return reply(409, 'Already declined', 'You previously declined this additional work. Nothing has been charged.');
   }
   if ([CHANGE_ORDER_STATUS.AUTHORIZED, CHANGE_ORDER_STATUS.CAPTURED].includes(changeOrder.status)) {
-    return respondPage(res, 200, 'Already approved', `You approved this additional work${changeOrder.approved_at ? ' on ' + new Date(changeOrder.approved_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : ''}. Nothing further is needed — it is charged with the job when the work is finished.`);
+    return reply(200, 'Already approved', `You approved this additional work${changeOrder.approved_at ? ' on ' + new Date(changeOrder.approved_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : ''}. Nothing further is needed — it is charged with the job when the work is finished.`);
   }
   if (changeOrder.approval_expires_at && new Date(changeOrder.approval_expires_at).getTime() <= Date.now()) {
-    return respondPage(res, 410, 'Link expired', 'This approval link has expired and nothing was charged. Contact us and we will send a new one.');
+    return reply(410, 'Link expired', 'This approval link has expired and nothing was charged. Contact us and we will send a new one.');
   }
 
   const { data: booking } = await sb
     .from('bookings')
-    .select('id, ref, service, status, customer_name, customer_email, total_price, payment_method_type, stripe_customer_id, stripe_payment_method_id, stripe_dispute_id, financial_operation_key, financial_operation_type, financial_operation_started_at')
+    .select('id, ref, service, status, assembler_id, customer_id, customer_name, customer_email, total_price, payment_method_type, stripe_customer_id, stripe_payment_method_id, stripe_dispute_id, financial_operation_key, financial_operation_type, financial_operation_started_at')
     .eq('id', changeOrder.booking_id)
     .maybeSingle();
-  if (!booking) return respondPage(res, 404, 'Booking not found', 'We could not find the booking for this request.');
+  if (!booking) return reply(404, 'Booking not found', 'We could not find the booking for this request.');
+  if (viaApp && !customerOwnsBooking(booking, appCustomer)) {
+    return reply(404, 'Booking not found', 'We could not find the booking for this request.');
+  }
 
   // ── GET: show what they are approving ──────────────────────────────────────
   if (req.method === 'GET') {
@@ -92,16 +113,23 @@ export default async function handler(req, res) {
       meta: { bookingId: booking.id, notificationType: 'change_order_declined', recipientType: 'owner', disableDedupe: true },
     }).catch(() => {});
 
-    return respondPage(res, 200, 'Declined', 'Thanks — we have let the team know, and nothing has been charged. Your original booking is unchanged.');
+    if (booking.assembler_id) {
+      await sendPushToUser(booking.assembler_id, {
+        title: 'Extra work declined',
+        body: `The customer declined: ${changeOrder.description}`.slice(0, 140),
+        jobId: booking.id,
+      }, { bookingId: booking.id, notificationType: 'change_order_declined', recipientType: 'easer' }).catch(() => {});
+    }
+    return reply(200, 'Declined', 'Thanks — we have let the team know, and nothing has been charged. Your original booking is unchanged.');
   }
 
   // ── Approve: authorize the extra amount ────────────────────────────────────
   const eligible = changeOrderEligibility(booking);
   if (!eligible.ok) {
-    return respondPage(res, 409, 'Cannot be approved right now', eligible.reason + ' Nothing has been charged.');
+    return reply(409, 'Cannot be approved right now', eligible.reason + ' Nothing has been charged.');
   }
   if (!process.env.STRIPE_SECRET_KEY) {
-    return respondPage(res, 503, 'Temporarily unavailable', 'Payments are unavailable right now. Nothing was charged — please try the link again shortly.');
+    return reply(503, 'Temporarily unavailable', 'Payments are unavailable right now. Nothing was charged — please try the link again shortly.');
   }
 
   // Claim the row FIRST. Two clicks on the same link must never create two
@@ -118,10 +146,10 @@ export default async function handler(req, res) {
     .maybeSingle();
   if (claimErr) {
     console.error('Change order claim error:', claimErr);
-    return respondPage(res, 503, 'Please try again', 'We could not record your approval. Nothing was charged — please use the link again.');
+    return reply(503, 'Please try again', 'We could not record your approval. Nothing was charged — please use the link again.');
   }
   if (!claimed) {
-    return respondPage(res, 200, 'Already approved', 'This additional work is already approved. Nothing further is needed.');
+    return reply(200, 'Already approved', 'This additional work is already approved. Nothing further is needed.');
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -159,7 +187,7 @@ export default async function handler(req, res) {
     // Release the claim so the customer can retry with the same link.
     await sb.from('booking_change_orders').update({
       approved_at: null,
-      approval_token_hash: tokenHash,
+      approval_token_hash: changeOrder.approval_token_hash,
       updated_at: new Date().toISOString(),
     }).eq('id', changeOrder.id).is('stripe_payment_intent_id', null);
 
@@ -173,7 +201,7 @@ export default async function handler(req, res) {
     }).catch(() => {});
 
     console.error('Change order authorization failed:', stripeErr?.message || stripeErr);
-    return respondPage(res, 402, 'Card could not be authorized',
+    return reply(402, 'Card could not be authorized',
       'Your card could not be authorized for the additional amount, so nothing was charged and the extra work was not approved. Your original booking is unaffected. Please contact us and we will sort it out.');
   }
 
@@ -182,7 +210,7 @@ export default async function handler(req, res) {
       stripe_payment_intent_id: pi.id,
       updated_at: new Date().toISOString(),
     }).eq('id', changeOrder.id);
-    return respondPage(res, 409, 'One more step needed',
+    return reply(409, 'One more step needed',
       'Your bank needs to confirm this additional amount. Nothing has been charged yet — please contact us and we will send a secure confirmation link.');
   }
 
@@ -221,7 +249,14 @@ export default async function handler(req, res) {
     meta: { bookingId: booking.id, notificationType: 'change_order_approved', recipientType: 'owner', disableDedupe: true },
   }).catch(() => {});
 
-  return respondPage(res, 200, 'Approved — thank you',
+  if (booking.assembler_id) {
+    await sendPushToUser(booking.assembler_id, {
+      title: 'Extra work approved',
+      body: `${changeOrder.description} (${money(changeOrder.total_cents)}). Go ahead.`.slice(0, 140),
+      jobId: booking.id,
+    }, { bookingId: booking.id, notificationType: 'change_order_approved', recipientType: 'easer' }).catch(() => {});
+  }
+  return reply(200, 'Approved — thank you',
     `The additional work is approved and ${money(changeOrder.total_cents)} is authorized on your card. Nothing is taken until the job is finished, exactly like your original booking total.`);
 }
 

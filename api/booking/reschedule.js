@@ -10,6 +10,7 @@ import { appointmentTimestampMs, parseIsoCalendarDate } from './_appt-date.js';
 import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './_booking-window.js';
 import { customerBookingAccess, usesCustomerAccount } from './_customer-access.js';
 import { matchingProposal, settleProposalsAfterReschedule } from './_time-proposals.js';
+import { sendPushToUser } from '../_push.js';
 
 export const MAX_RESCHEDULES = 2;
 /** The statuses a customer may still move themselves (read by track.js for the button). */
@@ -364,6 +365,11 @@ export default async function handler(req, res) {
         meta: { bookingId: booking.id, notificationType: 'reschedule_easer_reconfirmation', recipientType: 'easer', recipientUserId: booking.assembler_id, disableDedupe: true },
       }).catch(err => ({ ok: false, error: err?.message || String(err) }));
       notifications.push({ recipient: 'easer', ...easerResult });
+      await sendPushToUser(booking.assembler_id, {
+        title: 'Schedule changed',
+        body: `The customer moved ${booking.ref} to ${formatAppointmentDate(date)}, ${time}. Review and accept the new time.`,
+        jobId: booking.id,
+      }, { bookingId: booking.id, notificationType: 'reschedule_easer_reconfirmation', recipientType: 'easer' }).catch(() => {});
     } else {
       notifications.push({ recipient: 'easer', ok: false, error: 'Assigned Easer email is missing' });
     }
@@ -382,6 +388,11 @@ export default async function handler(req, res) {
         meta: { bookingId: booking.id, notificationType: 'easer_time_proposal_accepted', recipientType: 'easer', recipientUserId: booking.assembler_id, disableDedupe: true },
       }).catch(err => ({ ok: false, error: err?.message || String(err) }));
       notifications.push({ recipient: 'easer', ...easerResult });
+      await sendPushToUser(booking.assembler_id, {
+        title: 'New time accepted',
+        body: `The customer accepted ${formatAppointmentDate(date)}, ${normalizedTime} for ${booking.ref}. The job stays yours.`,
+        jobId: booking.id,
+      }, { bookingId: booking.id, notificationType: 'easer_time_proposal_accepted', recipientType: 'easer' }).catch(() => {});
     }
   }
 

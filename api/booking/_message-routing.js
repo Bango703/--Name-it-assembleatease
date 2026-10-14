@@ -6,7 +6,17 @@
 // message.js routes with this and track.js labels the message box with it, so
 // the page never tells the customer one recipient while the server delivers
 // to another.
+//
+// Once the job is finished (completed, cancelled, declined or refunded) the
+// direct line closes and the customer writes to AssembleAtEase, as Uber, Lyft
+// and DoorDash do after a trip. The Easer side already closes there: message.js
+// refuses an Easer-to-customer message once the job is no longer active
+// (evaluateCustomerContactRelease). Without this the customer could still write
+// to the pro, the pro was notified, and the pro's app had nowhere to read it.
+export const FINISHED_BOOKING_STATUSES = Object.freeze(['completed', 'cancelled', 'declined', 'refunded']);
+
 export function customerMessageRecipient(booking) {
+  if (FINISHED_BOOKING_STATUSES.includes(String(booking?.status || ''))) return 'owner';
   return booking?.assembler_id && booking?.assembler_accepted_at ? 'assembler' : 'owner';
 }
 

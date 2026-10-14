@@ -39,6 +39,10 @@ export const NOTIFICATION_COPY = Object.freeze({
 
   // Messages
   owner_message: notice('Message from AssembleAtEase', 'AssembleAtEase sent you a message about this job.', 'job_team_messages', 'Open messages', JOBS),
+  customer_tip: notice('You got a tip', 'A customer tipped you for a job you finished. It goes straight to your account.', 'payouts', 'Open payouts', JOBS),
+  change_order_approved: notice('Extra work approved', 'The customer approved the extra work. Go ahead.', 'job', 'Open job', JOBS),
+  change_order_declined: notice('Extra work declined', 'The customer declined the extra work. Finish the original job.', 'job', 'Open job', JOBS),
+  customer_review: notice('New review', 'A customer rated a job you finished. It is in your Reviews.', 'job', 'Open job', JOBS),
   customer_message: notice('Message from the customer', 'The customer sent you a message about this job.', 'job_customer_messages', 'Open messages', JOBS),
 
   // Money

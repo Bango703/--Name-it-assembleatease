@@ -1011,6 +1011,21 @@ struct JobDetailView: View {
                     }
                 }
 
+                if job.acceptedAt != nil && job.isFinished {
+                    DetailBlock(title: "Messages") {
+                        NavigationLink {
+                            MessagesView(job: job, thread: .customer)
+                        } label: {
+                            Label("Conversation with the customer", systemImage: "bubble.left.and.bubble.right")
+                        }
+                        NavigationLink {
+                            MessagesView(job: job, thread: .team)
+                        } label: {
+                            Label("Message AssembleAtEase", systemImage: "questionmark.bubble")
+                        }
+                    }
+                }
+
                 // The rest of the job: proposed time, customer not here, extra work,
                 // changes, help and the customer rating (owner audit, 2026-10-12).
                 Group {
@@ -2232,6 +2247,17 @@ private struct MessagesView: View {
             }
             .refreshable { await load() }
 
+            if thread == .customer && job.isFinished {
+                VStack(spacing: 8) {
+                    Text("This job is finished. Messages about it go to AssembleAtEase.")
+                        .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    Button("Message AssembleAtEase") { thread = .team }
+                        .font(.subheadline.weight(.semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(12)
+                .background(.bar)
+            } else {
             VStack(spacing: 8) {
                 if let problem {
                     Text(problem).font(.footnote).foregroundStyle(Brand.attention)
@@ -2252,6 +2278,7 @@ private struct MessagesView: View {
             }
             .padding(12)
             .background(.bar)
+            }
         }
         .navigationTitle(thread.title)
         .navigationBarTitleDisplayMode(.inline)

@@ -167,6 +167,8 @@ const commonDeps = (db) => ({
   ownerEmail: () => 'owner@example.com',
   esc: (s) => String(s ?? ''),
   sendSms: async (m) => { sent.texts.push(m); return { ok: true }; },
+  // The customer app's notification (api/_customer-push.js); it never throws in production.
+  notifyCustomerApp: async (_sb, bookingId, event) => { (sent.appPushes ||= []).push({ bookingId, event }); return { sent: 0 }; },
   guestManageUrl: (b) => `https://example.com/track?ref=${b.ref}`,
   BOOKING_STATUS,
   requireAssignedWorkEaser: async () => ({ ok: true, user: { id: EASER } }),
