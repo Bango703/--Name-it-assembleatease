@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // Home: find and book. One search box first (Uber's "Where to?": the sheet
 // fills with the most booked jobs and the services before anything is typed),
@@ -69,7 +70,9 @@ struct HomeView: View {
                                 .padding(.horizontal, -16)
                             }
                         }
-                        TrustRow()
+                        if let season = catalog.season {
+                            SeasonSection(season: season, catalog: catalog)
+                        }
                     } else if let problem = flow.loadProblem {
                         VStack(spacing: 12) {
                             Text(problem).foregroundStyle(.secondary).multilineTextAlignment(.center)
@@ -551,23 +554,79 @@ private struct ServiceTile: View {
     }
 }
 
-private struct TrustRow: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            fact("checkmark.shield.fill", "ID-verified pros")
-            fact("tag.fill", "Flat prices, set before you book")
-            fact("creditcard.fill", "Charged after the job is done")
+/// This time of year's picks, each with its price and an Add button. The server
+/// chooses the season and the items; an item the catalog no longer has is skipped.
+private struct SeasonSection: View {
+    @EnvironmentObject private var flow: BookingFlow
+    let season: CatalogSeason
+    let catalog: BookingCatalog
+
+    private var entries: [(key: CartKey, item: CatalogItem)] {
+        season.items.compactMap { line in
+            guard let item = catalog.service(named: line.service)?.groups.lazy
+                .compactMap({ $0.items.first { $0.name == line.name } }).first else { return nil }
+            return (CartKey(service: line.service, item: line.name), item)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private func fact(_ symbol: String, _ text: String) -> some View {
-        Label {
-            Text(text).font(.subheadline)
-        } icon: {
-            Image(systemName: symbol).foregroundStyle(Brand.skyDark)
+    /// Three show first; the rest open with See all.
+    @State private var expanded = false
+    private let firstShown = 3
+
+    private var symbolName: String {
+        if let name = season.symbol, UIImage(systemName: name) != nil { return name }
+        return "sparkles"
+    }
+
+    var body: some View {
+        let all = entries
+        if !all.isEmpty {
+            let shown = expanded ? all : Array(all.prefix(firstShown))
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    Image(systemName: symbolName)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
+                        .background(Brand.skyDark, in: Circle())
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(season.title).font(.title3.bold())
+                        if let through = season.through, !through.isEmpty {
+                            Text("Through \(through)").font(.subheadline).foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 14)
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
+
+                ForEach(shown, id: \.key) { entry in
+                    Divider()
+                    ItemRow(item: entry.item, quantity: Binding(
+                        get: { flow.quantity(entry.key) },
+                        set: { flow.setQuantity($0, for: entry.key) }
+                    ))
+                    .padding(.vertical, 8)
+                }
+
+                if all.count > firstShown {
+                    Divider()
+                    Button(expanded ? "Show fewer" : "See all \(all.count)") {
+                        withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Brand.skyDark)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                }
+            }
+            .padding(.horizontal, 16)
+            .background(Brand.sky.opacity(0.12), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Brand.sky.opacity(0.35), lineWidth: 1)
+            )
         }
     }
 }

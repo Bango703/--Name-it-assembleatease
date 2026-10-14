@@ -270,6 +270,13 @@ final class BookingFlow: ObservableObject {
         }
     }
 
+    /// Back to the When step from the review, keeping the order and the details.
+    func backToSchedule() {
+        if let index = path.lastIndex(of: .schedule) {
+            path = Array(path.prefix(index + 1))
+        }
+    }
+
     /// "Change items" returns to the last service list in this booking, not to Home.
     /// An order started from a bundle on Home opens its first service.
     func backToItems() {
@@ -974,6 +981,11 @@ private struct ReviewStepView: View {
                     Label([flow.name.trimmingCharacters(in: .whitespaces), Format.phone(flow.phone)]
                             .filter { !$0.isEmpty }.joined(separator: " · "),
                           systemImage: "person")
+                    HStack(spacing: 18) {
+                        Button("Change time") { flow.backToSchedule() }
+                        Button("Change address") { flow.backToDetails() }
+                    }
+                    .font(.subheadline)
                 }
 
                 CustomerBlock(title: "Notes for your pro") {
