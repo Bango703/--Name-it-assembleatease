@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import StoreKit
 
 // MARK: - Sign in
 
@@ -754,6 +755,7 @@ private struct RatingCard: View {
     let given: Int?
     let done: () async -> Void
     @EnvironmentObject private var store: CustomerStore
+    @Environment(\.requestReview) private var requestReview
     @State private var stars = 0
     @State private var words = ""
     @State private var sending = false
@@ -813,7 +815,12 @@ private struct RatingCard: View {
         let sent = await store.perform("Thanks. Your rating is in.") {
             try await store.api.review(ref: ref, rating: stars, body: text)
         }
-        if sent { await done() }
+        if sent {
+            await done()
+            // Apple's own rating sheet, after any rating (never only after good ones).
+            // iOS decides whether it shows, at most three times a year.
+            requestReview()
+        }
     }
 }
 

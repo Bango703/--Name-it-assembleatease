@@ -467,6 +467,17 @@ const app = Object.values(customer).join('\n');
   assert.match(read('api/customer/account.js'), /STAFF_ROLES\.has/, "an Easer's account is never deleted from the customer app");
   assert.match(views, /\.textContentType\(\.oneTimeCode\)/, 'the code fills from the email suggestion');
   assert.doesNotMatch(app, /SecureField|signIn\(email: [^,]+, password/, 'no password to remember');
+
+  // Owner, 2026-10-14, before App Review: the privacy manifest names every kind of
+  // data the booking takes, and the App Store rating ask follows any rating.
+  const manifest = read('mobile/ios/Customer/Support/PrivacyInfo.xcprivacy');
+  for (const type of ['EmailAddress', 'Name', 'PhoneNumber', 'PhysicalAddress', 'PhotosorVideos', 'PurchaseHistory', 'UserID']) {
+    assert.ok(manifest.includes('NSPrivacyCollectedDataType' + type + '<'), `the privacy manifest declares ${type}`);
+  }
+  assert.doesNotMatch(manifest, /<key>NSPrivacyTracking<\/key>\s*<true\/>/, 'no tracking');
+  const rating = views.slice(views.indexOf('private struct RatingCard'), views.indexOf('private struct ActionTile'));
+  assert.match(rating, /@Environment\(\\\.requestReview\)/, "Apple's rating sheet, not a custom one");
+  assert.doesNotMatch(rating, /if [^\n]*stars\s*>=?\s*[3-5][^\n]*\{[^}]*requestReview\(\)/, 'the App Store ask never depends on the stars given');
 }
 
 console.log('PASS customer native app: separate app with its own bundle ID and workflow, shared code compiled by both, every endpoint and field matches the server, prices and permissions from the server, in-app account deletion.');
