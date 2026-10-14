@@ -125,9 +125,10 @@ window.AAE_BOOKING_SOURCE = {
   // by today's date in Central time (api/booking/catalog.js activeSeason). Each
   // item is a real {service, name} in `subcategories`, priced exactly as booked;
   // from/to are MM-DD, inclusive. Every day of the year belongs to one season.
+  // symbol is an SF Symbol name the app draws beside the title.
   seasons: [
     {
-      slug: 'new-year-home-gym', title: 'New year, home gym', from: '01-01', to: '02-29',
+      slug: 'new-year-home-gym', title: 'New year, home gym', symbol: 'dumbbell.fill', from: '01-01', to: '02-29',
       items: [
         { service: 'Fitness Equipment', name: 'Treadmill assembly' },
         { service: 'Fitness Equipment', name: 'Exercise bike / Peloton-style bike' },
@@ -137,7 +138,7 @@ window.AAE_BOOKING_SOURCE = {
       ],
     },
     {
-      slug: 'backyard-season', title: 'Backyard season', from: '03-01', to: '05-31',
+      slug: 'backyard-season', title: 'Backyard season', symbol: 'tree.fill', from: '03-01', to: '05-31',
       items: [
         { service: 'Outdoor & Playsets', name: 'Swing set / backyard playset assembly' },
         { service: 'Outdoor & Playsets', name: 'Trampoline assembly (up to 10 ft)' },
@@ -147,7 +148,7 @@ window.AAE_BOOKING_SOURCE = {
       ],
     },
     {
-      slug: 'beat-the-heat', title: 'Beat the heat', from: '06-01', to: '07-14',
+      slug: 'beat-the-heat', title: 'Beat the heat', symbol: 'thermometer.sun.fill', from: '06-01', to: '07-14',
       items: [
         { service: 'Smart Home', name: 'Smart thermostat — Nest, Ecobee, Honeywell' },
         { service: 'Smart Home', name: 'Smart AC controller (window / mini-split)' },
@@ -157,7 +158,7 @@ window.AAE_BOOKING_SOURCE = {
       ],
     },
     {
-      slug: 'back-to-school', title: 'Back to school', from: '07-15', to: '08-31',
+      slug: 'back-to-school', title: 'Back to school', symbol: 'backpack.fill', from: '07-15', to: '08-31',
       items: [
         { service: 'Furniture Assembly', name: 'Home desk (simple, flat-pack)' },
         { service: 'Furniture Assembly', name: 'Home office chair (standard)' },
@@ -167,7 +168,7 @@ window.AAE_BOOKING_SOURCE = {
       ],
     },
     {
-      slug: 'game-day-ready', title: 'Game day ready', from: '09-01', to: '11-14',
+      slug: 'game-day-ready', title: 'Game day ready', symbol: 'football.fill', from: '09-01', to: '11-14',
       items: [
         { service: 'Mounting & Hanging', name: 'TV 56"–65" (standard wall)' },
         { service: 'Mounting & Hanging', name: 'TV 66"–75" (standard wall)' },
@@ -177,7 +178,7 @@ window.AAE_BOOKING_SOURCE = {
       ],
     },
     {
-      slug: 'holiday-gifts', title: 'Holiday gifts, assembled', from: '11-15', to: '12-31',
+      slug: 'holiday-gifts', title: 'Holiday gifts, assembled', symbol: 'gift.fill', from: '11-15', to: '12-31',
       items: [
         { service: 'Outdoor & Playsets', name: 'Swing set / backyard playset assembly' },
         { service: 'Outdoor & Playsets', name: 'Trampoline assembly (up to 10 ft)' },

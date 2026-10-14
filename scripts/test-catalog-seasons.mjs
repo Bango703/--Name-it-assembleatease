@@ -31,6 +31,7 @@ for (const season of seasons) {
   assert.ok(season.title && season.title.length <= 32, `${season.slug} has a short title`);
   assert.match(season.from, /^\d{2}-\d{2}$/);
   assert.match(season.to, /^\d{2}-\d{2}$/);
+  assert.match(season.symbol || '', /^[a-z0-9.]+$/, `${season.slug} names an SF Symbol`);
   assert.ok(season.items.length >= 3 && season.items.length <= 6, `${season.slug} has 3 to 6 picks`);
   const keys = season.items.map(line => `${line.service}|${line.name}`);
   assert.equal(new Set(keys).size, keys.length, `${season.slug} repeats no item`);
@@ -56,5 +57,8 @@ assert.equal(activeSeason(catalog, new Date('2027-01-01T03:00:00Z')).slug, activ
 const today = activeSeason(catalog, new Date('2026-10-14T18:00:00Z'));
 assert.ok(today && today.title && today.items.length, 'a season is always sent');
 assert.deepEqual(Object.keys(today.items[0]).sort(), ['name', 'service'], 'items are references; the price comes from the catalog');
+assert.equal(today.through, 'Nov 14', 'the end date is worded for the customer');
+assert.equal(activeSeason(catalog, new Date('2027-02-10T18:00:00Z')).through, 'Feb 28', 'no Feb 29 in a year without one');
+assert.equal(activeSeason(catalog, new Date('2028-02-10T18:00:00Z')).through, 'Feb 29');
 
 console.log(`PASS catalog seasons: ${seasons.length} seasons cover every day once, every pick is a bookable item, none repeats a bundle, Central time decides the day.`);

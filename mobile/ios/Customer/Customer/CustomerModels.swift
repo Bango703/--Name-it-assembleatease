@@ -371,12 +371,18 @@ struct CatalogBundle: Decodable, Hashable, Identifiable {
 struct CatalogSeason: Decodable, Hashable {
     let slug: String
     let title: String
+    /// An SF Symbol name; the app checks it exists before drawing it.
+    let symbol: String?
+    /// The season's last day, as the server words it ("Nov 14").
+    let through: String?
     let items: [BundleLine]
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         slug = c.string("slug") ?? ""
         title = c.string("title") ?? ""
+        symbol = c.string("symbol")
+        through = c.string("through")
         items = (try? c.decodeIfPresent([BundleLine].self, forKey: DynamicKey("items"))) ?? []
     }
 }
