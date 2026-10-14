@@ -121,60 +121,123 @@ struct CustomerSignInView: View {
     }
 }
 
-// MARK: - Bookings
+// MARK: - Activity
 
 struct BookingRef: Hashable { let ref: String }
 
-struct BookingsView: View {
+/// Activity: everything already booked, and every conversation about it.
+/// Home finds and books; this tab follows what was booked. Nothing here repeats Home.
+struct ActivityView: View {
+    enum Segment: Hashable { case upcoming, past, messages }
+
     @EnvironmentObject private var store: CustomerStore
+    @EnvironmentObject private var flow: BookingFlow
     @State private var path: [BookingRef] = []
+    @State private var segment: Segment = .upcoming
+    @State private var rebooking: String?
 
     var body: some View {
         NavigationStack(path: $path) {
             List {
+                Section {
+                    Picker("Show", selection: $segment) {
+                        Text("Upcoming").tag(Segment.upcoming)
+                        Text("Past").tag(Segment.past)
+                        Text(store.unreadCount > 0 ? "Messages (\(store.unreadCount))" : "Messages").tag(Segment.messages)
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                }
+
                 if let problem = store.loadProblem, store.bookings.isEmpty {
                     Text(problem).foregroundStyle(.secondary)
                 }
-                if store.loadedOnce && store.bookings.isEmpty && store.loadProblem == nil {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("No bookings yet").font(.headline)
-                        Text("Bookings made with \(store.email ?? "your email") show up here, including ones made on the website.")
-                            .font(.subheadline).foregroundStyle(.secondary)
-                        Button("Book a service") { store.tab = .services }
-                            .buttonStyle(PrimaryButtonStyle())
+
+                switch segment {
+                case .upcoming:
+                    if store.loadedOnce && store.upcoming.isEmpty {
+                        emptyState("No upcoming visits", "calendar", "Book a service and it shows up here.")
                     }
-                    .padding(.vertical, 8)
-                }
-                if !store.upcoming.isEmpty {
-                    Section("Upcoming") {
-                        ForEach(store.upcoming) { booking in
-                            NavigationLink(value: BookingRef(ref: booking.ref)) { BookingRow(booking: booking) }
-                        }
+                    ForEach(store.upcoming) { booking in
+                        NavigationLink(value: BookingRef(ref: booking.ref)) { BookingRow(booking: booking) }
                     }
-                }
-                if !store.past.isEmpty {
-                    Section("Past") {
-                        ForEach(store.past) { booking in
-                            NavigationLink(value: BookingRef(ref: booking.ref)) { BookingRow(booking: booking) }
+                case .past:
+                    if store.loadedOnce && store.past.isEmpty {
+                        emptyState("No past visits", "clock.arrow.circlepath", "Finished and cancelled bookings show up here.")
+                    }
+                    ForEach(store.past) { booking in
+                        NavigationLink(value: BookingRef(ref: booking.ref)) { BookingRow(booking: booking) }
+                            .swipeActions(edge: .trailing) {
+                                if booking.isCompleted {
+                                    Button { Task { await rebook(booking) } } label: { Label("Book again", systemImage: "arrow.clockwise") }
+                                        .tint(Brand.skyDark)
+                                }
+                            }
+                    }
+                case .messages:
+                    if store.loadedOnce && store.conversations.isEmpty {
+                        emptyState("No messages yet", "bubble.left.and.bubble.right", "Messages with your pro and with AssembleAtEase show up here.")
+                    }
+                    ForEach(store.conversations) { conversation in
+                        NavigationLink {
+                            CustomerMessagesView(ref: conversation.ref, recipient: conversation.proFirstName ?? "AssembleAtEase")
+                        } label: {
+                            ConversationRow(conversation: conversation)
                         }
                     }
                 }
             }
-            .navigationTitle("Bookings")
+            .navigationTitle("Activity")
             .navigationDestination(for: BookingRef.self) { BookingDetailView(ref: $0.ref) }
             .refreshable { await store.refresh() }
             .overlay {
                 if !store.loadedOnce { ProgressView() }
+            }
+            .onChange(of: segment) { _, value in
+                if value == .messages { Task { await store.refreshInbox() } }
             }
         }
         .onAppear(perform: openRequested)
         .onChange(of: store.openRef) { _, _ in openRequested() }
     }
 
+    private func emptyState(_ title: String, _ symbol: String, _ detail: String) -> some View {
+        ContentUnavailableView {
+            Label(title, systemImage: symbol)
+        } description: {
+            Text(detail)
+        } actions: {
+            if segment != .messages {
+                Button("Find a service") { store.tab = .home }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Brand.skyDark)
+            }
+        }
+        .listRowBackground(Color.clear)
+    }
+
     private func openRequested() {
         guard let ref = store.openRef else { return }
         store.openRef = nil
+        segment = .upcoming
         path = [BookingRef(ref: ref)]
+    }
+
+    private func rebook(_ job: BookingSummary) async {
+        rebooking = job.ref
+        defer { rebooking = nil }
+        do {
+            let found = try await store.api.booking(ref: job.ref)
+            if flow.catalog == nil { await flow.load() }
+            if flow.rebook(found.items) > 0 {
+                store.continueBooking()
+            } else {
+                store.banner = CustomerBanner(text: "Those items are no longer offered. Pick from Home.", kind: .problem)
+            }
+        } catch {
+            store.banner = CustomerBanner(text: error.localizedDescription, kind: .problem)
+        }
     }
 }
 
@@ -249,7 +312,7 @@ struct BookingDetailView: View {
                             if store.flow.rebook(detail.items) > 0 {
                                 store.continueBooking()
                             } else {
-                                store.banner = CustomerBanner(text: "Those items are no longer offered. Pick from Services.", kind: .problem)
+                                store.banner = CustomerBanner(text: "Those items are no longer offered. Pick from Home.", kind: .problem)
                             }
                         } label: {
                             Label("Book this again", systemImage: "arrow.clockwise")
@@ -752,14 +815,14 @@ struct CustomerAccountView: View {
                 }
 
                 Section {
-                    Button { store.tab = .bookings } label: {
+                    Button { store.tab = .activity } label: {
                         HStack {
                             accountRow("calendar", "Upcoming bookings")
                             Spacer()
                             Text("\(store.upcoming.count)").foregroundStyle(.secondary)
                         }
                     }
-                    Button { store.tab = .bookings } label: {
+                    Button { store.tab = .activity } label: {
                         HStack {
                             accountRow("checkmark.circle", "Completed jobs")
                             Spacer()

@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 enum CustomerPhase: Equatable { case launching, signedOut, signedIn }
-enum CustomerTab: Hashable { case home, services, bookings, inbox, account }
+enum CustomerTab: Hashable { case home, activity, account }
 
 struct CustomerBanner: Identifiable, Equatable {
     enum Kind { case success, problem }
@@ -32,7 +32,7 @@ final class CustomerStore: ObservableObject {
     @Published var conversations: [InboxConversation] = []
 
     let api: CustomerAPI
-    /// The order being built on the Services tab.
+    /// The order being built on Home.
     let flow: BookingFlow
     let push: CustomerPush
     private var cache: SnapshotCache?
@@ -56,19 +56,19 @@ final class CustomerStore: ObservableObject {
     }
 
     func open(ref: String) {
-        tab = .bookings
+        tab = .activity
         openRef = ref
     }
 
-    /// Browse a service: the Services tab, opened on it.
+    /// Browse a service: Home, opened on it.
     func browse(_ service: String) {
-        tab = .services
+        tab = .home
         flow.path = [.service(service)]
     }
 
-    /// The order is ready for a time: the Services tab, on the schedule step.
+    /// The order is ready for a time: Home, on the schedule step.
     func continueBooking() {
-        tab = .services
+        tab = .home
         flow.path = [.schedule]
     }
 
@@ -205,9 +205,16 @@ final class CustomerStore: ObservableObject {
 }
 
 extension CustomerStore {
-    /// The next booking that is not finished, soonest first.
-    var nextBooking: BookingSummary? {
-        upcoming.sorted { ($0.date ?? "9999") < ($1.date ?? "9999") }.first
+    /// A visit happening now: the pro is on the way or there, or it is today.
+    /// Home shows it as one line; Activity has the booking.
+    var liveVisit: BookingSummary? {
+        let day = DateFormatter()
+        day.locale = Locale(identifier: "en_US_POSIX")
+        day.timeZone = TimeZone(identifier: "America/Chicago")
+        day.dateFormat = "yyyy-MM-dd"
+        let today = day.string(from: Date())
+        return upcoming.first { ($0.progress?.step ?? 0) >= 2 }
+            ?? upcoming.first { String(($0.date ?? "").prefix(10)) == today }
     }
 
     /// Finished jobs, for Book again.

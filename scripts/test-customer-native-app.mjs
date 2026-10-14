@@ -213,7 +213,16 @@ const app = Object.values(customer).join('\n');
 // basic"). The progress a booking shows is the server's, in the list and when opened. ─
 {
   const appSource = read('mobile/ios/Customer/Customer/CustomerApp.swift');
-  assert.ok(appSource.indexOf('HomeView()') > 0 && appSource.indexOf('HomeView()') < appSource.indexOf('BookingsView()'), 'Home is the first tab');
+  assert.ok(appSource.indexOf('HomeView()') > 0 && appSource.indexOf('HomeView()') < appSource.indexOf('ActivityView()'), 'Home is the first tab');
+  // Three tabs, one job each (owner, 2026-10-14: "home and services double talk"): Home finds
+  // and books, Activity follows what was booked and the messages about it, Account is the person.
+  assert.equal((appSource.match(/\.tabItem \{/g) || []).length, 3, 'three tabs');
+  assert.doesNotMatch(appSource, /ServicesView\(\)|InboxView\(\)|BookingsView\(\)/, 'no second catalog tab, no separate inbox tab');
+  const homeSource = read('mobile/ios/Customer/Customer/CustomerHome.swift');
+  const viewsSource = read('mobile/ios/Customer/Customer/CustomerViews.swift');
+  assert.doesNotMatch(homeSource, /ForEach\(store\.(upcoming|past|bookings)/, 'Home does not list bookings; Activity does');
+  assert.doesNotMatch(viewsSource, /SearchBox|ServicesGrid|BundleCard/, 'Activity and Account do not repeat the catalog');
+  assert.equal((homeSource.match(/SearchBox \{/g) || []).length, 1, 'one search box in the app');
   assert.match(read('mobile/ios/Customer/Customer/CustomerStore.swift'), /@Published var tab: CustomerTab = \.home/, 'the app opens on Home');
   const { customerProgress, CUSTOMER_PROGRESS_STEPS } = await import('../api/booking/_customer-status.js');
   assert.equal(customerProgress({ status: 'confirmed' }).step, 0);
@@ -229,7 +238,7 @@ const app = Object.values(customer).join('\n');
   assert.match(read('api/booking/catalog.js'), /from_cents: fromCents\(groups\)/, '"From $X" comes from the catalog');
   assert.match(customer['CustomerModels.swift'], /"from_cents"/);
   assert.match(customer['CustomerHome.swift'], /TextField\("What do you need help with\?", text: \$query\)/, 'search on Home');
-  assert.match(customer['CustomerHome.swift'], /ProgressTracker\(progress: progress\)/);
+  assert.match(customer['CustomerViews.swift'], /ProgressTracker\(progress: progress\)/, 'the tracker on every upcoming booking and on the booking page');
   assert.doesNotMatch(customer['CustomerHome.swift'], /status == "(en_route|arrived|in_progress)"/, 'the app does not work out the step itself');
 }
 
@@ -276,7 +285,7 @@ const app = Object.values(customer).join('\n');
   const home = customer['CustomerHome.swift'];
   assert.match(home, /SearchBox \{ searching = true \}/);
   assert.match(home, /private var pick: Pick\?/, 'one suggestion, chosen in one place');
-  assert.match(read('mobile/ios/Customer/Customer/CustomerApp.swift'), /ServicesView\(\)[\s\S]*InboxView\(\)/);
+  assert.match(read('mobile/ios/Customer/Customer/CustomerApp.swift'), /HomeView\(\)[\s\S]*ActivityView\(\)[\s\S]*CustomerAccountView\(\)/);
   const project = read('mobile/ios/Customer/project.yml');
   assert.match(project, /CustomerLiveActivity:[\s\S]*PRODUCT_BUNDLE_IDENTIFIER: com\.assembleatease\.customer\.live/, 'the tracker extension shares the app prefix (Codemagic signs com.assembleatease.customer.*)');
   assert.match(project, /product: FirebaseMessaging/);
