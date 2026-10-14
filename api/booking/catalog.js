@@ -54,10 +54,13 @@ export default function handler(req, res) {
       included: (bundle.included || []).map(line => ({ service: line.service, name: line.name })),
     }));
 
+  const season = activeSeason(catalog);
+
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json({
     services,
     bundles,
+    season,
     slots: BOOKING_TIME_SLOTS,
     first_date: window.firstDate,
     last_date: window.lastDate,
@@ -66,6 +69,30 @@ export default function handler(req, res) {
     terms_version: CUSTOMER_TERMS_VERSION,
     privacy_notice_version: PRIVACY_NOTICE_VERSION,
   });
+}
+
+/**
+ * The season whose MM-DD window holds today's date in Central time, with only the
+ * items that exist in the catalog as bookable main items. Null when none matches.
+ */
+export function activeSeason(catalog, now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', month: '2-digit', day: '2-digit' })
+    .formatToParts(now);
+  const today = `${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'day').value}`;
+  const season = (catalog.seasons || []).find(s => s.from <= today && today <= s.to);
+  if (!season) return null;
+  const bookable = new Set();
+  for (const [service, groups] of Object.entries(catalog.subcategories || {})) {
+    for (const group of groups || []) {
+      for (const item of group.items || []) {
+        if (!item.addon && !item.customQuote && Number(item.price) > 0) bookable.add(`${service}|${item.name}`);
+      }
+    }
+  }
+  const items = (season.items || [])
+    .filter(line => bookable.has(`${line.service}|${line.name}`))
+    .map(line => ({ service: line.service, name: line.name }));
+  return items.length ? { slug: season.slug, title: season.title, items } : null;
 }
 
 function fromCents(groups) {

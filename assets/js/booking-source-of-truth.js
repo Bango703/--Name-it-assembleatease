@@ -121,6 +121,72 @@ window.AAE_BOOKING_SOURCE = {
       seoDescription: 'Crib, dresser, and nursery storage assembled and safely anchored in one visit. Flat, upfront pricing and no charge until the job is done.',
     },
   ],
+  // Seasonal picks for the app's Home: one season at a time, chosen on the server
+  // by today's date in Central time (api/booking/catalog.js activeSeason). Each
+  // item is a real {service, name} in `subcategories`, priced exactly as booked;
+  // from/to are MM-DD, inclusive. Every day of the year belongs to one season.
+  seasons: [
+    {
+      slug: 'new-year-home-gym', title: 'New year, home gym', from: '01-01', to: '02-29',
+      items: [
+        { service: 'Fitness Equipment', name: 'Treadmill assembly' },
+        { service: 'Fitness Equipment', name: 'Exercise bike / Peloton-style bike' },
+        { service: 'Fitness Equipment', name: 'Rowing machine' },
+        { service: 'Fitness Equipment', name: 'Weight bench' },
+        { service: 'Fitness Equipment', name: 'Power rack / squat rack' },
+      ],
+    },
+    {
+      slug: 'backyard-season', title: 'Backyard season', from: '03-01', to: '05-31',
+      items: [
+        { service: 'Outdoor & Playsets', name: 'Swing set / backyard playset assembly' },
+        { service: 'Outdoor & Playsets', name: 'Trampoline assembly (up to 10 ft)' },
+        { service: 'Outdoor & Playsets', name: 'Grill (gas / charcoal assembly)' },
+        { service: 'Outdoor & Playsets', name: 'Outdoor dining set (table + 4 chairs)' },
+        { service: 'Outdoor & Playsets', name: 'Patio umbrella + base' },
+      ],
+    },
+    {
+      slug: 'beat-the-heat', title: 'Beat the heat', from: '06-01', to: '07-14',
+      items: [
+        { service: 'Smart Home', name: 'Smart thermostat — Nest, Ecobee, Honeywell' },
+        { service: 'Smart Home', name: 'Smart AC controller (window / mini-split)' },
+        { service: 'Smart Home', name: 'Smart vent install (per vent)' },
+        { service: 'Mounting & Hanging', name: 'Cellular shade / roller shade install (per window)' },
+        { service: 'Mounting & Hanging', name: 'Motorized blind / shade install (per window)' },
+      ],
+    },
+    {
+      slug: 'back-to-school', title: 'Back to school', from: '07-15', to: '08-31',
+      items: [
+        { service: 'Furniture Assembly', name: 'Home desk (simple, flat-pack)' },
+        { service: 'Furniture Assembly', name: 'Home office chair (standard)' },
+        { service: 'Furniture Assembly', name: 'Home bookcase / shelving unit (up to 5 shelves)' },
+        { service: 'Furniture Assembly', name: 'Bunk bed / loft bed' },
+        { service: 'Furniture Assembly', name: 'Bed frame — twin / full' },
+      ],
+    },
+    {
+      slug: 'game-day-ready', title: 'Game day ready', from: '09-01', to: '11-14',
+      items: [
+        { service: 'Mounting & Hanging', name: 'TV 56"–65" (standard wall)' },
+        { service: 'Mounting & Hanging', name: 'TV 66"–75" (standard wall)' },
+        { service: 'Mounting & Hanging', name: 'In-wall cord concealment' },
+        { service: 'Smart Home', name: 'TV streaming device setup (Apple TV, Roku, Fire)' },
+        { service: 'Furniture Assembly', name: 'Bar stool (per 2 stools)' },
+      ],
+    },
+    {
+      slug: 'holiday-gifts', title: 'Holiday gifts, assembled', from: '11-15', to: '12-31',
+      items: [
+        { service: 'Outdoor & Playsets', name: 'Swing set / backyard playset assembly' },
+        { service: 'Outdoor & Playsets', name: 'Trampoline assembly (up to 10 ft)' },
+        { service: 'Outdoor & Playsets', name: 'Basketball hoop assembly (portable)' },
+        { service: 'Fitness Equipment', name: 'Exercise bike / Peloton-style bike' },
+        { service: 'Furniture Assembly', name: 'Bunk bed / loft bed' },
+      ],
+    },
+  ],
   subcategories: {
     'Furniture Assembly': [
       { group: 'Seating & Sofas', items: [

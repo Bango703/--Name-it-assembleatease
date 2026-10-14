@@ -69,7 +69,9 @@ struct HomeView: View {
                                 .padding(.horizontal, -16)
                             }
                         }
-                        TrustRow()
+                        if let season = catalog.season {
+                            SeasonSection(season: season, catalog: catalog)
+                        }
                     } else if let problem = flow.loadProblem {
                         VStack(spacing: 12) {
                             Text(problem).foregroundStyle(.secondary).multilineTextAlignment(.center)
@@ -551,23 +553,38 @@ private struct ServiceTile: View {
     }
 }
 
-private struct TrustRow: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            fact("checkmark.shield.fill", "ID-verified pros")
-            fact("tag.fill", "Flat prices, set before you book")
-            fact("creditcard.fill", "Charged after the job is done")
+/// This time of year's picks, each with its price and an Add button. The server
+/// chooses the season and the items; an item the catalog no longer has is skipped.
+private struct SeasonSection: View {
+    @EnvironmentObject private var flow: BookingFlow
+    let season: CatalogSeason
+    let catalog: BookingCatalog
+
+    private var entries: [(key: CartKey, item: CatalogItem)] {
+        season.items.compactMap { line in
+            guard let item = catalog.service(named: line.service)?.groups.lazy
+                .compactMap({ $0.items.first { $0.name == line.name } }).first else { return nil }
+            return (CartKey(service: line.service, item: line.name), item)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private func fact(_ symbol: String, _ text: String) -> some View {
-        Label {
-            Text(text).font(.subheadline)
-        } icon: {
-            Image(systemName: symbol).foregroundStyle(Brand.skyDark)
+    var body: some View {
+        if !entries.isEmpty {
+            HomeSection(title: season.title) {
+                VStack(spacing: 0) {
+                    ForEach(Array(entries.enumerated()), id: \.element.key) { index, entry in
+                        if index > 0 { Divider() }
+                        ItemRow(item: entry.item, quantity: Binding(
+                            get: { flow.quantity(entry.key) },
+                            set: { flow.setQuantity($0, for: entry.key) }
+                        ))
+                        .padding(.vertical, 8)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
         }
     }
 }

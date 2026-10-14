@@ -104,7 +104,8 @@ assert.match(
 // this kind of check quietly stops matching anything.
 const trampolineTiers = ['up to 10 ft', '11–14 ft', '15 ft+'].map((label) => {
   const needle = `Trampoline assembly (${label})'`;
-  const at = sourceOfTruth.indexOf(needle);
+  // Read the priced catalog itself: seasons and bundles above it name items without prices.
+  const at = sourceOfTruth.indexOf(needle, sourceOfTruth.indexOf('subcategories:'));
   assert.ok(at !== -1, `Trampoline assembly (${label}) must exist in the catalog.`);
   const priced = sourceOfTruth.slice(at, at + needle.length + 40).match(/price:\s*(\d+)/);
   assert.ok(priced, `Trampoline assembly (${label}) must carry a price.`);

@@ -459,8 +459,18 @@ const app = Object.values(customer).join('\n');
   assert.match(easer['EaserModels.swift'], /returnVisitRemaining = c\.string\("return_visit_remaining_scope"\)/);
   assert.match(easer['EaserViews.swift'], /DetailBlock\(title: "Return visit"\)/, 'the Easer sees when to go back and what is left');
   const home = customer['CustomerHome.swift'];
-  const tile = home.slice(home.indexOf('private struct ServiceTile'), home.indexOf('private struct TrustRow'));
+  const tile = home.slice(home.indexOf('private struct ServiceTile'), home.indexOf('private struct SeasonSection'));
   assert.match(tile, /\.frame\(height: 150\)[\s\S]*\.overlay[\s\S]*scaledToFill\(\)[\s\S]*\.clipShape\(/, 'a tile photo fills a fixed card and is clipped there, so it cannot cover the tile beside it');
+
+  // Owner, 2026-10-14: no badge strip ("ID-verified pros / Flat prices") at the bottom
+  // of Home; this time of year's picks instead, chosen by the server, with prices.
+  assert.doesNotMatch(home, /ID-verified pros|Flat prices, set before you book|struct TrustRow/, 'the badge strip is gone');
+  assert.match(home, /if let season = catalog\.season \{\s*SeasonSection\(season: season, catalog: catalog\)/, 'Home shows the season the server chose');
+  const seasonView = home.slice(home.indexOf('private struct SeasonSection'));
+  assert.match(seasonView, /HomeSection\(title: season\.title\)/, 'the title comes from the server');
+  assert.match(seasonView, /ItemRow\(item: entry\.item/, 'each pick shows its catalog price and an Add button');
+  assert.match(customer['CustomerModels.swift'], /season = try\? c\.decodeIfPresent\(CatalogSeason\.self, forKey: DynamicKey\("season"\)\)/);
+  assert.match(read('api/booking/catalog.js'), /\n    season,\n/, 'the catalog sends the season');
 }
 
 // ── 5. App Store basics ──────────────────────────────────────────────────────

@@ -367,9 +367,24 @@ struct CatalogBundle: Decodable, Hashable, Identifiable {
     }
 }
 
+/// This time of year's picks, chosen by the server (api/booking/catalog.js activeSeason).
+struct CatalogSeason: Decodable, Hashable {
+    let slug: String
+    let title: String
+    let items: [BundleLine]
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        slug = c.string("slug") ?? ""
+        title = c.string("title") ?? ""
+        items = (try? c.decodeIfPresent([BundleLine].self, forKey: DynamicKey("items"))) ?? []
+    }
+}
+
 struct BookingCatalog: Decodable {
     let services: [CatalogService]
     let bundles: [CatalogBundle]
+    let season: CatalogSeason?
     let slots: [String]
     let firstDate: String
     let lastDate: String
@@ -382,6 +397,7 @@ struct BookingCatalog: Decodable {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         services = (try? c.decodeIfPresent([CatalogService].self, forKey: DynamicKey("services"))) ?? []
         bundles = (try? c.decodeIfPresent([CatalogBundle].self, forKey: DynamicKey("bundles"))) ?? []
+        season = try? c.decodeIfPresent(CatalogSeason.self, forKey: DynamicKey("season"))
         slots = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("slots"))) ?? []
         firstDate = c.string("first_date") ?? ""
         lastDate = c.string("last_date") ?? ""
