@@ -425,6 +425,11 @@ const app = Object.values(customer).join('\n');
     assert.match(src, /AddressSuggestionList\(search:/, `the ${name} screen fills addresses from Apple Maps`);
   }
   assert.doesNotMatch(app, /\/api\/address\/autocomplete/, 'the app has one address lookup, not two');
+  // A bundle booked in the app counts as that bundle in the owner's reporting, as on the website.
+  const booking = customer['CustomerBooking.swift'];
+  assert.match(booking, /bundleSlug = bundle\.slug/, 'adding a bundle remembers which one');
+  assert.match(booking, /order\["bundleSlug"\] = bundleSlug \?\? ""/, 'the booking carries the bundle');
+  assert.match(read('book.html'), /bundleSlug: BOOK\.bundleSlug \|\| ''/, 'the website sends the same field');
   const home = customer['CustomerHome.swift'];
   const tile = home.slice(home.indexOf('private struct ServiceTile'), home.indexOf('private struct TrustRow'));
   assert.match(tile, /\.frame\(height: 150\)[\s\S]*\.overlay[\s\S]*scaledToFill\(\)[\s\S]*\.clipShape\(/, 'a tile photo fills a fixed card and is clipped there, so it cannot cover the tile beside it');
