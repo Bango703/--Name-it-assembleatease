@@ -89,20 +89,14 @@ struct CustomerTabsView: View {
     var body: some View {
         TabView(selection: $store.tab) {
             HomeView()
-                .tabItem { Label("Home", systemImage: "house") }
+                .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(CustomerTab.home)
-            ServicesView()
-                .tabItem { Label("Services", systemImage: "square.grid.2x2") }
-                .tag(CustomerTab.services)
-            BookingsView()
-                .tabItem { Label("Bookings", systemImage: "calendar") }
-                .tag(CustomerTab.bookings)
-            InboxView()
-                .tabItem { Label("Inbox", systemImage: "bubble.left.and.bubble.right") }
+            ActivityView()
+                .tabItem { Label("Activity", systemImage: "list.bullet.rectangle.fill") }
                 .badge(store.unreadCount)
-                .tag(CustomerTab.inbox)
+                .tag(CustomerTab.activity)
             CustomerAccountView()
-                .tabItem { Label("Account", systemImage: "person.crop.circle") }
+                .tabItem { Label("Account", systemImage: "person.crop.circle.fill") }
                 .tag(CustomerTab.account)
         }
     }

@@ -634,6 +634,7 @@ struct QuantityControl: View {
                 .font(.subheadline.weight(.semibold))
                 .buttonStyle(.bordered)
                 .tint(Brand.skyDark)
+                .sensoryFeedback(.impact(weight: .light), trigger: quantity)
         } else {
             HStack(spacing: 10) {
                 Button { quantity -= 1 } label: { Image(systemName: "minus.circle.fill") }
@@ -645,6 +646,7 @@ struct QuantityControl: View {
             .font(.title2)
             .buttonStyle(.borderless)
             .foregroundStyle(Brand.skyDark)
+            .sensoryFeedback(.selection, trigger: quantity)
         }
     }
 }
@@ -912,5 +914,6 @@ struct BookedView: View {
                 .buttonStyle(SecondaryButtonStyle())
         }
         .padding(24)
+        .onAppear { UINotificationFeedbackGenerator().notificationOccurred(.success) }
     }
 }
