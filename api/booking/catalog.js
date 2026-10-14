@@ -8,6 +8,19 @@ import { CUSTOMER_TERMS_VERSION, PRIVACY_NOTICE_VERSION } from '../_legal-consen
  * same catalog api/_pricing.js prices against (assets/js/booking-source-of-truth.js).
  * Prices here are display only: api/booking.js re-prices every item by name.
  */
+/**
+ * One real AssembleAtEase job photo per service (images/real-*, the owner's own
+ * completed work), each used once. The catch-all service has none.
+ */
+const SERVICE_PHOTOS = Object.freeze({
+  'Furniture Assembly': '/images/real-furniture-dresser-wood-640.webp',
+  'Mounting & Hanging': '/images/real-tv-mount-console-640.webp',
+  'Smart Home': '/images/real-smarthome-doorbell-adt-640.webp',
+  'Outdoor & Playsets': '/images/real-outdoor-gazebo-356.webp',
+  'Office Assembly': '/images/real-office-home-ldesk-640.webp',
+  'Fitness Equipment': '/images/real-fitness-home-gym-640.webp',
+});
+
 export default function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   const catalog = getBookingCatalog();
@@ -18,6 +31,7 @@ export default function handler(req, res) {
     name,
     // The lowest main-item price, for "From $X" on the service tile.
     from_cents: fromCents(groups),
+    photo: SERVICE_PHOTOS[name] || null,
     groups: (groups || []).map(group => ({
       name: group.group,
       items: (group.items || []).map(item => ({

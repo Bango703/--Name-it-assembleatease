@@ -305,8 +305,21 @@ struct BookingDetailView: View {
     var body: some View {
         ScrollView {
             if let detail {
-                VStack(alignment: .leading, spacing: 14) {
-                    statusCard(detail)
+                VStack(alignment: .leading, spacing: 16) {
+                    heroCard(detail)
+                    if !detail.isPast { actionBar(detail) }
+                    if let proposal = detail.proposal { proposalCard(detail, proposal) }
+                    if detail.proFirstName != nil { proCard(detail) }
+                    if !detail.isPast { photosCard(detail) }
+
+                    if let url = detail.completionPhotoURL {
+                        CustomerBlock(title: "Finished work") {
+                            AsyncImage(url: url) { phase in
+                                if let image = phase.image { image.resizable().scaledToFit() } else { Brand.surface.frame(height: 180) }
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                    }
                     if detail.status == "completed" && !detail.items.isEmpty {
                         Button {
                             if store.flow.rebook(detail.items) > 0 {
@@ -319,51 +332,29 @@ struct BookingDetailView: View {
                         }
                         .buttonStyle(PrimaryButtonStyle())
                     }
-                    if let proposal = detail.proposal { proposalCard(detail, proposal) }
-                    if detail.proFirstName != nil { proCard(detail) }
-
-                    CustomerBlock(title: "When and where") {
-                        if !detail.when.isEmpty { Label(detail.when, systemImage: "calendar") }
-                        if let address = detail.address, !address.isEmpty {
-                            Label(address, systemImage: "mappin.and.ellipse")
-                        }
-                        Text("Booking \(detail.ref)").font(.caption).foregroundStyle(.secondary)
-                    }
 
                     if !detail.items.isEmpty { itemsCard(detail) }
                     if let payment = detail.payment, payment.totalCents > 0 { paymentCard(payment) }
-                    if let url = detail.completionPhotoURL {
-                        CustomerBlock(title: "Finished work") {
-                            AsyncImage(url: url) { phase in
-                                if let image = phase.image { image.resizable().scaledToFit() } else { Brand.surface.frame(height: 180) }
-                            }
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
-                    }
 
-                    CustomerBlock(title: "Need something?") {
-                        NavigationLink {
-                            CustomerMessagesView(ref: detail.ref, recipient: detail.messageRecipient == "pro" ? (detail.proFirstName ?? "Your pro") : "AssembleAtEase")
-                        } label: {
-                            Label(detail.messageRecipient == "pro" ? "Message \(detail.proFirstName ?? "your pro")" : "Message AssembleAtEase", systemImage: "bubble.left.and.bubble.right")
-                        }
-                        if !detail.isPast {
-                            NavigationLink {
-                                BookingPhotosView(ref: detail.ref)
-                            } label: {
-                                Label("Photos for your pro", systemImage: "photo.on.rectangle")
-                            }
-                        }
-                        if detail.canReschedule {
-                            Button { rescheduling = true } label: { Label("Change the time", systemImage: "calendar.badge.clock") }
-                        }
-                        if detail.canCancel {
-                            Button(role: .destructive) { confirmCancel = true } label: { Label("Cancel booking", systemImage: "xmark.circle") }
-                        }
+                    if detail.isPast {
                         Button {
                             if let url = URL(string: "tel:" + Site.supportPhone) { openURL(url) }
-                        } label: { Label("Call \(Site.supportPhoneDisplay)", systemImage: "phone") }
+                        } label: {
+                            Label("Questions? Call \(Site.supportPhoneDisplay)", systemImage: "phone")
+                                .font(.subheadline)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
+                    if detail.canCancel {
+                        Button(role: .destructive) { confirmCancel = true } label: {
+                            Text("Cancel booking").font(.subheadline.weight(.semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 4)
+                    }
+                    Text("Booking \(detail.ref)")
+                        .font(.caption).foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity)
                 }
                 .padding(16)
             } else if let problem {
@@ -412,18 +403,74 @@ struct BookingDetailView: View {
         }
     }
 
-    private func statusCard(_ detail: BookingDetail) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(detail.statusLabel).font(.title3.bold())
-            if let text = detail.statusDetail { Text(text).font(.subheadline).foregroundStyle(.secondary) }
+    /// What is happening, when and where: the first thing on the page.
+    private func heroCard(_ detail: BookingDetail) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(detail.statusLabel).font(.title3.bold())
+                if let text = detail.statusDetail { Text(text).font(.subheadline).foregroundStyle(.secondary) }
+            }
             if !detail.isPast, let progress = detail.progress {
-                ProgressTracker(progress: progress).padding(.top, 6)
+                ProgressTracker(progress: progress)
+            }
+            Divider()
+            if !detail.when.isEmpty {
+                Label(detail.when, systemImage: "calendar").font(.subheadline)
+            }
+            if let address = detail.address, !address.isEmpty {
+                Label(address, systemImage: "mappin.and.ellipse").font(.subheadline)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(detail.isPast ? Color(uiColor: .separator) : Brand.sky, lineWidth: detail.isPast ? 1 : 2))
+    }
+
+    /// The everyday actions, side by side: message, call, change the time.
+    private func actionBar(_ detail: BookingDetail) -> some View {
+        HStack(spacing: 10) {
+            NavigationLink {
+                CustomerMessagesView(ref: detail.ref, recipient: detail.messageRecipient == "pro" ? (detail.proFirstName ?? "Your pro") : "AssembleAtEase")
+            } label: {
+                ActionTile(symbol: "bubble.left.fill", title: "Message")
+            }
+            Button {
+                if let url = URL(string: "tel:" + Site.supportPhone) { openURL(url) }
+            } label: {
+                ActionTile(symbol: "phone.fill", title: "Call")
+            }
+            if detail.canReschedule {
+                Button { rescheduling = true } label: {
+                    ActionTile(symbol: "calendar.badge.clock", title: "Change time")
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Photos for the pro: their own card.
+    private func photosCard(_ detail: BookingDetail) -> some View {
+        NavigationLink {
+            BookingPhotosView(ref: detail.ref)
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "camera.fill")
+                    .font(.title3)
+                    .foregroundStyle(Brand.skyDark)
+                    .frame(width: 44, height: 44)
+                    .background(Brand.sky.opacity(0.16), in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Photos for your pro").font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
+                    Text("The space, the boxes or the wall").font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+            }
+            .padding(14)
+            .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     private func proposalCard(_ detail: BookingDetail, _ proposal: ProposedTime) -> some View {
@@ -507,6 +554,22 @@ struct BookingDetailView: View {
             }
             if let note = payment.note { Text(note).font(.caption).foregroundStyle(.secondary) }
         }
+    }
+}
+
+/// One of the booking page's everyday actions: an icon over a word, equal widths.
+private struct ActionTile: View {
+    let symbol: String
+    let title: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: symbol).font(.title3).foregroundStyle(Brand.skyDark)
+            Text(title).font(.caption.weight(.semibold)).foregroundStyle(.primary).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 70)
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 

@@ -297,6 +297,8 @@ struct CatalogGroup: Decodable, Hashable, Identifiable {
 struct CatalogService: Decodable, Hashable, Identifiable {
     let name: String
     let fromCents: Double?
+    /// A real job photo for this service (api/booking/catalog.js SERVICE_PHOTOS).
+    let photo: URL?
     let groups: [CatalogGroup]
     var id: String { name }
 
@@ -304,6 +306,7 @@ struct CatalogService: Decodable, Hashable, Identifiable {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         name = c.string("name") ?? ""
         fromCents = c.number("from_cents")
+        photo = c.string("photo").map { Site.page($0) }
         groups = (try? c.decodeIfPresent([CatalogGroup].self, forKey: DynamicKey("groups"))) ?? []
     }
 }

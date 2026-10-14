@@ -51,6 +51,17 @@ export function customerStatusLabel(b) {
  * nothing to track (cancelled, declined, or a return visit being arranged).
  * Same fields as customerStatusLabel.
  */
+/**
+ * A card checkout that never completed: the booking row exists (the owner sees
+ * it as an attempt) but the card was never held. The customer's own list leaves
+ * it out; a booking only appears there once it is real.
+ */
+export function customerCheckoutUnfinished(b) {
+  return b.status === BOOKING_STATUS.PENDING
+    && ['pending', 'failed'].includes(String(b.payment_status || ''))
+    && !!b.stripe_payment_intent_id;
+}
+
 export const CUSTOMER_PROGRESS_STEPS = Object.freeze(['Booked', 'Pro confirmed', 'On the way', 'Arrived', 'Done']);
 
 export function customerProgress(b) {

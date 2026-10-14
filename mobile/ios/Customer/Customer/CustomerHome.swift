@@ -228,8 +228,9 @@ private struct ServicesGrid: View {
 
     private var tiles: [CatalogService] { catalog.services.filter { $0.name != otherServiceName } }
 
+    /// Photo cards two to a row; three when an odd count would leave one alone.
     private var columns: [GridItem] {
-        let count = tiles.count % 3 == 0 ? 3 : (tiles.count % 2 == 0 ? 2 : 3)
+        let count = tiles.count % 2 == 0 ? 2 : 3
         return Array(repeating: GridItem(.flexible(), spacing: 12), count: count)
     }
 
@@ -495,41 +496,57 @@ struct ProgressTracker: View {
     }
 }
 
+/// A service as a photo card: the real finished work, the name and the From price over it.
 private struct ServiceTile: View {
     let service: CatalogService
     let picked: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                Image(systemName: serviceSymbol(service.name))
-                    .font(.title3)
-                    .foregroundStyle(Brand.skyDark)
-                    .frame(width: 40, height: 40)
-                    .background(Brand.sky.opacity(0.16), in: Circle())
-                Spacer(minLength: 0)
-                if picked > 0 {
-                    Text("\(picked)")
-                        .font(.caption.weight(.bold))
-                        .padding(.horizontal, 7).padding(.vertical, 2)
-                        .background(Brand.sky, in: Capsule())
-                        .foregroundStyle(Brand.ink)
+        ZStack(alignment: .bottomLeading) {
+            Group {
+                if let photo = service.photo {
+                    AsyncImage(url: photo) { phase in
+                        if let image = phase.image {
+                            image.resizable().scaledToFill()
+                        } else {
+                            Brand.sky.opacity(0.18)
+                        }
+                    }
+                } else {
+                    Brand.sky.opacity(0.18)
                 }
             }
-            Text(service.name)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-                .multilineTextAlignment(.leading)
-                .lineLimit(2, reservesSpace: true)
-            Text(service.fromCents.map { "From " + wholeDollars($0) } ?? "Custom quote")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            .frame(maxWidth: .infinity)
+            .frame(height: 150)
+            .clipped()
+
+            LinearGradient(colors: [.clear, .black.opacity(0.72)], startPoint: .center, endPoint: .bottom)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(service.name)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                Text(service.fromCents.map { "From " + wholeDollars($0) } ?? "Custom quote")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .padding(12)
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .frame(height: 132, alignment: .topLeading)
-        .padding(12)
-        .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(height: 150)
+        .overlay(alignment: .topTrailing) {
+            if picked > 0 {
+                Text("\(picked)")
+                    .font(.caption.weight(.bold))
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Brand.sky, in: Capsule())
+                    .foregroundStyle(Brand.ink)
+                    .padding(10)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 
