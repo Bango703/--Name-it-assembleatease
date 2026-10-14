@@ -263,6 +263,13 @@ final class BookingFlow: ObservableObject {
         return nil
     }
 
+    /// Back to the Where step from the review, keeping everything typed.
+    func backToDetails() {
+        if let index = path.lastIndex(of: .details) {
+            path = Array(path.prefix(index + 1))
+        }
+    }
+
     /// "Change items" returns to the last service list in this booking, not to Home.
     /// An order started from a bundle on Home opens its first service.
     func backToItems() {
@@ -943,6 +950,32 @@ private struct ReviewStepView: View {
                 CustomerBlock(title: "When and where") {
                     Label(flow.whenText, systemImage: "calendar")
                     Label(flow.addressText, systemImage: "mappin.and.ellipse")
+                    Label([flow.name.trimmingCharacters(in: .whitespaces), Format.phone(flow.phone)]
+                            .filter { !$0.isEmpty }.joined(separator: " · "),
+                          systemImage: "person")
+                }
+
+                CustomerBlock(title: "Notes for your pro") {
+                    let project = flow.projectDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let access = flow.details.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if flow.hasCustomQuote && !project.isEmpty {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Your project").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                            Text(project).font(.subheadline)
+                        }
+                    }
+                    if !access.isEmpty {
+                        VStack(alignment: .leading, spacing: 2) {
+                            if flow.hasCustomQuote && !project.isEmpty {
+                                Text("Access and parking").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                            }
+                            Text(access).font(.subheadline)
+                        }
+                    }
+                    if access.isEmpty && !(flow.hasCustomQuote && !project.isEmpty) {
+                        Text("No notes").font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    Button(access.isEmpty ? "Add notes" : "Edit notes") { flow.backToDetails() }.font(.subheadline)
                 }
 
                 CustomerBlock(title: "Promo code") {

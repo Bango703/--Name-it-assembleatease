@@ -445,6 +445,14 @@ const app = Object.values(customer).join('\n');
   assert.match(booking, /Button\("Edit order"\) \{ editingOrder = true \}/, 'the review step opens the order');
   assert.match(read('api/booking/track.js'), /details: booking\.details \|\| null/, 'the booking returns the customer their own notes');
   assert.match(customer['CustomerViews.swift'], /CustomerBlock\(title: "Your notes for the pro"\)/);
+  // Owner, 2026-10-14: "in job review notes doesn't show", then a two-sided audit. The review
+  // step shows the notes and who is booking; a return visit shows in both apps.
+  assert.match(booking, /CustomerBlock\(title: "Notes for your pro"\)[\s\S]{0,1600}flow\.backToDetails\(\)/, 'the review step shows the notes, with a way back to change them');
+  assert.match(booking, /systemImage: "person"\)/, 'the review step shows the name and phone');
+  assert.match(customer['CustomerModels.swift'], /returnVisit = c\.bool\("return_visit_required"\)/);
+  assert.match(customer['CustomerViews.swift'], /CustomerBlock\(title: "Return visit"\)/, 'the customer sees the return visit, as track.html shows it');
+  assert.match(easer['EaserModels.swift'], /returnVisitRemaining = c\.string\("return_visit_remaining_scope"\)/);
+  assert.match(easer['EaserViews.swift'], /DetailBlock\(title: "Return visit"\)/, 'the Easer sees when to go back and what is left');
   const home = customer['CustomerHome.swift'];
   const tile = home.slice(home.indexOf('private struct ServiceTile'), home.indexOf('private struct TrustRow'));
   assert.match(tile, /\.frame\(height: 150\)[\s\S]*\.overlay[\s\S]*scaledToFill\(\)[\s\S]*\.clipShape\(/, 'a tile photo fills a fixed card and is clipped there, so it cannot cover the tile beside it');

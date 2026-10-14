@@ -321,6 +321,27 @@ struct BookingDetailView: View {
                     if !detail.isPast { actionBar(detail) }
                     if let proposal = detail.proposal { proposalCard(detail, proposal) }
                     if detail.proFirstName != nil { proCard(detail) }
+                    if detail.returnVisit {
+                        CustomerBlock(title: "Return visit") {
+                            if !detail.returnVisitWhen.isEmpty {
+                                Label(detail.returnVisitWhen, systemImage: "calendar")
+                            } else {
+                                Text("AssembleAtEase will confirm the day with you.").font(.subheadline).foregroundStyle(.secondary)
+                            }
+                            if let done = detail.workCompleted, !done.isEmpty {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Done").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                    Text(done).font(.subheadline)
+                                }
+                            }
+                            if let left = detail.workRemaining, !left.isEmpty {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Still to do").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                    Text(left).font(.subheadline)
+                                }
+                            }
+                        }
+                    }
                     if let notes = detail.notes?.trimmingCharacters(in: .whitespacesAndNewlines), !notes.isEmpty {
                         CustomerBlock(title: "Your notes for the pro") {
                             Text(notes).font(.subheadline).textSelection(.enabled)
