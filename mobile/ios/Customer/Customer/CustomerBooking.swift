@@ -816,6 +816,8 @@ private struct StepButton: View {
 
 private struct ScheduleStepView: View {
     @EnvironmentObject private var flow: BookingFlow
+    @EnvironmentObject private var store: CustomerStore
+    @State private var signingIn = false
 
     var body: some View {
         Form {
@@ -849,8 +851,27 @@ private struct ScheduleStepView: View {
         }
         .safeAreaInset(edge: .bottom) {
             StepButton(title: "Continue", problem: flow.slot == nil ? "Pick an arrival window." : nil) {
-                flow.path.append(.details)
+                if store.phase == .signedIn {
+                    flow.path.append(.details)
+                } else {
+                    signingIn = true
+                }
             }
+        }
+        // Browsing needs no account; booking does. The order and the time stay as picked.
+        .sheet(isPresented: $signingIn) {
+            NavigationStack {
+                CustomerSignInView(message: "Sign in with your email to book.")
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) { Button("Cancel") { signingIn = false } }
+                    }
+            }
+            .environmentObject(store)
+        }
+        .onChange(of: store.phase) { _, phase in
+            guard phase == .signedIn, signingIn else { return }
+            signingIn = false
+            flow.path.append(.details)
         }
     }
 }

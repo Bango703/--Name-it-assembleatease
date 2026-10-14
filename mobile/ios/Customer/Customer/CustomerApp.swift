@@ -20,9 +20,9 @@ struct CustomerApp: App {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(uiColor: .systemBackground))
-                case .signedOut:
-                    CustomerSignInView()
-                case .signedIn:
+                case .signedOut, .signedIn:
+                    // Home, services and prices are open to everyone; signing in is asked
+                    // for at booking, and on Activity and Account.
                     CustomerTabsView()
                 }
                 if let banner = store.banner {
@@ -91,11 +91,23 @@ struct CustomerTabsView: View {
             HomeView()
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(CustomerTab.home)
-            ActivityView()
+            Group {
+                if store.phase == .signedIn {
+                    ActivityView()
+                } else {
+                    CustomerSignInView(message: "Sign in to see your bookings and messages.", autoFocus: false)
+                }
+            }
                 .tabItem { Label("Activity", systemImage: "list.bullet.rectangle.fill") }
                 .badge(store.unreadCount)
                 .tag(CustomerTab.activity)
-            CustomerAccountView()
+            Group {
+                if store.phase == .signedIn {
+                    CustomerAccountView()
+                } else {
+                    CustomerSignInView(autoFocus: false)
+                }
+            }
                 .tabItem { Label("Account", systemImage: "person.crop.circle.fill") }
                 .tag(CustomerTab.account)
         }

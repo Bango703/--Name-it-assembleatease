@@ -6,6 +6,10 @@ import StoreKit
 
 /// Email, then the 6-digit code we email. No sign-in secret to remember.
 struct CustomerSignInView: View {
+    /// The line under the name before a code is sent.
+    var message: String? = nil
+    /// False on a tab, so switching to it does not raise the keyboard.
+    var autoFocus = true
     @EnvironmentObject private var store: CustomerStore
     @Environment(\.openURL) private var openURL
     @State private var email = ""
@@ -23,7 +27,7 @@ struct CustomerSignInView: View {
                 BrandLogo(size: 84).padding(.top, 48)
                 VStack(spacing: 6) {
                     Text("AssembleAtEase").font(.title.bold())
-                    Text(codeSent ? "Enter the code we sent to \(cleanEmail)." : "Sign in with the email you book with.")
+                    Text(codeSent ? "Enter the code we sent to \(cleanEmail)." : (message ?? "Sign in with the email you book with."))
                         .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
 
@@ -90,7 +94,7 @@ struct CustomerSignInView: View {
             .padding(24)
         }
         .scrollDismissesKeyboard(.interactively)
-        .onAppear { focused = true }
+        .onAppear { if autoFocus { focused = true } }
     }
 
     private var canSubmit: Bool {

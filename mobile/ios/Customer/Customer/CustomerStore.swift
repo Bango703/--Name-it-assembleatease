@@ -91,7 +91,12 @@ final class CustomerStore: ObservableObject {
     }
 
     func start() async {
-        guard let session = api.session else { phase = .signedOut; return }
+        guard let session = api.session else {
+            // Browsing without an account: Home shows the current offer too.
+            phase = .signedOut
+            offer = await api.currentOffer()
+            return
+        }
         cache = SnapshotCache(userID: session.userID)
         if let data = cache?.load("bookings"), let value = try? JSONDecoder().decode(BookingsEnvelope.self, from: data) {
             bookings = value.bookings
@@ -160,6 +165,7 @@ final class CustomerStore: ObservableObject {
         flow.reset()
         tab = .home
         phase = .signedOut
+        Task { offer = await api.currentOffer() }
     }
 
     // MARK: Bookings

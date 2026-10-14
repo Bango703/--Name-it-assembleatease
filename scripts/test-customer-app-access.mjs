@@ -15,7 +15,7 @@
 
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
+import crypto, { createHash } from 'node:crypto';
 import {
   customerBookingAccess,
   customerAccountUser,
@@ -101,7 +101,8 @@ const req = (jwt) => ({ headers: jwt ? { authorization: 'Bearer ' + jwt } : {} }
   const source = read('api/customer/sign-in.js')
     .replace(/^import\s[\s\S]*?from\s+['"][^'"]+['"];\r?\n/gm, '')
     .replace(/export default async function/, 'async function')
-    .replace(/export async function /g, 'async function ');
+    .replace(/export async function /g, 'async function ')
+    .replace(/export function /g, 'function ');
 
   const codes = new Map();
   const sentEmails = [];
@@ -123,6 +124,7 @@ const req = (jwt) => ({ headers: jwt ? { authorization: 'Bearer ' + jwt } : {} }
     },
   };
   const deps = {
+    crypto,
     getSupabase: () => sb,
     sendEmail: async (m) => { sentEmails.push(m); return { ok: true }; },
     ownerEmail: () => 'owner@example.com',
@@ -162,6 +164,35 @@ const req = (jwt) => ({ headers: jwt ? { authorization: 'Bearer ' + jwt } : {} }
   assert.equal(easer.statusCode, 409, 'an Easer email never gets a customer session');
   assert.doesNotMatch(JSON.stringify(easer.body), /access_token/);
   assert.equal((await call({ action: 'verify', email: 'not-an-email', code: '123456' })).statusCode, 400);
+
+  // App Review (owner, 2026-10-14): one env-set customer email takes one env-set
+  // code, nothing is emailed for it, and it is still only a customer account.
+  const { reviewAccount, reviewCodeMatches } = await new AsyncFunction(...Object.keys(deps), `${source}
+return { reviewAccount, reviewCodeMatches };`)(...Object.values(deps));
+  assert.equal(reviewAccount({}), null, 'unset = no review account');
+  assert.equal(reviewAccount({ APP_REVIEW_EMAIL: 'r@example.com', APP_REVIEW_CODE: '12345' }), null, 'a code must be 6 digits');
+  assert.equal(reviewCodeMatches('r@example.com', '654321', { APP_REVIEW_EMAIL: 'R@Example.com', APP_REVIEW_CODE: '654321' }), true);
+  assert.equal(reviewCodeMatches('other@example.com', '654321', { APP_REVIEW_EMAIL: 'r@example.com', APP_REVIEW_CODE: '654321' }), false, 'the code opens only the review email');
+  assert.equal(reviewCodeMatches('r@example.com', '000000', { APP_REVIEW_EMAIL: 'r@example.com', APP_REVIEW_CODE: '654321' }), false);
+
+  const saved = { e: process.env.APP_REVIEW_EMAIL, c: process.env.APP_REVIEW_CODE };
+  process.env.APP_REVIEW_EMAIL = 'appreview@example.com';
+  process.env.APP_REVIEW_CODE = '654321';
+  try {
+    const before = sentEmails.length;
+    assert.equal((await call({ action: 'send', email: 'appreview@example.com' })).statusCode, 200);
+    assert.equal(sentEmails.length, before, 'no email for the review account');
+    assert.equal((await call({ action: 'verify', email: 'appreview@example.com', code: '123456' })).statusCode, 400, 'an emailed-style code never opens the review account');
+    const review = await call({ action: 'verify', email: 'appreview@example.com', code: '654321' });
+    assert.equal(review.statusCode, 200, JSON.stringify(review.body));
+    assert.equal(accounts.get('appreview@example.com').user_metadata.role, 'customer', 'the review account is a customer account');
+    assert.equal((await call({ action: 'verify', email: 'new@example.com', code: '654321' })).statusCode, 400, 'the review code opens no other account');
+    process.env.APP_REVIEW_EMAIL = 'pro@example.com';
+    assert.equal((await call({ action: 'verify', email: 'pro@example.com', code: '654321' })).statusCode, 409, 'pointed at an Easer email, it still refuses');
+  } finally {
+    if (saved.e === undefined) delete process.env.APP_REVIEW_EMAIL; else process.env.APP_REVIEW_EMAIL = saved.e;
+    if (saved.c === undefined) delete process.env.APP_REVIEW_CODE; else process.env.APP_REVIEW_CODE = saved.c;
+  }
 }
 
-console.log('PASS customer app access: one check for link or app sign-in, confirmed email only, no cross-account access, Easer emails refused, first name only after acceptance.');
+console.log('PASS customer app access: one check for link or app sign-in, confirmed email only, no cross-account access, Easer emails refused, App Review account is one customer email with one code, first name only after acceptance.');

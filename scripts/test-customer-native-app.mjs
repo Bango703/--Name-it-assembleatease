@@ -478,6 +478,20 @@ const app = Object.values(customer).join('\n');
   const rating = views.slice(views.indexOf('private struct RatingCard'), views.indexOf('private struct ActionTile'));
   assert.match(rating, /@Environment\(\\\.requestReview\)/, "Apple's rating sheet, not a custom one");
   assert.doesNotMatch(rating, /if [^\n]*stars\s*>=?\s*[3-5][^\n]*\{[^}]*requestReview\(\)/, 'the App Store ask never depends on the stars given');
+
+  // Browse first (5.1.1(v)): Home, services and prices open without an account;
+  // sign-in is asked at Continue after the time is picked, and on Activity and Account.
+  const appFile = customer['CustomerApp.swift'];
+  assert.match(appFile, /case \.signedOut, \.signedIn:\s*\n(?:\s*\/\/[^\n]*\n)*\s*CustomerTabsView\(\)/, 'a signed-out customer lands on Home, not a sign-in wall');
+  assert.match(appFile, /if store\.phase == \.signedIn \{\s*ActivityView\(\)\s*\} else \{\s*CustomerSignInView\(/, 'Activity asks for sign-in when signed out');
+  assert.match(appFile, /if store\.phase == \.signedIn \{\s*CustomerAccountView\(\)\s*\} else \{\s*CustomerSignInView\(/, 'Account asks for sign-in when signed out');
+  const booking = customer['CustomerBooking.swift'];
+  const schedule = booking.slice(booking.indexOf('private struct ScheduleStepView'), booking.indexOf('private struct DetailsStepView'));
+  assert.match(schedule, /if store\.phase == \.signedIn \{\s*flow\.path\.append\(\.details\)\s*\} else \{\s*signingIn = true/, 'the details step, which uses the account email, is reached only signed in');
+  assert.match(schedule, /onChange\(of: store\.phase\)[\s\S]*?flow\.path\.append\(\.details\)/, 'signing in carries straight on to the details step');
+  assert.match(customer['CustomerStore.swift'], /phase = \.signedOut\s*\n\s*offer = await api\.currentOffer\(\)/, 'a guest sees the current offer');
+  assert.match(customer['CustomerAPI.swift'], /func catalog\(\)[\s\S]{0,120}publicCall\("GET", "\/api\/booking\/catalog"\)/, 'the catalog needs no account');
+  assert.match(customer['CustomerAPI.swift'], /publicCall\("POST", "\/api\/booking\/promo-preview"/, 'the price check needs no account');
 }
 
 console.log('PASS customer native app: separate app with its own bundle ID and workflow, shared code compiled by both, every endpoint and field matches the server, prices and permissions from the server, in-app account deletion.');
