@@ -321,6 +321,11 @@ struct BookingDetailView: View {
                     if !detail.isPast { actionBar(detail) }
                     if let proposal = detail.proposal { proposalCard(detail, proposal) }
                     if detail.proFirstName != nil { proCard(detail) }
+                    if let notes = detail.notes?.trimmingCharacters(in: .whitespacesAndNewlines), !notes.isEmpty {
+                        CustomerBlock(title: "Your notes for the pro") {
+                            Text(notes).font(.subheadline).textSelection(.enabled)
+                        }
+                    }
                     if !detail.isPast { photosCard(detail) }
 
                     if let url = detail.completionPhotoURL {

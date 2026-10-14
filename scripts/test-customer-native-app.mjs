@@ -430,6 +430,21 @@ const app = Object.values(customer).join('\n');
   assert.match(booking, /bundleSlug = bundle\.slug/, 'adding a bundle remembers which one');
   assert.match(booking, /order\["bundleSlug"\] = bundleSlug \?\? ""/, 'the booking carries the bundle');
   assert.match(read('book.html'), /bundleSlug: BOOK\.bundleSlug \|\| ''/, 'the website sends the same field');
+  // Owner, 2026-10-14: "describe your custom quote ... then notes for your pro ... no info if I
+  // put notes"; "Change items sends all the way to Home". The project is asked on the quote
+  // item itself; the customer sees their notes on the booking; Change items goes to the items.
+  assert.match(booking, /if item\.customQuote && flow\.quantity\(CartKey\(service: serviceName, item: item\.name\)\) > 0 \{\s*ProjectDescriptionField\(\)/, 'the description box opens on the quote item');
+  assert.match(booking, /hasCustomQuote && projectDescription[\s\S]{0,80}return "Describe the project\."/, 'a quote cannot be sent without a description');
+  assert.equal((booking.match(/order\["details"\] = notesForServer/g) || []).length, 2, 'the preview and the booking send the same notes');
+  assert.doesNotMatch(booking, /flow\.path = \[\] \}/, 'editing the order never drops the customer on Home');
+  // Owner, 2026-10-14: "can't remove items". The whole order opens from the cart bar and the
+  // review step, every line with minus, plus and swipe to remove.
+  assert.match(booking, /struct OrderEditor: View/);
+  assert.match(booking, /Button\("Remove", role: \.destructive\) \{\s*flow\.setQuantity\(0,/);
+  assert.match(booking, /Button \{ showOrder = true \}/, 'the cart bar opens the order');
+  assert.match(booking, /Button\("Edit order"\) \{ editingOrder = true \}/, 'the review step opens the order');
+  assert.match(read('api/booking/track.js'), /details: booking\.details \|\| null/, 'the booking returns the customer their own notes');
+  assert.match(customer['CustomerViews.swift'], /CustomerBlock\(title: "Your notes for the pro"\)/);
   const home = customer['CustomerHome.swift'];
   const tile = home.slice(home.indexOf('private struct ServiceTile'), home.indexOf('private struct TrustRow'));
   assert.match(tile, /\.frame\(height: 150\)[\s\S]*\.overlay[\s\S]*scaledToFill\(\)[\s\S]*\.clipShape\(/, 'a tile photo fills a fixed card and is clipped there, so it cannot cover the tile beside it');
