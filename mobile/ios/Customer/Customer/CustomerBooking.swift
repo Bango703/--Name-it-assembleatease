@@ -125,6 +125,27 @@ final class BookingFlow: ObservableObject {
         preview = nil
     }
 
+    /// Puts a finished booking's items back in the order. Items no longer offered are left out.
+    /// Returns how many lines were added.
+    @discardableResult
+    func rebook(_ groups: [BookingItemGroup]) -> Int {
+        guard let catalog else { return 0 }
+        var added = 0
+        for group in groups {
+            for line in group.items {
+                let wanted = line.isAddOn ? (line.addOnName ?? line.name) : line.name
+                guard let service = catalog.services.first(where: { svc in
+                    svc.groups.contains { $0.items.contains { $0.name == wanted } }
+                }) else { continue }
+                let key = CartKey(service: service.name, item: wanted)
+                quantities[key] = min(99, max(1, line.quantity))
+                added += 1
+            }
+        }
+        preview = nil
+        return added
+    }
+
     /// The order in catalog order.
     var lines: [OrderLine] {
         guard let catalog else { return [] }
@@ -257,6 +278,12 @@ final class BookingFlow: ObservableObject {
             zip = saved.zip
         }
     }
+
+    /// Account > Your details saves here; the next booking starts filled in.
+    func saveDetails() { saveContact() }
+
+    /// Loads the saved details once signed in, for Account and the greeting.
+    func loadSavedDetails() { restoreContact() }
 
     private func saveContact() {
         let saved = SavedContact(name: name, phone: phone, street: street, unit: unit, city: city, zip: zip)
@@ -459,42 +486,21 @@ final class BookingFlow: ObservableObject {
 
 // MARK: - Screens
 
-struct BookView: View {
-    @EnvironmentObject private var flow: BookingFlow
-
-    var body: some View {
-        NavigationStack(path: $flow.path) {
-            Group {
-                if let catalog = flow.catalog {
-                    BookHomeView(catalog: catalog)
-                } else if let problem = flow.loadProblem {
-                    VStack(spacing: 12) {
-                        Text(problem).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                        Button("Try again") { Task { await flow.load() } }
-                    }
-                    .padding(32)
-                } else {
-                    ProgressView()
-                }
+extension View {
+    /// The booking steps, pushed on whichever stack starts a booking (Home).
+    func bookingSteps() -> some View {
+        navigationDestination(for: BookStep.self) { step in
+            switch step {
+            case .service(let name): ServiceItemsView(serviceName: name)
+            case .schedule: ScheduleStepView()
+            case .details: DetailsStepView()
+            case .review: ReviewStepView()
             }
-            .navigationTitle("Book")
-            .navigationDestination(for: BookStep.self) { step in
-                switch step {
-                case .service(let name): ServiceItemsView(serviceName: name)
-                case .schedule: ScheduleStepView()
-                case .details: DetailsStepView()
-                case .review: ReviewStepView()
-                }
-            }
-        }
-        .task { if flow.catalog == nil { await flow.load() } }
-        .fullScreenCover(item: $flow.booked) { done in
-            BookedView(done: done)
         }
     }
 }
 
-private func serviceSymbol(_ name: String) -> String {
+func serviceSymbol(_ name: String) -> String {
     switch name {
     case "Furniture Assembly": return "sofa"
     case "Mounting & Hanging": return "tv"
@@ -506,62 +512,7 @@ private func serviceSymbol(_ name: String) -> String {
     }
 }
 
-private struct BookHomeView: View {
-    let catalog: BookingCatalog
-    @EnvironmentObject private var flow: BookingFlow
-    @EnvironmentObject private var store: CustomerStore
-
-    var body: some View {
-        List {
-            if !catalog.bundles.isEmpty {
-                Section("Room-ready bundles") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(catalog.bundles) { bundle in
-                                BundleCard(bundle: bundle) {
-                                    flow.add(bundle)
-                                    store.banner = CustomerBanner(text: "\(bundle.name) added.", kind: .success)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 6)
-                    }
-                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                }
-            }
-            Section("Services") {
-                ForEach(catalog.services) { service in
-                    NavigationLink(value: BookStep.service(service.name)) {
-                        HStack(spacing: 14) {
-                            Image(systemName: serviceSymbol(service.name))
-                                .font(.title3)
-                                .foregroundStyle(Brand.skyDark)
-                                .frame(width: 30)
-                            Text(service.name)
-                            Spacer()
-                            let picked = flow.count(in: service.name)
-                            if picked > 0 {
-                                Text("\(picked)")
-                                    .font(.caption.weight(.bold))
-                                    .padding(.horizontal, 8).padding(.vertical, 3)
-                                    .background(Brand.sky.opacity(0.25), in: Capsule())
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-            }
-            Section {
-                Text("Prices are per item. A service call fee and sales tax are added at checkout.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-        }
-        .refreshable { await flow.load() }
-        .safeAreaInset(edge: .bottom) { CartBar() }
-    }
-}
-
-private struct BundleCard: View {
+struct BundleCard: View {
     let bundle: CatalogBundle
     let add: () -> Void
 
@@ -582,7 +533,7 @@ private struct BundleCard: View {
 }
 
 /// The order so far, and the way forward.
-private struct CartBar: View {
+struct CartBar: View {
     @EnvironmentObject private var flow: BookingFlow
 
     var body: some View {
@@ -608,7 +559,7 @@ private struct CartBar: View {
     }
 }
 
-private struct ServiceItemsView: View {
+struct ServiceItemsView: View {
     let serviceName: String
     @EnvironmentObject private var flow: BookingFlow
 
@@ -633,7 +584,7 @@ private struct ServiceItemsView: View {
     }
 }
 
-private struct ItemRow: View {
+struct ItemRow: View {
     let item: CatalogItem
     @Binding var quantity: Int
 
@@ -663,7 +614,7 @@ private struct ItemRow: View {
     }
 }
 
-private struct QuantityControl: View {
+struct QuantityControl: View {
     @Binding var quantity: Int
 
     var body: some View {
@@ -912,7 +863,7 @@ private struct ReviewStepView: View {
     }
 }
 
-private struct BookedView: View {
+struct BookedView: View {
     let done: JustBooked
     @EnvironmentObject private var flow: BookingFlow
     @EnvironmentObject private var store: CustomerStore

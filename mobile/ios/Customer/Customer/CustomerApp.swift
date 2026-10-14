@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// AssembleAtEase for customers: book, follow, change and message about a booking.
+/// AssembleAtEase for customers: find a service, book it, follow it, change it and message about it.
 /// Native SwiftUI over the existing AssembleAtEase server, like the Easer app.
 @main
 struct CustomerApp: App {
@@ -74,12 +74,12 @@ struct CustomerTabsView: View {
 
     var body: some View {
         TabView(selection: $store.tab) {
+            HomeView()
+                .tabItem { Label("Home", systemImage: "house") }
+                .tag(CustomerTab.home)
             BookingsView()
                 .tabItem { Label("Bookings", systemImage: "calendar") }
                 .tag(CustomerTab.bookings)
-            BookView()
-                .tabItem { Label("Book", systemImage: "plus.circle") }
-                .tag(CustomerTab.book)
             CustomerAccountView()
                 .tabItem { Label("Account", systemImage: "person.crop.circle") }
                 .tag(CustomerTab.account)

@@ -16,6 +16,8 @@ export default function handler(req, res) {
 
   const services = Object.entries(catalog.subcategories || {}).map(([name, groups]) => ({
     name,
+    // The lowest main-item price, for "From $X" on the service tile.
+    from_cents: fromCents(groups),
     groups: (groups || []).map(group => ({
       name: group.group,
       items: (group.items || []).map(item => ({
@@ -50,4 +52,11 @@ export default function handler(req, res) {
     terms_version: CUSTOMER_TERMS_VERSION,
     privacy_notice_version: PRIVACY_NOTICE_VERSION,
   });
+}
+
+function fromCents(groups) {
+  const prices = (groups || []).flatMap(group => group.items || [])
+    .filter(item => !item.addon && !item.customQuote && Number(item.price) > 0)
+    .map(item => Math.round(Number(item.price) * 100));
+  return prices.length ? Math.min(...prices) : null;
 }

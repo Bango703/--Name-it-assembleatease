@@ -5,6 +5,17 @@ import Foundation
 // value never empties a screen. scripts/test-customer-native-app.mjs checks
 // every field read here against the server.
 
+/// Where a booking is on its way to done (api/booking/_customer-status.js customerProgress).
+struct BookingProgress: Decodable, Hashable {
+    let step: Int
+    let steps: [String]
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        step = Int(c.number("step") ?? 0)
+        steps = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("steps"))) ?? []
+    }
+}
+
 /// One booking in the list.
 struct BookingSummary: Decodable, Identifiable, Hashable {
     let id: String
@@ -17,9 +28,11 @@ struct BookingSummary: Decodable, Identifiable, Hashable {
     let statusLabel: String
     let statusDetail: String?
     let proFirstName: String?
+    let progress: BookingProgress?
 
     /// Finished bookings go under Past; everything else is upcoming.
     var isPast: Bool { ["completed", "cancelled", "declined", "refunded"].contains(status) }
+    var isCompleted: Bool { status == "completed" }
 
     var when: String {
         [Format.day(date), time].compactMap { $0 }.joined(separator: " · ")
@@ -37,14 +50,17 @@ struct BookingSummary: Decodable, Identifiable, Hashable {
         statusLabel = c.string("customer_status") ?? "Booking received"
         statusDetail = c.string("customer_status_detail")
         proFirstName = c.string("pro_first_name")
+        progress = try? c.decodeIfPresent(BookingProgress.self, forKey: DynamicKey("customer_progress"))
     }
 }
 
 struct BookingsEnvelope: Decodable {
     let bookings: [BookingSummary]
+    let firstName: String?
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         bookings = (try? c.decodeIfPresent([BookingSummary].self, forKey: DynamicKey("bookings"))) ?? []
+        firstName = c.string("customer_first_name")
     }
 }
 
@@ -154,6 +170,7 @@ struct BookingDetail: Decodable {
     let slots: [String]
     let windowDays: Int
     let payment: PaymentSummary?
+    let progress: BookingProgress?
 
     /// Finished bookings show no change buttons and a quieter card.
     var isPast: Bool { ["completed", "cancelled", "declined", "refunded"].contains(status) }
@@ -189,6 +206,7 @@ struct BookingDetail: Decodable {
         slots = (try? options?.decodeIfPresent([String].self, forKey: DynamicKey("slots"))) ?? []
         windowDays = Int(options?.number("window_days") ?? 0)
         canReschedule = c.bool("can_reschedule") ?? false
+        progress = try? c.decodeIfPresent(BookingProgress.self, forKey: DynamicKey("customer_progress"))
     }
 
     var when: String {
@@ -278,12 +296,14 @@ struct CatalogGroup: Decodable, Hashable, Identifiable {
 
 struct CatalogService: Decodable, Hashable, Identifiable {
     let name: String
+    let fromCents: Double?
     let groups: [CatalogGroup]
     var id: String { name }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         name = c.string("name") ?? ""
+        fromCents = c.number("from_cents")
         groups = (try? c.decodeIfPresent([CatalogGroup].self, forKey: DynamicKey("groups"))) ?? []
     }
 }
@@ -421,5 +441,27 @@ struct AddressSuggestionsEnvelope: Decodable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         suggestions = (try? c.decodeIfPresent([AddressSuggestion].self, forKey: DynamicKey("suggestions"))) ?? []
+    }
+}
+
+/// The offer running now (api/promo.js), shown on Home.
+struct CurrentOffer: Decodable, Hashable {
+    let code: String
+    let title: String
+    let label: String
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        code = c.string("code") ?? ""
+        title = c.string("title") ?? ""
+        label = c.string("label") ?? ""
+    }
+}
+
+struct CurrentOfferEnvelope: Decodable {
+    let offer: CurrentOffer?
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        offer = try? c.decodeIfPresent(CurrentOffer.self, forKey: DynamicKey("promo"))
     }
 }

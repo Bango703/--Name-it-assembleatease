@@ -2,7 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { customerOwnsBooking, normalizeCustomerEmail } from './_customer-booking-auth.js';
 import { customerAccountUser } from './_customer-access.js';
-import { customerStatusLabel } from './_customer-status.js';
+import { customerProgress, customerStatusLabel } from './_customer-status.js';
 
 /**
  * GET /api/booking/customer-bookings
@@ -61,6 +61,7 @@ export default async function handler(req, res) {
       created_at: b.created_at,
       customer_status: status.label,
       customer_status_detail: status.detail,
+      customer_progress: customerProgress(b),
       pro_first_name: b.assembler_accepted_at && b.assembler_name ? String(b.assembler_name).split(' ')[0] : null,
     };
   });
@@ -80,5 +81,8 @@ export default async function handler(req, res) {
     completed: bookings.filter(b => b.status === BOOKING_STATUS.COMPLETED).length,
   };
 
-  return res.status(200).json({ bookings: enriched, stats });
+  // The name the customer booked under most recently, for the app's greeting.
+  const customerFirstName = String(bookings.find(b => b.customer_name)?.customer_name || '').trim().split(/\s+/)[0] || null;
+
+  return res.status(200).json({ bookings: enriched, stats, customer_first_name: customerFirstName });
 }

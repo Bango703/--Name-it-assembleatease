@@ -8,7 +8,7 @@ import { evaluateCancellationPolicy } from './_cancellation-policy-truth.js';
 import { cancellationPreview } from './_cancellation-fee-summary.js';
 import { customerMessageRecipient } from './_message-routing.js';
 import { loadOpenProposal } from './_time-proposals.js';
-import { customerStatusLabel } from './_customer-status.js';
+import { customerProgress, customerStatusLabel } from './_customer-status.js';
 import { customerPaymentSummary } from './_customer-payment-summary.js';
 import { loadBookingItems } from './_booking-items.js';
 import { TIME_SLOTS, MAX_RESCHEDULES, RESCHEDULABLE_STATUSES } from './reschedule.js';
@@ -177,6 +177,7 @@ export default async function handler(req, res) {
     status: booking.status,
     customer_status: customerStatus.label,
     customer_status_detail: customerStatus.detail,
+    customer_progress: customerProgress(booking),
     service: booking.service,
     date: booking.date,
     time: booking.time,

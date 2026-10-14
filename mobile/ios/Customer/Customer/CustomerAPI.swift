@@ -73,6 +73,12 @@ final class CustomerAPI: APIClient {
         }
     }
 
+    /// The offer running now, or nil.
+    func currentOffer() async -> CurrentOffer? {
+        guard let data = try? await publicCall("GET", "/api/promo") else { return nil }
+        return (try? JSONDecoder().decode(CurrentOfferEnvelope.self, from: data))?.offer
+    }
+
     func addressSuggestions(for text: String) async throws -> [AddressSuggestion] {
         let data = try await publicCall("GET", "/api/address/autocomplete?q=" + Self.query(text))
         return (try? JSONDecoder().decode(AddressSuggestionsEnvelope.self, from: data))?.suggestions ?? []

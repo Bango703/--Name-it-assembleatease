@@ -26,7 +26,17 @@ const app = Object.values(customer).join('\n');
   assert.match(project, /PRODUCT_BUNDLE_IDENTIFIER: com\.assembleatease\.customer/, 'its own bundle ID, never the Easer one');
   assert.match(project, /- path: \.\.\/Shared/, 'the customer app compiles the shared folder');
   assert.match(project, /- path: \.\.\/App\/App\/Assets\.xcassets/, 'the one real logo and icon');
-  assert.match(read('mobile/ios/Customer/Support/Info.plist'), /<key>CFBundleDisplayName<\/key>\s*<string>AssembleAtEase<\/string>/);
+  // Customer apps carry the brand name; worker apps a role name (Uber/Driver, DoorDash/Dasher,
+  // Instacart/Shopper, Taskrabbit/Tasker). "AssembleAtEase" was cut off under the icon.
+  assert.match(read('mobile/ios/Customer/Support/Info.plist'), /<key>CFBundleDisplayName<\/key>\s*<string>Assemble<\/string>/);
+  assert.match(read('mobile/ios/App/App/Info.plist'), /<key>CFBundleDisplayName<\/key>\s*<string>Easer<\/string>/);
+  // Same AAE monogram, two backdrops (Thumbtack and Thumbtack Pro): the customer icon is the
+  // brand's, the Easer icon the dark one. The monogram file itself is untouched.
+  assert.match(project, /ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon/);
+  const easerProject = read('mobile/ios/App/App.xcodeproj/project.pbxproj');
+  assert.equal((easerProject.match(/ASSETCATALOG_COMPILER_APPICON_NAME = EaserIcon;/g) || []).length, 2, 'the Easer app uses its own icon in both configurations');
+  assert.ok(existsSync('mobile/ios/App/App/Assets.xcassets/EaserIcon.appiconset/EaserIcon-1024.png'));
+  assert.ok(existsSync('mobile/ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png'));
   assert.ok(existsSync('mobile/ios/Customer/Support/PrivacyInfo.xcprivacy'), 'privacy manifest');
   const pbx = read('mobile/ios/App/App.xcodeproj/project.pbxproj');
   for (const file of Object.keys(shared)) {
@@ -197,6 +207,30 @@ const app = Object.values(customer).join('\n');
   assert.ok(scheme && plist.includes(`<string>${scheme}</string>`), 'the bank-verification return link is registered');
   assert.match(plist, /<key>NSCameraUsageDescription<\/key>/, 'card scanning has its permission line');
   assert.doesNotMatch(easer.toString() + Object.values(easer).join('\n'), /import Stripe/, 'the Easer app takes no payments');
+}
+
+// ── 4d. Home, not a booking list (owner, 2026-10-13: "customer lands on booking ... seems
+// basic"). The progress a booking shows is the server's, in the list and when opened. ─
+{
+  const appSource = read('mobile/ios/Customer/Customer/CustomerApp.swift');
+  assert.ok(appSource.indexOf('HomeView()') > 0 && appSource.indexOf('HomeView()') < appSource.indexOf('BookingsView()'), 'Home is the first tab');
+  assert.match(read('mobile/ios/Customer/Customer/CustomerStore.swift'), /@Published var tab: CustomerTab = \.home/, 'the app opens on Home');
+  const { customerProgress, CUSTOMER_PROGRESS_STEPS } = await import('../api/booking/_customer-status.js');
+  assert.equal(customerProgress({ status: 'confirmed' }).step, 0);
+  assert.equal(customerProgress({ status: 'confirmed', assembler_accepted_at: 'x' }).step, 1);
+  assert.equal(customerProgress({ status: 'en_route', assembler_accepted_at: 'x' }).step, 2);
+  assert.equal(customerProgress({ status: 'in_progress' }).step, 3);
+  assert.equal(customerProgress({ status: 'completed' }).step, CUSTOMER_PROGRESS_STEPS.length - 1);
+  assert.equal(customerProgress({ status: 'cancelled' }), null, 'nothing to track on a cancelled booking');
+  for (const file of ['api/booking/customer-bookings.js', 'api/booking/track.js']) {
+    assert.match(read(file), /customer_progress: customerProgress\(/, `${file} sends the progress`);
+  }
+  assert.match(customer['CustomerModels.swift'], /"customer_progress"/);
+  assert.match(read('api/booking/catalog.js'), /from_cents: fromCents\(groups\)/, '"From $X" comes from the catalog');
+  assert.match(customer['CustomerModels.swift'], /"from_cents"/);
+  assert.match(customer['CustomerHome.swift'], /\.searchable\(/, 'search on Home');
+  assert.match(customer['CustomerHome.swift'], /ProgressTracker\(progress: progress\)/);
+  assert.doesNotMatch(customer['CustomerHome.swift'], /status == "(en_route|arrived|in_progress)"/, 'the app does not work out the step itself');
 }
 
 // ── 5. App Store basics ──────────────────────────────────────────────────────
