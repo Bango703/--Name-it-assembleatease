@@ -665,10 +665,10 @@ struct OrderEditor: View {
                     ContentUnavailableView("Your order is empty", systemImage: "cart")
                 } else {
                     ForEach(services, id: \.self) { service in
-                        Section(service) {
+                        Section {
                             ForEach(flow.lines.filter { $0.service == service }, id: \.name) { line in
                                 if let item = item(for: line) {
-                                    ItemRow(item: item, quantity: binding(for: line))
+                                    ItemRow(item: item, quantity: binding(for: line), showsPrice: true)
                                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                             Button("Remove", role: .destructive) {
                                                 flow.setQuantity(0, for: CartKey(service: line.service, item: line.name))
@@ -676,6 +676,8 @@ struct OrderEditor: View {
                                         }
                                 }
                             }
+                        } header: {
+                            GroupHeader(title: service)
                         }
                     }
                     if let onAddItems {
@@ -709,7 +711,7 @@ struct ServiceItemsView: View {
         List {
             if let service = flow.catalog?.service(named: serviceName) {
                 ForEach(service.groups) { group in
-                    Section(group.name) {
+                    Section {
                         ForEach(group.items) { item in
                             ItemRow(item: item, quantity: Binding(
                                 get: { flow.quantity(CartKey(service: serviceName, item: item.name)) },
@@ -719,6 +721,8 @@ struct ServiceItemsView: View {
                                 ProjectDescriptionField()
                             }
                         }
+                    } header: {
+                        GroupHeader(title: group.name)
                     }
                 }
             }
@@ -741,9 +745,13 @@ struct ProjectDescriptionField: View {
     }
 }
 
+/// One catalog item with its Add control. Prices show only in the order (the cart)
+/// and at checkout; owner, 2026-10-15: prices on every list read as sticker shock.
 struct ItemRow: View {
     let item: CatalogItem
     @Binding var quantity: Int
+    /// True only in the order sheet, where the customer reviews what they picked.
+    var showsPrice = false
 
     private var priceText: String {
         if item.customQuote { return "Quote" }
@@ -753,9 +761,15 @@ struct ItemRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.name).font(.subheadline)
+                Text(item.name).font(.body).foregroundStyle(.primary)
                 HStack(spacing: 6) {
-                    Text(priceText).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark).monospacedDigit()
+                    if showsPrice {
+                        Text(priceText).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark).monospacedDigit()
+                    } else if item.customQuote {
+                        tag("Custom quote")
+                    } else if item.addOn {
+                        tag("Add-on")
+                    }
                     if item.popular {
                         Text("Popular")
                             .font(.caption2.weight(.semibold))
@@ -767,7 +781,27 @@ struct ItemRow: View {
             Spacer(minLength: 8)
             QuantityControl(quantity: $quantity)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
+    }
+
+    private func tag(_ text: String) -> some View {
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(Color(uiColor: .tertiarySystemFill), in: Capsule())
+    }
+}
+
+/// A list section title that reads as a heading: dark, bold, not the system's small grey caps.
+struct GroupHeader: View {
+    let title: String
+    var body: some View {
+        Text(title)
+            .font(.headline)
+            .foregroundStyle(.primary)
+            .textCase(nil)
+            .padding(.top, 6)
     }
 }
 

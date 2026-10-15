@@ -333,9 +333,6 @@ struct SearchSheet: View {
                                         Image(systemName: serviceSymbol(service.name)).foregroundStyle(Brand.skyDark).frame(width: 26)
                                         Text(service.name).foregroundStyle(.primary)
                                         Spacer()
-                                        if let cents = service.fromCents {
-                                            Text("From \(wholeDollars(cents))").font(.subheadline).foregroundStyle(.secondary)
-                                        }
                                     }
                                 }
                             }
@@ -532,9 +529,12 @@ private struct ServiceTile: View {
                         .foregroundStyle(.white)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
-                    Text(service.fromCents.map { "From " + wholeDollars($0) } ?? "Custom quote")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.9))
+                    // No price on the tile: prices show in the order and at checkout.
+                    if service.fromCents == nil {
+                        Text("Custom quote")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
                 }
                 .padding(12)
             }
