@@ -8,14 +8,20 @@ window.AAE_BOOKING_SOURCE = {
     state: 'TX',
     label: 'Statewide Texas service',
     statewideTexas: true,
-    // zipPrefixes/zipCodes describe the Austin AUTO-DISPATCH area, not who may
-    // book. Booking is open statewide (see isActiveServiceZip); anything outside
-    // this area books but needs owner assignment.
-    zipPrefixes: ['787'],
+    // zipPrefixes/zipCodes describe the AUTO-DISPATCH area (Austin and San
+    // Antonio), not who may book. Booking is open statewide; anything outside
+    // this area books but needs owner assignment. Mirrors
+    // AUTOMATIC_DISPATCH_ZIP_PREFIXES / AUTOMATIC_DISPATCH_ZIPS in
+    // api/_source-of-truth.js; scripts/test-dispatch-area-parity.mjs fails if
+    // they drift.
+    zipPrefixes: ['782', '787'],
     zipCodes: [
+      // Austin suburbs
       '78610', '78613', '78626', '78628', '78630', '78633', '78634',
       '78640', '78641', '78645', '78646', '78653', '78660', '78664',
       '78665', '78680', '78681', '78682', '78683', '78691',
+      // San Antonio metro towns outside the 782 prefix
+      '78006', '78015', '78108', '78130', '78132', '78148', '78154',
     ],
   },
   // Same-day service fee — the SERVER is the single source of truth. book.html

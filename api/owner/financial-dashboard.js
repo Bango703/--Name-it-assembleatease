@@ -3,6 +3,7 @@ import { verifyOwner } from '../_email.js';
 import { MIN_PRETAX_BOOKING_BY_ZONE } from '../_source-of-truth.js';
 import { chicagoTodayIso } from '../booking/_appt-date.js';
 import { loadLedgerFirstFinanceRows } from './_finance-ledger.js';
+import { loadReviews, summarizeReviews } from '../_reviews-truth.js';
 
 const DEFAULT_ASSUMPTIONS = Object.freeze({
   reserveRate: 0.05,
@@ -697,19 +698,11 @@ async function buildExpansionReadiness(sb, rows, activeEasers) {
 
 async function loadCustomerRatingStats(sb) {
   try {
-    let query = sb.from('reviews').select('rating').eq('approved', true);
-    let { data, error } = await query;
-    if (error) {
-      const fallback = await sb.from('reviews').select('rating');
-      data = fallback.data;
-      error = fallback.error;
-    }
-    if (error) throw error;
-    const ratings = (data || []).map(row => Number(row.rating || 0)).filter(rating => rating > 0);
-    const total = ratings.reduce((sumRating, rating) => sumRating + rating, 0);
+    // Approved reviews from real bookings only (test bookings never count).
+    const summary = summarizeReviews(await loadReviews(sb, { approvedOnly: true }));
     return {
-      count: ratings.length,
-      averageRating: ratings.length ? total / ratings.length : 0,
+      count: summary.total,
+      averageRating: summary.average || 0,
     };
   } catch (error) {
     console.warn('Expansion readiness customer rating skipped:', error?.message || error);

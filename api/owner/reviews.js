@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { loadReviews, summarizeReviews } from '../_reviews-truth.js';
 
 export default async function handler(req, res) {
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -27,13 +28,15 @@ export default async function handler(req, res) {
 
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { data, error } = await sb
-    .from('reviews')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) return res.status(500).json({ error: 'Failed to fetch reviews' });
-  return res.status(200).json({ reviews: data || [] });
+  try {
+    const reviews = await loadReviews(sb);
+    // The list and its counts come from one place: test-booking reviews are
+    // listed (marked) but never counted.
+    return res.status(200).json({ reviews, summary: summarizeReviews(reviews) });
+  } catch (error) {
+    console.error('[owner-reviews]', error?.message || error);
+    return res.status(500).json({ error: 'Failed to fetch reviews' });
+  }
 }
 
 function isUuid(value) {
