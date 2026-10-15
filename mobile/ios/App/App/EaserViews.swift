@@ -2681,7 +2681,7 @@ private struct AccountView: View {
                 Section("Help") {
                     Button {
                         if let url = URL(string: "tel:" + Site.supportPhone) { openURL(url) }
-                    } label: { Label("Call \(Site.supportPhoneDisplay)", systemImage: "phone") }
+                    } label: { Label("Call AssembleAtEase", systemImage: "phone") }
                     Button {
                         if let url = URL(string: "mailto:" + Site.supportEmail) { openURL(url) }
                     } label: { Label("Email support", systemImage: "envelope") }

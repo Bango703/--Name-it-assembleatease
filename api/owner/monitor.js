@@ -88,7 +88,11 @@ export default async function handler(req, res) {
   const allBookingRows = bookingsRes.data || [];
   const bookings = allBookingRows.filter(booking => booking.is_test_booking !== true);
   const testBookingCount = allBookingRows.length - bookings.length;
-  const reviews  = reviewsRes.data || [];
+  // Test-booking reviews are rehearsals; the shared rule leaves them out of every count.
+  const testBookingIds = new Set(bookings.filter(b => b.is_test_booking === true).map(b => b.id));
+  const reviews  = (reviewsRes.data || [])
+    .map(r => ({ ...r, is_test: testBookingIds.has(r.booking_id) }))
+    .filter(r => r.is_test !== true);
 
   // ── Compute platform health signals ─────────────────────────────
   const pending   = bookings.filter(b => b.status === 'pending');

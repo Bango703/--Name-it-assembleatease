@@ -8459,27 +8459,27 @@ window.intelQuick = intelQuick;
 
   // ─── REVIEWS VIEW ───
   var allReviews = [];
+  var reviewSummary = null;
   async function loadReviews() {
     document.getElementById('reviews-list').innerHTML = '<div class="empty">Loading reviews…</div>';
     try {
       var r = await fetch('/api/owner/reviews', { headers: headers() });
       var data = await r.json();
       allReviews = data.reviews || [];
+      reviewSummary = data.summary || null;
       renderReviews();
     } catch(e) { document.getElementById('reviews-list').innerHTML = '<div class="empty">Failed to load reviews.</div>'; }
   }
   function renderReviews() {
-    var total = allReviews.length;
-    var avg = total ? (allReviews.reduce(function(s,r){return s+r.rating;},0)/total).toFixed(1) : '—';
-    var fiveStars = allReviews.filter(function(r){return r.rating===5;}).length;
-    var hidden = allReviews.filter(function(r){return !r.approved;}).length;
-    document.getElementById('rev-total').textContent = total;
-    document.getElementById('rev-avg').textContent = total ? avg + ' / 5' : '—';
-    document.getElementById('rev-five').textContent = fiveStars;
-    document.getElementById('rev-pending').textContent = hidden;
+    // Counts come from the server (api/_reviews-truth.js): test-booking reviews are listed, never counted.
+    var sum = reviewSummary || { total: 0, average: null, fiveStar: 0, hidden: 0, testExcluded: 0 };
+    document.getElementById('rev-total').textContent = sum.total;
+    document.getElementById('rev-avg').textContent = sum.average != null ? Number(sum.average).toFixed(1) + ' / 5' : '—';
+    document.getElementById('rev-five').textContent = sum.fiveStar;
+    document.getElementById('rev-pending').textContent = sum.hidden;
     var list = document.getElementById('reviews-list');
     var empty = document.getElementById('reviews-empty');
-    if(!total){ list.innerHTML=''; empty.style.display=''; return; }
+    if(!allReviews.length){ list.innerHTML=''; empty.style.display=''; return; }
     empty.style.display='none';
     list.innerHTML = allReviews.map(function(r){
       var stars='<span style="color:#f59e0b">'+Number(r.rating || 0).toFixed(1)+' / 5</span>';
@@ -8487,6 +8487,11 @@ window.intelQuick = intelQuick;
       var approvedBg = r.approved ? 'rgba(29,158,117,0.12)' : 'rgba(245,158,11,0.12)';
       var approvedColor = r.approved ? 'var(--teal)' : 'var(--amber)';
       var approvedLabel = r.approved ? 'Visible' : 'Hidden';
+      var testTag = r.is_test ? '<span style="font-size:0.72rem;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--elevated);color:var(--muted)">Test booking, not counted</span>' : '';
+      var bodyText = String(r.body || '').trim();
+      var bodyHtml = bodyText
+        ? '<p style="font-size:0.875rem;color:var(--text);line-height:1.65;margin:0">&ldquo;'+esc(bodyText)+'&rdquo;</p>'
+        : '<p style="font-size:0.8rem;color:var(--muted);margin:0">No comment left.</p>';
       return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.25rem">'
         +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">'
           +'<div>'
@@ -8494,11 +8499,12 @@ window.intelQuick = intelQuick;
             +'<div style="font-size:0.8rem;color:var(--muted)">'+esc(r.customer_name||'Customer')+' &bull; '+esc(r.service||'')+(date ? ' &bull; '+esc(date) : '')+'</div>'
           +'</div>'
           +'<div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">'
+            +testTag
             +'<span style="font-size:0.72rem;font-weight:700;padding:2px 10px;border-radius:999px;background:'+approvedBg+';color:'+approvedColor+'">'+approvedLabel+'</span>'
             +'<button onclick="toggleReview(\''+r.id+'\','+(r.approved ? 'false' : 'true')+')" class="btn" style="font-size:0.72rem;padding:3px 10px">'+(r.approved ? 'Hide' : 'Show')+'</button>'
           +'</div>'
         +'</div>'
-        +'<p style="font-size:0.875rem;color:var(--text);line-height:1.65;margin:0">&ldquo;'+esc(r.body)+'&rdquo;</p>'
+        +bodyHtml
       +'</div>';
     }).join('');
   }
