@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { ownerCallConfig, buildOwnerLegRequest, placeCall } from '../_owner-call.js';
+import { recordOperationalEvents } from '../_observability.js';
 
 /**
  * POST /api/owner/call-customer — put the owner on the phone with a customer
@@ -57,7 +58,7 @@ export default async function handler(req, res) {
   if (!result.ok) {
     console.error('[owner-call] Telnyx rejected the call:', result.error);
     try {
-      await sb.from('operational_events').insert({
+      await recordOperationalEvents(sb, {
         event_type: 'owner_call_failed',
         route: '/api/owner/call-customer',
         method: 'POST',
@@ -73,7 +74,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    await sb.from('operational_events').insert({
+    await recordOperationalEvents(sb, {
       event_type: 'owner_call_started',
       route: '/api/owner/call-customer',
       method: 'POST',

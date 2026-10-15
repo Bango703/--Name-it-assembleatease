@@ -3,6 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { findQuoteOrphans } from '../_quote-orphans-core.js';
 import { logCron } from './_cron-logger.js';
+import { recordOperationalEvents } from '../_observability.js';
 
 /**
  * GET /api/cron/quote-orphan-alert — daily at 12:00 UTC.
@@ -157,7 +158,7 @@ export default async function handler(req, res) {
     // Record AFTER the send, so a failed email is retried tomorrow rather than
     // being marked handled and never mentioned again.
     if (fresh.length) {
-      await sb.from('operational_events').insert(fresh.map(o => ({
+      await recordOperationalEvents(sb, fresh.map(o => ({
         event_type: ALERTED_EVENT,
         route: '/api/cron/quote-orphan-alert',
         method: 'CRON',
@@ -170,7 +171,7 @@ export default async function handler(req, res) {
       })));
     }
     if (dueForReminder) {
-      await sb.from('operational_events').insert({
+      await recordOperationalEvents(sb, {
         event_type: REMINDED_EVENT,
         route: '/api/cron/quote-orphan-alert',
         method: 'CRON',

@@ -64,6 +64,9 @@ export function isStranded(booking, { now = Date.now(), minutes = STRANDED_AFTER
 
   // Finished, cancelled or refunded: nothing owed to anyone.
   if (isTerminalBookingStatus(status)) return false;
+  // The owner's own test bookings are nobody's lost work (2026-10-15: four app
+  // tests were reported as stranded demand).
+  if (booking.is_test_booking === true) return false;
   // Someone has it.
   if (booking.assembler_id) return false;
   // Another cron owns this state and is already chasing it.
@@ -104,7 +107,7 @@ export async function findStrandedBookings(sb, { now = Date.now(), minutes = STR
   const { data, error } = await sb
     .from('bookings')
     .select('id, ref, status, service, date, time, total_price, customer_name, customer_email, customer_phone, '
-      + 'assembler_id, payment_status, dispatch_status, dispatch_paused, needs_manual_dispatch, source, created_at')
+      + 'assembler_id, payment_status, dispatch_status, dispatch_paused, needs_manual_dispatch, source, is_test_booking, created_at')
     .not('status', 'in', `(${TERMINAL_BOOKING_STATUSES.join(',')})`)
     .is('assembler_id', null)
     .order('created_at', { ascending: false })

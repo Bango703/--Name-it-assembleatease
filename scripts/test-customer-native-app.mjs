@@ -448,6 +448,21 @@ const app = Object.values(customer).join('\n');
   // Owner, 2026-10-14: "in job review notes doesn't show", then a two-sided audit. The review
   // step shows the notes and who is booking; a return visit shows in both apps.
   assert.match(booking, /CustomerBlock\(title: "Notes for your pro"\)[\s\S]{0,1600}flow\.backToDetails\(\)/, 'the review step shows the notes, with a way back to change them');
+  // Owner, 2026-10-15: "sticker shock is the problem ... customer don't see price until
+  // at checkout or cart". Lists, tiles, search and the season card show no price; the
+  // order sheet (the cart) and checkout do. Group titles read as headings.
+  const itemRow = booking.slice(booking.indexOf('struct ItemRow'), booking.indexOf('struct QuantityControl'));
+  assert.match(itemRow, /var showsPrice = false/, 'an item shows no price unless asked');
+  assert.match(itemRow, /if showsPrice \{\s*Text\(priceText\)/);
+  assert.match(itemRow, /Text\(item\.name\)\.font\(\.body\)/, 'item names at body size');
+  assert.equal((booking.match(/showsPrice: true/g) || []).length, 1, 'only the order sheet shows prices on items');
+  assert.match(booking.slice(booking.indexOf('struct OrderEditor')), /ItemRow\(item: item, quantity: binding\(for: line\), showsPrice: true\)/);
+  assert.match(booking, /header: \{\s*GroupHeader\(title: group\.name\)/, 'service groups use the bold heading');
+  assert.match(booking, /struct GroupHeader[\s\S]{0,300}\.font\(\.headline\)[\s\S]{0,80}\.foregroundStyle\(\.primary\)[\s\S]{0,40}\.textCase\(nil\)/);
+  const homeFile = customer['CustomerHome.swift'];
+  assert.ok(!homeFile.includes('"From "') && !homeFile.includes('From \\('), 'no From price on Home or in search');
+  assert.doesNotMatch(homeFile, /showsPrice: true/, 'Home never shows item prices');
+
   // Owner, 2026-10-14: "at checkout can't edit when and where".
   const whenWhere = booking.slice(booking.indexOf('CustomerBlock(title: "When and where")'), booking.indexOf('CustomerBlock(title: "Notes for your pro")'));
   assert.match(whenWhere, /Button\("Change time"\) \{ flow\.backToSchedule\(\) \}/, 'the review step changes the time');
