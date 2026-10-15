@@ -36,6 +36,8 @@ export default async function handler(req, res) {
     .select('id, ref, service, customer_name, customer_email, customer_phone, address, service_zip, service_city, date, time, status, assembler_id, assembler_name, assembler_accepted_at, checked_in_at, return_visit_required')
     .in('status', [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.EN_ROUTE])
     .not('assembler_accepted_at', 'is', null)
+    // A test job (the App Review job is dated in the past on purpose) is never a no-show.
+    .eq('is_test_booking', false)
     .gte('date', lookbackDate)
     .limit(100);
 
