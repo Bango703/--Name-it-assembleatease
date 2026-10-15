@@ -31,13 +31,11 @@ export default async function handler(req, res) {
 
   // Candidates: an Easer accepted (assembler_accepted_at set) but the job is still
   // sitting in confirmed/en_route — never marked arrived/in_progress/completed.
-  const { data: candidates, error } = await sb
+  const { data: rawCandidates, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_email, customer_phone, address, service_zip, service_city, date, time, status, assembler_id, assembler_name, assembler_accepted_at, checked_in_at, return_visit_required')
+    .select('id, ref, service, customer_name, customer_email, customer_phone, address, service_zip, service_city, date, time, status, assembler_id, assembler_name, assembler_accepted_at, checked_in_at, return_visit_required, is_test_booking')
     .in('status', [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.EN_ROUTE])
     .not('assembler_accepted_at', 'is', null)
-    // A test job (the App Review job is dated in the past on purpose) is never a no-show.
-    .eq('is_test_booking', false)
     .gte('date', lookbackDate)
     .limit(100);
 
@@ -46,6 +44,10 @@ export default async function handler(req, res) {
     await logCron('no-show-check', { status: 'error', error: error.message, duration: Date.now() - t });
     return res.status(500).json({ error: 'Query failed' });
   }
+
+  // A test job (the App Review job is dated in the past on purpose) is never a
+  // no-show. Only rows marked test are skipped; an unmarked row still counts.
+  const candidates = (rawCandidates || []).filter(b => b.is_test_booking !== true);
 
   const assemblerIds = Array.from(new Set((candidates || []).map(b => b.assembler_id).filter(Boolean)));
   let assemblerPhonesById = {};
