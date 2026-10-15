@@ -2,6 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logCron } from './_cron-logger.js';
 import { findStrandedBookings, STRANDED_AFTER_MINUTES } from '../_stranded-bookings-core.js';
+import { recordOperationalEvents } from '../_observability.js';
 
 /**
  * GET /api/cron/stranded-booking-alert — every 30 minutes.
@@ -111,7 +112,7 @@ export default async function handler(req, res) {
   // the next run tries again rather than going silent.
   if (emailResult?.ok !== false) {
     try {
-      await sb.from('operational_events').insert({
+      await recordOperationalEvents(sb, {
         event_type: 'stranded_booking_alert',
         route: '/api/cron/stranded-booking-alert',
         method: 'CRON',

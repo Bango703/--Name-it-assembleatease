@@ -91,7 +91,7 @@ assert.doesNotMatch(cron, /\.from\('bookings'\)[\s\S]{0,200}\.(update|insert|del
   'Detection must never mutate a booking');
 assert.match(cron, /operational_events/, 'Alerts must be recorded');
 // Recorded only after a successful send, so a failed email retries next run.
-const recordIndex = cron.indexOf("from('operational_events').insert");
+const recordIndex = cron.indexOf('recordOperationalEvents(sb');
 const sendIndex = cron.indexOf('sendEmail(');
 assert.ok(sendIndex >= 0 && recordIndex > sendIndex,
   'The event must be recorded AFTER the email, or a failed send is remembered as reported');
@@ -105,6 +105,11 @@ const vercel = JSON.parse(await read('vercel.json'));
 const entry = (vercel.crons || []).find(c => c.path === '/api/cron/stranded-booking-alert');
 assert.ok(entry, 'The cron must be registered in vercel.json or it never runs');
 assert.ok(entry.schedule, 'The cron needs a schedule');
+
+// 2026-10-15: the owner's own app tests were emailed as stranded demand.
+assert.equal(isStranded({ status: 'pending', is_test_booking: true, created_at: new Date(Date.now() - 6 * 3600e3).toISOString() }), false,
+  'A test booking is never stranded work');
+assert.equal(isStranded({ status: 'pending', is_test_booking: false, created_at: new Date(Date.now() - 6 * 3600e3).toISOString() }), true);
 
 assert.ok(STRANDED_AFTER_MINUTES >= 30 && STRANDED_AFTER_MINUTES <= 120,
   'Threshold must be past normal dispatch but well inside a customer giving up');

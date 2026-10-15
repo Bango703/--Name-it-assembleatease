@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { recordSmsConversationMessage } from '../_sms-conversations.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { recordOperationalEvents } from '../_observability.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -228,7 +229,7 @@ async function handleInbound(sb, payload, stamp) {
   } catch (inboxError) {
     console.error('[telnyx-webhook] inbox record failed for', payload.id, inboxError?.message || inboxError);
     try {
-      await sb.from('operational_events').insert({
+      await recordOperationalEvents(sb, {
         event_type: 'sms_inbox_write_failed',
         route: '/api/webhooks/telnyx',
         method: 'POST',

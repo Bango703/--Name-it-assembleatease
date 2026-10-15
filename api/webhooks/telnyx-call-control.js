@@ -5,6 +5,7 @@ import { normalizeUsPhone } from '../_phone.js';
 import { rateLimitKey } from '../_ratelimit.js';
 import { evaluateCustomerContactRelease } from '../booking/_customer-contact-release.js';
 import { ACTIVE_BOOKING_STATUSES } from '../_source-of-truth.js';
+import { recordOperationalEvents } from '../_observability.js';
 
 /**
  * POST /api/webhooks/telnyx-call-control — the second half of a click-to-call.
@@ -84,7 +85,7 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   try {
-    await sb.from('operational_events').insert({
+    await recordOperationalEvents(sb, {
       event_type: result.ok ? 'owner_call_bridged' : 'owner_call_bridge_failed',
       route: '/api/webhooks/telnyx-call-control',
       method: 'POST',
@@ -190,7 +191,7 @@ async function routeInboundBookingCall(payload) {
     })).toString('base64'),
   });
   try {
-    await sb.from('operational_events').insert({
+    await recordOperationalEvents(sb, {
       event_type: outbound.ok ? 'booking_call_bridged' : 'booking_call_bridge_failed',
       route: '/api/webhooks/telnyx-call-control',
       method: 'POST',
