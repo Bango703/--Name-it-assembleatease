@@ -96,4 +96,12 @@ import { computeCancellationFee } from '../api/_source-of-truth.js';
   console.log('PASS the escalation is scheduled every 15 minutes');
 }
 
+// ── A test booking has no customer waiting ──────────────────────────────────
+{
+  const src = await fs.readFile(new URL('../api/cron/unassigned-escalation.js', import.meta.url), 'utf8');
+  assert.match(src, /return_visit_required, is_test_booking'\)/, 'the escalation reads is_test_booking');
+  assert.match(src, /if \(b\.is_test_booking === true\) continue;/, 'test bookings are skipped before any email');
+  console.log('PASS test bookings are never escalated');
+}
+
 console.log('\nUnassigned escalation tests passed.');

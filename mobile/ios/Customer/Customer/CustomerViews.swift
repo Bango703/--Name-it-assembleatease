@@ -382,7 +382,7 @@ struct BookingDetailView: View {
                         Button {
                             if let url = URL(string: "tel:" + Site.supportPhone) { openURL(url) }
                         } label: {
-                            Label("Questions? Call \(Site.supportPhoneDisplay)", systemImage: "phone")
+                            Label("Call AssembleAtEase", systemImage: "phone")
                                 .font(.subheadline)
                         }
                         .frame(maxWidth: .infinity)
@@ -1180,7 +1180,7 @@ struct CustomerAccountView: View {
                     Button { openURL(Site.page("/contact")) } label: { accountRow("questionmark.circle", "Help and contact") }
                     Button {
                         if let url = URL(string: "tel:" + Site.supportPhone) { openURL(url) }
-                    } label: { accountRow("phone", "Call \(Site.supportPhoneDisplay)") }
+                    } label: { accountRow("phone", "Call AssembleAtEase") }
                     Button {
                         if let url = URL(string: "mailto:" + Site.supportEmail) { openURL(url) }
                     } label: { accountRow("envelope", "Email \(Site.supportEmail)") }
