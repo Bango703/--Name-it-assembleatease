@@ -184,7 +184,20 @@ workflows:
     max_build_duration: 45
     environment:
       xcode: 26.5
+      groups:
+        - firebase
     scripts:
+      - name: Add the Firebase configuration
+        # The project lists GoogleService-Info.plist as a resource; the build
+        # fails to copy it when it is absent.
+        script: |
+          set -euo pipefail
+          if [ -n "${FIREBASE_IOS_CUSTOMER_PLIST:-}" ]; then
+            echo "$FIREBASE_IOS_CUSTOMER_PLIST" | base64 --decode > mobile/ios/Customer/Support/GoogleService-Info.plist
+            echo "Firebase configuration added."
+          else
+            echo "FIREBASE_IOS_CUSTOMER_PLIST not set." && exit 1
+          fi
       - name: Generate the Xcode project
         script: |
           set -euo pipefail
@@ -210,7 +223,8 @@ workflows:
           rm -rf "$HOME/aae-screens"
           cd mobile/ios/Customer
           xcodebuild test -project Customer.xcodeproj -scheme CustomerScreenshots \
-            -destination "id=$SIM_UDID" CODE_SIGNING_ALLOWED=NO \
+            -destination "id=$SIM_UDID" -configuration Release \
+            CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO ENABLE_TESTABILITY=YES \
             -resultBundlePath "$CM_BUILD_DIR/screenshots.xcresult" | tail -40
           ls -la "$HOME/aae-screens"
           mkdir -p "$CM_BUILD_DIR/screenshots" && cp "$HOME"/aae-screens/*.png "$CM_BUILD_DIR/screenshots/"
