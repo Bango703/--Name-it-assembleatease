@@ -2,12 +2,16 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { ownerCallConfig, buildOwnerLegRequest, placeCall } from '../_owner-call.js';
 import { recordOperationalEvents } from '../_observability.js';
+import { parseCallTarget, resolveCallTarget } from '../_owner-call-targets.js';
+import { appendOperationCaseEvent } from '../_operation-cases.js';
 
 /**
- * POST /api/owner/call-customer — put the owner on the phone with a customer
- * without exposing the owner's personal number.
+ * POST /api/owner/call-customer — put the owner on the phone with a customer,
+ * caller, Easer or partner without exposing the owner's personal number.
  *
- * The customer number is read from the booking, never taken from the request.
+ * Body: { type, id } (see _owner-call-targets.js), or { bookingId } for the
+ * booking's customer. The number is read from that record, never taken from
+ * the request.
  * An owner password does not entitle the caller to dial an arbitrary number
  * through the business line, and accepting one from the browser would turn this
  * endpoint into an open dialer the moment that password leaked.
@@ -31,29 +35,28 @@ export default async function handler(req, res) {
     });
   }
 
-  const bookingId = String(req.body?.bookingId || '').trim();
-  if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
+  const target = parseCallTarget(req.body);
+  if (!target.ok) return res.status(400).json({ error: target.error });
 
   const sb = getSupabase();
-  const { data: booking, error } = await sb
-    .from('bookings')
-    .select('id, ref, customer_name, customer_phone, status')
-    .eq('id', bookingId)
-    .maybeSingle();
-
-  if (error) {
-    console.error('[owner-call] booking lookup failed:', error.message || error);
-    return res.status(503).json({ error: 'The booking could not be loaded. Please try again.' });
+  let who;
+  try {
+    who = await resolveCallTarget(sb, target);
+  } catch (error) {
+    console.error('[owner-call] target lookup failed:', error?.message || error);
+    return res.status(503).json({ error: 'The record could not be loaded. Please try again.' });
   }
-  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  if (!who.found) return res.status(404).json({ error: 'That record could not be found.' });
+  const booking = { id: who.bookingId, ref: who.ref, customer_name: who.name };
 
   const leg = buildOwnerLegRequest(config, {
-    customerPhone: booking.customer_phone,
-    bookingId: booking.id,
-    bookingRef: booking.ref,
+    customerPhone: who.phone,
+    bookingId: who.bookingId,
+    bookingRef: who.ref,
   });
-  if (!leg.ok) return res.status(400).json({ error: leg.error, code: 'NO_CUSTOMER_PHONE' });
-
+  if (!leg.ok) {
+    return res.status(400).json({ error: `${who.name} does not have a valid US phone number on file.`, code: 'NO_CUSTOMER_PHONE' });
+  }
   const result = await placeCall(config, leg.body);
   if (!result.ok) {
     console.error('[owner-call] Telnyx rejected the call:', result.error);
@@ -83,9 +86,16 @@ export default async function handler(req, res) {
       reason_code: 'owner_initiated_call',
       reason_detail: booking.ref || '',
       mutation_result: 'owner_leg_dialing',
-      payload: { ref: booking.ref, callControlId: result.callControlId },
+      payload: { ref: booking.ref, type: target.type, callControlId: result.callControlId },
     });
   } catch { /* logging is never worth failing the request for */ }
+
+  if (who.caseId) {
+    await appendOperationCaseEvent(sb, {
+      caseId: who.caseId, eventType: 'internal_note', actorType: 'owner', actorName: 'Owner',
+      note: `Called ${who.name} from the business line.`,
+    }).catch(error => console.error('[owner-call] case event failed:', error?.message || error));
+  }
 
   // Deliberately does not return the customer's number — the browser already
   // has what it needs, and this response ends up in logs.

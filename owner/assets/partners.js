@@ -144,7 +144,7 @@
       : p.bookings ? p.bookings + (p.bookings === 1 ? ' booking' : ' bookings') + ', ' + p.completedJobs + ' completed' + (p.bookingRefs.length ? ' (' + p.bookingRefs.map(esc).join(', ') + ')' : '') : 'No bookings through this link yet';
     var html = '<div class="partners-detail-head"><div><div class="partners-eyebrow">' + esc(kind.label) + (p.rank ? ' &middot; Rank ' + esc(p.rank) : '') + (p.source === 'manual' ? ' &middot; Added by you' : '') + '</div><h3>' + esc(p.name) + '</h3></div></div>';
     html += '<dl class="partners-facts">';
-    if (p.phone) html += fact('Phone', '<a href="tel:' + esc(p.phone.replace(/[^\d+]/g, '')) + '">' + esc(p.phone) + '</a>' + copyButton(p.phone, 'Phone'));
+    if (p.phone) html += fact('Phone', esc(p.phone) + ' <button type="button" class="partners-copy" data-partner-call="' + esc(p.id) + '">Call</button>' + copyButton(p.phone, 'Phone'));
     if (p.email) html += fact('Email', esc(p.email) + copyButton(p.email, 'Email'));
     if (p.website) html += fact('Website', '<a href="' + esc(p.website) + '" target="_blank" rel="noopener">' + esc(p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/[?#].*$/, '').replace(/\/$/, '')) + '</a>');
     if (p.address) html += fact('Address', esc(p.address));
@@ -242,6 +242,10 @@
   document.addEventListener('click', async function(event) {
     if (!event.target.closest('#partners-view')) return;
     var t;
+    if ((t = event.target.closest('[data-partner-call]'))) {
+      if (typeof window.callViaBusinessLine === 'function') window.callViaBusinessLine('partner', t.dataset.partnerCall, t);
+      return;
+    }
     if ((t = event.target.closest('[data-partner-id]'))) {
       state.selected = t.dataset.partnerId; renderList(); renderDetail();
       if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) el('partners-detail').scrollIntoView({ block: 'start', behavior: 'smooth' });

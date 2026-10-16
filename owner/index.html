@@ -2871,12 +2871,14 @@ window.intelQuick = intelQuick;
   // Click-to-call. Rings the owner first, then bridges the customer, so the
   // customer only ever sees the business number. A plain tel: link dials from
   // the owner handset and hands over the personal number for good.
-  window.callCustomerViaBusinessLine = async function (bookingId, btn) {
-    if (!bookingId) return;
+  // type: booking | booking_easer | case | easer | partner. The server reads
+  // the number from that record; the browser never sends one.
+  window.callViaBusinessLine = async function (type, id, btn) {
+    if (!type || !id) return;
     var original = btn ? btn.textContent : "";
     if (btn) { btn.disabled = true; btn.textContent = "Calling..."; }
     try {
-      var res = await ownerPost("/call-customer", { bookingId: bookingId });
+      var res = await ownerPost("/call-customer", { type: type, id: id });
       toast(res && res.message ? res.message : "Your phone is ringing.");
     } catch (e) {
       // Show the server reason, never a generic failure (Article 16).
@@ -2885,6 +2887,16 @@ window.intelQuick = intelQuick;
       if (btn) { btn.disabled = false; btn.textContent = original; }
     }
   };
+  window.callCustomerViaBusinessLine = function (bookingId, btn) { return window.callViaBusinessLine("booking", bookingId, btn); };
+  // A phone number shown as text with a Call button, never a tel: link: a tel:
+  // link dials from the owner's own phone and hands over the personal number.
+  function businessCallButton(type, id, label) {
+    if (!id) return "";
+    return '<button type="button" onclick="callViaBusinessLine(\'' + esc(type) + '\', \'' + esc(id) + '\', this)" style="background:#00BFFF;color:#04222c;border:none;border-radius:8px;padding:0.3rem 0.7rem;font-size:0.75rem;font-weight:800;cursor:pointer">' + esc(label || "Call") + '</button>';
+  }
+  function phoneWithCall(phone, type, id) {
+    return '<span style="white-space:nowrap">' + esc(formatUsPhone(phone)) + '</span> ' + businessCallButton(type, id);
+  }
   async function apiPost(path, body) {
     const r = await fetch(API + path, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
     if (r.status === 401) { logout(true); throw new Error('Unauthorized'); }
@@ -3550,7 +3562,7 @@ window.intelQuick = intelQuick;
     $detailGrid.innerHTML = quoteStage ? renderQuoteDetailGrid(b, quoteStage, customerAgreement) : [
       field('Customer', esc(b.customer_name || '—')),
       field('Email', b.customer_email ? '<a href="mailto:'+esc(b.customer_email)+'" style="color:var(--teal);text-decoration:none">'+esc(b.customer_email)+'</a>' : '—'),
-      field('Phone', hasValidUsPhone(b.customer_phone) ? '<a href="tel:'+esc(b.customer_phone)+'" style="color:var(--teal);text-decoration:none;font-weight:600">'+esc(formatUsPhone(b.customer_phone))+'</a>' : '<span style="color:var(--red)">Valid phone required</span>'),
+      field('Phone', hasValidUsPhone(b.customer_phone) ? '<span style="font-weight:600">'+esc(formatUsPhone(b.customer_phone))+'</span>' : '<span style="color:var(--red)">Valid phone required</span>'),
       hasValidUsPhone(b.customer_phone)
         ? '<div style="grid-column:1/-1;margin:0.1rem 0 0.5rem">'
           + '<button type="button" onclick="callCustomerViaBusinessLine(\'' + esc(b.id) + '\', this)" style="background:#00BFFF;color:#04222c;border:none;border-radius:8px;padding:0.45rem 0.9rem;font-size:0.8rem;font-weight:800;cursor:pointer">Call via business line</button>'
@@ -3639,7 +3651,7 @@ window.intelQuick = intelQuick;
         ? field('Total With Approved Extras', '<strong>' + fmt$(Number(b.total_price || 0) + b._change_order_summary.billableTotalCents) + '</strong> <span style="font-size:0.7rem;color:var(--muted)">(' + fmt$(b.total_price) + ' original + ' + fmt$(b._change_order_summary.billableTotalCents) + ' approved)</span>') : '',
       b.details ? field('Details', esc(b.details)) : '',
       customerFeedbackField(b),
-      field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + esc(b.assembler_tier) + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (hasValidUsPhone(b.assembler_phone) ? ' &bull; <a href="tel:' + esc(b.assembler_phone) + '" style="color:var(--teal);text-decoration:none">' + esc(formatUsPhone(b.assembler_phone)) + '</a>' : ' <span style="color:var(--red)">&bull; valid phone required</span>') : '<span style="color:var(--muted)">Unassigned</span>'),
+      field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + esc(b.assembler_tier) + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (hasValidUsPhone(b.assembler_phone) ? ' &bull; ' + phoneWithCall(b.assembler_phone, 'booking_easer', b.id) : ' <span style="color:var(--red)">&bull; valid phone required</span>') : '<span style="color:var(--muted)">Unassigned</span>'),
       field('Source', (b.source === 'manual' || b.source === 'owner_manual') ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
       b.rebooked_from_booking_id ? field('Rebooked From', esc(rebookedFrom && rebookedFrom.ref ? rebookedFrom.ref : 'Cancelled booking')) : '',
       field('Customer Agreement', customerAgreement),
@@ -7069,7 +7081,7 @@ window.intelQuick = intelQuick;
     var out = [quoteBanner(b, stage)];
     out.push(field('Customer', esc(b.customer_name || '—')));
     out.push(field('Phone', hasValidUsPhone(b.customer_phone)
-      ? '<a href="tel:' + esc(b.customer_phone) + '" style="color:var(--teal);text-decoration:none;font-weight:600">' + esc(formatUsPhone(b.customer_phone)) + '</a>'
+      ? phoneWithCall(b.customer_phone, 'booking', b.id)
       : '<span style="color:var(--red)">Valid phone required</span>'));
     out.push(field('Email', b.customer_email
       ? '<a href="mailto:' + esc(b.customer_email) + '" style="color:var(--teal);text-decoration:none">' + esc(b.customer_email) + '</a>'
@@ -8451,7 +8463,7 @@ window.intelQuick = intelQuick;
         +'</div>'
         +'<div class="today-job-actions" style="display:flex;align-items:center;gap:0.5rem">'
           + bookingBadge(b)
-          +(b.customer_phone ? '<a href="tel:'+esc(b.customer_phone)+'" style="font-size:0.78rem;color:var(--teal);text-decoration:none;font-weight:600">Call</a>' : '')
+          +(b.customer_phone ? businessCallButton('booking', b.id) : '')
         +'</div>'
       +'</div>';
     }).join('');
@@ -8531,7 +8543,7 @@ window.intelQuick = intelQuick;
       }
       map[key].bookings++;
       map[key].spent += actualNetPaymentsCents(b);
-      if(b.created_at > map[key].lastDate){ map[key].lastDate=b.created_at; map[key].lastService=b.service||'—'; }
+      if(b.created_at > map[key].lastDate){ map[key].lastDate=b.created_at; map[key].lastService=b.service||'—'; map[key].lastBookingId=b.id; }
     });
     allCustomers = Object.values(map).sort(function(a,b){return b.bookings-a.bookings;});
   }
@@ -8555,7 +8567,7 @@ window.intelQuick = intelQuick;
       var date = c.lastDate ? new Date(c.lastDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
       return '<tr style="border-bottom:1px solid var(--border)">'
         +'<td style="padding:0.7rem 1rem"><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(c.name||'—')+'</div><div style="font-size:0.75rem;color:var(--muted)">'+esc(c.email||'')+'</div></td>'
-        +'<td style="padding:0.7rem 1rem;font-size:0.85rem;color:var(--soft);white-space:nowrap">'+(hasValidUsPhone(c.phone) ? '<a href="tel:'+esc(c.phone)+'" style="color:var(--teal);text-decoration:none;white-space:nowrap">'+esc(formatUsPhone(c.phone))+'</a>' : '<span style="color:var(--red)">Valid phone required</span>')+'</td>'
+        +'<td style="padding:0.7rem 1rem;font-size:0.85rem;color:var(--soft);white-space:nowrap">'+(hasValidUsPhone(c.phone) ? phoneWithCall(c.phone, 'booking', c.lastBookingId) : '<span style="color:var(--red)">Valid phone required</span>')+'</td>'
         +'<td style="padding:0.7rem 1rem;font-size:0.875rem;font-weight:600;color:var(--text)">'+c.bookings+(c.bookings>1 ? ' <span style="font-size:0.7rem;color:var(--teal);font-weight:700">REPEAT</span>' : '')+'</td>'
         +'<td style="padding:0.7rem 1rem;font-size:0.875rem;color:var(--text)">'+fmt$(c.spent)+'</td>'
         +'<td style="padding:0.7rem 1rem;font-size:0.8rem;color:var(--soft)">'+esc(c.lastService)+'</td>'
@@ -9671,7 +9683,7 @@ window.intelQuick = intelQuick;
         if (jobsNeedingAction.length > 3) actionButtons += '<div style="font-size:0.68rem;color:var(--muted)">+' + (jobsNeedingAction.length - 3) + ' more</div>';
         var contact = '<div style="font-size:0.69rem;color:var(--muted);font-weight:400;margin-top:0.2rem">'
           + (e.email ? '<a href="mailto:' + esc(e.email) + '" style="color:var(--teal)">' + esc(e.email) + '</a>' : 'Email missing')
-          + (hasValidUsPhone(e.phone) ? '<br><a href="tel:' + esc(e.phone) + '" style="color:var(--teal)">' + esc(formatUsPhone(e.phone)) + '</a>' : '<br><span style="color:var(--red)">Valid phone required</span>')
+          + (hasValidUsPhone(e.phone) ? '<br>' + phoneWithCall(e.phone, 'easer', e.id) : '<br><span style="color:var(--red)">Valid phone required</span>')
           + '</div>';
         return '<tr style="border-bottom:1px solid var(--border)">'
           + '<td style="padding:0.6rem 0.75rem;font-weight:600;color:var(--text)">' + esc(e.assembler_name) + ' ' + easerTierBadge(e.assembler_tier) + contact + (['requested','reviewing','completed'].includes(e.account_closure_status) ? '<div style="font-size:0.68rem;color:var(--red);margin-top:0.2rem">Closure: ' + esc(e.account_closure_status) + '</div>' : '') + '</td>'
@@ -10892,7 +10904,7 @@ window.intelQuick = intelQuick;
       // Contact section
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Contact</div>'
         + '<strong>Email:</strong> <a href="mailto:' + esc(a.email) + '" style="color:var(--accent)">' + esc(a.email) + '</a><br>'
-        + '<strong>Phone:</strong> ' + (hasValidUsPhone(a.phone) ? '<a href="tel:' + esc(a.phone) + '" style="color:var(--accent)">' + esc(formatUsPhone(a.phone)) + '</a>' : '<span style="color:var(--red)">Valid phone required — cannot be dispatched</span>') + '<br>'
+        + '<strong>Phone:</strong> ' + (hasValidUsPhone(a.phone) ? phoneWithCall(a.phone, 'easer', a.id) : '<span style="color:var(--red)">Valid phone required — cannot be dispatched</span>') + '<br>'
         + '<strong>Location:</strong> ' + esc(a.city||'—') + (a.zip ? ', ' + esc(a.zip) : '')
         + '</div>',
       // Dispatch readiness checklist

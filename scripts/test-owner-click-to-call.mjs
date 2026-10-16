@@ -90,7 +90,30 @@ assert.equal(second.link_to, 'ccid-123', 'link_to is what bridges the legs');
 // --------------------------------------------------------------- endpoints --
 const endpoint = await read('api/owner/call-customer.js');
 assert.match(endpoint, /verifyOwner\(req\)/, 'The endpoint must be owner-authenticated');
-assert.match(endpoint, /\.from\('bookings'\)/, 'The number must be read from the booking');
+assert.match(endpoint, /resolveCallTarget\(sb, target\)/, 'The number must be read from the named record');
+
+// -------------------------------------------------- every person, one path --
+// Owner, 2026-10-16: an AI-line caller had only a case, so the only way to call
+// her back was the owner's personal phone.
+const targets = await read('api/_owner-call-targets.js');
+for (const table of ['bookings', 'operations_cases', 'profiles', 'partner_leads']) {
+  assert.match(targets, new RegExp(`\\.from\\('${table}'\\)`), `numbers are read from ${table}`);
+}
+assert.doesNotMatch(targets, /body\?\.(to|phone|customerPhone|number)/, 'the resolver never reads a number from the request');
+const { parseCallTarget, CALL_TARGET_TYPES } = await import('../api/_owner-call-targets.js');
+const uuid = '0b0414f3-299e-4724-9a0a-191fdfc3416f';
+assert.deepEqual(parseCallTarget({ bookingId: uuid }), { ok: true, type: 'booking', id: uuid }, 'bookingId alone still calls the booking customer');
+assert.equal(parseCallTarget({ type: 'case', id: uuid }).ok, true);
+assert.equal(parseCallTarget({ type: 'anyone', id: uuid }).ok, false, 'unknown target types are refused');
+assert.equal(parseCallTarget({ type: 'case', id: '+15125550147' }).ok, false, 'an id that is not a record id is refused');
+assert.deepEqual([...CALL_TARGET_TYPES], ['booking', 'booking_easer', 'case', 'easer', 'partner']);
+
+// No phone number in the owner screens dials from the owner's own handset.
+for (const file of ['owner/index.html', 'owner/assets/cases.js', 'owner/assets/partners.js']) {
+  assert.doesNotMatch(await read(file), /href=["']tel:/, `${file} must not render tel: links`);
+}
+assert.match(await read('owner/assets/cases.js'), /callViaBusinessLine\('case'/);
+assert.match(await read('owner/assets/partners.js'), /callViaBusinessLine\('partner'/);
 assert.doesNotMatch(endpoint, /req\.body\?\.(to|phone|customerPhone|number)/,
   'A phone number must never be accepted from the request — that is an open dialer');
 assert.match(endpoint, /CALLING_NOT_CONFIGURED/, 'An unconfigured install must say so');
