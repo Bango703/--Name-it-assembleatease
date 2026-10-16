@@ -62,7 +62,6 @@ final class BookingFlow: ObservableObject {
     /// The bundle this order started from, sent with the booking as book.html does,
     /// so the owner's bundle reporting counts it. It never changes the price.
     private(set) var bundleSlug: String?
-    @Published var agreed = false
     @Published var preview: CheckoutPreview?
     @Published var previewProblem: String?
     @Published var loadingPreview = false
@@ -366,7 +365,6 @@ final class BookingFlow: ObservableObject {
 
     var reviewProblem: String? {
         if preview?.plan == nil { return previewProblem ?? "Loading the total." }
-        if !agreed { return "Agree to the Terms to continue." }
         return nil
     }
 
@@ -399,7 +397,9 @@ final class BookingFlow: ObservableObject {
         order["paymentMethod"] = "card"
         order["promoPreviewApplied"] = quotePreview.promoApplied
         order["promoPreviewTotalCents"] = Int(quotePreview.totalCents.rounded())
-        order["termsAccepted"] = agreed
+        // Tapping the book button is the agreement; the line beside it says so.
+        order["termsAccepted"] = true
+        order["termsConsentMethod"] = "app_book_button_notice"
         order["termsVersion"] = catalog?.termsVersion ?? ""
         order["privacyNoticeVersion"] = catalog?.privacyNoticeVersion ?? ""
         order["smsConsent"] = textUpdates
@@ -493,7 +493,6 @@ final class BookingFlow: ObservableObject {
         details = ""
         projectDescription = ""
         promoCode = ""
-        agreed = false
         preview = nil
         problem = nil
         pendingHold = nil
@@ -516,7 +515,6 @@ final class BookingFlow: ObservableObject {
         details = ""
         projectDescription = ""
         promoCode = ""
-        agreed = false
         preview = nil
         problem = nil
         pendingHold = nil
@@ -836,7 +834,10 @@ private struct StepButton: View {
     let title: String
     let problem: String?
     var working = false
+    /// True on the booking button: tapping it is the agreement, said right beside it.
+    var agreementNotice = false
     let action: () -> Void
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(spacing: 8) {
@@ -848,6 +849,18 @@ private struct StepButton: View {
             }
             .buttonStyle(PrimaryButtonStyle(enabled: problem == nil && !working))
             .disabled(problem != nil || working)
+            if agreementNotice {
+                VStack(spacing: 2) {
+                    Text("By tapping \(title), you agree to the Terms of Service and acknowledge the Privacy Notice.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 16) {
+                        Button("Terms") { openURL(Site.page("/terms")) }
+                        Button("Privacy") { openURL(Site.page("/privacy")) }
+                    }
+                }
+                .font(.caption)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -1084,15 +1097,6 @@ private struct ReviewStepView: View {
                     ProgressView().frame(maxWidth: .infinity).padding()
                 }
 
-                Toggle(isOn: $flow.agreed) {
-                    Text("I agree to the Terms of Service and acknowledge the Privacy Notice.").font(.footnote)
-                }
-                .tint(Brand.skyDark)
-                HStack(spacing: 18) {
-                    Button("Terms") { openURL(Site.page("/terms")) }
-                    Button("Privacy") { openURL(Site.page("/privacy")) }
-                }
-                .font(.footnote)
 
                 if let problem = flow.problem {
                     Text(problem).font(.subheadline).foregroundStyle(Brand.attention)
@@ -1116,7 +1120,7 @@ private struct ReviewStepView: View {
                 .presentationDetents([.medium, .large])
         }
         .safeAreaInset(edge: .bottom) {
-            StepButton(title: flow.preview?.plan?.button ?? "Book now", problem: flow.reviewProblem, working: flow.working) {
+            StepButton(title: flow.preview?.plan?.button ?? "Book now", problem: flow.reviewProblem, working: flow.working, agreementNotice: true) {
                 Task { await flow.submit() }
             }
         }

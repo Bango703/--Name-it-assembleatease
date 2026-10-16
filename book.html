@@ -3447,13 +3447,10 @@
 
         <p id="s5-stripe-note" style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.4rem;line-height:1.5">
 
-          Secured by <strong>Stripe</strong>. Review the agreement below before confirming.
+          Secured by <strong>Stripe</strong>.
 
         </p>
-        <label id="s5-ack-label" style="display:flex;align-items:flex-start;gap:0.55rem;font-size:0.8rem;color:var(--muted);line-height:1.55;margin-top:0.7rem;text-align:left;cursor:pointer">
-          <input type="checkbox" id="s5-ack" style="accent-color:var(--teal);width:16px;height:16px;flex:0 0 auto;margin-top:2px">
-          <span>I agree to the current <a href="/terms" target="_blank" rel="noopener" style="color:var(--teal)">Terms</a>, including the displayed total, payment and cancellation policy, reassembly terms, and item-condition and safe-use provisions, and I acknowledge the <a href="/privacy" target="_blank" rel="noopener" style="color:var(--teal)">Privacy Notice</a>.</span>
-        </label>
+        <p id="s5-ack-notice" style="font-size:0.8rem;color:var(--muted);line-height:1.55;margin-top:0.7rem;text-align:center">By submitting this booking, you agree to the current <a href="/terms" target="_blank" rel="noopener" style="color:var(--teal)">Terms</a>, including the displayed total, payment and cancellation policy, reassembly terms, and item-condition and safe-use provisions, and you acknowledge the <a href="/privacy" target="_blank" rel="noopener" style="color:var(--teal)">Privacy Notice</a>.</p>
 
         <div class="step-actions">
 
@@ -7688,14 +7685,6 @@ async function submitBooking() {
     return;
   }
 
-  var ackEl = document.getElementById('s5-ack');
-  if (ackEl && !ackEl.checked) {
-    errEl.textContent = 'Review and accept the current Terms and acknowledge the Privacy Notice before continuing.';
-    errEl.classList.add('show');
-    try { ackEl.focus(); } catch (e) {}
-    return;
-  }
-
   var legalConfig;
   try {
     var legalResp = await fetch('/api/legal-config', { headers: { 'Accept': 'application/json' } });
@@ -7867,7 +7856,9 @@ async function submitBooking() {
 
         isQuoteRequest: BOOK._isQuoteFlow || false,
 
-        termsAccepted: ackEl.checked === true,
+        // Submitting is the agreement; the notice beside the button says so.
+        termsAccepted: true,
+        termsConsentMethod: 'web_book_button_notice',
 
         termsVersion: legalConfig.customerTermsVersion,
 
