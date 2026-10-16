@@ -458,7 +458,10 @@ const app = Object.values(customer).join('\n');
   assert.equal((booking.match(/showsPrice: true/g) || []).length, 1, 'only the order sheet shows prices on items');
   assert.match(booking.slice(booking.indexOf('struct OrderEditor')), /ItemRow\(item: item, quantity: binding\(for: line\), showsPrice: true\)/);
   assert.match(booking, /header: \{\s*GroupHeader\(title: group\.name\)/, 'service groups use the bold heading');
-  assert.match(booking, /struct GroupHeader[\s\S]{0,300}\.font\(\.headline\)[\s\S]{0,80}\.foregroundStyle\(\.primary\)[\s\S]{0,40}\.textCase\(nil\)/);
+  assert.match(booking, /struct GroupHeader[\s\S]{0,500}\.font\(\.title3\.weight\(\.bold\)\)[\s\S]{0,120}\.textCase\(nil\)/);
+  // iOS 26 restyles custom list header fonts (2026-10-15 screenshots showed them grey).
+  assert.match(booking, /GroupHeader\(title: group\.name\)\s*\}\s*\.headerProminence\(\.increased\)/, 'service groups use the large system header');
+  assert.match(booking, /GroupHeader\(title: service\)\s*\}\s*\.headerProminence\(\.increased\)/, 'the order sheet does too');
   const homeFile = customer['CustomerHome.swift'];
   assert.ok(!homeFile.includes('"From "') && !homeFile.includes('From \\('), 'no From price on Home or in search');
   assert.doesNotMatch(homeFile, /showsPrice: true/, 'Home never shows item prices');

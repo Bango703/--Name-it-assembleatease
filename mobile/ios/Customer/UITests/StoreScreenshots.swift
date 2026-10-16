@@ -19,18 +19,12 @@ final class StoreScreenshots: XCTestCase {
         sleep(3)
         save("01-home")
 
-        // The season card further down Home.
-        app.swipeUp()
-        sleep(2)
-        save("02-home-season")
-        app.swipeDown(); app.swipeDown()
-        sleep(1)
 
         // A service list.
         let tile = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Furniture Assembly'")).firstMatch
         if tile.waitForExistence(timeout: 10) { tile.tap() } else { app.staticTexts["Furniture Assembly"].firstMatch.tap() }
         sleep(3)
-        save("03-furniture-list")
+        save("02-furniture-list")
 
         // Add two items and open the order.
         let adds = app.buttons.matching(identifier: "Add")
@@ -44,7 +38,7 @@ final class StoreScreenshots: XCTestCase {
         if viewOrder.waitForExistence(timeout: 10) {
             viewOrder.tap()
             sleep(2)
-            save("04-order")
+            save("03-order")
         }
     }
 
