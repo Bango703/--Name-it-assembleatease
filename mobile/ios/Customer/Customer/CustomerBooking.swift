@@ -677,6 +677,7 @@ struct OrderEditor: View {
                         } header: {
                             GroupHeader(title: service)
                         }
+                        .headerProminence(.increased)
                     }
                     if let onAddItems {
                         Section {
@@ -722,6 +723,7 @@ struct ServiceItemsView: View {
                     } header: {
                         GroupHeader(title: group.name)
                     }
+                    .headerProminence(.increased)
                 }
             }
         }
@@ -791,13 +793,15 @@ struct ItemRow: View {
     }
 }
 
-/// A list section title that reads as a heading: dark, bold, not the system's small grey caps.
+/// A list section title that reads as a heading: dark and bold. On iOS 26 a list
+/// restyles custom header fonts (the 2026-10-15 screenshots showed them grey), so
+/// the section also asks for increased prominence, the system's large title header.
 struct GroupHeader: View {
     let title: String
     var body: some View {
         Text(title)
-            .font(.headline)
-            .foregroundStyle(.primary)
+            .font(.title3.weight(.bold))
+            .foregroundStyle(Color(uiColor: .label))
             .textCase(nil)
             .padding(.top, 6)
     }

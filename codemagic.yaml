@@ -174,3 +174,60 @@ workflows:
         auth: integration
         # Upload only, like the Easer app: internal testers get every processed build.
         submit_to_testflight: false
+
+  # App Store screenshots of the real customer app, on the 6.9-inch simulator
+  # (1320 x 2868). Browses as a guest; signs nothing, uploads nothing to Apple.
+  # The PNGs are this workflow's artifacts.
+  customer-screenshots:
+    name: AssembleAtEase Customer - App Store screenshots
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      xcode: 26.5
+      groups:
+        - firebase
+    scripts:
+      - name: Add the Firebase configuration
+        # The project lists GoogleService-Info.plist as a resource; the build
+        # fails to copy it when it is absent.
+        script: |
+          set -euo pipefail
+          if [ -n "${FIREBASE_IOS_CUSTOMER_PLIST:-}" ]; then
+            echo "$FIREBASE_IOS_CUSTOMER_PLIST" | base64 --decode > mobile/ios/Customer/Support/GoogleService-Info.plist
+            echo "Firebase configuration added."
+          else
+            echo "FIREBASE_IOS_CUSTOMER_PLIST not set." && exit 1
+          fi
+      - name: Generate the Xcode project
+        script: |
+          set -euo pipefail
+          brew install xcodegen
+          cd mobile/ios/Customer && xcodegen generate
+      - name: Pick and boot a 6.9-inch simulator
+        script: |
+          set -euo pipefail
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)['devices']
+          c=[(r,x) for r,l in d.items() if 'iOS' in r for x in l if 'Pro Max' in x['name']]
+          c.sort(key=lambda t:(t[0],t[1]['name']))
+          print(c[-1][1]['udid'])")
+          xcrun simctl list devices available | grep "$UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --dataNetwork wifi --wifiBars 3 --cellularBars 4 --batteryState charged --batteryLevel 100
+          echo "SIM_UDID=$UDID" >> $CM_ENV
+      - name: Take the screenshots
+        script: |
+          set -euo pipefail
+          rm -rf "$HOME/aae-screens"
+          cd mobile/ios/Customer
+          xcodebuild test -project Customer.xcodeproj -scheme CustomerScreenshots \
+            -destination "id=$SIM_UDID" -configuration Release \
+            CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO ENABLE_TESTABILITY=YES \
+            -resultBundlePath "$CM_BUILD_DIR/screenshots.xcresult" | tail -40
+          ls -la "$HOME/aae-screens"
+          mkdir -p "$CM_BUILD_DIR/screenshots" && cp "$HOME"/aae-screens/*.png "$CM_BUILD_DIR/screenshots/"
+          sips -g pixelWidth -g pixelHeight "$CM_BUILD_DIR"/screenshots/*.png
+    artifacts:
+      - screenshots/*.png

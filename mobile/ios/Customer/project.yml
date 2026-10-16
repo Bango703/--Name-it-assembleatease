@@ -59,6 +59,22 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
     scheme: {}
+  # App Store screenshots (codemagic.yaml customer-screenshots). Simulator only;
+  # never archived, never signed for distribution.
+  CustomerUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: Customer
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.assembleatease.customer.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Customer
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
   # The lock-screen tracker (Live Activity), embedded in the app.
   CustomerLiveActivity:
     type: app-extension
@@ -75,3 +91,14 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         SKIP_INSTALL: YES
+schemes:
+  # Only the screenshot workflow uses this scheme; the release scheme (Customer)
+  # has no test targets, so the App Store build is unchanged.
+  CustomerScreenshots:
+    build:
+      targets:
+        Customer: all
+        CustomerUITests: [test]
+    test:
+      targets:
+        - CustomerUITests
