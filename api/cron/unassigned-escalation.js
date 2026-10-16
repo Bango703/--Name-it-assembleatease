@@ -72,7 +72,7 @@ export default async function handler(req, res) {
   try {
     const { data: candidates, error } = await sb
       .from('bookings')
-      .select('id, ref, service, date, time, address, service_zip, service_city, customer_name, customer_email, total_price, status, assembler_id, assembler_name, assembler_accepted_at, dispatch_status, needs_manual_dispatch, unassigned_escalated_at, unassigned_customer_notified_at, rescheduled_at, return_visit_required')
+      .select('id, ref, service, date, time, address, service_zip, service_city, customer_name, customer_email, total_price, status, assembler_id, assembler_name, assembler_accepted_at, dispatch_status, needs_manual_dispatch, unassigned_escalated_at, unassigned_customer_notified_at, rescheduled_at, return_visit_required, is_test_booking')
       .eq('status', BOOKING_STATUS.CONFIRMED)
       // Assignment is not commitment. This booking was assigned three times and
       // accepted by nobody — acceptance is the only thing that means a pro is
@@ -83,6 +83,9 @@ export default async function handler(req, res) {
 
     for (const b of candidates || []) {
       if (b.return_visit_required === true) continue;
+      // A test booking has no customer waiting on a pro (2026-10-15: the App
+      // Review job emailed its customer "we haven't confirmed a pro").
+      if (b.is_test_booking === true) continue;
       const apptMs = notificationAppointmentTimestampMs(b);
       if (!apptMs) continue;
       const hoursUntil = (apptMs - now) / 3600000;
