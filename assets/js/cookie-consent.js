@@ -26,6 +26,16 @@
     return consentChoice === 'accepted' && !globalPrivacyControlEnabled() && !measurementExcluded();
   }
 
+  // Google Consent Mode, advanced: until a visitor chooses, Google tags load with
+  // every consent signal denied and send cookieless pings (no cookies, no stored
+  // identifiers), which Google uses to model visits and conversions. Accept turns
+  // on cookies. Decline or a Global Privacy Control signal sends nothing at all.
+  // Owner, 2026-10-15: 0 bookings ever reached Analytics because everyone who did
+  // not press Accept was invisible, including all three real bookings that month.
+  function measurementAllowed() {
+    return consentChoice !== 'declined' && !globalPrivacyControlEnabled() && !measurementExcluded();
+  }
+
   function audienceType() {
     var path = window.location.pathname || '';
     if (/^\/owner(?:\/|$|\.html)/.test(path)) return 'internal';
@@ -61,12 +71,13 @@
   window.AAEAnalytics = {
     isExcluded: measurementExcluded,
     hasConsent: analyticsAllowed,
+    canMeasure: measurementAllowed,
     setInternalTraffic: function (excluded) {
       try { if (excluded) localStorage.setItem('aae-analytics-internal', '1'); else localStorage.removeItem('aae-analytics-internal'); } catch (e) {}
-      window['ga-disable-' + GA_MEASUREMENT_ID] = !analyticsAllowed();
+      window['ga-disable-' + GA_MEASUREMENT_ID] = !measurementAllowed();
     },
     trackOnce: function (eventName, params, key) {
-      if (!analyticsAllowed() || !measurementConfigured) return false;
+      if (!measurementAllowed() || !measurementConfigured) return false;
       var storageKey = 'aaeAnalytics:v2:' + String(key || eventName);
       if (trackedEvents[storageKey]) return false;
       try { if (sessionStorage.getItem(storageKey)) return false; } catch (e) {}
@@ -96,11 +107,11 @@
   var existingGtag = window.gtag;
   window.gtag = function gtag() {
     if (isNativeApp()) return;
-    if (arguments[0] !== 'consent' && !analyticsAllowed()) return;
+    if (arguments[0] !== 'consent' && !measurementAllowed()) return;
     if (existingGtag) return existingGtag.apply(window, arguments);
     window.dataLayer.push(arguments);
   };
-  window['ga-disable-' + GA_MEASUREMENT_ID] = !analyticsAllowed();
+  window['ga-disable-' + GA_MEASUREMENT_ID] = !measurementAllowed();
   window.gtag('consent', 'default', {
     analytics_storage: 'denied',
     ad_storage: 'denied',
@@ -172,7 +183,7 @@
   }
 
   function initGtag() {
-    if (!analyticsAllowed()) return;
+    if (!measurementAllowed()) return;
     if (window.__AAE_GTAG_READY__) return;
     window.__AAE_GTAG_READY__ = true;
     window.dataLayer = window.dataLayer || [];
@@ -183,20 +194,27 @@
     }
     window.gtag('js', new Date());
     var measurementContext = { page_location: 'https://www.assembleatease.com' + safePagePath(), page_referrer: safeReferrer(), audience_type: audienceType() };
-    // Keep deliberate campaign tags while replacing the raw URL, which may
-    // contain booking tokens or personal data. These are GA4 config fields:
-    // https://developers.google.com/analytics/devguides/collection/ga4/reference/config
-    try {
-      var acquisition = window.AAE_ATTRIBUTION && window.AAE_ATTRIBUTION.capture();
-      [['utmSource', 'campaign_source'], ['utmMedium', 'campaign_medium'], ['utmCampaign', 'campaign_name'], ['utmContent', 'campaign_content']].forEach(function (fields) {
-        if (acquisition && acquisition.utmSource && acquisition[fields[0]]) measurementContext[fields[1]] = acquisition[fields[0]];
-      });
-    } catch (e) { /* Campaign measurement cannot block page use. */ }
+    addCampaignContext(measurementContext);
     window.gtag('set', measurementContext);
     window.gtag('config', GA_MEASUREMENT_ID);
     window.gtag('config', ADS_MEASUREMENT_ID);
     measurementConfigured = true;
     window.dispatchEvent(new Event('aae-analytics-ready'));
+  }
+
+  // Keep deliberate campaign tags while replacing the raw URL, which may
+  // contain booking tokens or personal data. These are GA4 config fields:
+  // https://developers.google.com/analytics/devguides/collection/ga4/reference/config
+  // Attribution is stored only after Accept (attribution.js checks consent), so
+  // before a choice this adds nothing; Accept calls it again.
+  function addCampaignContext(target) {
+    try {
+      var acquisition = window.AAE_ATTRIBUTION && window.AAE_ATTRIBUTION.capture();
+      [['utmSource', 'campaign_source'], ['utmMedium', 'campaign_medium'], ['utmCampaign', 'campaign_name'], ['utmContent', 'campaign_content']].forEach(function (fields) {
+        if (acquisition && acquisition.utmSource && acquisition[fields[0]]) target[fields[1]] = acquisition[fields[0]];
+      });
+    } catch (e) { /* Campaign measurement cannot block page use. */ }
+    return target;
   }
 
   function loadHubspot() {
@@ -211,7 +229,7 @@
   }
 
   function loadMeasurement() {
-    if (!analyticsAllowed()) return;
+    if (!measurementAllowed()) return;
     if (measurementLoaded) { initGtag(); return; }
     measurementLoaded = true;
     if (!document.getElementById(GTAG_SCRIPT_ID)) {
@@ -261,9 +279,23 @@
       ad_user_data: 'granted',
       ad_personalization: 'denied'
     });
+    // The tag may already be running cookieless from before the choice; record
+    // the campaign now that consent allows it.
+    if (measurementConfigured) {
+      var campaign = addCampaignContext({});
+      if (Object.keys(campaign).length) window.gtag('set', campaign);
+    }
     loadMeasurement();
     enableWebsiteCallTracking();
     loadHubspot();
+  }
+
+  // Before any choice: Google tags with all consent signals denied (cookieless).
+  function startCookielessMeasurement() {
+    if (!measurementAllowed() || analyticsAllowed()) return;
+    window.gtag('set', 'url_passthrough', true);
+    window.gtag('set', 'ads_data_redaction', true);
+    loadMeasurement();
   }
 
   function setConsent(value) {
@@ -456,6 +488,7 @@
       return;
     }
 
+    startCookielessMeasurement();
     showBanner();
   }
 
@@ -467,7 +500,7 @@
     if (isNativeApp()) { hideBanner(); return; }
     consentChoice = event.newValue;
     if (analyticsAllowed()) grantAnalytics();
-    else declineCookies();
+    else if (consentChoice === 'declined') declineCookies();
   });
 
   if (document.readyState === 'loading') {
