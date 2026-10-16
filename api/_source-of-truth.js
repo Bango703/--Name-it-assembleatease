@@ -67,10 +67,11 @@ export function describeDispatchPaymentBlock(booking = {}, {
   // "a pro has already reserved the time" — which nothing in the system could
   // make true.
   //
-  // So the OWNER may attach a known Easer to a confirmed saved card. Automatic
-  // dispatch still may not: blasting offers to several pros for a job whose hold
-  // has not been taken is a different risk, and the invariant covering it stays
-  // exactly as it was (DISPATCH_PAYMENT_STATUSES is unchanged).
+  // So a confirmed saved card may be STAFFED: offered, assigned and accepted
+  // (owner, 2026-10-16: an advance Austin booking sent no offers for days).
+  // Staffing paths call describeStaffingPaymentBlock below; work paths (travel,
+  // arrival, completion) keep this option off, and DISPATCH_PAYMENT_STATUSES is
+  // unchanged.
   //
   // Money is unaffected either way. Completion and capture are gated separately
   // in assembler-complete.js, which refuses anything that is not authorized,
@@ -138,7 +139,7 @@ export function describeDispatchPaymentBlock(booking = {}, {
     return {
       code: paymentStatus === 'card_saved' ? 'CARD_SAVED_AWAITING_AUTHORIZATION' : 'CUSTOMER_PAYMENT_NOT_AUTHORIZED',
       message: paymentStatus === 'card_saved'
-        ? `The customer's card is saved but the hold is not taken until ${SCHEDULED_AUTHORIZATION_LEAD_DAYS} days before the appointment. Automatic dispatch waits for that hold; you can still assign an Easer to this booking yourself.`
+        ? `The customer's card is saved but the hold is not taken until ${SCHEDULED_AUTHORIZATION_LEAD_DAYS} days before the appointment. The job can be staffed now; work starts after the hold.`
         : `The customer's card is "${paymentStatus || 'missing'}", not authorized. A card must be authorized (or a deposit paid) before an Easer can be assigned. This is the customer's payment, not the Easer's payout setup.`,
     };
   }
@@ -171,6 +172,19 @@ export function describeDispatchPaymentBlock(booking = {}, {
 
 export function isBookingPaymentReadyForDispatch(booking = {}, options = {}) {
   return describeDispatchPaymentBlock(booking, options) === null;
+}
+
+// Payment states a booking can be STAFFED in: offered to Easers, assigned,
+// accepted. A confirmed saved card counts. Starting work and capture still
+// require DISPATCH_PAYMENT_STATUSES.
+export const STAFFING_PAYMENT_STATUSES = Object.freeze([...DISPATCH_PAYMENT_STATUSES, 'card_saved']);
+
+export function describeStaffingPaymentBlock(booking = {}, options = {}) {
+  return describeDispatchPaymentBlock(booking, { ...options, allowSavedCard: true });
+}
+
+export function isBookingPaymentReadyForStaffing(booking = {}, options = {}) {
+  return describeStaffingPaymentBlock(booking, options) === null;
 }
 
 export const ACTIVE_BOOKING_STATUSES = Object.freeze([

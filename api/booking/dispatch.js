@@ -2,7 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { dispatchBooking } from './_dispatch-internal.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, describeDispatchPaymentBlock } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, describeStaffingPaymentBlock } from '../_source-of-truth.js';
 
 /**
  * POST /api/booking/dispatch
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   // Basic booking validation before delegating
   const { data: booking, error: bErr } = await sb
     .from('bookings')
-    .select('id, ref, status, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, confirmed_by, assembler_id, dispatch_paused, needs_manual_dispatch, service, customer_name, financial_operation_key, financial_operation_type, financial_operation_started_at, stripe_dispute_id, stripe_dispute_status')
+    .select('id, ref, status, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_payment_method_id, confirmed_by, assembler_id, dispatch_paused, needs_manual_dispatch, service, customer_name, financial_operation_key, financial_operation_type, financial_operation_started_at, stripe_dispute_id, stripe_dispute_status')
     .eq('id', bookingId)
     .single();
 
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   if (booking.assembler_id) {
     return res.status(400).json({ error: 'Booking is already assigned to an Easer' });
   }
-  const dispatchPaymentBlock = describeDispatchPaymentBlock(booking);
+  const dispatchPaymentBlock = describeStaffingPaymentBlock(booking);
   if (dispatchPaymentBlock) {
     return res.status(409).json({
       error: `Cannot send offers yet. ${dispatchPaymentBlock.message}`,

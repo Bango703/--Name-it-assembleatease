@@ -195,7 +195,9 @@ assert.match(bookHtml, /purpose: isScheduledAuthorization \? 'future_booking' : 
 assert.match(bookHtml, /booking_completed/);
 assert.match(bookHtml, /attribution: captureBookingAttribution\(\)/, 'booking submission must recheck consent instead of reusing stale attribution');
 assert.match(bookingApi, /payment_status: scheduledAuthorization \? 'card_saved'/);
-assert.match(bookingApi, /dispatch_paused: scheduledAuthorization/);
+// A saved-card booking is offered at once (owner, 2026-10-16), not paused until its hold.
+assert.match(bookingApi, /dispatch_paused: false,/);
+assert.match(bookingApi, /if \(scheduledAuthorization && !requiresOwnerAssignment\) \{\s*await dispatchBooking\(bookingId\)/);
 assert.match(setupApi, /FUTURE_BOOKING_SETUP_NOT_ALLOWED/);
 assert.match(cronApi, /payment_status: 'authorized'/);
 assert.match(cronApi, /dispatch_paused: true/);

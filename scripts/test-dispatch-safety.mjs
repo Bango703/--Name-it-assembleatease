@@ -206,14 +206,12 @@ for (const field of [
 }
 assert.ok(acceptSource.includes('buildEaserFeeSnapshot(booking, easer'));
 assert.ok(assignSource.includes('buildEaserFeeSnapshot(booking, assembler'));
-// Both acceptance paths still preflight payment truth. The legacy/assignment
-// path now asks through describeDispatchPaymentBlock so the refusal can name
-// its cause and so the pro the OWNER assigned can accept a confirmed
-// saved-card job; the offer path is unchanged and still demands the hold.
-const acceptPaymentChecks = (acceptSource.match(/isBookingPaymentReadyForDispatch\(booking\)|describeDispatchPaymentBlock\(booking/g) || []).length;
+// Both acceptance paths still preflight payment truth, through the staffing
+// rule: a confirmed saved card can be accepted (2026-10-16); an unpaid,
+// disputed or locked booking cannot.
+const acceptPaymentChecks = (acceptSource.match(/isBookingPaymentReadyForStaffing\(booking\)|describeStaffingPaymentBlock\(booking/g) || []).length;
 assert.ok(acceptPaymentChecks >= 2, 'both offer and legacy acceptance paths must preflight payment truth');
-assert.match(acceptSource, /isBookingPaymentReadyForDispatch\(booking\)/, 'the dispatch-offer path keeps the strict gate');
-assert.match(acceptSource, /allowSavedCard: isAssignment/, 'the saved-card allowance is scoped to the assignment path only');
+assert.doesNotMatch(acceptSource, /allowSavedCard/, 'acceptance uses the named staffing rule, not the raw option');
 // Assignment still fails closed on payment truth. The existing record-only
 // completed-booking link and the singular owner-Easer offline live flow are the
 // only exemptions; the dedicated owner-Easer regression locks the latter down.
@@ -223,7 +221,7 @@ assert.match(acceptSource, /allowSavedCard: isAssignment/, 'the saved-card allow
 // returns 409 from the payment verdict.
 assert.ok(assignSource.includes('!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual'),
   'assignment payment truth keeps exactly its two documented exemptions');
-assert.match(assignSource, /const paymentBlock = describeDispatchPaymentBlock\(booking[^)]*\);[\s\S]{0,200}?res\.status\(409\)/,
+assert.match(assignSource, /const paymentBlock = describeStaffingPaymentBlock\(booking[^)]*\);[\s\S]{0,200}?res\.status\(409\)/,
   'assignment must still fail closed on payment truth, with the server reason');
 assert.match(
   assignSource,
@@ -262,7 +260,7 @@ assert.ok(migrationCompact.includes('AND financial_operation_key IS NULL'));
 assert.ok(acceptCompact.includes(".is('financial_operation_key', null)"));
 assert.ok(assignCompact.includes(".is('financial_operation_key', null)"));
 assert.match(dispatchSource, /if \(booking\.financial_operation_key \|\| booking\.financial_operation_type \|\| booking\.financial_operation_started_at[\s\S]{0,160}?financial_reconciliation_required_at/);
-assert.ok(dispatchSource.includes('if (!isBookingPaymentReadyForDispatch(booking))'));
+assert.ok(dispatchSource.includes('if (!isBookingPaymentReadyForStaffing(booking))'));
 assert.ok(dispatchSource.includes("code: 'DISPATCH_PAYMENT_NOT_VERIFIED'"));
 assert.ok(dispatchCompact.includes(".is('financial_operation_key', null)"));
 assert.ok(acceptSource.includes('if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at)'));
@@ -379,17 +377,17 @@ assert.ok(dispatchCompact.includes("bookingUpdateQuery.eq('stripe_payment_intent
 // The endpoint now checks payment truth through the verdict that carries a
 // reason. The guarantee under test is unchanged: payment is verified, and it is
 // verified BEFORE force-dispatch clears any flag or offer.
-assert.ok(dispatchEndpointSource.includes('const dispatchPaymentBlock = describeDispatchPaymentBlock(booking);'));
+assert.ok(dispatchEndpointSource.includes('const dispatchPaymentBlock = describeStaffingPaymentBlock(booking);'));
 assert.ok(dispatchEndpointSource.includes('if (dispatchPaymentBlock) {'));
-assert.ok(dispatchEndpointCompact.indexOf('describeDispatchPaymentBlock(booking)') < dispatchEndpointCompact.indexOf('let forceQuery = sb.from'), 'force dispatch must verify payment before clearing flags/offers');
+assert.ok(dispatchEndpointCompact.indexOf('describeStaffingPaymentBlock(booking)') < dispatchEndpointCompact.indexOf('let forceQuery = sb.from'), 'force dispatch must verify payment before clearing flags/offers');
 assert.ok(dispatchEndpointCompact.indexOf(".eq('payment_status', booking.payment_status)") < dispatchEndpointCompact.indexOf('const { error: cancelOfferError }'), 'force dispatch must win a payment snapshot CAS before cancelling offers');
 assert.ok(dispatchControlSource.includes('const paymentHoldResponse'));
-assert.ok((dispatchControlSource.match(/isBookingPaymentReadyForDispatch\(booking\)/g) || []).length >= 3, 'unpause, dry-run, and retry must enforce payment truth');
-assert.ok(dispatchControlSource.includes('describeDispatchPaymentBlock(booking)'), 'the dispatch-control refusal must carry the server reason, not a generic hold message');
+assert.ok((dispatchControlSource.match(/isBookingPaymentReadyForStaffing\(booking\)/g) || []).length >= 3, 'unpause, dry-run, and retry must enforce payment truth');
+assert.ok(dispatchControlSource.includes('describeStaffingPaymentBlock(booking)'), 'the dispatch-control refusal must carry the server reason, not a generic hold message');
 assert.ok(dispatchControlCompact.indexOf('if (!isBookingPaymentReadyForDispatch(booking)) return paymentHoldResponse();') < dispatchControlCompact.indexOf('let retryQuery = sb.from'), 'retry must verify payment before mutating state');
 assert.ok(dispatchControlCompact.indexOf(".eq('payment_status', booking.payment_status)") < dispatchControlCompact.indexOf('const { error: retryOfferError }'), 'retry must win a payment snapshot CAS before cancelling offers');
-assert.ok(autoDispatchSource.includes(".in('payment_status', DISPATCH_PAYMENT_STATUSES)"));
-assert.ok(autoDispatchSource.includes('filter(isBookingPaymentReadyForDispatch)'));
+assert.ok(autoDispatchSource.includes(".in('payment_status', STAFFING_PAYMENT_STATUSES)"));
+assert.ok(autoDispatchSource.includes('filter(b => isBookingPaymentReadyForStaffing(b))'));
 assert.ok(declineSource.includes('await holdDispatchForPaymentReconciliation'));
 assert.ok(declineSource.includes("retry?.code !== 'DISPATCH_PAYMENT_NOT_VERIFIED'"));
 assert.ok(easerStatusSource.includes('if (!ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking))'));

@@ -18,6 +18,7 @@ import assert from 'node:assert/strict';
 import {
   authorizeScheduledBooking,
   recoverUnconfirmedHolds,
+  dispatchStatusAfterAuthorization,
 } from '../api/cron/authorize-scheduled-payments.js';
 import { classifyAuthorizationOutcome } from '../api/booking/_authorization-outcome.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../api/booking/_booking-window.js';
@@ -269,7 +270,9 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
 
   assert.equal(result.authorized, 1, 'the stranded booking is authorized on a later run');
   assert.equal(row.payment_status, 'authorized');
-  assert.equal(row.dispatch_status, null);
+  // The assigned Easer stays on the job: payment_hold clears to their
+  // assignment state, never to "unstaffed" (2026-10-16).
+  assert.equal(row.dispatch_status, row.assembler_accepted_at ? 'accepted' : 'assigned_pending_acceptance');
   assert.equal(row.dispatch_paused, false);
   assert.ok(spy.names().includes('easerCleared'), 'the Easer who was told to stand down is told it cleared');
   // The customer already had one email about this payment. A hold going through
@@ -387,5 +390,10 @@ const cardDecline = Object.assign(new Error('Your card was declined.'), {
   assert.match(rejected.ownerReason, /platform fault, not the customer's card/);
   assert.doesNotMatch(rejected.ownerReason, /did not reach Stripe/);
 }
+
+// ── Authorizing a staffed saved-card job keeps its Easer ────────────────────
+assert.equal(dispatchStatusAfterAuthorization({}), null, 'unstaffed: dispatch starts fresh');
+assert.equal(dispatchStatusAfterAuthorization({ assembler_id: 'e1' }), 'assigned_pending_acceptance');
+assert.equal(dispatchStatusAfterAuthorization({ assembler_id: 'e1', assembler_accepted_at: '2026-10-16T00:00:00Z' }), 'accepted');
 
 console.log('Scheduled authorization truth tests: PASS');

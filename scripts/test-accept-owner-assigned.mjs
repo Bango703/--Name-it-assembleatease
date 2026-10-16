@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { describeDispatchPaymentBlock } from '../api/_source-of-truth.js';
+import { describeDispatchPaymentBlock, describeStaffingPaymentBlock } from '../api/_source-of-truth.js';
 
 const read = rel => readFile(new URL(`../${rel}`, import.meta.url), 'utf8');
 const savedCard = { total_price: 42651, payment_status: 'card_saved', stripe_payment_method_id: 'pm_1' };
@@ -14,29 +14,28 @@ const savedCard = { total_price: 42651, payment_status: 'card_saved', stripe_pay
 assert.equal(describeDispatchPaymentBlock(savedCard, { allowSavedCard: true }), null,
   'the assigned pro must be able to accept a confirmed saved-card job');
 
-// An open dispatch offer still waits for the hold — auto-dispatch never offers
-// a card_saved booking, and this keeps it that way if one ever leaked through.
-const offerBlock = describeDispatchPaymentBlock(savedCard);
-assert.ok(offerBlock, 'a dispatch offer must still require the hold');
-assert.equal(offerBlock.code, 'CARD_SAVED_AWAITING_AUTHORIZATION');
+// An open dispatch offer is staffing too: a saved card can be accepted from an
+// offer (2026-10-16). Starting work still waits for the hold.
+assert.equal(describeStaffingPaymentBlock(savedCard), null, 'an offer on a saved card can be accepted');
+const workBlock = describeDispatchPaymentBlock(savedCard);
+assert.ok(workBlock, 'work still requires the hold');
+assert.equal(workBlock.code, 'CARD_SAVED_AWAITING_AUTHORIZATION');
 
 // Genuinely unpaid work is still refused on BOTH paths.
 for (const status of ['pending', 'failed', 'not_required']) {
   const b = { ...savedCard, payment_status: status };
-  assert.ok(describeDispatchPaymentBlock(b, { allowSavedCard: true }),
+  assert.ok(describeStaffingPaymentBlock(b),
     `${status} must never be acceptable, even for the assigned pro`);
 }
 
 // ── The accept route asks the right question ───────────────────────────────
 const acceptSrc = await read('api/booking/accept-dispatch.js');
-assert.match(acceptSrc, /describeDispatchPaymentBlock\(booking, \{ allowSavedCard: isAssignment \}\)/,
-  'the saved-card allowance must be scoped to the assignment path, never to open offers');
+assert.match(acceptSrc, /: describeStaffingPaymentBlock\(booking\);/,
+  'the assignment path uses the staffing rule');
+assert.match(acceptSrc, /if \(!isBookingPaymentReadyForStaffing\(booking\)\) \{/,
+  'the offer path uses the staffing rule');
 assert.doesNotMatch(acceptSrc, /!ownerEaserLiveManual && !isBookingPaymentReadyForDispatch\(booking\)/,
   'the accept gate must report which payment problem it hit');
-// Ordering: isAssignment must be defined before it is used. This exact mistake
-// was caught by lint while writing this change.
-assert.ok(acceptSrc.indexOf('const isAssignment') < acceptSrc.indexOf('allowSavedCard: isAssignment'),
-  'isAssignment must be declared before the payment check reads it');
 
 // ── The browser must not invent a cause the server did not give ────────────
 const ui = await read('assembler/my-assignments.html');
