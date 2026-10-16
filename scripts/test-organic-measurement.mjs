@@ -211,10 +211,9 @@ recovery.context.trackBookingConfirmation('AAE-ONE', false, false);
 assert.equal(recovery.events('booking_confirmed').length, 0);
 assert.equal(recovery.events('job_plan_started').length, 1);
 
-// The privacy notice promises optional tools only after Accept. No choice,
-// explicit decline and GPC must produce neither tags, events nor attribution.
+// Explicit decline and GPC produce neither tags, events nor attribution.
+// (Before a choice, Google Consent Mode runs cookieless; checked below.)
 for (const options of [
-  { local: storage() },
   { local: storage({ 'cookie-consent': 'declined' }) },
   { local: storage({ 'cookie-consent': 'accepted' }), gpc: true },
 ]) {
@@ -238,13 +237,34 @@ for (const options of [
   }
 }
 
+// Before a choice (owner, 2026-10-15): Google Consent Mode, advanced. The Google
+// tag loads with every consent signal denied and sends cookieless events, so a
+// booking by someone who never touched the banner is still counted. No CRM, no
+// stored campaign attribution and no call-number swap until Accept.
+{
+  const session = storage();
+  const undecided = browser({ local: storage(), session, url: 'https://www.assembleatease.com/book?utm_source=google&utm_medium=organic&gclid=undecided-click' });
+  undecided.run(capture); undecided.run(funnel); undecided.run(consent); undecided.run(outcome); undecided.ready();
+  assert.equal(undecided.context.AAEAnalytics.hasConsent(), false, 'no cookie consent before a choice');
+  assert.equal(undecided.context.AAEAnalytics.canMeasure(), true, 'cookieless measurement before a choice');
+  assert.equal(JSON.stringify(undecided.context.AAEAcquisition.capture()), '{}', 'no stored attribution before Accept');
+  assert.equal(session.getItem('aaeBookingAttribution'), null);
+  undecided.context.trackBookingConfirmation('AAE-UNDECIDED', false, false);
+  assert.equal(undecided.events('booking_confirmed').length, 1, 'the booking is counted without cookies');
+  const defaults = undecided.context.dataLayer.find(args => args[0] === 'consent' && args[1] === 'default');
+  assert.ok(defaults && defaults[2].analytics_storage === 'denied' && defaults[2].ad_storage === 'denied', 'consent stays denied');
+  assert.equal(undecided.context.dataLayer.some(args => args[0] === 'consent' && args[1] === 'update' && args[2].analytics_storage === 'granted'), false, 'never granted without Accept');
+  assert.equal(undecided.injected.filter(node => /gtag\/js/.test(node.src || '')).length, 1, 'the Google tag loads once');
+  assert.equal(undecided.injected.some(node => /hs-scripts/.test(node.src || '')), false, 'no CRM before Accept');
+}
+
 const consentSession = storage();
 const choice = browser({ local: storage(), session: consentSession, url: 'https://www.assembleatease.com/book?utm_source=google&utm_medium=organic&utm_campaign=gbp' });
 choice.run(capture); choice.run(funnel); choice.run(consent); choice.run(outcome); choice.ready();
-assert.equal(choice.events().length, 0);
+assert.equal(choice.events('job_plan_started').length, 1, 'counted cookieless before the choice');
 choice.context.acceptCookies();
 assert.equal(choice.context.AAEAnalytics.hasConsent(), true);
-assert.equal(choice.events('job_plan_started').length, 1);
+assert.equal(choice.events('job_plan_started').length, 1, 'Accept does not count it again');
 assert.equal(JSON.parse(consentSession.getItem('aaeAcquisitionAttribution')).utmCampaign, 'gbp');
 assert.equal(choice.injected.filter(node => /gtag\/js/.test(node.src || '')).length, 1);
 assert.equal(choice.injected.filter(node => /hs-scripts/.test(node.src || '')).length, 1);

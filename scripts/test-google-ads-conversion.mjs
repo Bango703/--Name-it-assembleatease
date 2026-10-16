@@ -7,7 +7,11 @@ const bookingPage = readFileSync('book.html', 'utf8');
 
 assert.match(cookies, /function loadMeasurement\(\)/);
 assert.match(cookies, /function grantAnalytics\(\)/);
-assert.match(cookies, /function loadMeasurement\(\) \{\s*if \(!analyticsAllowed\(\)\) return;/);
+// Consent Mode, advanced (2026-10-15): tags may load cookieless before a choice;
+// decline and GPC stop them; cookies are granted only after Accept.
+assert.match(cookies, /function loadMeasurement\(\) \{\s*if \(!measurementAllowed\(\)\) return;/);
+assert.match(cookies, /function grantAnalytics\(\) \{\s*if \(!analyticsAllowed\(\)\) return;/);
+assert.match(bookingPage, /window\.AAEAnalytics\.canMeasure\(\)\) \{/, 'the Ads booking conversion is sent cookieless before a choice, never after decline');
 assert.match(cookies, /consentChoice === 'accepted' && !globalPrivacyControlEnabled\(\)/);
 assert.match(cookies, /function acceptCookies\(\)[\s\S]*?grantAnalytics\(\)/);
 assert.ok(

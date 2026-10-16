@@ -73,13 +73,26 @@ else {
   if (!failures) console.log('  PASS  all four consent signals default to denied');
 }
 
-// The shared loader must never load optional tags before an accepted choice.
-if (/function loadMeasurement\(\) \{\s*if \(!analyticsAllowed\(\)\) return;/.test(owner)
-    && !/loadMeasurement\(\);\s*\n\s*if \(storedConsent === 'accepted'\)/.test(owner)) {
-  console.log('  PASS  optional tag loading requires accepted consent');
-} else {
-  fail('the tag loader must require accepted consent and honor decline/GPC');
-}
+// Google Consent Mode, advanced (owner, 2026-10-15). Before a choice the Google
+// tag may load with every signal denied (cookieless). Cookies, the CRM and call
+// tracking need an explicit Accept. Decline, GPC or an excluded page sends nothing.
+const allowed = owner.match(/function measurementAllowed\(\) \{\s*return ([^;]+);/);
+if (allowed && allowed[1].includes("consentChoice !== 'declined'") && allowed[1].includes('!globalPrivacyControlEnabled()') && allowed[1].includes('!measurementExcluded()')) {
+  console.log('  PASS  measurement stops on decline, GPC and excluded pages');
+} else fail('measurementAllowed must refuse decline, GPC and excluded pages');
+if (/function loadMeasurement\(\) \{\s*if \(!measurementAllowed\(\)\) return;/.test(owner)
+    && owner.includes("if (arguments[0] !== 'consent' && !measurementAllowed()) return;")) {
+  console.log('  PASS  the tag loader and gtag honor decline and GPC');
+} else fail('the tag loader and gtag must honor decline and GPC');
+if (/function startCookielessMeasurement\(\) \{\s*if \(!measurementAllowed\(\) \|\| analyticsAllowed\(\)\) return;/.test(owner)
+    && /startCookielessMeasurement\(\);\s*showBanner\(\);/.test(owner)) {
+  console.log('  PASS  before a choice, tags run with consent denied');
+} else fail('cookieless measurement must start only before a choice');
+if (/function grantAnalytics\(\) \{\s*if \(!analyticsAllowed\(\)\) return;/.test(owner)
+    && /function loadHubspot\(\) \{\s*if \(!analyticsAllowed\(\)\) return;/.test(owner)
+    && /function enableWebsiteCallTracking\(\) \{\s*if \(phoneTrackingActive \|\| !analyticsAllowed\(\)\) return;/.test(owner)) {
+  console.log('  PASS  cookies, CRM and call tracking still require Accept');
+} else fail('cookie grant, CRM and call tracking must require Accept');
 
 console.log('');
 if (failures) { console.log(failures + ' FAILED'); process.exit(1); }

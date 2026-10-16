@@ -3780,8 +3780,9 @@ function flushBookingAnalytics() {
 }
 function trackBookingFunnelOnce(eventName, params, bookingRef) {
   try {
-  if (window.AAEAnalytics) { if (!window.AAEAnalytics.hasConsent()) return; }
-  else if (navigator.globalPrivacyControl === true || localStorage.getItem('cookie-consent') !== 'accepted') return;
+  // Cookieless until Accept (Consent Mode); nothing after Decline or a GPC signal.
+  if (window.AAEAnalytics) { if (!window.AAEAnalytics.canMeasure()) return; }
+  else if (navigator.globalPrivacyControl === true || localStorage.getItem('cookie-consent') === 'declined') return;
   // Funnel milestones belong to this attempt; confirmations belong to their booking.
   // A second real booking in one tab must be counted, while a repeated confirmation must not.
   var key = (bookingRef ? 'booking:' + bookingRef : 'attempt:' + BOOKING_ANALYTICS_ATTEMPT) + ':' + eventName;
@@ -3798,7 +3799,7 @@ window.addEventListener('aae-analytics-ready', function () {
   trackBookingFunnelOnce('job_plan_started');
 });
 window.addEventListener('aae-analytics-consent-changed', function () {
-  if (!window.AAEAnalytics.hasConsent()) bookingAnalyticsQueue = [];
+  if (!window.AAEAnalytics.canMeasure()) bookingAnalyticsQueue = [];
 });
 trackBookingFunnelOnce('job_plan_started');
 
@@ -8155,7 +8156,7 @@ function trackBookingConfirmation(ref, isQuote, isScheduledAuthorization) {
   var adsKey = 'aaeAdsConfirmation:' + ref + ':' + (isQuote ? 'quote' : 'booking');
   var adsSent = false;
   try { adsSent = sessionStorage.getItem(adsKey) === '1'; } catch (e) {}
-  if (!adsSent && window.gtag && window.AAEAnalytics && window.AAEAnalytics.hasConsent()) {
+  if (!adsSent && window.gtag && window.AAEAnalytics && window.AAEAnalytics.canMeasure()) {
     if (!isQuote) {
       window.gtag('event', 'conversion', {
         send_to: ADS_BOOKING_CONVERSION,
