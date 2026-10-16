@@ -12,6 +12,7 @@ import {
   resolveBookingPromotion,
 } from './_promotions.js';
 import { logActivity } from './booking/_activity.js';
+import { dispatchBooking } from './booking/_dispatch-internal.js';
 import { appointmentTimestampMs, formatAppointmentDate } from './booking/_appt-date.js';
 import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './booking/_booking-window.js';
 import { SCHEDULED_AUTHORIZATION_LEAD_DAYS } from './booking/_booking-window.js';
@@ -494,7 +495,8 @@ export default async function handler(req, res) {
     same_day_fee_cents: appliedSameDayFeeCents,
     same_day_easer_bonus_cents: sameDayEaserBonusCents,
     call_zone: pricingWithPromo.callZone,
-    dispatch_paused: scheduledAuthorization,
+    // A saved card is staffed now; work and capture wait for the hold.
+    dispatch_paused: false,
     needs_manual_dispatch: requiresOwnerAssignment,
     ...(scheduledAuthorization ? {
       confirmed_at: new Date().toISOString(),
@@ -806,7 +808,7 @@ export default async function handler(req, res) {
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1e40af">Action Required</p>
-    <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">${quoteRequested ? `Review the project notes, prepare a final quote, and contact <strong>${sName}</strong> before scheduling or authorizing any amount.` : (scheduledAuthorization ? `Plan coverage for this appointment. The customer card is saved, but dispatch stays paused until payment is authorized ${SCHEDULED_AUTHORIZATION_LEAD_DAYS} days before the visit.` : `Contact <strong>${sName}</strong> at <a href="tel:${sPhone}" style="color:#1e40af">${sPhone}</a> or <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> to confirm this appointment.`)}</p>
+    <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">${quoteRequested ? `Review the project notes, prepare a final quote, and contact <strong>${sName}</strong> before scheduling or authorizing any amount.` : (scheduledAuthorization ? `The customer card is saved. Offers go to Easers now; the card is authorized ${SCHEDULED_AUTHORIZATION_LEAD_DAYS} days before the visit.` : `Contact <strong>${sName}</strong> at <a href="tel:${sPhone}" style="color:#1e40af">${sPhone}</a> or <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> to confirm this appointment.`)}</p>
     </td></tr></table>
   </td></tr></table>
 
@@ -910,6 +912,12 @@ export default async function handler(req, res) {
     }
     // When clientSecret is present: both owner and customer emails are sent by
     // /api/booking-confirmed after the card authorization succeeds.
+
+    // A confirmed saved-card booking is offered now, not at the next cron run.
+    // A failure here leaves it for auto-dispatch; the booking is already saved.
+    if (scheduledAuthorization && !requiresOwnerAssignment) {
+      await dispatchBooking(bookingId).catch(err => console.error('[booking] scheduled dispatch failed:', err?.message || err));
+    }
     // HubSpot CRM — non-blocking
     if (process.env.HUBSPOT_ACCESS_TOKEN) {
       try {

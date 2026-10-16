@@ -4,7 +4,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc, ownerEmail } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForDispatch, isSameServiceMarket, EASER_RELIABILITY_POLICY } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForStaffing, isSameServiceMarket, EASER_RELIABILITY_POLICY } from '../_source-of-truth.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { logActivity } from './_activity.js';
@@ -94,7 +94,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     .from('bookings').select('*').eq('id', bookingId).single();
   if (bErr || !booking) return { dispatched: 0, message: 'Booking not found' };
   if (booking.status !== BOOKING_STATUS.CONFIRMED) return { dispatched: 0, message: `Booking not confirmed (status: ${booking.status})` };
-  if (!isBookingPaymentReadyForDispatch(booking)) {
+  if (!isBookingPaymentReadyForStaffing(booking)) {
     return {
       dispatched: 0,
       message: `Payment is not verified for dispatch (payment status: ${booking.payment_status || 'missing'})`,

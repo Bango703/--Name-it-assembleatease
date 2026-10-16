@@ -5,7 +5,7 @@ import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, describeDispatchPaymentBlock, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, describeStaffingPaymentBlock, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { describeAssignmentGuardFailure } from './_assignment-guard-reasons.js';
 import { CONTACT_RELEASE_LEAD_HOURS } from './_customer-contact-release.js';
@@ -172,7 +172,7 @@ export default async function handler(req, res) {
     // The OWNER is deliberately attaching a known Easer, so a confirmed saved
     // card counts: the hold is simply scheduled for closer to the visit. The job
     // still cannot be completed or charged until that hold succeeds.
-    const paymentBlock = describeDispatchPaymentBlock(booking, { allowSavedCard: true });
+    const paymentBlock = describeStaffingPaymentBlock(booking);
     if (paymentBlock) {
       return res.status(409).json({
         error: `Cannot assign an Easer yet. ${paymentBlock.message}`,

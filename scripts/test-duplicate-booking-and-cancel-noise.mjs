@@ -256,10 +256,10 @@ check('Dispatch All only considers confirmed, payment-ready bookings', () => {
     'candidates must exclude dispatch-paused bookings',
   );
   assert.ok(
-    /DISPATCH_PAYMENT_STATUSES\.includes\(b\.payment_status\)/.test(dispatchAll),
+    /STAFFING_PAYMENT_STATUSES\.includes\(b\.payment_status\)/.test(dispatchAll),
     'candidates must be in a dispatchable payment state',
   );
-  assert.ok(dispatchAll.includes('isBookingPaymentReadyForDispatch'), 'second payment-truth filter');
+  assert.ok(dispatchAll.includes('isBookingPaymentReadyForStaffing'), 'second payment-truth filter');
   // Whatever is excluded must be COUNTED, so the owner is told what was skipped
   // and why rather than being shown a bare zero.
   assert.ok(/skipped/.test(dispatchAll), 'skipped bookings must be reported back to the owner');

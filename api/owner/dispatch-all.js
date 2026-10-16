@@ -1,7 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
-import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
+import { STAFFING_PAYMENT_STATUSES, isBookingPaymentReadyForStaffing } from '../_source-of-truth.js';
 
 /**
  * POST /api/owner/dispatch-all
@@ -23,7 +23,9 @@ export default async function handler(req, res) {
   // work" when the truth is "the work you have needs a different action".
   const { data: allUnassigned, error: candidatesError } = await sb
     .from('bookings')
-    .select('id, ref, payment_status, stripe_dispute_id, stripe_dispute_status, dispatch_paused, needs_manual_dispatch')
+    // Every field the payment rule reads. Without total_price every booking
+    // read as $0 and the sweep refused all of them (2026-10-16).
+    .select('id, ref, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_payment_method_id, confirmed_by, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at, stripe_dispute_id, stripe_dispute_status, dispatch_paused, needs_manual_dispatch')
     .eq('status', 'confirmed')
     .is('assembler_id', null);
 
@@ -36,10 +38,10 @@ export default async function handler(req, res) {
   const needsManual = unassigned.filter(b => b.needs_manual_dispatch === true);
   const paused = unassigned.filter(b => !b.needs_manual_dispatch && b.dispatch_paused === true);
   const eligibleByFlags = unassigned.filter(b => !b.needs_manual_dispatch && b.dispatch_paused !== true);
-  const paymentNotReady = eligibleByFlags.filter(b => !DISPATCH_PAYMENT_STATUSES.includes(b.payment_status)
-    || !isBookingPaymentReadyForDispatch(b));
-  const paymentReadyCandidates = eligibleByFlags.filter(b => DISPATCH_PAYMENT_STATUSES.includes(b.payment_status)
-    && isBookingPaymentReadyForDispatch(b));
+  const paymentNotReady = eligibleByFlags.filter(b => !STAFFING_PAYMENT_STATUSES.includes(b.payment_status)
+    || !isBookingPaymentReadyForStaffing(b));
+  const paymentReadyCandidates = eligibleByFlags.filter(b => STAFFING_PAYMENT_STATUSES.includes(b.payment_status)
+    && isBookingPaymentReadyForStaffing(b));
 
   const skipped = {
     needsManualAssignment: needsManual.length,

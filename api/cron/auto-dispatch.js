@@ -2,7 +2,7 @@
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { sendEmail, ownerEmail } from '../_email.js';
 import { logCron } from './_cron-logger.js';
-import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
+import { STAFFING_PAYMENT_STATUSES, isBookingPaymentReadyForStaffing } from '../_source-of-truth.js';
 
 /**
  * GET /api/cron/auto-dispatch
@@ -33,9 +33,9 @@ export default async function handler(req, res) {
   // Confirmed, unassigned, not paused, not flagged
   const { data: candidates, error: candidatesError } = await sb
     .from('bookings')
-    .select('id, ref, service, date, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, confirmed_by, stripe_dispute_id, stripe_dispute_status')
+    .select('id, ref, service, date, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_payment_method_id, confirmed_by, stripe_dispute_id, stripe_dispute_status')
     .eq('status', 'confirmed')
-    .in('payment_status', DISPATCH_PAYMENT_STATUSES)
+    .in('payment_status', STAFFING_PAYMENT_STATUSES)
     .is('assembler_id', null)
     .eq('dispatch_paused', false)
     .eq('needs_manual_dispatch', false);
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'Automatic dispatch could not verify booking payment state.' });
   }
 
-  const paymentReadyCandidates = (candidates || []).filter(isBookingPaymentReadyForDispatch);
+  const paymentReadyCandidates = (candidates || []).filter(b => isBookingPaymentReadyForStaffing(b));
 
   if (!paymentReadyCandidates.length) {
     await logCron('auto-dispatch', { status: 'ok', records: 0 });

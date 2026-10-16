@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
   describeDispatchPaymentBlock,
+  describeStaffingPaymentBlock,
   isBookingPaymentReadyForDispatch,
+  isBookingPaymentReadyForStaffing,
   DISPATCH_PAYMENT_STATUSES,
+  STAFFING_PAYMENT_STATUSES,
 } from '../api/_source-of-truth.js';
 
 const read = rel => readFile(new URL(`../${rel}`, import.meta.url), 'utf8');
@@ -53,7 +56,7 @@ assert.ok(describeDispatchPaymentBlock(sim, { vercelEnv: 'production' }), 'never
 // ── The callers actually surface the reason (Article 16) ───────────────────
 for (const rel of ['api/booking/assign.js', 'api/booking/dispatch.js', 'api/booking/dispatch-control.js']) {
   const src = await read(rel);
-  assert.match(src, /describeDispatchPaymentBlock/, `${rel} must use the explaining gate`);
+  assert.match(src, /describe(Dispatch|Staffing)PaymentBlock/, `${rel} must use the explaining gate`);
   assert.doesNotMatch(src, /'Payment is not verified for (assignment|dispatch)\./,
     `${rel} must not hard-code the generic refusal`);
   assert.doesNotMatch(src, /code: 'DISPATCH_PAYMENT_NOT_VERIFIED',\s*\}\);/,
@@ -67,23 +70,20 @@ for (const rel of ['api/booking/assign.js', 'api/booking/dispatch.js', 'api/book
 // reserved the time.
 const saved = { total_price: 25000, payment_status: 'card_saved', stripe_payment_method_id: 'pm_1' };
 
-// Owner manual assignment: allowed.
-assert.equal(describeDispatchPaymentBlock(saved, { allowSavedCard: true }), null,
-  'the owner must be able to attach an Easer to a confirmed saved card');
+// Staffing (offers, owner assignment, acceptance): allowed for a saved card
+// (owner, 2026-10-16: an advance Austin booking sent no offers).
+assert.equal(describeStaffingPaymentBlock(saved), null, 'a confirmed saved card can be staffed');
+assert.equal(isBookingPaymentReadyForStaffing(saved), true);
+assert.ok(STAFFING_PAYMENT_STATUSES.includes('card_saved'));
 
-// Automatic dispatch: still refused, and the refusal explains itself rather
-// than implying the booking is broken.
-const autoBlock = describeDispatchPaymentBlock(saved);
-assert.ok(autoBlock, 'auto-dispatch still waits for the scheduled hold');
-assert.equal(autoBlock.code, 'CARD_SAVED_AWAITING_AUTHORIZATION');
-assert.match(autoBlock.message, /you can still assign an Easer to this booking yourself/,
-  'the refusal must tell the owner what they CAN do');
+// Starting work still waits for the hold, and says so.
+const workBlock = describeDispatchPaymentBlock(saved);
+assert.ok(workBlock, 'work waits for the scheduled hold');
+assert.equal(workBlock.code, 'CARD_SAVED_AWAITING_AUTHORIZATION');
+assert.match(workBlock.message, /can be staffed now; work starts after the hold/);
 assert.equal(isBookingPaymentReadyForDispatch(saved), false);
-
-// The auto-dispatch invariant is untouched: card_saved is still not a
-// dispatchable payment state for the offer engine.
 assert.equal(DISPATCH_PAYMENT_STATUSES.includes('card_saved'), false,
-  'blasting offers for a job whose hold is not taken stays forbidden');
+  'travel, arrival and capture still need an authorized card');
 
 // A card_saved booking with no saved payment method is still refused, even for
 // the owner — there would be nothing to authorize before the visit.
@@ -100,14 +100,15 @@ assert.ok(describeDispatchPaymentBlock({ ...saved, stripe_dispute_id: 'dp_1', st
 assert.ok(describeDispatchPaymentBlock({ ...saved, financial_operation_type: 'refund_owner' }, { allowSavedCard: true }),
   'allowSavedCard must never bypass an in-flight financial operation');
 
-// ── Only owner assignment opts in ──────────────────────────────────────────
-const assignSrc = await read('api/booking/assign.js');
-assert.match(assignSrc, /describeDispatchPaymentBlock\(booking, \{ allowSavedCard: true \}\)/,
-  'owner assignment opts in to saved-card staffing');
-for (const rel of ['api/booking/dispatch.js', 'api/booking/dispatch-control.js']) {
-  assert.doesNotMatch(await read(rel), /allowSavedCard/,
-    `${rel} must not opt in — automatic dispatch waits for the hold`);
+// ── Every staffing path uses the staffing rule ─────────────────────────────
+for (const rel of ['api/booking/assign.js', 'api/booking/dispatch.js', 'api/booking/dispatch-control.js', 'api/booking/_dispatch-internal.js', 'api/cron/auto-dispatch.js', 'api/booking/accept-dispatch.js', 'api/owner/dispatch-all.js']) {
+  const src = await read(rel);
+  assert.match(src, /(describe|isBookingPaymentReadyFor)Staffing|STAFFING_PAYMENT_STATUSES/, `${rel} staffs a saved card`);
+  assert.doesNotMatch(src, /allowSavedCard/, `${rel} uses the named staffing rule, not the raw option`);
 }
+// Work paths stay strict.
+assert.match(await read('api/booking/easer-status.js'), /isBookingPaymentReadyForDispatch\(booking\)/,
+  'travel and arrival still require an authorized card');
 
 // ── Money is still gated where money actually moves ────────────────────────
 const completeSrc = await read('api/booking/assembler-complete.js');
@@ -120,4 +121,4 @@ assert.match(cronSrc, /notifyAssignedEaserPaymentHold/,
   'a failed scheduled authorization must tell the assigned Easer, not only the owner');
 assert.match(cronSrc, /Do not travel to this job until it is confirmed/);
 
-console.log('dispatch payment reason tests: PASS');
+console.log('PASS dispatch payment reason: specific refusals, saved cards staffed, work waits for the hold');

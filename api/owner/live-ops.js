@@ -9,7 +9,7 @@ import { verifyOwner } from '../_email.js';
 import { notificationOwnerAction } from '../_notification-display.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
-import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
+import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch, isBookingPaymentReadyForStaffing } from '../_source-of-truth.js';
 import { chicagoTodayIso, appointmentTimestampMs } from '../booking/_appt-date.js';
 import { arrivalFollowUp } from '../booking/_arrival-follow-up.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
@@ -350,7 +350,7 @@ export default async function handler(req, res) {
   // ── Categorize bookings ─────────────────────────────────────────
   // unassigned: never dispatched, no active offers, not flagged manual
   const unassigned = operationalBookings.filter(b =>
-    b.status === 'confirmed' && isBookingPaymentReadyForDispatch(b) && !b.assembler_id &&
+    b.status === 'confirmed' && isBookingPaymentReadyForStaffing(b) && !b.assembler_id &&
     !activeOfferBookingIds.has(b.id) && !b.dispatch_offered_at && !b.needs_manual_dispatch
   );
   const ownerManualNeedsAssignment = operationalBookings
@@ -373,7 +373,7 @@ export default async function handler(req, res) {
   const awaitingDispatch = operationalBookings
     .filter(b =>
       b.status === 'confirmed' && !b.assembler_id &&
-      isBookingPaymentReadyForDispatch(b) && activeOfferBookingIds.has(b.id) && !b.needs_manual_dispatch
+      isBookingPaymentReadyForStaffing(b) && activeOfferBookingIds.has(b.id) && !b.needs_manual_dispatch
     )
     .map(b => ({ ...b, _dispatchState: 'active_offers' }));
 
@@ -381,14 +381,14 @@ export default async function handler(req, res) {
   const offersExpired = operationalBookings
     .filter(b =>
       b.status === 'confirmed' && !b.assembler_id &&
-      isBookingPaymentReadyForDispatch(b) && !activeOfferBookingIds.has(b.id) && b.dispatch_offered_at && !b.needs_manual_dispatch
+      isBookingPaymentReadyForStaffing(b) && !activeOfferBookingIds.has(b.id) && b.dispatch_offered_at && !b.needs_manual_dispatch
     )
     .map(b => ({ ...b, _dispatchState: 'offers_expired' }));
 
   // needsManual: max attempts reached or explicitly flagged for manual assignment
   const needsManual = operationalBookings
     .filter(b =>
-      b.status === 'confirmed' && isBookingPaymentReadyForDispatch(b) && !b.assembler_id && b.needs_manual_dispatch
+      b.status === 'confirmed' && isBookingPaymentReadyForStaffing(b) && !b.assembler_id && b.needs_manual_dispatch
     )
     .map(b => ({ ...b, _dispatchState: 'needs_manual' }));
 
@@ -396,7 +396,7 @@ export default async function handler(req, res) {
     b.assembler_id
     && !b.assembler_accepted_at
     && b.status === 'confirmed'
-    && (isBookingPaymentReadyForDispatch(b, { allowSavedCard: true }) || isOwnerManualOfflineBooking(b))
+    && (isBookingPaymentReadyForStaffing(b) || isOwnerManualOfflineBooking(b))
   );
 
   const enRoute = operationalBookings.filter(b => b.status === 'en_route');
@@ -647,7 +647,7 @@ export default async function handler(req, res) {
   });
 
   // Stale unassigned (>2 hours old)
-  operationalBookings.filter(b => !b.assembler_id && b.status === 'confirmed' && isBookingPaymentReadyForDispatch(b)).forEach(b => {
+  operationalBookings.filter(b => !b.assembler_id && b.status === 'confirmed' && isBookingPaymentReadyForStaffing(b)).forEach(b => {
     const age = (now_ts - new Date(b.created_at).getTime()) / 3600000;
     if (age > 2) alerts.push({
       type: 'unassigned_stale',

@@ -5,7 +5,7 @@ import { guestManageUrl } from '../_payment-security.js';
 import { formatAppointmentDate } from './_appt-date.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch, describeDispatchPaymentBlock } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForStaffing, describeStaffingPaymentBlock } from '../_source-of-truth.js';
 import { buildRequestId, hashIdentifier, getDeploymentMetadata, normalizeReasonCode, redactString } from '../_observability.js';
 import { getEaserReadiness, publicReadinessError, publicMissingItems } from '../_easer-readiness.js';
 import { isLegacyAssignmentTokenFresh } from './_dispatch-safety.js';
@@ -260,7 +260,7 @@ export default async function handler(req, res) {
     }
     if (!booking) return res.status(404).json({ error: 'Booking not found' });
     if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'This booking is no longer available' });
-    if (!isBookingPaymentReadyForDispatch(booking)) {
+    if (!isBookingPaymentReadyForStaffing(booking)) {
       return res.status(409).json({ error: 'This job is temporarily on hold and cannot be accepted.', code: 'DISPATCH_PAYMENT_NOT_VERIFIED' });
     }
     if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at) {
@@ -389,13 +389,12 @@ export default async function handler(req, res) {
   // be assigned and then told the job was "on hold" when they tried to accept,
   // and stale-booking would unassign them 24 hours later. Half a fix.
   //
-  // Scoped to the ASSIGNMENT path deliberately: auto-dispatch never offers a
-  // card_saved booking, and isAssignment already proves this is the pro the
-  // owner chose. Money is untouched -- migration 095 still refuses the move to
-  // en_route/arrived/in_progress, and capture is gated in assembler-complete.
+  // Offers and assignments both staff a saved card now (2026-10-16). Money is
+  // untouched -- migration 095 still refuses the move to en_route/arrived/
+  // in_progress, and capture is gated in assembler-complete.
   const acceptPaymentBlock = ownerEaserLiveManual
     ? null
-    : describeDispatchPaymentBlock(booking, { allowSavedCard: isAssignment });
+    : describeStaffingPaymentBlock(booking);
   if (acceptPaymentBlock) {
     return res.status(409).json({ error: acceptPaymentBlock.message, code: acceptPaymentBlock.code });
   }

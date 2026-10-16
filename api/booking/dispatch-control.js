@@ -2,7 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner, ownerEmail, esc } from '../_email.js';
 import { dispatchBooking } from './_dispatch-internal.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch, describeDispatchPaymentBlock } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForStaffing, describeStaffingPaymentBlock } from '../_source-of-truth.js';
 
 /**
  * POST /api/booking/dispatch-control
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
   const { data: booking } = await sb
     .from('bookings')
-    .select('id, ref, status, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, confirmed_by, assembler_id, dispatch_attempt, dispatch_paused, needs_manual_dispatch, financial_operation_key, financial_operation_type, financial_operation_started_at, stripe_dispute_id, stripe_dispute_status')
+    .select('id, ref, status, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_payment_method_id, confirmed_by, assembler_id, dispatch_attempt, dispatch_paused, needs_manual_dispatch, financial_operation_key, financial_operation_type, financial_operation_started_at, stripe_dispute_id, stripe_dispute_status')
     .eq('id', bookingId)
     .single();
 
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
   });
 
   const paymentHoldResponse = (booking = {}) => {
-    const block = describeDispatchPaymentBlock(booking)
+    const block = describeStaffingPaymentBlock(booking)
       || { code: 'DISPATCH_PAYMENT_NOT_VERIFIED', message: "The customer's payment could not be verified." };
     return res.status(409).json({
       error: `Cannot dispatch this booking yet. ${block.message}`,
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
 
   // ── UNPAUSE ───────────────────────────────────────────────────────────────
   if (action === 'unpause') {
-    if (!isBookingPaymentReadyForDispatch(booking)) return paymentHoldResponse(booking);
+    if (!isBookingPaymentReadyForStaffing(booking)) return paymentHoldResponse(booking);
     const updateResult = await updateDispatchState({ dispatch_paused: false });
     if (!updateResult.ok) return dispatchStateChanged(updateResult);
     logActivity(sb, {
@@ -150,7 +150,7 @@ export default async function handler(req, res) {
 
   // ── DRY RUN ───────────────────────────────────────────────────────────────
   if (action === 'dry_run') {
-    if (!isBookingPaymentReadyForDispatch(booking)) return paymentHoldResponse(booking);
+    if (!isBookingPaymentReadyForStaffing(booking)) return paymentHoldResponse(booking);
     const result = await dispatchBooking(bookingId, { dryRun: true });
     if (result.code === 'DISPATCH_PAYMENT_NOT_VERIFIED') return paymentHoldResponse(booking);
     return res.status(200).json({ ok: true, action: 'dry_run', ...result });
@@ -164,7 +164,7 @@ export default async function handler(req, res) {
     if (booking.status !== BOOKING_STATUS.CONFIRMED) {
       return res.status(400).json({ error: `Booking is not confirmed (status: ${booking.status})` });
     }
-    if (!isBookingPaymentReadyForDispatch(booking)) return paymentHoldResponse(booking);
+    if (!isBookingPaymentReadyForStaffing(booking)) return paymentHoldResponse(booking);
 
     // Cancel any open offers first
     // Reset dispatch state so the engine can re-run

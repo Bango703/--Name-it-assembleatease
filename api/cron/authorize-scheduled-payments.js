@@ -237,8 +237,8 @@ export async function authorizeScheduledBooking({ sb, stripe, booking, expectedL
       payment_authorized_at: new Date().toISOString(),
       authorization_capture_before: captureDeadline,
       dispatch_paused: false,
-      needs_manual_dispatch: !automaticDispatch,
-      dispatch_status: null,
+      needs_manual_dispatch: !automaticDispatch && !booking.assembler_id,
+      dispatch_status: dispatchStatusAfterAuthorization(booking),
       financial_operation_key: null,
       financial_operation_type: null,
       financial_operation_started_at: null,
@@ -493,7 +493,7 @@ export async function finishUnconfirmedHold({ sb, stripe, booking, expectedLivem
     payment_authorized_at: new Date().toISOString(),
     authorization_capture_before: recoveredDeadline,
     dispatch_paused: false,
-    dispatch_status: null,
+    dispatch_status: dispatchStatusAfterAuthorization(booking),
     needs_manual_dispatch: !automaticDispatch && !booking.assembler_id,
     financial_operation_key: null,
     financial_operation_type: null,
@@ -605,6 +605,13 @@ async function cancelIntent(stripe, intent, expectedLivemode, idempotencyKey) {
     console.error('[scheduled-auth] cancellation failed:', error?.message || error);
     return false;
   }
+}
+
+// A saved-card job is staffed before its hold. Authorizing it must not erase
+// that: an accepted or assigned job keeps its dispatch state.
+export function dispatchStatusAfterAuthorization(booking = {}) {
+  if (!booking.assembler_id) return null;
+  return booking.assembler_accepted_at ? 'accepted' : 'assigned_pending_acceptance';
 }
 
 async function markReconciliation(sb, booking, operationKey, reason) {
