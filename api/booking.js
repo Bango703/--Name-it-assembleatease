@@ -30,7 +30,7 @@ import {
   releasePendingRedemption,
   totalsAfterAssembleCash,
 } from './_assemblecash.js';
-import { buildCustomerConsentRecord, validateCustomerLegalConsent } from './_legal-consent.js';
+import { buildCustomerConsentRecord, normalizeConsentMethod, validateCustomerLegalConsent } from './_legal-consent.js';
 import {
   cartAllowsBookingReuse,
   classifyExistingIntent,
@@ -76,12 +76,14 @@ export default async function handler(req, res) {
     termsAccepted,
     termsVersion,
     privacyNoticeVersion,
+    termsConsentMethod,
     smsConsent,
     paymentMethod,
     accountMode,
   } = req.body;
 
   const legalConsent = validateCustomerLegalConsent({ termsAccepted, termsVersion, privacyNoticeVersion });
+  const consentMethod = normalizeConsentMethod(termsConsentMethod);
   if (!legalConsent.ok) {
     return res.status(legalConsent.status).json({ error: legalConsent.error, code: legalConsent.code });
   }
@@ -511,7 +513,7 @@ export default async function handler(req, res) {
       sms_consent_at: new Date().toISOString(),
       sms_consent_source: 'customer_booking_checkout',
     } : {}),
-    ...buildCustomerConsentRecord(req),
+    ...buildCustomerConsentRecord(req, consentMethod),
   };
 
   let activeBookingInsertPayload = bookingInsertPayload;
@@ -569,7 +571,7 @@ export default async function handler(req, res) {
     metadata: {
       termsVersion,
       privacyNoticeVersion,
-      acceptanceMethod: 'online_checkout_checkbox',
+      acceptanceMethod: consentMethod,
     },
   }).catch(error => console.warn('Customer consent activity log skipped:', error?.message || error));
   const guestMutationToken = deriveGuestMutationToken({ bookingId, ref, email });

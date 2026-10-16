@@ -35,6 +35,23 @@ export function validateCustomerLegalConsent(input = {}) {
   return { ok: true };
 }
 
+/**
+ * How the customer agreed, as a fixed set. Owner, 2026-10-15: "stop creating
+ * friction"; the checkout states that tapping the book button is agreement, with
+ * the Terms and Privacy links beside it, instead of a separate checkbox or switch.
+ * The record says which one the customer saw.
+ */
+export const CONSENT_METHODS = Object.freeze([
+  'online_checkout_checkbox',
+  'web_book_button_notice',
+  'app_book_button_notice',
+]);
+
+export function normalizeConsentMethod(value) {
+  const method = String(value || '');
+  return CONSENT_METHODS.includes(method) ? method : 'online_checkout_checkbox';
+}
+
 export function buildCustomerConsentRecord(req, method = 'online_checkout_checkbox') {
   const forwardedFor = normalizedHeader(req?.headers?.['x-forwarded-for'], 300);
   const rawIp = (forwardedFor || normalizedHeader(req?.socket?.remoteAddress, 100) || 'unknown')
