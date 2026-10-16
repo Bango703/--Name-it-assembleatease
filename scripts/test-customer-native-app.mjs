@@ -530,4 +530,11 @@ const app = Object.values(customer).join('\n');
   assert.match(customer['CustomerAPI.swift'], /publicCall\("POST", "\/api\/booking\/promo-preview"/, 'the price check needs no account');
 }
 
+// The support line is a button labelled with the business, never the number (owner, 2026-10-15).
+{
+  const views = customer['CustomerViews.swift'];
+  assert.doesNotMatch(views, /supportPhoneDisplay/, 'the customer app shows "Call AssembleAtEase", not the phone number');
+  assert.equal((views.match(/"Call AssembleAtEase"/g) || []).length, 2, 'both call buttons read "Call AssembleAtEase"');
+}
+
 console.log('PASS customer native app: separate app with its own bundle ID and workflow, shared code compiled by both, every endpoint and field matches the server, prices and permissions from the server, in-app account deletion.');
