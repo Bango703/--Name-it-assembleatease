@@ -67,7 +67,7 @@ assert.match(ownerUi, /Selected-Period Money Summary/);
 assert.match(ownerUi, /an-sales-tax/);
 assert.match(ownerUi, /an-processing-fees/);
 assert.match(ownerUi, /an-easer-payouts/);
-assert.match(ownerUi, /Total Platform Gross/);
+assert.match(ownerUi, /Total platform gross/i);
 assert.match(ownerUi, /Owner-Easer Labor/);
 assert.match(ownerUi, /External Easer Labor/);
 assert.match(ownerUi, /Jobs Missing Labor Cost/);

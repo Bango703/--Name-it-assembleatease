@@ -940,23 +940,23 @@
 
       <!-- ─── ANALYTICS VIEW ─── -->
       <div id="analytics-view" style="display:none">
-        <div class="fin-subtabs" id="fin-subtabs" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:1.1rem;border-bottom:1px solid var(--border);padding-bottom:0.9rem">
+        <div class="fin-subtabs tabs" id="fin-subtabs">
           <button class="tab active" data-fin-tab="money" type="button">Money</button>
           <button class="tab" data-fin-tab="tax" type="button">Tax &amp; Compliance</button>
           <button class="tab" data-fin-tab="growth" type="button">Growth</button>
           <button class="tab" data-fin-tab="insights" type="button">Insights</button>
         </div>
         <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1rem;margin-bottom:1rem" class="content-grid">
-          <div class="detail-panel open" style="background:#001f2b;color:#fff;border-color:#00394d">
-            <div class="detail-section-title" style="color:rgba(255,255,255,0.62);margin-bottom:0.55rem">Financial North Star</div>
-            <div style="font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,3.25rem);line-height:1;color:#fff" id="fin-total-platform-gross">—</div>
-            <div style="margin-top:0.35rem;color:rgba(255,255,255,0.82);font-size:0.9rem">Total Platform Gross</div>
-            <div style="display:flex;gap:1.25rem;flex-wrap:wrap;margin-top:1rem;font-size:0.75rem;color:rgba(255,255,255,0.72)">
-              <span><strong id="fin-gross-per-job" style="color:#fff">—</strong> average per completed job</span>
-              <span><strong id="fin-gross-margin" style="color:#fff">—</strong> recorded gross margin</span>
-              <span><strong id="fin-costed-gross-per-job" style="color:#fff">—</strong> average on labor-costed jobs</span>
+          <div class="detail-panel open c-hero">
+            <div class="detail-section-title">Platform gross</div>
+            <div class="c-hero-value" id="fin-total-platform-gross">—</div>
+            <div class="c-hero-label">Total platform gross</div>
+            <div class="c-hero-facts">
+              <span><strong id="fin-gross-per-job">—</strong> average per completed job</span>
+              <span><strong id="fin-gross-margin">—</strong> recorded gross margin</span>
+              <span><strong id="fin-costed-gross-per-job">—</strong> average on labor-costed jobs</span>
             </div>
-            <div style="margin-top:1rem;font-size:0.78rem;color:rgba(255,255,255,0.68);line-height:1.7">Customer payments retained minus sales tax, processing fees, and all recorded Easer earnings. Owner-Easer labor remains compensation for work, not scalable platform profit.</div>
+            <div class="c-hero-note">Customer payments retained minus sales tax, processing fees, and all recorded Easer earnings. Owner-Easer labor remains compensation for work, not scalable platform profit.</div>
           </div>
           <div class="detail-panel open">
             <div class="detail-section-title" style="margin-bottom:0.75rem">Assumptions</div>
@@ -968,11 +968,13 @@
               <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>CAC</strong><br><span id="fin-assumption-cac">Loading...</span></div>
             </div>
             <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.9rem">
+              <div class="tabs" style="margin:0">
               <button class="tab active" data-fin-period="year" type="button">Year</button>
               <button class="tab" data-fin-period="month" type="button">Month</button>
               <button class="tab" data-fin-period="week" type="button">Week</button>
               <button class="tab" data-fin-period="today" type="button">Today</button>
               <button class="tab" data-fin-period="all" type="button">All</button>
+              </div>
               <label style="margin-left:auto;font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">Other Opex/mo $
                 <input id="fin-opex-input" type="number" min="0" step="1" placeholder="292 default" style="width:100px;background:var(--elevated);border:1px solid var(--border-md);border-radius:7px;padding:0.35rem 0.5rem;font-family:inherit;color:var(--text)"/>
               </label>
@@ -1005,22 +1007,32 @@
           <div class="detail-section-title" style="margin:0">Selected-Period Money Summary</div>
           <div id="an-period-note" style="font-size:0.74rem;color:var(--muted);font-weight:700">Year &middot; Central time</div>
         </div>
-        <div class="stats-row" id="analytics-stats-row" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
-          <div class="stat teal"><div class="stat-value" id="an-gross-per-job">—</div><div class="stat-label">Platform Gross / Job</div></div>
+        <div class="c-group-title">Where the money went</div>
+        <div class="stats-row c-metrics" id="analytics-stats-row">
           <div class="stat teal"><div class="stat-value" id="an-gross">—</div><div class="stat-label">Customer Payments Retained</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-sales-tax">—</div><div class="stat-label">Sales Tax Collected</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-processing-fees">—</div><div class="stat-label">Stripe Processing Fees</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-easer-payouts">—</div><div class="stat-label">Total Easer Earnings</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-owner-easer-earnings">—</div><div class="stat-label">Owner-Easer Labor</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-external-easer-earnings">—</div><div class="stat-label">External Easer Labor</div></div>
+        </div>
+        <div class="c-group-title">Per job</div>
+        <div class="stats-row c-metrics">
           <div class="stat neutral"><div class="stat-value" id="an-completed-jobs">—</div><div class="stat-label">Completed Jobs</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-ajv">—</div><div class="stat-label">Average Job Value</div></div>
+          <div class="stat teal"><div class="stat-value" id="an-gross-per-job">—</div><div class="stat-label">Platform Gross / Job</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-gross-margin">—</div><div class="stat-label">Recorded Gross Margin</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-costed-gross-per-job">—</div><div class="stat-label">Gross / Labor-Costed Job</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-uncosted-jobs">—</div><div class="stat-label">Jobs Missing Labor Cost</div></div>
+        </div>
+        <div class="c-group-title">Operating estimate</div>
+        <div class="stats-row c-metrics">
           <div class="stat neutral"><div class="stat-value" id="an-known-operating-costs">—</div><div class="stat-label">Known Operating Costs</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-opex-allocated">—</div><div class="stat-label">Other Overhead Allocated</div></div>
           <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Est. After Reserve &amp; Operating Costs</div></div>
+        </div>
+        <div class="c-group-title">Customers and add-ons</div>
+        <div class="stats-row c-metrics">
           <div class="stat amber"><div class="stat-value" id="an-addon-rate">—</div><div class="stat-label">Add-On Attachment Rate <span id="an-addon-source" style="color:#d97706">(Est.)</span></div></div>
           <div class="stat amber"><div class="stat-value" id="an-addon-value">—</div><div class="stat-label">Average Add-On Value</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-bundle-rate">—</div><div class="stat-label">Bundle Attach Rate</div></div>
@@ -3493,21 +3505,27 @@ window.intelQuick = intelQuick;
       var cardUsesReturnVisit = b.return_visit_required === true || !!b.return_visit_completed_at;
       var cardDate = cardUsesReturnVisit ? b.return_visit_date : b.date;
       var cardTime = cardUsesReturnVisit ? b.return_visit_time : b.time;
-      return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '" style="position:relative">'
-        + '<div class="card-top"><h4>' + esc(b.customer_name) + '</h4>' + bookingBadge(b) + '</div>'
-        + '<div class="card-desc">' + esc(cardQuoteStage ? quoteServiceLabel(b) : (b.service || '—')) + '</div>'
-        + (isTestBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--muted);font-weight:600;margin-top:2px;letter-spacing:0.06em">TEST BOOKING — excluded from all figures</div>' : '')
-        + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + esc(b.assembler_tier) : '') + '</div>' : '')
-        + (b.has_unread_customer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Customer message</div>' : '')
-        + (b.has_unread_easer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Easer message</div>' : '')
-        + (b.needs_manual_dispatch && !b.assembler_id && !isTerminalBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#ef4444;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block"></span>Needs manual assignment</div>' : '')
-        + '<div class="card-meta">'
-          + '<span>' + esc(b.ref) + '</span>'
-          + '<span class="meta-dot"></span>'
-          + '<span>' + (b.return_visit_required ? 'Return: ' : (b.return_visit_completed_at ? 'Return completed: ' : '')) + formatDate(cardDate) + (cardTime ? ' ' + esc(cardTime) : '') + '</span>'
-          + (cardMoney ? '<span class="meta-dot"></span><span>' + cardMoney + '</span>' : '')
-          + (msgCount ? '<span class="meta-dot"></span><span>' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '')
-        + '</div></div>';
+      // One row, three fixed columns: who and what, when, status and money.
+      var flags = ''
+        + (isTestBooking(b) ? '<span class="c-tag" title="Test booking: excluded from every figure on this dashboard">Test booking, not counted</span>' : '')
+        + (b.assembler_name ? '<span class="c-flag-easer">Easer: ' + esc(b.assembler_name) + '</span>' : '')
+        + (b.has_unread_customer_msg ? '<span class="c-flag-bad">Customer message</span>' : '')
+        + (b.has_unread_easer_msg ? '<span class="c-flag-bad">Easer message</span>' : '')
+        + (b.needs_manual_dispatch && !b.assembler_id && !isTerminalBooking(b) ? '<span class="c-flag-bad">Needs manual assignment</span>' : '')
+        + (msgCount ? '<span class="c-sub" style="margin:0">' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '');
+      var whenPrefix = b.return_visit_required ? 'Return: ' : (b.return_visit_completed_at ? 'Return completed: ' : '');
+      return '<div class="booking-card c-brow' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '">'
+        + '<div class="c-brow-main">'
+          + '<div class="c-brow-name">' + esc(b.customer_name || 'Customer') + '</div>'
+          + '<span class="c-sub">' + esc(cardQuoteStage ? quoteServiceLabel(b) : (b.service || '—')) + '</span>'
+          + (flags ? '<div class="c-brow-flags">' + flags + '</div>' : '')
+        + '</div>'
+        + '<div class="c-brow-when">' + whenPrefix + formatDate(cardDate)
+          + (cardTime ? '<span class="c-sub">' + esc(cardTime) + '</span>' : '')
+          + '<span class="c-sub c-mono">' + esc(b.ref) + '</span>'
+        + '</div>'
+        + '<div class="c-brow-status">' + bookingBadge(b) + (cardMoney ? '<span class="c-sub" style="margin:0">' + cardMoney + '</span>' : '') + '</div>'
+        + '</div>';
     }).join('');
   }
 
@@ -4924,7 +4942,17 @@ window.intelQuick = intelQuick;
         return !!recommended;
       });
 
-      var blocks = notices.slice();
+      // Notices render as one Notes box, one row each, with a dot for
+      // severity (console.css) instead of a stack of colored boxes. The text
+      // and any controls inside a notice are unchanged.
+      var noticeRow = function (html) {
+        var m = String(html).match(/^<div style="([^"]*)">([\s\S]*)<[/]div>$/);
+        if (!m) return html;
+        var bg = (m[1].match(/background:\s*([^;]+)/) || [])[1] || '';
+        var kind = /#fef2f2/i.test(bg) ? 'bad' : (/#fff7ed|#fffbeb/i.test(bg) ? 'warn' : (/#ecfdf5/i.test(bg) ? 'ok' : 'info'));
+        return '<div class="c-note c-note--' + kind + '">' + m[2] + '</div>';
+      };
+      var blocks = notices.length ? ['<div class="c-notes">' + notices.map(noticeRow).join('') + '</div>'] : [];
       if (recommended) {
         btns.splice(recommended.index, 1);
         blocks.push('<div class="owner-next-action">'
@@ -8487,7 +8515,7 @@ window.intelQuick = intelQuick;
       var scheduleDate = showingReturnVisit ? b.return_visit_date : b.date;
       var scheduleTime = showingReturnVisit ? b.return_visit_time : b.time;
       return '<div class="today-job-card" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">'
-        +'<div class="today-job-time" style="font-size:1.1rem;font-weight:700;color:var(--teal);min-width:70px">'+esc(scheduleTime||'—')+'<div style="font-size:0.66rem;font-weight:500;color:var(--muted);margin-top:3px">'+esc(scheduleDate)+(showingReturnVisit ? ' &bull; Return visit' : '')+'</div></div>'
+        +'<div class="today-job-time" style="font-size:14px;font-weight:700;color:var(--c-text);min-width:150px">'+esc(scheduleTime||'—')+'<div style="font-size:12px;font-weight:500;color:var(--c-muted);margin-top:2px">'+(scheduleDate ? formatDate(scheduleDate) : '')+(showingReturnVisit ? ' &bull; Return visit' : '')+'</div></div>'
         +'<div class="today-job-main" style="flex:1;min-width:0">'
           +'<div style="font-size:0.9rem;font-weight:600;color:var(--text)">'+esc(b.customer_name||'—')+'</div>'
           +'<div style="font-size:0.8rem;color:var(--muted)">'+esc(b.service||'—')+' &bull; '+esc(b.address||'—')+'</div>'

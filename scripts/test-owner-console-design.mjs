@@ -36,4 +36,16 @@ for (const id of ['nav-liveops-alerts', 'nav-inbox', 'nav-cases']) {
 const labels = [...html.matchAll(/<div class="sidebar-label">([^<]+)<\/div>/g)].map(m => m[1]);
 assert.deepEqual(labels, ['Run the day', 'Inbox', 'Easers', 'Money', 'Growth', 'Tools']);
 
+// Bookings: every row on one fixed three-column grid.
+assert.match(css, /\.booking-card\.c-brow \{[^}]*grid-template-columns: minmax\(0, 1fr\) 132px 124px/, 'booking rows share fixed columns');
+assert.match(html, /'<div class="booking-card c-brow'/, 'the list renders console rows');
+
+// Booking record: notices are one Notes box, not a stack of colored boxes.
+assert.match(html, /var blocks = notices\.length \? \['<div class="c-notes">'/, 'notices render as one Notes box');
+
+// Financials: tiles in labeled groups on a cell grid; empty warnings not drawn.
+const groups = [...html.matchAll(/<div class="c-group-title">([^<]+)<\/div>/g)].map(m => m[1]);
+assert.deepEqual(groups, ['Where the money went', 'Per job', 'Operating estimate', 'Customers and add-ons']);
+assert.match(css, /#an-finance-warning:empty, #an-empty-period:empty \{ display: none !important; \}/);
+
 console.log('PASS owner console design: console.css last, fixed-column tables, Live Ops through cTable, counts are list lengths, grouped sidebar');

@@ -85,7 +85,7 @@ console.log(`PASS internal bookings: flag defaults to real, ${refs.length} rows 
   const owner = await readFile(new URL('../owner/index.html', import.meta.url), 'utf8');
   assert.match(owner, /function realBookings\(\)/, 'the board needs one place that drops test rows');
   assert.match(owner, /realBookings\(\)\.forEach/, 'stat tiles must count real bookings only');
-  assert.match(owner, /TEST BOOKING — excluded from all figures/,
+  assert.match(owner, /Test booking, not counted/,
     'a test booking stays visible in the list, marked — excluded from counting, never hidden');
 }
 
