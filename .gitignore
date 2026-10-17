@@ -34,6 +34,10 @@ tmp/
 # Local dev artifacts (browser profiles, screenshots)
 _local_artifacts/
 .tmp-mobile-audit/
+.playwright-mcp/
+
+# Local tool configuration (per machine)
+.mcp.json
 
 # Sensitive files
 config.local.js

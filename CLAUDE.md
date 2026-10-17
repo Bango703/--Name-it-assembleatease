@@ -399,6 +399,16 @@ vercel dev
 
 All API routes are ES modules (`"type": "module"` in package.json). Import with `.js` extensions.
 
+### Branches and working folders (owner, 2026-10-16)
+
+On Oct 16 the repo held 32 working folders, 227 stale branches, a stash, and a main folder 267 commits behind GitHub. Keep it from coming back:
+
+- **The main folder (`Handyman-marketplace`) is always `main`, matching GitHub, with nothing uncommitted.** Never develop in it.
+- **One task, one branch, one worktree** (`git worktree add ../aae-<task> -b <type>/<task> origin/main`). Remove the worktree and delete the branch once the PR merges.
+- **Never leave work only on a local machine or in a stash.** Push the branch, even if it is not ready.
+- **Old work that is not merged goes to `archive/<name>`; work that exists only there goes to `backup/<name>`.** Never delete a branch whose commits are not in `main` or in a verified copy.
+- **Tests must pass on a Windows (CRLF) checkout as well as CI (LF).** A test that reads source files normalises `\r\n` before matching.
+
 ---
 
 ## Architecture
