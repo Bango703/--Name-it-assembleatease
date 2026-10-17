@@ -230,3 +230,8 @@ body { background: var(--c-bg); color: var(--c-text); }
 #fin-subtabs { display: inline-flex; margin-bottom: 16px; }
 /* Plain tables sit on the same white panel as every other list. */
 #cust-table, #asm-table, #wl-table, #md-requests-table, .pro-table { background: var(--c-surface); box-shadow: 0 0 0 1px var(--c-line); border-radius: var(--c-radius); }
+/* Each Financials group has as many columns as tiles, so no row ends early. */
+#analytics-view .stats-row.c-metrics.c-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+#analytics-view .stats-row.c-metrics.c-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+#analytics-view .stats-row.c-metrics.c-cols-7 { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; }
+@media (max-width: 1100px) { #analytics-view .stats-row.c-metrics[class*="c-cols-"] { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }
