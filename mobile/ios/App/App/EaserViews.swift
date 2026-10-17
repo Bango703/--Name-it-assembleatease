@@ -1965,8 +1965,15 @@ private struct PhotoSheet: View {
     @EnvironmentObject private var store: EaserStore
     @Environment(\.dismiss) private var dismiss
     @State private var photo: UIImage?
+    /// Completion takes one photo per item, up to EaserStore.maxCompletionPhotos.
+    @State private var photos: [UIImage] = []
     @State private var note = ""
     @State private var submitting = false
+
+    /// Items on the job, counting quantity (2 TVs and a soundbar is 3).
+    private var itemCount: Int {
+        job.itemGroups.flatMap(\.items).reduce(0) { $0 + max(1, $1.quantity) }
+    }
 
     private var title: String {
         switch mode {
@@ -1978,14 +1985,18 @@ private struct PhotoSheet: View {
 
     private var explanation: String {
         switch mode {
-        case .completion: return "Add a photo of the finished work."
+        case .completion:
+            return itemCount > 1
+                ? "This job has \(itemCount) items. Add a photo of each, up to \(EaserStore.maxCompletionPhotos)."
+                : "Add a photo of the finished work."
         case .requested: return "Add the photo AssembleAtEase asked for."
         case .damage: return "Add a photo of the damage and describe what happened."
         }
     }
 
     private var noteReady: Bool { note.trimmingCharacters(in: .whitespacesAndNewlines).count >= 10 }
-    private var ready: Bool { photo != nil && (mode != .damage || noteReady) }
+    private var hasPhoto: Bool { mode == .completion ? !photos.isEmpty : photo != nil }
+    private var ready: Bool { hasPhoto && (mode != .damage || noteReady) }
 
     var body: some View {
         // The completion moment replaces the form in the same sheet.
@@ -2005,7 +2016,11 @@ private struct PhotoSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Text(explanation).foregroundStyle(.secondary)
-                    PhotoChooser(photo: $photo)
+                    if mode == .completion {
+                        MultiPhotoChooser(photos: $photos, limit: EaserStore.maxCompletionPhotos)
+                    } else {
+                        PhotoChooser(photo: $photo)
+                    }
                     if mode == .damage {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("What happened").font(.headline)
@@ -2023,14 +2038,14 @@ private struct PhotoSheet: View {
             }
             .safeAreaInset(edge: .bottom) {
                 Button {
-                    guard let photo else { return }
+                    guard ready else { return }
                     submitting = true
                     Task {
                         let done: Bool
                         switch mode {
-                        case .completion: done = await store.complete(job, photo: photo)
-                        case .requested: done = await store.sendPhoto(photo, for: job, damageNote: nil)
-                        case .damage: done = await store.sendPhoto(photo, for: job, damageNote: note.trimmingCharacters(in: .whitespacesAndNewlines))
+                        case .completion: done = await store.complete(job, photos: photos)
+                        case .requested: done = await store.sendPhoto(photo!, for: job, damageNote: nil)
+                        case .damage: done = await store.sendPhoto(photo!, for: job, damageNote: note.trimmingCharacters(in: .whitespacesAndNewlines))
                         }
                         submitting = false
                         if done && mode != .completion { dismiss() }
@@ -2038,7 +2053,7 @@ private struct PhotoSheet: View {
                 } label: {
                     if submitting {
                         ProgressView().tint(Brand.ink)
-                    } else if photo == nil {
+                    } else if !hasPhoto {
                         Text("Add a photo to continue")
                     } else if !ready {
                         Text("Describe what happened")
@@ -2060,6 +2075,92 @@ private struct PhotoSheet: View {
             }
         }
         .interactiveDismissDisabled(submitting)
+    }
+}
+
+/// Up to `limit` photos: a grid of thumbnails with Remove, then Take photo and
+/// Choose from library while there is room. Camera access is asked for only
+/// when the Easer taps Take photo.
+private struct MultiPhotoChooser: View {
+    @Binding var photos: [UIImage]
+    let limit: Int
+    @State private var pickerItems: [PhotosPickerItem] = []
+    @State private var captured: UIImage?
+    @State private var showCamera = false
+
+    private var room: Int { max(0, limit - photos.count) }
+    private let columns = [GridItem(.adaptive(minimum: 96), spacing: 10)]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if !photos.isEmpty {
+                HStack {
+                    Text("Photos").font(.headline)
+                    Spacer()
+                    Text("\(photos.count) of \(limit)").font(.subheadline).foregroundStyle(.secondary)
+                }
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(Array(photos.enumerated()), id: \.offset) { index, image in
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(minWidth: 0, maxWidth: .infinity)
+                            .frame(height: 96)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(alignment: .topTrailing) {
+                                Button {
+                                    photos.remove(at: index)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.title3)
+                                        .symbolRenderingMode(.palette)
+                                        .foregroundStyle(.white, .black.opacity(0.6))
+                                }
+                                .padding(4)
+                                .accessibilityLabel("Remove photo \(index + 1)")
+                            }
+                    }
+                }
+            }
+            if room > 0 {
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button {
+                        showCamera = true
+                    } label: {
+                        Label(photos.isEmpty ? "Take photo" : "Take another photo", systemImage: "camera")
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                }
+                PhotosPicker(selection: $pickerItems, maxSelectionCount: room, matching: .images) {
+                    Label("Choose from library", systemImage: "photo.on.rectangle")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .background(Brand.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .foregroundStyle(.primary)
+            }
+        }
+        .onChange(of: pickerItems) { _, items in
+            guard !items.isEmpty else { return }
+            Task {
+                for item in items {
+                    if photos.count >= limit { break }
+                    if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                        photos.append(image)
+                    }
+                }
+                pickerItems = []
+            }
+        }
+        .onChange(of: captured) { _, image in
+            guard let image else { return }
+            if photos.count < limit { photos.append(image) }
+            captured = nil
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPicker(image: $captured).ignoresSafeArea()
+        }
     }
 }
 
