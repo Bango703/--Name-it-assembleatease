@@ -107,6 +107,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/cron/easer-start-nudge",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/unassigned-escalation",
       "schedule": "*/15 * * * *"
     },

@@ -8,7 +8,7 @@ import { notificationDeliveryKey } from '../api/_notification-policy.js';
 
 // Execute the real cron handlers against an in-memory PostgREST boundary.
 // No provider, database, or production network call is made.
-const sources = Object.fromEntries(await Promise.all(['unassigned-escalation', 'no-show-check', 'easer-arrival-nudge'].map(async name => [name, await readFile(new URL(`../api/cron/${name}.js`, import.meta.url), 'utf8')])));
+const sources = Object.fromEntries(await Promise.all(['unassigned-escalation', 'no-show-check', 'easer-arrival-nudge', 'easer-start-nudge'].map(async name => [name, await readFile(new URL(`../api/cron/${name}.js`, import.meta.url), 'utf8')])));
 const fixture = () => ({ id: 'booking-1', ref: 'AAE-TEST', service: 'Furniture Assembly', date: '2026-09-24', time: '9:00 AM - 11:00 AM', service_zip: '78701', status: 'confirmed', customer_name: 'Client', customer_email: 'client@example.test', assembler_id: 'easer-1', assembler_name: 'Easer', assembler_accepted_at: '2026-09-23T15:00:00Z', checked_in_at: null, arrival_nudge_count: 0, arrival_nudge_sent_at: null, unassigned_customer_notified_at: null, unassigned_escalated_at: null });
 
 function harness(name, booking = fixture(), options = {}) {
@@ -93,7 +93,7 @@ function harness(name, booking = fixture(), options = {}) {
       return result;
     },
   });
-  const source = sources[name].replace(/^import .*;\r?\n/gm, '').replace('export default async function handler', 'async function handler').replace(/export function /g, 'function ');
+  const source = sources[name].replace(/^import .*;\r?\n/gm, '').replace('export default async function handler', 'async function handler').replace(/export function /g, 'function ').replace(/export const /g, 'const ');
   vm.runInContext(source + '\nglobalThis.handler = handler;', context);
   const run = async () => {
     const response = { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
@@ -241,5 +241,42 @@ for (const path of ['api/booking/reschedule.js', 'api/booking/assign.js', 'api/b
   const source = await readFile(new URL(`../${path}`, import.meta.url), 'utf8');
   assert.match(source, /arrival_nudge_count: 0/);
   assert.match(source, /arrival_nudge_sent_at: null/);
+}
+// Start Job reminder: one text 10 minutes after Arrived, one owner email at
+// 30 minutes, and nothing else however often the cron runs.
+{
+  const arrived = () => ({ ...fixture(), status: 'arrived', checked_in_at: '2026-09-24T14:30:00.000Z', job_started_at: null });
+  const h = harness('easer-start-nudge', arrived(), { now: '2026-09-24T14:39:00Z' });
+  await h.run();
+  assert.equal(h.calls.sms.length, 0, 'no reminder before 10 minutes');
+  h.advance(2); await h.run();
+  assert.equal(h.calls.sms.length, 1, 'one text at 10 minutes');
+  assert.match(h.calls.sms[0].body, /tap Start Job/);
+  assert.equal(h.calls.sms[0].meta.recipientType, 'easer');
+  for (let i = 0; i < 3; i++) { h.advance(5); await h.run(); }
+  assert.equal(h.calls.sms.length, 1, 'the text is never repeated');
+  assert.equal(h.calls.email.length, 0, 'the owner is not emailed before 30 minutes');
+  h.advance(5); await h.run();
+  assert.equal(h.calls.email.length, 1, 'one owner email at 30 minutes');
+  assert.equal(h.calls.email[0].meta.recipientType, 'owner');
+  assert.match(h.calls.email[0].subject, /Job not started/);
+  for (let i = 0; i < 3; i++) { h.advance(5); await h.run(); }
+  assert.equal(h.calls.email.length, 1, 'the owner email is never repeated');
+  assert.equal(h.calls.sms.length, 1, 'the Easer gets nothing more after the owner is told');
+  assert.equal(h.calls.updates.length, 0, 'the reminder never changes the booking');
+}
+{
+  const h = harness('easer-start-nudge', { ...fixture(), status: 'arrived', checked_in_at: '2026-09-24T14:30:00.000Z', job_started_at: null }, { now: '2026-09-24T14:41:00Z', smsResult: () => ({ ok: false, skipped: 'no_consent_recorded' }) });
+  await h.run(); h.advance(5); await h.run();
+  assert.equal(h.calls.push.length, 1, 'an Easer without text consent gets one app notification instead');
+}
+for (const changes of [{ job_started_at: '2026-09-24T14:35:00.000Z', status: 'in_progress' }, { is_test_booking: true }, { status: 'completed' }]) {
+  const h = harness('easer-start-nudge', { ...fixture(), status: 'arrived', checked_in_at: '2026-09-24T14:30:00.000Z', job_started_at: null, ...changes }, { now: '2026-09-24T15:05:00Z' });
+  await h.run();
+  assert.equal(h.calls.sms.length + h.calls.push.length + h.calls.email.length, 0, `no reminder when ${JSON.stringify(changes)}`);
+}
+{
+  const vercel = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+  assert.equal(vercel.crons.find(c => c.path === '/api/cron/easer-start-nudge')?.schedule, '*/5 * * * *', 'the Start Job reminder is scheduled');
 }
 console.log('PASS staffing retries, truthful owner outcomes, overlap protection, no-show recovery, arrival spacing/max2, state-change stops and push/SMS fallback.');
