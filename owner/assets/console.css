@@ -241,3 +241,6 @@ body { background: var(--c-bg); color: var(--c-text); }
 .detail-field span.sb + span.sb { margin-left: 4px; }
 /* The completion-evidence warning reads like a Notes row. */
 #evidence-warning-bar { background: var(--c-warn-wash) !important; border: 1px solid var(--c-line) !important; border-left: 3px solid var(--c-warn) !important; border-radius: var(--c-radius) !important; color: var(--c-soft) !important; font-size: 12.5px !important; padding: 9px 14px !important; }
+
+/* Panels whose content is rendered as free text, not a console table. */
+#ops-errors, #ops-damage, #ops-orphans { padding: 0 16px; }
