@@ -260,8 +260,10 @@
     var contactHtml = customer.email
       ? '<a href="mailto:' + attr(customer.email) + '">' + esc(customer.email) + '</a>'
       : 'Not provided';
+    // Text plus a business-line Call button, never a tel: link: tel: dials from
+    // the owner's own phone. The server reads the number from this case.
     var phoneHtml = customer.phone
-      ? '<a href="tel:' + attr(dialablePhone(customer.phone)) + '">' + esc(displayPhone(customer.phone)) + '</a>'
+      ? esc(displayPhone(customer.phone)) + ' <button type="button" class="btn btn-teal" data-call-case="' + attr(item.id) + '" style="padding:0.25rem 0.7rem;font-size:0.75rem;margin-left:0.35rem">Call</button>'
       : 'Not provided';
     var easerHtml = easer.email
       ? esc(easer.name || 'Easer') + '<br><a href="mailto:' + attr(easer.email) + '">' + esc(easer.email) + '</a>'
@@ -585,12 +587,6 @@
     return labels[source] || 'Operational record';
   }
 
-  function dialablePhone(value) {
-    var digits = String(value || '').replace(/\D/g, '');
-    if (digits.length === 10) return '+1' + digits;
-    if (digits.length === 11 && digits.charAt(0) === '1') return '+' + digits;
-    return String(value || '').trim();
-  }
 
   function displayPhone(value) {
     var digits = String(value || '').replace(/\D/g, '');
@@ -647,6 +643,11 @@
   }
 
   document.addEventListener('click', function(event) {
+    var callButton = event.target.closest('[data-call-case]');
+    if (callButton) {
+      if (typeof window.callViaBusinessLine === 'function') window.callViaBusinessLine('case', callButton.dataset.callCase, callButton);
+      return;
+    }
     var bookingButton = event.target.closest('[data-open-case-booking]');
     if (bookingButton) {
       if (typeof window.openOwnerBookingRecord === 'function') {
