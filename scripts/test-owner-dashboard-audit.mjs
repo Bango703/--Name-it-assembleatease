@@ -142,7 +142,7 @@ assert.match(jobsApi, /Marketplace jobs must be closed, not permanently deleted/
 assert.match(liveOps, /ownerManualReconciliation/);
 assert.match(liveOps, /source\.eq\.owner_manual/);
 assert.match(liveOps, /return_visit_completed_at\.not\.is\.null/);
-assert.match(ownerUi, /Owner Reconciliation/);
+assert.match(ownerUi, /Owner reconciliation/i, 'owner reconciliation is surfaced on Live Ops');
 assert.match(monitor, /hasReturnVisitHistory/);
 assert.match(monitor, /returnVisitCompleted/);
 assert.match(monitor, /untrusted business data/);
