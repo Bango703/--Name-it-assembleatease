@@ -33,6 +33,7 @@
   <script src="/owner/assets/partners.js" defer></script>
   <script src="/owner/assets/messages.js" defer></script>
   <link rel="stylesheet" href="/owner/assets/owner.css" />
+  <link rel="stylesheet" href="/owner/assets/console.css" />
 </head>
 <body>
 
@@ -57,29 +58,49 @@
       <a href=".">AssembleAtEase</a>
     </div>
     <div class="sidebar-section">
-      <div class="sidebar-label">Operations</div>
+      <div class="sidebar-label">Run the day</div>
       <ul class="sidebar-nav">
-        <li><a class="active" data-view="liveops"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="15" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="5" y1="9" x2="5" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/></svg></span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
+        <li><a class="active" data-view="liveops"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="15" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="5" y1="9" x2="5" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/></svg></span> Live Ops <span class="nav-count is-action" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
         <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" title="Active jobs scheduled today" style="display:none;background:#64748b">0</span></a></li>
         <li><a data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
-        <li><a data-view="messages"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Messages <span class="nav-count" id="nav-inbox" title="Conversations waiting for your reply" style="display:none;background:#dc2626">0</span></a></li>
-        <li><a data-view="cases"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 5V3h8v2"/><path d="M9 11h6M9 15h4"/></svg></span> Cases <span class="nav-count" id="nav-cases" title="Cases requiring owner action" style="display:none;background:#dc2626">0</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Inbox</div>
+      <ul class="sidebar-nav">
+        <li><a data-view="messages"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Messages <span class="nav-count is-action" id="nav-inbox" title="Conversations waiting for your reply" style="display:none;background:#dc2626">0</span></a></li>
+        <li><a data-view="cases"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 5V3h8v2"/><path d="M9 11h6M9 15h4"/></svg></span> Cases <span class="nav-count is-action" id="nav-cases" title="Cases requiring owner action" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="voice-calls"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h4l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z"/></svg></span> Phone Calls <span class="nav-count" id="nav-voice-calls" title="Call activity requiring review" style="display:none">0</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Easers</div>
+      <ul class="sidebar-nav">
+        <li><a data-view="assemblers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Easers <span class="nav-count" id="nav-pending-apps" style="display:none">0</span></a></li>
+        <li><a data-view="waitlist"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span> Easer Waitlist <span class="nav-count" id="nav-waitlist" style="display:none">0</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Money</div>
+      <ul class="sidebar-nav">
+        <li><a data-view="analytics"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Financials <span class="nav-count" id="nav-payouts" title="Easer earnings requiring owner action" style="display:none;background:#d97706">0</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Growth</div>
+      <ul class="sidebar-nav">
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
-        <li><a data-view="market-demand"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z"/></svg></span> Market Demand <span class="nav-count" id="nav-market-demand" style="display:none">0</span></a></li>
         <li><a data-view="partners"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11 4 7l4-4"/><path d="M4 7h11a5 5 0 0 1 0 10h-3"/><path d="M16 13l4 4-4 4"/><path d="M20 17H9"/></svg></span> Partners <span class="nav-count" id="nav-partners" title="Partner follow-ups due" style="display:none;background:#d97706">0</span></a></li>
+        <li><a data-view="market-demand"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z"/></svg></span> Market Demand <span class="nav-count" id="nav-market-demand" style="display:none">0</span></a></li>
         <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews</a></li>
         <li><a data-view="marketing"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M9 14h6"/><path d="M12 14v6"/></svg></span> Marketing</a></li>
-        <li><a data-view="analytics"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Financials <span class="nav-count" id="nav-payouts" title="Easer earnings requiring owner action" style="display:none;background:#d97706">0</span></a></li>
-        <li><a data-view="intelligence"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg></span> AI Intelligence <span class="nav-count" id="nav-alerts" style="display:none">!</span></a></li>
         <li><a role="button" aria-haspopup="dialog" title="Open the Buffer content tool" onclick="window.openContentKit&&window.openContentKit()" style="cursor:pointer"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span> Content Kit</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
-      <div class="sidebar-label">Platform</div>
+      <div class="sidebar-label">Tools</div>
       <ul class="sidebar-nav">
-        <li><a data-view="assemblers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Easers <span class="nav-count" id="nav-pending-apps" style="display:none">0</span></a></li>
-        <li><a data-view="waitlist"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span> Easer Waitlist <span class="nav-count" id="nav-waitlist" style="display:none">0</span></a></li>
+        <li><a data-view="intelligence"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg></span> AI Intelligence <span class="nav-count" id="nav-alerts" style="display:none">!</span></a></li>
       </ul>
     </div>
     <div class="sidebar-footer">
@@ -111,24 +132,23 @@
         <!-- Alert bar -->
         <!-- Failures the platform diagnosed itself. Hidden when there are none,
              so a quiet system stays quiet and a real one is impossible to miss. -->
-        <div id="ops-selfdiag" style="display:none;margin-bottom:1.25rem"></div>
-        <div id="ops-trust-signal" style="display:none;margin-bottom:1.25rem"></div>
-        <div id="ops-alerts-bar" style="margin-bottom:1.25rem"></div>
+        <div id="ops-summary"></div>
+        <div id="ops-selfdiag" style="display:none"></div>
+        <div id="ops-trust-signal" style="display:none"></div>
+        <div id="ops-alerts-bar"></div>
 
-        <!-- Summary chips -->
-        <div id="ops-summary" style="display:flex;flex-wrap:wrap;gap:0.6rem;margin-bottom:1.5rem"></div>
 
         <!-- Main grid -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem" class="content-grid">
+        <div class="content-grid">
 
           <!-- Unassigned -->
-          <div class="ops-panel" style="grid-column:span 1">
+          <div class="ops-panel c-span-2">
             <div class="ops-panel-header">
               <div class="ops-panel-title">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                Bookings Needing Action
+                Bookings needing action
               </div>
-              <button id="ops-dispatch-all-btn" class="btn btn-teal" style="font-size:0.73rem;padding:3px 10px" onclick="opsDispatchAll()">Dispatch All</button>
+              <button id="ops-dispatch-all-btn" class="btn btn-teal c-sm" onclick="opsDispatchAll()">Dispatch all</button>
             </div>
             <div id="ops-unassigned">—</div>
           </div>
@@ -138,7 +158,7 @@
                but nothing in this dashboard called it — so these customers were
                invisible here while plainly visible in Stripe. Each one asked for
                a quote and was never contacted. -->
-          <div class="ops-panel" id="ops-orphan-panel" style="grid-column:span 1;display:none">
+          <div class="ops-panel" id="ops-orphan-panel" style="display:none">
             <div class="ops-panel-header">
               <div class="ops-panel-title">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
@@ -150,60 +170,61 @@
           </div>
 
           <!-- Active jobs -->
-          <div class="ops-panel" style="grid-column:span 1">
+          <div class="ops-panel">
             <div class="ops-panel-header">
               <div class="ops-panel-title">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-                Active Jobs
+                Active jobs
               </div>
             </div>
             <div id="ops-active">—</div>
           </div>
 
           <!-- Online Easers -->
-          <div class="ops-panel" style="grid-column:span 1">
+          <div class="ops-panel">
             <div class="ops-panel-header">
               <div class="ops-panel-title">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                Easer Availability
+                Easers
               </div>
             </div>
             <div id="ops-easers">—</div>
           </div>
 
           <!-- Today schedule -->
-          <div class="ops-panel" style="grid-column:span 1">
+          <div class="ops-panel c-span-2">
             <div class="ops-panel-header">
               <div class="ops-panel-title">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Today's Schedule <span id="ops-today-date" style="font-weight:500;color:var(--muted)"></span>
+                Today <span id="ops-today-date" style="font-weight:500;color:var(--muted)"></span>
               </div>
             </div>
             <div id="ops-today">—</div>
           </div>
 
-          <div class="ops-panel" style="grid-column:span 2">
+          <div class="ops-panel c-span-2" id="ops-errors-panel">
             <div class="ops-panel-header">
               <div class="ops-panel-title">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-                Recent Platform Errors
+                Platform errors
               </div>
             </div>
             <div id="ops-errors">—</div>
           </div>
 
-          <div class="ops-panel" style="grid-column:span 2">
+          <div class="ops-panel c-span-2" id="ops-damage-panel">
             <div class="ops-panel-header">
-              <div class="ops-panel-title">Damage and Rework Reports</div>
+              <div class="ops-panel-title">Damage and rework reports</div>
             </div>
             <div id="ops-damage">—</div>
           </div>
 
         </div>
 
-        <div style="text-align:center;margin-top:1rem;font-size:0.75rem;color:var(--muted)">
-          Auto-refreshes every 30s &bull; <span id="ops-last-updated">—</span>
-          &nbsp;<button class="btn" onclick="loadLiveOps()" style="font-size:0.72rem;padding:2px 10px">Refresh</button>
+        <div class="c-footnote">
+          <span id="ops-health"></span>
+          <span>Auto-refreshes every 30s &middot; <span id="ops-last-updated">—</span></span>
+          <button class="btn c-sm" onclick="loadLiveOps()">Refresh</button>
         </div>
       </div>
 
@@ -919,23 +940,23 @@
 
       <!-- ─── ANALYTICS VIEW ─── -->
       <div id="analytics-view" style="display:none">
-        <div class="fin-subtabs" id="fin-subtabs" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:1.1rem;border-bottom:1px solid var(--border);padding-bottom:0.9rem">
+        <div class="fin-subtabs tabs" id="fin-subtabs">
           <button class="tab active" data-fin-tab="money" type="button">Money</button>
           <button class="tab" data-fin-tab="tax" type="button">Tax &amp; Compliance</button>
           <button class="tab" data-fin-tab="growth" type="button">Growth</button>
           <button class="tab" data-fin-tab="insights" type="button">Insights</button>
         </div>
         <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1rem;margin-bottom:1rem" class="content-grid">
-          <div class="detail-panel open" style="background:#001f2b;color:#fff;border-color:#00394d">
-            <div class="detail-section-title" style="color:rgba(255,255,255,0.62);margin-bottom:0.55rem">Financial North Star</div>
-            <div style="font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,3.25rem);line-height:1;color:#fff" id="fin-total-platform-gross">—</div>
-            <div style="margin-top:0.35rem;color:rgba(255,255,255,0.82);font-size:0.9rem">Total Platform Gross</div>
-            <div style="display:flex;gap:1.25rem;flex-wrap:wrap;margin-top:1rem;font-size:0.75rem;color:rgba(255,255,255,0.72)">
-              <span><strong id="fin-gross-per-job" style="color:#fff">—</strong> average per completed job</span>
-              <span><strong id="fin-gross-margin" style="color:#fff">—</strong> recorded gross margin</span>
-              <span><strong id="fin-costed-gross-per-job" style="color:#fff">—</strong> average on labor-costed jobs</span>
+          <div class="detail-panel open c-hero">
+            <div class="detail-section-title">Platform gross</div>
+            <div class="c-hero-value" id="fin-total-platform-gross">—</div>
+            <div class="c-hero-label">Total platform gross</div>
+            <div class="c-hero-facts">
+              <span><strong id="fin-gross-per-job">—</strong> average per completed job</span>
+              <span><strong id="fin-gross-margin">—</strong> recorded gross margin</span>
+              <span><strong id="fin-costed-gross-per-job">—</strong> average on labor-costed jobs</span>
             </div>
-            <div style="margin-top:1rem;font-size:0.78rem;color:rgba(255,255,255,0.68);line-height:1.7">Customer payments retained minus sales tax, processing fees, and all recorded Easer earnings. Owner-Easer labor remains compensation for work, not scalable platform profit.</div>
+            <div class="c-hero-note">Customer payments retained minus sales tax, processing fees, and all recorded Easer earnings. Owner-Easer labor remains compensation for work, not scalable platform profit.</div>
           </div>
           <div class="detail-panel open">
             <div class="detail-section-title" style="margin-bottom:0.75rem">Assumptions</div>
@@ -947,11 +968,13 @@
               <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>CAC</strong><br><span id="fin-assumption-cac">Loading...</span></div>
             </div>
             <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.9rem">
+              <div class="tabs" style="margin:0">
               <button class="tab active" data-fin-period="year" type="button">Year</button>
               <button class="tab" data-fin-period="month" type="button">Month</button>
               <button class="tab" data-fin-period="week" type="button">Week</button>
               <button class="tab" data-fin-period="today" type="button">Today</button>
               <button class="tab" data-fin-period="all" type="button">All</button>
+              </div>
               <label style="margin-left:auto;font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">Other Opex/mo $
                 <input id="fin-opex-input" type="number" min="0" step="1" placeholder="292 default" style="width:100px;background:var(--elevated);border:1px solid var(--border-md);border-radius:7px;padding:0.35rem 0.5rem;font-family:inherit;color:var(--text)"/>
               </label>
@@ -984,22 +1007,32 @@
           <div class="detail-section-title" style="margin:0">Selected-Period Money Summary</div>
           <div id="an-period-note" style="font-size:0.74rem;color:var(--muted);font-weight:700">Year &middot; Central time</div>
         </div>
-        <div class="stats-row" id="analytics-stats-row" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
-          <div class="stat teal"><div class="stat-value" id="an-gross-per-job">—</div><div class="stat-label">Platform Gross / Job</div></div>
+        <div class="c-group-title">Where the money went</div>
+        <div class="stats-row c-metrics c-cols-6" id="analytics-stats-row">
           <div class="stat teal"><div class="stat-value" id="an-gross">—</div><div class="stat-label">Customer Payments Retained</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-sales-tax">—</div><div class="stat-label">Sales Tax Collected</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-processing-fees">—</div><div class="stat-label">Stripe Processing Fees</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-easer-payouts">—</div><div class="stat-label">Total Easer Earnings</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-owner-easer-earnings">—</div><div class="stat-label">Owner-Easer Labor</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-external-easer-earnings">—</div><div class="stat-label">External Easer Labor</div></div>
+        </div>
+        <div class="c-group-title">Per job</div>
+        <div class="stats-row c-metrics c-cols-6">
           <div class="stat neutral"><div class="stat-value" id="an-completed-jobs">—</div><div class="stat-label">Completed Jobs</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-ajv">—</div><div class="stat-label">Average Job Value</div></div>
+          <div class="stat teal"><div class="stat-value" id="an-gross-per-job">—</div><div class="stat-label">Platform Gross / Job</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-gross-margin">—</div><div class="stat-label">Recorded Gross Margin</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-costed-gross-per-job">—</div><div class="stat-label">Gross / Labor-Costed Job</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-uncosted-jobs">—</div><div class="stat-label">Jobs Missing Labor Cost</div></div>
+        </div>
+        <div class="c-group-title">Operating estimate</div>
+        <div class="stats-row c-metrics c-cols-3">
           <div class="stat neutral"><div class="stat-value" id="an-known-operating-costs">—</div><div class="stat-label">Known Operating Costs</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-opex-allocated">—</div><div class="stat-label">Other Overhead Allocated</div></div>
           <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Est. After Reserve &amp; Operating Costs</div></div>
+        </div>
+        <div class="c-group-title">Customers and add-ons</div>
+        <div class="stats-row c-metrics c-cols-7">
           <div class="stat amber"><div class="stat-value" id="an-addon-rate">—</div><div class="stat-label">Add-On Attachment Rate <span id="an-addon-source" style="color:#d97706">(Est.)</span></div></div>
           <div class="stat amber"><div class="stat-value" id="an-addon-value">—</div><div class="stat-label">Average Add-On Value</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-bundle-rate">—</div><div class="stat-label">Bundle Attach Rate</div></div>
@@ -3472,21 +3505,27 @@ window.intelQuick = intelQuick;
       var cardUsesReturnVisit = b.return_visit_required === true || !!b.return_visit_completed_at;
       var cardDate = cardUsesReturnVisit ? b.return_visit_date : b.date;
       var cardTime = cardUsesReturnVisit ? b.return_visit_time : b.time;
-      return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '" style="position:relative">'
-        + '<div class="card-top"><h4>' + esc(b.customer_name) + '</h4>' + bookingBadge(b) + '</div>'
-        + '<div class="card-desc">' + esc(cardQuoteStage ? quoteServiceLabel(b) : (b.service || '—')) + '</div>'
-        + (isTestBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--muted);font-weight:600;margin-top:2px;letter-spacing:0.06em">TEST BOOKING — excluded from all figures</div>' : '')
-        + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + esc(b.assembler_tier) : '') + '</div>' : '')
-        + (b.has_unread_customer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Customer message</div>' : '')
-        + (b.has_unread_easer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Easer message</div>' : '')
-        + (b.needs_manual_dispatch && !b.assembler_id && !isTerminalBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#ef4444;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block"></span>Needs manual assignment</div>' : '')
-        + '<div class="card-meta">'
-          + '<span>' + esc(b.ref) + '</span>'
-          + '<span class="meta-dot"></span>'
-          + '<span>' + (b.return_visit_required ? 'Return: ' : (b.return_visit_completed_at ? 'Return completed: ' : '')) + formatDate(cardDate) + (cardTime ? ' ' + esc(cardTime) : '') + '</span>'
-          + (cardMoney ? '<span class="meta-dot"></span><span>' + cardMoney + '</span>' : '')
-          + (msgCount ? '<span class="meta-dot"></span><span>' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '')
-        + '</div></div>';
+      // One row, three fixed columns: who and what, when, status and money.
+      var flags = ''
+        + (isTestBooking(b) ? '<span class="c-tag" title="Test booking: excluded from every figure on this dashboard">Test booking, not counted</span>' : '')
+        + (b.assembler_name ? '<span class="c-flag-easer">Easer: ' + esc(b.assembler_name) + '</span>' : '')
+        + (b.has_unread_customer_msg ? '<span class="c-flag-bad">Customer message</span>' : '')
+        + (b.has_unread_easer_msg ? '<span class="c-flag-bad">Easer message</span>' : '')
+        + (b.needs_manual_dispatch && !b.assembler_id && !isTerminalBooking(b) ? '<span class="c-flag-bad">Needs manual assignment</span>' : '')
+        + (msgCount ? '<span class="c-sub" style="margin:0">' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '');
+      var whenPrefix = b.return_visit_required ? 'Return: ' : (b.return_visit_completed_at ? 'Return completed: ' : '');
+      return '<div class="booking-card c-brow' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '">'
+        + '<div class="c-brow-main">'
+          + '<div class="c-brow-name">' + esc(b.customer_name || 'Customer') + '</div>'
+          + '<span class="c-sub">' + esc(cardQuoteStage ? quoteServiceLabel(b) : (b.service || '—')) + '</span>'
+          + (flags ? '<div class="c-brow-flags">' + flags + '</div>' : '')
+        + '</div>'
+        + '<div class="c-brow-when">' + whenPrefix + formatDate(cardDate)
+          + (cardTime ? '<span class="c-sub">' + esc(cardTime) + '</span>' : '')
+          + '<span class="c-sub c-mono">' + esc(b.ref) + '</span>'
+        + '</div>'
+        + '<div class="c-brow-status">' + bookingBadge(b) + (cardMoney ? '<span class="c-sub" style="margin:0">' + cardMoney + '</span>' : '') + '</div>'
+        + '</div>';
     }).join('');
   }
 
@@ -4903,7 +4942,17 @@ window.intelQuick = intelQuick;
         return !!recommended;
       });
 
-      var blocks = notices.slice();
+      // Notices render as one Notes box, one row each, with a dot for
+      // severity (console.css) instead of a stack of colored boxes. The text
+      // and any controls inside a notice are unchanged.
+      var noticeRow = function (html) {
+        var m = String(html).match(/^<div style="([^"]*)">([\s\S]*)<[/]div>$/);
+        if (!m) return html;
+        var bg = (m[1].match(/background:\s*([^;]+)/) || [])[1] || '';
+        var kind = /#fef2f2/i.test(bg) ? 'bad' : (/#fff7ed|#fffbeb/i.test(bg) ? 'warn' : (/#ecfdf5/i.test(bg) ? 'ok' : 'info'));
+        return '<div class="c-note c-note--' + kind + '">' + m[2] + '</div>';
+      };
+      var blocks = notices.length ? ['<div class="c-notes">' + notices.map(noticeRow).join('') + '</div>'] : [];
       if (recommended) {
         btns.splice(recommended.index, 1);
         blocks.push('<div class="owner-next-action">'
@@ -7985,6 +8034,28 @@ window.intelQuick = intelQuick;
     }
   }
 
+  // Console components (owner/assets/console.css). One table and one pill
+  // shape for every list, so columns line up and a color means one thing.
+  function cPill(kind, text) {
+    var k = ['bad', 'warn', 'brand', 'ok', 'info'].indexOf(kind) >= 0 ? kind : 'info';
+    return '<span class="c-pill c-pill--' + k + '">' + esc(text) + '</span>';
+  }
+  // cols: [{ t: 'Header', w: '20%', c: 'c-right' }]; rows: arrays of cell HTML.
+  function cTable(cols, rows, rowAttrs) {
+    return '<div class="c-table-wrap"><table class="c-table"><colgroup>'
+      + cols.map(function (c) { return '<col' + (c.w ? ' style="width:' + c.w + '"' : '') + '>'; }).join('')
+      + '</colgroup><thead><tr>'
+      + cols.map(function (c) { return '<th' + (c.c ? ' class="' + c.c + '"' : '') + '>' + esc(c.t || '') + '</th>'; }).join('')
+      + '</tr></thead><tbody>'
+      + rows.map(function (cells, i) {
+        return '<tr' + (rowAttrs && rowAttrs[i] ? ' ' + rowAttrs[i] : '') + '>'
+          + cells.map(function (html, j) { return '<td' + (cols[j] && cols[j].c ? ' class="' + cols[j].c + '"' : '') + '>' + html + '</td>'; }).join('')
+          + '</tr>';
+      }).join('')
+      + '</tbody></table></div>';
+  }
+  function cEmpty(text) { return '<div class="c-empty">' + esc(text) + '</div>'; }
+
   function renderLiveOps(d) {
     var s = d.summary;
     ownerBusinessDate = /^\d{4}-\d{2}-\d{2}$/.test(String(d.businessDate || ''))
@@ -7994,8 +8065,10 @@ window.intelQuick = intelQuick;
     if (opsTodayDate) opsTodayDate.textContent = '— ' + businessDateLabel(ownerBusinessDate, true);
 
     // Alert badge in nav
+    // The badge is the length of the Needs you now list, never a separate count.
     var alertBadge = document.getElementById('nav-liveops-alerts');
-    if (s.criticalAlerts > 0) { alertBadge.textContent = s.criticalAlerts; alertBadge.style.display = ''; }
+    var alertCount = (d.alerts || []).length;
+    if (alertCount > 0) { alertBadge.textContent = alertCount; alertBadge.style.display = ''; }
     else alertBadge.style.display = 'none';
 
     // Failures the platform recorded about itself, above the operational alerts:
@@ -8003,62 +8076,71 @@ window.intelQuick = intelQuick;
     try { renderSelfDiagnosed(d); } catch (e) { /* diagnostics must not blank Live Ops */ }
     try { renderTrustSignals(d); } catch (e) { /* diagnostics must not blank Live Ops */ }
 
-    // Alert bar
+    // Needs you now: every alert the server raised, one row each with its fix.
+    // The count above is the length of this list, never a separate figure.
     var alertsEl = document.getElementById('ops-alerts-bar');
-    if (d.alerts && d.alerts.length) {
-      alertsEl.innerHTML = d.alerts.slice(0, 6).map(function(a) {
-        var actionLabels = { dispatch:'Dispatch', redispatch:'Re-dispatch', reassign:'View Booking', contact_easer:'Contact Easer', review_timeline:'Review Timeline', review_damage_evidence:'Review and Close Alert', enable_job_texts:'Send Job-Text Opt-In' };
-        var encodedRecipient = encodeURIComponent(a.recipientEmail || '');
-        var safeAction = actionLabels[a.action] ? a.action : '';
-        var safeBookingId = /^[0-9a-f-]{36}$/i.test(String(a.bookingId || '')) ? a.bookingId : '';
-        var safeEaserId = /^[0-9a-f-]{36}$/i.test(String(a.easerId || '')) ? a.easerId : '';
-        // The job-texts alert carries the Easer, not the booking: the fix is
-        // sending that person the opt-in, which is what clears the alert.
-        var actionArg = safeAction === 'enable_job_texts' ? safeEaserId : safeBookingId;
-        if (safeAction === 'enable_job_texts' && !safeEaserId) safeAction = '';
-        var actionBtn = safeAction ? '<button onclick="opsAction(\'' + safeAction + '\',\'' + actionArg + '\',\'' + encodedRecipient + '\')" class="btn" style="font-size:0.7rem;padding:2px 10px;margin-left:auto;flex-shrink:0">' + actionLabels[safeAction] + '</button>' : '';
-        var safeSeverity = ['critical','high','medium','low'].includes(String(a.severity || '').toLowerCase())
-          ? String(a.severity).toLowerCase()
-          : 'medium';
-        return '<div class="alert-row ' + safeSeverity + '">'
-          + '<span class="alert-label">' + safeSeverity.toUpperCase() + '</span>'
-          + '<span style="font-size:0.82rem;color:var(--text);flex:1;line-height:1.4">' + esc(a.message) + '</span>'
-          + actionBtn + '</div>';
-      }).join('');
-    } else {
-      alertsEl.innerHTML = '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:0.6rem 0.9rem;font-size:0.82rem;color:#10b981;display:flex;align-items:center;gap:0.5rem"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;flex-shrink:0"></span> No active alerts</div>';
-    }
+    var alerts = d.alerts || [];
+    var actionLabels = { dispatch:'Dispatch', redispatch:'Re-dispatch', reassign:'View booking', contact_easer:'Contact Easer', review_timeline:'Open booking', review_damage_evidence:'Review and close', enable_job_texts:'Send job-text opt-in' };
+    var severityKind = { critical: 'bad', high: 'bad', medium: 'warn', low: 'info' };
+    var severityLabel = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
+    var alertRows = alerts.map(function(a) {
+      var encodedRecipient = encodeURIComponent(a.recipientEmail || '');
+      var safeAction = actionLabels[a.action] ? a.action : '';
+      var safeBookingId = /^[0-9a-f-]{36}$/i.test(String(a.bookingId || '')) ? a.bookingId : '';
+      var safeEaserId = /^[0-9a-f-]{36}$/i.test(String(a.easerId || '')) ? a.easerId : '';
+      // The job-texts alert carries the Easer, not the booking: the fix is
+      // sending that person the opt-in, which is what clears the alert.
+      var actionArg = safeAction === 'enable_job_texts' ? safeEaserId : safeBookingId;
+      if (safeAction === 'enable_job_texts' && !safeEaserId) safeAction = '';
+      var safeSeverity = ['critical','high','medium','low'].includes(String(a.severity || '').toLowerCase())
+        ? String(a.severity).toLowerCase()
+        : 'medium';
+      var actionBtn = safeAction ? '<button onclick="opsAction(\'' + safeAction + '\',\'' + actionArg + '\',\'' + encodedRecipient + '\')" class="btn c-sm' + (safeSeverity === 'critical' || safeSeverity === 'high' ? ' btn-teal' : '') + '">' + actionLabels[safeAction] + '</button>' : '';
+      return [
+        cPill(severityKind[safeSeverity], severityLabel[safeSeverity]),
+        esc(a.message) + (a.ref ? '<span class="c-sub c-mono">' + esc(a.ref) + '</span>' : ''),
+        actionBtn,
+      ];
+    });
+    alertsEl.innerHTML = '<div class="ops-panel"><div class="ops-panel-header"><div class="ops-panel-title">Needs you now</div><small class="c-sub" style="margin:0">' + (alerts.length ? alerts.length + ' waiting' : 'Nothing waiting') + '</small></div>'
+      + (alerts.length
+        ? cTable([{ t: 'Priority', w: '12%' }, { t: 'What happened', w: '68%' }, { t: 'Action', w: '20%', c: 'c-right' }], alertRows)
+        : cEmpty('Nothing needs you right now.'))
+      + '</div>';
 
-    // Summary chips
-    var chips = [
-      { label: 'Active Jobs', val: s.totalActive, color: '#00BFFF' },
-      { label: 'Needs Easer', val: s.unassigned + (s.ownerManualNeedsAssignment||0) + (s.offersExpired||0) + (s.needsManual||0), color: (s.unassigned + (s.ownerManualNeedsAssignment||0) + (s.offersExpired||0) + (s.needsManual||0)) > 0 ? '#dc2626' : '#6b7280' },
-      { label: 'Owner Reconciliation', val: s.ownerManualReconciliation || 0, color: (s.ownerManualReconciliation || 0) > 0 ? '#d97706' : '#6b7280' },
-      { label: 'Payment Recovery', val: s.pendingPayment || 0, color: (s.pendingPayment || 0) > 0 ? '#d97706' : '#6b7280' },
-      { label: 'Quotes to Price', val: s.quoteNeedsPricing || 0, color: (s.quoteNeedsPricing || 0) > 0 ? '#d97706' : '#6b7280' },
-      { label: 'Quote Customer Action', val: (s.quoteAwaitingApproval || 0) + (s.quoteAuthorizationPending || 0), color: ((s.quoteAwaitingApproval || 0) + (s.quoteAuthorizationPending || 0)) > 0 ? '#d97706' : '#6b7280' },
-      { label: 'Offers Sent', val: s.awaitingDispatch, color: s.awaitingDispatch > 0 ? '#8b5cf6' : '#6b7280' },
-      // Not a fault — a job simply waiting on a tap. Orange made a normal state
-      // read as an incident every time an offer was outstanding.
-      { label: 'Awaiting Accept', val: s.awaitingAcceptance, color: '#6b7280' },
-      { label: 'En Route', val: s.enRoute, color: '#00BFFF' },
-      { label: 'In Progress', val: s.inProgress, color: '#059669' },
-      { label: 'Today', val: s.todayJobs, color: '#7c3aed' },
-      { label: 'Runtime Errors', val: s.runtimeErrors || 0, color: (s.runtimeErrors || 0) > 0 ? '#dc2626' : '#6b7280' },
-      { label: 'Failed Emails', val: s.failedNotifications || 0, color: (s.failedNotifications || 0) > 0 ? '#ea580c' : '#6b7280' },
-      { label: 'Unnotified Offers', val: s.unnotifiedActiveOffers || 0, color: (s.unnotifiedActiveOffers || 0) > 0 ? '#dc2626' : '#6b7280' },
-      { label: 'Workflow Mismatches', val: s.workflowMismatches || 0, color: (s.workflowMismatches || 0) > 0 ? '#dc2626' : '#6b7280' },
-      { label: 'Payment Mismatches', val: s.paymentStateMismatches || 0, color: (s.paymentStateMismatches || 0) > 0 ? '#dc2626' : '#6b7280' },
-      { label: 'Easer Readiness', val: s.unreadyEasers || 0, color: (s.unreadyEasers || 0) > 0 ? '#dc2626' : '#6b7280' },
-      { label: 'Damage Reports', val: s.recentDamageReports || 0, color: (s.recentDamageReports || 0) > 0 ? '#ea580c' : '#6b7280' },
-      { label: 'Cron Errors', val: s.cronErrors || 0, color: (s.cronErrors || 0) > 0 ? '#dc2626' : '#6b7280' },
-      { label: 'Free Easers', val: s.freeEasers, color: s.freeEasers === 0 ? '#dc2626' : '#059669' },
+    // Number strip: the five numbers the owner reads first. Every other counter
+    // appears only when it is not zero, as a flag under the strip.
+    var num = function (v) { var n = Number(v); return Number.isFinite(n) ? n : 0; };
+    var needsEaser = num(s.unassigned) + num(s.ownerManualNeedsAssignment) + num(s.offersExpired) + num(s.needsManual);
+    var core = [
+      { label: 'Need you now', val: alerts.length, alert: alerts.length > 0 },
+      { label: 'Active jobs', val: num(s.totalActive) },
+      { label: 'Today', val: num(s.todayJobs) },
+      { label: 'Need an Easer', val: needsEaser, alert: needsEaser > 0 },
+      { label: 'Easers free', val: num(s.freeEasers), alert: num(s.freeEasers) === 0 },
     ];
-    document.getElementById('ops-summary').innerHTML = chips.map(function(c) {
-      return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.85rem;font-size:0.82rem;display:flex;align-items:center;gap:6px">'
-        + '<span style="font-weight:700;color:'+c.color+'">'+c.val+'</span>'
-        + '<span style="color:var(--muted)">'+c.label+'</span></div>';
-    }).join('');
+    var flags = [
+      { label: 'Owner reconciliation', val: num(s.ownerManualReconciliation), kind: 'warn' },
+      { label: 'Payment recovery', val: num(s.pendingPayment), kind: 'warn' },
+      { label: 'Quotes to price', val: num(s.quoteNeedsPricing), kind: 'warn' },
+      { label: 'Quote customer action', val: num(s.quoteAwaitingApproval) + num(s.quoteAuthorizationPending), kind: 'warn' },
+      { label: 'Offers sent', val: num(s.awaitingDispatch), kind: 'brand' },
+      { label: 'Awaiting accept', val: num(s.awaitingAcceptance), kind: 'info' },
+      { label: 'En route', val: num(s.enRoute), kind: 'brand' },
+      { label: 'In progress', val: num(s.inProgress), kind: 'ok' },
+      { label: 'Runtime errors', val: num(s.runtimeErrors), kind: 'bad' },
+      { label: 'Failed emails', val: num(s.failedNotifications), kind: 'bad' },
+      { label: 'Unnotified offers', val: num(s.unnotifiedActiveOffers), kind: 'bad' },
+      { label: 'Workflow mismatches', val: num(s.workflowMismatches), kind: 'bad' },
+      { label: 'Payment mismatches', val: num(s.paymentStateMismatches), kind: 'bad' },
+      { label: 'Easer readiness', val: num(s.unreadyEasers), kind: 'bad' },
+      { label: 'Damage reports', val: num(s.recentDamageReports), kind: 'warn' },
+      { label: 'Cron errors', val: num(s.cronErrors), kind: 'bad' },
+    ].filter(function (f) { return f.val > 0; });
+    document.getElementById('ops-summary').innerHTML = '<div class="c-stats">'
+      + core.map(function (c) { return '<div class="c-stat' + (c.alert ? ' is-alert' : '') + '"><b>' + c.val + '</b><span>' + c.label + '</span></div>'; }).join('')
+      + '</div>'
+      + (flags.length ? '<div class="c-flags">' + flags.map(function (f) { return cPill(f.kind, f.val + ' ' + f.label); }).join('') + '</div>' : '');
 
     // Unassigned / needs Easer — also shows pending-payment bookings at top
     var unassignedEl = document.getElementById('ops-unassigned');
@@ -8078,45 +8160,36 @@ window.intelQuick = intelQuick;
       .concat((d.pendingOther || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Unknown Payment State', _ownerDescription:'Review payment truth before any operational action.', _ownerColor:'#dc2626' }); }));
     pending = pending.concat(quoteActions);
     var needs = (d.ownerManualReconciliation || []).concat(d.ownerManualNeedsAssignment || []).concat(d.needsManual || []).concat(d.unassigned || []).concat(d.offersExpired || []).concat(d.awaitingDispatch || []);
-    if (!pending.length && !needs.length) {
-      unassignedEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No payment, quote, or assignment actions are waiting</div>';
-    } else {
-      var html = '';
-      if (pending.length) {
-        html += pending.map(function(b) {
-          return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
-            + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-            + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
-            + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.customer_name||'Customer')+(b.date ? ' &bull; '+esc(b.date) : '')+'</div></div>'
-            + '<span style="background:#f8fafc;color:'+esc(b._ownerColor)+';border:1px solid '+esc(b._ownerColor)+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">'+esc(b._ownerLabel)+'</span>'
-            + '</div>'
-            + '<div style="font-size:0.72rem;color:var(--muted);margin-top:4px">Submitted '+esc(relativeAge(b.created_at))+'. '+esc(b._ownerDescription)+'</div>'
-            + '<button onclick="opsAction(\'review_timeline\',\''+b.id+'\')" class="btn" style="font-size:0.7rem;padding:2px 9px;margin-top:7px">Open Booking</button>'
-            + '</div>';
-        }).join('');
-      }
-      if (needs.length) {
-        html += needs.map(function(b) {
-          var _stateLabels = { active_offers: 'Offers sent', offers_expired: 'Offers expired', needs_manual: 'Needs manual', owner_manual_assignment: 'Owner assignment needed', owner_manual_reconciliation: 'Owner reconciliation' };
-          var _stateColors = { active_offers: '#8b5cf6', offers_expired: '#ea580c', needs_manual: '#dc2626', owner_manual_assignment: '#dc2626', owner_manual_reconciliation: '#d97706' };
-          var label = _stateLabels[b._dispatchState] || (b.dispatch_offered_at ? 'Offer sent' : 'No Easer yet');
-          var badgeColor = _stateColors[b._dispatchState] || (b.dispatch_offered_at ? '#ea580c' : '#dc2626');
-          var isOwnerManual = ['needs_manual','owner_manual_assignment','owner_manual_reconciliation'].includes(b._dispatchState);
-          var action = isOwnerManual ? 'review_timeline' : 'dispatch';
-          var actionLabel = isOwnerManual ? 'Open Booking' : 'Dispatch Now';
-          var actionClass = isOwnerManual ? 'btn' : 'btn btn-teal';
-          return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
-            + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-            + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
-            + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.date||'No date')+(b.time ? ' at '+esc(b.time) : '')+'</div></div>'
-            + '<span style="background:rgba('+hexToRgb(badgeColor)+',0.1);color:'+badgeColor+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">'+label+'</span>'
-            + '</div>'
-            + '<button onclick="opsAction(\''+action+'\',\''+b.id+'\')" class="'+actionClass+'" style="margin-top:0.4rem;font-size:0.75rem">'+actionLabel+'</button>'
-            + '</div>';
-        }).join('');
-      }
-      unassignedEl.innerHTML = html;
-    }
+    var colorKind = { '#d97706': 'warn', '#dc2626': 'bad', '#7c3aed': 'info' };
+    var stateLabels = { active_offers: 'Offers sent', offers_expired: 'Offers expired', needs_manual: 'Needs manual', owner_manual_assignment: 'Owner assignment needed', owner_manual_reconciliation: 'Owner reconciliation' };
+    var stateKinds = { active_offers: 'brand', offers_expired: 'warn', needs_manual: 'bad', owner_manual_assignment: 'bad', owner_manual_reconciliation: 'warn' };
+    var actionRows = [];
+    pending.forEach(function(b) {
+      actionRows.push([
+        esc(b.service) + '<span class="c-sub">' + esc(b._ownerDescription) + '</span>',
+        '<span class="c-mono">' + esc(b.ref) + '</span><span class="c-sub">' + esc(b.customer_name || 'Customer') + '</span>',
+        (b.date ? formatDate(b.date) : 'No date') + '<span class="c-sub">Submitted ' + esc(relativeAge(b.created_at)) + '</span>',
+        cPill(colorKind[b._ownerColor] || 'warn', b._ownerLabel),
+        '<button onclick="opsAction(\'review_timeline\',\'' + b.id + '\')" class="btn c-sm">Open booking</button>',
+      ]);
+    });
+    needs.forEach(function(b) {
+      var label = stateLabels[b._dispatchState] || (b.dispatch_offered_at ? 'Offer sent' : 'No Easer yet');
+      var kind = stateKinds[b._dispatchState] || (b.dispatch_offered_at ? 'warn' : 'bad');
+      var isOwnerManual = ['needs_manual','owner_manual_assignment','owner_manual_reconciliation'].includes(b._dispatchState);
+      var action = isOwnerManual ? 'review_timeline' : 'dispatch';
+      var actionLabel = isOwnerManual ? 'Open booking' : 'Dispatch now';
+      actionRows.push([
+        esc(b.service),
+        '<span class="c-mono">' + esc(b.ref) + '</span><span class="c-sub">' + esc(b.customer_name || '') + '</span>',
+        (b.date ? formatDate(b.date) : 'No date') + (b.time ? '<span class="c-sub">' + esc(b.time) + '</span>' : ''),
+        cPill(kind, label),
+        '<button onclick="opsAction(\'' + action + '\',\'' + b.id + '\')" class="btn c-sm' + (isOwnerManual ? '' : ' btn-teal') + '">' + actionLabel + '</button>',
+      ]);
+    });
+    unassignedEl.innerHTML = actionRows.length
+      ? cTable([{ t: 'Booking', w: '30%' }, { t: 'Ref', w: '20%' }, { t: 'When', w: '15%' }, { t: 'Status', w: '19%' }, { t: '', w: '16%', c: 'c-right' }], actionRows)
+      : cEmpty('No payment, quote or assignment actions are waiting.');
 
     // Active jobs. The server decides which bookings are active and what stage
     // each one is at; this only renders that list. Rebuilding the list here from
@@ -8125,97 +8198,67 @@ window.intelQuick = intelQuick;
     // was in none of those arrays, and the owner had to open Bookings to find it.
     var activeEl = document.getElementById('ops-active');
     var active = d.activeJobs || [];
-    if (!active.length) {
-      activeEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No active jobs right now</div>';
-    } else {
-      var stageLabels = {
-        in_progress: 'In Progress', arrived: 'Arrived', en_route: 'En Route',
-        scheduled: 'Scheduled', awaiting_accept: 'Awaiting Accept',
-        needs_easer: 'Needs Easer', return_visit: 'Return Visit',
-      };
-      var stageColors = {
-        in_progress: '#059669', arrived: '#00BFFF', en_route: '#7c3aed',
-        scheduled: '#0a7ea3', awaiting_accept: '#6b7280',
-        needs_easer: '#d97706', return_visit: '#7c3aed',
-      };
-      activeEl.innerHTML = active.map(function(b) {
-        var stage = stageLabels[b._stage] || 'Active';
-        var color = stageColors[b._stage] || '#6b7280';
+    var stageLabels = {
+      in_progress: 'In progress', arrived: 'Arrived', en_route: 'En route',
+      scheduled: 'Scheduled', awaiting_accept: 'Awaiting accept',
+      needs_easer: 'Needs Easer', return_visit: 'Return visit',
+    };
+    var stageKinds = {
+      in_progress: 'ok', arrived: 'brand', en_route: 'brand',
+      scheduled: 'brand', awaiting_accept: 'info',
+      needs_easer: 'warn', return_visit: 'brand',
+    };
+    activeEl.innerHTML = !active.length ? cEmpty('No active jobs right now.') : cTable(
+      [{ t: 'Job', w: '44%' }, { t: 'When', w: '22%' }, { t: 'Status', w: '34%' }],
+      active.map(function(b) {
+        var when = (b._stage_date ? formatDate(b._stage_date) : 'No date');
         // Did they actually get there? The server decides; this only renders it.
-        var arrivalLine = arrivalBadge(b);
-        var when = (b._stage_date ? formatDate(b._stage_date) : 'No date') + (b._stage_time ? ' &bull; ' + esc(b._stage_time) : '');
-        var who = b.assembler_name ? esc(b.assembler_name) : 'Unassigned';
-        return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
-          + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">'
-          + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
-          + '<div style="font-size:0.78rem;color:var(--muted)">'+who+' &bull; '+esc(b.customer_name||'Customer')+'</div>'
-          + '<div style="font-size:0.75rem;color:var(--muted);margin-top:1px">'+esc(b.ref)+' &bull; '+when+'</div></div>'
-          + arrivalLine
-          + '<span style="background:rgba('+hexToRgb(color)+',0.1);color:'+color+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">'+stage+'</span>'
-          + '</div>'
-          + (b.address ? '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">'+esc(b.address)+'</div>' : '')
-          + '<button onclick="opsAction(\'review_timeline\',\''+b.id+'\')" class="btn" style="margin-top:0.45rem;font-size:0.75rem">Open Booking</button>'
-          + '</div>';
-      }).join('');
-    }
+        return [
+          esc(b.service) + (b.is_test_booking ? '<span class="c-tag">Test</span>' : '')
+            + '<span class="c-sub">' + esc(b.assembler_name || 'Unassigned') + ' &middot; ' + esc(b.customer_name || 'Customer') + '</span>'
+            + '<span class="c-sub c-mono">' + esc(b.ref) + '</span>',
+          when + (b._stage_time ? '<span class="c-sub">' + esc(b._stage_time) + '</span>' : ''),
+          cPill(stageKinds[b._stage] || 'info', stageLabels[b._stage] || 'Active') + arrivalBadge(b),
+        ];
+      }),
+      active.map(function(b) { return 'class="c-click" onclick="opsAction(\'review_timeline\',\'' + b.id + '\')"'; })
+    );
 
     // Easers
     var easersEl = document.getElementById('ops-easers');
     var easers = d.onlineEasers || [];
-    if (!easers.length) {
-      easersEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">No Easers online right now</div>';
-    } else {
-      easersEl.innerHTML = easers.map(function(e) {
-        var isWorking = e.status === 'working';
-        var dotClass = isWorking ? 'dot dot-active' : 'dot dot-green';
-        // 'confirmed' is the BOOKING's state, never the Easer's acceptance. This
-        // widget used to map it straight to "Accepted", contradicting the booking
-        // detail on the same screen. Acceptance now comes from the server as
-        // booking_accepted; only then does a stage label apply.
-        var stageLabels = { en_route: 'En Route', arrived: 'Arrived', in_progress: 'In Progress', confirmed: 'Accepted' };
-        var stageColors = { en_route: '#3b82f6', arrived: '#00BFFF', in_progress: '#059669', confirmed: '#6d28d9' };
-        var stage = isWorking ? (e.booking_stage || 'working') : null;
-        var awaitingAccept = isWorking && e.booking_accepted === false;
-        var label = !isWorking ? 'Available'
-          : awaitingAccept ? 'Awaiting accept'
-          : (stageLabels[stage] || 'On Job');
-        var labelColor = !isWorking ? '#10b981'
-          : awaitingAccept ? '#6b7280'
-          : (stageColors[stage] || '#f59e0b');
-        return '<div class="ops-easer-row" style="display:flex;align-items:center;gap:10px;padding:0.55rem 0;border-bottom:1px solid var(--border)">'
-          + '<span class="' + dotClass + '"></span>'
-          + '<span class="ops-easer-name" style="font-size:0.85rem;font-weight:500;color:var(--text);flex:1">' + esc(e.full_name) + '</span>'
-          // Fixed-width columns. Both cells were shrink-to-fit, so STARTER vs
-          // ELITE (different widths) pushed the status text to a different x
-          // position on every row and the list read as ragged.
-          + '<span style="flex:0 0 62px;display:flex;justify-content:flex-end">' + easerTierBadge(e.tier) + '</span>'
-          + '<span style="flex:0 0 96px;text-align:right;font-size:0.7rem;color:' + labelColor + ';font-weight:600;white-space:nowrap">' + label + '</span>'
-          + '</div>';
-      }).join('');
-    }
-    if (d.offlineCount > 0) {
-      easersEl.innerHTML += '<div style="font-size:0.78rem;color:var(--muted);padding:0.5rem 0;border-top:1px solid var(--border);margin-top:2px">' + d.offlineCount + ' Easer' + (d.offlineCount > 1 ? 's' : '') + ' unavailable or not yet eligible</div>';
-    }
+    // 'confirmed' is the BOOKING's state, never the Easer's acceptance.
+    // Acceptance comes from the server as booking_accepted; only then does a
+    // stage label apply.
+    var easerStageLabels = { en_route: 'En route', arrived: 'Arrived', in_progress: 'In progress', confirmed: 'Accepted' };
+    var easerRows = easers.map(function(e) {
+      var isWorking = e.status === 'working';
+      var stage = isWorking ? (e.booking_stage || 'working') : null;
+      var awaitingAccept = isWorking && e.booking_accepted === false;
+      var status = !isWorking ? cPill('ok', 'Available')
+        : awaitingAccept ? cPill('info', 'Awaiting accept')
+        : cPill('brand', easerStageLabels[stage] || 'On a job');
+      return [esc(e.full_name), easerTierBadge(e.tier), status];
+    });
+    easersEl.innerHTML = (easers.length
+      ? cTable([{ t: 'Name', w: '46%' }, { t: 'Level', w: '24%' }, { t: 'Status', w: '30%' }], easerRows)
+      : cEmpty('No Easers online right now.'))
+      + (d.offlineCount > 0 ? '<div class="c-empty" style="border-top:1px solid var(--c-line)">' + d.offlineCount + ' Easer' + (d.offlineCount > 1 ? 's' : '') + ' unavailable or not yet eligible</div>' : '');
 
     // Today schedule
     var todayEl = document.getElementById('ops-today');
     var todayJobs = d.todaySchedule || [];
-    if (!todayJobs.length) {
-      todayEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No jobs scheduled today</div>';
-    } else {
-      todayEl.innerHTML = todayJobs.map(function(b) {
-        return '<div style="padding:0.65rem 0;border-bottom:1px solid var(--border)">'
-          + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">'
-          + '<div>'
-          + '<div style="font-size:0.85rem;font-weight:600;color:var(--text)">' + esc(b.time||'Time TBD') + ' &mdash; ' + esc(b.service) + (b.is_return_visit ? ' <span style="color:#3730a3">(Return visit)</span>' : '') + '</div>'
-          + '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">' + esc(businessDateLabel(b.date, false)) + '</div>'
-          + '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">' + esc(b.assembler_name||'Unassigned') + ' &bull; ' + esc(b.customer_name||'') + '</div>'
-          + '</div>'
-          + bookingBadge(b)
-          + '</div>'
-          + '</div>';
-      }).join('');
-    }
+    todayEl.innerHTML = !todayJobs.length ? cEmpty('No jobs scheduled today.') : cTable(
+      [{ t: 'Time', w: '20%' }, { t: 'Job', w: '50%' }, { t: 'Status', w: '30%' }],
+      todayJobs.map(function(b) {
+        return [
+          esc(b.time || 'Time TBD'),
+          esc(b.service) + (b.is_return_visit ? '<span class="c-tag">Return visit</span>' : '')
+            + '<span class="c-sub">' + esc(b.assembler_name || 'Unassigned') + ' &middot; ' + esc(b.customer_name || '') + '</span>',
+          bookingBadge(b),
+        ];
+      })
+    );
 
     var errorsEl = document.getElementById('ops-errors');
     var failures = d.recentFailures || [];
@@ -8272,6 +8315,22 @@ window.intelQuick = intelQuick;
           + (safeDamageBookingId ? '<button class="btn" style="font-size:0.7rem;padding:2px 9px" onclick="opsAction(\'review_damage_evidence\',\'' + safeDamageBookingId + '\')">Review and Close Alert</button>' : '')
           + '</div>';
       }).join('');
+    }
+
+    // Platform errors and damage reports are panels only while they hold
+    // something; otherwise one health line says so.
+    var errorsPanel = document.getElementById('ops-errors-panel');
+    var damagePanel = document.getElementById('ops-damage-panel');
+    if (errorsPanel) errorsPanel.style.display = failures.length ? '' : 'none';
+    if (damagePanel) damagePanel.style.display = damageReports.length ? '' : 'none';
+    var healthEl = document.getElementById('ops-health');
+    if (healthEl) {
+      var issues = [];
+      if (failures.length) issues.push(failures.length + ' platform error' + (failures.length === 1 ? '' : 's'));
+      if (damageReports.length) issues.push(damageReports.length + ' damage report' + (damageReports.length === 1 ? '' : 's'));
+      healthEl.innerHTML = issues.length
+        ? cPill('bad', issues.join(', '))
+        : cPill('ok', 'No platform errors or damage reports in 24 hours');
     }
 
     // Last updated
@@ -8456,7 +8515,7 @@ window.intelQuick = intelQuick;
       var scheduleDate = showingReturnVisit ? b.return_visit_date : b.date;
       var scheduleTime = showingReturnVisit ? b.return_visit_time : b.time;
       return '<div class="today-job-card" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">'
-        +'<div class="today-job-time" style="font-size:1.1rem;font-weight:700;color:var(--teal);min-width:70px">'+esc(scheduleTime||'—')+'<div style="font-size:0.66rem;font-weight:500;color:var(--muted);margin-top:3px">'+esc(scheduleDate)+(showingReturnVisit ? ' &bull; Return visit' : '')+'</div></div>'
+        +'<div class="today-job-time" style="font-size:14px;font-weight:700;color:var(--c-text);min-width:150px">'+esc(scheduleTime||'—')+'<div style="font-size:12px;font-weight:500;color:var(--c-muted);margin-top:2px">'+(scheduleDate ? formatDate(scheduleDate) : '')+(showingReturnVisit ? ' &bull; Return visit' : '')+'</div></div>'
         +'<div class="today-job-main" style="flex:1;min-width:0">'
           +'<div style="font-size:0.9rem;font-weight:600;color:var(--text)">'+esc(b.customer_name||'—')+'</div>'
           +'<div style="font-size:0.8rem;color:var(--muted)">'+esc(b.service||'—')+' &bull; '+esc(b.address||'—')+'</div>'

@@ -67,7 +67,7 @@ assert.match(ownerUi, /Selected-Period Money Summary/);
 assert.match(ownerUi, /an-sales-tax/);
 assert.match(ownerUi, /an-processing-fees/);
 assert.match(ownerUi, /an-easer-payouts/);
-assert.match(ownerUi, /Total Platform Gross/);
+assert.match(ownerUi, /Total platform gross/i);
 assert.match(ownerUi, /Owner-Easer Labor/);
 assert.match(ownerUi, /External Easer Labor/);
 assert.match(ownerUi, /Jobs Missing Labor Cost/);
@@ -142,7 +142,7 @@ assert.match(jobsApi, /Marketplace jobs must be closed, not permanently deleted/
 assert.match(liveOps, /ownerManualReconciliation/);
 assert.match(liveOps, /source\.eq\.owner_manual/);
 assert.match(liveOps, /return_visit_completed_at\.not\.is\.null/);
-assert.match(ownerUi, /Owner Reconciliation/);
+assert.match(ownerUi, /Owner reconciliation/i, 'owner reconciliation is surfaced on Live Ops');
 assert.match(monitor, /hasReturnVisitHistory/);
 assert.match(monitor, /returnVisitCompleted/);
 assert.match(monitor, /untrusted business data/);

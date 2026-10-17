@@ -1,0 +1,243 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   Owner console design system (owner, 2026-10-16).
+
+   One set of colors, sizes and components for every owner screen. Loaded after
+   owner.css and the panel stylesheets, so it decides how things look; it never
+   changes what the dashboard does. New owner UI uses these classes instead of
+   inline style attributes.
+
+   Desktop-first: the owner runs the business from a computer. On a phone the
+   layout must not scroll sideways; nothing more.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --c-bg: #f4f6f8;
+  --c-surface: #ffffff;
+  --c-sunken: #f0f3f6;
+  --c-line: #dfe4ea;
+  --c-line-strong: #c9d0d9;
+  --c-text: #14191f;
+  --c-soft: #3d4753;
+  --c-muted: #6a7581;
+  --c-brand: #00BFFF;
+  --c-brand-ink: #0077a3;
+  --c-brand-wash: #e6f8ff;
+  --c-ok: #137a4b;
+  --c-ok-wash: #e5f5ec;
+  --c-warn: #9a5b00;
+  --c-warn-wash: #fff4e0;
+  --c-bad: #b42318;
+  --c-bad-wash: #fdecea;
+  --c-info: #3a4a5c;
+  --c-info-wash: #eceff3;
+  --c-side: #0f1720;
+  --c-side-text: #c4ccd5;
+  --c-side-muted: #7d8894;
+  --c-side-hover: #16212b;
+  --c-side-active: #1b2733;
+  --c-side-line: #1e2a36;
+  --c-radius: 8px;
+  --c-row-pad: 11px 16px;
+  --c-h: 34px;
+  --c-h-sm: 28px;
+}
+
+body { background: var(--c-bg); color: var(--c-text); }
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+.sidebar { background: var(--c-side); border-right: 0; box-shadow: none; padding-bottom: 8px; }
+.sidebar-brand { border-bottom: 1px solid var(--c-side-line); padding: 18px 20px 14px; }
+.sidebar-brand a { color: #fff; }
+.sidebar-section { padding: 14px 10px 0; }
+.sidebar-label { color: var(--c-side-muted); font-size: 10.5px; font-weight: 600; letter-spacing: .09em; padding: 0 10px 4px; margin: 0; }
+.sidebar-nav a { height: 34px; border-radius: 6px; padding: 0 10px; color: var(--c-side-text); font-size: 13.5px; border: 0; }
+.sidebar-nav a:hover { background: var(--c-side-hover); color: #fff; }
+.sidebar-nav a.active { background: var(--c-side-active); color: #fff; border: 0; box-shadow: inset 3px 0 0 var(--c-brand); }
+.sidebar-nav .nav-icon { color: var(--c-side-muted); }
+.sidebar-nav a.active .nav-icon, .sidebar-nav a:hover .nav-icon { color: var(--c-brand); }
+/* Every count is grey; red only where something is waiting on the owner. */
+.nav-count { background: #26323f !important; color: #c4ccd5; font-size: 11px; font-weight: 700; }
+.nav-count.is-action { background: #c9332a !important; color: #fff; }
+.sidebar-footer { border-top: 1px solid var(--c-side-line); }
+.sidebar-footer a { color: var(--c-side-muted); }
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+.topbar { box-shadow: none; border-bottom: 1px solid var(--c-line); height: 64px; padding: 0 24px; }
+.topbar-title { font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+
+/* ── Buttons: two sizes, three kinds ─────────────────────────────────────── */
+.btn { height: var(--c-h); padding: 0 13px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid var(--c-line-strong); background: var(--c-surface); color: var(--c-text); white-space: nowrap; justify-content: center; }
+.btn:hover { background: var(--c-surface); border-color: var(--c-brand); color: var(--c-text); }
+.btn-teal, .btn.btn-teal { background: var(--c-brand); border-color: var(--c-brand); color: #04222c; }
+.btn-teal:hover { background: var(--c-brand); filter: brightness(.95); color: #04222c; }
+.btn-red { background: var(--c-bad-wash); border-color: var(--c-bad); color: var(--c-bad); }
+.btn-amber { background: var(--c-warn-wash); border-color: var(--c-warn); color: var(--c-warn); }
+.btn.c-sm, .c-sm.btn { height: var(--c-h-sm); padding: 0 10px; font-size: 12.5px; }
+
+/* ── Panels ──────────────────────────────────────────────────────────────── */
+.ops-panel { background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--c-radius); box-shadow: none; padding: 0; overflow: hidden; }
+.ops-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 16px; border-bottom: 1px solid var(--c-line); margin: 0; }
+.ops-panel-title { font-size: 14px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--c-text); display: flex; align-items: center; gap: 8px; }
+.ops-panel-title svg { color: var(--c-muted); }
+.c-empty { padding: 18px 16px; color: var(--c-muted); font-size: 13px; }
+
+/* ── Number strip ────────────────────────────────────────────────────────── */
+.c-stats { display: flex; flex-wrap: wrap; background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--c-radius); overflow: hidden; }
+.c-stat { flex: 1 1 150px; padding: 12px 16px; border-right: 1px solid var(--c-line); min-width: 0; }
+.c-stat:last-child { border-right: 0; }
+.c-stat b { display: block; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.c-stat span { font-size: 12px; color: var(--c-muted); }
+.c-stat.is-alert b { color: var(--c-bad); }
+.c-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+/* ── Tables: fixed columns so every row lines up ─────────────────────────── */
+.c-table-wrap { overflow-x: auto; }
+.c-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
+.c-table th { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); background: var(--c-sunken); padding: 8px 16px; border-bottom: 1px solid var(--c-line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-table td { padding: var(--c-row-pad); border-bottom: 1px solid var(--c-line); vertical-align: middle; overflow-wrap: anywhere; }
+.c-table tbody tr:last-child td { border-bottom: 0; }
+.c-table tr.c-click { cursor: pointer; }
+.c-table tr.c-click:hover td { background: var(--c-sunken); }
+.c-table .c-right { text-align: right; }
+.c-table .c-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.c-sub { display: block; color: var(--c-muted); font-size: 12px; margin-top: 1px; }
+.c-mono { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-size: 12.5px; }
+.c-table td .btn { vertical-align: middle; }
+.c-actions { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* ── Status pills: one meaning per color on every screen ─────────────────── */
+.c-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 4px; white-space: nowrap; line-height: 1.5; }
+.c-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.c-pill--bad { background: var(--c-bad-wash); color: var(--c-bad); }      /* needs the owner */
+.c-pill--warn { background: var(--c-warn-wash); color: var(--c-warn); }   /* waiting on someone */
+.c-pill--brand { background: var(--c-brand-wash); color: var(--c-brand-ink); } /* scheduled / in motion */
+.c-pill--ok { background: var(--c-ok-wash); color: var(--c-ok); }         /* fine / done */
+.c-pill--info { background: var(--c-info-wash); color: var(--c-info); }   /* neutral */
+.c-tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 4px; background: var(--c-info-wash); color: var(--c-info); margin-left: 6px; vertical-align: 1px; }
+
+/* ── Live Ops layout ─────────────────────────────────────────────────────── */
+#liveops-view { display: flex; flex-direction: column; gap: 18px; }
+#liveops-view > * { margin: 0 !important; }
+#liveops-view .content-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+#liveops-view .c-span-2 { grid-column: 1 / -1; }
+.c-footnote { font-size: 12px; color: var(--c-muted); display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+@media (max-width: 900px) {
+  #liveops-view .content-grid { grid-template-columns: minmax(0, 1fr); }
+  .c-stat { flex-basis: 45%; }
+}
+
+/* ── Older badges (assets/status.css) drawn in the console pill shape ────── */
+.sb { display: inline-flex; align-items: center; border-radius: 4px; text-transform: none; letter-spacing: 0; font-size: 11.5px; font-weight: 600; padding: 2px 8px; line-height: 1.5; white-space: nowrap; box-shadow: none; }
+.sb.et-starter, .sb.et-professional, .sb.et-elite { background: var(--c-info-wash); color: var(--c-info); border: 0; }
+
+/* ── Number tiles everywhere (stats-row / stat): one strip, no colored caps ─ */
+.stats-row { display: flex; flex-wrap: wrap; gap: 0; background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--c-radius); overflow: hidden; margin-bottom: 18px; }
+.stats-row > .stat { flex: 1 1 150px; border: 0; border-right: 1px solid var(--c-line); border-radius: 0; padding: 12px 16px; box-shadow: none; background: transparent; min-width: 0; }
+.stats-row > .stat:last-child { border-right: 0; }
+.stat::before { display: none !important; }
+.stat-value { font-family: inherit; font-size: 22px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; margin: 0; font-variant-numeric: tabular-nums; }
+.stat-label { font-size: 12px; color: var(--c-muted); }
+.stat.red .stat-value { color: var(--c-bad); }
+
+/* ── Filter tabs: one segmented control ──────────────────────────────────── */
+.tabs { display: inline-flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--c-line-strong); border-radius: 6px; overflow: hidden; background: var(--c-surface); margin-bottom: 14px; }
+.tab { border: 0; border-right: 1px solid var(--c-line); border-radius: 0; height: 32px; padding: 0 12px; font-size: 12.5px; font-weight: 600; color: var(--c-soft); background: var(--c-surface); }
+.tab:last-child { border-right: 0; }
+.tab.active { background: var(--c-brand-wash); color: var(--c-brand-ink); border-color: var(--c-line); }
+
+/* ── Search ──────────────────────────────────────────────────────────────── */
+.search-bar { margin-bottom: 12px; max-width: 520px; }
+.search-input { height: 34px; padding-top: 0; padding-bottom: 0; background: var(--c-surface); border: 1px solid var(--c-line-strong); border-radius: 6px; font-size: 13px; }
+.search-input:focus { border-color: var(--c-brand); box-shadow: 0 0 0 3px var(--c-brand-wash); }
+
+/* ── Booking list: dense rows on a fixed grid, so every column lines up ──── */
+#bookings-list { background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--c-radius); overflow: hidden; }
+#bookings-list:empty, #bookings-list > .empty-state:only-child { border: 0; background: transparent; }
+.booking-card.c-brow { display: grid; grid-template-columns: minmax(0, 1fr) 132px 124px; gap: 12px; align-items: start; margin: 0; padding: 11px 16px; border: 0; border-bottom: 1px solid var(--c-line); border-radius: 0; background: var(--c-surface); }
+.booking-card.c-brow:last-child { border-bottom: 0; }
+.booking-card.c-brow:hover { background: var(--c-sunken); border-color: var(--c-line); }
+.booking-card.c-brow.selected { background: var(--c-brand-wash); box-shadow: inset 3px 0 0 var(--c-brand); }
+.c-brow-main { min-width: 0; }
+.c-brow-name { font-weight: 600; font-size: 13.5px; }
+.c-brow-flags { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 4px; }
+.c-brow-flags .c-tag { margin-left: 0; }
+.c-brow-when, .c-brow-status { font-size: 13px; min-width: 0; }
+.c-brow-status { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.c-flag-bad { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--c-bad); }
+.c-flag-bad::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.c-flag-easer { font-size: 12px; color: var(--c-brand-ink); }
+
+/* ── Booking record (detail panel) ───────────────────────────────────────── */
+/* detail-panel is the general card on many screens: same border and padding
+   everywhere. The booking record (#detail-panel) gets a full-width header. */
+.detail-panel { border: 1px solid var(--c-line); border-radius: var(--c-radius); padding: 16px; box-shadow: none; }
+#detail-panel { padding: 0 16px 4px; overflow: hidden; }
+#detail-panel > .detail-header { margin: 0 -16px 14px; padding: 14px 16px; border-bottom: 1px solid var(--c-line); }
+.detail-header h2 { font-family: inherit; font-size: 18px; font-weight: 700; }
+.detail-grid { column-gap: 24px; row-gap: 0; margin: 0 0 16px; }
+.detail-grid > * { padding: 9px 0; border-bottom: 1px solid var(--c-line); min-width: 0; }
+.detail-section-title { font-size: 11px; letter-spacing: .06em; color: var(--c-muted); font-weight: 600; }
+.detail-actions { gap: 8px; padding: 0 0 16px; border-bottom: 1px solid var(--c-line); margin-bottom: 16px; }
+.detail-panel input, .detail-panel select, .detail-panel textarea { border-radius: 6px; }
+
+/* ── Wide screens: list and record side by side, list a little narrower ─── */
+#bookings-view > .content-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) !important; gap: 18px !important; align-items: start; }
+@media (max-width: 1100px) { #bookings-view > .content-grid { grid-template-columns: minmax(0, 1fr) !important; } }
+
+/* ── Booking record: one Notes box, then one Next bar ────────────────────── */
+.c-notes { flex-basis: 100%; border: 1px solid var(--c-line); border-radius: var(--c-radius); background: var(--c-surface); overflow: hidden; }
+.c-note { position: relative; padding: 9px 14px 9px 30px; font-size: 12.5px; line-height: 1.5; color: var(--c-soft); border-bottom: 1px solid var(--c-line); }
+.c-note:last-child { border-bottom: 0; }
+.c-note::before { content: ""; position: absolute; left: 14px; top: 15px; width: 7px; height: 7px; border-radius: 50%; background: var(--c-muted); }
+.c-note--bad::before { background: var(--c-bad); }
+.c-note--warn::before { background: var(--c-warn); }
+.c-note--ok::before { background: var(--c-ok); }
+.c-note--bad { background: var(--c-bad-wash); }
+.c-note strong { color: var(--c-text); }
+.owner-next-action { border: 1px solid var(--c-brand); border-left-width: 4px; border-radius: var(--c-radius); background: var(--c-brand-wash); padding: 12px 14px; }
+.owner-next-action-kicker { color: var(--c-brand-ink); font-size: 11px; letter-spacing: .06em; }
+.owner-next-action-desc { color: var(--c-soft); font-size: 12.5px; }
+.owner-other-actions { flex-basis: 100%; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); margin-top: 4px; }
+
+/* ── Financials ──────────────────────────────────────────────────────────── */
+.c-group-title { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--c-muted); margin: 18px 0 8px; }
+/* Metric grids: 1px gaps on a line-colored ground draw every cell border, so
+   rows and columns line up however many tiles a group has. */
+.stats-row.c-metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1px; background: var(--c-line); margin-bottom: 0; }
+.stats-row.c-metrics > .stat { border: 0; background: var(--c-surface); }
+.c-hero { background: var(--c-surface) !important; }
+.c-hero-value { font-size: 34px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.c-hero-label { font-size: 13px; color: var(--c-muted); margin-top: 2px; }
+.c-hero-facts { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 12px; font-size: 12.5px; color: var(--c-soft); }
+.c-hero-facts strong { color: var(--c-text); }
+.c-hero-note { margin-top: 10px; font-size: 12px; color: var(--c-muted); line-height: 1.6; }
+/* A notice box with nothing in it is not drawn. */
+#an-finance-warning:empty, #an-empty-period:empty { display: none !important; }
+
+/* ── Every other owner table drawn like the console table ────────────────── */
+.pro-table, #asm-table, #wl-table, #cust-table, #md-requests-table { font-size: 13px !important; border-collapse: collapse !important; }
+.pro-table th, #asm-table th, #wl-table th, #cust-table th, #md-requests-table th {
+  background: var(--c-sunken) !important; padding: 8px 16px !important; font-size: 11px !important; font-weight: 600 !important;
+  letter-spacing: .06em !important; text-transform: uppercase; color: var(--c-muted) !important; border-bottom: 1px solid var(--c-line) !important; white-space: nowrap;
+}
+.pro-table td, #asm-table td, #wl-table td, #cust-table td, #md-requests-table td {
+  padding: 11px 16px !important; border-bottom: 1px solid var(--c-line) !important; vertical-align: middle;
+}
+.pro-table tbody tr:hover td, #asm-table tbody tr:hover td, #cust-table tbody tr:hover td { background: var(--c-sunken); }
+.finance-table.pro-table th, .finance-table.pro-table td { padding-left: 12px !important; padding-right: 12px !important; }
+#analytics-view .stats-row.c-metrics, .stats-row.c-metrics { gap: 1px !important; }
+#fin-subtabs { display: inline-flex; margin-bottom: 16px; }
+/* Plain tables sit on the same white panel as every other list. */
+#cust-table, #asm-table, #wl-table, #md-requests-table, .pro-table { background: var(--c-surface); box-shadow: 0 0 0 1px var(--c-line); border-radius: var(--c-radius); }
+/* Each Financials group has as many columns as tiles, so no row ends early. */
+#analytics-view .stats-row.c-metrics.c-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+#analytics-view .stats-row.c-metrics.c-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+#analytics-view .stats-row.c-metrics.c-cols-7 { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; }
+@media (max-width: 1100px) { #analytics-view .stats-row.c-metrics[class*="c-cols-"] { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }
+
+/* Status badges inside record fields keep badge size (a field rule sized every span). */
+.detail-field span.sb { font-size: 11.5px; }
+.detail-field span.sb + span.sb { margin-left: 4px; }
+/* The completion-evidence warning reads like a Notes row. */
+#evidence-warning-bar { background: var(--c-warn-wash) !important; border: 1px solid var(--c-line) !important; border-left: 3px solid var(--c-warn) !important; border-radius: var(--c-radius) !important; color: var(--c-soft) !important; font-size: 12.5px !important; padding: 9px 14px !important; }
