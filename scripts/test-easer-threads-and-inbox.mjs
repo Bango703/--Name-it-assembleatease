@@ -25,7 +25,8 @@ import {
   requiredActionKey,
 } from '../api/assembler/notifications.js';
 
-const read = (f) => readFileSync(f, 'utf8').replace(/^﻿/, '');
+// Line endings normalised: a Windows checkout (CRLF) must pass the same checks as CI (LF).
+const read = (f) => readFileSync(f, 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n');
 
 // ── In-memory database, with the PostgREST filters these handlers use ────────
 function orTerms(expr) {

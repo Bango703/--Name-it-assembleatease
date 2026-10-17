@@ -13,7 +13,8 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { customerPaymentSummary } from '../api/booking/_customer-payment-summary.js';
 
-const read = (f) => readFileSync(f, 'utf8').replace(/^﻿/, '');
+// Line endings normalised: a Windows checkout (CRLF) must pass the same checks as CI (LF).
+const read = (f) => readFileSync(f, 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n');
 const dir = (d) => Object.fromEntries(readdirSync(d).filter(f => f.endsWith('.swift')).map(f => [f, read(`${d}/${f}`)]));
 const customer = dir('mobile/ios/Customer/Customer');
 const easer = dir('mobile/ios/App/App');
