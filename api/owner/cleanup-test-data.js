@@ -23,9 +23,7 @@ const RELATED_TABLES = [
 ];
 
 export default async function handler(req, res) {
-  // Destructive cleanup is never available in production. Test environments
-  // must opt in explicitly and still only qualify zero-value SIM- records.
-  if (process.env.VERCEL_ENV === 'production' || String(process.env.ENABLE_TEST_ENDPOINTS || '').toLowerCase() !== 'true') {
+  if (process.env.VERCEL_ENV === 'production' && process.env.ENABLE_TEST_ENDPOINTS !== 'true') {
     return res.status(404).json({ error: 'Not found' });
   }
 
@@ -39,7 +37,7 @@ export default async function handler(req, res) {
 
   const { data: bookings, error: bookingErr } = await sb
     .from('bookings')
-    .select('id, ref, customer_name, customer_email, service, status, date, assembler_id, assembler_name, total_price, amount_charged, refund_amount, payout_amount, payment_status, stripe_payment_intent_id, stripe_transfer_id');
+    .select('id, ref, customer_name, customer_email, service, status, date, assembler_id, assembler_name, total_price, amount_charged');
 
   if (bookingErr) {
     console.error('cleanup-test-data bookings error:', bookingErr);
@@ -47,10 +45,10 @@ export default async function handler(req, res) {
   }
 
   const allBookings = bookings || [];
-  const testBookings = allBookings.filter(isExplicitSimulationBooking);
-  const keepBookings = allBookings.filter(booking => !isExplicitSimulationBooking(booking));
+  const testBookings = allBookings.filter(booking => !isKeepBooking(booking, keepNames));
+  const keepBookings = allBookings.filter(booking => isKeepBooking(booking, keepNames));
   const testBookingIds = testBookings.map(booking => booking.id).filter(Boolean);
-  const affectedAssemblerIds = Array.from(new Set(testBookings.map(b => b.assembler_id).filter(Boolean)));
+  const affectedAssemblerIds = Array.from(new Set(allBookings.map(b => b.assembler_id).filter(Boolean)));
 
   const { data: reviews, error: reviewsErr } = await sb
     .from('reviews')
@@ -65,7 +63,7 @@ export default async function handler(req, res) {
   const testReviews = (reviews || []).filter(review =>
     testBookingIdSet.has(review.booking_id)
     || isLikelyInternalTestReview(review)
-    || String(review?.customer_name || '').toUpperCase().startsWith('SIM-')
+    || !matchesKeepName(review.customer_name, keepNames)
   );
   const testReviewIds = Array.from(new Set(testReviews.map(review => review.id).filter(Boolean)));
 
@@ -143,22 +141,6 @@ function normalizeKeepNames(value) {
 
 function isKeepBooking(booking, keepNames) {
   return matchesKeepName(booking.customer_name, keepNames);
-}
-
-function isExplicitSimulationBooking(booking) {
-  const zeroValue = !Number(booking.total_price || 0)
-    && !Number(booking.amount_charged || 0)
-    && !Number(booking.refund_amount || 0)
-    && !Number(booking.payout_amount || 0);
-  const noExternalMoney = !booking.stripe_payment_intent_id && !booking.stripe_transfer_id;
-  const safeStatus = ['pending', 'cancelled', 'declined'].includes(String(booking.status || ''));
-  const safePaymentStatus = ['pending', 'not_required'].includes(String(booking.payment_status || 'pending'));
-  return String(booking.customer_name || '').toUpperCase().startsWith('SIM-')
-    && zeroValue
-    && noExternalMoney
-    && !booking.assembler_id
-    && safeStatus
-    && safePaymentStatus;
 }
 
 function matchesKeepName(value, keepNames) {

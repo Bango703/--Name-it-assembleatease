@@ -282,11 +282,5 @@ export function publicReadinessError(readiness) {
 export function readinessError(readiness) {
   if (readiness?.isReady) return null;
   const missing = readiness?.missingItems || [];
-  // The same trap approvalReadinessError documents above: missingItems are
-  // named as the REQUIREMENT, so "not ready for jobs: Job texts enabled" reads
-  // as though having texts enabled were the problem. "Still missing:" reads
-  // correctly against every requirement name (Article 14).
-  return missing.length
-    ? `Easer is not ready for jobs. Still missing: ${missing.join(', ')}.`
-    : 'Easer is not ready for jobs: readiness could not be verified.';
+  return `Easer is not ready for jobs: ${missing.join(', ') || 'readiness could not be verified'}.`;
 }

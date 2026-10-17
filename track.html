@@ -78,12 +78,6 @@
 .price-breakdown-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:1rem;align-items:start}
 .price-breakdown-value{color:var(--ink);text-align:right;white-space:nowrap}
 .price-breakdown-value.strong{font-weight:700}
-.pay-due{margin-top:1rem;padding-top:0.95rem;border-top:1px solid var(--border)}
-.pay-due-label{color:#b91c1c}
-.pay-due-value{color:#b91c1c}
-.pay-due-btn{margin-top:0.85rem;text-decoration:none}
-.pay-due-line{font-size:0.86rem;color:#b91c1c;font-weight:600;line-height:1.5}
-.price-label.is-due,.price-value.is-due{color:#b91c1c}
 .booking-card-actions{padding:1.5rem 2rem;display:flex;flex-direction:column;gap:0.75rem}
 .booking-communication{margin-top:1rem;padding:1.25rem;background:#fff;border:1.5px solid var(--border);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.06);display:none}
 .booking-communication h2{font-family:var(--font-display);font-size:1.25rem;color:var(--ink);margin:0 0 .35rem}
@@ -179,7 +173,6 @@
 }
 </style>
 <script src="/assets/js/status-source-of-truth.js" defer></script>
-<script src="/assets/js/image-upload.js" defer></script>
   </head>
 <body>
 
@@ -368,19 +361,8 @@
           <span class="price-value" id="bPrice"></span>
         </div>
         <div id="priceBreakdown" class="price-breakdown" style="display:none"></div>
-        <!-- Shown only when the secure payment page would accept this booking,
-             so a customer who lost the email can still pay from here. -->
-        <div id="payDueBox" class="pay-due" style="display:none">
-          <!-- Only when part is already paid. If the whole total is outstanding
-               the figure above IS the amount due, and repeating it reads as a
-               second charge. -->
-          <div class="booking-total-row" id="payDueRow" style="display:none">
-            <span class="price-label pay-due-label">Amount due</span>
-            <span class="price-value pay-due-value" id="payDueAmount"></span>
-          </div>
-          <div class="pay-due-line">This payment did not go through.</div>
-          <a id="payDueLink" class="btn btn-cyan btn-full pay-due-btn" href="#">Update payment details</a>
-        </div>
+      </div>
+
       <!-- Cancel fee warning (shown if applicable) -->
       <div class="cancel-fee-warn" id="cancelFeeWarn">
         <strong>Cancellation fee applies</strong>
@@ -675,13 +657,8 @@ async function lookupBooking(e) {
       });
       const linkData = await linkResponse.json();
       if (!linkResponse.ok) throw new Error(linkData.error || 'Could not request a secure link.');
-      infoEl.textContent = autoLookupPending
-        ? 'That link has expired, so we have emailed you a fresh one. You can also get straight in with a code below.'
-        : linkData.message;
+      infoEl.textContent = linkData.message;
       infoEl.style.display = 'block';
-      // A dead end is what sent people hunting for the code box themselves.
-      // Offer the second door here, with their email already filled in.
-      offerCodeEntry(email);
       autoLookupPending = false;
       return;
     }
@@ -711,18 +688,6 @@ async function lookupBooking(e) {
 // Customer proves they own the inbox with a 6-digit code, then jumps straight in.
 // The token returned per booking is an ordinary mutation token, so view /
 // reschedule / cancel still run through the same rule-enforcing endpoints.
-// A lookup that cannot authenticate leaves the customer with nothing to do.
-// Put them one tap from the code path instead of making them find it.
-function offerCodeEntry(email) {
-  try {
-    var input = document.getElementById('tc-email');
-    if (input && email && !input.value) input.value = email;
-    var card = document.querySelector('.track-code-alt');
-    if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    if (input && input.focus) input.focus({ preventScroll: true });
-  } catch (_) { /* the code panel is always on the page; this is only a nudge */ }
-}
-
 function tcReset() {
   document.getElementById('tcStepCode').style.display = 'none';
   document.getElementById('tcChooser').style.display = 'none';
@@ -863,32 +828,6 @@ function renderBooking(b) {
         + (refunded > 0 ? row('Refunded', -refunded) + row('Net charged after refund', total - refunded, true) : '');
     }
     bd.style.display = '';
-  })();
-  // Payment needed — same destination as the emailed secure link, reached from
-  // the page the customer already has open. The server decides whether this is
-  // possible; the page never guesses from payment_status.
-  (function () {
-    var box = document.getElementById('payDueBox');
-    if (!box) return;
-    if (!b.payment_action_required || !currentMutationToken) { box.style.display = 'none'; return; }
-    var totalCents = Number(displayTotal) || 0;
-    var remaining = Number(b.remaining_balance_cents) || 0;
-    var partlyPaid = remaining > 0 && remaining < totalCents;
-    if (partlyPaid) {
-      // A second figure is real information here: some of it is already paid.
-      document.getElementById('payDueAmount').textContent = formatUsdCents(remaining);
-      document.getElementById('payDueRow').style.display = '';
-    } else {
-      // The whole total is outstanding, so relabel the figure already on the
-      // card rather than printing the same number twice.
-      document.getElementById('payDueRow').style.display = 'none';
-      document.getElementById('bPriceLabel').textContent = 'Amount due';
-      document.getElementById('bPriceLabel').classList.add('is-due');
-      document.getElementById('bPrice').classList.add('is-due');
-    }
-    document.getElementById('payDueLink').href = '/api/booking/payment-recovery?bookingId='
-      + encodeURIComponent(b.id) + '&token=' + encodeURIComponent(currentMutationToken);
-    box.style.display = '';
   })();
   document.getElementById('bCreated').textContent  = 'Booked on ' + formatDate(b.created_at);
   var supportLink = document.getElementById('bookingSupportLink');
@@ -1072,6 +1011,7 @@ async function loadCustomerCommunication() {
   if (pick && input) pick.addEventListener('click', function() { input.click(); });
   if (input) input.addEventListener('change', function() {
     var file = input.files && input.files[0];
+    if (file && file.size > 5 * 1024 * 1024) { input.value = ''; setCustomerCommunicationStatus('Images must be no larger than 5 MB.', true); return; }
     setCustomerCommunicationStatus(file ? file.name + ' selected. Send the message to upload it.' : '', false);
   });
   if (send) send.addEventListener('click', async function() {
@@ -1086,11 +1026,10 @@ async function loadCustomerCommunication() {
         if (!messageResponse.ok) throw new Error('Message could not be sent.');
       }
       if (file) {
-        // Downscaled before sending. A full-resolution phone photo base64-encodes
-        // past the request body limit and never reaches the endpoint.
-        var prepared = await window.AAE_UPLOAD.prepare(file);
-        var photoResponse = await fetch('/api/booking/customer-photos', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ref:currentRef, email:currentEmail, token:currentMutationToken, fileBase64:prepared.dataUrl, mimeType:prepared.mimeType }) });
-        if (!photoResponse.ok) throw new Error(await window.AAE_UPLOAD.describeUploadFailure(photoResponse));
+        var reader = new FileReader();
+        var dataUrl = await new Promise(function(resolve, reject) { reader.onload = function(){ resolve(reader.result); }; reader.onerror = reject; reader.readAsDataURL(file); });
+        var photoResponse = await fetch('/api/booking/customer-photos', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ref:currentRef, email:currentEmail, token:currentMutationToken, fileBase64:dataUrl, mimeType:file.type }) });
+        if (!photoResponse.ok) throw new Error('Photo could not be uploaded.');
       }
       document.getElementById('customerMessage').value = ''; if (input) input.value = '';
       setCustomerCommunicationStatus('Sent.', false); await loadCustomerCommunication();

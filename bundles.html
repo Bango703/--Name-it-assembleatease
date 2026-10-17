@@ -233,7 +233,8 @@
       var itemCount=included.length;
       var img=bundleImages[b.slug] || '/images/bundle-move-in-setup.png';
       var includedPreview=included.slice(0,3).map(function(ref){ return ref.name; }).join(', ');
-      return '<a class="bn-card" href="/book?bundle='+encodeURIComponent(b.slug)+'">'
+      var bundleHref='/book?bundle='+encodeURIComponent(b.slug);
+      return '<a class="bn-card" href="'+bundleHref+'">'
         +'<div class="bn-photo">'
           +'<img src="'+esc(img)+'" alt="'+esc(b.name)+' bundle preview" loading="eager" width="1536" height="960"/>'
           +'<span class="bn-badge">'+itemCount+' item'+(itemCount===1?'':'s')+'</span>'

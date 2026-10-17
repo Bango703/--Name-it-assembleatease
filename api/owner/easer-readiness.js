@@ -2,51 +2,30 @@ import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
-import { getEaserReadiness } from '../_easer-readiness.js';
-import { isSmsEnabled, smsEligibility } from '../_sms.js';
 
-function taxReadinessFromAccount(account) {
-  if (!account) return { code: 'unknown', label: 'Unknown' };
+function taxReadinessFromAccount(account, dueCount) {
+  if (!account) {
+    return { code: 'unknown', label: 'Unknown' };
+  }
 
   const req = account.requirements || {};
   const currentlyDue = Array.isArray(req.currently_due) ? req.currently_due : [];
-  const pastDue = Array.isArray(req.past_due) ? req.past_due : [];
   const disabledReason = req.disabled_reason || null;
   const taxPattern = /(tax|tin|ssn|ein|w9|1099)/i;
-  const hasTaxDue = currentlyDue.concat(pastDue).some(field => taxPattern.test(String(field || '')));
+  const hasTaxDue = currentlyDue.some((field) => taxPattern.test(String(field || '')));
 
-  if (!currentlyDue.length && !pastDue.length && account.payouts_enabled) {
+  if (dueCount === 0 && account.payouts_enabled) {
     return { code: 'ready', label: 'Ready' };
   }
   if (hasTaxDue || (disabledReason && taxPattern.test(disabledReason))) {
     return { code: 'action_required', label: 'Action Required' };
   }
-  if (!account.details_submitted) return { code: 'not_started', label: 'Not Started' };
+  if (!account.details_submitted) {
+    return { code: 'not_started', label: 'Not Started' };
+  }
   return { code: 'pending', label: 'Pending Stripe Requirements' };
 }
 
-
-// Whether this Easer would actually receive a job text right now, decided by the
-// same function the sender uses so the owner view cannot disagree with reality.
-// Until 2026-09-08 an Easer could be READY FOR JOBS and still silently receive
-// nothing, because consent lives outside the readiness gates by design.
-function jobTextStatus(profile) {
-  if (!isSmsEnabled()) {
-    return { reachable: false, code: 'sms_not_configured', label: 'Texting is not configured' };
-  }
-  const eligible = smsEligibility(profile);
-  if (eligible.ok) return { reachable: true, code: 'ok', label: 'On' };
-  const labels = {
-    no_consent_recorded: 'Off - the Easer has not turned on job texts',
-    opted_out: 'Off - the Easer replied STOP',
-    no_valid_phone: 'Off - no valid mobile number on file',
-  };
-  return {
-    reachable: false,
-    code: eligible.reason,
-    label: labels[eligible.reason] || 'Off',
-  };
-}
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -64,12 +43,21 @@ export default async function handler(req, res) {
 
   if (profileErr || !profile) return res.status(404).json({ error: 'Easer not found' });
 
-  const connectRequired = isStripeConnectEnabled();
+  let dueCount = null;
+  let disabledReason = null;
   let account = null;
-  if (connectRequired && process.env.STRIPE_SECRET_KEY && profile.stripe_connect_account_id) {
+  const connectRequired = isStripeConnectEnabled();
+
+  if (process.env.STRIPE_SECRET_KEY && profile.stripe_connect_account_id) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       account = await stripe.accounts.retrieve(profile.stripe_connect_account_id);
+
+      const reqs = account.requirements || {};
+      const currentlyDue = Array.isArray(reqs.currently_due) ? reqs.currently_due : [];
+      dueCount = currentlyDue.length;
+      disabledReason = reqs.disabled_reason || null;
+
       const updates = {
         stripe_connect_details_submitted: !!account.details_submitted,
         stripe_connect_charges_enabled: !!account.charges_enabled,
@@ -77,42 +65,58 @@ export default async function handler(req, res) {
         stripe_connect_onboarding_complete: !!(account.details_submitted && account.charges_enabled && account.payouts_enabled),
         stripe_connect_updated_at: new Date().toISOString(),
       };
-      const { error: syncErr } = await sb.from('profiles').update(updates).eq('id', profile.id);
-      if (syncErr) console.error('owner/easer-readiness profile sync error:', syncErr.message);
+      await sb.from('profiles').update(updates).eq('id', profile.id);
       Object.assign(profile, updates);
     } catch (err) {
       console.error('owner/easer-readiness stripe sync error:', err?.message || err);
     }
   }
 
-  const readiness = await getEaserReadiness(profile, {
-    connectRequired,
-    stripeAccount: connectRequired ? account : null,
-  });
-  const w9Labels = {
-    not_requested: 'W-9 Not Requested',
-    requested: 'W-9 Requested',
-    received: 'W-9 Received - Validation Pending',
-    validated: 'W-9 Validated',
-    not_required: 'W-9 Marked Not Required',
-  };
-  const w9Status = profile.w9_status || 'not_requested';
-  const taxReadiness = connectRequired
-    ? taxReadinessFromAccount(account)
-    : { code: w9Status, label: w9Labels[w9Status] || 'W-9 Status Unknown' };
-  const missingItems = [...readiness.missingItems];
-  if (connectRequired && taxReadiness.code === 'action_required') {
-    missingItems.push('Tax readiness status: Action Required');
+  const applicationSubmitted = !!profile.created_at && ['applied', 'approved', 'rejected'].includes(String(profile.application_status || '').toLowerCase());
+  const contractorAgreementAccepted = !!profile.contractor_agreement_signed_at;
+  const agreementVersion = profile.contractor_agreement_version || profile.agreement_version || null;
+  const identityVerified = profile.identity_verified === true;
+  const ownerApproved = String(profile.status || '').toLowerCase() === 'active' || String(profile.application_status || '').toLowerCase() === 'approved';
+  const connectStarted = !!profile.stripe_connect_account_id;
+  const connectComplete = !!profile.stripe_connect_onboarding_complete;
+  const payoutsEnabled = !!profile.stripe_connect_payouts_enabled;
+  const requirementsDueCount = Number.isInteger(dueCount) ? dueCount : null;
+
+  const taxReadiness = taxReadinessFromAccount(account, requirementsDueCount == null ? 0 : requirementsDueCount);
+
+  const missingItems = [];
+  if (!applicationSubmitted) missingItems.push('Application submitted');
+  if (!contractorAgreementAccepted) missingItems.push('Contractor agreement accepted');
+  if (!agreementVersion) missingItems.push('Agreement version');
+  if (!identityVerified) missingItems.push('Identity verified');
+  if (!ownerApproved) missingItems.push('Owner approved');
+  if (connectRequired) {
+    if (!connectStarted) missingItems.push('Stripe Connect started');
+    if (!connectComplete) missingItems.push('Stripe Connect complete');
+    if (!payoutsEnabled) missingItems.push('Payouts enabled');
+    if (requirementsDueCount != null && requirementsDueCount > 0) missingItems.push('Stripe requirements due: ' + requirementsDueCount);
+    if (disabledReason) missingItems.push('Stripe disabled reason: ' + disabledReason);
+    if (taxReadiness.code === 'action_required') missingItems.push('Tax readiness status: Action Required');
   }
+
+  const finalStatus = missingItems.length === 0 ? 'READY FOR JOBS' : 'ACTION REQUIRED';
 
   return res.status(200).json({
     ok: true,
     readiness: {
-      ...readiness,
+      connectRequired,
+      applicationSubmitted,
+      contractorAgreementAccepted,
+      agreementVersion,
+      identityVerified,
+      ownerApproved,
+      connectStarted,
+      connectComplete,
+      payoutsEnabled,
+      requirementsDueCount,
+      disabledReason,
       taxReadinessStatus: taxReadiness.label,
-      w9Status,
-      jobTexts: jobTextStatus(profile),
-      finalStatus: missingItems.length === 0 ? 'READY FOR JOBS' : 'ACTION REQUIRED',
+      finalStatus,
       missingItems,
       checkedAt: new Date().toISOString(),
     },

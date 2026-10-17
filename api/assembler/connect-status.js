@@ -1,16 +1,11 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
-import {
-  invalidConnectStateUpdate,
-  isRecoverableConnectAccountError,
-  isStripeConnectEnabled,
-  normalizeStripeConnectAccountId,
-} from '../_stripe-connect.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 function deriveUiState(profile, requirementsDue) {
-  if (!normalizeStripeConnectAccountId(profile?.stripe_connect_account_id)) {
-    return { code: 'action_required', label: 'Action Required', message: 'Set up Stripe payouts so AssembleAtEase can send your earnings to your bank. Job offers can still start once you are approved and online.' };
+  if (!profile?.stripe_connect_account_id) {
+    return { code: 'action_required', label: 'Action Required', message: 'Set up Stripe payouts to receive jobs and payouts.' };
   }
   if (profile.stripe_connect_onboarding_complete && profile.stripe_connect_charges_enabled && profile.stripe_connect_payouts_enabled) {
     return { code: 'enabled', label: 'Enabled', message: 'Payouts are enabled.' };
@@ -26,7 +21,6 @@ function deriveUiState(profile, requirementsDue) {
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-  res.setHeader('Cache-Control', 'private, no-store');
 
   if (!isStripeConnectEnabled()) {
     return res.status(200).json({
@@ -55,13 +49,10 @@ export default async function handler(req, res) {
 
   let requirementsCurrentlyDue = [];
 
-  const accountId = normalizeStripeConnectAccountId(profile.stripe_connect_account_id);
-  const shouldRefreshStripe = req.query?.refresh === 'true';
-
-  if (process.env.STRIPE_SECRET_KEY && accountId && shouldRefreshStripe) {
+  if (process.env.STRIPE_SECRET_KEY && profile.stripe_connect_account_id) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      const account = await stripe.accounts.retrieve(accountId);
+      const account = await stripe.accounts.retrieve(profile.stripe_connect_account_id);
 
       requirementsCurrentlyDue = Array.isArray(account?.requirements?.currently_due)
         ? account.requirements.currently_due
@@ -78,18 +69,8 @@ export default async function handler(req, res) {
       await sb.from('profiles').update(updates).eq('id', profile.id);
       Object.assign(profile, updates);
     } catch (err) {
-      if (isRecoverableConnectAccountError(err)) {
-        const reset = invalidConnectStateUpdate();
-        await sb.from('profiles').update(reset).eq('id', profile.id);
-        Object.assign(profile, reset);
-      } else {
-        console.error('connect-status stripe sync error:', err?.message || err);
-      }
+      console.error('connect-status stripe sync error:', err?.message || err);
     }
-  } else if (profile.stripe_connect_account_id && !accountId) {
-    const reset = invalidConnectStateUpdate();
-    await sb.from('profiles').update(reset).eq('id', profile.id);
-    Object.assign(profile, reset);
   }
 
   const connect = deriveUiState(profile, requirementsCurrentlyDue.length);

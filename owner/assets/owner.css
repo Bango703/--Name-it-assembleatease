@@ -325,6 +325,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .empty-state-desc { font-size:0.82rem;color:var(--muted);line-height:1.6;max-width:260px; }
 
 /* Tier badges — canonical classes live in /assets/status.css; .tier-* retained as aliases */
+.ops-easer-tier .sb{box-sizing:border-box;width:7.25rem;flex:0 0 7.25rem;justify-content:center;white-space:nowrap}
 
 /* Section header with actions */
 .view-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;gap:1rem; }

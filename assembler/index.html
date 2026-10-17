@@ -2,27 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="/assets/js/sentry-init.js"></script>
-  <script src="https://js.sentry-cdn.com/d5e773248c17d9f13dcf8b0a5f5dd73f.min.js" crossorigin="anonymous"></script>
   <title>Home — Easer</title>
   <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="View job readiness, active assignments, alerts, and next steps in the AssembleAtEase Easer dashboard." />
-    <link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
-  
-  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Easer App" />
+  <meta name="apple-mobile-web-app-title" content="AE Easer" />
   <meta name="theme-color" content="#00BFFF" />
-  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
-  <style>body.easer-booting>*{visibility:hidden}</style>
+  <link rel="apple-touch-icon" href="/images/logo.jpg" />
+  <style>body{visibility:hidden}</style>
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
-  <script src="../config.js?v=20260818a" defer></script>
-  <script src="../assets/js/app.js?v=20260818a" defer></script>
-  <script src="../assets/js/api.js?v=20260818a" defer></script>
-  <script src="../assets/js/easer-notifications.js?v=20260818b" defer></script>
+  <script src="../config.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js?v=20260608a" defer></script>
   <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
   <style>
@@ -42,9 +35,6 @@
     /* Online/Offline pill toggle */
     .eh-avail-pill{display:flex;align-items:center;gap:6px;border:1px solid var(--e-border-md);border-radius:999px;padding:0.38rem 0.875rem;background:var(--e-surface);cursor:pointer;font-family:var(--e-font);font-size:0.8rem;font-weight:500;color:var(--e-text);white-space:nowrap;flex-shrink:0;transition:all 0.2s;-webkit-tap-highlight-color:transparent;visibility:visible}
     .eh-avail-pill *{visibility:visible}
-    /* While booting, the pill must not animate — otherwise it visibly slides from the
-       default Offline look to the real state on first paint ("shows mid while loading"). */
-    body.easer-booting .eh-avail-pill,body.easer-booting .eh-avail-pill *{transition:none!important}
     .eh-avail-dot{width:8px;height:8px;border-radius:50%;background:#6b7280;flex-shrink:0;transition:background 0.2s}
     .eh-avail-pill.on{border-color:rgba(34,197,94,0.35);background:rgba(34,197,94,0.06)}
     .eh-avail-pill.on .eh-avail-dot{background:#22c55e}
@@ -57,9 +47,6 @@
     .eh-banner.identity{background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.15)}
     .eh-banner.identity .eh-banner-title{color:#3b82f6}
     .eh-banner.identity .eh-banner-sub{color:rgba(59,130,246,0.7)}
-    .eh-banner.closure{background:rgba(220,38,38,0.06);border-color:rgba(220,38,38,0.2)}
-    .eh-banner.closure .eh-banner-title{color:#b91c1c}
-    .eh-banner.closure .eh-banner-sub{color:#7f1d1d}
     .eh-banner-btn{display:inline-flex;align-items:center;gap:6px;padding:0.4rem 1rem;border-radius:999px;font-family:var(--e-font);font-size:0.78rem;font-weight:500;cursor:pointer;border:none;background:var(--e-teal);color:#fff;text-decoration:none;white-space:nowrap;flex-shrink:0}
 
     /* Section labels */
@@ -120,7 +107,7 @@
     .eh-offer-payout{text-align:right;flex-shrink:0}
     .eh-offer-amount{font-size:1.5rem;font-weight:800;color:var(--e-teal);line-height:1}
     .eh-offer-est{font-size:0.65rem;color:var(--e-muted);margin-top:3px}
-    .eh-offer-actions{display:grid;grid-template-columns:1fr;gap:0.5rem}
+    .eh-offer-actions{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem}
     .eh-offer-accept{background:var(--e-teal);color:white;border:none;border-radius:10px;padding:0.75rem;font-family:var(--e-font);font-size:0.9rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity 0.15s}
     .eh-offer-accept:active{opacity:0.85}
     .eh-offer-accept:disabled{opacity:0.5;cursor:not-allowed}
@@ -128,15 +115,11 @@
     .eh-offer-decline:active{opacity:0.8}
 
     /* Upcoming cards */
-    .eh-upcoming-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:10px;padding:0.875rem 1rem;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.875rem;cursor:pointer;text-decoration:none;-webkit-tap-highlight-color:transparent}
+    .eh-upcoming-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:10px;padding:0.875rem 1rem;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.875rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
     .eh-upcoming-card:active{background:var(--e-elevated)}
     .eh-upcoming-when{font-size:0.72rem;font-weight:700;color:var(--e-teal);text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
     .eh-upcoming-service{font-size:0.875rem;font-weight:500;color:var(--e-text)}
     .eh-upcoming-addr{font-size:0.72rem;color:var(--e-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    /* A job assigned to this Easer that still needs their acceptance. Sits under
-       Upcoming, which has no Accept button, so without this it reads as confirmed. */
-    .eh-upcoming-needs{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:2px 8px;border-radius:999px;background:var(--e-teal-dim);color:var(--e-teal-dark);font-size:0.66rem;font-weight:700;letter-spacing:0.02em}
-    .eh-upcoming-needs svg{flex-shrink:0}
 
     /* Waiting state */
     .eh-waiting-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
@@ -154,10 +137,8 @@
     .sheet-overlay { display: none !important; }
     .sheet-overlay.open { display: flex !important; }
   </style>
-<script src="/assets/js/status-source-of-truth.js" defer></script>
-<script src="/assets/js/image-upload.js" defer></script>
-  </head>
-<body class="easer-booting">
+</head>
+<body>
 
 <div class="e-offline" id="e-offline">No connection — updates paused</div>
 
@@ -176,11 +157,10 @@
     <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted)">Notifications</div>
     <button onclick="document.getElementById('notif-panel').style.display='none';document.getElementById('notif-backdrop').style.display='none'" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--e-muted);display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent" aria-label="Close notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
-  <div id="notif-list" style="text-align:center;padding:1.5rem 0;color:var(--e-muted);font-size:0.875rem">Loading notifications...</div>
+  <div style="text-align:center;padding:1.5rem 0;color:var(--e-muted);font-size:0.875rem">No new notifications</div>
 </div>
 
 <div class="easer-page">
-  <div id="page-alert" class="alert hidden" role="status" aria-live="polite"></div>
 
   <!-- Hidden compat elements kept for JS -->
   <span id="sidebar-earnings" style="display:none">$0</span>
@@ -210,23 +190,16 @@
     </button>
   </div>
 
-  <!-- Only unresolved account actions are shown here. -->
+  <!-- Onboarding checklist (shown until all steps complete) -->
   <div id="onboarding-checklist" style="display:none;background:#fff;border:1.5px solid rgba(0,191,255,0.25);border-radius:14px;padding:1rem 1.25rem;margin-bottom:1rem;box-shadow:0 2px 12px rgba(0,191,255,0.08)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
-      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--e-teal)">Account Action Needed</div>
+      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--e-teal)">Get Dispatch Ready</div>
       <div id="onboarding-progress-text" style="font-size:0.72rem;color:var(--e-muted);font-weight:600"></div>
     </div>
     <div id="onboarding-steps" style="display:flex;flex-direction:column;gap:0.5rem"></div>
   </div>
 
   <!-- Account status banners -->
-  <div id="closure-status-banner" class="eh-banner closure hidden" role="status">
-    <div>
-      <div class="eh-banner-title" id="closure-status-title"></div>
-      <div class="eh-banner-sub" id="closure-status-sub"></div>
-    </div>
-    <a href="/assembler/profile" class="eh-banner-btn">View Account</a>
-  </div>
   <div id="tier-status-banner" class="eh-banner hidden">
     <div>
       <div class="eh-banner-title" id="tier-status-title"></div>
@@ -238,7 +211,7 @@
       <div class="eh-banner-title">Identity verification pending</div>
       <div class="eh-banner-sub" id="identity-banner-sub">Your verification is in progress.</div>
     </div>
-    <a id="identity-verify-btn" href="/assembler/verify-identity" class="eh-banner-btn" style="display:none">Continue Verification</a>
+    <a id="identity-verify-btn" href="/apply" class="eh-banner-btn" style="display:none">Verify Now</a>
   </div>
   <div id="profile-banner" class="eh-banner hidden">
     <div>
@@ -332,18 +305,16 @@
 
 <script>
   function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
-  function hasValidUsPhone(value){var digits=String(value||'').replace(/\D/g,'');if(digits.length===11&&digits.charAt(0)==='1')digits=digits.slice(1);return /^\d{10}$/.test(digits);}
   function fmtTime(ts){if(!ts)return'';return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});}
-  function fmtDate(d){if(!d)return'TBD';try{var dt=new Date(String(d).includes('T')?d:d+'T12:00:00');var now=new Date();var today=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12);var diff=Math.round((dt-today)/86400000);if(diff===0)return'Today';if(diff===1)return'Tomorrow';return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}catch{return d;}}
-  function fmtPay(cents){var amount=Number(cents);if(!Number.isFinite(amount))return null;return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(amount/100);}
+  function fmtDate(d){if(!d)return'TBD';try{var dt=new Date(d);var now=new Date();var diff=Math.round((dt-new Date(now.toDateString()))/86400000);if(diff===0)return'Today';if(diff===1)return'Tomorrow';return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}catch{return d;}}
+  function fmtPay(cents){if(!cents)return'$0';return'$'+(cents/100).toFixed(0);}
+
+  var DASHBOARD_CACHE_KEY = 'easer_dashboard_cache_v1';
+  var DASHBOARD_CACHE_TTL_MS = 15 * 60 * 1000;
+  var DASHBOARD_CACHE_STALE_MS = 60 * 60 * 1000;
 
   var available = false;
   var currentUserId = null;
-  var currentProfile = null;
-  var currentReadiness = null;
-  var currentReadinessError = null;
-  var currentEffectiveStatus = 'pending';
-  var currentClosureStatus = null;
   var freshTok = null;
   var tosInterval = null;
   var offerTimerInterval = null;
@@ -351,7 +322,6 @@
   var _homePhotoFile = null;
   var _homePhotoDataUrl = null;
   var _homePhotoUploaded = false;
-  var _pendingDeclineOffer = null;
   var dashboardLoadState = {
     mode: 'loading',
     lastSuccessAt: null,
@@ -360,92 +330,52 @@
     retryCount: 0,
     inFlight: false,
     requestSeq: 0,
+    staleSnapshot: null,
     authRefreshAttempted: false,
   };
   var dashboardRetryTimer = null;
   var dashboardPendingPromise = null;
-  var _silentLoad = false; // true during background polling — suppress loading/error banners
-
-  function setHomeSheetOpen(sheetId, open, focusId) {
-    var sheet = document.getElementById(sheetId);
-    if (!sheet) return;
-    if (open) {
-      var active = document.activeElement;
-      sheet._returnFocus = active instanceof HTMLElement && active.getAttribute('type') !== 'file' ? active : null;
-    }
-    sheet.classList.toggle('open', !!open);
-    sheet.setAttribute('aria-hidden', open ? 'false' : 'true');
-    if (open && focusId) {
-      requestAnimationFrame(function() {
-        var target = document.getElementById(focusId);
-        if (target) target.focus();
-      });
-    } else if (sheet._returnFocus && document.contains(sheet._returnFocus)) {
-      sheet._returnFocus.focus();
-      sheet._returnFocus = null;
-    } else if (!open) {
-      var fallback = document.getElementById('eh-cta-btn') || document.getElementById('avail-toggle');
-      if (fallback) fallback.focus();
-    }
-  }
-
-  function trapHomeSheetFocus(event, sheet) {
-    if (event.key !== 'Tab' || !sheet) return;
-    var focusable = Array.from(sheet.querySelectorAll(
-      'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    )).filter(function(element) { return element.offsetParent !== null; });
-    if (!focusable.length) return;
-    var first = focusable[0];
-    var last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }
-
-  function setHomeCompletionStatus(message, tone) {
-    var status = document.getElementById('home-complete-status');
-    if (!status) return;
-    status.textContent = message || '';
-    status.style.display = message ? 'block' : 'none';
-    status.style.color = tone === 'error' ? '#b91c1c' : 'var(--e-muted)';
-  }
-
-  function resetHomeCompletionUi() {
-    _homePhotoFile = null;
-    _homePhotoDataUrl = null;
-    _homePhotoUploaded = false;
-    var input = document.getElementById('home-photo-input');
-    var preview = document.getElementById('home-photo-preview');
-    var image = document.getElementById('home-photo-img');
-    var confirmButton = document.getElementById('home-complete-yes');
-    if (input) input.value = '';
-    if (preview) preview.style.display = 'none';
-    if (image) image.removeAttribute('src');
-    if (confirmButton) {
-      confirmButton.disabled = false;
-      confirmButton.textContent = 'Yes, job is complete';
-    }
-    setHomeCompletionStatus('');
-  }
 
   function clearDashboardRetryTimer() {
     if (dashboardRetryTimer) clearTimeout(dashboardRetryTimer);
     dashboardRetryTimer = null;
   }
 
-  function clearDashboardCache() {
+  function readDashboardCache() {
     try {
-      if (window.APP && typeof APP.clearPrivateSessionData === 'function') APP.clearPrivateSessionData();
+      var raw = sessionStorage.getItem(DASHBOARD_CACHE_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.bookings) || !parsed.savedAt) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeDashboardCache(bookings, meta) {
+    try {
+      sessionStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
+        savedAt: new Date().toISOString(),
+        bookings: bookings || [],
+        meta: meta || null,
+      }));
     } catch {}
   }
 
+  function clearDashboardCache() {
+    try { sessionStorage.removeItem(DASHBOARD_CACHE_KEY); } catch {}
+  }
+
+  function getDashboardCachedAgeMs(cache) {
+    if (!cache || !cache.savedAt) return Infinity;
+    var ts = new Date(cache.savedAt).getTime();
+    if (isNaN(ts)) return Infinity;
+    return Date.now() - ts;
+  }
+
   function classifyDashboardError(status) {
-    if (status === 401) return 'auth_error';               // session invalid → re-login
-    if (status === 403) return 'account_inactive';         // authenticated but not active (e.g. suspended) → NEVER bounce to login
+    if (status === 401 || status === 403) return 'auth_error';
     if (status >= 500) return 'server_error';
     if (status > 0) return 'server_error';
     return 'network_error';
@@ -454,9 +384,6 @@
   function setDashboardStatus(mode, payload) {
     var el = document.getElementById('dashboard-status');
     if (!el) return;
-    // During a silent background poll, never flash a loading/stale/error banner —
-    // only let 'success'/'empty' through (they just hide the banner).
-    if (_silentLoad && mode !== 'success' && mode !== 'empty' && mode !== 'account_inactive') return;
 
     if (mode === 'success' || mode === 'empty') {
       el.style.display = 'none';
@@ -474,8 +401,8 @@
       title = 'Syncing your jobs…';
       body = 'Checking for active work, offers, and upcoming assignments.';
     } else if (mode === 'stale_data') {
-      title = 'Some job details are delayed';
-      body = 'The latest jobs are shown, but some offer details may still be updating.';
+      title = 'Showing last synced jobs';
+      body = 'Live data is temporarily unavailable. You are seeing the most recent successful dashboard snapshot.';
       actionHtml = '<button type="button" id="dashboard-retry-btn" class="eh-banner-btn" style="margin-top:0.75rem">Retry now</button>';
       tone = 'rgba(245,158,11,0.18)';
       bg = 'rgba(245,158,11,0.07)';
@@ -484,21 +411,6 @@
       body = 'Please sign in again to continue loading your dashboard.';
       actionHtml = '<button type="button" id="dashboard-retry-btn" class="eh-banner-btn" style="margin-top:0.75rem">Sign in again</button>';
       tone = 'rgba(239,68,68,0.18)';
-      bg = 'rgba(239,68,68,0.07)';
-    } else if (mode === 'account_inactive') {
-      var acctStatus = payload && payload.accountStatus ? payload.accountStatus : null;
-      if (acctStatus === 'suspended') {
-        title = 'Your account is suspended';
-        body = 'Your Easer account is paused, so you can’t receive or view jobs right now. Check your email for details, or contact support to reactivate.';
-      } else if (acctStatus === 'pending') {
-        title = 'Your application is pending';
-        body = 'Your Easer account isn’t active yet. We’ll email you when your status changes.';
-      } else {
-        title = 'Your account isn’t active';
-        body = 'Your Easer account isn’t active for jobs right now. Contact support if you think this is a mistake.';
-      }
-      actionHtml = '<a href="mailto:service@assembleatease.com" class="eh-banner-btn" style="margin-top:0.75rem;text-decoration:none">Contact support</a>';
-      tone = 'rgba(239,68,68,0.2)';
       bg = 'rgba(239,68,68,0.07)';
     } else if (mode === 'network_error') {
       title = 'Can\'t reach the server';
@@ -545,15 +457,9 @@
   function renderDashboardPayload(bookings, options) {
     var list = Array.isArray(bookings) ? bookings.slice() : [];
     var liveStatuses=['en_route','arrived','in_progress'];
-    var hasOpenReturnVisit = function(b) {
-      return !!(b && (b._return_visit_open === true
-        || (b.status === 'completed' && b.return_visit_required === true)));
-    };
     var liveJobs     =list.filter(function(b){return liveStatuses.includes(b.status);});
     var pendingOffers=list.filter(function(b){return b._is_pending_offer;});
-    var upcomingJobs =list.filter(function(b){
-      return (b.status==='confirmed'&&!b._is_pending_offer) || hasOpenReturnVisit(b);
-    });
+    var upcomingJobs =list.filter(function(b){return b.status==='confirmed'&&!b._is_pending_offer;});
     var hasUrgentWork = liveJobs.length > 0 || pendingOffers.length > 0;
 
     setHomePriorityMode(hasUrgentWork);
@@ -568,29 +474,16 @@
 
     if (upcomingJobs.length>0){
       document.getElementById('upcoming-list').innerHTML=upcomingJobs.slice(0,3).map(function(b){
-        var upcomingDate = b.return_visit_required ? b.return_visit_date : b.date;
-        var upcomingTime = b.return_visit_required ? b.return_visit_time : b.time;
-        var dateStr=fmtDate(upcomingDate);
-        var when=(b.return_visit_required ? 'Return: ' : '') + dateStr + (upcomingTime ? ' · ' + upcomingTime : '');
-        // The street is withheld until this Easer accepts, so fall back to the
-        // city the server sent -- the same line the assignment email shows.
-        // _needs_acceptance is the server's verdict; this page only renders it.
-        var needsAcceptance = b._needs_acceptance === true;
-        var place = b.address ? APP.formatPostalAddress(b.address) : (b._offer_location || 'Address TBD');
-        var serviceLabel = APP.formatServiceLabel(b.service);
-        var cardHref = needsAcceptance ? '/assembler/my-assignments?job=' + encodeURIComponent(b.id) : '/assembler/my-assignments';
-        var cardLabel = needsAcceptance ? 'Review and accept ' + serviceLabel + ' job' : 'Open ' + serviceLabel + ' job details';
-        return '<a class="eh-upcoming-card" href="' + esc(cardHref) + '" aria-label="' + esc(cardLabel) + '">'
+        var dateStr=fmtDate(b.date);
+        var when=dateStr + (b.time ? ' · ' + b.time : '');
+        return '<div class="eh-upcoming-card" onclick="window.location.href=\'/assembler/my-assignments\'">'
           +'<div style="flex:1;min-width:0">'
             +'<div class="eh-upcoming-when">'+esc(when)+'</div>'
-            +'<div class="eh-upcoming-service">'+esc(serviceLabel)+'</div>'
-            +'<div class="eh-upcoming-addr">'+esc(place)+'</div>'
-            +(needsAcceptance
-              ? '<span class="eh-upcoming-needs"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Tap to accept</span>'
-              : '')
+            +'<div class="eh-upcoming-service">'+esc(b.service||'Service')+'</div>'
+            +'<div class="eh-upcoming-addr">'+esc(b.address||'Address TBD')+'</div>'
           +'</div>'
           +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--e-border-md)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
-        +'</a>';
+        +'</div>';
       }).join('');
     } else if(liveJobs.length===0&&pendingOffers.length===0){
       var ws=document.getElementById('waiting-state');
@@ -619,11 +512,7 @@
   function setHomePriorityMode(hasUrgentWork) {
     var checklist = document.getElementById('onboarding-checklist');
     if (checklist && checklist.dataset.deferWhenBusy === 'true') {
-      var hasBlockingAgreementAction = checklist.dataset.agreementRequired === 'true';
-      checklist.style.display = (
-        checklist.dataset.completed === 'true'
-        || (hasUrgentWork && !hasBlockingAgreementAction)
-      ) ? 'none' : '';
+      checklist.style.display = hasUrgentWork ? 'none' : '';
     }
 
     var profileBanner = document.getElementById('profile-banner');
@@ -665,7 +554,7 @@
 
       for (var attempt = 0; attempt < 2; attempt++) {
         try {
-          lastResponse = await APP.privateFetch(currentUserId, '/api/booking/my-assignments',{headers:{'Authorization':'Bearer '+freshTok},cache:'no-store'});
+          lastResponse = await fetch('/api/booking/my-assignments',{headers:{'Authorization':'Bearer '+freshTok}});
         } catch (err) {
           throw { kind: 'network_error', status: 0, message: err && err.message ? err.message : 'Network error' };
         }
@@ -696,7 +585,6 @@
         throw {
           kind: errorKind,
           status: lastResponse.status,
-          accountStatus: responseBody && responseBody.accountStatus ? responseBody.accountStatus : null,
           message: responseBody && responseBody.error ? responseBody.error : 'Dashboard load failed',
         };
       }
@@ -712,21 +600,38 @@
       dashboardLoadState.retryCount = 0;
       dashboardLoadState.mode = 'success';
 
+      writeDashboardCache(bookings, meta);
       renderDashboardPayload(bookings, { warnings: meta && Array.isArray(meta.warnings) ? meta.warnings : [] });
       return;
     })().catch(function(error) {
       if (requestSeq !== dashboardLoadState.requestSeq) return;
 
+      var cache = readDashboardCache();
+      var cacheAgeMs = getDashboardCachedAgeMs(cache);
+      var canUseStale = cache && cacheAgeMs <= DASHBOARD_CACHE_STALE_MS;
+      var bookings = canUseStale ? cache.bookings : [];
+
       dashboardLoadState.lastError = error && error.message ? error.message : 'Dashboard load failed';
       dashboardLoadState.lastHttpStatus = error && error.status ? error.status : null;
-      dashboardLoadState.mode = error && error.kind ? error.kind : 'server_error';
-      dashboardLoadState.accountStatus = error && error.accountStatus ? error.accountStatus : null;
-      // Authenticated but not active (e.g. suspended): show a clear status and STOP.
-      // Do not redirect to login (that caused a login↔dashboard loop) and do not retry.
-      if (dashboardLoadState.mode === 'account_inactive') {
-        setDashboardStatus('account_inactive', { accountStatus: dashboardLoadState.accountStatus });
+
+      if (canUseStale) {
+        dashboardLoadState.staleSnapshot = cache;
+        dashboardLoadState.mode = 'stale_data';
+        renderDashboardPayload(bookings, { warnings: (cache.meta && cache.meta.warnings) ? cache.meta.warnings : [] });
+        setDashboardStatus('stale_data', { extra: dashboardLoadState.retryCount >= 3 ? 'Auto-retry exhausted — tap Retry to try again.' : 'Last sync: ' + new Date(cache.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) });
+        if (dashboardLoadState.retryCount < 3) {
+          var retryDelays = [2000, 5000, 15000];
+          clearDashboardRetryTimer();
+          dashboardRetryTimer = setTimeout(function() {
+            if (document.visibilityState === 'visible') loadDashboardData('auto_retry');
+          }, retryDelays[dashboardLoadState.retryCount] || 15000);
+          dashboardLoadState.retryCount += 1;
+        }
         return;
       }
+
+      dashboardLoadState.staleSnapshot = null;
+      dashboardLoadState.mode = error && error.kind ? error.kind : 'server_error';
       if (dashboardLoadState.mode === 'auth_error') {
         setDashboardStatus('auth_error');
         window.location.href = '/auth/login?return=' + encodeURIComponent('/assembler/');
@@ -755,232 +660,33 @@
   // Availability toggle — immediate when going online, confirmation sheet when going offline
   document.getElementById('avail-toggle').addEventListener('click', async function(){
     if (!currentUserId) return;
-    if (isClosureHeld()) {
-      APP.showAlert('page-alert', closureAvailabilityMessage(), 'error');
-      return;
-    }
     if (available) {
       // Going offline — ask for confirmation
-      setHomeSheetOpen('go-offline-sheet',true,'go-offline-confirm');
+      document.getElementById('go-offline-sheet').classList.add('open');
       return;
     }
     // Going online — immediate
-    if (!currentReadiness) {
-      var readinessLoaded = await loadEaserReadinessStatus(freshTok);
-      if (!readinessLoaded) {
-        APP.showAlert('page-alert', 'Job readiness could not be verified. Retry before going Online.', 'error');
-        return;
-      }
-    }
-    if (currentReadiness.suspended === true || currentReadiness.accountStatus === 'suspended') {
-      APP.showAlert('page-alert', 'Your account is suspended, so you can’t go Online. Contact support at service@assembleatease.com to reactivate.', 'error');
-      return;
-    }
-    if (currentReadiness.isReady !== true) {
-      APP.showAlert('page-alert', 'You can’t go Online yet. Still needed: ' + (currentReadiness.missingItems || []).join(', '), 'error');
-      return;
-    }
     available = true;
     setAvailUI(true);
     try {
-      var res = await supabaseClient.rpc('update_own_easer_profile_safe',{p_updates:{is_available:true}});
+      var res = await supabaseClient.from('profiles').update({is_available:true}).eq('id',currentUserId);
       if (res.error) throw res.error;
     } catch(e) {
       available = false;
       setAvailUI(false);
-      APP.showAlert('page-alert', (e && e.message) || 'Your readiness checklist must be complete before going Online.', 'error');
     }
   });
 
   function setAvailUI(on) {
-    if (isClosureHeld()) on = false;
-    if (currentProfile) currentProfile.is_available = !!on;
     document.getElementById('avail-pill').classList.toggle('on', on);
     document.getElementById('avail-toggle').classList.toggle('on', on);
     document.getElementById('avail-label').textContent = on ? 'Online' : 'Offline';
     document.getElementById('eh-online-dot').classList.toggle('online', on);
-    document.getElementById('eh-greeting-sub-text').textContent = isClosureHeld()
-      ? closureGreetingMessage()
-      : (on ? "You're online and available" : "You're currently offline");
-    var toggle = document.getElementById('avail-toggle');
-    toggle.disabled = isClosureHeld();
-    toggle.setAttribute('aria-disabled', isClosureHeld() ? 'true' : 'false');
-    toggle.title = isClosureHeld() ? closureAvailabilityMessage() : '';
+    document.getElementById('eh-greeting-sub-text').textContent = on ? "You're online and available" : "You're currently offline";
     var cardTitle = document.getElementById('avail-card-title');
     var cardSub   = document.getElementById('avail-card-sub');
     if (cardTitle) cardTitle.textContent = on ? "You're Online" : "You're Offline";
     if (cardSub) cardSub.textContent = on ? "You'll receive job offers when they're available" : "Toggle Online to start receiving job offers";
-    renderOnboardingChecklist();
-  }
-
-  async function loadCanonicalPerformance(token) {
-    var jobsEl = document.getElementById('stat-jobs');
-    var earnedEl = document.getElementById('stat-earned');
-    try {
-      var response = await APP.privateFetch(currentUserId, '/api/assembler/earnings', {
-        headers: { 'Authorization': 'Bearer ' + token },
-      });
-      if (!response.ok) throw new Error('Current earnings summary unavailable');
-      var data = await response.json();
-      var summary = data && data.summary ? data.summary : {};
-      if (jobsEl) jobsEl.textContent = String(Number(summary.completed_jobs || 0));
-      if (earnedEl) earnedEl.textContent = fmtPay(Number(summary.total_earned_cents || 0)) || '$0.00';
-    } catch (error) {
-      if (jobsEl) {
-        jobsEl.textContent = '—';
-        jobsEl.title = 'Current completed-job count is temporarily unavailable';
-      }
-      if (earnedEl) {
-        earnedEl.textContent = '—';
-        earnedEl.title = 'Current earnings total is temporarily unavailable';
-      }
-    }
-  }
-
-  function hasUrgentDashboardWork() {
-    var activeSection = document.getElementById('active-section');
-    var offersSection = document.getElementById('offers-section');
-    return !!(
-      (activeSection && activeSection.style.display !== 'none')
-      || (offersSection && offersSection.style.display !== 'none')
-    );
-  }
-
-  function renderOnboardingChecklist() {
-    var checklist = document.getElementById('onboarding-checklist');
-    var listEl = document.getElementById('onboarding-steps');
-    var progEl = document.getElementById('onboarding-progress-text');
-    if (!checklist || !listEl || !progEl) return;
-
-    if (!currentProfile || currentEffectiveStatus !== 'active' || isClosureHeld()) {
-      checklist.dataset.completed = 'false';
-      checklist.style.display = 'none';
-      listEl.innerHTML = '';
-      progEl.textContent = '';
-      return;
-    }
-
-    var currentAgreementAccepted = !!(currentReadiness && currentReadiness.agreementCurrent && currentReadiness.codeOfConductAccepted);
-    var onbSteps = [
-      {
-        key:'agreement',
-        done: currentAgreementAccepted,
-        label: currentProfile.contractor_agreement_signed_at ? 'Review the updated contractor agreement' : 'Accept the contractor agreement',
-        desc: currentReadinessError
-          ? 'Agreement status could not be verified. Open the secure account-update page or retry the dashboard.'
-          : 'A current agreement acknowledgment is required before new offers can be sent.',
-        action: !currentAgreementAccepted ? { href:'/assembler/verify-identity', label:'Review' } : null,
-      },
-      {
-        key:'identity',
-        done: currentProfile.identity_verified===true,
-        label:'Verify your identity',
-        desc: 'Identity verification is required before new offers can be sent.',
-        action: !currentProfile.identity_verified ? { href:'/assembler/verify-identity', label:'Continue' } : null,
-      },
-      {
-        key:'phone',
-        done: hasValidUsPhone(currentProfile.phone),
-        label:'Add your phone number',
-        desc: 'Add a phone number for job offers and notifications.',
-        action: !hasValidUsPhone(currentProfile.phone) ? { href:'/assembler/profile', label:'Add Phone' } : null,
-      },
-    ].filter(function(step){ return !step.done; });
-    var allDone = onbSteps.length === 0;
-
-    checklist.dataset.deferWhenBusy = 'true';
-    checklist.dataset.completed = allDone ? 'true' : 'false';
-    checklist.dataset.agreementRequired = currentAgreementAccepted ? 'false' : 'true';
-
-    if (allDone) {
-      checklist.style.display = 'none';
-      listEl.innerHTML = '';
-      progEl.textContent = '';
-      return;
-    }
-
-    progEl.textContent = onbSteps.length + (onbSteps.length === 1 ? ' action remaining' : ' actions remaining');
-    listEl.innerHTML = onbSteps.map(function(s){
-      var iconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
-      var actionHtml = s.action
-        ? '<a href="' + s.action.href + '" style="flex-shrink:0;display:inline-flex;align-items:center;padding:0.28rem 0.7rem;background:var(--e-teal);color:#fff;border-radius:999px;font-size:0.7rem;font-weight:700;text-decoration:none">' + s.action.label + '</a>'
-        : '';
-      return '<div style="display:flex;align-items:center;gap:0.625rem;padding:0.45rem 0;border-bottom:1px solid var(--e-border)">'
-        + '<span style="flex-shrink:0">' + iconSvg + '</span>'
-        + '<div style="flex:1;min-width:0">'
-          + '<div style="font-size:0.82rem;font-weight:600;color:var(--e-text)">' + esc(s.label) + '</div>'
-          + '<div style="font-size:0.7rem;color:var(--e-muted);margin-top:1px">' + esc(s.desc) + '</div>'
-        + '</div>'
-        + actionHtml
-        + '</div>';
-    }).join('');
-
-    var lastItem = listEl.lastElementChild;
-    if (lastItem) lastItem.style.borderBottom = 'none';
-
-    setHomePriorityMode(hasUrgentDashboardWork());
-  }
-
-  async function loadEaserReadinessStatus(token) {
-    currentReadinessError = null;
-    try {
-      var response = await APP.privateFetch(currentUserId, '/api/assembler/readiness', {
-        headers: { 'Authorization': 'Bearer ' + token },
-      });
-      var data = await response.json().catch(function () { return {}; });
-      if (!response.ok || !data.readiness) throw new Error(data.error || 'Readiness status unavailable');
-      currentReadiness = data.readiness;
-      renderOnboardingChecklist();
-      return true;
-    } catch (error) {
-      currentReadiness = null;
-      currentReadinessError = error && error.message ? error.message : 'Readiness status unavailable';
-      renderOnboardingChecklist();
-      return false;
-    }
-  }
-
-  function normalizeClosureStatus(value) {
-    return String(value || '').trim().toLowerCase();
-  }
-
-  function isClosureHeld() {
-    return ['requested', 'reviewing', 'completed'].includes(currentClosureStatus);
-  }
-
-  function closureGreetingMessage() {
-    if (currentClosureStatus === 'completed') return 'This Easer account is closed';
-    if (currentClosureStatus === 'reviewing') return 'Account closure is in progress';
-    return 'Account closure has been requested';
-  }
-
-  function closureAvailabilityMessage() {
-    if (currentClosureStatus === 'completed') return 'A closed account cannot go Online or receive offers.';
-    return 'Availability stays Offline while the account closure request is processed.';
-  }
-
-  function applyClosureState() {
-    var banner = document.getElementById('closure-status-banner');
-    if (!banner || !isClosureHeld()) return;
-    banner.classList.remove('hidden');
-    var title = document.getElementById('closure-status-title');
-    var sub = document.getElementById('closure-status-sub');
-    if (currentClosureStatus === 'completed') {
-      title.textContent = 'Easer account closed';
-      sub.textContent = 'New offers and availability are disabled. Contact support if you need help with a payout record or retained account information.';
-    } else if (currentClosureStatus === 'reviewing') {
-      title.textContent = 'Account closure in progress';
-      sub.textContent = 'You are Offline and cannot receive new offers. You will be notified when the status changes.';
-    } else {
-      title.textContent = 'Account closure requested';
-      sub.textContent = 'You are Offline and cannot receive new offers. You will be notified when the status changes.';
-    }
-    var jobsLink = document.querySelector('.easer-nav-item[href="/assembler/my-assignments"]');
-    if (jobsLink) {
-      jobsLink.style.opacity = '0.4';
-      jobsLink.style.pointerEvents = 'none';
-      jobsLink.setAttribute('aria-disabled', 'true');
-    }
   }
 
   // Build 4-step pipeline HTML
@@ -1009,14 +715,11 @@
     document.getElementById('active-section').style.display = '';
     var statusLabel  = {en_route:'En Route',arrived:'On Site',in_progress:'In Progress'}[lj.status]||lj.status;
     var statusClass  = {en_route:'bk-en-route',arrived:'bk-arrived',in_progress:'bk-in-progress'}[lj.status]||'bk-confirmed';
-    var effectiveDate = lj.return_visit_required ? lj.return_visit_date : lj.date;
-    var effectiveTime = lj.return_visit_required ? lj.return_visit_time : lj.time;
-    var dateStr      = effectiveDate ? new Date(effectiveDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
-    var timeStr      = effectiveTime || '—';
-    var addrStr      = lj.address ? APP.formatPostalAddress(lj.address) : 'Address on file';
-    var customerName = lj.customer_name || '';
-    // maps.google.com/q= (no '?') returns a 404. Same link format as the Jobs screen.
-    var mapsUrl      = lj.address ? 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(lj.address) : '#';
+    var dateStr      = lj.date ? new Date(lj.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+    var timeStr      = lj.time || '—';
+    var addrStr      = lj.address || 'Address on file';
+    var customerName = lj.customer_name || lj.customer_email || '';
+    var mapsUrl      = lj.address ? 'https://maps.google.com/q='+encodeURIComponent(lj.address) : '#';
     var callUrl      = lj.customer_phone ? 'tel:'+lj.customer_phone : '#';
     var showCall     = !!lj.customer_phone;
 
@@ -1032,12 +735,6 @@
     if(lj.status==='in_progress' && tosStartTs) {
       tosHtml = '<div class="eh-tos-block"><span class="eh-tos-lbl">Time on site</span><span class="eh-tos-val" id="eh-tos-val">—</span></div>';
     }
-    var returnVisitHtml = lj.return_visit_required
-      ? '<div style="margin:0.75rem 0;padding:0.75rem 0.85rem;border:1px solid #c7d2fe;border-radius:10px;background:#eef2ff;color:#312e81;font-size:0.8rem;line-height:1.5">'
-        + '<strong>Return visit:</strong> ' + esc(dateStr) + (effectiveTime ? ' at ' + esc(effectiveTime) : '')
-        + '<br><strong>Remaining:</strong> ' + esc(lj.return_visit_remaining_scope || 'Remaining work')
-        + '</div>'
-      : '';
 
     var html = '<div class="eh-job-card-header">'
       +'<div class="eh-job-icon">'
@@ -1045,7 +742,7 @@
       +'</div>'
       +'<div class="eh-job-main">'
         +'<div class="eh-job-title-row">'
-          +'<div class="eh-job-title">'+esc(APP.formatServiceLabel(lj.service)||'Active Job')+'</div>'
+          +'<div class="eh-job-title">'+esc(lj.service||'Active Job')+'</div>'
           +'<span class="sb '+statusClass+'" style="flex-shrink:0;font-size:0.68rem">'+esc(statusLabel)+'</span>'
         +'</div>'
         +(customerName ? '<div class="eh-job-customer">for '+esc(customerName)+'</div>' : '')
@@ -1066,7 +763,6 @@
       +'</div>'
       +tosHtml
     +'</div>'
-    +returnVisitHtml
     +buildPipeline(lj)
     +'<div class="eh-action-row">'
       +'<a class="eh-dir-btn" href="'+mapsUrl+'" target="_blank" rel="noopener">'
@@ -1124,7 +820,7 @@
       ctaBtn.addEventListener('click', function(e){
         if(!lj.id){ e.preventDefault(); return; }
         _pendingCompleteBookingId = lj.id;
-        resetHomeCompletionUi();
+        _homePhotoFile = null; _homePhotoDataUrl = null; _homePhotoUploaded = false;
         // Label default behavior opens home-photo-input natively — no .click() needed
       });
     }
@@ -1139,22 +835,17 @@
     document.getElementById('eh-bell-badge').style.display='';
 
     document.getElementById('offers-list').innerHTML = offers.slice(0,2).map(function(b){
-      // Use the server's canonical estimate (_pay_estimate_lo, computed with the real
-      // platform fee for THIS Pro) so the home card matches the offer push/email and the
-      // My Assignments detail exactly. Never re-derive pay with a hardcoded rate here.
-      var pay = b._pay_estimate_lo != null ? fmtPay(b._pay_estimate_lo)
-        : (b.assembler_due != null ? fmtPay(b.assembler_due) : 'Estimate pending');
+      var pay = b.assembler_due ? fmtPay(b.assembler_due) : (b.total_price ? fmtPay(Math.round(b.total_price*0.75)) : '—');
       var expiresAt = b._offer_expires_at || b.offer_expires_at || b.dispatch_offered_at;
-      var offerTok = b._offer_token || b.dispatch_token || b.assignment_token || '';
       return '<div class="eh-offer-card">'
         +'<div class="eh-offer-card-top">'
           +'<div class="eh-offer-icon">'
             +'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a16207" stroke-width="1.75"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
           +'</div>'
           +'<div class="eh-offer-info">'
-            +'<div class="eh-offer-title">'+esc(APP.formatServiceLabel(b.service)||'Service Job')+'</div>'
+            +'<div class="eh-offer-title">'+esc(b.service||'Service Job')+'</div>'
             +(b.description ? '<div class="eh-offer-spec">'+esc(b.description.substring(0,50))+'</div>' : '')
-            +(b._offer_location ? '<div class="eh-offer-detail"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Service area: '+esc(b._offer_location)+'</div>' : '')
+            +(b.address ? '<div class="eh-offer-detail"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'+esc(b.address)+'</div>' : '')
             +(expiresAt ? '<div class="eh-offer-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span data-expires-at="'+esc(expiresAt)+'">—</span></div>' : '')
           +'</div>'
           +'<div class="eh-offer-payout">'
@@ -1163,10 +854,12 @@
           +'</div>'
         +'</div>'
         +'<div class="eh-offer-actions">'
-          +(offerTok
-            ? '<button class="eh-offer-accept eh-offer-act" data-act="accept" data-bid="'+esc(b.id)+'" data-token="'+esc(offerTok)+'">Accept job</button>'
-              +'<button class="eh-offer-decline eh-offer-act" data-act="decline" data-bid="'+esc(b.id)+'" data-token="'+esc(offerTok)+'">Decline</button>'
-            : '<a class="eh-offer-accept" href="/assembler/my-assignments?offer='+encodeURIComponent(b.id)+'" style="display:block;text-align:center;text-decoration:none">Review offer</a>')
+          +'<button class="eh-offer-accept" id="accept-btn-'+b.id+'" onclick="acceptOffer(\''+b.id+'\',\''+esc(b._offer_token||b.dispatch_token||'')+'\')">'
+            +'Accept'
+          +'</button>'
+          +'<button class="eh-offer-decline" id="decline-btn-'+b.id+'" onclick="declineOffer(\''+b.id+'\',\''+esc(b._offer_token||b.dispatch_token||'')+'\')">'
+            +'Decline'
+          +'</button>'
         +'</div>'
       +'</div>';
     }).join('');
@@ -1186,97 +879,54 @@
     offerTimerInterval=setInterval(updateTimers,1000);
   }
 
-  // Inline offer actions on Home — accept/decline right on the card so the Easer
-  // never has to jump to the Jobs page to act. Uses the same server endpoints and
-  // per-offer token as My Assignments (atomic accept-dispatch / decline-dispatch).
-  async function getFreshActionToken(){
-    try{
-      var fs=await supabaseClient.auth.getSession();
-      if(fs.data&&fs.data.session){
-        var s=fs.data.session; var now=Math.floor(Date.now()/1000);
-        if(s.expires_at&&s.expires_at<=now+60){var r=await supabaseClient.auth.refreshSession();if(r.data&&r.data.session)s=r.data.session;}
-        if(s&&s.access_token) freshTok=s.access_token;
-      }
-    }catch(e){}
-    return freshTok;
-  }
-
-  async function acceptOfferInline(bid, token, btn){
+  async function acceptOffer(bookingId, token) {
+    var btn=document.getElementById('accept-btn-'+bookingId);
     if(btn){btn.disabled=true;btn.textContent='Accepting…';}
-    var sib=btn?btn.parentNode.querySelector('[data-act="decline"]'):null;
-    if(sib) sib.disabled=true;
-    try{
-      var tok=await getFreshActionToken();
-      var r=await fetch('/api/booking/accept-dispatch',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({bookingId:bid,token:token})});
-      var d=await r.json().catch(function(){return {};});
+    try {
+      var r=await fetch('/api/booking/accept-dispatch',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},
+        body:JSON.stringify({bookingId,token}),
+      });
+      var d=await r.json();
       if(!r.ok||d.error){
-        var msg=r.status===409?'This job was just accepted by another Easer.':(d.error||'Could not accept — please try again.');
-        APP.showAlert('page-alert',msg,'error');
-        if(btn){btn.disabled=false;btn.textContent='Accept job';} if(sib) sib.disabled=false;
+        alert(d.error||'Could not accept. Please try again.');
+        if(btn){btn.disabled=false;btn.textContent='Accept';}
         return;
       }
-      APP.showAlert('page-alert','Job accepted — it is now in your Jobs.','success');
-      await loadDashboardData('offer-accept');
-    }catch(e){
-      APP.showAlert('page-alert','Connection error. Please try again.','error');
-      if(btn){btn.disabled=false;btn.textContent='Accept job';} if(sib) sib.disabled=false;
-    }
+      window.location.reload();
+    } catch{if(btn){btn.disabled=false;btn.textContent='Accept';}}
   }
 
-  function declineOfferInline(bid, token, btn){
-    _pendingDeclineOffer={bid:bid,token:token,button:btn};
-    setHomeSheetOpen('home-decline-sheet',true,'home-decline-confirm');
-  }
-
-  async function performDeclineOfferInline(bid, token, btn){
+  async function declineOffer(bookingId, token) {
+    var btn=document.getElementById('decline-btn-'+bookingId);
     if(btn){btn.disabled=true;btn.textContent='Declining…';}
-    var sib=btn?btn.parentNode.querySelector('[data-act="accept"]'):null;
-    if(sib) sib.disabled=true;
-    try{
-      var tok=await getFreshActionToken();
-      var r=await fetch('/api/booking/decline-dispatch',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({bookingId:bid,token:token,reason:null})});
-      var d=await r.json().catch(function(){return {};});
+    try {
+      var r=await fetch('/api/booking/decline-dispatch',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},
+        body:JSON.stringify({bookingId,token,reason:'unavailable'}),
+      });
+      var d=await r.json();
       if(!r.ok||d.error){
-        APP.showAlert('page-alert',d.error||'Could not decline — please try again.','error');
-        if(btn){btn.disabled=false;btn.textContent='Decline';} if(sib) sib.disabled=false;
+        if(btn){btn.disabled=false;btn.textContent='Decline';}
         return;
       }
-      APP.showAlert('page-alert','Offer declined.','info');
-      await loadDashboardData('offer-decline');
-    }catch(e){
-      APP.showAlert('page-alert','Connection error. Please try again.','error');
-      if(btn){btn.disabled=false;btn.textContent='Decline';} if(sib) sib.disabled=false;
-    }
+      // Remove this offer card from the DOM instead of full reload
+      var card=btn.closest('.eh-offer-card');
+      if(card) card.remove();
+      // If no more offers, hide the section
+      var remaining=document.querySelectorAll('.eh-offer-card');
+      if(!remaining.length) document.getElementById('offers-section').style.display='none';
+    } catch{if(btn){btn.disabled=false;btn.textContent='Decline';}}
   }
-
-  // One delegated listener for all current + future offer cards.
-  document.addEventListener('click', function(e){
-    var el=e.target.closest('.eh-offer-act'); if(!el) return;
-    e.preventDefault();
-    var bid=el.getAttribute('data-bid'), token=el.getAttribute('data-token');
-    if(!bid||!token) return;
-    if(el.getAttribute('data-act')==='accept') acceptOfferInline(bid,token,el);
-    else declineOfferInline(bid,token,el);
-  });
 
   document.addEventListener('DOMContentLoaded', async function(){
     var auth=await APP.requireAuth(['assembler']);
     if(!auth) return;
+    document.body.style.visibility='visible';
     var user=auth.user, session=auth.session, profile=auth.profile;
-    if(!await APP.bindPrivateSession(user.id)) return;
     currentUserId=user.id;
-    currentProfile=profile;
-    currentClosureStatus=normalizeClosureStatus(profile.account_closure_status);
-    freshTok=session.access_token;
-
-    var performancePromise=loadCanonicalPerformance(freshTok);
-    var readinessVerified=await loadEaserReadinessStatus(freshTok);
-    // Set availability BEFORE revealing so the toggle paints its real Online/Offline
-    // state on first paint (no default-Offline flash, no mid-animation).
-    available=isClosureHeld() ? false : (profile.is_available||false);
-    setAvailUI(available);
-    applyClosureState();
-    APP.revealPrivatePage();
 
     // Notification bell toggle
     var _notifPanel=document.getElementById('notif-panel');
@@ -1288,6 +938,10 @@
       _notifPanel.style.display==='none'?showNotif():hideNotif();
     });
     document.addEventListener('click',function(){ if(_notifPanel&&_notifPanel.style.display!=='none') hideNotif(); });
+
+    // Availability
+    available=profile.is_available||false;
+    setAvailUI(available);
 
     // Avatar
     var avatarEl=document.getElementById('eh-avatar');
@@ -1308,21 +962,17 @@
     var statsStrip=document.getElementById('eh-stats-strip');
     if(statsStrip){
       statsStrip.style.display='';
-      var ratingVal=profile.rating ? profile.rating.toFixed(1)+' / 5' : 'New';
+      var ratingVal=profile.rating ? profile.rating.toFixed(1)+' ★' : 'New';
       document.getElementById('stat-rating').textContent=ratingVal;
-      document.getElementById('stat-jobs').textContent='—';
-      document.getElementById('stat-earned').textContent='—';
+      document.getElementById('stat-jobs').textContent=profile.completed_jobs||'0';
+      var earnedCents=profile.total_earned||0;
+      document.getElementById('stat-earned').textContent=earnedCents>0 ? '$'+Math.round(earnedCents/100) : '$0';
     }
 
     // Offline banner
     var offlineBanner=document.getElementById('e-offline');
     window.addEventListener('offline',function(){offlineBanner&&offlineBanner.classList.add('show');});
-    window.addEventListener('online', function(){
-      offlineBanner&&offlineBanner.classList.remove('show');
-      if (isClosureHeld()) return;
-      dashboardLoadState.retryCount = 0;
-      loadDashboardData('reconnect');
-    });
+    window.addEventListener('online', function(){offlineBanner&&offlineBanner.classList.remove('show'); dashboardLoadState.retryCount = 0; loadDashboardData('reconnect');});
 
     window.addEventListener('beforeunload',function(){
       clearDashboardRetryTimer();
@@ -1338,26 +988,11 @@
       }
     });
 
-    // Live-feel polling: quietly re-check for new job offers every 12s while the tab
-    // is visible, so an offer pops up on its own (no navigate-away-and-back needed).
-    // No WebSockets (platform constraint) — just a silent refetch. Push + email still
-    // alert instantly; this keeps the open dashboard in sync.
-    setInterval(function() {
-      if (document.visibilityState !== 'visible') return;
-      if (isClosureHeld()) return;
-      if (dashboardLoadState.inFlight) return;
-      var sheet = document.getElementById('home-complete-sheet');
-      if (sheet && sheet.classList.contains('open')) return; // don't disrupt job completion
-      _silentLoad = true;
-      Promise.resolve(loadDashboardData('poll')).finally(function() { _silentLoad = false; });
-    }, 12000);
-
     // bfcache restoration — browser may restore page from memory on back-nav without
     // firing DOMContentLoaded or visibilitychange. Trigger a soft refetch if the last
     // successful load was more than 60s ago so Easers don't see stale job state.
     window.addEventListener('pageshow', function(event) {
       if (!event.persisted) return; // normal load — already handled by DOMContentLoaded
-      if (isClosureHeld()) return;
       if (dashboardLoadState.inFlight) return; // fetch already in progress
       var lastSuccess = dashboardLoadState.lastSuccessAt ? new Date(dashboardLoadState.lastSuccessAt).getTime() : 0;
       if (Date.now() - lastSuccess < 60000) return; // fresh enough — skip
@@ -1367,104 +1002,65 @@
 
     // Complete job sheet handlers
     document.getElementById('home-complete-cancel').addEventListener('click',function(){
-      setHomeSheetOpen('home-complete-sheet',false);
+      document.getElementById('home-complete-sheet').classList.remove('open');
       _pendingCompleteBookingId=null;
-      resetHomeCompletionUi();
     });
 
     // Go offline confirmation sheet handlers
     document.getElementById('go-offline-cancel').addEventListener('click',function(){
-      setHomeSheetOpen('go-offline-sheet',false);
+      document.getElementById('go-offline-sheet').classList.remove('open');
     });
     document.getElementById('go-offline-confirm').addEventListener('click',async function(){
-      setHomeSheetOpen('go-offline-sheet',false);
+      document.getElementById('go-offline-sheet').classList.remove('open');
       available = false;
       setAvailUI(false);
       try {
-        var res = await supabaseClient.rpc('update_own_easer_profile_safe',{p_updates:{is_available:false}});
+        var res = await supabaseClient.from('profiles').update({is_available:false}).eq('id',currentUserId);
         if (res.error) throw res.error;
       } catch(e) {
         available = true;
         setAvailUI(true);
       }
     });
-
-    document.getElementById('home-decline-cancel').addEventListener('click',function(){
-      setHomeSheetOpen('home-decline-sheet',false);
-      _pendingDeclineOffer=null;
-    });
-    document.getElementById('home-decline-confirm').addEventListener('click',async function(){
-      var pending=_pendingDeclineOffer;
-      if(!pending)return;
-      _pendingDeclineOffer=null;
-      setHomeSheetOpen('home-decline-sheet',false);
-      await performDeclineOfferInline(pending.bid,pending.token,pending.button);
-    });
-
-    document.addEventListener('keydown',function(event){
-      var openSheet=document.querySelector('.sheet-overlay.open');
-      if(!openSheet)return;
-      if(event.key==='Escape'){
-        var cancelButton=openSheet.querySelector('.sheet-btn-cancel');
-        if(cancelButton)cancelButton.click();
-        return;
-      }
-      trapHomeSheetFocus(event,openSheet);
-    });
     document.getElementById('home-photo-input').addEventListener('change', function(){
       var file = this.files && this.files[0];
       if(!file || !_pendingCompleteBookingId) return;
-      var homeInputEl = this;
+      if(file.size > 5 * 1024 * 1024){ alert('Photo must be under 5 MB.'); this.value=''; return; }
+      _homePhotoFile = file;
       _homePhotoUploaded = false;
-      setHomeCompletionStatus('Preparing photo…');
-      // Downscaled before it is ever sent; the original would exceed the
-      // request body limit and be rejected before the endpoint runs.
-      window.AAE_UPLOAD.prepare(file).then(function(prepared){
-        _homePhotoFile = prepared;
-        _homePhotoDataUrl = prepared.dataUrl;
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        _homePhotoDataUrl = ev.target.result;
         var img = document.getElementById('home-photo-img');
         var preview = document.getElementById('home-photo-preview');
         if(img) img.src = _homePhotoDataUrl;
         if(preview) preview.style.display = '';
-        setHomeCompletionStatus('');
-        setHomeSheetOpen('home-complete-sheet',true,'home-complete-yes');
-      }).catch(function(err){
-        _homePhotoFile = null;
-        _homePhotoDataUrl = null;
-        APP.showAlert('page-alert', err.message, 'error');
-        setHomeCompletionStatus('');
-      });
-      homeInputEl.value='';
+        document.getElementById('home-complete-sheet').classList.add('open');
+      };
+      reader.readAsDataURL(file);
     });
 
     document.getElementById('home-complete-yes').addEventListener('click',async function(){
       var bookingId=_pendingCompleteBookingId;
       if(!bookingId) return;
-      var confirmButton=document.getElementById('home-complete-yes');
-      confirmButton.disabled=true;
-      confirmButton.textContent='Uploading photo…';
-      setHomeCompletionStatus('');
+      document.getElementById('home-complete-sheet').classList.remove('open');
+      _pendingCompleteBookingId=null;
       var btn=document.getElementById('eh-cta-btn');
       if(btn){btn.style.pointerEvents='none';btn.textContent='Uploading photo…';}
       // Upload photo first if we have one
       if(_homePhotoFile && !_homePhotoUploaded){
         try{
-          var up=await fetch('/api/booking/upload-evidence',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},body:JSON.stringify({bookingId:bookingId,fileBase64:_homePhotoFile.base64,mimeType:_homePhotoFile.mimeType,evidenceType:'completion_photo'})});
-          if(!up.ok) throw new Error(await window.AAE_UPLOAD.describeUploadFailure(up));
-          var uploadBody={};
-          try{uploadBody=await up.json();}catch(parseErr){}
-          if(uploadBody.error) throw new Error(uploadBody.error);
-          _homePhotoUploaded=true;
+          var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res((e.target.result+'').split(',')[1]||e.target.result);};r.onerror=rej;r.readAsDataURL(_homePhotoFile);});
+          var up=await fetch('/api/booking/upload-evidence',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},body:JSON.stringify({bookingId:bookingId,fileBase64:base64,mimeType:_homePhotoFile.type,evidenceType:'completion_photo'})});
+          if(up.ok) _homePhotoUploaded=true;
         }catch(upErr){
           if(btn){btn.style.pointerEvents='';btn.textContent='Mark Job Complete';}
-          confirmButton.disabled=false;
-          confirmButton.textContent='Yes, job is complete';
-          setHomeCompletionStatus((upErr&&upErr.message)||'Photo upload failed. Please try again.','error');
+          alert('Photo upload failed — please try again.');
+          _pendingCompleteBookingId=bookingId;
           return;
         }
       }
       if(btn) btn.textContent='Completing…';
-      confirmButton.textContent='Completing…';
       try{
         var r=await fetch('/api/booking/assembler-complete',{
           method:'POST',
@@ -1474,18 +1070,13 @@
         var d=await r.json();
         if(!r.ok||d.error){
           if(btn){btn.style.pointerEvents='';btn.textContent='Mark Job Complete';}
-          confirmButton.disabled=false;
-          confirmButton.textContent='Yes, job is complete';
-          setHomeCompletionStatus(d.error||'Could not complete job. Please try again.','error');
+          alert(d.error||'Could not complete job. Please try again.');
           return;
         }
-        _pendingCompleteBookingId=null;
         window.location.reload();
       }catch(e){
         if(btn){btn.style.pointerEvents='';btn.textContent='Mark Job Complete';}
-        confirmButton.disabled=false;
-        confirmButton.textContent='Yes, job is complete';
-        setHomeCompletionStatus('Connection problem. Check your connection and try again.','error');
+        alert('Network error — please try again.');
       }
     });
 
@@ -1498,66 +1089,99 @@
       window.location.href='/auth/login.html';
     });
 
-    function deriveEffectiveEaserStatus(profile){
-      var tier=String(profile&&profile.tier||'').trim().toLowerCase();
-      if(tier==='verified') tier='professional';
-      if(!tier) tier='';
-      var status=String(profile&&profile.status||'').trim().toLowerCase();
-      var appStatus=String(profile&&profile.application_status||'').trim().toLowerCase();
-      if(status==='rejected'||appStatus==='rejected'||tier==='rejected') return 'rejected';
-      if(status==='suspended'||tier==='suspended') return 'suspended';
-      if(status==='pending'||appStatus==='pending') return 'pending';
-      if(status==='active') return 'active';
-      if(['starter','professional','elite'].includes(tier)) return 'active';
-      return 'pending';
-    }
-
-    var effectiveStatus=deriveEffectiveEaserStatus(profile);
-    currentEffectiveStatus=effectiveStatus;
-
     // Status banners
     var tsBanner=document.getElementById('tier-status-banner');
-    if(effectiveStatus==='pending'){
+    if(profile.status==='pending'){
       tsBanner.classList.remove('hidden');
-      document.getElementById('tier-status-title').textContent='Your application is pending';
-      document.getElementById('tier-status-sub').textContent='We will notify you by email when your status changes.';
+      document.getElementById('tier-status-title').textContent='Your application is under review';
+      document.getElementById('tier-status-sub').textContent='We will notify you by email when you are approved.';
     }
 
     // Onboarding checklist — show for active Easers until all dispatch requirements are met
-    renderOnboardingChecklist();
+    if(profile.status==='active'){
+      var onbSteps=[
+        {
+          key:'identity',
+          done: profile.identity_verified===true,
+          label:'Verify your identity',
+          desc: profile.identity_verified ? 'Identity verified.' : 'Required to receive job offers.',
+          action: !profile.identity_verified ? (profile.stripe_verification_id ? null : {href:'/assembler/apply',label:'Continue'}) : null,
+        },
+        {
+          key:'phone',
+          done: !!profile.phone,
+          label:'Add your phone number',
+          desc: profile.phone ? 'Phone number on file.' : 'Required for dispatch notifications.',
+          action: !profile.phone ? {href:'/assembler/profile',label:'Add Phone'} : null,
+        },
+        {
+          key:'online',
+          done: available,
+          label:'Go Online to receive jobs',
+          desc: available ? 'You are online and accepting offers.' : 'Toggle the Online/Offline button above to start receiving jobs.',
+          action: null,
+        },
+      ];
+      var doneCnt=onbSteps.filter(function(s){return s.done;}).length;
+      var allDone=doneCnt===onbSteps.length;
+      if(!allDone){
+        var listEl=document.getElementById('onboarding-steps');
+        var progEl=document.getElementById('onboarding-progress-text');
+        if(progEl) progEl.textContent=doneCnt+'/'+onbSteps.length+' complete';
+        if(listEl){
+          listEl.innerHTML=onbSteps.map(function(s){
+            var iconSvg=s.done
+              ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+              : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
+            var actionHtml=s.action&&!s.done
+              ? '<a href="'+s.action.href+'" style="flex-shrink:0;display:inline-flex;align-items:center;padding:0.28rem 0.7rem;background:var(--e-teal);color:#fff;border-radius:999px;font-size:0.7rem;font-weight:700;text-decoration:none">'+s.action.label+'</a>'
+              : '';
+            return '<div style="display:flex;align-items:center;gap:0.625rem;padding:0.45rem 0;border-bottom:1px solid var(--e-border)">'
+              +'<span style="flex-shrink:0">'+iconSvg+'</span>'
+              +'<div style="flex:1;min-width:0">'
+                +'<div style="font-size:0.82rem;font-weight:'+(s.done ? '500' : '600')+';color:'+(s.done ? 'var(--e-muted)' : 'var(--e-text)')+(s.done ? ';text-decoration:line-through' : '')+' ">'+esc(s.label)+'</div>'
+                +'<div style="font-size:0.7rem;color:var(--e-muted);margin-top:1px">'+esc(s.desc)+'</div>'
+              +'</div>'
+              +actionHtml
+              +'</div>';
+          }).join('');
+          // Remove border on last item
+          var lastItem=listEl.lastElementChild;
+          if(lastItem) lastItem.style.borderBottom='none';
+        }
+        document.getElementById('onboarding-checklist').dataset.deferWhenBusy='true';
+        document.getElementById('onboarding-checklist').style.display='';
+      }
+    }
 
     if(!profile.identity_verified){
       document.getElementById('identity-banner').classList.remove('hidden');
       var iSub=document.getElementById('identity-banner-sub');
-      iSub.textContent='Identity verification is required before you can receive jobs. If the Stripe page expired, reopen it here.';
-      var vBtn=document.getElementById('identity-verify-btn');
-      if(vBtn) vBtn.style.display='';
+      if(profile.stripe_verification_id){
+        iSub.textContent='Your identity verification is being processed. We\'ll notify you once complete.';
+      } else {
+        iSub.textContent='Identity verification required to receive jobs.';
+        var vBtn=document.getElementById('identity-verify-btn');
+        if(vBtn) vBtn.style.display='';
+      }
     }
 
-    if(!hasValidUsPhone(profile.phone)){
+    if(!profile.phone){
       var pb=document.getElementById('profile-banner');
       pb.dataset.deferWhenBusy='false';
       pb.classList.remove('hidden');
       pb.style.background='rgba(239,68,68,0.06)';
       pb.style.borderColor='rgba(239,68,68,0.2)';
       document.getElementById('profile-banner-title').textContent='Phone number required to receive jobs';
-      document.getElementById('profile-banner-sub').textContent='A phone number is required to receive job offers.';
+      document.getElementById('profile-banner-sub').textContent='Easers without a phone number cannot be dispatched.';
       document.getElementById('profile-banner-cta').textContent='Add Phone';
     } else if(!profile.city){
       document.getElementById('profile-banner').dataset.deferWhenBusy='true';
       document.getElementById('profile-banner').classList.remove('hidden');
     }
 
-    if (isClosureHeld()) {
-      document.getElementById('active-section').style.display = 'none';
-      document.getElementById('offers-section').style.display = 'none';
-      document.getElementById('upcoming-section').style.display = 'none';
-      document.getElementById('waiting-state').style.display = 'none';
-      return;
-    }
-
     // Verification gate
-    if(effectiveStatus==='pending'||effectiveStatus==='suspended'||profile.identity_verified!==true){
+    if(profile.status==='pending'||profile.status==='suspended'||profile.identity_verified!==true){
       document.querySelectorAll('.easer-nav-item:not([href="/assembler/"])').forEach(function(a){
         a.style.opacity='0.4';a.style.pointerEvents='none';
       });
@@ -1580,20 +1204,17 @@
       }
     }catch(e){}
 
-    if (!readinessVerified) {
-      clearDashboardCache();
-      document.querySelectorAll('.easer-nav-item:not([href="/assembler/"])').forEach(function(a){
-        a.style.opacity='0.4';a.style.pointerEvents='none';
-      });
-      setDashboardStatus('server_error', { message: 'Job readiness could not be verified. No job information was loaded.' });
-      return;
+    // Load assignments
+    var cache = readDashboardCache();
+    if (cache && getDashboardCachedAgeMs(cache) <= DASHBOARD_CACHE_TTL_MS) {
+      dashboardLoadState.staleSnapshot = cache;
+      renderDashboardPayload(cache.bookings || [], { warnings: cache.meta && Array.isArray(cache.meta.warnings) ? cache.meta.warnings : [] });
+      setDashboardStatus('stale_data', { extra: 'Last sync: ' + new Date(cache.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) });
+    } else {
+      setDashboardStatus('loading');
     }
-    setDashboardStatus('loading');
 
-    await Promise.all([
-      loadDashboardData('initial_load'),
-      performancePromise,
-    ]);
+    await loadDashboardData('initial_load');
   });
 </script>
 
@@ -1601,15 +1222,14 @@
 <input type="file" id="home-photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" style="display:none">
 
 <!-- Complete job confirmation sheet -->
-<div class="sheet-overlay" id="home-complete-sheet" role="dialog" aria-modal="true" aria-labelledby="home-complete-title" aria-hidden="true">
-  <div class="sheet-box" tabindex="-1">
-    <div class="sheet-title" id="home-complete-title">Confirm job complete</div>
+<div class="sheet-overlay" id="home-complete-sheet">
+  <div class="sheet-box">
+    <div class="sheet-title">Confirm job complete</div>
     <div class="sheet-body">All work is done and the customer is satisfied.</div>
     <div id="home-photo-preview" style="margin:0.75rem 0;border-radius:10px;overflow:hidden;display:none">
       <img id="home-photo-img" style="width:100%;max-height:160px;object-fit:cover;display:block" alt="Completion photo">
       <label for="home-photo-input" style="display:block;text-align:center;padding:0.4rem;font-size:0.75rem;color:var(--e-muted);cursor:pointer;background:var(--e-surface)">Retake photo</label>
     </div>
-    <div id="home-complete-status" role="alert" aria-live="assertive" style="display:none;font-size:0.8rem;line-height:1.5;margin:0 0 0.75rem"></div>
     <div class="sheet-actions">
       <button class="sheet-btn-primary" id="home-complete-yes">Yes, job is complete</button>
       <button class="sheet-btn-cancel" id="home-complete-cancel">Cancel</button>
@@ -1618,9 +1238,9 @@
 </div>
 
 <!-- Go offline confirmation sheet -->
-<div class="sheet-overlay" id="go-offline-sheet" role="dialog" aria-modal="true" aria-labelledby="go-offline-title" aria-hidden="true">
-  <div class="sheet-box" tabindex="-1">
-    <div class="sheet-title" id="go-offline-title">Go offline</div>
+<div class="sheet-overlay" id="go-offline-sheet">
+  <div class="sheet-box">
+    <div class="sheet-title">Go offline</div>
     <div class="sheet-body">You won't receive new job offers while offline. You can go back online anytime.</div>
     <div class="sheet-actions">
       <button class="sheet-btn-primary" id="go-offline-confirm">Yes, go offline</button>
@@ -1629,23 +1249,11 @@
   </div>
 </div>
 
-<!-- Decline offer confirmation sheet -->
-<div class="sheet-overlay" id="home-decline-sheet" role="dialog" aria-modal="true" aria-labelledby="home-decline-title" aria-hidden="true">
-  <div class="sheet-box" tabindex="-1">
-    <div class="sheet-title" id="home-decline-title">Decline this offer?</div>
-    <div class="sheet-body">The job will be offered to another Easer. You can still receive future offers.</div>
-    <div class="sheet-actions">
-      <button class="sheet-btn-danger" id="home-decline-confirm">Decline offer</button>
-      <button class="sheet-btn-cancel" id="home-decline-cancel">Keep offer</button>
-    </div>
-  </div>
-</div>
-
 <!-- PWA Service Worker + Push Notifications -->
 <script>
 (function(){
   if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
-  var _swReg=null, _userId=null, _swToken=null, _pushPublicKey=null;
+  var _swReg=null, _userId=null, _swToken=null;
 
   navigator.serviceWorker.register('/sw.js',{scope:'/assembler/'}).then(function(reg){
     _swReg=reg;
@@ -1654,11 +1262,6 @@
 
   async function initPush(){
     try{
-      var configResponse=await fetch('/api/assembler/push-subscribe');
-      if(!configResponse.ok) return;
-      var config=await configResponse.json();
-      if(!config.enabled||!config.publicKey) return;
-      _pushPublicKey=config.publicKey;
       var result=await window.supabaseClient.auth.getSession();
       var session=result.data&&result.data.session;
       if(!session) return;
@@ -1690,9 +1293,13 @@
   }
 
   async function subscribePush(){
-    if(!_swReg||!_swToken||!_pushPublicKey) return;
+    if(!_swReg||!_swToken) return;
     try{
-      var sub=await _swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(_pushPublicKey)});
+      var r=await fetch('/api/assembler/push-subscribe');
+      if(!r.ok) return;
+      var d=await r.json();
+      if(!d.publicKey) return;
+      var sub=await _swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(d.publicKey)});
       await fetch('/api/assembler/push-subscribe',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+_swToken},body:JSON.stringify({subscription:sub.toJSON()})});
     }catch(e){console.warn('Push:',e);}
   }
@@ -1706,8 +1313,6 @@
   }
 })();
 </script>
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
-
-
-

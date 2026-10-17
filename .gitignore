@@ -40,3 +40,6 @@ config.local.js
 secrets.js
 .vercel
 .env*
+
+# Playwright MCP screenshots/snapshots (local browser sessions)
+.playwright-mcp/

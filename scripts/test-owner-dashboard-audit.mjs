@@ -12,7 +12,6 @@ import { summarizeFinanceRows } from '../api/owner/_finance-ledger.js';
 const read = relative => readFile(new URL(`../${relative}`, import.meta.url), 'utf8');
 const [
   ownerUi,
-  ownerCss,
   liveOps,
   monitor,
   taxReport,
@@ -33,9 +32,6 @@ const [
   casesApi,
 ] = await Promise.all([
   read('owner/index.html'),
-  // Owner styles moved to a stylesheet on 2026-09-23. Markup assertions read
-  // the document; style assertions read the stylesheet.
-  read('owner/assets/owner.css'),
   read('api/owner/live-ops.js'),
   read('api/owner/monitor.js'),
   read('api/owner/tax-report.js'),
@@ -61,8 +57,8 @@ assert.match(ownerAuth, /const allowLegacyPassword = process\.env\.VERCEL_ENV !=
 assert.match(ownerUi, /Authorization': 'Bearer ' \+ ownerSessionToken/);
 assert.match(ownerUi, /replace\(\/"\/g, '&quot;'\)/);
 assert.match(ownerUi, /replace\(\/'\/g, '&#39;'\)/);
-assert.match(ownerCss, /\.modal-row\{grid-template-columns:minmax\(0,1fr\)\}/);
-assert.match(ownerCss, /max-height:calc\(100dvh - 1rem\)/);
+assert.match(ownerUi, /\.modal-row\{grid-template-columns:minmax\(0,1fr\)\}/);
+assert.match(ownerUi, /max-height:calc\(100dvh - 1rem\)/);
 assert.match(ownerUi, /Selected-Period Money Summary/);
 assert.match(ownerUi, /an-sales-tax/);
 assert.match(ownerUi, /an-processing-fees/);
@@ -103,8 +99,7 @@ const payoutMutation = ownerUi.slice(
 assert.match(payoutMutation, /await loadBookings\(true\);\s*await loadPayoutLedger\(\);\s*if \(selectedId\) selectBooking\(selectedId\);\s*loadLiveOps\(\);/);
 assert.doesNotMatch(ownerUi, /id="test-push-btn"/);
 assert.doesNotMatch(ownerUi, /deleteReview\(/);
-assert.match(ownerUi, /s\.readyEasers \|\| 0/);
-assert.match(ownerUi, /mdSupplyCount\('Availability on', supply\.online/);
+assert.match(ownerUi, /s\.onlineReadyEasers \|\| 0/);
 assert.doesNotMatch(ownerUi, /id="fin-assumption-reserve">2%/);
 assert.match(ownerUi, /Add to Buffer Queue/);
 assert.match(ownerUi, /Confirm Buffer queue/);

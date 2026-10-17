@@ -1,270 +1,9 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
-import { randomUUID } from 'crypto';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
-import { buildWaitlistEmail, WAITLIST_EMAIL_VARIANT } from '../_waitlist-email.js';
-import {
-  ACTIVE_EASER_TIERS,
-  getPreservedTier,
-  getRestorableTier,
-  normalizeAssemblerProfile,
-} from '../_assembler-state.js';
-import {
-  approvalReadinessError,
-  getEaserApprovalReadiness,
-  getEaserReadiness,
-} from '../_easer-readiness.js';
-import {
-  EASER_APPLICATION_FEE_CENTS,
-  validateEaserApplicationPaymentIntent,
-} from '../_easer-application-fee.js';
-import {
-  loadEaserApplicationFeeDisputeTruth,
-  loadEaserApplicationFeeRefundTruth,
-  reconcileEaserApplicationFeeRefund,
-} from '../_easer-application-refund.js';
-import { isEaserClosureBlocking, normalizeEaserClosureStatus } from '../_easer-closure.js';
-import { loadLedgerFirstFinanceRows } from '../owner/_finance-ledger.js';
-import { CONTRACTOR_AGREEMENT_VERSION } from '../_assembler-onboarding.js';
-import { logActivity } from '../booking/_activity.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
-
-// Branded Easer account email — always carries the AAE logo in the header so the
-// message reads as AssembleAtEase, not a bare text note. Used for suspend /
-// reinstate and any other Easer account-status notice.
-function buildEaserAccountEmail({ heading, firstName, bodyHtml, ctaText, ctaUrl }) {
-  const cta = (ctaText && ctaUrl)
-    ? `<div style="text-align:center;margin:1.75rem 0 0.5rem"><a href="${ctaUrl}" style="display:inline-block;background:#00BFFF;color:#fff;padding:13px 34px;border-radius:8px;text-decoration:none;font-size:0.95rem;font-weight:700">${ctaText}</a></div>`
-    : '';
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden">
-    <div style="background:linear-gradient(135deg,#003d47,#00BFFF);padding:1.5rem 2rem;text-align:center">
-      <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
-      <h1 style="color:#fff;margin:10px 0 0;font-size:1.25rem">${esc(heading)}</h1>
-    </div>
-    <div style="padding:2rem">
-      <p style="font-size:1rem;font-weight:700;margin:0 0 12px">Hi ${esc(firstName)},</p>
-      ${bodyHtml}
-      ${cta}
-    </div>
-  </div>
-  <p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:14px">AssembleAtEase &bull; Serving Easers across Texas</p>
-</div></body></html>`;
-}
-
-function applicationDecisionSnapshot(profile = {}) {
-  return {
-    status: profile.status ?? null,
-    application_status: profile.application_status ?? null,
-    tier: profile.tier ?? null,
-    is_available: profile.is_available === true,
-    identity_verified: profile.identity_verified === true,
-    contractor_agreement_signed: Boolean(profile.contractor_agreement_signed_at),
-    contractor_agreement_version: profile.contractor_agreement_version ?? null,
-    code_of_conduct_accepted: Boolean(profile.code_of_conduct_agreed_at),
-    phone: String(profile.phone || '').trim(),
-    application_fee_paid: profile.application_fee_paid === true,
-    payment_confirmed: profile.payment_confirmed === true,
-    application_fee_waived: profile.application_fee_waived === true,
-    fee_waived_by_owner: profile.fee_waived_by_owner === true,
-    application_fee_refunded: profile.application_fee_refunded === true,
-    application_fee_refunded_cents: Number(profile.application_fee_refunded_cents || 0),
-    application_fee_refund_pending_cents: Number(profile.application_fee_refund_pending_cents || 0),
-    application_fee_refund_review_required_at_present: Boolean(profile.application_fee_refund_review_required_at),
-    application_fee_refund_review_reason: profile.application_fee_refund_review_reason ?? null,
-    application_fee_refund_id: profile.application_fee_refund_id ?? null,
-    application_fee_refunded_at_present: Boolean(profile.application_fee_refunded_at),
-    stripe_payment_intent_id: profile.stripe_payment_intent_id ?? null,
-    stripe_customer_id: profile.stripe_customer_id ?? null,
-    account_closure_status: profile.account_closure_status ?? null,
-    approved_at_present: Boolean(profile.approved_at),
-  };
-}
-
-function applicationDecisionKey(assemblerId, decision) {
-  return `easer-application:${decision}:${assemblerId}:${randomUUID()}`;
-}
-
-async function claimApplicationDecision(sb, {
-  assemblerId,
-  decision,
-  operationKey,
-  expectedProfile,
-}) {
-  const { data, error } = await sb.rpc('claim_easer_application_decision', {
-    p_assembler_id: assemblerId,
-    p_decision: decision,
-    p_operation_key: operationKey,
-    p_expected_snapshot: applicationDecisionSnapshot(expectedProfile),
-  });
-  if (error) throw error;
-  const result = Array.isArray(data) ? data[0] : data;
-  if (!result?.result_action) throw new Error('Application decision claim returned no authoritative result');
-  return result;
-}
-
-async function releaseApplicationDecision(sb, { assemblerId, decision, operationKey }) {
-  const { data, error } = await sb.rpc('release_easer_application_decision', {
-    p_assembler_id: assemblerId,
-    p_decision: decision,
-    p_operation_key: operationKey,
-  });
-  if (error) throw error;
-  return data === true;
-}
-
-async function finalizeApplicationDecision(sb, {
-  assemblerId,
-  decision,
-  operationKey,
-  expectedProfile,
-  refundId = null,
-  refundedAt = null,
-  rejectionReason = null,
-}) {
-  const decidedAt = new Date().toISOString();
-  const rpcName = decision === 'approve'
-    ? 'finalize_easer_application_approval'
-    : 'finalize_easer_application_decision';
-  const rpcArgs = decision === 'approve'
-    ? {
-        p_assembler_id: assemblerId,
-        p_operation_key: operationKey,
-        p_expected_snapshot: applicationDecisionSnapshot(expectedProfile),
-        p_decided_at: decidedAt,
-      }
-    : {
-        p_assembler_id: assemblerId,
-        p_decision: decision,
-        p_operation_key: operationKey,
-        p_expected_snapshot: applicationDecisionSnapshot(expectedProfile),
-        p_required_agreement_version: CONTRACTOR_AGREEMENT_VERSION,
-        p_refund_id: refundId,
-        p_refunded_at: refundedAt,
-        p_rejection_reason: rejectionReason,
-        p_decided_at: decidedAt,
-      };
-  const { data, error } = await sb.rpc(rpcName, rpcArgs);
-  if (error) throw error;
-  const result = Array.isArray(data) ? data[0] : data;
-  if (!result?.result_action) throw new Error('Application decision finalization returned no authoritative result');
-  return result;
-}
-
-async function loadRawEaserProfile(sb, assemblerId) {
-  const { data, error } = await sb.from('profiles')
-    .select('*')
-    .eq('id', assemblerId)
-    .eq('role', 'assembler')
-    .maybeSingle();
-  if (error || !data) throw new Error(error?.message || 'Easer profile not found');
-  return data;
-}
-
-async function approvedAccountReadiness(profile = {}) {
-  const normalized = normalizeAssemblerProfile(profile);
-  const readiness = await getEaserReadiness({
-    ...normalized,
-    status: 'active',
-    application_status: 'approved',
-    tier: normalized.tier || 'starter',
-    is_available: false,
-  }, { connectRequired: false, requireAvailability: false });
-  return {
-    requiresCurrentAgreement: readiness.agreementCurrent !== true
-      || readiness.codeOfConductAccepted !== true,
-    missingReadinessItems: readiness.missingItems,
-    readyForJobsWhenOnline: readiness.isReady,
-  };
-}
-
-function applicationDecisionHttpError(error, fallback) {
-  const message = error?.message || String(error || fallback);
-  // 55P03 (lock unavailable) and 40001 (serialization) are the ONLY codes that
-  // mean something else is genuinely happening right now. 23514 is a CHECK
-  // violation — a precondition was not met — and lumping it in here told the
-  // owner to look for a lock that did not exist. Phil Hawkins' decision key was
-  // null the whole time while the real cause was his application_status.
-  //
-  // The word-matching was worse: any message containing "decision" was rewritten
-  // as a concurrency error, including "Only a submitted pending application can
-  // be approved". Never replace a stated reason with a guessed one (Article 16).
-  const inProgress = error?.code === '55P03'
-    || error?.code === '40001'
-    || /already in progress/i.test(message);
-  const precondition = error?.code === '23514'
-    || /profile state changed|closure|active Easer|can be approved|can be rejected/i.test(message);
-  const conflict = inProgress || precondition;
-  return {
-    status: conflict ? 409 : 503,
-    code: conflict ? 'APPLICATION_DECISION_CONFLICT' : 'APPLICATION_DECISION_DATABASE_REQUIRED',
-    error: inProgress
-      ? 'Another application decision or profile update is already in progress. Refresh before trying again.'
-      // A precondition failure has a real, specific reason. Show it.
-      : (precondition ? message : fallback),
-  };
-}
-
-async function verifyApprovalStripeTruth(profile, assemblerId) {
-  const feePaid = profile.application_fee_paid === true;
-  const feeWaived = profile.application_fee_waived === true || profile.fee_waived_by_owner === true;
-  if (feePaid === feeWaived) {
-    throw new Error('Application fee truth must be exactly one of paid or waived');
-  }
-  if (feeWaived && profile.payment_confirmed === true) {
-    throw new Error('A waived application cannot also report a confirmed payment');
-  }
-  if (profile.application_fee_refunded === true
-      || Number(profile.application_fee_refunded_cents || 0) > 0
-      || Number(profile.application_fee_refund_pending_cents || 0) > 0
-      || profile.application_fee_refund_review_required_at
-      || profile.application_fee_refund_id
-      || profile.application_fee_refunded_at) {
-    throw new Error('A refunded application cannot be approved');
-  }
-
-  if (!profile.stripe_payment_intent_id) {
-    if (!feeWaived) throw new Error('A paid application is missing its Stripe PaymentIntent');
-    return { feeMode: 'waived', paymentIntentId: null };
-  }
-  if (!process.env.STRIPE_SECRET_KEY || !profile.stripe_customer_id) {
-    const error = new Error('Stripe application payment verification is unavailable');
-    error.status = 503;
-    throw error;
-  }
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  let paymentIntent;
-  if (feePaid) {
-    const refundTruth = await loadEaserApplicationFeeRefundTruth({
-      stripe,
-      assemblerId,
-      paymentIntentId: profile.stripe_payment_intent_id,
-      customerId: profile.stripe_customer_id,
-    });
-    paymentIntent = refundTruth.paymentIntent;
-    if (refundTruth.hasLiveRefundActivity) {
-      throw new Error('Stripe shows refund activity for this application fee');
-    }
-  } else {
-    paymentIntent = await stripe.paymentIntents.retrieve(profile.stripe_payment_intent_id);
-    validateEaserApplicationPaymentIntent(paymentIntent, {
-      userId: assemblerId,
-      paymentIntentId: profile.stripe_payment_intent_id,
-      customerId: profile.stripe_customer_id,
-    });
-    if (paymentIntent.status !== 'canceled') {
-      throw new Error('A waived application still has an open or paid Stripe PaymentIntent');
-    }
-  }
-  if (feePaid && profile.payment_confirmed !== true) {
-    throw new Error('The paid application is not confirmed in database truth');
-  }
-  return { feeMode: feePaid ? 'paid' : 'waived', paymentIntentId: paymentIntent.id };
-}
 
 /**
  * POST /api/assembler/update
@@ -277,18 +16,14 @@ async function verifyApprovalStripeTruth(profile, assemblerId) {
  *   has_membership       — subscription (managed by /api/assembler/membership)
  *
  * Actions:
- *   approve          → status=active, tier=starter, offline (requires submitted
- *                      application, verified identity, and valid fee truth;
- *                      current agreement remains a job-readiness requirement)
+ *   approve          → status=active, tier=starter (requires id_verified=true)
  *   reject           → status=rejected
  *   suspend          → status=suspended, saves previous_tier
  *   reinstate        → status=active, restores previous_tier (not forced to starter)
  *   promote          → tier upgrade (status must be active)
  *   demote           → tier downgrade (status must be active)
  *   mark_id_verified → id_verified=true, id_verification_status=verified
- *   delete           → archive account, revoke access, preserve business records
- *   retry_auth_revoke → retry sign-in revocation for an already archived account
- *   reconcile_application_fee_hold → fresh Stripe refund/dispute proof before clearing a failed-only hold
+ *   delete           → permanently remove (pending/rejected only)
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -297,305 +32,64 @@ export default async function handler(req, res) {
   const { assemblerId, action, tier, rejectionReason } = req.body;
   if (!assemblerId) return res.status(400).json({ error: 'assemblerId is required' });
   if (!action) return res.status(400).json({ error: 'action is required' });
-  if (action === 'reject' && String(rejectionReason || '').length > 2000) {
-    return res.status(400).json({ error: 'Rejection reason must be 2,000 characters or fewer.' });
-  }
 
   const sb = getSupabase();
 
-  const { data: rawProfile, error: lookupErr } = await sb
+  const { data: profile, error: lookupErr } = await sb
     .from('profiles')
     .select('*')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .maybeSingle();
 
-  if (lookupErr || !rawProfile) return res.status(404).json({ error: 'Easer not found' });
-  let profile = normalizeAssemblerProfile(rawProfile);
-  const closureStatus = normalizeEaserClosureStatus(profile);
+  if (lookupErr || !profile) return res.status(404).json({ error: 'Easer not found' });
 
-  const closureBlockedActions = new Set([
-    'approve',
-    'reinstate',
-    'promote',
-    'demote',
-    'mark_id_verified',
-  ]);
-  if (closureBlockedActions.has(action) && isEaserClosureBlocking(closureStatus)) {
-    return res.status(409).json({
-      error: `This Easer account has a ${closureStatus} closure status. Resolve the closure workflow before changing readiness or access.`,
-      code: 'ACCOUNT_CLOSURE_BLOCKS_ACTION',
-      closureStatus,
-    });
-  }
-
-  if (action === 'reconcile_application_fee_hold') {
-    if (!rawProfile.application_fee_refund_review_required_at) {
-      return res.status(200).json({ ok: true, action, alreadyClear: true, isAvailable: rawProfile.is_available === true });
-    }
-    if (!process.env.STRIPE_SECRET_KEY
-        || !rawProfile.stripe_payment_intent_id
-        || !rawProfile.stripe_customer_id) {
-      return res.status(503).json({
-        error: 'The application-fee hold cannot be reconciled without its exact Stripe Customer and PaymentIntent.',
-        code: 'APPLICATION_FEE_RECONCILIATION_UNAVAILABLE',
-      });
-    }
-
-    try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      const refundTruth = await loadEaserApplicationFeeRefundTruth({
-        stripe,
-        assemblerId,
-        paymentIntentId: rawProfile.stripe_payment_intent_id,
-        customerId: rawProfile.stripe_customer_id,
-      });
-      await reconcileEaserApplicationFeeRefund(sb, {
-        assemblerId,
-        paymentIntentId: rawProfile.stripe_payment_intent_id,
-        customerId: rawProfile.stripe_customer_id,
-        truth: refundTruth,
-        reason: 'Owner fresh application-fee financial-hold review',
-      });
-      const disputeTruth = await loadEaserApplicationFeeDisputeTruth({ stripe, paymentTruth: refundTruth });
-      if (refundTruth.hasLiveRefundActivity || disputeTruth.hasBlockingDispute) {
-        return res.status(409).json({
-          error: 'Stripe still shows a pending/completed refund or unresolved dispute. The Easer remains offline for new work.',
-          code: 'APPLICATION_FEE_FINANCIAL_HOLD_REMAINS',
-          refundedCents: refundTruth.succeededRefundedCents,
-          pendingRefundCents: refundTruth.pendingRefundCents,
-          blockingDisputes: disputeTruth.blockingDisputes.map(dispute => ({
-            id: dispute.id,
-            status: dispute.status,
-            amountCents: Number(dispute.amount || 0),
-          })),
-        });
-      }
-
-      const clearedAt = new Date().toISOString();
-      const { data: cleared, error: clearError } = await sb.rpc('clear_easer_application_fee_financial_hold', {
-        p_assembler_id: assemblerId,
-        p_payment_intent_id: rawProfile.stripe_payment_intent_id,
-        p_stripe_customer_id: rawProfile.stripe_customer_id,
-        p_expected_review_required_at: rawProfile.application_fee_refund_review_required_at,
-        p_cleared_at: clearedAt,
-      });
-      if (clearError || cleared !== true) {
-        throw clearError || new Error('Application-fee hold clearance returned no authoritative result');
-      }
-      await logActivity(sb, {
-        bookingId: null,
-        eventType: 'easer_application_fee_financial_hold_cleared',
-        actorType: 'owner',
-        actorId: assemblerId,
-        actorName: 'Owner',
-        description: `Fresh Stripe truth showed no live application-fee refund or unresolved dispute for ${rawProfile.full_name || assemblerId}; the financial hold was cleared and availability remained off`,
-        metadata: {
-          paymentIntentId: rawProfile.stripe_payment_intent_id,
-          failedOrCanceledRefundCount: refundTruth.refunds.length,
-          resolvedDisputeCount: disputeTruth.disputes.length,
-          isAvailable: false,
-        },
-      });
-      const emailResult = rawProfile.email ? await sendEmail({
-        to: rawProfile.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
-        replyTo: ownerEmail(),
-        subject: 'Your application payment hold was cleared',
-        html: '<p>The temporary payment hold on your application has been cleared.</p><p>Your availability remains Offline until you choose to go Online, and your other account settings have not changed. Contact support if you have questions.</p>',
-        meta: {
-          notificationType: 'easer_application_fee_hold_cleared',
-          recipientType: 'easer',
-          recipientUserId: assemblerId,
-          disableDedupe: true,
-        },
-      }).catch(error => ({ ok: false, error: error?.message || String(error) })) : null;
-      return res.status(200).json({
-        ok: true,
-        action,
-        holdCleared: true,
-        isAvailable: false,
-        emailDelivered: !rawProfile.email || (emailResult?.ok === true && !emailResult?.suppressed),
-      });
-    } catch (error) {
-      console.error('Application-fee financial-hold reconciliation failed:', error?.message || error);
-      return res.status(['40001', '23514'].includes(error?.code) ? 409 : 503).json({
-        error: 'Fresh Stripe refund and dispute truth could not safely clear this hold. The Easer remains offline.',
-        code: 'APPLICATION_FEE_RECONCILIATION_FAILED',
-      });
-    }
+  // Normalise: derive status from tier if DB column doesn't exist yet
+  if (!profile.status) {
+    if (profile.application_status === 'rejected' || profile.tier === 'rejected') profile.status = 'rejected';
+    else if (profile.tier === 'suspended') profile.status = 'suspended';
+    else if (profile.tier === 'pending' || !profile.tier) profile.status = 'pending';
+    else profile.status = 'active';
   }
 
   // ── APPROVE ──────────────────────────────────────────────────────────────
   if (action === 'approve') {
+    if (!profile.identity_verified) {
+      return res.status(400).json({ error: 'Identity must be verified before approval. Mark ID verified first.' });
+    }
     if (profile.status === 'active') {
-      if (String(profile.application_status || '').toLowerCase() === 'approved') {
-        try {
-          await verifyApprovalStripeTruth(rawProfile, assemblerId);
-        } catch (approvalTruthError) {
-          const status = approvalTruthError?.status || 409;
-          return res.status(status).json({
-            error: approvalTruthError?.message || 'The active Easer application fee could not be verified.',
-            code: 'APPLICATION_APPROVAL_TRUTH_MISMATCH',
-          });
-        }
-        const accountReadiness = await approvedAccountReadiness(rawProfile);
-        return res.status(200).json({
-          ok: true,
-          alreadyApproved: true,
-          action: 'approved',
-          status: 'active',
-          tier: profile.tier || 'starter',
-          ...accountReadiness,
-        });
-      }
-      return res.status(409).json({ error: 'The Easer access and application states disagree. Reconcile the profile before approval.' });
-    }
-    const approvalReadiness = getEaserApprovalReadiness(profile);
-    if (!approvalReadiness.isApprovable) {
-      return res.status(400).json({
-        error: approvalReadinessError(approvalReadiness),
-        missingItems: approvalReadiness.missingItems,
-      });
+      return res.status(400).json({ error: 'Easer is already active.' });
     }
 
-    const decision = 'approve';
-    const resumingApproval = rawProfile.application_decision_type === decision
-      && Boolean(rawProfile.application_decision_key);
-    const operationKey = resumingApproval
-      ? rawProfile.application_decision_key
-      : applicationDecisionKey(assemblerId, decision);
-    let claimResult;
-    try {
-      claimResult = await claimApplicationDecision(sb, {
-        assemblerId,
-        decision,
-        operationKey,
-        expectedProfile: rawProfile,
-      });
-    } catch (claimError) {
-      console.error('approve decision claim error:', claimError);
-      const failure = applicationDecisionHttpError(claimError, 'The application decision database migration is required before approving an Easer.');
-      return res.status(failure.status).json({ error: failure.error, code: failure.code });
-    }
-    if (claimResult.result_action === 'already_finalized') {
-      const accountReadiness = await approvedAccountReadiness(rawProfile);
-      return res.status(200).json({
-        ok: true,
-        alreadyApproved: true,
-        action: 'approved',
-        status: 'active',
-        tier: profile.tier || 'starter',
-        ...accountReadiness,
-      });
-    }
-
-    let approvalProfile;
-    let approvalFinalizationStarted = false;
-    try {
-      approvalProfile = await loadRawEaserProfile(sb, assemblerId);
-      profile = normalizeAssemblerProfile(approvalProfile);
-      const finalReadiness = getEaserApprovalReadiness(profile);
-      if (!finalReadiness.isApprovable) {
-        const readinessFailure = new Error(approvalReadinessError(finalReadiness));
-        readinessFailure.status = 400;
-        readinessFailure.missingItems = finalReadiness.missingItems;
-        throw readinessFailure;
-      }
-
-      // This live Stripe read is deliberately the final external check before
-      // the row-locked database finalization. The expected snapshot makes any
-      // intervening fee/refund/closure change lose the final CAS.
-      await verifyApprovalStripeTruth(approvalProfile, assemblerId);
-      approvalFinalizationStarted = true;
-      const approvedProfile = await finalizeApplicationDecision(sb, {
-        assemblerId,
-        decision,
-        operationKey,
-        expectedProfile: approvalProfile,
-      });
-      if (approvedProfile.result_action === 'already_finalized') {
-        const accountReadiness = await approvedAccountReadiness(approvalProfile);
-        return res.status(200).json({
-          ok: true,
-          alreadyApproved: true,
-          action: 'approved',
-          status: 'active',
-          tier: 'starter',
-          ...accountReadiness,
-        });
-      }
-      if (approvedProfile.result_action !== 'applied') {
-        throw new Error(`Unexpected approval finalization result: ${approvedProfile.result_action}`);
-      }
-    } catch (approveError) {
-      console.error('approve decision validation/finalization error:', approveError);
-      // Once the final RPC starts its response can be ambiguous. Keep the same
-      // claim so a retry re-reads database truth with this exact operation key.
-      // Before that point no external write occurred, so a failed validation
-      // may safely release the claim and allow owner correction.
-      const deterministicDatabaseRollback = approvalFinalizationStarted
-        && ['40001', '23514'].includes(approveError?.code);
-      if (!approvalFinalizationStarted || deterministicDatabaseRollback) {
-        await releaseApplicationDecision(sb, { assemblerId, decision, operationKey })
-          .catch(releaseError => console.error('approve decision release error:', releaseError));
-      }
-      const status = approveError?.status || (/Stripe|refund|fee|payment/i.test(approveError?.message || '') ? 409 : 503);
-      return res.status(status).json({
-        error: approveError?.message || 'The Easer could not be safely approved.',
-        code: status === 400 ? 'EASER_NOT_READY' : 'APPLICATION_APPROVAL_TRUTH_MISMATCH',
-        missingItems: approveError?.missingItems,
-      });
-    }
+    // Tier and core status — both columns are known-good
+    await sb.from('profiles').update({ tier: 'starter' }).eq('id', assemblerId);
+    await sb.from('profiles').update({
+      status: 'active',
+      application_status: 'approved',
+      approved_at: new Date().toISOString(),
+      is_available: false,
+      completed_jobs: 0,
+    }).eq('id', assemblerId);
 
     sb.from('assembler_waitlist').delete().eq('email', profile.email.toLowerCase()).then(() => {});
 
-    // Has this person already been into the app? Anyone who verified identity or
-    // accepted the agreement necessarily signed in first, so by approval time
-    // they already have a password. Telling them to "set your password" again —
-    // with a fresh recovery link — reads like their account broke or was reset,
-    // and it was the second such instruction in two emails for an owner-added
-    // Easer. Sign-in truth comes from auth; the profile fields are the fallback
-    // when that lookup is unavailable, so an uncertain read never re-issues a
-    // password link to someone who already has one.
-    let alreadyOnboarded = Boolean(
-      profile.identity_verified === true || profile.contractor_agreement_signed_at,
-    );
+    let resetUrl = SITE + '/auth/set-password';
     try {
-      const { data: authRecord } = await sb.auth.admin.getUserById(assemblerId);
-      if (authRecord?.user?.last_sign_in_at) alreadyOnboarded = true;
-    } catch (signInLookupError) {
-      console.warn('approval sign-in lookup failed:', signInLookupError?.message || signInLookupError);
-    }
-
-    // Only mint a recovery link for someone who genuinely still needs one.
-    const dashboardUrl = SITE + '/assembler/';
-    let resetUrl = alreadyOnboarded ? dashboardUrl : SITE + '/auth/set-password';
-    if (!alreadyOnboarded) {
-      try {
-        const { data: linkData } = await sb.auth.admin.generateLink({
-          type: 'recovery',
-          email: profile.email,
-          options: { redirectTo: SITE + '/auth/set-password' },
-        });
-        if (linkData?.properties?.action_link) resetUrl = linkData.properties.action_link;
-      } catch(e) { console.warn('generateLink error:', e.message); }
-    }
+      const { data: linkData } = await sb.auth.admin.generateLink({
+        type: 'recovery',
+        email: profile.email,
+        options: { redirectTo: SITE + '/auth/set-password' },
+      });
+      if (linkData?.properties?.action_link) resetUrl = linkData.properties.action_link;
+    } catch(e) { console.warn('generateLink error:', e.message); }
 
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
-    const accountReadiness = await approvedAccountReadiness({
-      ...approvalProfile,
-      status: 'active',
-      application_status: 'approved',
-      tier: 'starter',
-      is_available: false,
-    });
     const emailResult = await sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Welcome to AssembleAtEase — Set your password to get started',
       replyTo: 'service@assembleatease.com',
-      html: buildApprovalEmail(firstName, profile.email, resetUrl, { ...accountReadiness, alreadyOnboarded }),
+      html: buildApprovalEmail(firstName, profile.email, resetUrl),
       meta: {
         notificationType: 'approval',
         recipientType: 'easer',
@@ -622,7 +116,6 @@ export default async function handler(req, res) {
       tier: 'starter',
       emailDelivered: emailSent,
       emailError: emailSent ? null : (emailResult?.error || emailResult?.reason || 'unknown'),
-      ...accountReadiness,
     });
   }
 
@@ -632,458 +125,77 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Cannot reject an active Easer. Use suspend instead.' });
     }
 
-    const decision = 'reject';
-    const resumingRejection = rawProfile.application_decision_type === decision
-      && Boolean(rawProfile.application_decision_key);
-    const operationKey = resumingRejection
-      ? rawProfile.application_decision_key
-      : applicationDecisionKey(assemblerId, decision);
-    let claimResult;
-    try {
-      claimResult = await claimApplicationDecision(sb, {
-        assemblerId,
-        decision,
-        operationKey,
-        expectedProfile: rawProfile,
-      });
-    } catch (claimError) {
-      console.error('reject decision claim error:', claimError);
-      const failure = applicationDecisionHttpError(claimError, 'The application decision database migration is required before rejecting an Easer.');
-      return res.status(failure.status).json({ error: failure.error, code: failure.code });
-    }
-    if (claimResult.result_action === 'already_finalized') {
-      return res.status(200).json({
-        ok: true,
-        alreadyRejected: true,
-        action: 'rejected',
-        status: 'rejected',
-        refundId: rawProfile.application_fee_refund_id || null,
-      });
-    }
-
-    let rejectionProfile;
-    try {
-      rejectionProfile = await loadRawEaserProfile(sb, assemblerId);
-      profile = normalizeAssemblerProfile(rejectionProfile);
-    } catch (profileError) {
-      if (!resumingRejection) {
-        await releaseApplicationDecision(sb, { assemblerId, decision, operationKey }).catch(() => {});
-      }
-      return res.status(503).json({ error: 'The claimed application profile could not be re-read. No Stripe action was attempted.' });
-    }
-    let stripeMutationStarted = false;
-    let stripeFinancialActivityObserved = false;
-    const releaseDefinitivelySafeRejection = async () => {
-      if (resumingRejection || stripeMutationStarted || stripeFinancialActivityObserved) return false;
-      return releaseApplicationDecision(sb, { assemblerId, decision, operationKey });
-    };
-
-    // Stripe is authoritative. A succeeded application fee must be fully
-    // refunded before rejection; an unfinished intent must be canceled first
-    // so its browser client secret cannot charge after the owner rejects it.
-    const feeWaived = profile.application_fee_waived === true
-      || profile.fee_waived_by_owner === true;
-    if (feeWaived && (profile.application_fee_paid === true || profile.payment_confirmed === true)) {
-      return res.status(409).json({
-        error: 'Application fee records show both a waiver and a payment. The application was not rejected; reconcile the profile and Stripe first.',
-        code: 'APPLICATION_FEE_TRUTH_MISMATCH',
-      });
-    }
-    const hasPaymentIntent = !!profile.stripe_payment_intent_id;
-    let databaseClaimsPaid = profile.application_fee_paid === true
-      || (!feeWaived && profile.payment_confirmed === true);
-    let refundId = profile.application_fee_refund_id || null;
-    let refundedCents = Number(profile.application_fee_refunded_cents || 0);
-    let pendingRefundCents = Number(profile.application_fee_refund_pending_cents || 0);
-    let refundedAt = profile.application_fee_refunded_at || null;
-    let refundConfirmed = false;
-
-    if ((profile.application_fee_refunded === true) !== (refundedCents > 0)
-        || (refundedCents > 0) !== Boolean(refundId)
-        || (refundedCents > 0) !== Boolean(refundedAt)
-        || refundedCents < 0
-        || pendingRefundCents < 0
-        || refundedCents + pendingRefundCents > EASER_APPLICATION_FEE_CENTS) {
-      return res.status(409).json({
-        error: 'Application refund records are contradictory. The application was not rejected; reconcile the profile and Stripe first.',
-        code: 'APPLICATION_REFUND_STATE_MISMATCH',
-      });
-    }
-
-    if (hasPaymentIntent) {
-      if (!process.env.STRIPE_SECRET_KEY || !profile.stripe_customer_id) {
-        await releaseDefinitivelySafeRejection().catch(releaseError => {
-          console.error('reject decision release error:', releaseError);
-        });
-        return res.status(503).json({
-          error: 'The application payment cannot be verified against its stored Stripe Customer and PaymentIntent. The application was not rejected.',
-          code: 'APPLICATION_REFUND_CONFIGURATION_REQUIRED',
-        });
-      }
-      try {
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-        const paymentIntent = await stripe.paymentIntents.retrieve(profile.stripe_payment_intent_id);
-        validateEaserApplicationPaymentIntent(paymentIntent, {
-          userId: assemblerId,
-          paymentIntentId: profile.stripe_payment_intent_id,
-          customerId: profile.stripe_customer_id,
-        });
-
-        if (paymentIntent.status === 'succeeded') {
-          stripeFinancialActivityObserved = true;
-          if (feeWaived) {
-            return res.status(409).json({
-              error: 'Stripe shows a paid application but the profile also shows a fee waiver. The application was not rejected; reconcile and refund the charge first.',
-              code: 'APPLICATION_FEE_TRUTH_MISMATCH',
-            });
-          }
-          let refundTruth = await loadEaserApplicationFeeRefundTruth({
-            stripe,
-            assemblerId,
-            paymentIntentId: profile.stripe_payment_intent_id,
-            customerId: profile.stripe_customer_id,
-          });
-          await reconcileEaserApplicationFeeRefund(sb, {
-            assemblerId,
-            paymentIntentId: profile.stripe_payment_intent_id,
-            customerId: profile.stripe_customer_id,
-            truth: refundTruth,
-            reason: 'Owner rejection application-fee refund reconciliation',
-          });
-          databaseClaimsPaid = true;
-          refundedCents = refundTruth.succeededRefundedCents;
-          pendingRefundCents = refundTruth.pendingRefundCents;
-          refundId = refundTruth.latestSucceededRefundId;
-          refundedAt = refundTruth.latestSucceededRefundedAt;
-
-          if (pendingRefundCents > 0) {
-            return res.status(409).json({
-              error: 'Stripe is still processing an application-fee refund. The application was not rejected; retry after the pending refund resolves.',
-              code: 'APPLICATION_REFUND_PENDING',
-              refundId,
-              refundedCents,
-              pendingRefundCents,
-            });
-          }
-
-          if (refundedCents < EASER_APPLICATION_FEE_CENTS) {
-            const remainingCents = EASER_APPLICATION_FEE_CENTS - refundedCents;
-            const failedOrCanceledCount = refundTruth.refunds.filter(refund => (
-              ['failed', 'canceled'].includes(String(refund.status || '').toLowerCase())
-              && refund.metadata?.userId === assemblerId
-              && refund.metadata?.reason === 'application_rejected'
-            )).length;
-            stripeMutationStarted = true;
-            await stripe.refunds.create({
-              payment_intent: profile.stripe_payment_intent_id,
-              amount: remainingCents,
-              reason: 'requested_by_customer',
-              metadata: {
-                userId: assemblerId,
-                reason: 'application_rejected',
-                priorSucceededRefundedCents: String(refundedCents),
-              },
-            }, {
-              idempotencyKey: `easer-application-rejection-refund-${assemblerId}-from-${refundedCents}-v${failedOrCanceledCount + 1}`,
-            });
-
-            refundTruth = await loadEaserApplicationFeeRefundTruth({
-              stripe,
-              assemblerId,
-              paymentIntentId: profile.stripe_payment_intent_id,
-              customerId: profile.stripe_customer_id,
-            });
-            await reconcileEaserApplicationFeeRefund(sb, {
-              assemblerId,
-              paymentIntentId: profile.stripe_payment_intent_id,
-              customerId: profile.stripe_customer_id,
-              truth: refundTruth,
-              reason: 'Owner rejection application-fee refund reconciliation',
-            });
-            refundedCents = refundTruth.succeededRefundedCents;
-            pendingRefundCents = refundTruth.pendingRefundCents;
-            refundId = refundTruth.latestSucceededRefundId;
-            refundedAt = refundTruth.latestSucceededRefundedAt;
-          }
-
-          if (pendingRefundCents > 0) {
-            return res.status(409).json({
-              error: 'Stripe is still processing the remaining application-fee refund. The application was not rejected; retry after it succeeds.',
-              code: 'APPLICATION_REFUND_PENDING',
-              refundId,
-              refundedCents,
-              pendingRefundCents,
-            });
-          }
-          if (refundedCents !== EASER_APPLICATION_FEE_CENTS || !refundId || !refundedAt) {
-            throw new Error(`Stripe aggregate refund is ${refundedCents} of ${EASER_APPLICATION_FEE_CENTS} cents`);
-          }
-          refundConfirmed = true;
-        } else if (paymentIntent.status === 'canceled') {
-          if (databaseClaimsPaid || refundedCents > 0 || pendingRefundCents > 0 || refundId
-              || profile.application_fee_refund_review_required_at) {
-            return res.status(409).json({
-              error: 'The profile reports paid or refunded money but Stripe shows a canceled application payment. The application was not rejected; reconcile first.',
-              code: 'APPLICATION_FEE_TRUTH_MISMATCH',
-            });
-          }
-        } else {
-          if (databaseClaimsPaid || refundedCents > 0 || pendingRefundCents > 0 || refundId
-              || profile.application_fee_refund_review_required_at) {
-            return res.status(409).json({
-              error: 'The profile payment state disagrees with Stripe. The application was not rejected; reconcile first.',
-              code: 'APPLICATION_FEE_TRUTH_MISMATCH',
-            });
-          }
-          stripeMutationStarted = true;
-          const canceledIntent = await stripe.paymentIntents.cancel(
-            profile.stripe_payment_intent_id,
-            {},
-            { idempotencyKey: `easer-application-rejection-cancel-${assemblerId}` },
-          );
-          if (canceledIntent?.status !== 'canceled') {
-            throw new Error(`Stripe returned PaymentIntent status ${canceledIntent?.status || 'unknown'} after cancellation`);
-          }
-        }
-      } catch (refundErr) {
-        console.error(`[reject] Stripe payment reconciliation failed for ${profile.email}:`, refundErr.message);
-        return res.status(502).json({
-          error: 'Stripe could not safely cancel or refund the application payment. The application was not rejected; retry after reviewing Stripe.',
-          code: 'APPLICATION_REFUND_FAILED',
-        });
-      }
-    } else if (databaseClaimsPaid || refundedCents > 0 || pendingRefundCents > 0 || refundId
-        || profile.application_fee_refund_review_required_at) {
-      return res.status(409).json({
-        error: 'The profile reports paid or refunded money but has no stored Stripe PaymentIntent. The application was not rejected; reconcile first.',
-        code: 'APPLICATION_FEE_TRUTH_MISMATCH',
-      });
-    }
-
-    if (!feeWaived && databaseClaimsPaid && !refundConfirmed) {
-      // This should be unreachable after the Stripe checks above. Keep a final
-      // fail-closed guard so a future edit cannot reject a known paid applicant.
-      return res.status(409).json({
-        error: 'The paid application has no confirmed full Stripe refund. The application was not rejected.',
-        code: 'APPLICATION_REFUND_REQUIRED',
-      });
-    }
-
-    let finalRejectionProfile;
-    try {
-      finalRejectionProfile = await loadRawEaserProfile(sb, assemblerId);
-      const finalized = await finalizeApplicationDecision(sb, {
-        assemblerId,
-        decision,
-        operationKey,
-        expectedProfile: finalRejectionProfile,
-        refundId: refundConfirmed ? refundId : null,
-        refundedAt: refundConfirmed
-          ? (finalRejectionProfile.application_fee_refunded_at || new Date().toISOString())
-          : null,
-        rejectionReason: rejectionReason?.trim() || null,
-      });
-      if (finalized.result_action === 'already_finalized') {
-        return res.status(200).json({
-          ok: true,
-          alreadyRejected: true,
-          action: 'rejected',
-          status: 'rejected',
-          refundId: finalized.application_fee_refund_id || refundId || null,
-        });
-      }
-      if (finalized.result_action !== 'applied') {
-        throw new Error(`Unexpected rejection finalization result: ${finalized.result_action}`);
-      }
-    } catch (rejectErr) {
-      // Keep the exact rejection claim after any Stripe mutation or ambiguous
-      // financial read. A retry resumes the same idempotent operation instead
-      // of allowing a conflicting approval to activate the Easer.
-      console.error('reject decision finalization error:', rejectErr);
-      return res.status(500).json({
-        error: refundConfirmed
-          ? 'The fee was refunded, but rejection status could not be saved. Retry this same action; Stripe will not refund twice.'
-          : 'The rejection could not be finalized. Retry this same action.',
-        code: refundConfirmed ? 'APPLICATION_REJECTION_PERSIST_FAILED' : 'APPLICATION_REJECTION_FAILED',
-        refundId: refundConfirmed ? refundId : null,
-      });
-    }
+    await sb.from('profiles').update({
+      status: 'rejected',
+      tier: null,
+      application_status: 'rejected',
+      rejected_at: new Date().toISOString(),
+      rejection_reason: rejectionReason?.trim() || null,
+    }).eq('id', assemblerId);
 
     sb.from('assembler_waitlist').update({ status: 'rejected' }).eq('email', profile.email.toLowerCase()).then(() => {});
 
+    // Refund the $30 application fee if a Stripe payment intent is on record
+    let refundId = null;
+    if (profile.stripe_payment_intent_id) {
+      try {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        const refund = await stripe.refunds.create({
+          payment_intent: profile.stripe_payment_intent_id,
+          reason: 'requested_by_customer',
+          metadata: { userId: assemblerId, reason: 'application_rejected' },
+        });
+        refundId = refund.id;
+        await sb.from('profiles').update({ application_fee_refunded: true, application_fee_refund_id: refundId }).eq('id', assemblerId);
+        console.log(`[reject] Refunded $30 for ${profile.email} — refund ${refundId}`);
+      } catch (refundErr) {
+        console.error(`[reject] Stripe refund failed for ${profile.email}:`, refundErr.message);
+      }
+    }
+
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
-    const rejectionEmail = await sendEmail({
+    sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your AssembleAtEase Application',
       replyTo: 'service@assembleatease.com',
-      html: buildRejectionEmail(firstName, rejectionReason?.trim() || null, refundConfirmed, feeWaived),
-      meta: { notificationType: 'easer_application_rejected', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
-    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+      html: buildRejectionEmail(firstName, rejectionReason?.trim() || null, !!refundId, !!profile.application_fee_waived),
+    }).catch(e => console.error('Rejection email error:', e));
 
-    return res.status(200).json({ ok: true, action: 'rejected', status: 'rejected', refundId, emailDelivered: rejectionEmail?.ok === true && !rejectionEmail?.suppressed });
+    return res.status(200).json({ ok: true, action: 'rejected', status: 'rejected', refundId });
   }
 
   // ── SUSPEND ──────────────────────────────────────────────────────────────
-  // ── waitlist ──────────────────────────────────────────────────────────────
-  // A third answer to an application. Before this the owner could only approve
-  // or reject, so a good applicant in a market that is not open yet had to be
-  // REJECTED — which refunds their fee, closes them out, and loses the lead.
-  //
-  // Waitlisting is deliberately NOT a finalization: it does not go through
-  // claimApplicationDecision, it changes no money, and it is reversible. The
-  // person stays exactly where they are with a different label, so they can be
-  // approved later without reapplying.
-  //
-  // application_status = 'waitlist' has been legal in the database since
-  // migration 069; nothing had ever set it.
-  if (action === 'waitlist') {
-    if (profile.status === 'active') {
-      return res.status(400).json({ error: 'This Easer is already active. Use suspend if you need to pause them.' });
-    }
-    if (String(profile.application_status || '').toLowerCase() === 'approved') {
-      return res.status(400).json({ error: 'This application is already approved. Waitlisting it would contradict that.' });
-    }
-
-    // A captured application fee makes this a money decision, not a filing one:
-    // holding someone's $30 indefinitely for an application we are not
-    // processing is not defensible. Reject already refunds; waitlist does not
-    // touch money at all, so it refuses rather than quietly holding the fee.
-    if (profile.application_fee_paid === true && !profile.application_fee_refund_id) {
-      return res.status(409).json({
-        error: 'This applicant has paid the application fee. Waitlisting would hold their money with no decision. Approve them, or reject to refund the fee.',
-        code: 'WAITLIST_BLOCKED_BY_PAID_FEE',
-      });
-    }
-
-    const { error: waitlistError } = await sb
-      .from('profiles')
-      .update({ application_status: 'waitlist' })
-      .eq('id', assemblerId)
-      .neq('application_status', 'approved');
-    if (waitlistError) {
-      console.error('waitlist update error:', waitlistError);
-      return res.status(500).json({ error: 'Could not move this application to the waitlist.' });
-    }
-
-    // Silence would read as rejection. They get the SAME branded email a public
-    // signup gets — same header, status badge, next steps and footer — because
-    // an applicant has given us more than a signup, not less.
-    //
-    // The APPLIED variant exists so the copy stays true: they came to us, so
-    // nothing references a conversation, and nothing claims their area is
-    // closed. That would be a reason we may not have and would have to stand
-    // behind the next time they asked.
-    if (profile.email) {
-      const welcome = buildWaitlistEmail({
-        name: profile.full_name,
-        city: profile.city,
-        state: profile.state,
-        variant: WAITLIST_EMAIL_VARIANT.APPLIED,
-      });
-      await sendEmail({
-        to: profile.email,
-        from: 'AssembleAtEase <waitlist@assembleatease.com>',
-        subject: welcome.subject,
-        html: welcome.html,
-        replyTo: ownerEmail(),
-        meta: {
-          notificationType: 'easer_application_waitlisted',
-          recipientType: 'easer',
-          recipientUserId: assemblerId,
-        },
-      }).catch(err => console.error('waitlist email failed:', err?.message || err));
-    }
-
-    return res.status(200).json({ ok: true, action: 'waitlisted', applicationStatus: 'waitlist' });
-  }
-
   if (action === 'suspend') {
-    if (profile.status === 'suspended') return res.status(200).json({
-      ok: true,
-      alreadySuspended: true,
-      action: 'suspended',
-      previous_tier: profile.previous_tier || null,
-    });
+    if (profile.status === 'suspended') return res.status(400).json({ error: 'Already suspended.' });
     if (profile.status !== 'active') return res.status(400).json({ error: 'Only active Easers can be suspended.' });
 
-    // The RPC takes the same profile row lock as the booking-assignment trigger.
-    // Whichever operation wins is authoritative: assignment makes suspension
-    // observe the active job; suspension makes assignment observe ineligibility.
-    const { data: suspensionData, error: suspendErr } = await sb.rpc('suspend_easer_if_no_active_jobs', {
-      p_assembler_id: assemblerId,
-      p_expected_status: rawProfile.status ?? null,
-      p_expected_tier: rawProfile.tier ?? null,
-    });
-    if (suspendErr) {
-      console.error('suspend RPC error:', suspendErr);
-      const conflict = suspendErr.code === '40001'
-        || suspendErr.code === '23514'
-        || /changed|active job|assignment|decision/i.test(suspendErr.message || '');
-      return res.status(conflict ? 409 : 503).json({
-        error: conflict
-          ? 'The Easer state changed while suspension was being applied. Refresh and review current assignments.'
-          : 'The suspension safety migration is required before suspending an Easer.',
-        code: conflict ? 'EASER_SUSPENSION_CONFLICT' : 'EASER_SUSPENSION_DATABASE_REQUIRED',
-      });
-    }
-    const suspension = Array.isArray(suspensionData) ? suspensionData[0] : suspensionData;
-    if (!suspension?.result_action) {
-      return res.status(503).json({
-        error: 'Suspension returned no authoritative database result.',
-        code: 'EASER_SUSPENSION_DATABASE_REQUIRED',
-      });
-    }
-    if (suspension.result_action === 'active_jobs') {
-      const activeJobs = Array.isArray(suspension.active_jobs) ? suspension.active_jobs : [];
+    // Block suspension if Easer has live assigned bookings — reassign them first
+    const { data: activeJobs } = await sb
+      .from('bookings')
+      .select('id, ref, service, date')
+      .eq('assembler_id', assemblerId)
+      .in('status', ['confirmed', 'en_route', 'arrived', 'in_progress']);
+
+    if (activeJobs?.length) {
       return res.status(409).json({
         error: `Cannot suspend — this Easer has ${activeJobs.length} active job(s). Reassign or complete them first.`,
-        activeJobs,
-        code: 'EASER_HAS_ACTIVE_JOBS',
-      });
-    }
-    if (!['suspended', 'already_suspended'].includes(suspension.result_action)) {
-      return res.status(503).json({
-        error: `Unexpected suspension result: ${suspension.result_action}`,
-        code: 'EASER_SUSPENSION_DATABASE_REQUIRED',
+        activeJobs: activeJobs.map(b => ({ ref: b.ref, service: b.service, date: b.date })),
       });
     }
 
     const { suspensionNotes } = req.body;
     if (suspensionNotes?.trim()) console.log(`[suspend] ${profile.full_name} (${assemblerId}): ${suspensionNotes.trim()}`);
 
-    // Notify the Easer they've been paused — Rule 10 (an Easer must ALWAYS know
-    // their status). Previously suspension sent NO email at all, so a suspended
-    // Easer was left guessing why offers stopped while reinstatement DID email.
-    // Only email on a fresh suspension, never re-nag an already-suspended account.
-    // Email failure must never block the suspension itself.
-    let suspendEmailDelivered = false;
-    if (suspension.result_action === 'suspended') {
-      const firstName = (profile.full_name || '').split(' ')[0] || 'there';
-      const suspendEmail = await sendEmail({
-        to: profile.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: 'An update on your AssembleAtEase Easer account',
-        replyTo: 'service@assembleatease.com',
-        html: buildEaserAccountEmail({
-          heading: 'Account paused',
-          firstName,
-          bodyHtml: `<p style="color:#52525b;line-height:1.7;margin:0 0 16px">Your AssembleAtEase Easer account has been <strong>paused</strong>. While it's paused you won't appear in dispatch or receive new job offers.</p>
-            ${suspensionNotes && suspensionNotes.trim() ? `<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin:0 0 16px"><p style="margin:0 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#92400e">Reason</p><p style="margin:0;font-size:14px;color:#92400e;line-height:1.6">${esc(suspensionNotes.trim())}</p></div>` : ''}
-            <p style="color:#52525b;line-height:1.7;margin:0 0 8px">If you think this was a mistake, or you'd like to talk about getting back to active, just reply to this email or reach us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>. We're glad to help.</p>`,
-        }),
-        meta: { notificationType: 'easer_suspended', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
-      }).catch(e => ({ ok: false, error: e?.message || String(e) }));
-      suspendEmailDelivered = suspendEmail?.ok === true && !suspendEmail?.suppressed;
-    }
+    // tier column definitely exists — use it as fallback suspended marker
+    await sb.from('profiles').update({ tier: 'suspended' }).eq('id', assemblerId);
+    await sb.from('profiles').update({
+      status: 'suspended',
+      previous_tier: profile.tier,
+      is_available: false,   // force offline — suspended Easers must not appear available
+    }).eq('id', assemblerId);
 
-    return res.status(200).json({
-      ok: true,
-      alreadySuspended: suspension.result_action === 'already_suspended',
-      action: 'suspended',
-      previous_tier: suspension.previous_tier || null,
-      emailDelivered: suspendEmailDelivered,
-    });
+    return res.status(200).json({ ok: true, action: 'suspended', previous_tier: profile.tier });
   }
 
   // ── REINSTATE ────────────────────────────────────────────────────────────
@@ -1092,237 +204,24 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Easer is not suspended.' });
     }
 
-    const restoredTier = getRestorableTier(profile);
-    const { data: reinstatedProfile, error: reinstateErr } = await sb.from('profiles')
-      .update({
-        tier: restoredTier,
-        status: 'active',
-        previous_tier: null,
-      })
-      .eq('id', assemblerId)
-      .or('account_closure_status.is.null,account_closure_status.eq.cancelled')
-      .select('id')
-      .maybeSingle();
-    if (reinstateErr) {
-      console.error('reinstate update error:', reinstateErr);
-      return res.status(500).json({ error: 'Failed to reinstate Easer' });
-    }
-    if (!reinstatedProfile) return respondWithOwnerClosureRace(res);
+    const restoredTier = profile.previous_tier || 'starter';
+    await sb.from('profiles').update({ tier: restoredTier }).eq('id', assemblerId);
+    await sb.from('profiles').update({
+      status: 'active',
+      previous_tier: null,
+    }).eq('id', assemblerId);
 
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
-    const tierLabel = { starter: 'Starter Pro', professional: 'Professional', elite: 'Elite Pro' }[restoredTier] || restoredTier;
-    const reinstateEmail = await sendEmail({
+    const tierLabel = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[restoredTier] || restoredTier;
+    sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your AssembleAtEase account has been reinstated',
       replyTo: 'service@assembleatease.com',
-      html: buildEaserAccountEmail({
-        heading: 'Welcome back',
-        firstName,
-        bodyHtml: `<p style="color:#52525b;line-height:1.7;margin:0 0 16px">Good news — your AssembleAtEase Easer account has been <strong>reinstated</strong> as a <strong>${esc(tierLabel)}</strong> Easer.</p>
-          <p style="color:#52525b;line-height:1.7;margin:0 0 8px">Review your readiness checklist, then switch to <strong>Online</strong> when you're ready to receive offers again.</p>`,
-        ctaText: 'Open your dashboard',
-        ctaUrl: `${SITE}/assembler/`,
-      }),
-      meta: { notificationType: 'easer_reinstated', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
-    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#00BFFF">Account Reinstated</h2><p>Hi ${esc(firstName)},</p><p>Your account has been reinstated as a <strong>${esc(tierLabel)}</strong> Easer and you can now receive job assignments again.</p><p><a href="${SITE}/assembler/" style="color:#00BFFF">Open your dashboard</a></p></div>`,
+    }).catch(() => {});
 
-    return res.status(200).json({ ok: true, action: 'reinstated', status: 'active', tier: restoredTier, emailDelivered: reinstateEmail?.ok === true && !reinstateEmail?.suppressed });
-  }
-
-  // ── DEACTIVATE (reversible hard lock — revokes sign-in access) ────────────
-  // Distinct from Suspend: suspend is a reversible PAUSE where the Easer can
-  // still log in and see their status. Deactivate BANS the auth user so they
-  // cannot log in at all, and removes them from every pool. Reversible only by
-  // the owner via `reactivate` (which unbans and returns them to suspended).
-  if (action === 'deactivate') {
-    if (profile.status === 'deactivated') {
-      return res.status(200).json({ ok: true, alreadyDeactivated: true, action: 'deactivated', status: 'deactivated' });
-    }
-    if (!['active', 'suspended'].includes(profile.status)) {
-      return res.status(400).json({ error: 'Only active or suspended Easers can be deactivated.' });
-    }
-
-    // For an ACTIVE Easer, reuse the atomic active-jobs guard to move them to
-    // suspended first — this refuses if a job is in flight and saves previous_tier.
-    if (profile.status === 'active') {
-      const { data: suspensionData, error: suspendErr } = await sb.rpc('suspend_easer_if_no_active_jobs', {
-        p_assembler_id: assemblerId,
-        p_expected_status: rawProfile.status ?? null,
-        p_expected_tier: rawProfile.tier ?? null,
-      });
-      if (suspendErr) {
-        const conflict = suspendErr.code === '40001' || suspendErr.code === '23514'
-          || /changed|active job|assignment|decision/i.test(suspendErr.message || '');
-        return res.status(conflict ? 409 : 503).json({
-          error: conflict
-            ? 'The Easer state changed while deactivating. Refresh and review current assignments.'
-            : 'The suspension safety migration is required before deactivating an Easer.',
-          code: conflict ? 'EASER_DEACTIVATION_CONFLICT' : 'EASER_SUSPENSION_DATABASE_REQUIRED',
-        });
-      }
-      const suspension = Array.isArray(suspensionData) ? suspensionData[0] : suspensionData;
-      if (suspension?.result_action === 'active_jobs') {
-        const activeJobs = Array.isArray(suspension.active_jobs) ? suspension.active_jobs : [];
-        return res.status(409).json({
-          error: `Cannot deactivate — this Easer has ${activeJobs.length} active job(s). Reassign or complete them first.`,
-          activeJobs, code: 'EASER_HAS_ACTIVE_JOBS',
-        });
-      }
-      if (!['suspended', 'already_suspended'].includes(suspension?.result_action)) {
-        return res.status(503).json({ error: 'Deactivation could not confirm a safe paused state first.', code: 'EASER_SUSPENSION_DATABASE_REQUIRED' });
-      }
-    }
-
-    // Reversible sign-in lock: long ban (unbanned on reactivate).
-    const ban = await setEaserAuthBan(sb, assemblerId, true);
-    if (!ban.ok) {
-      return res.status(503).json({
-        error: 'Sign-in access could not be locked. The Easer is paused but not fully deactivated; retry.',
-        code: 'EASER_AUTH_LOCK_FAILED',
-      });
-    }
-
-    const { data: deactivatedRows, error: deactivateErr } = await sb.from('profiles')
-      .update({ status: 'deactivated', is_available: false })
-      .eq('id', assemblerId)
-      .eq('role', 'assembler')
-      .in('status', ['active', 'suspended'])
-      .select('id');
-    if (deactivateErr || !deactivatedRows?.length) {
-      // Never leave someone locked out without a deactivated record — roll back the ban.
-      await setEaserAuthBan(sb, assemblerId, false).catch(() => {});
-      return res.status(409).json({ error: 'The Easer state changed during deactivation. The sign-in lock was rolled back; refresh and retry.', code: 'EASER_DEACTIVATION_CONFLICT' });
-    }
-
-    const { deactivationReason } = req.body;
-    const deactReason = (deactivationReason || '').trim();
-    // Durable, owner-visible audit — the reason must survive beyond a server log
-    // for owner recall and dispute defensibility.
-    await logActivity(sb, {
-      bookingId: null,
-      eventType: 'easer_deactivated',
-      actorType: 'owner',
-      actorId: assemblerId,
-      actorName: 'Owner',
-      description: `${profile.full_name || assemblerId} was deactivated — sign-in access closed and removed from dispatch.`
-        + (deactReason ? ` Reason: ${deactReason}` : ' No reason recorded.'),
-      metadata: { reason: deactReason || null, previousStatus: profile.status },
-    }).catch((e) => console.error('deactivate logActivity error:', e?.message || e));
-
-    const dFirstName = (profile.full_name || '').split(' ')[0] || 'there';
-    const deactivateEmail = await sendEmail({
-      to: profile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: 'An update on your AssembleAtEase Easer account',
-      replyTo: 'service@assembleatease.com',
-      html: buildEaserAccountEmail({
-        heading: 'Account deactivated',
-        firstName: dFirstName,
-        bodyHtml: `<p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0 0 16px">We're writing to let you know that your AssembleAtEase Easer account has been deactivated. Your access to the Easer app is now closed, and you won't receive new job offers.</p>
-      <div style="background:#f8fafc;border:1px solid #e4e4e7;border-radius:10px;padding:16px 18px;margin:0 0 16px">
-        <div style="font-size:0.8rem;font-weight:800;letter-spacing:0.03em;text-transform:uppercase;color:#0099CC;margin-bottom:10px">What this means</div>
-        <table cellpadding="0" cellspacing="0" style="width:100%;font-size:0.9rem;color:#52525b;line-height:1.6">
-          <tr><td style="padding:4px 0;vertical-align:top;width:22px;color:#0099CC">&bull;</td><td style="padding:4px 0">You can no longer sign in to the Easer app.</td></tr>
-          <tr><td style="padding:4px 0;vertical-align:top;color:#0099CC">&bull;</td><td style="padding:4px 0">You won't be sent any new job offers.</td></tr>
-          <tr><td style="padding:4px 0;vertical-align:top;color:#0099CC">&bull;</td><td style="padding:4px 0">Records from any completed work stay on file &mdash; this doesn't affect earnings you've already made.</td></tr>
-        </table>
-      </div>
-      <p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0 0 16px">If you believe this was made in error, or you'd like to talk it through, we're glad to help. Reply to this email or reach us at <a href="mailto:service@assembleatease.com" style="color:#0099CC;font-weight:600;text-decoration:none">service@assembleatease.com</a>.</p>
-      <p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0">Thank you for the time you spent with AssembleAtEase.</p>`,
-      }),
-      meta: { notificationType: 'easer_deactivated', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
-    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
-
-    return res.status(200).json({ ok: true, action: 'deactivated', status: 'deactivated', emailDelivered: deactivateEmail?.ok === true && !deactivateEmail?.suppressed });
-  }
-
-  // ── REACTIVATE (restore sign-in; returns to suspended for owner review) ──
-  if (action === 'reactivate') {
-    if (profile.status !== 'deactivated') {
-      return res.status(400).json({ error: 'Only deactivated Easers can be reactivated.' });
-    }
-    const unban = await setEaserAuthBan(sb, assemblerId, false);
-    if (!unban.ok) {
-      return res.status(503).json({ error: 'Sign-in access could not be restored. Retry.', code: 'EASER_AUTH_UNLOCK_FAILED' });
-    }
-    const { data: reRows, error: reErr } = await sb.from('profiles')
-      .update({ status: 'suspended', is_available: false })
-      .eq('id', assemblerId)
-      .eq('role', 'assembler')
-      .eq('status', 'deactivated')
-      .select('id');
-    if (reErr || !reRows?.length) {
-      return res.status(409).json({ error: 'The Easer state changed during reactivation. Refresh and retry.', code: 'EASER_REACTIVATION_CONFLICT' });
-    }
-    await logActivity(sb, {
-      bookingId: null,
-      eventType: 'easer_reactivated',
-      actorType: 'owner',
-      actorId: assemblerId,
-      actorName: 'Owner',
-      description: `${profile.full_name || assemblerId} was reactivated — sign-in access restored; returned to suspended for review.`,
-      metadata: { restoredTo: 'suspended' },
-    }).catch((e) => console.error('reactivate logActivity error:', e?.message || e));
-    const rFirstName = (profile.full_name || '').split(' ')[0] || 'there';
-    const reEmail = await sendEmail({
-      to: profile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: 'An update on your AssembleAtEase Easer account',
-      replyTo: 'service@assembleatease.com',
-      html: buildEaserAccountEmail({
-        heading: 'Account access restored',
-        firstName: rFirstName,
-        bodyHtml: 'Your AssembleAtEase Easer account has been reactivated and you can sign in again. Your account is currently paused pending review; we will follow up with any next steps.',
-      }),
-      meta: { notificationType: 'easer_reactivated', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
-    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
-
-    return res.status(200).json({ ok: true, action: 'reactivated', status: 'suspended', emailDelivered: reEmail?.ok === true && !reEmail?.suppressed });
-  }
-
-  // ── REQUEST NEW PROFILE PHOTO (clears a poor photo + asks the Easer to re-upload) ──
-  if (action === 'request_photo') {
-    const { photoNote } = req.body;
-    const note = (photoNote || '').trim();
-    // Remove the current photo so a poor or unclear one stops showing to customers
-    // (e.g. on the tracking page) right away; the Easer re-uploads from their profile.
-    const { error: clearErr } = await sb.from('profiles')
-      .update({ profile_photo: null })
-      .eq('id', assemblerId)
-      .eq('role', 'assembler');
-    if (clearErr) {
-      return res.status(503).json({ error: 'Could not update the profile photo. Please retry.', code: 'PHOTO_UPDATE_FAILED' });
-    }
-    const pFirstName = (profile.full_name || '').split(' ')[0] || 'there';
-    const photoEmail = await sendEmail({
-      to: profile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: 'Please update your AssembleAtEase profile photo',
-      replyTo: 'service@assembleatease.com',
-      html: buildEaserAccountEmail({
-        heading: 'Update your profile photo',
-        firstName: pFirstName,
-        bodyHtml: `<p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0 0 16px">Your profile photo is one of the first things a customer sees before you arrive at their home, so it needs to be clear and professional. We've removed your current photo and would like you to upload a new one.</p>`
-          + (note ? `<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px 16px;margin:0 0 16px"><div style="font-size:0.8rem;font-weight:800;letter-spacing:0.03em;text-transform:uppercase;color:#0369a1;margin-bottom:6px">What we need</div><div style="font-size:0.92rem;color:#334155;line-height:1.6">${esc(note)}</div></div>` : '')
-          + `<p style="font-size:0.9rem;color:#52525b;line-height:1.7;margin:0">A good photo is a clear, well-lit headshot of your face &mdash; no sunglasses, hats, logos, or group shots. Tap below to update it in your profile.</p>`,
-        ctaText: 'Update my photo',
-        ctaUrl: 'https://www.assembleatease.com/assembler/profile',
-      }),
-      meta: { notificationType: 'easer_photo_request', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
-    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
-
-    await logActivity(sb, {
-      bookingId: null,
-      eventType: 'easer_photo_requested',
-      actorType: 'owner',
-      actorId: assemblerId,
-      actorName: 'Owner',
-      description: `Requested a new profile photo from ${profile.full_name || assemblerId} and cleared the previous one.` + (note ? ` Note: ${note}` : ''),
-      metadata: { note: note || null },
-    }).catch((e) => console.error('request_photo logActivity error:', e?.message || e));
-
-    return res.status(200).json({ ok: true, action: 'photo_requested', emailDelivered: photoEmail?.ok === true && !photoEmail?.suppressed });
+    return res.status(200).json({ ok: true, action: 'reinstated', status: 'active', tier: restoredTier });
   }
 
   // ── PROMOTE / DEMOTE ─────────────────────────────────────────────────────
@@ -1331,7 +230,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Only active Easers can have their tier changed.' });
     }
 
-    const validTiers = ACTIVE_EASER_TIERS;
+    const validTiers = ['starter', 'professional', 'elite'];
     if (!tier || !validTiers.includes(tier)) {
       return res.status(400).json({ error: 'tier must be one of: starter, professional, elite' });
     }
@@ -1347,535 +246,76 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `Cannot demote to ${tier} — must be lower than current tier (${profile.tier}).` });
     }
 
-    const { data: tierChangedProfile, error: tierChangeError } = await sb.from('profiles')
-      .update({ tier })
-      .eq('id', assemblerId)
-      .or('account_closure_status.is.null,account_closure_status.eq.cancelled')
-      .select('id')
-      .maybeSingle();
-    if (tierChangeError) {
-      console.error(`${action} update error:`, tierChangeError);
-      return res.status(500).json({ error: `Failed to ${action} Easer` });
-    }
-    if (!tierChangedProfile) return respondWithOwnerClosureRace(res);
+    await sb.from('profiles').update({ tier }).eq('id', assemblerId);
 
     const tierLabel = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[tier];
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
 
-    let tierEmail = null;
     if (action === 'promote') {
-      tierEmail = await sendEmail({
+      sendEmail({
         to: profile.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Congratulations — you've been promoted to ${tierLabel}`,
         replyTo: 'service@assembleatease.com',
         html: buildPromotionEmail(firstName, tierLabel, tier),
-        meta: { notificationType: 'easer_tier_changed', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
-      }).catch(error => ({ ok: false, error: error?.message || String(error) }));
+      }).catch(() => {});
     }
 
-    return res.status(200).json({
-      ok: true,
-      action,
-      tier,
-      previous: profile.tier,
-      emailDelivered: action === 'promote'
-        ? tierEmail?.ok === true && !tierEmail?.suppressed
-        : null,
-      emailError: action === 'promote' && tierEmail?.ok !== true
-        ? (tierEmail?.error || tierEmail?.reason || 'unknown')
-        : null,
-    });
+    return res.status(200).json({ ok: true, action, tier, previous: profile.tier });
   }
 
   // ── MARK ID VERIFIED ─────────────────────────────────────────────────────
   if (action === 'mark_id_verified') {
     // Always update identity_verified first (this column definitely exists)
-    const { data: verifiedProfile, error: idErr } = await sb.from('profiles')
-      .update({
-        identity_verified: true,
-        identity_verified_at: new Date().toISOString(),
-      })
-      .eq('id', assemblerId)
-      .or('account_closure_status.is.null,account_closure_status.eq.cancelled')
-      .select('id')
-      .maybeSingle();
+    const { error: idErr } = await sb.from('profiles').update({
+      identity_verified: true,
+      identity_verified_at: new Date().toISOString(),
+    }).eq('id', assemblerId);
     if (idErr) {
       console.error('mark_id_verified core update error:', idErr);
       return res.status(500).json({ error: 'Failed to update identity_verified' });
     }
-    if (!verifiedProfile) return respondWithOwnerClosureRace(res);
     // Best-effort: also update new columns if they exist
-    await sb.from('profiles')
-      .update({ id_verification_status: 'verified' })
-      .eq('id', assemblerId)
-      .or('account_closure_status.is.null,account_closure_status.eq.cancelled');
+    await sb.from('profiles').update({ id_verification_status: 'verified' }).eq('id', assemblerId);
 
-    const ownerNotice = await sendEmail({
+    sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `ID Verified — ${esc(profile.full_name)} ready to approve`,
       html: `<div style="font-family:sans-serif;padding:1.5rem"><p><strong>${esc(profile.full_name)}</strong> identity manually verified. They can now be approved. <a href="${SITE}/owner/" style="color:#00BFFF">Open dashboard</a></p></div>`,
-      meta: { notificationType: 'easer_identity_verified', recipientType: 'owner', recipientUserId: assemblerId, disableDedupe: true },
-    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+    }).catch(() => {});
 
-    return res.status(200).json({ ok: true, action: 'id_verified', identity_verified: true, ownerNotified: ownerNotice?.ok === true && !ownerNotice?.suppressed });
+    return res.status(200).json({ ok: true, action: 'id_verified', identity_verified: true });
   }
 
-  // ── CLOSE / ARCHIVE ACCOUNT ─────────────────────────────────────────────
-  if (action === 'delete' || action === 'retry_auth_revoke') {
-    if (action === 'retry_auth_revoke' && closureStatus !== 'completed') {
-      return res.status(409).json({
-        error: 'Sign-in revocation can only be retried after the Easer account is archived.',
-        code: 'ACCOUNT_NOT_ARCHIVED',
-        closureStatus,
-      });
+  // ── DELETE ───────────────────────────────────────────────────────────────
+  if (action === 'delete') {
+    if (profile.status === 'active') {
+      return res.status(400).json({ error: 'Cannot delete an active Easer. Suspend first.' });
     }
 
-    const { data: liveJobs, error: liveJobsError } = await sb
-      .from('bookings')
-      .select('id, ref, service, date')
-      .eq('assembler_id', assemblerId)
-      .in('status', ['confirmed', 'en_route', 'arrived', 'in_progress']);
-    if (liveJobsError) return res.status(500).json({ error: 'Could not verify active assignments.' });
-    if (liveJobs?.length) {
-      return res.status(409).json({
-        error: `Cannot close this account - the Easer has ${liveJobs.length} active job(s). Reassign or complete them first.`,
-        activeJobs: liveJobs.map(b => ({ ref: b.ref, service: b.service, date: b.date })),
-      });
-    }
+    sb.from('assembler_waitlist').delete().eq('email', profile.email.toLowerCase()).then(() => {});
+    const { error: profileDeleteErr } = await sb.from('profiles').delete().eq('id', assemblerId);
+    if (profileDeleteErr) return res.status(500).json({ error: 'Failed to delete profile' });
+    sb.auth.admin.deleteUser(assemblerId).catch(() => {});
 
-    let finance;
-    try {
-      finance = await loadLedgerFirstFinanceRows(sb);
-    } catch (error) {
-      console.error('[archive] Easer payout reconciliation failed:', error?.message || error);
-      return res.status(503).json({
-        error: 'Payout records could not be reconciled. The account was not archived and sign-in access was not changed.',
-        code: 'PAYOUT_RECONCILIATION_UNAVAILABLE',
-      });
-    }
-    const unpaidEarnings = (finance.rows || []).filter(row => (
-      row.assemblerId === assemblerId
-      && !row.paidOut
-      && ['pending', 'on_hold'].includes(row.payoutDisposition)
-      && Number(row.owed || 0) > 0
-    ));
-    if (unpaidEarnings.length) {
-      return res.status(409).json({
-        error: 'This Easer has unpaid earnings. Record each payout before archiving the account or revoking sign-in access.',
-        code: 'EASER_UNPAID_EARNINGS',
-        totalPendingCents: unpaidEarnings.reduce((sum, row) => sum + Number(row.owed || 0), 0),
-        unpaidEarnings: unpaidEarnings.slice(0, 25).map(row => ({
-          ref: row.ref,
-          eventType: row.eventType,
-          amountCents: Number(row.owed || 0),
-          payoutStatus: row.payoutStatus || 'pending',
-          payoutDisposition: row.payoutDisposition,
-          payoutReviewStatus: row.payoutReviewStatus || null,
-        })),
-      });
-    }
-
-    const applicationStatus = String(rawProfile.application_status || '').trim().toLowerCase();
-    if (!['approved', 'rejected'].includes(applicationStatus)) {
-      return res.status(409).json({
-        error: 'This is still an open application. Reject it first so any application PaymentIntent is safely canceled or refunded before archiving.',
-        code: 'APPLICATION_REJECTION_REQUIRED',
-        applicationStatus: applicationStatus || null,
-      });
-    }
-    const storedPlatformStatus = String(rawProfile.status || '').trim().toLowerCase();
-    // 'deactivated' belongs here. It is a state THIS FILE creates: the deactivate
-    // action sets status='deactivated' and deliberately leaves application_status
-    // 'approved', because the application was approved — access was revoked
-    // afterwards. Omitting it meant an approved-then-deactivated Easer could never
-    // be archived: the guard reported the platform's own output as an
-    // inconsistency and offered no way to resolve it.
-    const applicationStateConsistent = applicationStatus === 'approved'
-      ? ['active', 'suspended', 'deactivated'].includes(storedPlatformStatus)
-      : storedPlatformStatus === 'rejected';
-    if (!applicationStateConsistent) {
-      return res.status(409).json({
-        error: 'The stored application and platform statuses disagree. Resolve the application decision before archiving or revoking sign-in access.',
-        code: 'APPLICATION_STATE_MISMATCH',
-        applicationStatus,
-        platformStatus: storedPlatformStatus || null,
-      });
-    }
-
-    if (applicationStatus === 'rejected') {
-      const applicationPaymentGuard = await verifyRejectedApplicationPaymentClosed(rawProfile, assemblerId, sb);
-      if (!applicationPaymentGuard.ok) {
-        return res.status(applicationPaymentGuard.status).json({
-          error: applicationPaymentGuard.error,
-          code: applicationPaymentGuard.code,
-        });
-      }
-    }
-
-    if (closureStatus === 'completed') {
-      if (rawProfile.auth_access_revoked_at) {
-        return res.status(200).json({
-          ok: true,
-          action: action === 'retry_auth_revoke' ? 'auth_access_already_revoked' : 'account_already_archived',
-          recordsPreserved: true,
-          alreadyArchived: true,
-          authAccess: {
-            revoked: true,
-            revokedAt: rawProfile.auth_access_revoked_at,
-            error: null,
-            diagnosticPersistenceError: null,
-          },
-        });
-      }
-
-      const retryAt = new Date().toISOString();
-      const retryResult = await revokeEaserAuthAccess(sb, assemblerId, retryAt);
-      const retryPayload = {
-        ok: retryResult.revoked,
-        action: 'auth_access_revoke_retried',
-        recordsPreserved: true,
-        accountArchived: true,
-        accessRevoked: retryResult.revoked,
-        authAccess: retryResult,
-      };
-      if (!retryResult.revoked) {
-        return res.status(502).json({
-          ...retryPayload,
-          error: 'The account remains archived, but sign-in access could not be revoked. Review the saved diagnostic and retry.',
-          code: 'AUTH_ACCESS_REVOCATION_FAILED',
-        });
-      }
-      return res.status(200).json({
-        ...retryPayload,
-        warning: retryResult.diagnosticPersistenceError
-          ? 'auth_access_revocation_audit_failed'
-          : null,
-      });
-    }
-
-    const closedAt = new Date().toISOString();
-    const archiveUpdates = {
-      status: 'suspended',
-      tier: 'suspended',
-      previous_tier: getPreservedTier(profile),
-      is_available: false,
-      account_closure_status: 'completed',
-      account_closure_requested_at: profile.account_closure_requested_at || closedAt,
-      account_closure_reviewed_at: closedAt,
-      account_closure_completed_at: closedAt,
-      account_closure_completed_by: 'owner',
-      auth_access_revoke_error: null,
-    };
-    let profileCloseQuery = sb.from('profiles')
-      .update(archiveUpdates)
-      .eq('id', assemblerId)
-      .eq('role', 'assembler');
-    profileCloseQuery = rawProfile.status == null
-      ? profileCloseQuery.is('status', null)
-      : profileCloseQuery.eq('status', rawProfile.status);
-    profileCloseQuery = rawProfile.account_closure_status == null
-      ? profileCloseQuery.is('account_closure_status', null)
-      : profileCloseQuery.eq('account_closure_status', rawProfile.account_closure_status);
-    const { data: archivedProfile, error: profileCloseError } = await profileCloseQuery
-      .select('id')
-      .maybeSingle();
-    if (profileCloseError) {
-      console.error('[archive] Easer profile close failed:', profileCloseError.message || profileCloseError);
-      const closeError = String(profileCloseError.message || '');
-      const activeAssignmentRace = /active assignment|live assignment/i.test(closeError);
-      const unpaidEarningsRace = /earnings remain unpaid|unpaid earnings/i.test(closeError);
-      return res.status(activeAssignmentRace || unpaidEarningsRace ? 409 : 500).json({
-        error: activeAssignmentRace
-          ? 'A live assignment was created while closure was being reviewed. Reassign or complete it before retrying.'
-          : unpaidEarningsRace
-            ? 'New unpaid Easer earnings were recorded while closure was being reviewed. Reconcile and record the payout before retrying.'
-            : 'Failed to archive Easer account.',
-        code: activeAssignmentRace
-          ? 'ACCOUNT_ARCHIVE_ACTIVE_ASSIGNMENTS'
-          : unpaidEarningsRace
-            ? 'EASER_UNPAID_EARNINGS'
-            : 'ACCOUNT_ARCHIVE_FAILED',
-      });
-    }
-    if (!archivedProfile) {
-      return res.status(409).json({
-        error: 'The Easer profile changed while closure was being reviewed. Nothing was archived; refresh and retry.',
-        code: 'ACCOUNT_ARCHIVE_STATE_CHANGED',
-      });
-    }
-
-    const revokeResult = await revokeEaserAuthAccess(sb, assemblerId, closedAt);
-    const warning = !revokeResult.revoked
-      ? 'auth_access_revocation_failed'
-      : (revokeResult.diagnosticPersistenceError ? 'auth_access_revocation_audit_failed' : null);
-
-    const closureNotice = await sendEmail({
-      to: rawProfile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: 'Your Easer account has been closed',
-      html: buildEaserAccountEmail({
-        heading: 'Account closed',
-        firstName: String(rawProfile.full_name || 'there').trim().split(/\s+/)[0],
-        bodyHtml: '<p>Your Easer account closure is complete. You will no longer receive job offers, and sign-in access has been removed.</p><p>Business and payment records that must be retained remain protected in accordance with our policies.</p>',
-      }),
-      meta: {
-        notificationType: 'easer_account_closed',
-        recipientType: 'easer',
-        recipientUserId: assemblerId,
-        disableDedupe: true,
-      },
-    }).catch(error => ({ ok: false, error: error?.message || String(error) }));
-
-    return res.status(200).json({
-      ok: true,
-      action: 'account_archived',
-      recordsPreserved: true,
-      accessRevoked: revokeResult.revoked,
-      authAccess: revokeResult,
-      warning,
-      notificationAccepted: closureNotice?.ok === true && !closureNotice?.suppressed,
-    });
+    return res.status(200).json({ ok: true, action: 'deleted' });
   }
 
   return res.status(400).json({ error: `Unknown action: ${action}` });
 }
 
-function respondWithOwnerClosureRace(res) {
-  return res.status(409).json({
-    error: 'The account closure status changed before this owner action could be saved. Refresh the Easer record and resolve the closure workflow first.',
-    code: 'ACCOUNT_CLOSURE_BLOCKS_ACTION',
-  });
-}
-
-async function verifyRejectedApplicationPaymentClosed(profile, assemblerId, sb) {
-  const feeWaived = profile.application_fee_waived === true
-    || profile.fee_waived_by_owner === true;
-  const databaseClaimsPaid = profile.application_fee_paid === true
-    || (!feeWaived && profile.payment_confirmed === true);
-  const refundId = profile.application_fee_refund_id || null;
-  const databaseClaimsRefunded = profile.application_fee_refunded === true;
-  const storedRefundedCents = Number(profile.application_fee_refunded_cents || 0);
-  const storedPendingRefundCents = Number(profile.application_fee_refund_pending_cents || 0);
-
-  if (databaseClaimsRefunded !== (storedRefundedCents > 0)
-      || (storedRefundedCents > 0) !== Boolean(refundId)
-      || (storedRefundedCents > 0) !== Boolean(profile.application_fee_refunded_at)
-      || storedRefundedCents < 0
-      || storedPendingRefundCents < 0
-      || storedRefundedCents + storedPendingRefundCents > EASER_APPLICATION_FEE_CENTS) {
-    return archiveGuardFailure(
-      409,
-      'APPLICATION_REFUND_STATE_MISMATCH',
-      'Application refund records are contradictory. Reconcile the profile and Stripe before archiving.',
-    );
-  }
-
-  if (!profile.stripe_payment_intent_id) {
-    if (databaseClaimsPaid || databaseClaimsRefunded || refundId
-        || storedRefundedCents > 0 || storedPendingRefundCents > 0
-        || profile.application_fee_refund_review_required_at) {
-      return archiveGuardFailure(
-        409,
-        'APPLICATION_FEE_TRUTH_MISMATCH',
-        'The rejected application reports paid or refunded money but has no stored Stripe PaymentIntent. Reconcile it before archiving.',
-      );
-    }
-    return { ok: true };
-  }
-
-  if (!process.env.STRIPE_SECRET_KEY || !profile.stripe_customer_id) {
-    return archiveGuardFailure(
-      503,
-      'APPLICATION_PAYMENT_VERIFICATION_UNAVAILABLE',
-      'The rejected application payment cannot be verified against Stripe. The account was not archived.',
-    );
-  }
-
-  let stripe;
-  let paymentIntent;
-  try {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    paymentIntent = await stripe.paymentIntents.retrieve(profile.stripe_payment_intent_id);
-    validateEaserApplicationPaymentIntent(paymentIntent, {
-      userId: assemblerId,
-      paymentIntentId: profile.stripe_payment_intent_id,
-      customerId: profile.stripe_customer_id,
-    });
-  } catch (error) {
-    console.error('[archive] Rejected application PaymentIntent verification failed:', error?.message || error);
-    return archiveGuardFailure(
-      502,
-      'APPLICATION_PAYMENT_VERIFICATION_FAILED',
-      'Stripe could not verify the rejected application payment. The account was not archived.',
-    );
-  }
-
-  if (paymentIntent.status === 'canceled') {
-    if (databaseClaimsPaid || databaseClaimsRefunded || refundId
-        || storedRefundedCents > 0 || storedPendingRefundCents > 0
-        || profile.application_fee_refund_review_required_at) {
-      return archiveGuardFailure(
-        409,
-        'APPLICATION_FEE_TRUTH_MISMATCH',
-        'The profile reports paid or refunded money but Stripe shows a canceled application payment. Reconcile it before archiving.',
-      );
-    }
-    return { ok: true };
-  }
-
-  if (paymentIntent.status !== 'succeeded') {
-    return archiveGuardFailure(
-      409,
-      'APPLICATION_PAYMENT_CANCELLATION_REQUIRED',
-      'The rejected application still has an open Stripe PaymentIntent. Retry Reject to cancel it before archiving.',
-    );
-  }
-
-  if (feeWaived) {
-    return archiveGuardFailure(
-      409,
-      'APPLICATION_FEE_TRUTH_MISMATCH',
-      'Stripe shows a paid application, but the profile payment or waiver state disagrees. Reconcile it before archiving.',
-    );
-  }
-
-  try {
-    const refundTruth = await loadEaserApplicationFeeRefundTruth({
-      stripe,
-      assemblerId,
-      paymentIntentId: profile.stripe_payment_intent_id,
-      customerId: profile.stripe_customer_id,
-    });
-    const reconciled = await reconcileEaserApplicationFeeRefund(sb, {
-      assemblerId,
-      paymentIntentId: profile.stripe_payment_intent_id,
-      customerId: profile.stripe_customer_id,
-      truth: refundTruth,
-      reason: 'Archived rejected application payment verification',
-    });
-    if (!databaseClaimsPaid && reconciled.refunded_cents <= 0) {
-      return archiveGuardFailure(
-        409,
-        'APPLICATION_FEE_TRUTH_MISMATCH',
-        'Stripe shows a paid application, but its payment truth could not be reconciled before archiving.',
-      );
-    }
-    if (!refundTruth.fullyRefunded
-        || refundTruth.pendingRefundCents !== 0
-        || !refundTruth.latestSucceededRefundId
-        || Number(reconciled.refunded_cents || 0) !== EASER_APPLICATION_FEE_CENTS
-        || Number(reconciled.pending_refund_cents || 0) !== 0
-        || reconciled.refund_id !== refundTruth.latestSucceededRefundId) {
-      return archiveGuardFailure(
-        409,
-        'APPLICATION_REFUND_PAYMENT_MISMATCH',
-        'The application does not have a completed full aggregate Stripe refund. Retry Reject before archiving.',
-      );
-    }
-  } catch (error) {
-    console.error('[archive] Aggregate application refund verification failed:', error?.message || error);
-    return archiveGuardFailure(
-      502,
-      'APPLICATION_REFUND_VERIFICATION_FAILED',
-      'Stripe could not verify the application refund. The account was not archived.',
-    );
-  }
-
-  return { ok: true };
-}
-
-function archiveGuardFailure(status, code, error) {
-  return { ok: false, status, code, error };
-}
-
-function isMissingAuthUserError(error) {
-  const status = Number(error?.status || error?.statusCode || 0);
-  const message = String(error?.message || error || '');
-  return status === 404 || /user[^\n]*not found|not found[^\n]*user/i.test(message);
-}
-
-// Reversible sign-in lock for Deactivate/Reactivate. Banning the Supabase auth
-// user blocks ALL authentication (they cannot log in); unbanning fully restores
-// it. Unlike revokeEaserAuthAccess (which DELETES the auth user and is terminal),
-// this is cleanly reversible — that's why Deactivate uses a ban, not a delete.
-async function setEaserAuthBan(sb, assemblerId, banned) {
-  try {
-    const { error } = await sb.auth.admin.updateUserById(assemblerId, {
-      ban_duration: banned ? '876000h' : 'none',
-    });
-    if (error && !isMissingAuthUserError(error)) throw error;
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: String(error?.message || 'Auth ban update failed').slice(0, 500) };
-  }
-}
-
-async function revokeEaserAuthAccess(sb, assemblerId, revokedAt) {
-  let authError = null;
-  try {
-    const { error } = await sb.auth.admin.deleteUser(assemblerId, true);
-    if (error && !isMissingAuthUserError(error)) throw error;
-  } catch (error) {
-    authError = String(error?.message || 'Auth access revocation failed').slice(0, 2000);
-  }
-
-  if (authError) {
-    const { error: diagnosticError } = await sb.from('profiles')
-      .update({ auth_access_revoke_error: authError })
-      .eq('id', assemblerId)
-      .eq('role', 'assembler')
-      .eq('account_closure_status', 'completed');
-    return {
-      revoked: false,
-      revokedAt: null,
-      error: authError,
-      diagnosticPersistenceError: diagnosticError?.message || null,
-    };
-  }
-
-  const { data: diagnosticRow, error: diagnosticError } = await sb.from('profiles')
-    .update({
-      auth_access_revoked_at: revokedAt,
-      auth_access_revoke_error: null,
-    })
-    .eq('id', assemblerId)
-    .eq('role', 'assembler')
-    .eq('account_closure_status', 'completed')
-    .select('id')
-    .maybeSingle();
-  return {
-    revoked: true,
-    revokedAt,
-    error: null,
-    diagnosticPersistenceError: diagnosticError?.message
-      || (!diagnosticRow ? 'Archived profile no longer matched the auth diagnostic update.' : null),
-  };
-}
-
-function buildApprovalEmail(firstName, email, resetUrl, readiness = {}) {
-  // Someone who already signed in has a password. Repeating "set your password"
-  // — especially as the primary button — reads as an account reset and was the
-  // second identical instruction an owner-added Easer received.
-  const alreadyOnboarded = readiness.alreadyOnboarded === true;
+function buildApprovalEmail(firstName, email, resetUrl) {
   const steps = [
-    ...(alreadyOnboarded ? [] : [{
-      title: 'Set your password',
-      desc: 'Click the button below to create your password and log into your Easer dashboard.',
-    }]),
-    ...(readiness.requiresCurrentAgreement ? [{
-      title: 'Review the current contractor agreement',
-      desc: 'Your dashboard will show the agreement action. Review and accept it before trying to go Online or receive a new job offer.',
-    }] : []),
-    { title: 'Complete your profile', desc: 'Add your profile photo and confirm your phone number and city in the Profile section.' },
-    { title: 'Go Online', desc: 'After every readiness item is complete, tap the "Offline" pill on your dashboard home screen to switch to Online. You will not receive job offers while offline.' },
-    { title: 'Wait for your first offer', desc: 'When a matching job is dispatched, AssembleAtEase sends the offer by email with a 20-minute acceptance window. If notifications are configured and enabled on your device, you will also receive a push alert.' },
+    { num: '1', title: 'Set your password', desc: 'Click the button below to create your password and log into your Easer dashboard.' },
+    { num: '2', title: 'Complete your profile', desc: 'Add your profile photo and confirm your phone number and city in the Profile section.' },
+    { num: '3', title: 'Go Online', desc: 'Tap the "Offline" pill on your dashboard home screen to switch to Online. You will not receive job offers while offline.' },
+    { num: '4', title: 'Wait for your first offer', desc: 'When a matching job is dispatched to you, you will receive a push notification and email with a 20-minute acceptance window.' },
   ];
-  const stepsHtml = steps.map((s, index) => `
+  const stepsHtml = steps.map(s => `
     <tr>
       <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:32px">
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#00BFFF;color:#fff;font-size:0.75rem;font-weight:700">${index + 1}</span>
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#00BFFF;color:#fff;font-size:0.75rem;font-weight:700">${s.num}</span>
       </td>
       <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0">
         <div style="font-size:0.875rem;font-weight:700;color:#111;margin-bottom:2px">${s.title}</div>
@@ -1888,11 +328,11 @@ function buildApprovalEmail(firstName, email, resetUrl, readiness = {}) {
   <div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden">
     <div style="background:linear-gradient(135deg,#003d47,#00BFFF);padding:2rem;text-align:center">
       <img src="${LOGO}" width="44" height="44" style="border-radius:50%;display:inline-block"/>
-      <h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem">${alreadyOnboarded ? 'You&rsquo;re approved!' : 'Welcome to AssembleAtEase!'}</h1>
+      <h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem">Welcome to AssembleAtEase!</h1>
     </div>
     <div style="padding:2rem">
       <p style="font-size:1rem;font-weight:700;margin:0 0 8px">Congratulations, ${esc(firstName)}!</p>
-      <p style="color:#52525b;line-height:1.7;margin:0 0 20px">Your application has been approved. You are now an official <strong>Starter Easer</strong> on AssembleAtEase.${alreadyOnboarded ? ' Sign in with the password you already created &mdash; here is what to do next to start receiving jobs:' : ' Here is what to do next to start receiving jobs:'}</p>
+      <p style="color:#52525b;line-height:1.7;margin:0 0 20px">Your application has been approved. You are now an official <strong>Starter Easer</strong> on AssembleAtEase. Here is what to do next to start receiving jobs:</p>
 
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:1.5rem">
         ${stepsHtml}
@@ -1900,18 +340,18 @@ function buildApprovalEmail(firstName, email, resetUrl, readiness = {}) {
 
       <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:12px 16px;margin-bottom:20px">
         <p style="margin:0;font-size:0.82rem;color:#0c4a6e;font-weight:700">Important: You start Offline by default.</p>
-        <p style="margin:4px 0 0;font-size:0.82rem;color:#0369a1;line-height:1.5">You will not appear in dispatch or receive new job offers until all readiness items are complete and you manually switch to Online in your dashboard.</p>
+        <p style="margin:4px 0 0;font-size:0.82rem;color:#0369a1;line-height:1.5">You will not appear in dispatch and will not receive job offers until you manually switch to Online in your dashboard.</p>
       </div>
 
       <div style="text-align:center;margin:1.5rem 0">
-        <a href="${resetUrl}" style="display:inline-block;background:#00BFFF;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">${alreadyOnboarded ? 'Open Your Dashboard' : 'Set Password &amp; Open Dashboard'}</a>
+        <a href="${resetUrl}" style="display:inline-block;background:#00BFFF;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">Set Password &amp; Open Dashboard</a>
       </div>
 
-      ${alreadyOnboarded ? '' : `<div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:12px 16px;margin-bottom:20px">
+      <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:12px 16px;margin-bottom:20px">
         <p style="margin:0;font-size:0.82rem;color:#92400e">This link expires in 24 hours. Use <a href="${SITE}/auth/forgot-password" style="color:#92400e">forgot password</a> if it expires.</p>
-      </div>`}
+      </div>
 
-      <p style="font-size:0.85rem;color:#71717a;margin:0"><strong>Your login:</strong> ${esc(email)}${alreadyOnboarded ? ` &mdash; <a href="${SITE}/auth/forgot-password" style="color:#00BFFF">forgot password?</a>` : ''}</p>
+      <p style="font-size:0.85rem;color:#71717a;margin:0"><strong>Your login:</strong> ${esc(email)}</p>
       <p style="font-size:0.82rem;color:#71717a;margin:8px 0 0">Questions? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a></p>
     </div>
   </div>
@@ -1988,7 +428,7 @@ function buildPromotionEmail(firstName, tierLabel, tier) {
     <!-- Footer -->
     <div style="border-top:1px solid #e4e4e7;padding:1rem 2rem;text-align:center">
       <p style="margin:0;font-size:0.75rem;color:#a1a1aa">
-        AssembleAtEase &bull; Texas Professional Network &bull;
+        AssembleAtEase &bull; Austin, TX &bull;
         <a href="${SITE}" style="color:#00BFFF;text-decoration:none">assembleatease.com</a>
       </p>
     </div>

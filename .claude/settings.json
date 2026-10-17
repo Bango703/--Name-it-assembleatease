@@ -58,7 +58,8 @@
       "Bash(python3 -u -c ' *)",
       "Bash(python -c ' *)",
       "Bash(python scripts/seo_new_pages.py)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "ClaudeInChromeDomain(www.assembleatease.com)"
     ],
     "additionalDirectories": [
       "c:\\Users\\tgbiz\\.claude\\projects\\c--Users-tgbiz-Handyman-marketplace\\memory",

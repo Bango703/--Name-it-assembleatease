@@ -1,48 +1,41 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
-const redisUrl = String(process.env.UPSTASH_REDIS_REST_URL || '').trim();
-const redisToken = String(process.env.UPSTASH_REDIS_REST_TOKEN || '').trim();
-const hasRedisConfig = !!(redisUrl && redisToken);
-
-const redis = hasRedisConfig
-  ? new Redis({
-      url: redisUrl,
-      token: redisToken,
-    })
-  : null;
-
-function buildLimiter(prefix, count, window) {
-  if (!redis) return null;
-  return new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(count, window),
-    prefix,
-  });
-}
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 const limiters = {
-  default: buildLimiter('rl:default', 10, '60 s'),
-  chat: buildLimiter('rl:chat', 12, '60 s'),
-  booking: buildLimiter('rl:booking', 5, '60 s'),
-  // 5 per 10 minutes, counted only for attempts that pass validation (see
-  // api/assembler/apply.js). Three was too tight once a genuine retry or a
-  // transient server error could consume a slot, and carrier NAT means several
-  // real applicants can share one address.
-  apply: buildLimiter('rl:apply', 5, '600 s'),
-  setup_intent: buildLimiter('rl:setup_intent', 3, '600 s'),
-  setup_intent_email: buildLimiter('rl:setup_intent_email', 2, '600 s'),
-  owner_auth: buildLimiter('rl:owner_auth', 5, '900 s'),
-  track_link: buildLimiter('rl:track_link', 3, '900 s'),
+  default: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(10, '60 s'),
+    prefix: 'rl:default',
+  }),
+  booking: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(5, '60 s'),
+    prefix: 'rl:booking',
+  }),
+  apply: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(3, '300 s'),
+    prefix: 'rl:apply',
+  }),
+  setup_intent: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(3, '600 s'),
+    prefix: 'rl:setup_intent',
+  }),
+  setup_intent_email: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(2, '600 s'),
+    prefix: 'rl:setup_intent_email',
+  }),
 };
-
-export function hasDurableRateLimit() {
-  return hasRedisConfig;
-}
 
 export async function rateLimitKey(key, type = 'default') {
   const limiter = limiters[type] || limiters.default;
-  if (!limiter) return true;
   const { success } = await limiter.limit(String(key || 'unknown'));
   return success;
 }
@@ -50,3 +43,4 @@ export async function rateLimitKey(key, type = 'default') {
 export async function rateLimit(ip, type = 'default') {
   return rateLimitKey(ip, type);
 }
+

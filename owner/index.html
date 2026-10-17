@@ -23,11 +23,445 @@
        source of truth the booking page uses so it can never drift again. -->
   <script src="/assets/js/booking-source-of-truth.js" defer></script>
   <script src="/assets/js/status-source-of-truth.js" defer></script>
-  <script src="/assets/js/image-upload.js" defer></script>
-  <script src="/assets/js/job-duration.js" defer></script>
   <script src="/owner/assets/cases.js" defer></script>
   <script src="/owner/assets/voice-calls.js" defer></script>
-  <link rel="stylesheet" href="/owner/assets/owner.css" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#f5f7fa;--surface:#ffffff;--elevated:#eef0f5;
+      --border:rgba(0,0,0,0.08);--border-md:rgba(0,0,0,0.14);
+      --text:#111827;--muted:#6b7280;--soft:#374151;
+      --teal:#00BFFF;--teal-glow:rgba(0,191,255,0.08);
+      --orange:#e86a2e;--orange-glow:rgba(232,106,46,0.1);
+      --amber:#d97706;--red:#dc2626;--sidebar-w:260px
+    }
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+    /* ── Login gate ── */
+    .login-gate{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+    .login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem;width:100%;max-width:380px;text-align:center}
+    .login-box h1{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:0.3rem}
+    .login-box h1 span{color:var(--teal)}
+    .login-box p{font-size:0.85rem;color:var(--muted);margin-bottom:1.5rem}
+    .login-input{width:100%;padding:0.65rem 1rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;margin-bottom:1rem}
+    .login-input:focus{border-color:var(--teal)}
+    .login-btn{width:100%;padding:0.7rem;background:var(--teal);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:0.9rem;font-weight:500;cursor:pointer;transition:background 0.15s}
+    .login-btn:hover{background:#0099CC}
+    .login-error{color:var(--red);font-size:0.82rem;margin-bottom:0.75rem;display:none}
+
+    /* ── Main layout ── */
+    .layout{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
+    .layout.hidden{display:none}
+
+    /* ── Sidebar ── */
+    .sidebar{background:var(--surface);border-right:1px solid var(--border);box-shadow:1px 0 0 var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+    .sidebar-brand{padding:1.5rem 1.5rem 1.25rem;border-bottom:1px solid var(--border)}
+    .sidebar-brand a{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text);text-decoration:none}
+    .sidebar-brand span{color:var(--teal)}
+    .sidebar-section{padding:1.25rem 1rem 0}
+    .sidebar-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);padding:0 0.5rem;margin-bottom:4px;font-weight:500}
+    .sidebar-nav{list-style:none}
+    .sidebar-nav li{margin-bottom:1px}
+    .sidebar-nav a{display:flex;align-items:center;gap:10px;padding:0 0.75rem;height:40px;border-radius:8px;font-size:0.875rem;color:var(--soft);text-decoration:none;transition:background 0.15s,color 0.15s;border:1px solid transparent;cursor:pointer}
+    .sidebar-nav a:hover{background:var(--elevated);color:var(--text)}
+    .sidebar-nav a.active{background:var(--teal-glow);color:var(--teal);border-color:rgba(29,158,117,0.2)}
+    .nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+    .nav-count{margin-left:auto;background:var(--orange);color:#fff;font-size:0.65rem;font-weight:500;padding:1px 6px;border-radius:999px;min-width:20px;text-align:center}
+    .sidebar-footer{margin-top:auto;padding:1rem 1.25rem;border-top:1px solid var(--border)}
+    .sidebar-footer a{font-size:0.78rem;color:var(--muted);text-decoration:none;cursor:pointer}
+    .sidebar-footer a:hover{color:var(--red)}
+
+    /* ── Topbar ── */
+    .topbar{background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,0.06);padding:0 2rem;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+    .topbar-title{font-size:0.95rem;font-weight:500}
+    .topbar-right{display:flex;align-items:center;gap:0.75rem}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:0.45rem 1rem;border-radius:8px;font-family:inherit;font-size:0.8rem;font-weight:500;cursor:pointer;border:1px solid var(--border-md);background:var(--elevated);color:var(--soft);text-decoration:none;transition:all 0.15s}
+    .btn:hover{background:rgba(0,0,0,0.05);color:var(--text)}
+    .btn-teal{background:var(--teal);border-color:var(--teal);color:#fff}
+    .btn-teal:hover{background:#0099CC}
+    .btn-red{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:var(--red)}
+    .btn-red:hover{background:rgba(239,68,68,0.25)}
+    .btn-amber{background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:var(--amber)}
+    .btn-amber:hover{background:rgba(245,158,11,0.25)}
+    .btn:disabled{opacity:0.4;cursor:not-allowed}
+
+    /* ── Content ── */
+    .main{display:flex;flex-direction:column;min-width:0;min-height:100vh}
+    .content{padding:2rem;flex:1;min-width:0;width:100%}
+
+    /* ── Search bar ── */
+    .search-bar{position:relative;margin-bottom:1rem}
+    .search-input{width:100%;padding:0.6rem 1rem 0.6rem 2.5rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.875rem;outline:none;transition:border-color 0.15s}
+    .search-input:focus{border-color:var(--teal)}
+    .search-input::placeholder{color:var(--muted)}
+    .search-icon{position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.9rem;pointer-events:none}
+    .search-clear{position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.9rem;display:none}
+    .search-clear.show{display:block}
+
+    /* ── Stats ── */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem;margin-bottom:2rem}
+    .stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;position:relative;overflow:hidden}
+    .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+    .stat.teal::before{background:var(--teal)}
+    .stat.orange::before{background:var(--orange)}
+    .stat.amber::before{background:var(--amber)}
+    .stat.red::before{background:var(--red)}
+    .stat.neutral::before{background:var(--border-md)}
+    .stat-value{font-family:'DM Serif Display',serif;font-size:1.9rem;line-height:1;margin-bottom:0.3rem}
+    .stat-label{font-size:0.78rem;color:var(--muted)}
+
+    /* ── Status tabs ── */
+    .tabs{display:flex;gap:4px;margin-bottom:1.5rem;flex-wrap:wrap}
+    .tab{padding:0.4rem 1rem;border-radius:8px;font-size:0.82rem;font-weight:500;color:var(--soft);background:transparent;border:1px solid transparent;cursor:pointer;transition:all 0.15s;font-family:inherit}
+    .tab:hover{background:var(--elevated);color:var(--text)}
+    .tab.active{background:var(--teal-glow);color:var(--teal);border-color:rgba(29,158,117,0.2)}
+    .tab .tab-count{margin-left:6px;font-size:0.7rem;opacity:0.7}
+
+    /* ── Booking cards ── */
+    .booking-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.6rem;cursor:pointer;transition:border-color 0.15s,background 0.15s}
+    .booking-card:hover{border-color:var(--border-md);background:var(--elevated)}
+    .booking-card.selected{border-color:var(--teal);background:var(--teal-glow)}
+    .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.35rem}
+    .card-top h4{font-size:0.9rem;font-weight:500;line-height:1.3}
+    .card-desc{font-size:0.82rem;color:var(--muted);line-height:1.55;margin-bottom:0.4rem}
+    .card-meta{font-size:0.75rem;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .meta-dot{width:3px;height:3px;border-radius:50%;background:var(--muted);flex-shrink:0}
+    /* Status badges — all classes live in /assets/status.css */
+    .badge{display:inline-flex;align-items:center;padding:0.18rem 0.6rem;border-radius:999px;font-size:0.72rem;font-weight:500;white-space:nowrap;flex-shrink:0}
+
+    /* ── Detail panel ── */
+    .detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;display:none}
+    .detail-panel.open{display:block}
+    .detail-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:1rem}
+    .detail-header h2{font-family:'DM Serif Display',serif;font-size:1.25rem}
+    .detail-close{background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:4px 8px}
+    .detail-close:hover{color:var(--text)}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem 2rem;margin-bottom:1.5rem}
+    .detail-field label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:2px}
+    .detail-field span{font-size:0.9rem;color:var(--text)}
+    .detail-actions{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
+    .owner-next-action{flex-basis:100%;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0.85rem 0.95rem;border:1px solid #a5f3fc;border-radius:10px;background:#ecfeff}
+    .owner-next-action-copy{min-width:0}
+    .owner-next-action-kicker{font-size:0.65rem;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#0e7490;margin-bottom:0.2rem}
+    .owner-next-action-desc{font-size:0.76rem;line-height:1.45;color:#155e75}
+    .owner-next-action .btn{flex-shrink:0}
+    .owner-other-actions{flex-basis:100%;font-size:0.66rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-top:0.25rem}
+    .detail-section-title{font-size:0.78rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.75rem}
+
+    /* ── Messages thread ── */
+    .msg-thread{max-height:320px;overflow-y:auto;margin-bottom:1rem;display:flex;flex-direction:column;gap:0.5rem}
+    .msg{padding:0.65rem 1rem;border-radius:10px;max-width:85%;font-size:0.85rem;line-height:1.5}
+    .msg.owner{background:var(--teal-glow);border:1px solid rgba(29,158,117,0.2);align-self:flex-end;color:var(--text)}
+    .msg.customer{background:var(--elevated);border:1px solid var(--border-md);align-self:flex-start;color:var(--text)}
+    .msg-time{font-size:0.68rem;color:var(--muted);margin-top:3px}
+    .msg-empty{font-size:0.85rem;color:var(--muted);text-align:center;padding:2rem 0}
+    .msg-compose{display:flex;gap:0.5rem;align-items:flex-end}
+    .msg-input{flex:1;padding:0.6rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;line-height:1.5;outline:none;resize:vertical;min-height:96px;max-height:280px}
+    .msg-input:focus{border-color:var(--teal)}
+
+    /* -- Website chat inbox -- */
+    .site-chat-grid{display:grid;grid-template-columns:minmax(280px,340px) minmax(0,1fr);gap:1rem}
+    .site-chat-list{display:flex;flex-direction:column;gap:0.65rem;max-height:430px;overflow-y:auto;padding-right:2px}
+    .site-chat-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.85rem 0.95rem;cursor:pointer;transition:border-color 0.15s,background 0.15s,box-shadow 0.15s}
+    .site-chat-row:hover{border-color:var(--border-md);background:#fbfcfe}
+    .site-chat-row.active{border-color:rgba(0,191,255,0.45);background:var(--teal-glow);box-shadow:0 8px 20px rgba(0,191,255,0.08)}
+    .site-chat-row-top{display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:0.35rem}
+    .site-chat-row-title{font-size:0.84rem;font-weight:700;color:var(--text)}
+    .site-chat-row-time{font-size:0.7rem;color:var(--muted);white-space:nowrap}
+    .site-chat-row-meta{font-size:0.72rem;color:var(--muted);line-height:1.45;margin-bottom:0.4rem}
+    .site-chat-row-preview{font-size:0.8rem;color:var(--soft);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .site-chat-thread{border:1px solid var(--border);border-radius:12px;background:linear-gradient(180deg,#ffffff 0%,#f8fbfe 100%);min-height:430px;display:flex;flex-direction:column;overflow:hidden}
+    .site-chat-thread-head{padding:1rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
+    .site-chat-thread-title{font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:0.2rem}
+    .site-chat-thread-meta{font-size:0.75rem;color:var(--muted);line-height:1.5}
+    .site-chat-thread-body{padding:1rem 1.1rem;display:flex;flex-direction:column;gap:0.75rem;overflow-y:auto;flex:1}
+    .site-chat-bubble{max-width:88%;padding:0.8rem 0.9rem;border-radius:14px;font-size:0.83rem;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+    .site-chat-bubble.user{align-self:flex-start;background:var(--surface);border:1px solid var(--border-md);color:var(--text)}
+    .site-chat-bubble.assistant{align-self:flex-end;background:var(--teal-glow);border:1px solid rgba(0,191,255,0.22);color:var(--text)}
+    .site-chat-bubble-label{font-size:0.69rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.35rem}
+    .site-chat-empty{display:flex;align-items:center;justify-content:center;min-height:220px;padding:1.25rem;text-align:center;color:var(--muted);font-size:0.84rem;line-height:1.6}
+
+    /* ── Evidence grid ── */
+    .evidence-grid{display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem}
+    .evidence-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;flex:0 0 140px;background:var(--elevated);transition:border-color 0.15s}
+    .evidence-card:hover{border-color:var(--teal)}
+    .evidence-card img{width:100%;height:100px;object-fit:cover;display:block}
+    .evidence-card-meta{padding:0.45rem 0.6rem;font-size:0.72rem;color:var(--muted);line-height:1.6}
+    .evidence-card-type{font-weight:600;color:var(--text);font-size:0.75rem}
+    @media(max-width:600px){.evidence-card{flex:0 0 calc(50% - 0.375rem)}}
+
+    /* ── Modals ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:1000;padding:1rem}
+    .modal-overlay.open{display:flex}
+    .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;overflow-wrap:anywhere}
+    .modal h3{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:0.5rem}
+    .modal p{font-size:0.85rem;color:var(--muted);margin-bottom:1rem}
+    .modal textarea,.modal-input{width:100%;padding:0.55rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;resize:vertical;min-height:80px;margin-bottom:0.75rem}
+    .modal-input{min-height:unset;resize:none}
+    .modal select{width:100%;padding:0.55rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;margin-bottom:0.75rem;cursor:pointer}
+    .modal-label{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:0.35rem}
+    .modal-actions{display:flex;gap:0.5rem;justify-content:flex-end;margin-top:0.5rem}
+    .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem}
+
+    /* ── Empty / loading / error ── */
+    .empty{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;text-align:center;color:var(--muted);font-size:0.875rem}
+    .loading-text{color:var(--muted);font-size:0.85rem;padding:2rem;text-align:center}
+    .toast{position:fixed;bottom:2rem;right:2rem;padding:0.75rem 1.25rem;border-radius:10px;font-size:0.85rem;font-weight:500;z-index:9999;transition:opacity 0.3s,transform 0.3s;opacity:0;transform:translateY(10px)}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .toast.success{background:#064e3b;color:#a7f3d0;border:1px solid rgba(5,150,105,0.4)}
+    .toast.error{background:#7f1d1d;color:#fecaca;border:1px solid rgba(220,38,38,0.4)}
+
+    /* ── Responsive ── */
+    @media(max-width:1100px){.content-grid{grid-template-columns:1fr !important}.site-chat-grid{grid-template-columns:1fr}}
+    @media(max-width:900px){
+      .layout{grid-template-columns:1fr}
+      .sidebar{
+        display:flex;position:fixed;top:0;left:0;height:100vh;z-index:200;
+        width:min(var(--sidebar-w),calc(100vw - 2rem));
+        transform:translateX(-100%);transition:transform 0.22s ease;
+        box-shadow:4px 0 24px rgba(0,0,0,0.12)
+      }
+      .sidebar.open{transform:translateX(0)}
+      .mobile-menu-btn{display:flex !important}
+      .stats-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .stat{min-width:0}
+    }
+    @media(max-width:500px){.stats-row{grid-template-columns:1fr}.content{padding:1.25rem}}
+    .mobile-menu-btn{
+      display:none;align-items:center;justify-content:center;
+      width:36px;height:36px;border-radius:8px;border:1px solid var(--border);
+      background:var(--elevated);color:var(--soft);cursor:pointer;flex-shrink:0
+    }
+    .mobile-menu-btn:hover{background:rgba(0,0,0,0.05)}
+    /* Overlay is always fixed — never participates in any layout flow */
+    .sidebar-overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,0.35);
+      z-index:199;display:none
+    }
+    .sidebar-overlay.open{display:block}
+
+    /* Owner mobile controls must remain usable without widening the page. */
+    @media(max-width:900px){
+      .topbar{height:auto;min-height:68px;padding:0.75rem 1.25rem;gap:0.75rem}
+      .topbar>div:first-child{min-width:0}
+      .topbar-right{min-width:0;gap:0.5rem}
+      .btn,.tab,.mobile-menu-btn,.login-btn{min-height:44px}
+      .mobile-menu-btn{width:44px;height:44px}
+      .sidebar-nav a{height:auto;min-height:44px;padding-top:0.6rem;padding-bottom:0.6rem}
+      .sidebar-brand a,.sidebar-footer a{display:flex;align-items:center;min-height:44px}
+      .search-input{min-width:0;min-height:44px}
+      .search-clear,.detail-close{min-width:44px;min-height:44px}
+    }
+    @media(max-width:560px){
+      .topbar{flex-wrap:wrap;padding:0.75rem 1rem}
+      .topbar-right{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));flex:0 0 100%;width:100%}
+      .topbar-right .btn{justify-content:center;padding:0.55rem 0.45rem;text-align:center;white-space:normal}
+    }
+    @media(max-width:500px){
+      input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),select,textarea{font-size:16px !important}
+      .modal-overlay{padding:0.5rem;align-items:flex-start}
+      .modal{padding:1.25rem;max-height:calc(100dvh - 1rem);margin-top:0.5rem}
+      .modal-row{grid-template-columns:minmax(0,1fr)}
+      .modal-actions{flex-wrap:wrap}
+      .modal-actions .btn{flex:1 1 120px;justify-content:center;min-height:44px}
+      .owner-next-action{align-items:stretch;flex-direction:column}
+      .owner-next-action .btn{width:100%;justify-content:center;min-height:44px}
+    }
+
+    /* ── Professional design system additions ── */
+    :root {
+      --green:#059669;--green-dim:rgba(5,150,105,0.1);
+      --blue:#2563eb;--blue-dim:rgba(37,99,235,0.1);
+      --purple:#7c3aed;--purple-dim:rgba(124,58,237,0.1);
+      --surface-raised:#e4e7ef;
+    }
+
+    /* Stat cards — professional */
+    .stat { transition:border-color 0.15s,box-shadow 0.15s; }
+    .stat:hover { border-color:var(--border-md); }
+    .stat-value { font-size:2rem;font-weight:600;font-family:'DM Sans',sans-serif;letter-spacing:-0.02em; }
+    .stat-delta { font-size:0.72rem;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:4px; }
+    .stat-delta.up { color:var(--green); }
+    .stat-delta.down { color:var(--red); }
+
+    /* Extended status badges — canonical classes live in /assets/status.css */
+
+    /* Status dot indicators */
+    .dot { width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block; }
+    .dot-green  { background:var(--green); }
+    .dot-red    { background:var(--red); }
+    .dot-amber  { background:var(--amber); }
+    .dot-muted  { background:var(--muted); }
+    .dot-active { background:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,0.2); }
+    .dot-critical { background:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,0.18); }
+
+    /* Operational alert rows */
+    .alert-row { display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0.9rem;border-radius:8px;margin-bottom:0.4rem;font-size:0.82rem; }
+    .alert-row.critical { background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.18); }
+    .alert-row.high     { background:rgba(232,106,46,0.07);border:1px solid rgba(232,106,46,0.18); }
+    .alert-row.medium   { background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.18); }
+    .alert-row.low      { background:var(--elevated);border:1px solid var(--border); }
+    .alert-label { font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:60px;flex-shrink:0; }
+    .alert-row.critical .alert-label { color:var(--red); }
+    .alert-row.high     .alert-label { color:var(--orange); }
+    .alert-row.medium   .alert-label { color:var(--amber); }
+    .alert-row.low      .alert-label { color:var(--muted); }
+
+    /* Ops panel cards */
+    .ops-panel { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;height:100%; }
+    .ops-panel-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border); }
+    .ops-panel-title { font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);display:flex;align-items:center;gap:0.5rem; }
+
+    /* Pipeline / timeline */
+    .timeline-item { position:relative;padding:0.6rem 0 0.6rem 1.5rem;border-bottom:1px solid var(--border); }
+    .timeline-item:last-child { border-bottom:none; }
+    .timeline-dot { position:absolute;left:0;top:12px;width:8px;height:8px;border-radius:50%;border:2px solid var(--border-md);background:var(--bg); }
+    .timeline-dot.done { background:var(--green);border-color:var(--green); }
+    .timeline-dot.active { background:var(--teal);border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-glow); }
+    .timeline-event { font-size:0.82rem;color:var(--text);font-weight:500; }
+    .timeline-meta { font-size:0.72rem;color:var(--muted);margin-top:2px; }
+
+    /* Table professional */
+    .pro-table { width:100%;border-collapse:collapse;font-size:0.85rem; }
+    .pro-table th { padding:0.55rem 0.875rem;text-align:left;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap; }
+    .pro-table td { padding:0.7rem 0.875rem;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle; }
+    .pro-table tr:last-child td { border-bottom:none; }
+    .pro-table tbody tr:hover td { background:rgba(0,0,0,0.02); }
+
+    /* Professional empty state */
+    .empty-state { display:flex;flex-direction:column;align-items:center;padding:3rem 2rem;text-align:center; }
+    .empty-state-icon { width:44px;height:44px;border-radius:10px;background:var(--elevated);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin-bottom:1rem; }
+    .empty-state-title { font-size:0.9rem;font-weight:600;color:var(--text);margin-bottom:0.4rem; }
+    .empty-state-desc { font-size:0.82rem;color:var(--muted);line-height:1.6;max-width:260px; }
+
+    /* Tier badges — canonical classes live in /assets/status.css; .tier-* retained as aliases */
+
+    /* Section header with actions */
+    .view-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;gap:1rem; }
+    .view-header-left h2 { font-size:1.05rem;font-weight:600;color:var(--text);margin-bottom:2px; }
+    .view-header-left p { font-size:0.8rem;color:var(--muted); }
+
+    /* Toast info state */
+    .toast.info { background:#1e3a5f;color:#bae6fd;border:1px solid rgba(37,99,235,0.4); }
+
+    /* Topbar refinement */
+    .topbar { border-bottom:1px solid var(--border); }
+    .topbar-title { font-size:0.875rem;font-weight:600;color:var(--text);letter-spacing:-0.01em; }
+
+    /* Sidebar refinement */
+    .sidebar-label { font-size:0.62rem;font-weight:700;letter-spacing:0.12em; }
+    .sidebar-nav a { font-size:0.825rem;font-weight:400;letter-spacing:-0.01em; }
+    .sidebar-nav a.active { font-weight:500; }
+
+    /* Button refinement */
+    .btn { font-size:0.78rem;font-weight:500;letter-spacing:-0.01em; }
+    .btn svg { flex-shrink:0; }
+
+    /* Input focus refinement */
+    .search-input { transition:border-color 0.15s,box-shadow 0.15s; }
+    .search-input:focus { box-shadow:0 0 0 3px rgba(29,158,117,0.1); }
+
+    /* Financial dashboard polish */
+    .topbar { position:static;top:auto;z-index:auto; }
+    #analytics-view .detail-panel { border-radius:10px; }
+    #analytics-stats-row { grid-template-columns:repeat(auto-fit,minmax(165px,1fr)) !important;gap:0.8rem;margin-bottom:1.35rem; }
+    #analytics-stats-row .stat { padding:1rem 1.05rem;min-width:0; }
+    #analytics-stats-row .stat-value { font-size:clamp(1.35rem,1.6vw,1.8rem);line-height:1.06;white-space:normal;overflow-wrap:anywhere; }
+    #analytics-stats-row .stat-label { line-height:1.25; }
+    #fin-formula { grid-template-columns:repeat(auto-fit,minmax(160px,1fr)) !important; }
+    .finance-scroll { overflow-x:auto;scrollbar-color:rgba(17,24,39,0.35) transparent; }
+    .finance-scroll::-webkit-scrollbar { height:8px; }
+    .finance-scroll::-webkit-scrollbar-thumb { background:rgba(17,24,39,0.28);border-radius:999px; }
+    .finance-table { min-width:980px; }
+    /* The table above is 980px wide. Without overflow-x its container
+       cannot scroll, so the ten-column payout ledger crushes together
+       instead of scrolling. .finance-scroll was named for this and never
+       actually declared it. */
+    .finance-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .finance-table.pro-table { font-size:0.78rem; }
+    .finance-table.pro-table th { padding:0.48rem 0.55rem;font-size:0.62rem;letter-spacing:0.06em; }
+    .finance-table.pro-table td { padding:0.58rem 0.55rem;line-height:1.25; }
+    .finance-table .money-cell { font-variant-numeric:tabular-nums;white-space:nowrap; }
+    #cust-table{min-width:760px}
+    #md-requests-table{min-width:780px}
+    #mk-social-table{min-width:720px}
+    #mk-recent-table{min-width:520px}
+    #wl-table{min-width:860px}
+    #asm-table{min-width:1120px}
+    #wl-table th:first-child,#wl-table td:first-child{min-width:140px;white-space:nowrap}
+    #wl-table th:last-child,#wl-table td:last-child{min-width:270px}
+    #asm-table th:first-child,#asm-table td:first-child{min-width:200px;white-space:nowrap}
+    #asm-table th:last-child,#asm-table td:last-child{min-width:300px}
+    #asm-table.connect-disabled th:nth-child(5),#asm-table.connect-disabled td:nth-child(5),
+    #asm-table.connect-disabled th:nth-child(6),#asm-table.connect-disabled td:nth-child(6){display:none}
+    #asm-table.connect-disabled{min-width:900px}
+    #an-expansion-summary { grid-template-columns:repeat(auto-fit,minmax(155px,1fr)) !important;gap:0.7rem; }
+    #an-expansion-summary .stat-value { white-space:normal;overflow-wrap:anywhere; }
+    @media(max-width:700px){
+      #analytics-stats-row { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+      #analytics-stats-row .stat { padding:0.85rem; }
+      #analytics-stats-row .stat-value { font-size:1.25rem; }
+    }
+    @media(max-width:460px){
+      #analytics-stats-row { grid-template-columns:1fr !important; }
+    }
+
+    /* Owner views must collapse without allowing grid/table min-content to
+       widen the document. Wide tables remain intentionally scrollable inside
+       their own labelled containers. */
+    @media(max-width:1100px){
+      .content-grid{grid-template-columns:minmax(0,1fr) !important}
+      .content-grid>*{grid-column:1/-1 !important;min-width:0}
+      #liveops-view,#bookings-view,#market-demand-view,#marketing-view,#analytics-view,#intelligence-view{min-width:0;max-width:100%}
+      #liveops-view .ops-panel,#marketing-view .detail-panel,#analytics-view .detail-panel,#intelligence-view .detail-panel{min-width:0;max-width:100%}
+      #liveops-view .ops-panel{height:auto}
+      #market-demand-view [style*="overflow-x:auto"],#marketing-view [style*="overflow:auto"],#analytics-view .finance-scroll{min-width:0;max-width:100%}
+    }
+    @media(max-width:900px){
+      .detail-tabs .detail-tab,#liveops-view button,#intelligence-view button,.tax-fill-btn,#tax-rem-submit{min-width:44px;min-height:44px}
+      #marketing-view input:not([type="checkbox"]),#marketing-view select{min-height:44px}
+    }
+    @media(max-width:600px){
+      .content{padding:1rem}
+      .detail-panel{padding:1rem}
+      .detail-grid{grid-template-columns:minmax(0,1fr)}
+      .detail-tabs{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+      .detail-tabs .detail-tab{flex:0 0 auto;min-height:44px}
+      .msg-compose,#assign-controls,#msg-target-row{flex-wrap:wrap}
+      .msg-input,#assign-select,#intel-chat-input{min-width:0;min-height:44px}
+      #msg-send{flex:1 1 100%;justify-content:center}
+      .view-header{align-items:flex-start;flex-direction:column}
+      #ops-summary>div{flex:1 1 128px;min-width:0}
+      .alert-row{align-items:flex-start;flex-wrap:wrap}
+      .alert-row>span:nth-child(2){min-width:0;overflow-wrap:anywhere}
+      .alert-row .btn{flex:1 1 100%;justify-content:center;margin-left:0 !important}
+      #liveops-view .ops-panel-header{align-items:flex-start;flex-wrap:wrap;gap:0.5rem}
+      #liveops-view .ops-panel [style*="display:flex"]{min-width:0;flex-wrap:wrap;gap:0.5rem}
+      #liveops-view .ops-panel [style*="flex:1"]{min-width:0;overflow-wrap:anywhere}
+      #liveops-view .ops-panel span{max-width:100%;overflow-wrap:anywhere}
+      .ops-easer-row .ops-easer-name{flex:1 1 calc(100% - 20px) !important}
+      .md-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+      .md-market-header{align-items:flex-start !important;flex-direction:column}
+      .promo-fields{grid-template-columns:minmax(0,1fr) !important}
+      .today-job-card{align-items:flex-start !important;flex-direction:column}
+      .today-job-time{min-width:0 !important}
+      .today-job-main,.today-job-actions{width:100%}
+      .today-job-actions{justify-content:space-between}
+      .site-chat-thread-head{flex-wrap:wrap}
+    }
+    @media(max-width:800px){
+      .owner-responsive-table{display:block;min-width:0 !important;width:100% !important}
+      .owner-responsive-table thead{display:none}
+      .owner-responsive-table tbody{display:grid;gap:0.75rem}
+      .owner-responsive-table tr{display:block;border:1px solid var(--border) !important;border-radius:8px;background:var(--surface);overflow:hidden}
+      .owner-responsive-table td{display:grid !important;grid-template-columns:minmax(105px,0.8fr) minmax(0,1.2fr);gap:0.75rem;align-items:start;padding:0.65rem 0.75rem !important;text-align:left !important;white-space:normal !important;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+      .owner-responsive-table td:last-child{border-bottom:0}
+      .owner-responsive-table td::before{content:attr(data-label);color:var(--muted);font-size:0.65rem;font-weight:700;line-height:1.35;text-transform:uppercase;letter-spacing:0.06em}
+      .owner-responsive-table td[colspan]{display:block !important;text-align:center !important}
+      .owner-responsive-table td[colspan]::before{display:none}
+      .owner-responsive-table td .btn{min-height:44px;justify-content:center}
+    }
+  </style>
 </head>
 <body>
 
@@ -54,9 +488,9 @@
     <div class="sidebar-section">
       <div class="sidebar-label">Operations</div>
       <ul class="sidebar-nav">
-        <li><a class="active" data-view="liveops"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="15" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="5" y1="9" x2="5" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/></svg></span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
+        <li><a data-view="liveops"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="15" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="5" y1="9" x2="5" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/></svg></span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
         <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" title="Active jobs scheduled today" style="display:none;background:#64748b">0</span></a></li>
-        <li><a data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span><span class="nav-count" id="nav-messages" title="Unread customer or Easer messages" style="display:none;background:#dc2626">0</span></a></li>
+        <li><a class="active" data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span><span class="nav-count" id="nav-messages" title="Unread customer or Easer messages" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="cases"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 5V3h8v2"/><path d="M9 11h6M9 15h4"/></svg></span> Cases <span class="nav-count" id="nav-cases" title="Cases requiring owner action" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="voice-calls"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h4l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z"/></svg></span> Phone Calls <span class="nav-count" id="nav-voice-calls" title="Call activity requiring review" style="display:none">0</span></a></li>
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
@@ -86,7 +520,7 @@
         <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open navigation">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
-        <div class="topbar-title">Live Operations</div>
+        <div class="topbar-title">Bookings</div>
       </div>
       <div class="topbar-right">
         <button class="btn" id="export-csv-btn" style="font-size:0.78rem">Financial Report</button>
@@ -99,7 +533,7 @@
 
       <!-- ─── BOOKINGS VIEW ─── -->
       <!-- ─── LIVE OPS VIEW ─── -->
-      <div id="liveops-view">
+      <div id="liveops-view" style="display:none">
 
         <!-- Alert bar -->
         <!-- Failures the platform diagnosed itself. Hidden when there are none,
@@ -268,15 +702,6 @@
           <div class="stat neutral"><div class="stat-value" id="cases-stat-waiting">&mdash;</div><div class="stat-label">Waiting on Reply</div></div>
         </div>
 
-        <!-- Cases on a test booking already hide with it. The ones with no
-             booking — a support request or voice callback fired during testing
-             — have nothing to inherit from, so they need finding by hand. -->
-        <div style="margin:0 0 0.75rem">
-          <button type="button" class="btn" style="font-size:0.78rem;padding:4px 14px"
-            onclick="window.OwnerCases&amp;&amp;window.OwnerCases.findTestCases()">Find test cases</button>
-          <div id="cases-test-sweep" style="margin-top:0.6rem"></div>
-        </div>
-
         <div class="cases-grid">
           <section class="cases-panel" aria-label="Case list">
             <div class="cases-panel-header">
@@ -293,7 +718,7 @@
         </div>
       </div>
 
-      <div id="bookings-view" style="display:none">
+      <div id="bookings-view">
         <div class="stats-row" id="stats-row">
           <div class="stat amber" id="stat-pending"><div class="stat-value">—</div><div class="stat-label">Pending</div></div>
           <div class="stat teal" id="stat-confirmed"><div class="stat-value">—</div><div class="stat-label">Confirmed</div></div>
@@ -435,20 +860,17 @@
         <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Online booking is active across Texas. Central Texas can use automatic dispatch; other Texas bookings require owner-managed Easer assignment. Markets outside Texas remain demand collection only.</p>
         <div class="stats-row" id="md-stats-row">
           <div class="stat teal"><div class="stat-value" id="md-active">—</div><div class="stat-label">Demand Signals</div></div>
-          <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Recorded Bookings</div></div>
+          <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Real Bookings</div></div>
           <div class="stat neutral"><div class="stat-value" id="md-requests">—</div><div class="stat-label">Unbooked Requests</div></div>
           <div class="stat teal"><div class="stat-value" id="md-conversion">—</div><div class="stat-label">Manual Assignment</div></div>
-          <div class="stat orange"><div class="stat-value" id="md-supply">—</div><div class="stat-label">Eligible Easers</div></div>
+          <div class="stat orange"><div class="stat-value" id="md-supply">—</div><div class="stat-label">Job-Ready Easers</div></div>
           <div class="stat neutral"><div class="stat-value" id="md-approved-supply">—</div><div class="stat-label">Approved Easers</div></div>
           <div class="stat neutral"><div class="stat-value" id="md-potential">—</div><div class="stat-label">Priced Demand</div></div>
         </div>
 
-        <p id="md-snapshot-status" role="status" style="font-size:0.78rem;color:var(--muted);margin:0 0 0.5rem">Market data has not been loaded.</p>
-        <p style="font-size:0.78rem;color:var(--muted);line-height:1.5;margin:0 0 1rem">Counts overlap: approved accounts include eligible Easers. Eligible means current readiness checks passed. Availability on means eligible with availability enabled; this does not confirm a free appointment slot or current app use. Each area uses the existing configured ZIP region, not a verified driving radius.</p>
-        <div id="md-reconciliation" style="display:flex;flex-wrap:wrap;gap:0.75rem;font-size:0.78rem;margin:0 0 1rem"></div>
         <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1.5rem" class="content-grid">
           <div class="detail-panel open">
-            <div class="detail-section-title">All Market Areas</div>
+            <div class="detail-section-title">Top Demand Markets</div>
             <!-- Scrolls inside its panel. This list renders EVERY market with demand and
                  had no height cap, so it grew the whole page as coverage widened while the
                  Demand Activity table beside it already scrolled at 60vh. Same convention
@@ -460,9 +882,8 @@
             <div class="detail-section-title">Activation Rules</div>
             <div style="display:grid;gap:0.65rem;margin-top:0.85rem;font-size:0.82rem;color:var(--soft);line-height:1.55">
               <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Booking Open</strong><br>Texas customers can book and save or authorize a card. This does not prove local Easer coverage.</div>
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Coverage Needed</strong><br>No eligible Easer is recorded in this verified service area. Verify travel coverage before committing a pro.</div>
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Ready</strong><br>At least three eligible Easers are recorded in this service area. Confirm their availability, service skills and travel coverage for the specific appointment.</div>
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Location Review / Coverage Unverified</strong><br>A missing, invalid or unrecognized location cannot prove area coverage. Review the recorded city and ZIP. Supply unavailable means the Easer source could not be read, not that there are no Easers.</div>
+              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Coverage Needed</strong><br>A real booking exists but no job-ready Easer is recorded in that market. Assign coverage before committing a pro.</div>
+              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Ready</strong><br>At least three job-ready Easers are recorded. Statewide jobs still remain owner-assigned unless the ZIP is approved for automatic dispatch.</div>
             </div>
           </div>
 
@@ -569,7 +990,6 @@
           <button class="tab" data-tier="deactivated">Deactivated</button>
           <button class="tab" data-tier="rejected">Rejected</button>
         </div>
-        <p style="font-size:0.78rem;color:var(--muted);line-height:1.5">Active means the account is approved. Job readiness also requires the current onboarding steps and availability. Tier is the stored platform level; identity verification and payout capability are separate.</p>
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem" id="asm-table">
             <thead>
@@ -624,10 +1044,7 @@
 
           <!-- AI Chat -->
           <div class="detail-panel open" style="display:flex;flex-direction:column">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.75rem">
-              <div class="detail-section-title" style="margin:0">Ask the AI</div>
-              <button type="button" onclick="clearIntelChat()" class="btn" style="font-size:0.68rem;padding:2px 9px">New chat</button>
-            </div>
+            <div class="detail-section-title" style="margin-bottom:0.75rem">Ask the AI</div>
             <div id="intel-chat-msgs" style="flex:1;min-height:120px;max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.75rem">
               <div style="font-size:0.8rem;color:var(--muted);line-height:1.5">Ask about your business, get a draft email, analyze trends, or request specific actions.</div>
             </div>
@@ -639,8 +1056,8 @@
               <button onclick="intelQuick('Which service makes me the most money?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Most profitable service</button>
             </div>
             <div style="display:flex;gap:0.4rem">
-              <input id="intel-chat-input" type="text" maxlength="2000" placeholder="Ask anything about your business…" style="flex:1;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;padding:0.5rem 0.75rem;font-family:inherit;font-size:0.82rem;color:var(--text);outline:none" onkeydown="if(event.key==='Enter')sendIntelChat()"/>
-              <button id="intel-chat-send" type="button" onclick="sendIntelChat()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:0.5rem 0.9rem;cursor:pointer;font-size:0.82rem;font-weight:600">Send</button>
+              <input id="intel-chat-input" type="text" placeholder="Ask anything about your business…" style="flex:1;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;padding:0.5rem 0.75rem;font-family:inherit;font-size:0.82rem;color:var(--text);outline:none" onkeydown="if(event.key==='Enter')sendIntelChat()"/>
+              <button onclick="sendIntelChat()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:0.5rem 0.9rem;cursor:pointer;font-size:0.82rem;font-weight:600">Send</button>
             </div>
           </div>
 
@@ -1094,12 +1511,6 @@
             <div class="detail-section-title" style="margin-bottom:1rem">Top Services by Volume</div>
             <div id="an-services"></div>
           </div>
-          <!-- Time on job -->
-          <div class="detail-panel open">
-            <div class="detail-section-title" style="margin-bottom:0.35rem">Time on Job by Service</div>
-            <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.9rem">Start Job to Mark Complete. Typical is the median, so one job left open overnight does not set the expectation.</div>
-            <div id="an-job-duration"></div>
-          </div>
           <!-- Bookings by Month -->
           <div class="detail-panel open">
             <div class="detail-section-title" style="margin-bottom:1rem">Bookings by Month</div>
@@ -1227,22 +1638,10 @@ async function runIntelligence() {
   }
 }
 
-// Keep a bounded conversation in memory only; reload and New chat clear it.
-var _intelHistory = [];
-var _intelChatPending = false;
-var _intelChatVersion = 0;
-var _intelChatController = null;
-
 async function sendIntelChat() {
-  if (_intelChatPending) return;
   var input = document.getElementById('intel-chat-input');
   var msg = input.value.trim();
   if (!msg) return;
-  var version = _intelChatVersion;
-  var sendButton = document.getElementById('intel-chat-send');
-  _intelChatPending = true;
-  _intelChatController = new AbortController();
-  if (sendButton) sendButton.disabled = true;
   input.value = '';
   var msgs = document.getElementById('intel-chat-msgs');
   msgs.innerHTML += '<div style="background:var(--teal);color:#fff;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;line-height:1.5;align-self:flex-end;margin-left:auto;max-width:85%">' + intelEsc(msg) + '</div>';
@@ -1252,62 +1651,27 @@ async function sendIntelChat() {
     var r = await fetch('/api/owner/monitor', {
       method: 'POST',
       headers: window._ownerHeaders(),
-      signal: _intelChatController.signal,
-      body: JSON.stringify({ message: msg, history: _intelHistory })
+      body: JSON.stringify({ message: msg })
     });
     var d = await r.json();
-    if (version !== _intelChatVersion) return;
-    if (!r.ok || d.error) throw new Error(d.error || 'Request failed. Please try again.');
-    if (typeof d.reply !== 'string' || !d.reply.trim()) throw new Error('No answer returned. Please try again.');
     var t = document.getElementById('intel-thinking');
     if (t) t.remove();
-    // Record the exchange only once the server answered, so a failed request
-    // does not leave a question in the history with no reply after it.
-    _intelHistory.push({ role: 'user', content: msg.slice(0, 2000) });
-    _intelHistory.push({ role: 'assistant', content: d.reply.slice(0, 2000) });
-    if (_intelHistory.length > 10) _intelHistory = _intelHistory.slice(-10);
-    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--soft);line-height:1.65;max-width:90%;white-space:pre-wrap">' + intelEsc(d.reply) + '</div>';
+    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--soft);line-height:1.65;max-width:90%;white-space:pre-wrap">' + intelEsc(d.reply||'No response.') + '</div>';
   } catch(e) {
-    if (version !== _intelChatVersion) return;
     var t2 = document.getElementById('intel-thinking');
     if (t2) t2.remove();
-    msgs.innerHTML += '<div style="color:#ef4444;font-size:0.8rem;padding:0.5rem">' + intelEsc(e.message || 'Request failed. Please try again.') + '</div>';
-    if (!input.value) input.value = msg;
-  } finally {
-    if (version === _intelChatVersion) {
-      _intelChatPending = false;
-      _intelChatController = null;
-      if (sendButton) sendButton.disabled = false;
-    }
+    msgs.innerHTML += '<div style="color:#ef4444;font-size:0.8rem;padding:0.5rem">Request failed.</div>';
   }
   msgs.scrollTop = msgs.scrollHeight;
 }
 
 function intelQuick(msg) {
-  if (_intelChatPending) return;
   document.getElementById('intel-chat-input').value = msg;
   sendIntelChat();
 }
 
-function clearIntelChat() {
-  _intelChatVersion += 1;
-  if (_intelChatController) _intelChatController.abort();
-  _intelChatController = null;
-  _intelChatPending = false;
-  _intelHistory = [];
-  var input = document.getElementById('intel-chat-input');
-  if (input) input.value = '';
-  var sendButton = document.getElementById('intel-chat-send');
-  if (sendButton) sendButton.disabled = false;
-  var msgs = document.getElementById('intel-chat-msgs');
-  if (msgs) {
-    msgs.innerHTML = '<div style="font-size:0.8rem;color:var(--muted);line-height:1.5">Ask about your business, get a draft email, analyze trends, or request specific actions.</div>';
-  }
-}
-
 window.runIntelligence = runIntelligence;
 window.sendIntelChat = sendIntelChat;
-window.clearIntelChat = clearIntelChat;
 window.intelQuick = intelQuick;
 </script>
 
@@ -2416,7 +2780,7 @@ window.intelQuick = intelQuick;
           html += '<div style="max-height:180px;overflow:auto;border-top:1px solid rgba(0,191,255,0.2);padding-top:0.4rem;margin-top:0.3rem">';
           a.pendingEasers.forEach(function(p) {
             html += '<div style="display:flex;justify-content:space-between;gap:0.5rem;align-items:center;padding:0.25rem 0;font-size:0.76rem">'
-              + '<span>' + esc(p.name || p.email || 'Easer') + '<span style="color:var(--muted)"> · ' + (p.reminderCount || 0) + ' reminder(s)</span>' + (p.pendingChannels && p.pendingChannels.length ? '<br><span style="color:var(--muted)">Pending: ' + esc(p.pendingChannels.join(', ')) + '</span>' : '') + (p.uncertainChannels && p.uncertainChannels.length ? '<br><span style="color:var(--amber)">Delivery needs review: ' + esc(p.uncertainChannels.join(', ')) + '</span>' : '') + '</span>'
+              + '<span>' + esc(p.name || p.email || 'Easer') + '<span style="color:var(--muted)"> · ' + (p.reminderCount || 0) + ' reminder(s)</span></span>'
               + '<button type="button" class="btn" style="padding:0.2rem 0.55rem;font-size:0.7rem" onclick="resendPayoutReminder(\'' + esc(a.key) + '\',\'' + esc(p.id) + '\',this)">Resend</button>'
               + '</div>';
           });
@@ -2428,20 +2792,13 @@ window.intelQuick = intelQuick;
     } catch (e) { card.style.display = 'none'; }
   }
   async function resendPayoutReminder(key, easerId, btn) {
-    if (btn && btn.disabled) return;
-    if (btn) { btn.disabled = true; btn.textContent = 'Queuing...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Queued'; }
     try {
-      var response = await fetch('/api/owner/announcement-adoption', {
+      await fetch('/api/owner/announcement-adoption', {
         method: 'POST', headers: headers(),
         body: JSON.stringify({ action: 'resend', key: key, easerId: easerId }),
       });
-      var result = await response.json().catch(function(){ return {}; });
-      if (!response.ok) throw new Error(result.error || 'Reminder could not be queued.');
-      if (btn) btn.textContent = 'Queued';
-    } catch (e) {
-      if (btn) { btn.disabled = false; btn.textContent = 'Resend'; }
-      toast(e.message || 'Reminder could not be queued.', 'error');
-    }
+    } catch (e) { if (btn) { btn.disabled = false; btn.textContent = 'Resend'; } }
   }
 
   // ── Content Kit (one Blog -> ready-to-paste social posts) ──────────────
@@ -2840,13 +3197,6 @@ window.intelQuick = intelQuick;
   function showDashboard() {
     $gate.style.display = 'none';
     $layout.classList.remove('hidden');
-    // The landing view polls for itself; clicking into it is no longer the only
-    // way it ever loads. Deferred by a tick because a saved session calls this
-    // function while the script is still executing, before _liveOpsTimer and
-    // the Live Ops element references below have been assigned — starting the
-    // interval then would hand its id to a variable that is about to be reset
-    // to null, and nothing could ever stop it.
-    setTimeout(function () { if (currentView === 'liveops') startLiveOps(); }, 0);
     loadBookings();
     if (_bookingsTimer) clearInterval(_bookingsTimer);
     _bookingsTimer = setInterval(loadBookings, 60000);
@@ -2855,39 +3205,33 @@ window.intelQuick = intelQuick;
     // Surface payable and held Easer earnings immediately. The owner should
     // not have to discover payout work by opening Financials first.
     loadPayoutLedger();
-    // A badge that fails to load must not look like a clear queue. Live Ops
-    // already prints "!" when its check cannot verify state; these four hid
-    // themselves instead, so a failed fetch was indistinguishable from "nothing
-    // needs you" (Article 16 — never assert what has not been verified).
-    function paintNavBadge(id, count) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      if (count > 0) { el.textContent = String(count); el.title = ''; el.style.display = ''; }
-      else el.style.display = 'none';
-    }
-    function navBadgeUnknown(id, label) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      el.textContent = '!';
-      el.title = label + ' could not be loaded — this is not a count of zero.';
-      el.style.display = '';
-    }
     // Nav badge: pending Easer applications
     fetch('/api/assembler/list', { headers: headers() })
-      .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
-      .then(function(d) { paintNavBadge('nav-pending-apps', Number((d.stats || {}).pending || 0)); })
-      .catch(function(){ navBadgeUnknown('nav-pending-apps', 'Pending Easer applications'); });
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var ct = Number((d.stats || {}).pending || 0);
+        var $navApps = document.getElementById('nav-pending-apps');
+        if (ct > 0) { $navApps.textContent = ct; $navApps.style.display = ''; }
+        else $navApps.style.display = 'none';
+      }).catch(function(){});
     // Nav badge: pending waitlist entries
     fetch('/api/owner/waitlist?status=pending', { headers: headers() })
-      .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
-      .then(function(d) { paintNavBadge('nav-waitlist', Number((d.stats || {}).pending || 0)); })
-      .catch(function(){ navBadgeUnknown('nav-waitlist', 'Easer waitlist'); });
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var pending = ((d.stats || {}).pending) || 0;
+        var $navWl = document.getElementById('nav-waitlist');
+        if (pending > 0) { $navWl.textContent = pending; $navWl.style.display = ''; }
+        else $navWl.style.display = 'none';
+      }).catch(function(){});
     // Nav badge: demand records that require owner assignment or follow-up.
-    var marketBadgeRequest = Number(_marketDemandRequest) || 0;
-    fetch('/api/owner/market-demand', { headers: headers(), cache: 'no-store' })
-      .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
-      .then(function(d) { if (marketBadgeRequest === (Number(_marketDemandRequest) || 0)) paintNavBadge('nav-market-demand', Number((d.summary || {}).ownerActionRequired || 0)); })
-      .catch(function(){ if (marketBadgeRequest === (Number(_marketDemandRequest) || 0)) navBadgeUnknown('nav-market-demand', 'Market demand follow-ups'); });
+    fetch('/api/owner/market-demand', { headers: headers() })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var count = ((d.summary || {}).ownerActionRequired) || 0;
+        var $navMd = document.getElementById('nav-market-demand');
+        if (count > 0) { $navMd.textContent = count; $navMd.style.display = ''; }
+        else $navMd.style.display = 'none';
+      }).catch(function(){});
     // Cases is a separate owner module. Delay one tick so the deferred module
     // is ready even when an existing owner session opens immediately.
     setTimeout(function() {
@@ -2966,8 +3310,6 @@ window.intelQuick = intelQuick;
   function logout(expired) {
     ownerSessionToken = '';
     if (_bookingsTimer) { clearInterval(_bookingsTimer); _bookingsTimer = null; }
-    stopMarketDemand();
-    _marketDemandRequest += 1;
     if (expired) toast('Session expired — please log in again', 'error');
     setTimeout(function() {
       $layout.classList.add('hidden');
@@ -3083,17 +3425,11 @@ window.intelQuick = intelQuick;
       && !booking.financial_reconciliation_required_at
       && Number.isFinite(Number((booking.financial_summary || {}).platformGrossCents));
   }
-  // Business metrics exclude the owner's own test bookings, the way the daily
-  // and weekly summary emails have since migration 094. The rows stay visible
-  // in the list with a TEST pill — excluded from counting, never hidden.
-  function isTestBooking(b) { return !!b && b.is_test_booking === true; }
-  function realBookings() { return allBookings.filter(function(b){ return !isTestBooking(b); }); }
-
   function updateStats() {
     const counts = { pending: 0, confirmed: 0, completed: 0 };
     let profit = 0;
     let unresolvedCompleted = 0;
-    realBookings().forEach(function(b) {
+    allBookings.forEach(function(b) {
       // Count pipeline statuses as Confirmed — they are active/accepted jobs
       var cat = PIPELINE_STATUSES.includes(b.status) ? 'confirmed' : b.status;
       if (counts[cat] !== undefined) counts[cat]++;
@@ -3110,13 +3446,7 @@ window.intelQuick = intelQuick;
     document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
     document.querySelector('#stat-confirmed .stat-value').textContent = counts.confirmed;
     document.querySelector('#stat-completed .stat-value').textContent = counts.completed;
-    var realCount = realBookings().length;
-    var testCount = allBookings.length - realCount;
-    var totalEl = document.querySelector('#stat-total .stat-value');
-    totalEl.textContent = realCount;
-    totalEl.title = testCount > 0
-      ? testCount + ' test booking' + (testCount === 1 ? '' : 's') + ' excluded from every figure on this board.'
-      : '';
+    document.querySelector('#stat-total .stat-value').textContent = allBookings.length;
     var revenueEl = document.querySelector('#stat-revenue .stat-value');
     var revenueLabel = document.querySelector('#stat-revenue .stat-label');
     if (revenueEl) {
@@ -3368,11 +3698,10 @@ window.intelQuick = intelQuick;
       return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '" style="position:relative">'
         + '<div class="card-top"><h4>' + esc(b.customer_name) + '</h4>' + bookingBadge(b) + '</div>'
         + '<div class="card-desc">' + esc(cardQuoteStage ? quoteServiceLabel(b) : (b.service || '—')) + '</div>'
-        + (isTestBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--muted);font-weight:600;margin-top:2px;letter-spacing:0.06em">TEST BOOKING — excluded from all figures</div>' : '')
         + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + esc(b.assembler_tier) : '') + '</div>' : '')
         + (b.has_unread_customer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Customer message</div>' : '')
         + (b.has_unread_easer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Easer message</div>' : '')
-        + (b.needs_manual_dispatch && !b.assembler_id && !isTerminalBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#ef4444;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block"></span>Needs manual assignment</div>' : '')
+        + (b.needs_manual_dispatch && !isTerminalBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#ef4444;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block"></span>Needs manual assignment</div>' : '')
         + '<div class="card-meta">'
           + '<span>' + esc(b.ref) + '</span>'
           + '<span class="meta-dot"></span>'
@@ -3475,19 +3804,11 @@ window.intelQuick = intelQuick;
       // absorb the reduction. Rendering the stored value made this panel claim
       // a commission the platform no longer took, while the financial dashboard
       // (which derives) showed the truth. Two screens, one job, two numbers.
-      // The derived fee is net charged minus tax minus Easer cost, and an
-      // uncharged booking counts its full total as charged with an Easer cost of
-      // zero — so AAE-DVSNHXE4OO printed "Platform Fee $394.00" (its entire
-      // subtotal) beside "Total Charged: Not recorded" and "Easer Earnings: Not
-      // finalized". Gate it exactly like Platform Gross already is: no finalized
-      // Easer earnings, no fee figure.
       field('Platform Fee', !b.assembler_id
         ? '<span style="color:var(--muted)">Not calculated — assign the owner-Easer</span>'
-        : b.assembler_due == null
-          ? '<span style="color:var(--muted)">Not finalized — set when the job completes</span>'
-          : (financial.platformFeeCents != null
-            ? fmt$(financial.platformFeeCents)
-            : (b.platform_fee != null ? fmt$(b.platform_fee) : '<span style="color:var(--muted)">Not finalized</span>'))),
+        : (financial.platformFeeCents != null
+          ? fmt$(financial.platformFeeCents)
+          : (b.platform_fee != null ? fmt$(b.platform_fee) : '<span style="color:var(--muted)">Not finalized</span>'))),
       field('Easer Earnings', !b.assembler_id
         ? '<span style="color:var(--muted)">Not calculated — assign the owner-Easer</span>'
         : (b.assembler_due != null ? fmt$(b.assembler_due) : '<span style="color:var(--muted)">Not finalized</span>')),
@@ -3520,7 +3841,6 @@ window.intelQuick = intelQuick;
           ? 'Paid' + (b.paid_out_at ? ' on ' + formatDate(b.paid_out_at) : '')
           : (b.payout_status || 'unpaid').replace(/_/g, ' ')),
       field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
-      jobDurationField(b),
       (b.return_visit_required || b.return_visit_completed_at) ? field(b.return_visit_required ? 'Open Return Visit' : 'Return Visit Completed', formatDate(b.return_visit_date) + (b.return_visit_time ? ' at ' + esc(b.return_visit_time) : '')) : '',
       (b.return_visit_required || b.return_visit_completed_at) ? field('First-Visit Work', esc(b.return_visit_completed_scope || '—')) : '',
       b.return_visit_required ? field('Work Remaining', esc(b.return_visit_remaining_scope || '—')) : '',
@@ -3616,7 +3936,7 @@ window.intelQuick = intelQuick;
       }
       ctrls += '<button class="btn btn-red" onclick="dispatchControl(\'' + bookingId + '\',\'cancel\')" style="font-size:0.78rem">Cancel Offers</button>';
     }
-    if (booking && booking.needs_manual_dispatch && !booking.assembler_id && !isTerminalBooking(booking) && !ownerManualOffline) {
+    if (booking && booking.needs_manual_dispatch && !isTerminalBooking(booking) && !ownerManualOffline) {
       ctrls = '<span style="color:#ef4444;font-size:0.78rem;font-weight:600">Needs Manual Assignment</span> ' + ctrls;
     }
     if (ctrlEl) ctrlEl.innerHTML = ctrls;
@@ -3772,7 +4092,7 @@ window.intelQuick = intelQuick;
       el.innerHTML = timelineWarning + '<div style="padding-left:18px;border-left:2px solid var(--border)">'
         + items.map(function(a) {
           var isNotif = a._source === 'notification';
-          var isFailed = isNotif && ['failed','bounced','complained','delivery_delayed','uncertain'].includes(a._status);
+          var isFailed = isNotif && ['failed','bounced','complained','delivery_delayed'].includes(a._status);
           var dotColor = isNotif
             ? (isFailed ? '#ef4444' : '#94a3b8')
             : (dotColors[a.event_type] || '#6b7280');
@@ -3784,7 +4104,6 @@ window.intelQuick = intelQuick;
           return '<div class="timeline-item">'
             + '<span style="' + dotStyle + '"></span>'
             + '<div style="' + descStyle + '">' + esc(a.description) + '</div>'
-            + (isNotif && a.metadata && a.metadata.ownerAction ? '<div style="font-size:0.74rem;color:var(--soft);margin-top:3px">' + esc(a.metadata.ownerAction) + '</div>' : '')
             + '<div class="timeline-meta">' + esc(a.actor_name || a.actor_type || '') + ' &middot; ' + time + '</div>'
             + '</div>';
         }).join('')
@@ -4090,17 +4409,20 @@ window.intelQuick = intelQuick;
       var file = fileInput && fileInput.files && fileInput.files[0];
       var notes = String((notesInput && notesInput.value) || '').trim();
       if (!selectedId || !file) { toast('Choose a completion photo', 'error'); return; }
-      if (file.size <= 0) { toast('That file is empty', 'error'); return; }
+      if (file.size <= 0 || file.size > 5 * 1024 * 1024) { toast('Evidence must be no larger than 5 MB', 'error'); return; }
       if (notes.length < 10) { toast('Describe what the completion photo shows', 'error'); return; }
       var allowedEvidenceMime = ['image/jpeg','image/png','image/webp','image/heic','image/heif'];
-      if (file.type && !allowedEvidenceMime.includes(file.type)) { toast('Use a JPEG, PNG, WebP, HEIC, or HEIF image', 'error'); return; }
+      if (!allowedEvidenceMime.includes(file.type)) { toast('Use a JPEG, PNG, WebP, HEIC, or HEIF image', 'error'); return; }
       var uploadBookingId = selectedId;
       this.disabled = true;
       this.textContent = 'Uploading...';
       try {
-        // Downscaled first. The original base64-encodes past the request body
-        // limit and is rejected by the platform before this endpoint runs.
-        var prepared = await window.AAE_UPLOAD.prepare(file);
+        var fileBase64 = await new Promise(function(resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function(){ resolve(String(reader.result || '')); };
+          reader.onerror = function(){ reject(new Error('The selected file could not be read')); };
+          reader.readAsDataURL(file);
+        });
         // Two different acts, two endpoints. 'historical' is the owner's own
         // past job; 'on_behalf' records the owner supplying a photo FOR another
         // Easer, which is stored with truthful authorship.
@@ -4113,14 +4435,13 @@ window.intelQuick = intelQuick;
           headers: headers(),
           body: JSON.stringify({
             bookingId: uploadBookingId,
-            fileBase64: prepared.dataUrl,
-            mimeType: prepared.mimeType,
+            fileBase64: fileBase64,
+            mimeType: file.type,
             notes: notes,
           }),
         });
-        if (!response.ok) throw new Error(await window.AAE_UPLOAD.describeUploadFailure(response));
         var data = await response.json().catch(function(){ return {}; });
-        if (data.error) throw new Error(data.error);
+        if (!response.ok || data.error) throw new Error(data.error || 'Evidence upload failed');
         if (fileInput) fileInput.value = '';
         if (notesInput) notesInput.value = '';
         delete _evidenceCache[uploadBookingId];
@@ -4532,24 +4853,6 @@ window.intelQuick = intelQuick;
     return '<div class="detail-field"><label>' + label + '</label><span>' + value + '</span></div>';
   }
 
-  // How long the work took. Shown only when there is something true to say:
-  // a finished job with both stamps gets a duration, a live job gets its start
-  // time (a fact that does not go stale between refreshes), a job imported
-  // straight to completed says so rather than implying it took no time.
-  function jobDurationField(b) {
-    var D = window.AAE_JOB_DURATION;
-    if (!D || !b) return '';
-    var status = String(b.status || '').toLowerCase();
-    if (status === 'in_progress' && b.job_started_at) {
-      return field('Time on Job', '<span style="color:var(--teal)">Running</span> <span style="font-size:0.75rem;color:var(--muted)">since ' + formatDateTime(b.job_started_at) + '</span>');
-    }
-    if (status !== 'completed') return '';
-    var span = D.formatJobDuration(D.jobDurationMs(b));
-    return field('Time on Job', span
-      ? '<strong>' + span + '</strong> <span style="font-size:0.72rem;color:var(--muted)">(start to complete)</span>'
-      : '<span style="color:var(--muted)">Not recorded</span>');
-  }
-
   // THE acceptance rule. "The booking is confirmed" and "the Easer accepted" are
   // different facts, and three panels used to answer the question three different
   // ways — the Easer Availability widget read booking status 'confirmed' and
@@ -4745,7 +5048,7 @@ window.intelQuick = intelQuick;
     function renderOwnerActionCollection(notices, btns) {
       var actionPriority = [
         'manual-refund-recovery', 'refund-recovery', 'stripe-dispute-review',
-        'damage-review', 'retry-authorization', 'reconcile-payment', 'send-payment', 'quote',
+        'damage-review', 'reconcile-payment', 'send-payment', 'quote',
         'record-manual-payment', 'collect-payment', 'complete-return-visit',
         'complete', 'dispatch', 'payout-review', 'payout',
         'request-review', 'request-evidence'
@@ -4755,7 +5058,6 @@ window.intelQuick = intelQuick;
         'refund-recovery': 'Continue the existing refund recovery. The server will recheck aggregate Stripe truth before changing money state.',
         'stripe-dispute-review': 'Refresh Stripe dispute truth before any refund, dispatch, or Easer payment decision.',
         'damage-review': 'Review the saved evidence and record the outcome before releasing any Easer payment.',
-        'retry-authorization': 'Finish the card hold this booking already has on file. Nothing is captured, and the customer is not asked for anything.',
         'reconcile-payment': 'Verify the linked Stripe authorization before confirming or dispatching this booking.',
         'send-payment': 'Send the existing secure payment continuation to the customer. This does not charge the customer by itself.',
         'quote': 'Set the server-controlled quote and send it to the customer for approval before scheduling work.',
@@ -5007,15 +5309,6 @@ window.intelQuick = intelQuick;
       if (b.payment_status === 'card_saved') {
         // A future booking with a saved card is intentionally confirmed but
         // remains dispatch-paused until the scheduled authorization succeeds.
-      } else if (b.payment_status === 'pending' && b.dispatch_status === 'payment_hold'
-          && b.stripe_payment_intent_id && b.stripe_payment_method_id) {
-        // The card is saved and a hold exists that never completed. This is not
-        // a customer who failed to pay, and the red "mismatch" banner sent the
-        // owner looking for one (AAE-DVSNHXE4OO, 2026-09-19). Say what is true
-        // and offer the action that actually finishes it.
-        notices.push('<div style="flex-basis:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.8rem;color:#92400e;font-size:0.78rem;line-height:1.5"><strong>The hold has not completed.</strong> The customer\'s card is saved and nothing is wrong with it unless Stripe says so. It retries automatically before the visit; <strong>Retry authorization</strong> runs it now. Only send the secure link if the retry reports that the bank wants the customer.</div>');
-        btns.push('<button class="btn btn-teal" data-action="retry-authorization" data-id="' + b.id + '">Retry authorization</button>');
-        btns.push('<button class="btn" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
       } else if (b.payment_status !== 'authorized') {
         notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Confirmed/payment mismatch:</strong> do not dispatch. Verify the linked Stripe authorization and repair both states together.</div>');
         if (b.stripe_payment_intent_id && ['pending', 'failed'].includes(b.payment_status) && b.dispatch_status === 'payment_hold') {
@@ -5132,44 +5425,6 @@ window.intelQuick = intelQuick;
         notices.push('<div style="flex-basis:100%;font-size:0.74rem;color:var(--red)">An Easer payment already exists. Review the financial timeline and any clawback requirement; do not attempt another payment.</div>');
       }
     }
-    // Marking a booking internal is the only way to keep it off the business
-    // figures. Until this button existed the flag could only be set by hand-
-    // written SQL, so every test booking counted as real revenue and real
-    // demand. Reversible from the same place.
-    //
-    // Never offered while money is held or being reconciled: those states
-    // deliberately replace the whole action list with the one safe move, and
-    // reclassifying a booking mid-reconciliation is not it. The check is
-    // written out rather than calling a helper so renderActions stays
-    // self-contained for the harness in test-reward-reconciliation-safety.mjs.
-    var reclassifyBlocked = !!(b.financial_operation_key
-      || b.financial_reconciliation_required_at
-      || b.cancellation_reconciliation_required_at
-      || stripeDisputeHold);
-    if (reclassifyBlocked) {
-      renderOwnerActionCollection(notices, btns);
-      return;
-    }
-    // A customer who cannot find their confirmation could not be helped from
-    // here: there is a resend for quotes, reviews, payment links and payout
-    // reminders, but none for the booking itself, and no tracking link anywhere
-    // on this board. Offered while the booking is live — once it is cancelled
-    // or declined there is nothing left to track.
-    if (!['cancelled', 'declined'].includes(b.status) && b.customer_email) {
-      btns.push('<button class="btn" data-action="resend-booking-details" data-id="' + b.id + '">Resend Details &amp; Track Link</button>');
-    }
-    // A customer who mistyped their address at checkout was unreachable for
-    // good: every email went to someone else's inbox, the tracking link was
-    // derived from the wrong address, and nothing on this board could fix it.
-    if (!['cancelled', 'declined'].includes(b.status)) {
-      btns.push('<button class="btn" data-action="fix-customer-email" data-id="' + b.id + '">Fix Customer Email</button>');
-    }
-    if (b.is_test_booking === true) {
-      notices.push('<div style="flex-basis:100%;background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.8rem;color:var(--muted);font-size:0.78rem;line-height:1.5"><strong>Internal test booking.</strong> On the record, excluded from every figure on this dashboard and from the summary emails.</div>');
-      btns.push('<button class="btn" data-action="unmark-test" data-id="' + b.id + '">Put Back Into Business</button>');
-    } else {
-      btns.push('<button class="btn" data-action="mark-test" data-id="' + b.id + '">Mark As Test Booking</button>');
-    }
     renderOwnerActionCollection(notices, btns);
   }
 
@@ -5190,32 +5445,6 @@ window.intelQuick = intelQuick;
     $reasonText.style.display = '';
     $reasonText.value = '';
     $reasonText.placeholder = 'Reason (optional)';
-  }
-
-  // The tracking link, where the owner can read it out or copy it while the
-  // customer is still on the phone. Shown next to the booking actions rather
-  // than in a modal, so it stays put while they talk.
-  function showTrackLink(url, sentTo) {
-    var host = document.getElementById('detail-actions');
-    if (!host) return;
-    var existing = document.getElementById('track-link-box');
-    if (existing) existing.remove();
-    var box = document.createElement('div');
-    box.id = 'track-link-box';
-    box.style.cssText = 'flex-basis:100%;background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.7rem 0.85rem;margin-top:0.5rem';
-    box.innerHTML = '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:700;margin-bottom:4px">'
-      + (sentTo ? 'Emailed to ' + esc(sentTo) + ' &middot; tracking link' : 'Tracking link')
-      + '</div><div style="font-size:0.78rem;word-break:break-all;color:var(--text);line-height:1.5" id="track-link-url"></div>'
-      + '<button type="button" class="btn" style="margin-top:0.5rem;font-size:0.72rem;padding:3px 12px" id="track-link-copy">Copy link</button>';
-    box.querySelector('#track-link-url').textContent = url;
-    host.appendChild(box);
-    box.querySelector('#track-link-copy').addEventListener('click', function() {
-      var btn = this;
-      navigator.clipboard.writeText(url).then(function() {
-        btn.textContent = 'Copied';
-        setTimeout(function(){ btn.textContent = 'Copy link'; }, 2000);
-      }).catch(function() { toast('Select the link and copy it manually.', 'error'); });
-    });
   }
 
   function closeReasonModal() {
@@ -5243,7 +5472,6 @@ window.intelQuick = intelQuick;
 
   window.openDamageReview = openDamageReviewModal;
 
-  var bookingDetailsRequestIds = {};
   $detailAct.addEventListener('click', async function(e) {
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -5302,81 +5530,6 @@ window.intelQuick = intelQuick;
       if (editNotifyBox) editNotifyBox.checked = !recordOnlyEdit;
       document.getElementById('eb-error').style.display = 'none';
       document.getElementById('edit-booking-modal').classList.add('open');
-    } else if (action === 'fix-customer-email') {
-      var emailBooking = allBookings.find(function(item){ return item.id == id; });
-      var currentEmail = (emailBooking && emailBooking.customer_email) || '(none on file)';
-      var nextEmail = prompt('Correct the customer email for this booking.\n\nOn file: ' + currentEmail + '\n\nAnything already sent to the old address stays sent, and links issued to it stop working.', (emailBooking && emailBooking.customer_email) || '');
-      if (nextEmail === null) return;
-      nextEmail = String(nextEmail).trim();
-      if (!nextEmail) { toast('No email entered. Nothing was changed.', 'error'); return; }
-      try {
-        var fceResp = await fetch('/api/owner/correct-customer-email', {
-          method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
-          body: JSON.stringify({ bookingId: id, email: nextEmail })
-        });
-        var fceBody = await fceResp.json().catch(function(){ return {}; });
-        if (!fceResp.ok) { toast(fceBody.error || 'The email could not be corrected.', 'error'); return; }
-        await loadBookings(true);
-        await window.openPayoutBooking(id, 'booking');
-        if (fceBody.unchanged) { toast('That is already the address on file.', 'success'); return; }
-        toast('Email corrected to ' + fceBody.email + '. Send them their details next.', 'success');
-      } catch (e) {
-        toast('The email could not be corrected.', 'error');
-      }
-      return;
-    } else if (action === 'resend-booking-details') {
-      if (btn.disabled) return;
-      btn.disabled = true;
-      try {
-        var contextResp = await fetch('/api/owner/resend-booking-details?bookingId=' + encodeURIComponent(id), { headers: headers() });
-        var sendContext = await contextResp.json().catch(function(){ return {}; });
-        if (!contextResp.ok) { toast(sendContext.error || 'Recent notices could not be checked. Refresh before sending again.', 'error'); return; }
-        var sendTime = function(value) { return value ? new Date(value).toLocaleString('en-US', { timeZone: 'America/Chicago', timeZoneName: 'short' }) : 'None recorded'; };
-        var recentNotices = (sendContext.recentNotifications || []).map(function(item) {
-          return String(item.type || 'Notice').replace(/_/g, ' ') + ' / ' + (item.channel || 'email') + ' / ' + (item.status || 'unknown') + ' / ' + sendTime(item.createdAt);
-        }).join('\n');
-        var lastNotice = 'Details last sent: ' + sendTime(sendContext.lastDetailsSentAt) + '\nDetails last delivered: ' + sendTime(sendContext.lastDetailsDeliveredAt);
-        if (!confirm(lastNotice + '\n\nRecent customer notices:\n' + (recentNotices || 'None recorded') + '\n\nSend one booking-details email now?')) return;
-        // Keep the same identity after a timeout; retrying the same deliberate
-        // action must not create a second email if the first reached Resend.
-        if (!bookingDetailsRequestIds[id]) bookingDetailsRequestIds[id] = crypto.randomUUID();
-        var rbdResp = await fetch('/api/owner/resend-booking-details', {
-          method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
-          body: JSON.stringify({ bookingId: id, requestId: bookingDetailsRequestIds[id] })
-        });
-        var rbdBody = await rbdResp.json().catch(function(){ return {}; });
-        // Even when the send fails the link is worth having — the owner is
-        // usually on the phone with the customer when they press this.
-        if (rbdBody.trackUrl) showTrackLink(rbdBody.trackUrl, rbdResp.ok ? rbdBody.sentTo : null);
-        if (!rbdResp.ok) { toast(rbdBody.error || 'The details could not be sent.', 'error'); return; }
-        delete bookingDetailsRequestIds[id];
-        toast(rbdBody.alreadySent ? 'Booking details were already sent. No duplicate email was sent.' : 'Booking details sent to ' + (rbdBody.sentTo || 'the customer') + '.', 'success');
-      } catch (e) {
-        toast('The details could not be sent.', 'error');
-      } finally {
-        btn.disabled = false;
-      }
-      return;
-    } else if (action === 'mark-test' || action === 'unmark-test') {
-      var markingTest = action === 'mark-test';
-      if (markingTest && !confirm('Mark this booking as an internal test?\n\nIt stays on the record and on this list, but stops counting in your figures, your summary emails and market demand. You can put it back at any time.')) return;
-      try {
-        var markResp = await fetch('/api/owner/mark-test-booking', {
-          method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
-          body: JSON.stringify({ bookingId: id, isTest: markingTest })
-        });
-        var markBody = await markResp.json().catch(function(){ return {}; });
-        if (!markResp.ok) { toast(markBody.error || 'The booking could not be updated.', 'error'); return; }
-        toast(markingTest ? 'Marked as a test booking. It no longer counts in your figures.' : 'Back in the business. It counts again.', 'success');
-        await loadBookings(true);
-        await window.openPayoutBooking(id, 'booking');
-      } catch (e) {
-        toast('The booking could not be updated.', 'error');
-      }
-      return;
     } else if (action === 'record-manual-payment') {
       var manualPaymentBooking = allBookings.find(function(item){ return item.id == id; });
       if (!manualPaymentBooking) return;
@@ -5526,29 +5679,6 @@ window.intelQuick = intelQuick;
       } finally {
         btn.disabled = false;
         btn.textContent = originalRecoveryText;
-      }
-    } else if (action === 'retry-authorization') {
-      if (!confirm('Finish the card hold for this booking now? This places the hold Stripe already has on file. Nothing is captured, and the customer is not asked for anything.')) return;
-      btn.disabled = true;
-      var retryText = btn.textContent;
-      btn.textContent = 'Placing hold...';
-      try {
-        var retryResponse = await fetch('/api/owner/retry-authorization', {
-          method: 'POST',
-          headers: headers(),
-          body: JSON.stringify({ bookingId: id }),
-        });
-        var retryData = await retryResponse.json().catch(function(){ return {}; });
-        // Article 16: the server's own words, whichever way it went.
-        if (!retryResponse.ok || retryData.error) throw new Error(retryData.error || 'The hold could not be finished');
-        toast(retryData.message || 'The hold is authorized', 'success');
-        load();
-        loadTimeline(id);
-      } catch (retryError) {
-        toast(retryError.message || 'The hold could not be finished', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = retryText;
       }
     } else if (action === 'reconcile-payment') {
       if (!confirm('Verify this booking against live Stripe and repair it to Confirmed + Authorized? No charge or capture will be created.')) return;
@@ -7006,7 +7136,7 @@ window.intelQuick = intelQuick;
       elite:        ['et-elite',        'Elite'],
     };
     var v = map[tier] || ['et-starter', tier];
-    return '<span class="sb ' + v[0] + '" title="Stored platform tier; separate from identity, job readiness, and payout status">' + esc(v[1]) + '</span>';
+    return '<span class="sb ' + v[0] + '">' + esc(v[1]) + '</span>';
   }
 
   function verificationBadge(a) {
@@ -7077,19 +7207,6 @@ window.intelQuick = intelQuick;
         return 'Partial payment recorded — ' + fmt$(receivedCents) + ' received; ' + fmt$(remainingCents) + ' remaining';
       }
       return 'No customer payment recorded in AAE';
-    }
-    // A confirmed booking sitting on an unconfirmed hold is not a customer who
-    // never paid: the card is saved and on file, and the hold attempt did not
-    // complete. Saying "no payment authorization is confirmed" sent the owner
-    // hunting for a customer problem that did not exist (AAE-DVSNHXE4OO,
-    // 2026-09-19), so say what is actually true and what happens next.
-    if (status === 'pending'
-        && booking && booking.status === 'confirmed'
-        && booking.dispatch_status === 'payment_hold'
-        && booking.stripe_payment_method_id) {
-      return booking.stripe_payment_intent_id
-        ? 'Card saved; the hold has not completed yet and retries automatically'
-        : 'Card saved; no hold has been placed yet';
     }
     var labels = {
       pending: 'No payment authorization or charge is confirmed',
@@ -7337,15 +7454,6 @@ window.intelQuick = intelQuick;
           ? ' &bull; <span style="color:#155e75">Owner-Easer offline flow</span>'
           : ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>'
             + (isAccepted ? '' : ' <button onclick="releaseAssignment(\'' + b.id + '\',this)" class="btn" style="font-size:0.72rem;padding:2px 8px">Release</button>'));
-      // Fill the list even though it starts hidden. Reassign only un-hides
-      // these controls; it does not build them. Without this the owner clicked
-      // Reassign, got an empty dropdown, and the Assign button stayed disabled
-      // because its change event can never fire with nothing to choose — which
-      // reads as "this job cannot be reassigned" on every assigned booking.
-      // The currently assigned Easer is left out: picking them is a no-op that
-      // still costs a write and a notification.
-      fillAssignChoices(eligibleAssemblers.filter(function(a) { return a.id !== b.assembler_id; }),
-        'No other eligible Easer is available right now.');
       controls.style.display = 'none';
     } else {
       if (allowOwnerManualCompleted && !completedAttributionReady) {
@@ -7379,11 +7487,13 @@ window.intelQuick = intelQuick;
         status.textContent = 'Owner-Easer is not eligible for new jobs yet' + (ownerMissingItems ? ': ' + ownerMissingItems : '.');
       }
       controls.style.display = 'flex';
-      // Same builder the assigned branch uses, so the two paths cannot
-      // disagree about who is selectable.
-      fillAssignChoices(assignmentChoices, ownerEaserOnly
-        ? 'Owner-Easer account is not available'
-        : 'No eligible Easer is available right now.');
+      select.innerHTML = assignmentChoices.length
+        ? (allowOwnerManualCompleted ? '' : '<option value="">Select an Easer...</option>')
+        : '<option value="">Owner-Easer account is not available</option>';
+      assignmentChoices.forEach(function(a) {
+        var tierBadge = a.tier === 'elite' ? ' (Elite)' : a.tier === 'verified' ? ' (Verified)' : '';
+        select.innerHTML += '<option value="' + a.id + '">' + esc(a.full_name) + tierBadge + ' (' + (a.completed_jobs || 0) + ' jobs, ' + (a.rating ? Number(a.rating).toFixed(1) : 'New') + ')</option>';
+      });
       if (allowOwnerManualCompleted && assignmentChoices.length) {
         select.value = assignmentChoices[0].id;
         if (assignButton) {
@@ -7629,21 +7739,6 @@ window.intelQuick = intelQuick;
     }
   };
 
-  // One place that turns a list of Easers into <option> elements. Used by the
-  // assigned branch (hidden until Reassign is clicked) and the unassigned one,
-  // so the two can never disagree about who is selectable.
-  function fillAssignChoices(choices, emptyLabel) {
-    var select = document.getElementById("assign-select");
-    if (!select) return;
-    if (!choices.length) { select.innerHTML = '<option value="">' + esc(emptyLabel) + '</option>'; return; }
-    select.innerHTML = '<option value="">Select an Easer...</option>';
-    choices.forEach(function(a) {
-      var tierBadge = a.tier === "elite" ? " (Elite)" : a.tier === "verified" ? " (Verified)" : "";
-      select.innerHTML += '<option value="' + a.id + '">' + esc(a.full_name) + tierBadge
-        + ' (' + (a.completed_jobs || 0) + ' jobs, ' + (a.rating ? Number(a.rating).toFixed(1) : "New") + ')</option>';
-    });
-  }
-
   window.toggleReassign = function() {
     var controls = document.getElementById('assign-controls');
     var btn = document.getElementById('assign-btn');
@@ -7693,12 +7788,7 @@ window.intelQuick = intelQuick;
   });
 
   // ─── View switching ───
-  // Live Ops is where the day starts: alerts, what needs action, the jobs that
-  // are actually live, today's schedule, who is free. Bookings is the record
-  // book — you go there to look something up, not to find out what is
-  // happening. The dashboard used to open on the record book (Rule 8: the
-  // dashboard must answer "what does Travis do next?" without being asked).
-  var currentView = 'liveops';
+  var currentView = 'bookings';
   var $bookingsView   = document.getElementById('bookings-view');
   var $casesView      = document.getElementById('cases-view');
   var $voiceCallsView = document.getElementById('voice-calls-view');
@@ -7741,7 +7831,6 @@ window.intelQuick = intelQuick;
       e.preventDefault();
       var view = link.dataset.view;
       if (view === currentView) return;
-      stopMarketDemand();
       currentView = view;
       document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.remove('active'); });
       link.classList.add('active');
@@ -7751,7 +7840,7 @@ window.intelQuick = intelQuick;
       else if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; stopLiveOps(); }
       else if (view === 'cases')        { $casesView.style.display='';       $topbarTitle.textContent='Cases'; stopLiveOps(); if (window.OwnerCases) window.OwnerCases.load(); }
       else if (view === 'voice-calls')  { $voiceCallsView.style.display='';  $topbarTitle.textContent='Phone Calls'; stopLiveOps(); if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.load(); }
-      else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); startMarketDemand(); }
+      else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); loadMarketDemand(); }
       else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; stopLiveOps(); loadWaitlist(); }
       else if (view === 'assemblers')  { $assemblersView.style.display='';  $topbarTitle.textContent='Easers'; loadAssemblerList(); }
       // marketplace removed
@@ -7820,16 +7909,11 @@ window.intelQuick = intelQuick;
     var alertsEl = document.getElementById('ops-alerts-bar');
     if (d.alerts && d.alerts.length) {
       alertsEl.innerHTML = d.alerts.slice(0, 6).map(function(a) {
-        var actionLabels = { dispatch:'Dispatch', redispatch:'Re-dispatch', reassign:'View Booking', contact_easer:'Contact Easer', review_timeline:'Review Timeline', review_damage_evidence:'Review and Close Alert', enable_job_texts:'Send Job-Text Opt-In' };
+        var actionLabels = { dispatch:'Dispatch', redispatch:'Re-dispatch', reassign:'View Booking', contact_easer:'Contact Easer', review_timeline:'Review Timeline', review_damage_evidence:'Review and Close Alert' };
         var encodedRecipient = encodeURIComponent(a.recipientEmail || '');
         var safeAction = actionLabels[a.action] ? a.action : '';
         var safeBookingId = /^[0-9a-f-]{36}$/i.test(String(a.bookingId || '')) ? a.bookingId : '';
-        var safeEaserId = /^[0-9a-f-]{36}$/i.test(String(a.easerId || '')) ? a.easerId : '';
-        // The job-texts alert carries the Easer, not the booking: the fix is
-        // sending that person the opt-in, which is what clears the alert.
-        var actionArg = safeAction === 'enable_job_texts' ? safeEaserId : safeBookingId;
-        if (safeAction === 'enable_job_texts' && !safeEaserId) safeAction = '';
-        var actionBtn = safeAction ? '<button onclick="opsAction(\'' + safeAction + '\',\'' + actionArg + '\',\'' + encodedRecipient + '\')" class="btn" style="font-size:0.7rem;padding:2px 10px;margin-left:auto;flex-shrink:0">' + actionLabels[safeAction] + '</button>' : '';
+        var actionBtn = safeAction ? '<button onclick="opsAction(\'' + safeAction + '\',\'' + safeBookingId + '\',\'' + encodedRecipient + '\')" class="btn" style="font-size:0.7rem;padding:2px 10px;margin-left:auto;flex-shrink:0">' + actionLabels[safeAction] + '</button>' : '';
         var safeSeverity = ['critical','high','medium','low'].includes(String(a.severity || '').toLowerCase())
           ? String(a.severity).toLowerCase()
           : 'medium';
@@ -7931,43 +8015,26 @@ window.intelQuick = intelQuick;
       unassignedEl.innerHTML = html;
     }
 
-    // Active jobs. The server decides which bookings are active and what stage
-    // each one is at; this only renders that list. Rebuilding the list here from
-    // enRoute + arrived + inProgress + awaitingAcceptance is what put "1 Active
-    // Jobs" above "No active jobs right now": a confirmed, staffed, accepted job
-    // was in none of those arrays, and the owner had to open Bookings to find it.
+    // Active jobs (en route, arrived, in progress, accepted)
     var activeEl = document.getElementById('ops-active');
-    var active = d.activeJobs || [];
+    var active = (d.enRoute || []).concat(d.arrived || []).concat(d.inProgress || []).concat(d.awaitingAcceptance || []);
     if (!active.length) {
       activeEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No active jobs right now</div>';
     } else {
-      var stageLabels = {
-        in_progress: 'In Progress', arrived: 'Arrived', en_route: 'En Route',
-        scheduled: 'Scheduled', awaiting_accept: 'Awaiting Accept',
-        needs_easer: 'Needs Easer', return_visit: 'Return Visit',
-      };
-      var stageColors = {
-        in_progress: '#059669', arrived: '#00BFFF', en_route: '#7c3aed',
-        scheduled: '#0a7ea3', awaiting_accept: '#6b7280',
-        needs_easer: '#d97706', return_visit: '#7c3aed',
-      };
       activeEl.innerHTML = active.map(function(b) {
-        var stage = stageLabels[b._stage] || 'Active';
-        var color = stageColors[b._stage] || '#6b7280';
+        var stage = b.job_started_at ? 'In Progress' : b.checked_in_at ? 'Arrived' : b.en_route_at ? 'En Route' : easerHasAccepted(b) ? 'Accepted' : 'Awaiting Accept';
+        var stageColors = { 'In Progress':'#059669','Arrived':'#00BFFF','En Route':'#7c3aed','Accepted':'#00BFFF','Awaiting Accept':'#6b7280' };
         // Did they actually get there? The server decides; this only renders it.
         var arrivalLine = arrivalBadge(b);
-        var when = (b._stage_date ? formatDate(b._stage_date) : 'No date') + (b._stage_time ? ' &bull; ' + esc(b._stage_time) : '');
-        var who = b.assembler_name ? esc(b.assembler_name) : 'Unassigned';
+        var color = stageColors[stage] || '#6b7280';
         return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
-          + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">'
+          + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
           + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
-          + '<div style="font-size:0.78rem;color:var(--muted)">'+who+' &bull; '+esc(b.customer_name||'Customer')+'</div>'
-          + '<div style="font-size:0.75rem;color:var(--muted);margin-top:1px">'+esc(b.ref)+' &bull; '+when+'</div></div>'
+          + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.assembler_name||'Easer')+' &bull; '+esc(b.customer_name||'Customer')+'</div></div>'
           + arrivalLine
-          + '<span style="background:rgba('+hexToRgb(color)+',0.1);color:'+color+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">'+stage+'</span>'
+          + '<span style="background:rgba('+hexToRgb(color)+',0.1);color:'+color+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px">'+stage+'</span>'
           + '</div>'
           + (b.address ? '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">'+esc(b.address)+'</div>' : '')
-          + '<button onclick="opsAction(\'review_timeline\',\''+b.id+'\')" class="btn" style="margin-top:0.45rem;font-size:0.75rem">Open Booking</button>'
           + '</div>';
       }).join('');
     }
@@ -8005,9 +8072,9 @@ window.intelQuick = intelQuick;
           + '<span style="flex:0 0 96px;text-align:right;font-size:0.7rem;color:' + labelColor + ';font-weight:600;white-space:nowrap">' + label + '</span>'
           + '</div>';
       }).join('');
-    }
-    if (d.offlineCount > 0) {
-      easersEl.innerHTML += '<div style="font-size:0.78rem;color:var(--muted);padding:0.5rem 0;border-top:1px solid var(--border);margin-top:2px">' + d.offlineCount + ' Easer' + (d.offlineCount > 1 ? 's' : '') + ' unavailable or not yet eligible</div>';
+      if (d.offlineCount > 0) {
+        easersEl.innerHTML += '<div style="font-size:0.78rem;color:var(--muted);padding:0.5rem 0;border-top:1px solid var(--border);margin-top:2px">' + d.offlineCount + ' Easer' + (d.offlineCount > 1 ? 's' : '') + ' offline</div>';
+      }
     }
 
     // Today schedule
@@ -8095,26 +8162,6 @@ window.intelQuick = intelQuick;
     if (action === 'dispatch' || action === 'redispatch') {
       // Confirm before sending real notifications
       await window.dispatchWithConfirm(bookingId);
-      return;
-    }
-    if (action === 'enable_job_texts') {
-      // Job texts are mandatory to receive work and consent must come from the
-      // Easer (TCPA), so the only thing the owner can do is ask. This is the
-      // same sms_job_texts opt-in the announcement campaign sends.
-      var easerId = bookingId;
-      if (!/^[0-9a-f-]{36}$/i.test(String(easerId || ''))) { toast('No Easer is attached to this alert.', 'error'); return; }
-      try {
-        var resp = await fetch('/api/owner/announcement-adoption', {
-          method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
-          body: JSON.stringify({ action: 'resend', key: 'sms_job_texts', easerId: easerId })
-        });
-        var body = await resp.json().catch(function(){ return {}; });
-        if (!resp.ok) { toast(body.error || 'The opt-in email could not be sent.', 'error'); return; }
-        toast(body.message || 'Opt-in email sent.', 'success');
-      } catch (e) {
-        toast('The opt-in email could not be sent.', 'error');
-      }
       return;
     }
     if (action === 'contact_easer') {
@@ -8342,7 +8389,7 @@ window.intelQuick = intelQuick;
   var allCustomers = [];
   function buildCustomers() {
     var map = {};
-    realBookings().forEach(function(b){
+    allBookings.forEach(function(b){
       var key = (b.customer_email||'').toLowerCase();
       if(!key) key = 'booking:' + b.id;
       if(!map[key]){
@@ -8835,7 +8882,7 @@ window.intelQuick = intelQuick;
     var has = function (sel) { return (el.matches && el.matches(sel)) || (el.querySelector && el.querySelector(sel)); };
     if (has('#an-expansion-summary')) return 'growth';
     if (has('#ct-year, #clawback-panel, [id^="tax-"]')) return 'tax';
-    if (has('#an-services, #an-monthly, #an-status, #an-rev-service, #an-job-duration')) return 'insights';
+    if (has('#an-services, #an-monthly, #an-status, #an-rev-service')) return 'insights';
     return 'money';
   }
   function applyFinTab() {
@@ -8845,7 +8892,7 @@ window.intelQuick = intelQuick;
     // are bare (a header + a stats grid), and several sit inside ONE shared wrapper
     // grid. Build a flat list of section "units": each direct child, except a wrapper
     // grid that holds multiple different-group panels, which we descend into.
-    var MIXED = '#an-expansion-summary, #an-services, #an-monthly, #an-status, #an-rev-service, #an-job-duration';
+    var MIXED = '#an-expansion-summary, #an-services, #an-monthly, #an-status, #an-rev-service';
     var units = [];
     Array.prototype.forEach.call(view.children, function(child) {
       if (child.id === 'fin-subtabs') return;
@@ -9329,37 +9376,6 @@ window.intelQuick = intelQuick;
       +'</div>';
     }).join('') || '<div style="color:var(--muted);font-size:0.85rem">No completed jobs in this period.</div>';
 
-    // Time on job. Median leads because it is the number you would schedule
-    // against; the average sits underneath it for anyone comparing the two.
-    var DUR = window.AAE_JOB_DURATION;
-    var durByService = DUR ? DUR.byService(rows) : [];
-    var durAll = DUR ? DUR.summarize(rows) : { count: 0, missing: 0 };
-    var fmtDur = function (ms) { return (DUR && DUR.formatJobDuration(ms)) || '—'; };
-    var maxDur = durByService.length ? durByService[0].medianMs : 1;
-    document.getElementById('an-job-duration').innerHTML = (durByService.length
-      ? durByService.map(function (r) {
-          var pct = Math.round(r.medianMs / maxDur * 100);
-          return '<div style="margin-bottom:0.85rem">'
-            + '<div style="display:flex;justify-content:space-between;gap:0.75rem;font-size:0.8rem;margin-bottom:3px"><span style="color:var(--text);font-weight:500">' + esc(r.service) + '</span><span style="color:var(--text);font-weight:700;white-space:nowrap">' + fmtDur(r.medianMs) + ' typical</span></div>'
-            + '<div style="height:6px;background:var(--border);border-radius:999px"><div style="height:6px;background:#8b5cf6;border-radius:999px;width:' + pct + '%"></div></div>'
-            + '<div style="font-size:0.7rem;color:var(--muted);margin-top:3px">' + r.count + ' timed job' + (r.count === 1 ? '' : 's') + ' &bull; ' + fmtDur(r.averageMs) + ' average &bull; longest ' + fmtDur(r.longestMs) + '</div>'
-          + '</div>';
-        }).join('')
-      : '<div style="color:var(--muted);font-size:0.85rem">No completed job in this period has both a start and a completion time.</div>')
-      + (durAll.missing || durAll.unverified
-        ? '<div style="margin-top:0.35rem;padding-top:0.6rem;border-top:1px solid var(--border);font-size:0.72rem;color:var(--muted);line-height:1.5">'
-          + (durAll.missing
-            ? '<strong>' + durAll.missing + '</strong> completed job' + (durAll.missing === 1 ? '' : 's') + ' not included, with no start time recorded. A job imported as already complete never gets one.'
-            : '')
-          + (durAll.missing && durAll.unverified ? '<br>' : '')
-          // Excluded jobs are named, not quietly dropped. The owner has to be
-          // able to tell "we have no data" from "we ignored some".
-          + (durAll.unverified
-            ? '<strong>' + durAll.unverified + '</strong> job' + (durAll.unverified === 1 ? '' : 's') + ' not included, left open more than 16 hours. That measures the delay before someone marked it complete, not the work.'
-            : '')
-          + '</div>'
-        : '');
-
     var monthlyMap = {};
     rows.forEach(function(row) {
       var key = String(row.completedAt || row.date || '').slice(0, 7) || 'Unknown';
@@ -9459,14 +9475,7 @@ window.intelQuick = intelQuick;
 
       tbody.innerHTML = easers.map(function(e) {
         var methodLabels = { ach:'ACH / bank transfer', zelle:'Zelle', paypal:'PayPal', check:'Check' };
-        // payout_method_preference describes a MANUAL payout only. An Easer on
-        // Connect is paid automatically and never picks one, so a red
-        // "Not selected" beside a live transfer read as a blocker on a payout
-        // that was already on its way.
-        var preferredMethod;
-        if (e.connect_payouts_ready) preferredMethod = 'Stripe Connect (automatic)';
-        else if (e.connect_onboarded) preferredMethod = 'Stripe Connect - payouts not enabled yet';
-        else preferredMethod = methodLabels[e.payout_method_preference] || 'Not selected';
+        var preferredMethod = methodLabels[e.payout_method_preference] || 'Not selected';
         var jobsNeedingAction = e.unpaid_jobs || [];
         var actionButtons = jobsNeedingAction.slice(0, 3).map(function(job) {
           var isConnectProcessing = job.payout_mode === 'stripe_connect' && job.disposition === 'transferred';
@@ -9494,7 +9503,7 @@ window.intelQuick = intelQuick;
           + '</div>';
         return '<tr style="border-bottom:1px solid var(--border)">'
           + '<td style="padding:0.6rem 0.75rem;font-weight:600;color:var(--text)">' + esc(e.assembler_name) + ' ' + easerTierBadge(e.assembler_tier) + contact + (['requested','reviewing','completed'].includes(e.account_closure_status) ? '<div style="font-size:0.68rem;color:var(--red);margin-top:0.2rem">Closure: ' + esc(e.account_closure_status) + '</div>' : '') + '</td>'
-          + '<td style="padding:0.6rem 0.75rem;font-size:0.76rem;color:' + (e.connect_payouts_ready || e.payout_method_preference ? 'var(--text)' : 'var(--red)') + '">' + esc(preferredMethod) + '</td>'
+          + '<td style="padding:0.6rem 0.75rem;font-size:0.76rem;color:' + (e.payout_method_preference ? 'var(--text)' : 'var(--red)') + '">' + esc(preferredMethod) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--soft)">' + e.jobs + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--text)">' + fmt$(e.total_owed) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--green)">' + fmt$(e.total_paid) + '</td>'
@@ -9588,77 +9597,22 @@ window.intelQuick = intelQuick;
   };
 
   // ─── Market Demand ───
-  var _marketDemandTimer = null;
-  var _marketDemandRequest = 0;
-  var _marketDemandHasSnapshot = false;
-  var _marketDemandGeneratedAt = null;
-
-  function marketSnapshotStatus(message, stale) {
-    var status = document.getElementById('md-snapshot-status');
-    var parsed = new Date(_marketDemandGeneratedAt || '');
-    var stamp = Number.isNaN(parsed.getTime()) ? '' : ' Snapshot: ' + parsed.toLocaleString('en-US', { timeZone: 'America/Chicago', timeZoneName: 'short' }) + '.';
-    status.textContent = message + stamp;
-    status.style.color = stale ? 'var(--red)' : 'var(--muted)';
-  }
-
-  function stopMarketDemand() {
-    if (_marketDemandTimer) clearInterval(_marketDemandTimer);
-    _marketDemandTimer = null;
-  }
-
-  function startMarketDemand() {
-    stopMarketDemand();
-    loadMarketDemand();
-    _marketDemandTimer = setInterval(function() {
-      if (currentView === 'market-demand' && ownerSessionToken && !document.hidden) loadMarketDemand();
-    }, 30000);
-  }
-
-  function refreshMarketAfterEaserChange() {
-    // Invalidate an in-flight pre-mutation read, including one from a hidden view.
-    _marketDemandRequest += 1;
-    if (_marketDemandHasSnapshot) marketSnapshotStatus('Easer data changed. Previous snapshot needs refreshing.', true);
-    if (currentView === 'market-demand' && ownerSessionToken) return loadMarketDemand();
-  }
-
-  window.addEventListener('focus', function() {
-    if (currentView === 'market-demand' && ownerSessionToken && !document.hidden) loadMarketDemand();
-  });
-  document.addEventListener('visibilitychange', function() {
-    if (currentView === 'market-demand' && ownerSessionToken && !document.hidden) loadMarketDemand();
-  });
-
   async function loadMarketDemand() {
-    var request = ++_marketDemandRequest;
-    if (!_marketDemandHasSnapshot) mdSetLoading();
-    marketSnapshotStatus(_marketDemandHasSnapshot ? 'Refreshing. Showing the previous snapshot.' : 'Loading market data.', false);
+    mdSetLoading();
     try {
-      var r = await fetch('/api/owner/market-demand', { headers: headers(), cache: 'no-store' });
+      var r = await fetch('/api/owner/market-demand', { headers: headers() });
       var d = await r.json();
-      if (request !== _marketDemandRequest) return;
-      if (!r.ok || d.error) throw new Error(d.error || 'Failed to load market demand');
+      if (!r.ok) throw new Error(d.error || 'Failed to load market demand');
       renderMarketDemand(d);
-      _marketDemandHasSnapshot = true;
-      _marketDemandGeneratedAt = d.generatedAt || null;
-      var partial = d.supplyAvailable === false || d.waitlistAvailable === false || Object.values(d.sourceStatus || {}).includes('unavailable');
-      marketSnapshotStatus(partial ? 'Partial snapshot. See source warnings; missing data is not zero.' : 'Market snapshot loaded. Refreshes every 30 seconds while visible.', partial);
       var badge = document.getElementById('nav-market-demand');
       var ct = ((d.summary || {}).ownerActionRequired) || 0;
       if (badge) {
-        badge.title = '';
-        if ((d.sourceStatus || {}).requests === 'unavailable') { badge.textContent = '!'; badge.title = 'Request follow-up count could not be verified'; badge.style.display = ''; }
-        else if (ct > 0) { badge.textContent = ct; badge.style.display = ''; }
+        if (ct > 0) { badge.textContent = ct; badge.style.display = ''; }
         else badge.style.display = 'none';
       }
     } catch(e) {
-      if (request !== _marketDemandRequest) return;
-      marketSnapshotStatus(_marketDemandHasSnapshot ? 'Refresh failed. Showing the previous snapshot; current counts are unverified.' : 'Market data unavailable. Counts are unknown; retry Refresh.', true);
-      if (!_marketDemandHasSnapshot) {
-        document.getElementById('md-top-markets').innerHTML = '<div style="color:var(--red);font-size:0.85rem">Market data could not be loaded. This is not a count of zero.</div>';
-        document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1rem;color:var(--red)">Demand activity unavailable.</td></tr>';
-      }
-      var badge = document.getElementById('nav-market-demand');
-      if (badge) { badge.textContent = '!'; badge.title = 'Market data could not be refreshed'; badge.style.display = ''; }
+      document.getElementById('md-top-markets').innerHTML = '<div style="color:var(--red);font-size:0.85rem">Failed to load demand from bookings and market requests.</div>';
+      document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1rem;color:var(--red)">Failed to load demand activity.</td></tr>';
     }
   }
 
@@ -9666,26 +9620,20 @@ window.intelQuick = intelQuick;
     ['md-active','md-emerging','md-requests','md-conversion','md-supply','md-approved-supply','md-potential'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.textContent = '—';
-      var prior = el && el.parentNode.querySelector('.md-summary-rows');
-      if (prior) prior.remove();
     });
     document.getElementById('md-top-markets').innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Loading demand markets...</div>';
-    document.getElementById('md-reconciliation').innerHTML = '';
     document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1rem;color:var(--muted)">Loading market requests...</td></tr>';
   }
 
   function renderMarketDemand(data) {
     var s = data.summary || {};
-    var supplyAvailable = data.supplyAvailable !== false;
-    var requestsAvailable = (data.sourceStatus || {}).requests !== 'unavailable';
-    var expanded = new Set(Array.from(document.querySelectorAll('#market-demand-view details[open][data-md-key]')).map(function(item) { return item.dataset.mdKey; }));
-    document.getElementById('md-active').textContent = requestsAvailable ? s.demandSignals || 0 : 'Unknown';
+    document.getElementById('md-active').textContent = s.demandSignals || 0;
     document.getElementById('md-emerging').textContent = s.bookedDemand || 0;
-    document.getElementById('md-requests').textContent = requestsAvailable ? s.unbookedDemand || 0 : 'Unknown';
+    document.getElementById('md-requests').textContent = s.unbookedDemand || 0;
     document.getElementById('md-conversion').textContent = s.manualDispatchDemand || 0;
-    document.getElementById('md-supply').textContent = supplyAvailable ? s.readyEasers || 0 : 'Unknown';
-    document.getElementById('md-approved-supply').textContent = supplyAvailable ? s.easerSupplyByMarket || 0 : 'Unknown';
-    document.getElementById('md-potential').textContent = !requestsAvailable ? 'Unknown' : s.totalPotentialRevenue == null
+    document.getElementById('md-supply').textContent = s.onlineReadyEasers || 0;
+    document.getElementById('md-approved-supply').textContent = s.easerSupplyByMarket || 0;
+    document.getElementById('md-potential').textContent = s.totalPotentialRevenue == null
       ? '—'
       : fmt$(s.totalPotentialRevenue);
     if (data.setupNeeded) {
@@ -9693,8 +9641,7 @@ window.intelQuick = intelQuick;
       document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1.25rem;color:var(--muted);text-align:center">Market demand tracking is not enabled yet.</td></tr>';
       return;
     }
-    renderMarketRows(data.markets || [], data);
-    renderMarketSummaryLinks(data.summaryRows || {}, data);
+    renderMarketRows(data.topMarkets || []);
     if (Array.isArray(data.topAcquisitionSources) && data.topAcquisitionSources.length) {
       document.getElementById('md-top-markets').insertAdjacentHTML(
         'afterbegin',
@@ -9704,123 +9651,39 @@ window.intelQuick = intelQuick;
       );
     }
     renderMarketRequests(data.requests || []);
-    document.querySelectorAll('#market-demand-view details[data-md-key]').forEach(function(item) { if (expanded.has(item.dataset.mdKey)) item.open = true; });
     if (Array.isArray(data.warnings) && data.warnings.length) {
       document.getElementById('md-top-markets').insertAdjacentHTML(
         'afterbegin',
         '<div style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:8px;padding:0.75rem 0.85rem;margin-bottom:0.75rem;font-size:0.8rem;line-height:1.5">'
           + esc(data.warnings.join(' '))
-          + ' Counts use the available sources. Unavailable sources must not be treated as zero.</div>'
+          + ' Demand counts remain available, but supply totals should not be treated as complete.</div>'
       );
     }
   }
 
-  function mdCountRows(label, rows, kind) {
-    var items = rows.map(function(row) {
-      if (kind === 'supply' || kind === 'waitlist') {
-        var title = kind === 'supply' && row.recordType !== 'waitlist'
-          ? '<button type="button" class="btn" data-demand-easer="' + esc(row.id) + '">' + esc(row.name || 'Unnamed Easer') + '</button>'
-          : esc(row.name || 'Waitlist entry');
-        var location = [row.city, row.state, row.zip].filter(Boolean).join(', ');
-        var detail = [row.status, row.applicationStatus && 'Application: ' + row.applicationStatus].filter(Boolean).join(' · ');
-        var eligibility = row.eligible === true ? 'Readiness checks passed' : row.eligible === false ? 'Not yet eligible' : '';
-        var availability = typeof row.isAvailable === 'boolean' ? 'Availability switched ' + (row.isAvailable ? 'on' : 'off') : '';
-        var blockers = Array.isArray(row.missingItems) && row.missingItems.length ? 'Needs: ' + row.missingItems.join('; ') : '';
-        return '<li style="margin-bottom:0.55rem">' + title + ' ' + esc(detail)
-          + '<div>Recorded location: ' + esc(location || 'Not provided') + '</div>'
-          + (row.marketLabel ? '<div>Area: ' + esc(row.marketLabel) + '</div>' : '')
-          + (eligibility || availability ? '<div>' + esc([eligibility, availability].filter(Boolean).join(' · ')) + '</div>' : '')
-          + (blockers ? '<div>' + esc(blockers) + '</div>' : '')
-          + (row.locationIssue ? '<div style="color:var(--red)">' + esc(row.locationIssue) + '</div>' : '') + '</li>';
-      }
-      return '<li>' + (row.bookingId ? '<button type="button" class="btn" data-demand-booking="' + esc(row.bookingId) + '">' + esc(row.requestRef || row.id) + '</button>' : esc(row.requestRef || row.id)) + ' ' + esc(row.requestedService || '') + ' &middot; ' + esc(row.requestedDate || 'Date not set') + '</li>';
-    }).join('');
-    var key = label + '|' + rows.map(function(row) { return row.id || row.bookingId || row.requestRef || ''; }).join('|');
-    return '<details data-md-key="' + esc(key) + '" style="min-width:0;max-width:100%"><summary style="cursor:pointer;overflow-wrap:anywhere">' + esc(label) + ': ' + rows.length + '</summary><ul style="padding-left:1rem;max-height:180px;overflow:auto;overflow-wrap:anywhere">' + (items || '<li>None in this snapshot</li>') + '</ul></details>';
-  }
-
-  function mdSupplyCount(label, rows, waitlist, available) {
-    if (available === false) return '<div>' + esc(label) + ': Unknown <span style="color:var(--muted)">(source unavailable)</span></div>';
-    return mdCountRows(label, rows, waitlist ? 'waitlist' : 'supply');
-  }
-
-  function mdDemandCount(label, rows, available) {
-    return '<div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.55rem 0.65rem;min-width:0;font-size:0.75rem">' + (available === false ? esc(label) + ': Unknown (request source unavailable)' : mdCountRows(label, rows, 'demand')) + '</div>';
-  }
-
-  function renderMarketSummaryLinks(rows, data) {
-    data = data || {};
-    [['md-active','demand'], ['md-emerging','bookings'], ['md-requests','unbooked'], ['md-conversion','manualAssignment'], ['md-supply','ready'], ['md-approved-supply','approved'], ['md-potential','priced']].forEach(function(item) {
-      var host = document.getElementById(item[0]).parentNode;
-      var prior = host.querySelector('.md-summary-rows');
-      if (prior) prior.remove();
-      var list = document.createElement('div');
-      list.className = 'md-summary-rows';
-      list.style.cssText = 'font-size:0.72rem;margin-top:0.5rem';
-      list.innerHTML = ['demand','unbooked','priced'].includes(item[1]) && (data.sourceStatus || {}).requests === 'unavailable'
-        ? 'Complete count unavailable: request source could not be read.'
-        : ['ready','approved'].includes(item[1])
-        ? mdSupplyCount('View records', rows[item[1]] || [], false, data.supplyAvailable !== false)
-        : mdCountRows('View records', rows[item[1]] || [], 'demand');
-      host.appendChild(list);
-    });
-    document.getElementById('md-reconciliation').innerHTML = mdSupplyCount('All Easer profiles', rows.allEasers || [], false, data.supplyAvailable !== false)
-      + mdSupplyCount('Pending applications', rows.pending || [], false, data.supplyAvailable !== false)
-      + mdSupplyCount('Location records to review', rows.reviewRecords || [], false, data.supplyAvailable !== false && data.waitlistAvailable !== false)
-      + mdSupplyCount('Waitlist', rows.waitlist || [], true, data.waitlistAvailable !== false);
-  }
-
-  document.getElementById('market-demand-view').addEventListener('click', async function(event) {
-    var booking = event.target.closest('[data-demand-booking]');
-    if (booking) { await window.openDemandBooking(booking.dataset.demandBooking); return; }
-    var easer = event.target.closest('[data-demand-easer]');
-    if (!easer) return;
-    easer.disabled = true;
-    try {
-      if (await loadAssemblerList() === false) { toast('Current Easer details could not be verified. Retry Refresh.', 'error'); return; }
-      var profile = allAssemblerProfiles.find(function(row) { return row.id === easer.dataset.demandEaser; });
-      if (profile) showAssemblerDetail(profile);
-      else toast('This Easer record could not be loaded. Refresh the market snapshot.', 'error');
-    } finally { easer.disabled = false; }
-  });
-
-  function renderMarketRows(markets, data) {
-    data = data || {};
+  function renderMarketRows(markets) {
     var el = document.getElementById('md-top-markets');
     if (!markets.length) {
-      el.innerHTML = '<div class="empty-state" style="padding:2rem 1rem"><div class="empty-state-title">No market records available</div><div class="empty-state-desc">Booking demand and Easer locations will appear here when recorded. Check source status above.</div></div>';
+      el.innerHTML = '<div class="empty-state" style="padding:2rem 1rem"><div class="empty-state-title">No emerging-market demand yet</div><div class="empty-state-desc">Out-of-market service requests will appear here.</div></div>';
       return;
     }
     el.innerHTML = markets.map(function(m) {
-      var services = (m.topServices || []).map(function(s){ return esc(s.service) + ' (' + s.count + ')'; }).join(', ') || 'No requests recorded yet';
-      var supply = m.supplyRows || {};
-      var available = data.supplyAvailable !== false && m.approvedEasers !== null;
-      var waitlistAvailable = data.waitlistAvailable !== false && m.waitlistEasers !== null;
-      var requestsAvailable = (data.sourceStatus || {}).requests !== 'unavailable';
+      var services = (m.topServices || []).map(function(s){ return esc(s.service) + ' (' + s.count + ')'; }).join(', ') || 'No services yet';
+      var ratio = Number(m.demandToSupplyRatio || 0).toFixed(m.approvedEasers ? 1 : 0);
       return '<div style="border:1px solid var(--border);border-radius:10px;padding:0.9rem 1rem;margin-bottom:0.7rem;background:var(--surface)">'
         + '<div class="md-market-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.8rem;margin-bottom:0.55rem">'
-        + '<div style="min-width:0;overflow-wrap:anywhere"><div style="font-size:0.96rem;font-weight:800;color:var(--text)">' + esc(m.marketLabel || m.market) + '</div>'
-        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.15rem">' + (m.coverageKnown ? 'Configured ZIP service area' : m.marketKey === 'location-review' ? 'Records needing location review' : 'Recorded location; service area unverified') + '</div></div>'
-        + mdStatusPill(available ? m.activationStatus : 'SUPPLY UNAVAILABLE')
+        + '<div><div style="font-size:0.96rem;font-weight:800;color:var(--text)">' + esc(m.market) + '</div>'
+        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.15rem">' + (m.isActiveMarket ? 'Texas booking market' : 'Demand-only market') + '</div></div>'
+        + mdStatusPill(m.activationStatus)
         + '</div>'
         + '<div class="md-metrics-grid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0.6rem;margin-bottom:0.65rem">'
-        + mdDemandCount('All Demand', m.demandRows || [], requestsAvailable)
-        + mdDemandCount('Bookings', m.bookedRows || [])
-        + mdDemandCount('Unbooked', m.unbookedRows || [], requestsAvailable)
-        + mdMiniMetric('Priced', !requestsAvailable ? 'Unknown' : m.potentialRevenue == null ? 'Not priced' : fmt$(m.potentialRevenue))
+        + mdMiniMetric('All Demand', m.requestCount)
+        + mdMiniMetric('Bookings', m.bookedCount || 0)
+        + mdMiniMetric('Unbooked', m.unbookedCount || 0)
+        + mdMiniMetric('Priced', m.potentialRevenue == null ? 'Not priced' : fmt$(m.potentialRevenue))
         + '</div>'
-        + '<div style="font-size:0.78rem;color:var(--soft);line-height:1.55"><strong style="color:var(--text)">Most requested services:</strong> ' + services + '</div>'
-        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem">Requested ZIPs: ' + esc((m.requestedZips || []).join(', ') || 'None recorded') + '</div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:0.6rem;font-size:0.75rem;margin-top:0.5rem">'
-        + mdSupplyCount('Approved', supply.approved || [], false, available)
-        + mdSupplyCount('Eligible Easers', supply.ready || [], false, available)
-        + mdSupplyCount('Availability on', supply.online || [], false, available)
-        + mdSupplyCount('Pending applications', supply.pending || [], false, available)
-        + mdSupplyCount('Waitlist', supply.waitlist || [], true, waitlistAvailable)
-        + mdSupplyCount('All Easer profiles', supply.all || [], false, available)
-        + mdSupplyCount('Location records to review', supply.reviewRecords || [], false, available && waitlistAvailable)
-        + '</div><div style="font-size:0.7rem;color:var(--muted);margin-top:0.4rem">Each profile is counted once in its recorded ZIP service area. Confirm travel coverage for each job.</div>'
-        + (m.locationIssue ? '<div style="font-size:0.75rem;color:var(--red);margin-top:0.4rem">' + esc(m.locationIssue) + '</div>' : '')
+        + '<div style="font-size:0.78rem;color:var(--soft);line-height:1.55"><strong style="color:var(--text)">Top services:</strong> ' + services + '</div>'
+        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem">ZIPs: ' + ((m.requestedZips || []).join(', ') || '—') + ' &bull; Ready Easers: ' + (m.approvedEasers || 0) + ' &bull; Online now: ' + (m.onlineReadyEasers || 0) + ' &bull; Applications: ' + (m.easerApplications || 0) + ' &bull; Waitlist: ' + (m.waitlistEasers || 0) + '</div>'
         + '</div>';
     }).join('');
   }
@@ -9852,7 +9715,6 @@ window.intelQuick = intelQuick;
   }
 
   window.openOwnerBookingRecord = async function(bookingId, tabName) {
-    stopMarketDemand();
     currentView = 'bookings';
     document.querySelectorAll('.sidebar-nav a').forEach(function(link) { link.classList.toggle('active', link.dataset.view === 'bookings'); });
     hideAllViews();
@@ -10042,7 +9904,6 @@ window.intelQuick = intelQuick;
       wlAddMsg('ok', 'Added to the waitlist. ' + note);
       wlAddReset();
       await loadWaitlist();
-      refreshMarketAfterEaserChange();
     } catch (err) {
       wlAddMsg('err', 'Network error — nothing was added. Check your connection and try again.');
     } finally {
@@ -10062,7 +9923,6 @@ window.intelQuick = intelQuick;
         if (data.error) { toast(data.error, 'error'); return; }
         toast(wEntry ? 'Invitation sent to ' + wEntry.name : 'Invite sent', 'success');
         loadWaitlist();
-        refreshMarketAfterEaserChange();
       } catch { toast('Failed to send invite', 'error'); }
       return;
     }
@@ -10074,7 +9934,7 @@ window.intelQuick = intelQuick;
         var r2 = await fetch('/api/owner/waitlist', { method:'POST', headers:headers(), body:JSON.stringify({ action:'reject', id:rejectBtn.dataset.wlReject }) });
         var data2 = await r2.json();
         if (data2.error) { toast(data2.error, 'error'); return; }
-        toast('Entry rejected', 'success'); loadWaitlist(); refreshMarketAfterEaserChange();
+        toast('Entry rejected', 'success'); loadWaitlist();
       } catch { toast('Failed to reject', 'error'); }
       return;
     }
@@ -10087,7 +9947,7 @@ window.intelQuick = intelQuick;
         var r3 = await fetch('/api/owner/waitlist', { method:'POST', headers:headers(), body:JSON.stringify({ action:'delete', id:deleteBtn2.dataset.wlDelete }) });
         var data3 = await r3.json();
         if (data3.error) { toast(data3.error, 'error'); return; }
-        toast(name + ' deleted from waitlist', 'success'); loadWaitlist(); refreshMarketAfterEaserChange();
+        toast(name + ' deleted from waitlist', 'success'); loadWaitlist();
       } catch { toast('Failed to delete', 'error'); }
     }
   });
@@ -10140,9 +10000,8 @@ window.intelQuick = intelQuick;
   }
 
   async function reloadAssemblersAndMaybeRefreshDetail(assemblerId, reopenDetail) {
-    var refreshed = await Promise.all([loadAssemblerList(), loadAssemblers(), refreshMarketAfterEaserChange()]);
+    await Promise.all([loadAssemblerList(), loadAssemblers()]);
     if (!reopenDetail) return;
-    if (refreshed[0] === false) { toast('Easer updated, but refreshed profile details could not be verified.', 'error'); return; }
     var updated = allAssemblerProfiles.find(function(x) { return x.id === assemblerId; });
     if (updated) {
       showAssemblerDetail(updated);
@@ -10170,10 +10029,8 @@ window.intelQuick = intelQuick;
       if (stats.pending > 0) { $navApps.textContent = stats.pending; $navApps.style.display = ''; }
       else $navApps.style.display = 'none';
       renderAssemblerTable();
-      return true;
     } catch(e) {
       document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="10" style="padding:2rem;text-align:center;color:var(--red)">Failed to load Easers</td></tr>';
-      return false;
     }
   }
 
@@ -10221,9 +10078,7 @@ window.intelQuick = intelQuick;
     if (!asmConnectRequired) {
       return '<span style="display:inline-block;background:#e0f2fe;color:#0369a1;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px;white-space:nowrap">MANUAL PAYOUT</span>';
     }
-    return a.stripe_connect_payouts_enabled
-      ? '<span class="sb vr-verified" title="Payout capability only; not evidence that an Easer was paid">Enabled</span>'
-      : '<span class="sb vr-pending" title="Payout capability is not enabled">Not enabled</span>';
+    return boolBadge(!!a.stripe_connect_payouts_enabled);
   }
   function smsStatusBadge(a) {
     if (a.readiness && a.readiness.jobTextsEnabled) return '<span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px;white-space:nowrap">ON</span>';
@@ -10346,8 +10201,8 @@ window.intelQuick = intelQuick;
           + '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(a.email) + '</span>'
           + (!hasValidUsPhone(a.phone) ? ' <span style="font-size:0.68rem;color:#ef4444;font-weight:600">Valid phone required</span>' : '')
           + '</td>'
-        + '<td style="' + rs + '">' + statusBadge(a.status) + (a.status === 'active' ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">' + (a.readiness && a.readiness.isReady ? 'Ready for jobs' : 'Readiness action needed') + '</div>' : '') + '</td>'
-        + '<td style="' + rs + '">' + tierBadge(a.tier) + (a.tier_grace_started_at ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">Grace since ' + esc(formatDate(a.tier_grace_started_at)) + '</div>' : '') + '</td>'
+        + '<td style="' + rs + '">' + statusBadge(a.status) + '</td>'
+        + '<td style="' + rs + '">' + tierBadge(a.tier) + '</td>'
         + '<td style="' + rs + '">' + idVerificationBadge(a) + '</td>'
         + '<td style="' + rs + '">' + connectBadge(a) + '</td>'
         + '<td style="' + rs + '">' + payoutCapabilityBadge(a) + '</td>'
@@ -10389,7 +10244,7 @@ window.intelQuick = intelQuick;
         } else {
           toast(approvalState + ' Welcome email sent.', 'success');
         }
-        await reloadAssemblersAndMaybeRefreshDetail(aId, false);
+        loadAssemblerList(); loadAssemblers();
       } catch { toast('Failed to approve', 'error'); approveBtn.disabled = false; approveBtn.textContent = 'Approve'; }
       return;
     }
@@ -10403,7 +10258,7 @@ window.intelQuick = intelQuick;
         var d2 = await r2.json();
         if (d2.error) { toast(d2.error, 'error'); return; }
         toast('ID marked as verified — you can now approve this Easer', 'success');
-        await reloadAssemblersAndMaybeRefreshDetail(aId2, false);
+        loadAssemblerList();
       } catch { toast('Failed', 'error'); }
       finally { markIdBtn.disabled = false; markIdBtn.textContent = 'Mark ID Verified'; }
       return;
@@ -10429,7 +10284,7 @@ window.intelQuick = intelQuick;
         var dw = await rw.json().catch(function(){ return {}; });
         if (!rw.ok) { toast(dw.error || 'Could not waitlist this application.', 'error'); return; }
         toast('Moved to the waitlist', 'success');
-        await reloadAssemblersAndMaybeRefreshDetail(waitlistAsmBtn.dataset.waitlistAsm, false);
+        await loadAssemblers();
       } catch (err) {
         toast('Network error — nothing changed.', 'error');
       } finally {
@@ -10458,7 +10313,7 @@ window.intelQuick = intelQuick;
         var r3 = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:deleteAsmBtn.dataset.deleteAsm, action:'delete' }) });
         var d3 = await r3.json();
         if (d3.error) { toast(d3.error, 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.textContent = 'Archive'; return; }
-        toast(d3.warning ? 'Application archived, but auth access needs manual follow-up' : 'Application archived', d3.warning ? 'error' : 'success'); await reloadAssemblersAndMaybeRefreshDetail(deleteAsmBtn.dataset.deleteAsm, false);
+        toast(d3.warning ? 'Application archived, but auth access needs manual follow-up' : 'Application archived', d3.warning ? 'error' : 'success'); loadAssemblerList();
       } catch { toast('Failed to archive', 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.textContent = 'Archive'; }
     }
   });
@@ -10692,7 +10547,6 @@ window.intelQuick = intelQuick;
       '<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Account Status</div>' + statusBadge(a.status) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Tier</div>' + tierBadge(a.tier) + '</div>'
-        + (a.tier_grace_started_at ? '<div style="font-size:0.75rem;color:var(--muted);max-width:300px">Tier grace started ' + esc(formatDate(a.tier_grace_started_at)) + '. The stored tier remains in effect while the performance program allows recovery.</div>' : '')
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">ID Verification</div>' + idVerificationBadge(a) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Connect Status</div>' + connectBadge(a) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">' + (asmConnectRequired ? 'Payouts Enabled' : 'Payout Mode') + '</div>' + payoutCapabilityBadge(a) + '</div>'
@@ -11124,7 +10978,7 @@ window.intelQuick = intelQuick;
       if (d.error) { errEl.textContent=d.error; errEl.style.display=''; return; }
       document.getElementById('add-easer-modal').classList.remove('open');
       toast(name + ' added — welcome email sent with ID verification + password setup links', 'success');
-      await reloadAssemblersAndMaybeRefreshDetail(null, false);
+      loadAssemblerList();
     } catch { errEl.textContent='Failed. Check your connection.'; errEl.style.display=''; }
     finally { btn.disabled=false; btn.textContent='Add Easer & Send Welcome Email'; }
   });

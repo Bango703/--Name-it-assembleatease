@@ -6,14 +6,10 @@ import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer
 import { bookingEmailMatches } from './_guest-booking-auth.js';
 import { safeTokenHashMatch } from '../_payment-security.js';
 
-import { MAX_UPLOAD_BYTES } from '../_upload-limits.js';
-
-// The real ceiling is Vercel's 4.5 MB request body, which this setting cannot
-// raise. Kept just above MAX_UPLOAD_BYTES so the two never contradict.
-export const config = { api: { bodyParser: { sizeLimit: '5mb' } } };
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 const BUCKET = 'booking-evidence';
-const MAX_BYTES = MAX_UPLOAD_BYTES;
+const MAX_BYTES = 5 * 1024 * 1024;
 const MIME_EXT = {
   'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
   'image/heic': 'heic', 'image/heif': 'heif',

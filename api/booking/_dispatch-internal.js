@@ -1,14 +1,9 @@
 ﻿import { randomUUID } from 'crypto';
-import { formatAppointmentDate, formatAppointmentDateShort, formatSlotShort } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
-import { sendEmail, esc, ownerEmail } from '../_email.js';
+import { sendEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
-import { sendSms } from '../_sms.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForDispatch, isSameServiceMarket } from '../_source-of-truth.js';
-import { getEaserReadiness } from '../_easer-readiness.js';
-import { hasEffectiveEaserMembership } from '../_easer-membership.js';
-import { logActivity } from './_activity.js';
-import { DISPATCH_HISTORY_EXCLUSION_STATUSES } from './_dispatch-safety.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, getPlatformFeePct } from '../_source-of-truth.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -18,63 +13,6 @@ const BATCH_SIZE       = parseInt(process.env.DISPATCH_BATCH_SIZE         || '3'
 const MAX_ATTEMPTS     = parseInt(process.env.DISPATCH_MAX_ATTEMPTS       || '3',  10);
 const MAX_DAILY_JOBS   = parseInt(process.env.DISPATCH_MAX_DAILY_JOBS     || '3',  10);
 
-// ── Soft supply nudge ────────────────────────────────────────────────────────
-// When a job is dispatched, near-ready pros in the area (identity-verified but OFFLINE
-// or with a pending agreement/setup) don't get the real offer. This gives them a gentle,
-// job-detail-free "work is available near you — come Online" email so they activate and
-// start receiving offers. Never sent to online-ready pros (they don't need it), or to
-// suspended/rejected/closed accounts. Throttled to once per Easer per day via email dedupe.
-function buildWorkAvailableNudge(firstName) {
-  const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#0d1b2a">
-<div style="max-width:520px;margin:0 auto;padding:24px 16px">
-  <div style="text-align:center;margin-bottom:14px"><img src="${LOGO}" alt="AssembleAtEase" width="40" height="40" style="border-radius:50%;display:inline-block"/></div>
-  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-    <div style="padding:22px 24px;border-bottom:3px solid #00BFFF">
-      <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#00BFFF">Work available near you</div>
-      <div style="font-size:20px;font-weight:800;margin-top:6px">A job just came in near you, ${esc(firstName)}.</div>
-    </div>
-    <div style="padding:24px">
-      <p style="font-size:15px;line-height:1.6;color:#334155;margin:0 0 12px">You didn’t get this one because your account isn’t set to receive offers yet — but jobs like it are coming into your area. Get ready and you’ll be matched automatically.</p>
-      <p style="font-size:14px;line-height:1.7;color:#334155;margin:0 0 4px"><strong>To start receiving offers:</strong> open the app, come <strong>Online</strong>, and finish any remaining setup (like accepting the current agreement).</p>
-      <p style="margin:22px 0 4px"><a href="${SITE}/assembler/" style="display:inline-block;background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:12px 24px;border-radius:999px">Open the app &amp; go Online</a></p>
-    </div>
-  </div>
-  <p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:14px">You’re receiving this because you’re registered as an AssembleAtEase Easer.</p>
-</div></body></html>`;
-}
-
-async function sendSoftJobNudges(sb, offeredEaserIds, bookingZip) {
-  try {
-    const zipPrefix = String(bookingZip || '').trim().slice(0, 3);
-    if (!/^\d{3}$/.test(zipPrefix)) return; // no usable service area → skip
-    const { data: candidates, error } = await sb.from('profiles')
-      .select('id, full_name, email, zip, is_available')
-      .eq('role', 'assembler')
-      .in('status', ['active', 'pending'])
-      .eq('identity_verified', true)
-      .or('account_closure_status.is.null,account_closure_status.eq.cancelled');
-    if (error || !candidates?.length) return;
-    const offered = new Set(offeredEaserIds || []);
-    for (const e of candidates) {
-      if (offered.has(e.id) || !e.email) continue;      // already got the real offer
-      if (e.is_available === true) continue;            // already online — no nudge needed
-      if (String(e.zip || '').trim().slice(0, 3) !== zipPrefix) continue; // different service area
-      const first = String(e.full_name || 'there').split(' ')[0] || 'there';
-      await sendEmail({
-        to: e.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: 'A job is available near you — come Online',
-        html: buildWorkAvailableNudge(first),
-        replyTo: ownerEmail(),
-        meta: { notificationType: 'easer_work_available', recipientType: 'easer', recipientUserId: e.id, dedupeWindowMin: 1440 },
-      }).catch(() => {});
-    }
-  } catch (e) {
-    console.error('sendSoftJobNudges failed:', e?.message || e);
-  }
-}
-
 /**
  * Dispatch a confirmed booking to the best available Easers.
  * Writes per-Easer offer records to dispatch_offers table.
@@ -82,25 +20,13 @@ async function sendSoftJobNudges(sb, offeredEaserIds, bookingZip) {
  *
  * Returns { dispatched, message, offeredTo, dryRun? }
  */
-export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserId = null } = {}) {
+export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
   const sb = getSupabase();
 
   const { data: booking, error: bErr } = await sb
     .from('bookings').select('*').eq('id', bookingId).single();
   if (bErr || !booking) return { dispatched: 0, message: 'Booking not found' };
   if (booking.status !== BOOKING_STATUS.CONFIRMED) return { dispatched: 0, message: `Booking not confirmed (status: ${booking.status})` };
-  if (!isBookingPaymentReadyForDispatch(booking)) {
-    return {
-      dispatched: 0,
-      message: `Payment is not verified for dispatch (payment status: ${booking.payment_status || 'missing'})`,
-      blocked: true,
-      code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
-    };
-  }
-  if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at
-      || booking.financial_reconciliation_required_at || booking.cancellation_reconciliation_required_at) {
-    return { dispatched: 0, message: 'Booking locked by a financial operation or reconciliation review' };
-  }
   if (booking.assembler_id) return { dispatched: 0, message: 'Already assigned' };
   if (booking.dispatch_paused) return { dispatched: 0, message: 'Dispatch paused by owner' };
   if (booking.needs_manual_dispatch) return { dispatched: 0, message: 'Flagged for manual dispatch' };
@@ -110,16 +36,11 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 
   // Deduplication via dispatch_offers table: check for open (sent) offers
   if (!dryRun) {
-    const { data: openOffers, error: openOffersError } = await sb
+    const { data: openOffers } = await sb
       .from('dispatch_offers')
       .select('id, expires_at')
       .eq('booking_id', bookingId)
       .eq('offer_status', DISPATCH_OFFER_STATUS.SENT);
-
-    if (openOffersError) {
-      console.error('dispatch open-offer lookup error:', openOffersError);
-      return { dispatched: 0, message: 'Could not verify current dispatch offers' };
-    }
 
     const stillOpen = (openOffers || []).filter(o => new Date(o.expires_at) > new Date());
     if (stillOpen.length > 0) {
@@ -134,45 +55,34 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   // ── Easer eligibility query ───────────────────────────────────────────────
   const { data: easers } = await sb
     .from('profiles')
-    .select('id, full_name, email, phone, sms_consent_at, sms_opted_out_at, city, zip, status, application_status, tier, rating, completed_jobs, has_membership, is_available, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
+    .select('id, full_name, email, phone, city, zip, status, tier, rating, completed_jobs, has_membership, is_available, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
     .eq('role', 'assembler')
     .eq('status', 'active')
     .eq('identity_verified', true)
     .in('tier', ['starter', 'professional', 'elite'])
-    .or('account_closure_status.is.null,account_closure_status.eq.cancelled')
     .not('phone', 'is', null);
 
   if (!easers || !easers.length) return { dispatched: 0, message: 'No eligible Easers in system' };
 
-  // ── Filter by canonical readiness and service area ────────────────────────
-  // Payout setup (Stripe Connect) does NOT gate dispatch — offers still flow to
-  // approved Easers who haven't finished payout setup; their earnings are held
-  // at release (release-payouts) until Stripe payouts are ready.
+  const requireConnect = isStripeConnectEnabled();
+
+  // ── Filter by availability and service area ───────────────────────────────
   // Note: MAX_DAILY_JOBS cap is applied below with authoritative booking counts.
   // Do NOT filter on active_jobs_today here — the profile counter can be stale.
-  const readinessPairs = await Promise.all(easers.map(async (easer) => ({
-    easer,
-    readiness: await getEaserReadiness(easer),
-  })));
-  let eligible = readinessPairs.filter(({ easer, readiness }) => {
-    if (!readiness.isReady) return false;
-    // When re-dispatching a job a Pro just dropped, don't bounce it straight back
-    // to them — it should go to OTHER online Pros (per the drop-and-rematch flow).
-    if (excludeEaserId && easer.id === excludeEaserId) return false;
-    // Never match on city NAME. It drifts (an "Austin" Pro on a Pflugerville job,
-    // or a mistyped city) and silently chokes dispatch. Match on service market
-    // instead — see SERVICE_MARKETS in _source-of-truth.js, which spans 786+787
-    // so Central Texas keeps working exactly as it does today.
-    //
-    // This gate used to be absent: proximity was only a scoring bonus (+75), and
-    // the safety came entirely from auto-dispatch being Austin-only. That premise
-    // died when Easers registered in Lubbock, Houston and San Antonio. Without
-    // this, widening auto-dispatch by one prefix would offer a Lubbock job to an
-    // Austin Pro. It fails OPEN on an unknown ZIP, so nothing that dispatches
-    // today stops dispatching.
-    if (!isSameServiceMarket(bookingZip, easer.zip)) return false;
+  let eligible = easers.filter(e => {
+    if (requireConnect) {
+      if (!e.stripe_connect_onboarding_complete || !e.stripe_connect_charges_enabled || !e.stripe_connect_payouts_enabled) {
+        return false;
+      }
+    }
+    if (!e.is_available) return false;
+    if (bookingCity && e.city) {
+      const bc = bookingCity.toLowerCase();
+      const ec = (e.city || '').toLowerCase();
+      if (!ec.includes(bc) && !bc.includes(ec)) return false;
+    }
     return true;
-  }).map(({ easer }) => easer);
+  });
 
   if (!eligible.length) return { dispatched: 0, message: 'No available Easers in service area' };
 
@@ -199,28 +109,22 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     // Apply the hard daily cap with accurate data
     eligible = eligible.filter(e => e.active_jobs_today < MAX_DAILY_JOBS);
     if (!eligible.length) {
-      return { dispatched: 0, message: `All eligible Easers are at the ${MAX_DAILY_JOBS}-job daily limit for ${formatAppointmentDate(booking.date)}` };
+      return { dispatched: 0, message: `All eligible Easers are at the ${MAX_DAILY_JOBS}-job daily limit for ${booking.date}` };
     }
   }
 
-  // Never automatically re-offer the same booking to an Easer who already
-  // received it. Repeated declined/expired/cancelled offers confuse Easers and
-  // can loop forever without reaching manual dispatch.
-  const easerIdsWithOfferHistory = new Set();
+  // Filter out Easers who already have an open offer for this booking
+  const easerIdsWithOpenOffers = new Set();
   if (!dryRun) {
-    const { data: existingOffers, error: existingOffersError } = await sb
+    const { data: existingOffers } = await sb
       .from('dispatch_offers')
       .select('easer_id')
       .eq('booking_id', bookingId)
-      .in('offer_status', DISPATCH_HISTORY_EXCLUSION_STATUSES);
-    if (existingOffersError) {
-      console.error('dispatch offer-history lookup error:', existingOffersError);
-      return { dispatched: 0, message: 'Could not verify prior dispatch recipients' };
-    }
-    (existingOffers || []).forEach(o => easerIdsWithOfferHistory.add(o.easer_id));
+      .in('offer_status', [DISPATCH_OFFER_STATUS.SENT, DISPATCH_OFFER_STATUS.ACCEPTED, DISPATCH_OFFER_STATUS.SUPERSEDED]);
+    (existingOffers || []).forEach(o => easerIdsWithOpenOffers.add(o.easer_id));
   }
 
-  const scoreable = eligible.filter(e => !easerIdsWithOfferHistory.has(e.id));
+  const scoreable = eligible.filter(e => !easerIdsWithOpenOffers.has(e.id));
   if (!scoreable.length) return { dispatched: 0, message: 'All eligible Easers already received offers' };
 
   // ── Enhanced scoring ──────────────────────────────────────────────────────
@@ -232,7 +136,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     // High-value job: penalize starter Easers
     if (isHighValue && e.tier === 'starter') score -= 100;
 
-    if (hasEffectiveEaserMembership(e)) score += 150;
+    if (e.has_membership) score += 150;
     if (bookingZip && e.zip && e.zip === bookingZip) score += 75;
 
     // Rating bonus (0–75)
@@ -308,12 +212,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 
   if (offerErr) {
     console.error('dispatch_offers insert error:', offerErr);
-    return {
-      dispatched: 0,
-      message: offerErr.code === '23505'
-        ? 'Another dispatch request already created active offers'
-        : 'Failed to create offer records',
-    };
+    return { dispatched: 0, message: 'Failed to create offer records' };
   }
 
   // Build token map: easer_id → token
@@ -322,49 +221,15 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 
   // ── Atomic booking update ────────────────────────────────────────────────
   // Single update — atomic guard: only proceed if still unassigned
-  let bookingUpdateQuery = sb.from('bookings').update({
+  const { error: bookingUpdateErr } = await sb.from('bookings').update({
     dispatch_attempt:    attemptNumber,
     dispatch_offered_at: now,
     dispatch_status:     'offered',
     dispatch_offered_to: top.map(e => e.id), // keep for backwards compat
     needs_manual_dispatch: false,             // clear manual flag on retry
-    arrival_nudge_count: 0,
-    arrival_nudge_sent_at: null,
-  })
-    .eq('id', bookingId)
-    .is('assembler_id', null)
-    .eq('status', BOOKING_STATUS.CONFIRMED)
-    .eq('payment_status', booking.payment_status)
-    .is('financial_operation_key', null)
-    .is('financial_operation_type', null)
-    .is('financial_operation_started_at', null);
+  }).eq('id', bookingId).is('assembler_id', null);
 
-  bookingUpdateQuery = booking.total_price == null
-    ? bookingUpdateQuery.is('total_price', null)
-    : bookingUpdateQuery.eq('total_price', booking.total_price);
-  bookingUpdateQuery = booking.stripe_payment_intent_id == null
-    ? bookingUpdateQuery.is('stripe_payment_intent_id', null)
-    : bookingUpdateQuery.eq('stripe_payment_intent_id', booking.stripe_payment_intent_id);
-  bookingUpdateQuery = booking.stripe_deposit_intent_id == null
-    ? bookingUpdateQuery.is('stripe_deposit_intent_id', null)
-    : bookingUpdateQuery.eq('stripe_deposit_intent_id', booking.stripe_deposit_intent_id);
-
-  bookingUpdateQuery = booking.dispatch_paused == null
-    ? bookingUpdateQuery.is('dispatch_paused', null)
-    : bookingUpdateQuery.eq('dispatch_paused', false);
-  bookingUpdateQuery = booking.needs_manual_dispatch == null
-    ? bookingUpdateQuery.is('needs_manual_dispatch', null)
-    : bookingUpdateQuery.eq('needs_manual_dispatch', false);
-
-  // Serialize competing dispatch rounds against the exact attempt snapshot
-  // read above. Only one request can advance the attempt counter.
-  bookingUpdateQuery = booking.dispatch_attempt == null
-    ? bookingUpdateQuery.is('dispatch_attempt', null)
-    : bookingUpdateQuery.eq('dispatch_attempt', booking.dispatch_attempt);
-
-  const { data: updatedBookings, error: bookingUpdateErr } = await bookingUpdateQuery.select('id');
-
-  if (bookingUpdateErr || !updatedBookings?.length) {
+  if (bookingUpdateErr) {
     // Booking was just assigned — cancel the offers we just created
     await sb.from('dispatch_offers')
       .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
@@ -375,143 +240,45 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 
   // ── Send notifications (non-blocking) ────────────────────────────────────
   let notified = 0;
-  const notificationFailures = [];
   for (const easer of top) {
-    // Notifications/emails OPEN the offer in the app — they NEVER accept it. A job
-    // is accepted only when the Easer taps Accept inside the app (source of truth).
-    const offerUrl = `${SITE}/assembler/my-assignments?offer=${bookingId}`;
+    const token    = tokenByEaser[easer.id];
+    const acceptUrl = `${SITE}/assembler/my-assignments?accept=${bookingId}&token=${token}`;
+    const declineUrl = `${SITE}/assembler/my-assignments?decline=${bookingId}&token=${token}`;
 
-    // Show net pay in the push too, so a Pro isn't blind. AssembleCash is funded
-    // by the platform margin, so reward use must not shrink the Easer estimate.
-    const estPayCents = booking.total_price > 0
-      ? computeBookingSplitFromSnapshot({
-          totalPriceCents: booking.total_price,
-          taxCents: booking.tax_amount || 0,
-          isMember: hasEffectiveEaserMembership(easer),
-          assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
-        }).assemblerDueCents
-      : 0;
-    const pushPay = estPayCents > 0
-      ? new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(estPayCents / 100) + ' estimated earnings · '
+    // Show net pay in the push too, so a Pro accepting from their phone isn't blind.
+    const pushPay = booking.total_price > 0
+      ? '$' + Math.round((booking.total_price / 100) * (1 - getPlatformFeePct(easer.has_membership) / 100)) + ' pay · '
       : '';
-    // Same number as the push, formatted for a 160-char budget.
-    const smsPay = estPayCents > 0 ? `$${(estPayCents / 100).toFixed(2)} est. ` : '';
-    const pushResult = await sendPushToUser(easer.id, {
-      title: 'New Job Available',
-      body:  `${booking.service || 'Service'} · ${pushPay}${booking.date || ''}${booking.time ? ' at ' + booking.time : ''} · Tap to review`,
-      url:   offerUrl,
+    sendPushToUser(easer.id, {
+      title: 'New Job Available!',
+      body:  `${booking.service || 'Service'} · ${pushPay}${booking.date || ''}${booking.time ? ' at ' + booking.time : ''} · Accept in ${OFFER_TTL_MIN} min`,
+      url:   acceptUrl,
       jobId: bookingId,
       urgent: true,
     }, { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer' }).catch(function(err) {
       console.error('[dispatch] Push failed for easer', easer.id, err && (err.message || String(err)));
-      return { ok: false, error: err?.message || String(err) };
     });
 
-    let emailResult = { ok: false, error: 'Missing Easer email' };
     try {
-      emailResult = await sendEmail({
+      await sendEmail({
         to:       easer.email,
         from:     'AssembleAtEase <booking@assembleatease.com>',
-        // Ref in the subject for the same reason as assign.js: dedupe keys on
-        // subject, so two same-service offers in one city collapsed into one.
-        subject:  `New Job Available — ${booking.service || 'Service'} in ${bookingCity} (${booking.ref})`,
-        html:     buildOfferEmail(easer, booking, bookingCity, offerUrl, expiresAt),
+        subject:  `New Job Available — ${booking.service || 'Service'} in ${bookingCity}`,
+        html:     buildOfferEmail(easer, booking, bookingCity, acceptUrl, declineUrl, expiresAt),
         replyTo:  'service@assembleatease.com',
-        // A dispatch offer is time-boxed and job-specific — never collapse one
-        // into an earlier offer. Retries after expiry are legitimate re-offers.
-        meta:     { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer', recipientUserId: easer.id, notificationKey: `dispatch-offer:${bookingId}:${easer.id}:${expiresAt}`, expiresAt },
+        meta:     { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer', recipientUserId: easer.id },
       });
-    } catch (err) {
-      console.error('Dispatch email error:', easer.email, err.message);
-      emailResult = { ok: false, error: err.message };
-    }
-
-    // Third channel, same rule as the other two: it OPENS the offer, it never
-    // accepts it. Refuses itself when consent was not recorded, so this call is
-    // always safe to make. Awaited rather than fired-and-forgotten because a
-    // serverless function can be frozen the moment it responds.
-    //
-    // Deliberately carries the Easer's estimated earnings and NOT the customer
-    // total (Rule 3) and no address — a job's location is not disclosed until it
-    // is accepted in the app.
-    const smsResult = await sendSms({
-      recipient: easer,
-      body: `New AssembleAtEase job: ${booking.service || 'Service'}${booking.date ? ' ' + formatAppointmentDateShort(booking.date) : ''}${booking.time ? ' at ' + formatSlotShort(booking.time) : ''}. ${smsPay}Open the app to accept. Ref ${booking.ref}`,
-      meta: {
-        bookingId,
-        notificationType: 'dispatch_offer',
-        recipientType: 'easer',
-        recipientUserId: easer.id,
-        notificationKey: `dispatch-offer:${bookingId}:${easer.id}:${expiresAt}`,
-        expiresAt,
-      },
-    });
-
-    const delivered = Boolean(
-      (emailResult?.ok && !emailResult?.suppressed)
-      || pushResult?.ok
-      || smsResult?.ok
-    );
-    if (emailResult?.logged === false || pushResult?.logged === false) {
-      await logActivity(sb, {
-        bookingId,
-        eventType: 'notification_audit_failed',
-        actorType: 'system',
-        actorName: 'notifications',
-        description: `Job offer notification was attempted for ${easer.full_name || 'Easer'}, but an attempt log could not be saved`,
-        metadata: { easerId: easer.id, emailLogError: emailResult?.logError || null, pushLogError: pushResult?.logError || null },
-      });
-    }
-    if (delivered) {
-      const { error: sentStateErr } = await sb.from('dispatch_offers')
+      // Mark notification sent
+      await sb.from('dispatch_offers')
         .update({ notification_sent: true })
         .eq('booking_id', bookingId)
         .eq('easer_id', easer.id)
         .eq('attempt_number', attemptNumber);
-      if (!sentStateErr) notified++;
-    } else {
-      notificationFailures.push({
-        easerId: easer.id,
-        easerName: easer.full_name,
-        email: easer.email || null,
-        emailError: emailResult?.error || emailResult?.reason || null,
-        pushError: pushResult?.error || pushResult?.reason || null,
-        smsError: smsResult?.error || smsResult?.skipped || null,
-      });
-      await logActivity(sb, {
-        bookingId,
-        eventType: 'dispatch_notification_failed',
-        actorType: 'system',
-        actorName: 'dispatch',
-        description: `Job offer created for ${easer.full_name || 'Easer'}, but no notification channel confirmed delivery`,
-        metadata: { easerId: easer.id, email: easer.email || null, attemptNumber },
-      });
+      notified++;
+    } catch (err) {
+      console.error('Dispatch email error:', easer.email, err.message);
     }
   }
-
-  // Soft supply nudge — pull near-ready pros in the area toward going Online. Fire-and-
-  // forget, never blocks or affects the real dispatch; throttled + job-detail-free.
-  sendSoftJobNudges(sb, top.map(e => e.id), bookingZip).catch(err => console.error('soft job nudge error:', err?.message || err));
-
-  await logActivity(sb, {
-    bookingId,
-    eventType: 'dispatched',
-    actorType: 'system',
-    actorName: 'dispatch',
-    description: `Created ${top.length} job offer(s); ${notified} had a channel-confirmed notification`,
-    metadata: {
-      attemptNumber,
-      expiresAt,
-      offeredEaserIds: top.map(easer => easer.id),
-      notified,
-      failedNotificationCount: notificationFailures.length,
-    },
-  });
 
   console.log(JSON.stringify({
     event: 'dispatch',
@@ -524,11 +291,8 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   }));
 
   return {
-    dispatched: top.length,
-    notified,
-    message: notified > 0
-      ? `Created ${top.length} offer(s); notified ${notified} Easer(s) — expires in ${OFFER_TTL_MIN} min`
-      : `Created ${top.length} offer(s), but no notification channel confirmed delivery`,
+    dispatched: notified,
+    message: notified > 0 ? `Offered to ${notified} Easer(s) — expires in ${OFFER_TTL_MIN} min` : 'Failed to send notifications',
     offeredTo: top.map(e => ({
       name: e.full_name,
       tier: e.tier,
@@ -537,7 +301,6 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     })),
     attemptNumber,
     expiresAt,
-    notificationFailures,
   };
 }
 
@@ -560,18 +323,13 @@ function extractZip(address) {
 }
 
 // ── Offer email ───────────────────────────────────────────────────────────────
-function buildOfferEmail(easer, booking, city, offerUrl, expiresAt) {
+function buildOfferEmail(easer, booking, city, acceptUrl, declineUrl, expiresAt) {
   const firstName   = (easer.full_name || 'there').split(' ')[0];
-  // Net take-home from the canonical split. AssembleCash is platform-funded, so
-  // the offer must not look smaller just because the customer used a reward.
-  const split = computeBookingSplitFromSnapshot({
-    totalPriceCents: booking.total_price || 0,
-    taxCents: booking.tax_amount || 0,
-    isMember: hasEffectiveEaserMembership(easer),
-    assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
-  });
+  // Net pay = booking total minus the platform fee for this Easer's membership tier.
+  // Use the canonical fee source so the offer matches the actual completion payout.
+  const feePct = getPlatformFeePct(easer.has_membership);
   const payEstimate = booking.total_price > 0
-    ? '$' + Math.round(split.assemblerDueCents / 100).toLocaleString()
+    ? '$' + Math.round((booking.total_price / 100) * (1 - feePct / 100)).toLocaleString()
     : 'Custom quote — price set by owner after review';
   const expiryMin   = Math.round((new Date(expiresAt) - Date.now()) / 60000);
   const tierLabel   = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[easer.tier] || easer.tier;
@@ -588,14 +346,23 @@ function buildOfferEmail(easer, booking, city, offerUrl, expiresAt) {
       <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:1.1rem;margin-bottom:1.25rem">
         <p style="margin:0 0 8px;font-size:1.05rem;font-weight:700;color:#111">${esc(booking.service)}</p>
         <p style="margin:0 0 4px;font-size:0.875rem;color:#374151">Location: ${esc(city)}</p>
-        <p style="margin:0 0 4px;font-size:0.875rem;color:#374151">Date: ${esc(booking.date ? formatAppointmentDate(booking.date) : 'TBD')}${booking.time ? ' · ' + esc(booking.time) : ''}</p>
+        <p style="margin:0 0 4px;font-size:0.875rem;color:#374151">Date: ${esc(booking.date || 'TBD')}${booking.time ? ' · ' + esc(booking.time) : ''}</p>
         <p style="margin:8px 0 0;font-size:0.95rem;font-weight:${booking.total_price > 0 ? '700' : '500'};color:#00BFFF">Est. pay: ${payEstimate}</p>
       </div>
-      <div style="background:#fef9ec;border:1px solid #fbbf24;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.25rem">
-        <span style="font-size:0.85rem;color:#92400e;font-weight:600">Offer expires in about ${expiryMin} minutes</span>
+      <div style="background:#fef9ec;border:1px solid #fbbf24;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px">
+        <span style="font-size:1rem">⏱</span>
+        <span style="font-size:0.85rem;color:#92400e;font-weight:600">Offer expires in ~${expiryMin} minutes</span>
       </div>
-      <a href="${esc(offerUrl)}" style="display:block;text-align:center;background:#00BFFF;color:#fff;padding:14px 20px;border-radius:8px;text-decoration:none;font-size:0.95rem;font-weight:700">View Job &amp; Respond →</a>
-      <p style="margin:10px 0 0;text-align:center;font-size:11px;color:#9ca3af">Opens your dashboard — review the details and tap Accept there.</p>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding-right:6px">
+            <a href="${esc(acceptUrl)}" style="display:block;text-align:center;background:#00BFFF;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-size:0.95rem;font-weight:700">Accept Job</a>
+          </td>
+          <td style="padding-left:6px">
+            <a href="${esc(declineUrl)}" style="display:block;text-align:center;background:#f9fafb;color:#6b7280;padding:13px 20px;border-radius:8px;text-decoration:none;font-size:0.95rem;border:1px solid #e5e7eb">Decline</a>
+          </td>
+        </tr>
+      </table>
     </div>
     <div style="padding:0.875rem 1.5rem;border-top:1px solid #f0f0f0;text-align:center;font-size:11px;color:#9ca3af">
       View all your assignments at <a href="${SITE}/assembler/my-assignments" style="color:#00BFFF">AssembleAtEase</a>

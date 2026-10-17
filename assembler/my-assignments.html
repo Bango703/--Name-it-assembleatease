@@ -261,7 +261,6 @@
 
   </style>
 <script src="/assets/js/status-source-of-truth.js" defer></script>
-<script src="/assets/js/image-upload.js" defer></script>
   </head>
 <body class="theme-pro easer-booting">
 
@@ -408,7 +407,6 @@
   var _completionInFlight = false;
   var _photoFile = null;
   var _photoDataUrl = null;
-  var _photoPrepared = null;
   var _photoUploaded = false;
 
   // Evidence request upload state
@@ -758,9 +756,6 @@
 
   var renderScopeSection = function() { return ''; };
 
-  // The server already masks the surname (redactAssignmentCustomerData).
-  // This stays as the display fallback for a job with no name yet, and is
-  // idempotent on an already-masked name.
   function maskName(n) {
     if (!n) return 'Customer';
     var p = n.trim().split(/\s+/);
@@ -1197,7 +1192,6 @@
     function _resetPhotoState() {
       _photoFile = null;
       _photoDataUrl = null;
-      _photoPrepared = null;
       _photoUploaded = false;
       var previewArea = document.getElementById('photo-preview-area');
       var pickBtn = document.getElementById('photo-pick-btn');
@@ -1237,10 +1231,14 @@
       var file = this.files && this.files[0];
       if (!file) return;
       var statusEl = document.getElementById('photo-upload-status');
-      statusEl.textContent = 'Preparing photo…';
-      statusEl.style.color = '#374151';
-      statusEl.style.display = 'block';
-      var photoInputEl = this;
+      if (file.size > 5 * 1024 * 1024) {
+        statusEl.textContent = 'Photo must be under 5 MB. Please choose a smaller image.';
+        statusEl.style.color = '#dc2626';
+        statusEl.style.display = 'block';
+        this.value = '';
+        return;
+      }
+      statusEl.style.display = 'none';
       _photoFile = file;
       _photoUploaded = false;
       // Open the confirmation sheet now that we have a photo.
@@ -1249,13 +1247,9 @@
       if (_pendingCompleteBookingId && !sheet.classList.contains('open')) {
         setAssignmentSheetOpen('complete-sheet', true);
       }
-      // Downscale before anything else. The original is never sent: a full
-      // resolution phone photo base64-encodes past the request body limit and
-      // is rejected by the platform before the upload endpoint ever runs.
-      window.AAE_UPLOAD.prepare(file).then(function(prepared) {
-        _photoPrepared = prepared;
-        _photoDataUrl = prepared.dataUrl;
-        statusEl.style.display = 'none';
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        _photoDataUrl = ev.target.result;
         var img = document.getElementById('photo-preview-img');
         var previewArea = document.getElementById('photo-preview-area');
         var pickBtn = document.getElementById('photo-pick-btn');
@@ -1269,14 +1263,8 @@
           yesBtn.style.cursor = '';
           yesBtn.focus();
         }
-      }).catch(function(err) {
-        _photoFile = null;
-        _photoPrepared = null;
-        statusEl.textContent = err.message;
-        statusEl.style.color = '#dc2626';
-        statusEl.style.display = 'block';
-        if (photoInputEl) photoInputEl.value = '';
-      });
+      };
+      reader.readAsDataURL(file);
     });
 
     // Remove photo
@@ -1292,17 +1280,20 @@
     document.getElementById('evidence-req-photo-input').addEventListener('change', function() {
       var file = this.files && this.files[0];
       if (!file) return;
-      var reqInputEl = this;
-      window.AAE_UPLOAD.prepare(file).then(function(prepared) {
-        _evidenceReqFile = prepared;
-        document.getElementById('evidence-req-img').src = prepared.dataUrl;
+      if (file.size > 5 * 1024 * 1024) {
+        APP.showAlert('page-alert', 'Photo must be under 5 MB', 'error');
+        this.value = '';
+        return;
+      }
+      _evidenceReqFile = file;
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        document.getElementById('evidence-req-img').src = ev.target.result;
         document.getElementById('evidence-req-preview').style.display = '';
         document.getElementById('evidence-req-upload').style.display = '';
-      }).catch(function(err) {
-        _evidenceReqFile = null;
-        APP.showAlert('page-alert', err.message, 'error');
-      });
-      reqInputEl.value = '';
+      };
+      reader.readAsDataURL(file);
+      this.value = '';
     });
 
     document.getElementById('evidence-req-remove').addEventListener('click', function() {
@@ -1321,21 +1312,20 @@
       statusEl.textContent = 'Uploading photo…';
       statusEl.style.display = '';
       try {
+        var base64 = await new Promise(function(resolve, reject) {
+          var r = new FileReader();
+          r.onload = function(e) { resolve(e.target.result); };
+          r.onerror = reject;
+          r.readAsDataURL(_evidenceReqFile);
+        });
         var resp = await fetch('/api/booking/upload-evidence', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-          body: JSON.stringify({ bookingId: _evidenceReqBookingId, fileBase64: _evidenceReqFile.base64, mimeType: _evidenceReqFile.mimeType, evidenceType: 'completion_photo' }),
+          body: JSON.stringify({ bookingId: _evidenceReqBookingId, fileBase64: base64, mimeType: _evidenceReqFile.type, evidenceType: 'completion_photo' }),
         });
-        if (!resp.ok) {
-          statusEl.textContent = await window.AAE_UPLOAD.describeUploadFailure(resp);
-          uploadBtn.disabled = false;
-          uploadBtn.textContent = 'Upload';
-          _evidenceReqInFlight = false;
-          return;
-        }
-        var data = await resp.json().catch(function(){ return {}; });
-        if (data.error) {
-          statusEl.textContent = data.error;
+        var data = await resp.json();
+        if (!resp.ok || data.error) {
+          statusEl.textContent = data.error || 'Upload failed — please try again.';
           uploadBtn.disabled = false;
           uploadBtn.textContent = 'Upload';
           _evidenceReqInFlight = false;
@@ -1378,16 +1368,14 @@
       var file = this.files && this.files[0];
       var fileEl = document.getElementById('damage-report-file');
       if (!file) return;
-      var damageInputEl = this;
-      fileEl.textContent = 'Preparing photo…';
-      window.AAE_UPLOAD.prepare(file).then(function(prepared) {
-        _damagePhotoFile = prepared;
-        fileEl.textContent = file.name || 'Photo selected';
-      }).catch(function(err) {
+      if (file.size > 5 * 1024 * 1024) {
         _damagePhotoFile = null;
-        fileEl.textContent = err.message;
-        damageInputEl.value = '';
-      });
+        fileEl.textContent = 'Photo must be under 5 MB.';
+        this.value = '';
+        return;
+      }
+      _damagePhotoFile = file;
+      fileEl.textContent = file.name || 'Photo selected';
     });
     document.getElementById('damage-report-submit').addEventListener('click', async function() {
       if (_damageInFlight || !_damageBookingId) return;
@@ -1410,20 +1398,25 @@
       statusEl.textContent = 'Saving your report...';
       statusEl.style.display = 'block';
       try {
+        var fileBase64 = await new Promise(function(resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function(event) { resolve(event.target.result); };
+          reader.onerror = reject;
+          reader.readAsDataURL(_damagePhotoFile);
+        });
         var response = await fetch('/api/booking/upload-evidence', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
           body: JSON.stringify({
             bookingId: _damageBookingId,
-            fileBase64: _damagePhotoFile.base64,
-            mimeType: _damagePhotoFile.mimeType,
+            fileBase64: fileBase64,
+            mimeType: _damagePhotoFile.type,
             evidenceType: 'damage_claim',
             notes: notes,
           }),
         });
-        if (!response.ok) throw new Error(await window.AAE_UPLOAD.describeUploadFailure(response));
-        var result = await response.json().catch(function(){ return {}; });
-        if (result.error) throw new Error(result.error);
+        var result = await response.json();
+        if (!response.ok || result.error) throw new Error(result.error || 'Damage report could not be saved.');
         statusEl.textContent = result.message || 'Issue report received. Stop work if continuing could make the issue worse, and contact support.';
         statusEl.style.color = '#166534';
         document.getElementById('damage-report-notes').value = '';
@@ -1453,16 +1446,17 @@
       if (sheetCancelBtn) sheetCancelBtn.disabled = true;
 
       // ── Upload photo if selected ──────────────────────────────────────────
-      if (_photoPrepared && !_photoUploaded) {
+      if (_photoFile && _photoDataUrl && !_photoUploaded) {
         if (statusEl) { statusEl.textContent = 'Uploading photo…'; statusEl.style.color = '#374151'; statusEl.style.display = 'block'; }
         try {
+          const raw = _photoDataUrl.includes(',') ? _photoDataUrl.split(',')[1] : _photoDataUrl;
           const uploadResp = await fetch('/api/booking/upload-evidence', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
             body: JSON.stringify({
               bookingId: bookingIdToComplete,
-              fileBase64: _photoPrepared.base64,
-              mimeType: _photoPrepared.mimeType,
+              fileBase64: raw,
+              mimeType: _photoFile.type,
               evidenceType: 'completion_photo',
             }),
           });
@@ -1471,15 +1465,15 @@
             if (statusEl) { statusEl.textContent = 'Photo uploaded.'; statusEl.style.color = '#16a34a'; }
           } else if (uploadResp.status === 409) {
             // 5-file limit hit — collapse photo section and proceed without it
-            _photoFile = null; _photoDataUrl = null; _photoPrepared = null;
+            _photoFile = null; _photoDataUrl = null;
             var section = document.getElementById('photo-prompt-section');
             if (section) section.style.display = 'none';
             if (statusEl) { statusEl.style.display = 'none'; }
           } else {
             // Upload failed — keep sheet open so Easer can retry or skip
-            const uploadError = await window.AAE_UPLOAD.describeUploadFailure(uploadResp);
+            const errData = await uploadResp.json().catch(function(){ return {}; });
             if (statusEl) {
-              statusEl.textContent = uploadError + ' A photo is required to complete this job — try again, or take a new one.';
+              statusEl.textContent = (errData.error || 'Photo upload failed.') + ' A photo is required to complete this job — try again, or take a new one.';
               statusEl.style.color = '#dc2626';
               statusEl.style.display = 'block';
             }

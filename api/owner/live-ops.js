@@ -1,25 +1,12 @@
-import {
-  expectedCompletionMs,
-  captureDeadlineMs,
-  pastAppointmentNotComplete,
-  authorizedPaymentStillOpen,
-} from '../booking/_authorization-window.js';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
-import { notificationOwnerAction } from '../_notification-display.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
-import { chicagoTodayIso, appointmentTimestampMs } from '../booking/_appt-date.js';
+import { chicagoTodayIso } from '../booking/_appt-date.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
 import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
 import { computeLeakageSignals } from '../booking/_leakage-signal.js';
-import {
-  buildActiveJobs,
-  isOperationalBooking,
-  operationalDate,
-  operationalTime,
-} from './_active-jobs.js';
 
 export function classifyRuntimeFailures(rows = [], activeAfter) {
   const activeAfterMs = new Date(activeAfter).getTime();
@@ -91,13 +78,11 @@ export function classifyCronFailures(rows = []) {
 }
 
 function notificationFailureTitle(row = {}) {
-  const channel = row.channel === 'sms' ? 'SMS' : row.channel === 'push' ? 'Push notification' : 'Email';
   const labels = {
     bounced: 'Email bounced',
     complained: 'Recipient marked email as spam',
-    delivery_delayed: `${channel} delivery delayed`,
-    failed: `${channel} failed`,
-    uncertain: 'Notification delivery needs review',
+    delivery_delayed: 'Email delivery delayed',
+    failed: 'Email failed',
   };
   return labels[row.status] || `${row.channel || 'Notification'} needs attention`;
 }
@@ -202,8 +187,8 @@ export default async function handler(req, res) {
   const thirtyMinAgo = new Date(now - 30 * 60 * 1000).toISOString();
   const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
 
-  const bookingProjection = 'id, ref, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, authorization_capture_before, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, damage_review_status, damage_claim_opened_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
-  const [bookingsRes, financialHoldsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes, damageReportsRes, customerThreadRes] = await Promise.all([
+  const bookingProjection = 'id, ref, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, damage_review_status, damage_claim_opened_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
+  const [bookingsRes, financialHoldsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes, damageReportsRes] = await Promise.all([
     sb.from('bookings')
       .select(bookingProjection)
       .not('status', 'in', '("cancelled","declined")')
@@ -215,14 +200,7 @@ export default async function handler(req, res) {
       .order('financial_reconciliation_required_at', { ascending: true })
       .limit(50),
     sb.from('profiles')
-      // getEaserReadiness reads these off the row it is handed — it never
-      // refetches. Omitting a column it reads does not fail; it silently
-      // computes that requirement as UNMET. sms_consent_at was missing here,
-      // so Live Ops reported every Easer as blocked on "Job texts enabled"
-      // whether or not they had consented, while dispatch and assign (which do
-      // select it) saw the truth. test-readiness-select-parity.mjs now keeps
-      // this list and the readiness module in step.
-      .select('id, full_name, email, tier, rating, completed_jobs, is_available, has_membership, city, phone, status, application_status, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, payment_confirmed, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, sms_consent_at, sms_opted_out_at, stripe_connect_account_id')
+      .select('id, full_name, email, tier, rating, completed_jobs, is_available, has_membership, city, phone, status, application_status, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, stripe_connect_account_id')
       .eq('role', 'assembler'),
     sb.from('dispatch_offers')
       .select('id, booking_id, easer_id, notification_sent, expires_at')
@@ -241,7 +219,7 @@ export default async function handler(req, res) {
     // always existed; the delivery-event detail is additive and read elsewhere.
     sb.from('notification_log')
       .select('id, booking_id, channel, notification_type, recipient_type, recipient_email, recipient_user_id, subject, status, error_text, sent_at')
-      .in('status', ['failed', 'bounced', 'complained', 'delivery_delayed', 'uncertain'])
+      .in('status', ['failed', 'bounced', 'complained', 'delivery_delayed'])
       .gte('sent_at', twentyFourHoursAgo)
       .order('sent_at', { ascending: false })
       .limit(8),
@@ -255,14 +233,6 @@ export default async function handler(req, res) {
       .eq('event_type', 'damage_claim_reported')
       .order('created_at', { ascending: false })
       .limit(100),
-    // Customer threads, to find a question the Easer asked and nobody answered.
-    // Only the two senders that matter: the Easer asking and the customer
-    // replying. Owner messages are not the thing being waited on.
-    sb.from('messages')
-      .select('booking_id, sender, recipient_type, created_at')
-      .in('sender', ['assembler', 'customer'])
-      .order('created_at', { ascending: true })
-      .limit(1000),
   ]);
 
   const essentialErrors = [
@@ -291,10 +261,15 @@ export default async function handler(req, res) {
   [...(bookingsRes.data || []), ...(financialHoldsRes.data || [])]
     .forEach(booking => bookingMap.set(booking.id, booking));
   const bookings = [...bookingMap.values()];
-  // Which bookings are operational, and which date matters for one, are the
-  // same questions the active-jobs list answers. They live in _active-jobs.js
-  // so this file and that list cannot drift apart.
-  const operationalBookings = bookings.filter(isOperationalBooking);
+  const operationalBookings = bookings.filter(booking =>
+    !['cancelled', 'declined'].includes(booking.status)
+      && (booking.status !== 'completed' || booking.return_visit_required === true));
+  const operationalDate = booking => booking.return_visit_required
+    ? booking.return_visit_date
+    : booking.date;
+  const operationalTime = booking => booking.return_visit_required
+    ? booking.return_visit_time
+    : booking.time;
   const easers = await Promise.all((easersRes.data || []).map(async easer => ({
     ...easer,
     has_membership: hasEffectiveEaserMembership(easer),
@@ -320,7 +295,7 @@ export default async function handler(req, res) {
     recipientType: row.recipient_type || null,
     notificationType: row.notification_type || null,
     notificationStatus: row.status || null,
-    ownerAction: notificationOwnerAction(row.status),
+    ownerAction: 'Review the booking timeline and contact the recipient using the booking record. Do not assume delivery.',
   }));
   const { active: cronErrors, resolved: resolvedCronErrors } = classifyCronFailures(cronErrorsRes.data);
   const latestDamageActivityByBooking = new Map();
@@ -404,10 +379,6 @@ export default async function handler(req, res) {
   const arrived = operationalBookings.filter(b => b.status === 'arrived');
 
   const inProgress = operationalBookings.filter(b => b.status === 'in_progress');
-
-  // The list Live Ops shows AND counts. One rule, in _active-jobs.js, so the
-  // chip and the panel can never again describe different sets of jobs.
-  const activeJobs = buildActiveJobs(operationalBookings);
 
   const pendingRows = operationalBookings.filter(b => b.status === 'pending');
   const pendingPayment = pendingRows.filter(b => ['pending', 'failed'].includes(String(b.payment_status || '')));
@@ -539,78 +510,15 @@ export default async function handler(req, res) {
     });
   });
 
-  // ── A question the Easer asked that nobody answered ──────────────────────
-  // An Easer asked a customer for a photo of the item and got no reply; the job
-  // reached the day before anyone noticed. The relay now also texts the
-  // customer, but a text they ignore is still silence, and silence before a
-  // visit is the owner's problem to catch.
-  //
-  // Unanswered means: the last thing in the thread is the Easer talking to the
-  // customer. A customer reply is recorded with sender 'customer' (it routes to
-  // the owner, not the Easer), so any customer message after that relay closes
-  // it. The grace period keeps a question asked five minutes ago off the board.
-  const RELAY_GRACE_MS = 3 * 60 * 60 * 1000;
-  const threadRows = customerThreadRes?.error ? [] : (customerThreadRes.data || []);
-  const lastRelayByBooking = new Map();
-  const lastCustomerReplyByBooking = new Map();
-  for (const row of threadRows) {
-    const at = new Date(row.created_at).getTime();
-    if (!Number.isFinite(at)) continue;
-    if (row.sender === 'assembler' && row.recipient_type === 'customer') {
-      lastRelayByBooking.set(row.booking_id, at);
-    } else if (row.sender === 'customer') {
-      lastCustomerReplyByBooking.set(row.booking_id, at);
-    }
-  }
-
-  operationalBookings.forEach(booking => {
-    const relayAt = lastRelayByBooking.get(booking.id);
-    if (!relayAt) return;
-    const replyAt = lastCustomerReplyByBooking.get(booking.id) || 0;
-    if (replyAt > relayAt) return;
-    if (now.getTime() - relayAt < RELAY_GRACE_MS) return;
-
-    const apptMs = appointmentTimestampMs(
-      booking.return_visit_required ? booking.return_visit_date : booking.date,
-      booking.return_visit_required ? booking.return_visit_time : booking.time,
-    );
-    const hoursUntil = apptMs == null ? null : (apptMs - now.getTime()) / 3600000;
-    // Only worth the owner's attention while there is still time to act on it.
-    if (hoursUntil == null || hoursUntil < 0 || hoursUntil > 48) return;
-
-    const waitingHours = Math.round((now.getTime() - relayAt) / 3600000);
-    alerts.push({
-      type: 'customer_relay_unanswered',
-      severity: hoursUntil <= 24 ? 'high' : 'medium',
-      ref: booking.ref,
-      bookingId: booking.id,
-      message: `${booking.assembler_name || 'The assigned Easer'} asked ${booking.customer_name || 'the customer'} a question about ${booking.ref} ${waitingHours}h ago and has had no reply. The appointment is ${hoursUntil <= 1 ? 'within the hour' : `in ${Math.round(hoursUntil)}h`}.`,
-      action: 'review_timeline',
-    });
-  });
-
   unreadyOperationalEasers.forEach(easer => {
     const activeAssignment = operationalBookings.find(booking => booking.assembler_id === easer.id) || null;
-    // Job texts are mandatory to receive work, and the remedy already exists:
-    // the sms_job_texts opt-in email. When that is the blocker and the Easer has
-    // not opted out, the alert carries the fix instead of only the diagnosis.
-    const missingItems = easer.readiness?.missingItems || [];
-    const blockedOnJobTexts = missingItems.includes('Job texts enabled')
-      && !easer.sms_opted_out_at
-      && !!easer.email;
     alerts.push({
       type: 'easer_readiness_mismatch',
       severity: activeAssignment ? 'critical' : 'high',
       ref: activeAssignment?.ref || '',
       bookingId: activeAssignment?.id || '',
-      easerId: blockedOnJobTexts ? easer.id : '',
-      // missingItems are named as the REQUIREMENT, not the failure, so they
-      // follow "Still missing:" — "is not ready for jobs: Job texts enabled"
-      // reads as though the enabled texts were the problem (Article 14).
-      message: `${easer.full_name || 'An Easer'} ${activeAssignment ? `is assigned to ${activeAssignment.ref} but` : 'is marked online but'} cannot receive jobs. Still missing: ${(missingItems.length ? missingItems : ['readiness could not be verified']).join(', ')}.`,
-      // The remedy outranks the diagnosis: sending the opt-in is what clears
-      // this alert, where opening the timeline only shows it again.
-      action: blockedOnJobTexts ? 'enable_job_texts' : (activeAssignment ? 'review_timeline' : null),
+      message: `${easer.full_name || 'An Easer'} ${activeAssignment ? `is assigned to ${activeAssignment.ref} but` : 'is marked online but'} is not ready for jobs: ${(easer.readiness?.missingItems || ['readiness could not be verified']).join(', ')}.`,
+      action: activeAssignment ? 'review_timeline' : null,
     });
   });
 
@@ -741,79 +649,6 @@ export default async function handler(req, res) {
     action: 'review_timeline',
   }));
 
-  // ── Overdue authorized job ────────────────────────────────────────────────
-  // The appointment has passed, the job was never closed, and the customer's
-  // money is still only held. Nobody was told. This is the mirror image of the
-  // AAE-DVSNHXE4OO incident: there, capture ran and failed; here, capture never
-  // runs at all and the hold quietly expires with the work unpaid.
-  //
-  // It does NOT capture. Money moves after the work, and from here we cannot
-  // tell whether the work happened — the Easer may have forgotten to close it,
-  // or may never have turned up. The owner decides; this only makes sure the
-  // decision is possible before the hold dies.
-  // Two conditions, named because they occur apart. Both together means the
-  // money is at risk; the job one alone still means a job nobody closed.
-  const pastAppointmentOpen = operationalBookings.filter(b => pastAppointmentNotComplete(b, now_ts));
-  pastAppointmentOpen.filter(b => authorizedPaymentStillOpen(b)).forEach(b => {
-    const overdueHours = Math.floor((now_ts - expectedCompletionMs(b)) / 3600000);
-    const deadline = captureDeadlineMs(b);
-    const hoursLeft = deadline == null ? null : Math.floor((deadline - now_ts) / 3600000);
-    // Once the hold is nearly gone the money is about to be lost outright, so
-    // the alert has to outrank the general "somebody look at this" pile.
-    const severity = hoursLeft == null || hoursLeft <= 24 ? 'critical' : 'high';
-    const holdNote = hoursLeft == null
-      ? 'the payment hold expiry was never recorded'
-      : hoursLeft <= 0
-        ? 'the payment hold has already expired'
-        : `the payment hold expires in ${hoursLeft}h`;
-    alerts.push({
-      type: 'overdue_authorized_job',
-      severity,
-      ref: b.ref,
-      bookingId: b.id,
-      message: `${b.ref} — ${b.service} for ${b.customer_name || 'the customer'}`
-        + `${b.assembler_name ? ` with ${b.assembler_name}` : ' with no Easer assigned'}`
-        + ` was due ${overdueHours}h ago and is still ${String(b.status || 'open').replace(/_/g, ' ')}.`
-        + ` Payment is held, not collected, and ${holdNote}.`
-        + ' Check whether the work happened before deciding — do not charge for a job that did not.',
-      action: 'review_timeline',
-      overdueHours,
-      captureBefore: b.authorization_capture_before || null,
-      hoursUntilHoldExpires: hoursLeft,
-      jobState: b.status || null,
-      easerName: b.assembler_name || null,
-      easerId: b.assembler_id || null,
-      customerName: b.customer_name || null,
-      startedAt: b.job_started_at || null,
-      arrivedAt: b.checked_in_at || null,
-      enRouteAt: b.en_route_at || null,
-    });
-  });
-
-  // PAST_APPOINTMENT_NOT_COMPLETE on its own. An offline or already-collected
-  // booking has no hold about to expire, so it is not urgent in the same way —
-  // but the Easer is unpaid, no evidence was filed, and the customer has no
-  // completion. Silence here is how a job simply gets forgotten.
-  pastAppointmentOpen.filter(b => !authorizedPaymentStillOpen(b)).forEach(b => alerts.push({
-    type: 'past_appointment_not_complete',
-    severity: 'medium',
-    ref: b.ref,
-    bookingId: b.id,
-    message: `${b.ref} — ${b.service} for ${b.customer_name || 'the customer'}`
-      + `${b.assembler_name ? ` with ${b.assembler_name}` : ' with no Easer assigned'}`
-      + ` was due ${Math.floor((now_ts - expectedCompletionMs(b)) / 3600000)}h ago and was never marked complete.`
-      + ' No payment is waiting on it, so nothing is at risk of expiring, but the job is still open.',
-    action: 'review_timeline',
-    overdueHours: Math.floor((now_ts - expectedCompletionMs(b)) / 3600000),
-    jobState: b.status || null,
-    easerName: b.assembler_name || null,
-    easerId: b.assembler_id || null,
-    customerName: b.customer_name || null,
-    startedAt: b.job_started_at || null,
-    arrivedAt: b.checked_in_at || null,
-    enRouteAt: b.en_route_at || null,
-  }));
-
   quoteNeedsPricing.forEach(b => alerts.push({
     type: 'quote_needs_pricing',
     severity: 'medium',
@@ -929,9 +764,9 @@ export default async function handler(req, res) {
     businessDate: todayStr,
     trustSignals,
     summary: {
-      // The count IS the length of the list the panel renders. Not a parallel
-      // filter that agrees with it today and drifts tomorrow.
-      totalActive: activeJobs.length,
+      // Exclude 'pending' (awaiting payment) from Active Jobs count so the
+      // chip matches what's actually shown in the Active Jobs panel.
+      totalActive: operationalBookings.filter(b => b.status !== 'pending').length,
       pendingPayment: pendingPayment.length,
       quoteNeedsPricing: quoteNeedsPricing.length,
       quoteAwaitingApproval: quoteAwaitingApproval.length,
@@ -967,7 +802,6 @@ export default async function handler(req, res) {
       const order = { critical: 0, high: 1, medium: 2, low: 3 };
       return order[a.severity] - order[b.severity];
     }),
-    activeJobs,
     unassigned,
     ownerManualNeedsAssignment,
     ownerManualReconciliation,

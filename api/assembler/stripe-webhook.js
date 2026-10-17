@@ -1,7 +1,6 @@
 ﻿import Stripe from 'stripe';
 import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { getSupabase } from '../_supabase.js';
-import { captureBeforeFromIntent } from '../booking/_authorization-window.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { guestManageUrl } from '../_payment-security.js';
 import { logActivity } from '../booking/_activity.js';
@@ -520,7 +519,6 @@ export default async function handler(req, res) {
           || !isAutomaticDispatchZip(existing.service_zip || '');
         const authorizationUpdate = {
           payment_status: 'authorized',
-          authorization_capture_before: captureBeforeFromIntent(liveAuthorization),
           payment_method_type: paymentMethodType,
           payment_authorized_at: existing.payment_authorized_at || authorizedAt,
           stripe_payment_method_id: paymentMethodId,
@@ -636,7 +634,6 @@ export default async function handler(req, res) {
                 subject: 'Payment Failed — AssembleAtEase Application',
                 html: buildPaymentFailEmail(profile.full_name.split(' ')[0], reason),
                 replyTo: ownerEmail(),
-                meta: { notificationType: 'easer_application_payment_failed', recipientType: 'easer', recipientUserId: profile.id },
               });
             } catch (e) { console.error('Payment failed email error:', e); }
           }
@@ -1393,7 +1390,6 @@ export default async function handler(req, res) {
                 <p>Hi ${esc((p.full_name||'').split(' ')[0])}, you now have priority access to jobs on AssembleAtEase. You'll be notified first for jobs in your area before non-members.</p>
                 <p style="color:#6b7280;font-size:0.875rem">Questions? Email service@assembleatease.com</p>
               </div>`,
-              meta: { notificationType: 'easer_membership_active', recipientType: 'easer', recipientUserId: p.id },
             }).catch(e => console.error('Membership welcome email error:', e));
           }
         }
@@ -2134,7 +2130,6 @@ async function syncAuthorizedCustomerQuote({ sb, stripe, pi, event }) {
     tax_amount: booking.quote_tax_cents,
     payment_status: 'authorized',
     payment_authorized_at: confirmedAt,
-    authorization_capture_before: captureBeforeFromIntent(pi),
     status: 'confirmed',
     confirmed_at: confirmedAt,
     confirmed_by: 'stripe_quote_webhook',
@@ -2178,7 +2173,7 @@ async function syncAuthorizedCustomerQuote({ sb, stripe, pi, event }) {
       to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Quote approved and booking confirmed - ${booking.ref}`,
-      html: `<p>Your quote for <strong>${esc(booking.service)}</strong> was approved for <strong>${amountDisplay}</strong>.</p><p>We have placed a hold on your card. Nothing has been taken. You are charged after the work is done, apart from a cancellation fee if one applies.</p>`,
+      html: `<p>Your quote for <strong>${esc(booking.service)}</strong> was approved for <strong>${amountDisplay}</strong>.</p><p>Your card is authorized, not charged. Payment is captured only after completed work, except for disclosed cancellation fees.</p>`,
       replyTo: ownerEmail(),
       meta: { bookingId: booking.id, notificationType: 'quote_approved', recipientType: 'customer' },
     }),

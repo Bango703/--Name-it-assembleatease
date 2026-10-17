@@ -1,43 +1,16 @@
 ﻿import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
-import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
-import { sendEmail, buildStatusEmail, ownerEmail, esc, buildReviewCta } from '../_email.js';
+import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot, SALES_TAX_RATE, PAYOUT_HOLD_HOURS } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
-import { isStripeConnectEnabled } from '../_stripe-connect.js';
-import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
-import { loadCurrentCompletionEvidence, loadCustomerFacingCompletionPhoto } from './_completion-evidence.js';
-import {
-  releaseBookingFinancialOperation,
-  reserveBookingFinancialOperation,
-} from './_financial-operation.js';
-import { finalizeCompletionRewards, surfaceCompletionRewardHold } from './_completion-rewards.js';
-import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
-import { captureOrRecoverBookingPayment } from './_stripe-booking-payment.js';
-import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
-import { isOwnerManualLiveFlow } from '../_owner-easer.js';
+import { isStripeConnectEnabled, getAssemblerConnectAccount } from '../_stripe-connect.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
-
-// Same-day fee is an ADDITIVE layer — it must never run through the 30/70 base
-// split. These parts EXCLUDE it from the split base (its tax cancels out exactly
-// in the subtraction, so the standard base stays penny-accurate); the fixed Easer
-// rush bonus and platform remainder are added back on top. See _source-of-truth.js.
-function sameDaySplitParts(booking) {
-  const feeCents = Math.max(0, Number(booking?.same_day_fee_cents || 0));
-  const bonusCents = Math.min(feeCents, Math.max(0, Number(booking?.same_day_easer_bonus_cents || 0)));
-  const taxCents = Math.round(feeCents * SALES_TAX_RATE);
-  return {
-    grossCents: feeCents + taxCents,      // remove from amountCharged
-    taxCents,                             // remove from taxCents
-    bonusCents,                           // add to assemblerDue
-    platformExtra: feeCents - bonusCents, // add to platformFee
-  };
-}
 
 /**
  * POST /api/booking/assembler-complete
@@ -48,13 +21,18 @@ function sameDaySplitParts(booking) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const sb = getSupabase();
-  const access = await requireAssignedWorkEaser(req, { supabase: sb });
-  if (!access.ok) return respondWithEaserAccessError(res, access);
-  const { user, profile } = access;
+  // Verify assembler JWT
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  const token = auth.replace('Bearer ', '');
+  const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  const { data: { user }, error: authError } = await userClient.auth.getUser(token);
+  if (authError || !user) return res.status(401).json({ error: 'Invalid session' });
 
   const { bookingId } = req.body || {};
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
+
+  const sb = getSupabase();
 
   // Fetch booking
   const { data: booking, error: fetchErr } = await sb
@@ -65,37 +43,7 @@ export default async function handler(req, res) {
   if (booking.assembler_id !== user.id) {
     return res.status(403).json({ error: 'You are not assigned to this booking' });
   }
-  const operationKey = `complete:${booking.id}`;
-  const offlineOwnerEaserLiveFlow = isOwnerManualLiveFlow(booking, profile);
   if (booking.status === BOOKING_STATUS.COMPLETED) {
-    if (offlineOwnerEaserLiveFlow) {
-      return res.status(200).json({
-        success: true,
-        alreadyCompleted: true,
-        offline: true,
-        booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
-      });
-    }
-    if (booking.payment_status === 'captured'
-        && booking.financial_operation_key === operationKey
-        && ['completion_owner', 'completion_easer'].includes(booking.financial_operation_type)) {
-      const rewardResult = await finalizeCompletionRewards(sb, {
-        booking,
-        operationKey,
-        amountChargedCents: booking.amount_charged || booking.total_price,
-      });
-      if (!rewardResult.ok) {
-        await surfaceCompletionRewardHold(sb, booking, operationKey, rewardResult, {
-          actorType: 'easer', actorId: user.id, actorName: booking.assembler_name || 'Easer',
-          eventSource: 'booking_complete_assembler_retry',
-        });
-      }
-      return res.status(rewardResult.ok ? 200 : 202).json({
-        success: true,
-        alreadyCompleted: true,
-        booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
-      });
-    }
     return res.status(400).json({ error: 'Booking is already marked complete' });
   }
   if (!ACTIVE_BOOKING_STATUSES.includes(booking.status)) {
@@ -105,137 +53,118 @@ export default async function handler(req, res) {
   if (transitionErr) {
     return res.status(400).json({ error: transitionErr });
   }
-  if (!booking.assembler_accepted_at) {
-    return res.status(409).json({ error: 'You must explicitly accept this job before it can be completed.' });
+  if (!booking.assembler_accepted_at && !booking.assigned_at) {
+    return res.status(400).json({ error: 'You must be assigned to this booking before marking it complete' });
   }
 
-  const appointmentGate = evaluateEaserAppointmentGate({
-    date: booking.return_visit_required ? booking.return_visit_date : booking.date,
-    time: booking.return_visit_required ? booking.return_visit_time : booking.time,
-    stage: 'completed',
-  });
-  if (!appointmentGate.allowed) return res.status(409).json(appointmentGate);
-
-  // Completion truth is a photo uploaded by the current assigned Easer after
-  // this assignment entered in_progress. Before/damage evidence never qualifies.
-  const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking);
-  if (completionEvidenceResult.error) {
-    console.error('Completion evidence lookup failed:', completionEvidenceResult.error);
-    return res.status(503).json({ error: 'Your completion photo could not be confirmed. The job was not marked complete. Refresh and try again.' });
-  }
-  const completionEvidence = completionEvidenceResult.evidence;
-  if (!completionEvidence) {
+  // Require at least one completion photo — no exceptions
+  const { data: evidenceRows } = await sb
+    .from('booking_evidence')
+    .select('id')
+    .eq('booking_id', booking.id)
+    .limit(1);
+  if (!evidenceRows?.length) {
     return res.status(400).json({ error: 'A completion photo is required. Please upload a photo before marking this job complete.' });
   }
 
-  // Offline owner-manual completion: the owner's own Easer account finishing an
-  // offline job it worked live. There is no Stripe capture — collection is a
-  // separate owner-audited step — so this path computes the split, records the
-  // manual payout obligation, and skips every Stripe capture gate below.
-  if (offlineOwnerEaserLiveFlow) {
-    if (booking.stripe_payment_intent_id
-        || booking.stripe_deposit_intent_id
-        || booking.stripe_balance_payment_intent_id) {
-      return res.status(409).json({
-        error: 'This job is temporarily unavailable for completion. Its status and earnings are unchanged. Contact support.',
-        code: 'OFFLINE_STRIPE_STATE_CONFLICT',
-      });
-    }
-    return await completeOfflineOwnerManualBooking(sb, res, {
-      booking,
-      user,
-      completionEvidence,
-      operationKey,
-    });
-  }
-
-  const positivePrice = Number(booking.total_price || 0) > 0;
-  if (!positivePrice) {
-    return res.status(409).json({
-      error: 'This job is waiting for a final price and cannot be completed yet.',
-      code: 'PRICE_NOT_SET',
-    });
-  }
-  const capturedRecovery = booking.payment_status === 'captured';
-  if (positivePrice && !['authorized', 'deposit_paid', 'captured'].includes(booking.payment_status)) {
-    return res.status(409).json({
-      error: 'This job is temporarily on hold and cannot be completed yet. Your earnings are unchanged.',
-      code: 'PAYMENT_NOT_AUTHORIZED',
-    });
-  }
-
-  // Block positive-price completion if no Stripe source exists.
-  if (positivePrice && !booking.stripe_payment_intent_id && !booking.stripe_deposit_intent_id) {
+  // Block completion if no payment is authorized — applies to quote bookings
+  // where the owner has not yet called /api/owner/quote-approve.
+  if (!booking.stripe_payment_intent_id) {
     if (!booking.stripe_payment_method_id) {
       return res.status(400).json({
-        error: 'This job is temporarily on hold and cannot be completed yet. Contact support.',
+        error: 'No payment method on file. Contact AssembleAtEase to resolve before completing.',
         code: 'PAYMENT_NOT_AUTHORIZED',
       });
     }
     return res.status(400).json({
-      error: 'This job is waiting for a final price and cannot be completed yet.',
+      error: 'This is a custom quote job. The owner must finalize the quote price before you can mark it complete.',
       code: 'QUOTE_PENDING_APPROVAL',
     });
   }
 
+  // ── Stripe: capture payment ──────────────────────────────────────────────
+  let amountCharged = 0;
   const captureRequired = booking.payment_status === 'authorized' || booking.payment_status === 'deposit_paid';
-  if ((captureRequired || capturedRecovery) && !process.env.STRIPE_SECRET_KEY) {
+  if (captureRequired && !process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({
-      error: 'Completion is temporarily unavailable. The job was not marked complete. Try again later.',
+      error: 'Payment capture configuration is unavailable. Booking was not completed.',
       code: 'CAPTURE_CONFIGURATION_UNAVAILABLE',
     });
   }
 
-  let feeSnapshot;
-  try {
-    feeSnapshot = await resolveOrCreateEaserFeeSnapshot(sb, booking, user.id);
-  } catch (feeError) {
-    console.error('Assembler-complete fee snapshot error:', feeError);
-    return res.status(503).json({
-      error: 'Your payout details could not be prepared. The job was not marked complete. Try again or contact support.',
-      code: feeError.code,
-    });
-  }
-
-  // Shared with owner completion so either trusted actor can reconcile an
-  // ambiguous Stripe success using the same idempotent financial reservation.
-  try {
-    await reserveBookingFinancialOperation(sb, {
-      bookingId: booking.id,
-      operationKey,
-      operationType: 'completion_easer',
-      expectedStatuses: [BOOKING_STATUS.IN_PROGRESS],
-      expectedAssemblerId: user.id,
-      expectedDate: booking.date,
-      expectedTime: booking.time,
-      checkAppointment: true,
-      expectedBooking: booking,
-    });
-  } catch (reservationError) {
-    return res.status(reservationError.code === 'FINANCIAL_OPERATION_CONFLICT' ? 409 : 503).json({
-      error: reservationError.code === 'FINANCIAL_OPERATION_CONFLICT'
-        ? 'This job changed before completion. Refresh and try again.'
-        : 'Completion is temporarily unavailable. The job was not marked complete. Try again later.',
-      code: reservationError.code,
-    });
-  }
-
-  let amountCharged = 0;
-  let actualStripeFee = null;
-  let balancePaymentIntentId = booking.stripe_balance_payment_intent_id || null;
-  let balanceAmountCaptured = booking.stripe_balance_amount_captured ?? null;
   if (process.env.STRIPE_SECRET_KEY) {
     try {
-      const paymentResult = await captureOrRecoverBookingPayment({
-        stripe: new Stripe(process.env.STRIPE_SECRET_KEY),
-        sb,
-        booking,
-        eventSource: 'booking_complete_assembler',
-      });
-      amountCharged = paymentResult.amountCharged;
-      actualStripeFee = paymentResult.actualStripeFee;
-      balancePaymentIntentId = paymentResult.balancePaymentIntentId;
-      balanceAmountCaptured = paymentResult.balanceAmountCaptured;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      if (booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
+        // Shared with owner complete.js so owner/Easer races cannot create
+        // two distinct Stripe capture attempts for the same booking.
+        const idempotencyKey = `booking-complete-capture-${booking.id}`;
+        await writeFinancialAudit(sb, {
+          eventType: 'capture_attempt',
+          eventSource: 'booking_complete_assembler',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey,
+          status: 'processing',
+          metadata: { ref: booking.ref },
+        });
+
+        const captured = await stripe.paymentIntents.capture(
+          booking.stripe_payment_intent_id,
+          {},
+          { idempotencyKey },
+        );
+        amountCharged = captured.amount_received;
+
+        await writeFinancialAudit(sb, {
+          eventType: 'capture_attempt',
+          eventSource: 'booking_complete_assembler',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey,
+          status: 'processed',
+          metadata: { ref: booking.ref, amountCharged: amountCharged || 0 },
+        });
+      } else if (booking.payment_status === 'deposit_paid' && booking.stripe_customer_id && booking.stripe_payment_method_id) {
+        const balanceCents = (booking.total_price || 0) - (booking.deposit_amount || 0);
+        if (balanceCents > 0) {
+          const idempotencyKey = `booking-complete-balance-${booking.id}`;
+          await writeFinancialAudit(sb, {
+            eventType: 'capture_recovery_attempt',
+            eventSource: 'booking_complete_assembler',
+            bookingId: booking.id,
+            paymentIntentId: booking.stripe_payment_intent_id,
+            idempotencyKey,
+            status: 'processing',
+            metadata: { ref: booking.ref, balanceCents },
+          });
+
+          const balancePI = await stripe.paymentIntents.create({
+            amount: balanceCents,
+            currency: 'usd',
+            customer: booking.stripe_customer_id,
+            payment_method: booking.stripe_payment_method_id,
+            confirm: true,
+            off_session: true,
+            metadata: { bookingRef: booking.ref, bookingId: booking.id, type: 'customer_booking_balance' },
+            description: `Balance — ${booking.service} — ${booking.customer_name}`,
+          }, { idempotencyKey });
+
+          amountCharged = (booking.deposit_amount || 0) + (balancePI.amount_received || balanceCents);
+
+          await writeFinancialAudit(sb, {
+            eventType: 'capture_recovery_attempt',
+            eventSource: 'booking_complete_assembler',
+            bookingId: booking.id,
+            paymentIntentId: balancePI.id,
+            idempotencyKey,
+            status: 'processed',
+            metadata: { ref: booking.ref, amountCharged: amountCharged || 0 },
+          });
+        } else {
+          amountCharged = booking.deposit_amount || 0;
+        }
+      }
     } catch (stripeErr) {
       console.error('Assembler-complete Stripe capture error:', stripeErr);
       await writeFinancialAudit(sb, {
@@ -262,29 +191,12 @@ export default async function handler(req, res) {
         await sendEmail({
           to: ownerEmail(),
           from: 'AssembleAtEase <booking@assembleatease.com>',
-          subject: `Payment Capture Failed - ${booking.ref}`,
-          html: `<p>Payment capture failed while the Easer attempted to complete booking <strong>${esc(booking.ref)}</strong>. The booking was not marked complete and no Easer earnings were created.</p>
+          subject: `⚠️ Payment Capture Failed — ${booking.ref}`,
+          html: `<p>Payment capture failed for booking <strong>${esc(booking.ref)}</strong> after assembler marked job complete.</p>
 <p>Customer: ${esc(booking.customer_name)} | Error: ${esc(stripeErr?.message)}</p>
 <p>Manual resolution required in Stripe dashboard.</p>`,
         });
       } catch (e) { console.error('Capture failure alert error:', e); }
-
-      // Same reservation leak as the owner path: nothing is running, so the
-      // booking must not stay locked. Left set, the Easer's next attempt is
-      // refused and only a hand-written UPDATE frees it.
-      try {
-        await releaseBookingFinancialOperation(sb, { bookingId: booking.id, operationKey });
-      } catch (releaseErr) {
-        console.error('Capture failure lock release error:', releaseErr?.message || releaseErr);
-        await logActivity(sb, {
-          bookingId: booking.id,
-          eventType: 'completion_lock_release_failed',
-          actorType: 'system',
-          actorName: 'assembler-complete',
-          description: 'A failed completion could not release its own booking reservation. Retrying completion will be refused until it is cleared.',
-          metadata: { operationKey, error: releaseErr?.message || String(releaseErr) },
-        }).catch(() => {});
-      }
 
       // Detect expired/uncapturable PI and give a clearer message
       const isUncapturable = stripeErr?.code === 'payment_intent_unexpected_state'
@@ -292,8 +204,8 @@ export default async function handler(req, res) {
         || (stripeErr?.message || '').includes('requires_capture');
       return res.status(502).json({
         error: isUncapturable
-          ? 'Completion did not finish. The job and your earnings are unchanged. Contact support.'
-          : 'Completion did not finish. The job and your earnings are unchanged. Please try again or contact support.',
+          ? 'The card authorization for this job has expired or is no longer valid. The owner has been notified and will collect payment manually. You can message support if you need help.'
+          : 'Payment capture failed. The owner has been alerted and will resolve this. Please message support if you need assistance.',
         code: 'CAPTURE_FAILED',
       });
     }
@@ -301,7 +213,7 @@ export default async function handler(req, res) {
 
   if (captureRequired && amountCharged <= 0) {
     return res.status(502).json({
-      error: 'Completion did not finish. The job was not marked complete. Refresh and try again.',
+      error: 'Payment capture did not produce a charge. Booking was not completed.',
       code: 'CAPTURE_INCOMPLETE',
     });
   }
@@ -310,32 +222,24 @@ export default async function handler(req, res) {
 
   if (!captureRequired && finalAmount <= 0) {
     return res.status(400).json({
-      error: 'This job is waiting for a final price and cannot be completed yet. Contact support.',
+      error: 'This job can\'t be marked complete yet — the final price hasn\'t been confirmed. Contact your dispatcher.',
       code: 'PRICE_NOT_SET',
     });
   }
 
-  // Canonical money split — tax is a pass-through liability and is EXCLUDED from
-  // the fee/payout base. AssembleCash is funded by platform margin, so it must
-  // never reduce the Easer's payout basis.
-  const sameDay = sameDaySplitParts(booking);
-  const split = computeBookingSplitFromSnapshot({
-    amountChargedCents: finalAmount - sameDay.grossCents,
-    taxCents: (booking.tax_amount || 0) - sameDay.taxCents,
-    feePct: feeSnapshot.feePct,
-    assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
-  });
-  // Add the same-day fee back on top of the standard split (additive layer).
-  split.platformFeeCents  += sameDay.platformExtra;
-  split.assemblerDueCents += sameDay.bonusCents;
-  const PLATFORM_FEE_PCT = split.feePct;
-  const platformFee      = split.platformFeeCents;
-  const assemblerDue     = split.assemblerDueCents;
+  // Tiered fee: members pay 25%, non-members pay 30% (canonical: _source-of-truth.js MEMBERSHIP_PLATFORM_FEE_PCT)
+  const { data: easerProf } = await sb.from('profiles').select('has_membership').eq('id', user.id).single();
+  const isMember = easerProf?.has_membership === true;
+  const PLATFORM_FEE_PCT = getPlatformFeePct(isMember);
+  const platformFee = Math.round(finalAmount * PLATFORM_FEE_PCT / 100);
+  const assemblerDue = finalAmount - platformFee;
+  let connectPayout = { status: 'disabled' };
 
   // ── Update booking (atomic guard — prevents double-complete race) ────────
-  const completionPayload = {
+  const { error: updateErr, data: updatedRows } = await sb.from('bookings').update({
     status: BOOKING_STATUS.COMPLETED,
     completed_at: new Date().toISOString(),
+    assembler_accepted_at: booking.assembler_accepted_at || new Date().toISOString(),
     payment_status: 'captured',
     payment_captured_at: new Date().toISOString(),
     amount_charged: finalAmount,
@@ -343,23 +247,12 @@ export default async function handler(req, res) {
     platform_fee: platformFee,
     assembler_due: assemblerDue,
     completed_by: 'assembler',
-    payout_status: assemblerDue > 0 ? 'pending' : null,
-    payout_mode_snapshot: assemblerDue > 0
-      ? (isStripeConnectEnabled() ? 'stripe_connect' : 'manual')
-      : null,
-    payout_review_status: 'not_required',
-    stripe_balance_payment_intent_id: balancePaymentIntentId,
-    stripe_balance_amount_captured: balanceAmountCaptured,
-    financial_reconciliation_required_at: null,
-    financial_reconciliation_reason: null,
-  };
-  if (actualStripeFee != null) completionPayload.stripe_fee = actualStripeFee;
-  const completionUpdate = sb.from('bookings').update(completionPayload)
-    .eq('id', booking.id)
-    .eq('status', BOOKING_STATUS.IN_PROGRESS)
-    .eq('assembler_id', user.id)
-    .eq('financial_operation_key', operationKey);
-  const { error: updateErr, data: updatedRows } = await completionUpdate.select('id');
+    payout_status: 'pending',
+  })
+  .eq('id', booking.id)
+  .neq('status', BOOKING_STATUS.COMPLETED)
+  .neq('payment_status', 'captured')
+  .select('id');
 
   if (updateErr) {
     console.error('Assembler-complete update error:', updateErr);
@@ -368,74 +261,173 @@ export default async function handler(req, res) {
   if (!updatedRows || updatedRows.length === 0) {
     const { data: current } = await sb
       .from('bookings')
-      .select('*')
+      .select('id, ref, status, payment_status, payout_status, stripe_transfer_id, stripe_destination_account_id')
       .eq('id', booking.id)
       .maybeSingle();
 
-    if (current?.status === BOOKING_STATUS.COMPLETED && current?.payment_status === 'captured') {
-      let recoveryResult = { ok: true };
-      if (current.financial_operation_key === operationKey
-          && ['completion_owner', 'completion_easer'].includes(current.financial_operation_type)) {
-        recoveryResult = await finalizeCompletionRewards(sb, {
-          booking: current,
-          operationKey,
-          amountChargedCents: current.amount_charged || current.total_price,
-        });
-        if (!recoveryResult.ok) {
-          await surfaceCompletionRewardHold(sb, current, operationKey, recoveryResult, {
-            actorType: 'easer', actorId: user.id, actorName: current.assembler_name || 'Easer',
-            eventSource: 'booking_complete_assembler_race_recovery',
-          });
-        }
-      }
-      return res.status(recoveryResult.ok ? 200 : 202).json({
+    if (current?.status === BOOKING_STATUS.COMPLETED || current?.payment_status === 'captured') {
+      return res.status(200).json({
         success: true,
         alreadyCompleted: true,
         booking: { id: booking.id, ref: booking.ref, status: current.status || BOOKING_STATUS.COMPLETED },
+        payout: current.stripe_transfer_id
+          ? {
+              status: current.payout_status === 'paid' ? 'paid' : 'pending_manual',
+              transferId: current.stripe_transfer_id,
+              destinationAccount: current.stripe_destination_account_id || null,
+            }
+          : { status: current.payout_status === 'paid' ? 'paid' : 'pending_manual' },
       });
     }
 
     return res.status(409).json({
-      error: 'This job changed before completion finished. Contact support before retrying.',
+      error: 'Completion capture succeeded, but booking state was changed by another request. Contact AssembleAtEase before retrying.',
       code: 'COMPLETION_STATE_RACE',
     });
   }
 
-  // Keep the exact completion reservation until both canonical reward records
-  // are verified. Ambiguity leaves the booking locked and visible in Live Ops.
-  const rewardResult = await finalizeCompletionRewards(sb, {
-    booking: {
-      ...booking,
-      status: BOOKING_STATUS.COMPLETED,
-      payment_status: 'captured',
-      amount_charged: finalAmount,
-    },
-    operationKey,
-    amountChargedCents: finalAmount,
-  });
-  if (!rewardResult.ok) {
-    await surfaceCompletionRewardHold(sb, booking, operationKey, rewardResult, {
-      actorType: 'easer', actorId: user.id, actorName: booking.assembler_name || 'Easer',
-      eventSource: 'booking_complete_assembler',
-    });
+  // Optional Stripe Connect payout path. If disabled or not ready, booking remains pending payout.
+  if (isStripeConnectEnabled() && assemblerDue > 0 && process.env.STRIPE_SECRET_KEY) {
+    const connectState = await getAssemblerConnectAccount(sb, user.id);
+    if (!connectState.ok) {
+      connectPayout = {
+        status: 'pending_manual',
+        reason: connectState.reason,
+      };
+    } else {
+      // Shared key with owner complete.js — Stripe rejects duplicate if both race.
+      const transferIdempotencyKey = `transfer-booking-${booking.id}`;
+      try {
+        await writeFinancialAudit(sb, {
+          eventType: 'transfer_attempt',
+          eventSource: 'booking_complete_assembler',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey: transferIdempotencyKey,
+          status: 'processing',
+          metadata: {
+            ref: booking.ref,
+            destinationAccount: connectState.accountId,
+            amount: assemblerDue,
+          },
+        });
+
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        const transfer = await stripe.transfers.create({
+          amount: assemblerDue,
+          currency: 'usd',
+          destination: connectState.accountId,
+          transfer_group: `booking_${booking.id}`,
+          metadata: {
+            bookingId: booking.id,
+            bookingRef: booking.ref,
+            type: 'assembler_payout',
+          },
+        }, {
+          idempotencyKey: transferIdempotencyKey,
+        });
+
+        const transferNotes = `Stripe Connect transfer ${transfer.id}`;
+        const { error: payoutErr } = await sb.rpc('record_booking_payout', {
+          p_booking_id: booking.id,
+          p_payout_amount_cents: assemblerDue,
+          p_notes: transferNotes,
+          p_recorded_by: 'system_connect',
+          p_payout_method: 'stripe_connect',
+        });
+
+        if (payoutErr) {
+          console.error('Connect payout RPC error:', payoutErr);
+          await sb.from('bookings').update({
+            payout_status: 'paid',
+            payout_amount: assemblerDue,
+            paid_out_at: new Date().toISOString(),
+            payout_notes: transferNotes,
+          }).eq('id', booking.id);
+        }
+
+        await sb.from('bookings').update({
+          stripe_transfer_id: transfer.id,
+          stripe_destination_account_id: connectState.accountId,
+        }).eq('id', booking.id);
+
+        await writeFinancialAudit(sb, {
+          eventType: 'transfer_attempt',
+          eventSource: 'booking_complete_assembler',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey: transferIdempotencyKey,
+          status: 'processed',
+          metadata: {
+            ref: booking.ref,
+            destinationAccount: connectState.accountId,
+            transferId: transfer.id,
+            amount: assemblerDue,
+          },
+        });
+
+        connectPayout = {
+          status: 'paid',
+          transferId: transfer.id,
+          destinationAccount: connectState.accountId,
+          amount: assemblerDue,
+        };
+      } catch (connectErr) {
+        console.error('Stripe Connect transfer error:', connectErr);
+        await writeFinancialAudit(sb, {
+          eventType: 'transfer_attempt',
+          eventSource: 'booking_complete_assembler',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey: transferIdempotencyKey,
+          status: 'failed',
+          metadata: {
+            ref: booking.ref,
+            destinationAccount: connectState.accountId,
+            amount: assemblerDue,
+          },
+          error: connectErr?.message || 'Unknown Stripe Connect transfer error',
+        });
+        connectPayout = {
+          status: 'pending_manual',
+          reason: 'transfer-failed',
+          error: connectErr?.message || 'Unknown Stripe Connect transfer error',
+        };
+        // Alert owner — manual payout action required
+        sendEmail({
+          from: 'AssembleAtEase <booking@assembleatease.com>',
+          to: ownerEmail(),
+          subject: `ACTION REQUIRED — Connect transfer failed — ${booking.ref}`,
+          html: `<p>The Stripe Connect transfer for booking <strong>${esc(booking.ref)}</strong> failed and requires manual payout.</p><p><strong>Easer:</strong> ${esc(connectState.accountId)}<br/><strong>Amount:</strong> $${(assemblerDue / 100).toFixed(2)}<br/><strong>Error:</strong> ${esc(connectErr?.message || 'Unknown error')}</p><p>Check the financial audit log and process manually via the owner dashboard.</p>`,
+        }).catch(e => console.error('Connect failure owner alert email error:', e));
+      }
+    }
   }
+
+  // ── Increment completed_jobs + total_earned atomically ──────────────────────
+  try {
+    const { error: rpcErr } = await sb.rpc('increment_profile_counters', { user_id: user.id, earned_cents: assemblerDue });
+    if (rpcErr) console.error('profile counters RPC failed — counter may need reconciliation:', rpcErr.message);
+  } catch (e) { console.error('profile counters increment error:', e); }
 
   // Job is done — release the Easer's daily slot
   adjustActiveJobs(sb, user.id, -1).catch(() => {});
 
   // ── Email customer receipt ───────────────────────────────────────────────
   try {
+    const reviewUrl = process.env.GOOGLE_REVIEW_URL || 'https://www.assembleatease.com';
     const amountDisplay = finalAmount > 0 ? `$${(finalAmount / 100).toFixed(2)}` : null;
 
     // Completion photo — visual proof of the finished work (signed URL, 30-day expiry).
-    // The completion GATE above still requires a photo — that is unchanged.
-    // This is a different question: may the CUSTOMER see one? Only a photo an
-    // owner deliberately promoted to customer-facing qualifies. If none has
-    // been, the receipt sends exactly as it is, minus this section.
     let photoBlock = '';
     try {
-      const { evidence: shareable } = await loadCustomerFacingCompletionPhoto(sb, booking);
-      const path = shareable?.storage_path;
+      const { data: photoRows } = await sb
+        .from('booking_evidence')
+        .select('storage_path, evidence_type, created_at')
+        .eq('booking_id', booking.id)
+        .order('created_at', { ascending: false });
+      const path = (photoRows || []).find(r => r.evidence_type === 'completion_photo')?.storage_path
+        || (photoRows || [])[0]?.storage_path;
       if (path) {
         const { data: signed } = await sb.storage.from('booking-evidence').createSignedUrl(path, 60 * 60 * 24 * 30);
         if (signed?.signedUrl) {
@@ -453,7 +445,7 @@ export default async function handler(req, res) {
         <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#166534">
           <tr><td style="padding:3px 0;width:130px">Service</td><td style="padding:3px 0;font-weight:600">${esc(booking.service)}</td></tr>
           <tr><td style="padding:3px 0">Reference</td><td style="padding:3px 0;font-weight:600">${esc(booking.ref)}</td></tr>
-          <tr><td style="padding:3px 0">Status</td><td style="padding:3px 0;font-weight:700">Charged</td></tr>
+          <tr><td style="padding:3px 0">Status</td><td style="padding:3px 0;font-weight:700">Charged ✓</td></tr>
         </table>
       </td></tr></table>` : '';
 
@@ -469,14 +461,16 @@ export default async function handler(req, res) {
         statusBg: '#d1fae5',
         headline: `Your job is complete, ${esc((booking.customer_name || '').split(' ')[0])}.`,
         bodyHtml: `
-          <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> has been completed. Thank you for choosing AssembleAtEase.</p>
+          <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> has been completed. Thank you for choosing AssembleAtEase!</p>
           ${photoBlock}
           ${receiptBlock}
-          ${buildReviewCta()}
-          <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions about the completed work or receipt? Reply to this email for help from AssembleAtEase.</p>`,
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px;text-align:center">
+            <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#1e40af">Did we do a good job?</p>
+            <p style="margin:0 0 16px;font-size:13px;color:#1e40af;line-height:1.6">A quick Google review helps Austin homeowners find trusted help — takes 30 seconds.</p>
+            <a href="${esc(reviewUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Leave a Review &#9733;</a>
+          </td></tr></table>`,
       }),
       replyTo: ownerEmail(),
-      meta: { bookingId: booking.id, notificationType: 'payment_receipt', recipientType: 'customer' },
     });
   } catch (e) { console.error('Assembler-complete customer email error:', e); }
 
@@ -487,63 +481,39 @@ export default async function handler(req, res) {
       await sendEmail({
         to: asmProfile.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: `Job complete — here's what you earned (${booking.ref})`,
-        // A FRAGMENT, not a full document. This email used to start with
-        // <!DOCTYPE html>, which makes sendEmail's shared frame skip it — so the
-        // one email an Easer gets about their money arrived with no logo, no
-        // footer and no contact block, while the owner's notice beside it got
-        // the full frame. Handing over a fragment puts it back in the house
-        // style and keeps the branding in one place.
-        html: `
-    <p style="margin:0 0 6px;font-size:13px;color:#71717a">${esc(booking.ref)} &bull; ${esc(booking.service)}</p>
-    <p style="margin:0 0 22px;font-size:20px;font-weight:700;color:#1a1a1a">Nice work. Here is what you earned.</p>
-
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-bottom:18px"><tr><td style="padding:20px 22px;text-align:center">
-      <p style="margin:0 0 2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#166534">Your payout</p>
-      <p style="margin:0;font-size:30px;font-weight:700;color:#065f46;letter-spacing:-0.02em">$${(assemblerDue / 100).toFixed(2)}</p>
-      ${sameDay.bonusCents > 0 ? `<p style="margin:8px 0 0;font-size:13px;color:#166534">Includes a $${(sameDay.bonusCents / 100).toFixed(2)} same-day bonus</p>` : ''}
+        subject: `Job Complete — Payout Summary for ${booking.ref}`,
+        html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
+    <p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#065f46">&#10003; Job Marked Complete</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#52525b">Booking <strong>${esc(booking.ref)}</strong> &mdash; ${esc(booking.service)}</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:16px"><tr><td style="padding:16px 20px">
+      <table width="100%" style="font-size:14px">
+        <tr><td style="padding:4px 0;color:#166534">Total charged to customer</td><td style="padding:4px 0;text-align:right;font-weight:600">$${(finalAmount/100).toFixed(2)}</td></tr>
+        <tr><td style="padding:4px 0;color:#166534">Platform fee (${PLATFORM_FEE_PCT}%)</td><td style="padding:4px 0;text-align:right;color:#dc2626">&minus;$${(platformFee/100).toFixed(2)}</td></tr>
+        <tr style="border-top:1px solid #bbf7d0"><td style="padding:8px 0 4px;font-weight:700;color:#065f46">Your payout</td><td style="padding:8px 0 4px;text-align:right;font-weight:700;color:#065f46;font-size:18px">$${(assemblerDue/100).toFixed(2)}</td></tr>
+      </table>
     </td></tr></table>
-
-    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:20px">
-      <tr><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Status today</td><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;font-weight:600;text-align:right">Pending</td></tr>
-      <tr><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Released</td><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;font-weight:600;text-align:right">${PAYOUT_HOLD_HOURS} hours after completion</td></tr>
-      <tr><td style="padding:9px 0;color:#71717a">Paid by</td><td style="padding:9px 0;font-weight:600;text-align:right">${isStripeConnectEnabled() ? 'Direct deposit' : 'AssembleAtEase, arranged with you'}</td></tr>
-    </table>
-
-    <p style="margin:0 0 18px;font-size:13.5px;color:#52525b;line-height:1.7">We email you when it is sent.</p>
-
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:6px"><tr><td style="text-align:center;padding:4px 0">
-      <a href="https://www.assembleatease.com/assembler/payouts.html" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">See my earnings</a>
-    </td></tr></table>
-
-    <p style="margin:16px 0 0;font-size:13px;color:#71717a;line-height:1.6">Something look wrong? Reply to this email and we will check it.</p>`,
-        meta: { bookingId: booking.id, notificationType: 'completion', recipientType: 'easer', recipientUserId: booking.assembler_id },
+    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Payouts are processed on our regular schedule. Contact <a href="mailto:${ownerEmail()}" style="color:#00BFFF">${ownerEmail()}</a> with any questions.</p>
+  </td></tr></table>
+</div></body></html>`,
       });
     }
   } catch (e) { console.error('Assembler payout email error:', e); }
 
   // ── Notify owner ─────────────────────────────────────────────────────────
   try {
-    const ownerNotice = await sendEmail({
+    await sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Job Completed by Easer — ${booking.ref}`,
       html: `<p>Booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}) has been marked complete by the Easer.</p>
 <p>Customer: ${esc(booking.customer_name)} | Amount: $${(finalAmount/100).toFixed(2)} | Easer due: $${(assemblerDue/100).toFixed(2)}</p>`,
-      meta: { bookingId: booking.id, notificationType: 'owner_completion', recipientType: 'owner' },
     });
-    if (ownerNotice?.ok !== true) throw new Error('Owner completion alert was not accepted');
-  } catch (e) {
-    console.error('Owner notify error:', e);
-    await logActivity(sb, {
-      bookingId: booking.id, eventType: 'notification_failed', actorType: 'system', actorName: 'Notifications',
-      description: 'Job completion was saved, but the owner completion alert failed. Review this booking directly.',
-      metadata: { notificationType: 'owner_completion', recipientType: 'owner' },
-    });
-  }
+  } catch (e) { console.error('Owner notify error:', e); }
 
   // Activity log (surfaces in owner Timeline tab)
-  await logActivity(sb, {
+  logActivity(sb, {
     bookingId: booking.id,
     eventType: 'completed',
     actorType: 'easer',
@@ -557,245 +527,9 @@ export default async function handler(req, res) {
     updateDealStage(booking.hubspot_deal_id, 'closedwon').catch(e => console.error('HubSpot error:', e));
   }
 
-  return res.status(rewardResult.ok ? 200 : 202).json({
-    success: true,
-    booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
-  });
-}
-
-// Completion for an offline (owner_manual) job the owner worked with their own
-// Easer account. No Stripe capture happens — the customer paid the owner offline
-// — so this is fully self-contained: it computes the canonical split, records the
-// Easer payout as pending (owner pays and records it like any regular job), and
-// notifies the customer with the same branded completion email as a dispatched
-// job. payment_status stays 'offline_recorded' and is NEVER set to 'captured':
-// no funds sit in Stripe. Reached only for isOwnerManualLiveFlow bookings, which
-// only the owner's own account can ever satisfy (see _owner-easer.js + migration 042).
-async function completeOfflineOwnerManualBooking(sb, res, {
-  booking,
-  user,
-  completionEvidence,
-  operationKey,
-}) {
-  const totalCents = Number(booking.total_price || 0);
-  if (!(totalCents > 0)) {
-    return res.status(409).json({
-      error: 'This job cannot be completed until a positive final price is set.',
-      code: 'PRICE_NOT_SET',
-    });
-  }
-
-  let feeSnapshot;
-  try {
-    feeSnapshot = await resolveOrCreateEaserFeeSnapshot(sb, booking, user.id);
-  } catch (feeError) {
-    console.error('Offline owner-manual completion fee snapshot error:', feeError);
-    return res.status(503).json({
-      error: 'Your payout details could not be prepared. The job was not marked complete. Try again or contact support.',
-      code: feeError.code,
-    });
-  }
-
-  // Canonical split — tax is a pass-through liability, excluded from the payout
-  // base, exactly like the online path. The owner-Easer earns the normal payout.
-  const sameDay = sameDaySplitParts(booking);
-  const split = computeBookingSplitFromSnapshot({
-    amountChargedCents: totalCents - sameDay.grossCents,
-    taxCents: (booking.tax_amount || 0) - sameDay.taxCents,
-    feePct: feeSnapshot.feePct,
-    assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
-  });
-  // Add the same-day fee back on top of the standard split (additive layer).
-  split.platformFeeCents  += sameDay.platformExtra;
-  split.assemblerDueCents += sameDay.bonusCents;
-  const now = new Date().toISOString();
-
-  // This completion creates canonical earnings and payout state even though it
-  // does not touch Stripe. Use the same row-locked financial reservation as the
-  // card completion path so owner edits, collection changes, cancellation, and
-  // duplicate completion cannot cross this money write.
-  try {
-    await reserveBookingFinancialOperation(sb, {
-      bookingId: booking.id,
-      operationKey,
-      operationType: 'completion_easer',
-      expectedStatuses: [BOOKING_STATUS.IN_PROGRESS],
-      expectedAssemblerId: user.id,
-      expectedDate: booking.date,
-      expectedTime: booking.time,
-      checkAppointment: true,
-      expectedBooking: booking,
-    });
-  } catch (reservationError) {
-    return res.status(reservationError.code === 'FINANCIAL_OPERATION_CONFLICT' ? 409 : 503).json({
-      error: reservationError.code === 'FINANCIAL_OPERATION_CONFLICT'
-        ? 'This job changed before completion. Refresh and try again.'
-        : 'Completion is temporarily unavailable. The job was not marked complete. Try again later.',
-      code: reservationError.code,
-    });
-  }
-
-  const completionUpdates = {
-    status: BOOKING_STATUS.COMPLETED,
-    completed_at: now,
-    completed_by: 'assembler',
-    amount_charged: totalCents,
-    platform_fee_pct: split.feePct,
-    platform_fee: split.platformFeeCents,
-    assembler_due: split.assemblerDueCents,
-    payout_status: split.assemblerDueCents > 0 ? 'pending' : null,
-    // Offline customer funds are outside the platform Stripe balance. Even when
-    // Connect is enabled for online work, this payout must be recorded manually.
-    payout_mode_snapshot: split.assemblerDueCents > 0 ? 'manual' : null,
-    payout_review_status: 'not_required',
-    // Processing fee for how the customer paid this offline job (0 for cash/bank
-    // rails, the card rate for card rails) — one rule, from _offline-payment.js.
-    stripe_fee: booking.stripe_fee != null
-      ? Number(booking.stripe_fee)
-      : offlineMethodFeeCents(booking.payment_method, totalCents),
-    financial_operation_key: null,
-    financial_operation_type: null,
-    financial_operation_started_at: null,
-    return_visit_required: false,
-    return_visit_completed_at: booking.return_visit_required ? now : booking.return_visit_completed_at,
-  };
-  let completionUpdate = sb.from('bookings').update(completionUpdates)
-    .eq('id', booking.id)
-    .eq('status', BOOKING_STATUS.IN_PROGRESS)
-    .eq('assembler_id', user.id)
-    .eq('source', 'owner_manual')
-    .eq('payment_status', 'offline_recorded')
-    .eq('total_price', booking.total_price)
-    .eq('payment_collected', booking.payment_collected === true)
-    .eq('financial_operation_key', operationKey)
-    .eq('financial_operation_type', 'completion_easer');
-  completionUpdate = booking.tax_amount == null
-    ? completionUpdate.is('tax_amount', null)
-    : completionUpdate.eq('tax_amount', booking.tax_amount);
-  completionUpdate = booking.payment_method == null
-    ? completionUpdate.is('payment_method', null)
-    : completionUpdate.eq('payment_method', booking.payment_method);
-  const { data: rows, error: updateErr } = await completionUpdate.select('id');
-
-  if (updateErr || !rows?.length) {
-    if (updateErr) console.error('Offline owner-manual completion update error:', updateErr);
-    const { data: current, error: currentError } = await sb
-      .from('bookings')
-      .select('status, source, payment_status, payment_collected, payout_status, assembler_id, financial_operation_key')
-      .eq('id', booking.id)
-      .maybeSingle();
-    if (!currentError
-        && current?.status === BOOKING_STATUS.COMPLETED
-        && current?.source === 'owner_manual'
-        && current?.payment_status === 'offline_recorded'
-        && current?.assembler_id === user.id) {
-      return res.status(200).json({
-        success: true, alreadyCompleted: true, offline: true,
-        booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
-      });
-    }
-    if (!currentError
-        && current?.status === BOOKING_STATUS.IN_PROGRESS
-        && current?.financial_operation_key === operationKey) {
-      try {
-        await releaseBookingFinancialOperation(sb, { bookingId: booking.id, operationKey });
-      } catch (releaseError) {
-        console.error('Offline owner-manual completion lock release failed:', releaseError);
-        return res.status(503).json({
-          error: 'Completion did not finish. The job and your earnings are unchanged. Contact support before retrying.',
-          code: 'OFFLINE_COMPLETION_RECONCILIATION_REQUIRED',
-        });
-      }
-    }
-    return res.status(currentError ? 503 : 409).json({
-      error: currentError
-        ? 'Completion status is temporarily unavailable. Refresh and contact support if it continues.'
-        : 'This job changed before completion. Refresh and try again.',
-      code: currentError ? 'OFFLINE_COMPLETION_RECONCILIATION_REQUIRED' : 'OFFLINE_COMPLETION_STATE_CHANGED',
-    });
-  }
-
-  adjustActiveJobs(sb, user.id, -1).catch(() => {});
-
-  // Customer completion email — identical branding to a dispatched job so the
-  // customer never sees this was owner-performed. Photo + review ask included.
-  try {
-    if (booking.customer_email) {
-      let photoBlock = '';
-      try {
-        const path = completionEvidence?.storage_path;
-        if (path) {
-          const { data: signed } = await sb.storage.from('booking-evidence').createSignedUrl(path, 60 * 60 * 24 * 30);
-          if (signed?.signedUrl) {
-            photoBlock = `<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px"><tr><td>
-              <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#374151">Here's a photo of the finished work:</p>
-              <img src="${signed.signedUrl}" alt="Completed ${esc(booking.service)}" style="width:100%;max-width:520px;border-radius:10px;border:1px solid #e4e4e7;display:block"/>
-            </td></tr></table>`;
-          }
-        }
-      } catch (photoErr) { console.error('Offline completion photo signed-url error:', photoErr.message); }
-
-      await sendEmail({
-        to: booking.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: `Your job is complete — ${booking.ref}`,
-        html: buildStatusEmail({
-          customerName: booking.customer_name,
-          ref: booking.ref,
-          status: 'COMPLETED',
-          statusColor: '#065f46',
-          statusBg: '#d1fae5',
-          headline: `Your job is complete, ${esc((booking.customer_name || '').split(' ')[0])}.`,
-          bodyHtml: `<p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> has been completed. Thank you for choosing AssembleAtEase!</p>
-            ${photoBlock}
-            ${buildReviewCta()}
-            <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions about the completed work? Reply here, call <a href="tel:+19792325139" style="color:#00BFFF;text-decoration:none">(979) 232-5139</a>, or email <a href="mailto:service@assembleatease.com" style="color:#00BFFF;text-decoration:none">service@assembleatease.com</a>.</p>`,
-        }),
-        replyTo: ownerEmail(),
-        meta: { bookingId: booking.id, notificationType: 'completion', recipientType: 'customer' },
-      });
-    }
-  } catch (e) { console.error('Offline completion customer email error:', e); }
-
-  // Owner earnings summary (owner = the performing Easer here). Completion and
-  // collection remain separate truths; never claim funds were collected unless
-  // the audited collection fields say so.
-  try {
-    const collectionSummary = booking.payment_collected
-      ? `Customer payment recorded as collected: $${(totalCents / 100).toFixed(2)}.`
-      : `Customer payment is not yet recorded as collected. Confirm the exact $${(totalCents / 100).toFixed(2)} customer payment before recording the payout.`;
-    const ownerNotice = await sendEmail({
-      to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: `Offline job completed — ${booking.ref}`,
-      html: `<p>Your offline job <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}) is marked complete.</p>
-<p>Customer: ${esc(booking.customer_name)} | Your earnings: $${(split.assemblerDueCents / 100).toFixed(2)}.</p>
-<p>${collectionSummary} The external Easer payout remains manual and must be recorded from the Payouts page after every hold clears.</p>`,
-      meta: { bookingId: booking.id, notificationType: 'owner_offline_completion', recipientType: 'owner' },
-    });
-    if (ownerNotice?.ok !== true) throw new Error('Owner offline completion alert was not accepted');
-  } catch (e) {
-    console.error('Offline completion owner email error:', e);
-    await logActivity(sb, {
-      bookingId: booking.id, eventType: 'notification_failed', actorType: 'system', actorName: 'Notifications',
-      description: 'Offline job completion was saved, but the owner completion alert failed. Review this booking directly.',
-      metadata: { notificationType: 'owner_offline_completion', recipientType: 'owner' },
-    });
-  }
-
-  await logActivity(sb, {
-    bookingId: booking.id,
-    eventType: 'completed',
-    actorType: 'easer',
-    actorId: user.id,
-    actorName: booking.assembler_name || 'Owner (Easer)',
-    description: `Offline owner-performed job marked complete. Customer collection: ${booking.payment_collected ? `$${(totalCents / 100).toFixed(2)} collected` : 'not fully collected'}. Easer due: $${(split.assemblerDueCents / 100).toFixed(2)}.`,
-    metadata: { source: 'owner_manual', offline: true, amountCharged: totalCents, platformFee: split.platformFeeCents, assemblerDue: split.assemblerDueCents, platformFeePct: split.feePct },
-  }).catch(e => console.warn('Offline completion activity log skipped:', e?.message || e));
-
   return res.status(200).json({
     success: true,
-    offline: true,
     booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
+    payout: connectPayout,
   });
 }

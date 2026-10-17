@@ -2,19 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="/assets/js/sentry-init.js"></script>
-  <script src="https://js.sentry-cdn.com/d5e773248c17d9f13dcf8b0a5f5dd73f.min.js" crossorigin="anonymous"></script>
   <title>Easer Sign In — AssembleAtEase</title>
   <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Sign in to the AssembleAtEase Easer portal to manage jobs, payouts, and account status." />
-  <link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" /><link rel="icon" type="image/jpeg" href="/images/logo.jpg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" />
   <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" /></noscript>
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
-  <script src="../config.js?v=20260802a" defer></script>
+  <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
   <!-- auth.js not loaded here — login.html has its own handler to avoid duplicates -->
   <style>
@@ -97,7 +94,6 @@
       color: #80dfff;
       font-weight: 700;
     }
-    .brand-bullet-icon::before { content: ''; width: 5px; height: 9px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px,-1px); }
 
     /* RIGHT — form panel */
     .auth-form-panel {
@@ -195,10 +191,10 @@
       <h1 class="brand-headline">Easer Portal</h1>
       <p class="brand-sub">Your professional dashboard for managing jobs, tracking earnings, and growing your reputation.</p>
       <div class="brand-bullets">
-        <div class="brand-bullet"><div class="brand-bullet-icon" aria-hidden="true"></div>Review available job offers</div>
-        <div class="brand-bullet"><div class="brand-bullet-icon" aria-hidden="true"></div>Track earnings and payout status</div>
-        <div class="brand-bullet"><div class="brand-bullet-icon" aria-hidden="true"></div>Build reviews and service history</div>
-        <div class="brand-bullet"><div class="brand-bullet-icon" aria-hidden="true"></div>See job scope and estimated earnings before accepting</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Receive job assignments instantly</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Track your earnings and payouts</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Build your reviews and tier</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Get priority jobs with membership</div>
       </div>
     </div>
   </div>
@@ -239,7 +235,7 @@
       </form>
 
       <div class="form-divider">
-        Not an Easer yet <a href="/assembler/apply">Apply to join</a>
+        Not an Easer yet <a href="/apply">Apply to join</a>
       </div>
     </div>
   </div>
@@ -283,14 +279,7 @@
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) {
           alertEl.className = 'alert alert-error';
-          // A deactivated Easer's sign-in is closed at the auth layer. When the
-          // system signals that (rather than a plain wrong-password), show a
-          // respectful, specific message instead of "Invalid login credentials".
-          const accessClosed = error.code === 'user_banned'
-            || /banned|deactiv|disabled|no longer active|not active/i.test(error.message || '');
-          alertEl.textContent = accessClosed
-            ? 'This account is no longer active. If you believe this is a mistake, contact service@assembleatease.com.'
-            : (error.message || 'Login failed. Please check your credentials and try again.');
+          alertEl.textContent = error.message || 'Login failed. Please check your credentials and try again.';
           btn.disabled = false; btn.textContent = 'Log in';
           return;
         }
@@ -305,9 +294,14 @@
         }
 
         if (profile.role === 'assembler' && profile.tier === 'pending') {
-          // Keep the authenticated session so a pending applicant can safely
-          // resume required agreement/Identity steps or see review status.
-          window.location.href = '/assembler/verify-identity';
+          await supabaseClient.auth.signOut();
+          document.querySelector('.auth-form-inner').innerHTML = `
+            <div style="text-align:center;padding:2rem 0">
+              <div style="font-size:3rem;margin-bottom:1rem">&#9203;</div>
+              <h2 style="font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:0.75rem">Application Under Review</h2>
+              <p style="color:#64748b;font-size:0.9rem;line-height:1.65;margin-bottom:1.5rem">Your application is being reviewed by our team.<br>You will receive an email once a decision is made.</p>
+              <p style="font-size:0.82rem;color:#94a3b8">Questions <a href="mailto:service@assembleatease.com" style="color:#00BFFF;text-decoration:none">service@assembleatease.com</a></p>
+            </div>`;
           return;
         }
 
@@ -328,5 +322,6 @@
     });
   });
 </script>
+<script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>

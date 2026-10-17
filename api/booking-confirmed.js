@@ -10,7 +10,6 @@ import { dispatchBooking } from './booking/_dispatch-internal.js';
 import { logActivity } from './booking/_activity.js';
 import { safeTokenHashMatch } from './_payment-security.js';
 import { normalizeBookingPaymentMethod } from './booking/_payment-method.js';
-import { fetchCaptureDeadline } from './booking/_authorization-window.js';
 
 /**
  * POST /api/booking-confirmed
@@ -29,13 +28,13 @@ export default async function handler(req, res) {
     console.error('Rate limit error (Redis unavailable):', rlErr);
   }
 
-  const { bookingId, guestMutationToken, paymentRecoveryToken } = req.body || {};
-  if (!bookingId || (!guestMutationToken && !paymentRecoveryToken)) return res.status(400).json({ error: 'Missing secure booking confirmation credentials' });
+  const { bookingId, guestMutationToken } = req.body || {};
+  if (!bookingId || !guestMutationToken) return res.status(400).json({ error: 'Missing secure booking confirmation credentials' });
 
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, sms_consent_at, sms_opted_out_at, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_method_type, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, payment_recovery_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, sms_consent_at, sms_opted_out_at, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_method_type, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
     .eq('id', bookingId)
     .single();
 
@@ -53,18 +52,9 @@ export default async function handler(req, res) {
     }
   }
 
-  const validGuestToken = !!guestMutationToken && safeTokenHashMatch(guestMutationToken, booking.guest_mutation_token_hash);
-  const suppliedRecoveryToken = paymentRecoveryToken || guestMutationToken;
-  const validRecoveryToken = !!suppliedRecoveryToken && safeTokenHashMatch(suppliedRecoveryToken, booking.payment_recovery_token_hash);
-  if (!validGuestToken && !validRecoveryToken) {
+  if (!safeTokenHashMatch(guestMutationToken, booking.guest_mutation_token_hash)) {
     return res.status(403).json({ error: 'Invalid secure booking confirmation token.' });
   }
-  // A job already under way must not be pushed back to 'confirmed' by paying.
-  // 'authorized' belongs here even though it owes nothing: if this endpoint
-  // ever runs against a live job in that state, the alternative is rewriting
-  // its status and wiping the Easer's own progress.
-  const activeRecovery = ['en_route', 'arrived', 'in_progress'].includes(booking.status)
-    && ['pending', 'failed', 'authorized'].includes(booking.payment_status);
   if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at
       || booking.financial_reconciliation_required_at || booking.cancellation_reconciliation_required_at) {
     return res.status(409).json({
@@ -86,14 +76,9 @@ export default async function handler(req, res) {
   if (!booking.stripe_payment_intent_id || !process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({ error: 'Payment verification is unavailable. Your booking has not been confirmed.' });
   }
-  // What Stripe says about when this hold stops being capturable. Read inside
-  // the same block that already verified the intent; null when it cannot be
-  // learned, never a guessed date.
-  let captureDeadline = null;
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
-    captureDeadline = await fetchCaptureDeadline(stripe, booking.stripe_payment_intent_id);
     const metadataMatches = pi.metadata?.bookingId === booking.id
       && pi.metadata?.type === 'customer_booking';
     const amountMatches = pi.currency === 'usd' && pi.amount === Number(booking.total_price || 0);
@@ -126,25 +111,16 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: 'Could not verify payment status. Please try again.' });
   }
 
-  // Confirm booking + mark payment authorized. Promotes status so dispatch can
-  // run — except on a job already under way, where promoting would rewrite the
-  // Easer's own progress. There the money is recorded and nothing else moves.
-  const updatePayload = activeRecovery
-    ? {
-      payment_status: 'authorized',
-      payment_authorized_at: new Date().toISOString(),
-      authorization_capture_before: captureDeadline,
-    }
-    : {
-      payment_status: 'authorized',
-      payment_authorized_at: new Date().toISOString(),
-      authorization_capture_before: captureDeadline,
-      status: 'confirmed',
-      confirmed_at: new Date().toISOString(),
-      confirmed_by: 'payment',
-    };
+  // Confirm booking + mark payment authorized. Promotes status so dispatch can run.
+  const updatePayload = {
+    payment_status: 'authorized',
+    payment_authorized_at: new Date().toISOString(),
+    status: 'confirmed',
+    confirmed_at: new Date().toISOString(),
+    confirmed_by: 'payment',
+  };
   updatePayload.payment_method_type = verifiedPaymentMethodType;
-  if (!activeRecovery && booking.dispatch_status === 'payment_hold') {
+  if (booking.dispatch_status === 'payment_hold') {
     const requiresOwnerAssignment = !['austin_core', 'near_suburb'].includes(booking.call_zone);
     updatePayload.dispatch_status = null;
     updatePayload.dispatch_paused = false;
@@ -152,18 +128,12 @@ export default async function handler(req, res) {
   }
   if (verifiedPaymentMethodId) updatePayload.stripe_payment_method_id = verifiedPaymentMethodId;
 
-  let completionUpdate = sb
+  const { error: updateErr, data: updatedRows } = await sb
     .from('bookings')
     .update(updatePayload)
     .eq('id', bookingId)
-    .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id);
-  if (validRecoveryToken && !validGuestToken) {
-    completionUpdate = completionUpdate.eq('payment_recovery_token_hash', booking.payment_recovery_token_hash);
-  }
-  completionUpdate = activeRecovery
-    ? completionUpdate.in('status', ['en_route', 'arrived', 'in_progress'])
-    : completionUpdate.in('status', ['pending', 'confirmed']);
-  const { error: updateErr, data: updatedRows } = await completionUpdate
+    .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id)
+    .in('status', ['pending', 'confirmed'])
     .in('payment_status', ['pending', 'failed', 'authorized'])
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)
@@ -225,9 +195,7 @@ export default async function handler(req, res) {
   // The request token was verified against the current database hash above.
   // Re-deriving the original deterministic token here would email an invalid
   // link after a secure token rotation (for example, a reschedule or recovery).
-  const guestTrackUrl = validGuestToken
-    ? `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(guestMutationToken)}`
-    : `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}`;
+  const guestTrackUrl = `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(guestMutationToken)}`;
 
   const usesKlarna = verifiedPaymentMethodType === 'klarna';
 
