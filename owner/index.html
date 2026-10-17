@@ -1141,8 +1141,8 @@
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem" class="content-grid">
           <div class="detail-panel open" style="grid-column:1/-1">
-            <div class="detail-section-title" style="margin-bottom:0.75rem">Financial Formula</div>
-            <div id="fin-formula" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.65rem;font-size:0.82rem"></div>
+            <div class="detail-section-title" style="margin-bottom:0.75rem">How platform gross and net are worked out</div>
+            <div id="fin-formula"></div>
           </div>
           <div class="detail-panel open" style="grid-column:1/-1">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:1rem;flex-wrap:wrap">
@@ -9018,14 +9018,6 @@ window.intelQuick = intelQuick;
     var el = document.getElementById(id);
     if (el) el.textContent = value;
   }
-  function metricBox(label, value, tone) {
-    var color = tone === 'minus' ? '#dc2626' : tone === 'equals' ? 'var(--teal)' : 'var(--text)';
-    return '<div style="background:var(--elevated);border:1px solid var(--border);border-radius:10px;padding:0.85rem">'
-      + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:700;margin-bottom:0.35rem">' + label + '</div>'
-      + '<div style="font-size:1rem;font-weight:800;color:' + color + '">' + value + '</div>'
-      + '</div>';
-  }
-
   var cacInput = document.getElementById('fin-cac-input');
   if (cacInput) {
     cacInput.value = financialCacDollars;
@@ -9422,18 +9414,30 @@ window.intelQuick = intelQuick;
 
     var formula = document.getElementById('fin-formula');
     if (formula) {
-      formula.innerHTML =
-        metricBox('Customer Payments Retained', fmt$(s.customerRevenue), 'plus') +
-        metricBox('- Sales Tax (to state)', '-' + fmt$(s.salesTaxCollected || 0), 'minus') +
-        metricBox('- Processing Fees', '-' + fmt$(s.processingFees), 'minus') +
-        metricBox('- Owner-Easer Labor', '-' + fmt$(s.ownerEaserEarnings || 0), 'minus') +
-        metricBox('- External Easer Labor', '-' + fmt$(s.externalEaserEarnings || 0), 'minus') +
-        metricBox('= Platform Gross', fmtSigned$(s.platformGrossProfit), 'equals') +
-        metricBox('- Refund/Rework Reserve', '-' + fmt$(s.reworkRefundReserve || 0), 'minus') +
-        metricBox('- Known Operating Costs', '-' + fmt$(s.knownOperatingCosts || 0), 'minus') +
-        metricBox('- Other Overhead', '-' + fmt$(s.operatingExpenses || 0), 'minus') +
-        metricBox('- Customer Acquisition', '-' + fmt$(s.cac || 0), 'minus') +
-        metricBox('Estimated Net', fmtSigned$(s.estimatedNetOperatingProfit), 'equals');
+      // An income statement, not a wall of boxes: two aligned columns, each
+      // ending in its total line. Same figures as before.
+      var stRow = function (label, value, total) {
+        var negative = /^-/.test(String(value)) && total;
+        return '<div class="c-st-row' + (total ? ' c-st-total' : '') + '"><span>' + esc(label) + '</span><span' + (negative ? ' class="c-st-neg"' : '') + '>' + value + '</span></div>';
+      };
+      formula.innerHTML = '<div class="c-statement">'
+        + '<div class="c-st-col">'
+          + stRow('Customer payments retained', fmt$(s.customerRevenue))
+          + stRow('Sales tax owed to the state', '-' + fmt$(s.salesTaxCollected || 0))
+          + stRow('Processing fees', '-' + fmt$(s.processingFees))
+          + stRow('Owner-Easer labor', '-' + fmt$(s.ownerEaserEarnings || 0))
+          + stRow('External Easer labor', '-' + fmt$(s.externalEaserEarnings || 0))
+          + stRow('Platform gross', fmtSigned$(s.platformGrossProfit), true)
+        + '</div>'
+        + '<div class="c-st-col">'
+          + stRow('Platform gross', fmtSigned$(s.platformGrossProfit))
+          + stRow('Refund and rework reserve', '-' + fmt$(s.reworkRefundReserve || 0))
+          + stRow('Known operating costs', '-' + fmt$(s.knownOperatingCosts || 0))
+          + stRow('Other overhead', '-' + fmt$(s.operatingExpenses || 0))
+          + stRow('Customer acquisition', '-' + fmt$(s.cac || 0))
+          + stRow('Estimated net', fmtSigned$(s.estimatedNetOperatingProfit), true)
+        + '</div>'
+        + '</div>';
     }
 
     var note = document.getElementById('an-reconciliation-note');

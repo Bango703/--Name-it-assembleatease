@@ -244,3 +244,26 @@ body { background: var(--c-bg); color: var(--c-text); }
 
 /* Panels whose content is rendered as free text, not a console table. */
 #ops-errors, #ops-damage, #ops-orphans { padding: 0 16px; }
+
+/* Financial formula as a statement: label left, amount right, totals ruled. */
+.c-statement { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 32px; }
+.c-st-col { display: flex; flex-direction: column; min-width: 0; }
+.c-st-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--c-line); font-size: 13px; color: var(--c-soft); }
+.c-st-row span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.c-st-total { border-top: 2px solid var(--c-text); border-bottom: 0; font-weight: 700; color: var(--c-text); margin-top: 2px; }
+.c-st-neg { color: var(--c-bad); }
+@media (max-width: 900px) { .c-statement { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+
+/* ── Cases, Messages, Phone calls, Partners ──────────────────────────────── */
+/* The top bar already names the screen; the repeated in-page title is dropped. */
+.cases-toolbar-copy h2, .voice-calls-toolbar h2, .partners-view h2, .inbox-view h2 { display: none; }
+.cases-toolbar-copy p, .voice-calls-toolbar .voice-muted, .partners-view h2 + p, .inbox-view h2 + p { font-size: 13px; color: var(--c-muted); }
+.cases-panel, .voice-calls-list, .voice-calls-detail, .partners-listwrap, .partners-detail, .inbox-list, .sms-panel {
+  background: var(--c-surface) !important; border: 1px solid var(--c-line) !important; border-radius: var(--c-radius) !important; box-shadow: none !important;
+}
+.voice-calls-note, .partners-note, .inbox-note {
+  background: var(--c-surface) !important; border: 1px solid var(--c-line) !important; border-left: 3px solid var(--c-brand) !important;
+  border-radius: var(--c-radius) !important; font-size: 13px !important; color: var(--c-soft) !important;
+}
+.cases-detail h3 { font-family: inherit; font-size: 18px; font-weight: 700; }
+.cases-update-form, .cases-sweep-box { border-radius: var(--c-radius); }
