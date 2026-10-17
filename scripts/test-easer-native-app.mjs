@@ -74,7 +74,19 @@ assert.match(swift['EaserAPI.swift'], /rpc\/update_own_easer_profile_safe/, 'ava
 assert.doesNotMatch(all, /"PATCH"|rest\/v1\/profiles[^"]*"[^)]*PATCH/, 'the app never writes the profile table directly');
 assert.ok(store.indexOf('/api/booking/upload-evidence') < store.indexOf('/api/booking/assembler-complete'), 'photo first, then completion');
 assert.match(store, /"evidenceType": "completion_photo"/);
-assert.match(store, /evidenceUploaded/, 'a retried completion does not upload the photo twice');
+// One photo per item, up to the database's five-file limit; a retry resumes
+// after the last photo the server accepted, so none is uploaded twice.
+assert.match(store, /for \(index, photo\) in photos\.enumerated\(\) where index >= alreadySent/, 'a retried completion does not upload a photo twice');
+assert.match(store, /photosSent\[job\.id\] = index \+ 1/, 'each accepted photo is recorded before the next');
+assert.match(store, /static let maxCompletionPhotos = 5$/m, 'the app allows the five photos the database keeps');
+assert.match(read('api/migrations/037_owner_easer_workflow_completion.sql'), /v_evidence_count >= 5/, 'the database limit the app mirrors');
+// The website takes the same photos: one per item, up to the same five.
+const webAssignments = read('assembler/my-assignments.html');
+assert.match(webAssignments, /var MAX_COMPLETION_PHOTOS = 5;/, 'the website allows the five photos the database keeps');
+assert.match(webAssignments, /id="photo-input"[^>]*multiple/, 'the website picker takes several photos');
+assert.match(webAssignments, /_photos\.filter\(function \(photo\) \{ return !photo\.uploaded; \}\)/, 'a retried completion on the website sends only photos not yet sent');
+assert.match(swift['EaserViews.swift'], /MultiPhotoChooser\(photos: \$photos, limit: EaserStore\.maxCompletionPhotos\)/, 'completion takes several photos');
+assert.match(swift['EaserViews.swift'], /PhotosPicker\(selection: \$pickerItems, maxSelectionCount: room/, 'the library picker stops at the remaining room');
 assert.match(swift['EaserModels.swift'], /\["requested", "reviewing", "completed"\]/, 'same closure hold as the web dashboard');
 assert.match(read('assembler/index.html'), /\['requested', 'reviewing', 'completed'\]\.includes\(currentClosureStatus\)/);
 assert.doesNotMatch(all, /\* ?0\.(3|7|25|75)\b|platformFee|platform_fee|getPlatformFeePct/, 'the app never computes pay; it shows the server estimate');

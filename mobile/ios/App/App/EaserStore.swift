@@ -121,9 +121,11 @@ final class EaserStore: ObservableObject {
     let api = EaserAPI()
     private let location = OneTimeLocation()
     private var registeredPushToken: String?
-    /// A photo already accepted by the server is never uploaded twice when only
-    /// the completion call needs a retry.
-    private var evidenceUploaded: Set<String> = []
+    /// How many of a job's completion photos the server has already accepted, so
+    /// a retry sends only the rest and never uploads one twice.
+    private var photosSent: [String: Int] = [:]
+    /// The server keeps at most five evidence files per booking.
+    static let maxCompletionPhotos = 5
 
     init() {
         api.onSessionEnded = { [weak self] in
@@ -183,7 +185,7 @@ final class EaserStore: ObservableObject {
         noticesNextBefore = nil
         loadedOnce = false
         loadProblem = nil
-        evidenceUploaded = []
+        photosSent = [:]
         registeredPushToken = nil
         phase = .signedOut
         if let message { banner = Banner(text: message, kind: .problem) }
@@ -440,26 +442,33 @@ final class EaserStore: ObservableObject {
         }
     }
 
-    /// Photo first, then completion. Returns true only when the server confirms completion.
-    func complete(_ job: EaserJob, photo: UIImage) async -> Bool {
+    /// Photos first, one per item, then completion. Returns true only when the
+    /// server confirms completion.
+    func complete(_ job: EaserJob, photos: [UIImage]) async -> Bool {
         busyJobs.insert(job.id)
         defer { busyJobs.remove(job.id) }
         do {
-            if !evidenceUploaded.contains(job.id) {
+            let alreadySent = photosSent[job.id] ?? 0
+            for (index, photo) in photos.enumerated() where index >= alreadySent {
                 guard let jpeg = PhotoPrep.jpeg(from: photo) else {
-                    banner = Banner(text: "That photo could not be prepared. Take a new one and try again.", kind: .problem)
+                    banner = Banner(text: "Photo \(index + 1) could not be prepared. Take a new one and try again.", kind: .problem)
                     return false
                 }
-                try await api.call("POST", "/api/booking/upload-evidence", body: [
-                    "bookingId": job.id,
-                    "fileBase64": jpeg.base64EncodedString(),
-                    "mimeType": "image/jpeg",
-                    "evidenceType": "completion_photo",
-                ])
-                evidenceUploaded.insert(job.id)
+                do {
+                    try await api.call("POST", "/api/booking/upload-evidence", body: [
+                        "bookingId": job.id,
+                        "fileBase64": jpeg.base64EncodedString(),
+                        "mimeType": "image/jpeg",
+                        "evidenceType": "completion_photo",
+                    ])
+                    photosSent[job.id] = index + 1
+                } catch let error as AppError where error.status == 409 && index > 0 {
+                    // The booking already holds five files; the ones sent are enough.
+                    break
+                }
             }
             try await api.call("POST", "/api/booking/assembler-complete", body: ["bookingId": job.id])
-            evidenceUploaded.remove(job.id)
+            photosSent[job.id] = nil
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             justCompleted = CompletedJob(id: job.id, title: job.title, pay: job.payEstimateCents.map { Format.money(cents: $0) })
             await refresh()
