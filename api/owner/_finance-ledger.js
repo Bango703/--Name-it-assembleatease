@@ -346,6 +346,8 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
       paidOut,
       payoutAmount,
       owed,
+      // Part of payoutAmount/owed that repays an approved cost, not earnings.
+      reimbursementCents,
       paidOutAt: b.paid_out_at || ledger?.recorded_at || null,
       stripeTransferStatus: b.stripe_transfer_status || null,
       stripeTransferCreatedAt: b.stripe_transfer_created_at || null,

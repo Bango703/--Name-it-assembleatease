@@ -138,6 +138,7 @@ assert.deepEqual(summary, {
   paid_cents: 14226,
   awaiting_payout_cents: 14226,
   on_hold_cents: 7113,
+  reimbursed_cents: 0,
 });
 
 const load = path => fs.readFile(new URL(`../${path}`, import.meta.url), 'utf8');

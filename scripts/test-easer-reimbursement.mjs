@@ -69,4 +69,17 @@ const owner = await read('owner/index.html');
 assert.match(owner, /fetch\('\/api\/owner\/easer-reimbursement'/, 'the owner dashboard sets it through the endpoint');
 console.log('PASS owner endpoint and dashboard');
 
+// ── The Easer sees it beside earnings, never inside them ───────────────────
+{
+  const { toEaserEarningDto, summarizeEaserEarnings } = await import('../api/assembler/_earnings.js');
+  const row = { bookingId: 'b1', ref: 'AAE-1', service: 'TV Mounting', owed: 94632 + 18900, reimbursementCents: 18900, payoutMode: 'manual', payoutStatus: 'pending', holdReasons: [], holdCodes: [] };
+  const dto = toEaserEarningDto(row);
+  assert.equal(dto.amount_cents, 94632, 'earnings on the Easer screen leave the reimbursement out');
+  assert.equal(dto.reimbursement_cents, 18900, 'the reimbursement is reported beside the earnings');
+  const summary = summarizeEaserEarnings([dto]);
+  assert.equal(summary.total_earned_cents, 94632, 'total earned is earnings only');
+  assert.equal(summary.reimbursed_cents, 18900);
+}
+console.log('PASS Easer earnings screen: reimbursement beside earnings, never inside');
+
 console.log('\nEaser reimbursement tests passed.');
