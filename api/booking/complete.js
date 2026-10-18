@@ -305,6 +305,9 @@ export default async function handler(req, res) {
       stripe_balance_amount_captured: balanceAmountCaptured,
       financial_reconciliation_required_at: null,
       financial_reconciliation_reason: null,
+      // Finishing the job finishes any open return visit with it.
+      return_visit_required: false,
+      return_visit_completed_at: booking.return_visit_required ? new Date().toISOString() : (booking.return_visit_completed_at || null),
     };
   if (actualStripeFee != null) completionPayload.stripe_fee = actualStripeFee;
   const completionUpdate = sb
