@@ -3662,6 +3662,19 @@ window.intelQuick = intelQuick;
             ? ' <button type="button" class="btn" style="font-size:0.68rem;padding:2px 8px;margin-left:6px" onclick="window.setEaserBonus(&quot;' + jsAttr(String(b.id)) + '&quot;)">'
               + (Number(b.easer_bonus_cents || 0) > 0 ? 'Change' : 'Add bonus') + '</button>'
             : '<div style="font-size:0.7rem;color:var(--muted);margin-top:2px">Payout already sent &mdash; fixed</div>'))),
+      // Owner-approved expense reimbursement (a hotel night, for example). Paid
+      // with the job, not counted as Easer earnings or on the 1099. The server
+      // decides when it can be set; this only shows the answer.
+      field('Reimbursement', !b.assembler_id || ['confirmed','en_route','arrived','in_progress','completed'].indexOf(b.status) === -1
+        ? '<span style="color:var(--muted)">Available once the job has an Easer</span>'
+        : ((Number(b.easer_reimbursement_cents || 0) > 0
+            ? '<strong>' + fmt$(b.easer_reimbursement_cents) + '</strong>'
+              + (b.easer_reimbursement_reason ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">' + esc(b.easer_reimbursement_reason) + '</div>' : '')
+            : '<span style="color:var(--muted)">None</span>')
+          + (['paid','transferred'].indexOf(String(b.payout_status || '').toLowerCase()) === -1
+            ? ' <button type="button" class="btn" style="font-size:0.68rem;padding:2px 8px;margin-left:6px" onclick="window.setEaserReimbursement(&quot;' + jsAttr(String(b.id)) + '&quot;)">'
+              + (Number(b.easer_reimbursement_cents || 0) > 0 ? 'Change' : 'Add reimbursement') + '</button>'
+            : '<div style="font-size:0.7rem;color:var(--muted);margin-top:2px">Payout already sent &mdash; fixed</div>'))),
       field('Platform Gross', financial.platformGrossCents != null
         ? (isOfflinePayment && !offlineFullyCollected
           ? '<span style="color:var(--muted)">Not available until the full balance is collected</span>'
@@ -4069,6 +4082,38 @@ window.intelQuick = intelQuick;
       await loadBookings();
     } catch (err) {
       toast('Network error — nothing changed.', 'error');
+    }
+  };
+
+  // Add, change, or clear an approved expense reimbursement. The server owns
+  // every rule: range, reason, which jobs, and refusing once the payout is out.
+  window.setEaserReimbursement = async function(bookingId) {
+    var b = allBookings.find(function(x){ return x.id === bookingId; }) || {};
+    var current = Number(b.easer_reimbursement_cents || 0);
+    var raw = prompt('Reimbursement in dollars for ' + (b.assembler_name || 'this Easer') + '. Enter 0 to remove it.', current ? (current / 100).toFixed(2) : '');
+    if (raw === null) return;
+    var dollars = Number(String(raw).replace(/[^0-9.]/g, ''));
+    if (!isFinite(dollars) || dollars < 0) { toast('Enter a dollar amount', 'error'); return; }
+    var cents = Math.round(dollars * 100);
+    var reason = '';
+    if (cents > 0) {
+      reason = prompt('What is it for? For example: Hotel, Oct 17. This is recorded and emailed to the Easer.', b.easer_reimbursement_reason || '') || '';
+      if (reason.trim().length < 3) { toast('Say what the reimbursement is for', 'error'); return; }
+    }
+    try {
+      var r = await fetch('/api/owner/easer-reimbursement', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+        body: JSON.stringify({ bookingId: bookingId, amountCents: cents, reason: reason })
+      });
+      var d = await r.json().catch(function(){ return {}; });
+      if (!r.ok) { toast(d.error || 'The reimbursement could not be saved, and the server did not say why.', 'error'); return; }
+      toast(cents > 0
+        ? 'Reimbursement saved' + (d.easerNotified ? ' and the Easer was emailed' : (current === cents ? '' : ' (the Easer email did not send)'))
+        : 'Reimbursement removed', 'success');
+      await loadBookings();
+    } catch (err) {
+      toast('Network error. Nothing changed.', 'error');
     }
   };
 

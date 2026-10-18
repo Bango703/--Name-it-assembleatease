@@ -161,7 +161,10 @@ export function toEaserEarningDto(row = {}) {
     service: row.service || 'Service',
     earning_type: row.cancellationEarnings ? 'cancellation_earnings' : 'completed_job',
     earned_at: row.eventAt || row.completedAt || row.cancelledAt || row.date || null,
-    amount_cents: Number(row.owed || row.payoutAmount || 0),
+    // Earnings only. An approved reimbursement is paid with the job but is not
+    // earnings, so it is reported beside the amount, never inside it.
+    amount_cents: Math.max(0, Number(row.owed || row.payoutAmount || 0) - Math.max(0, Number(row.reimbursementCents || 0))),
+    reimbursement_cents: Math.max(0, Number(row.reimbursementCents || 0)),
     payout: {
       rail: row.payoutMode === 'stripe_connect'
         ? 'stripe_connect'
@@ -182,6 +185,7 @@ export function summarizeEaserEarnings(earnings = []) {
   return earnings.reduce((summary, earning) => {
     const amount = Number(earning.amount_cents || 0);
     summary.total_earned_cents += amount;
+    summary.reimbursed_cents += Number(earning.reimbursement_cents || 0);
     if (earning.earning_type === 'completed_job') summary.completed_jobs += 1;
     if (earning.payout.disposition === 'paid') summary.paid_cents += amount;
     else if (earning.payout.disposition === 'on_hold') summary.on_hold_cents += amount;
@@ -195,5 +199,6 @@ export function summarizeEaserEarnings(earnings = []) {
     paid_cents: 0,
     awaiting_payout_cents: 0,
     on_hold_cents: 0,
+    reimbursed_cents: 0,
   });
 }

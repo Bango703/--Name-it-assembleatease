@@ -122,6 +122,7 @@ export default async function handler(req, res) {
         assemblerDueCents: booking.assembler_due,
         payoutAmountCents: booking.payout_amount,
         easerBonusCents: booking.easer_bonus_cents,
+        easerReimbursementCents: booking.easer_reimbursement_cents,
       });
     });
 

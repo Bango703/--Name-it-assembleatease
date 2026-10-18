@@ -138,6 +138,7 @@ assert.deepEqual(summary, {
   paid_cents: 14226,
   awaiting_payout_cents: 14226,
   on_hold_cents: 7113,
+  reimbursed_cents: 0,
 });
 
 const load = path => fs.readFile(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -303,7 +304,7 @@ console.log('Easer payout truth tests: PASS');
   const cron = await fs.readFile(new URL('../api/cron/release-payouts.js', import.meta.url), 'utf8');
   const complete = await fs.readFile(new URL('../api/booking/complete.js', import.meta.url), 'utf8');
 
-  assert.ok(cron.includes("import { PAYOUT_HOLD_HOURS } from '../_source-of-truth.js';"),
+  assert.ok(/import \{[^}]*PAYOUT_HOLD_HOURS[^}]*\} from '\.\.\/_source-of-truth\.js';/.test(cron),
     'the cron must import the canonical hold, not redeclare it');
   assert.ok(!/const PAYOUT_HOLD_HOURS\s*=/.test(cron),
     'a second declaration is how the two numbers drifted apart');

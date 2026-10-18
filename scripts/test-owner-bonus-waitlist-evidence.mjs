@@ -154,10 +154,14 @@ const mig092 = await read('api/migrations/092_connect_payout_owner_supplied_evid
   assert.equal(with50.easerCostCents, 46930, 'the bonus counts as an Easer cost before it is paid, not after');
 
   // BOTH payout rails must actually pay it, or the promise is a lie.
-  assert.ok(payout.includes("Number(booking.assembler_due || 0) + Number(booking.easer_bonus_cents || 0)"),
-    'the manual payout rail must include the bonus');
-  assert.ok(release.includes("Number(b.assembler_due || 0) + Number(b.easer_bonus_cents || 0)"),
-    'the Stripe Connect rail must include the bonus');
+  // Both rails pay easerPayoutDueCents (one answer, _source-of-truth.js), and
+  // that answer and the SQL payout function both include the bonus.
+  assert.ok(payout.includes('easerPayoutDueCents(booking)'), 'the manual payout rail must include the bonus');
+  assert.ok(release.includes('easerPayoutDueCents(b)'), 'the Stripe Connect rail must include the bonus');
+  assert.ok(sot.includes('cents(booking.assembler_due) + cents(booking.easer_bonus_cents)'), 'the payout amount includes the bonus');
+  const mig112 = await read('api/migrations/112_easer_reimbursement.sql');
+  assert.ok(mig112.includes('+ COALESCE(booking_row.easer_bonus_cents, 0)'),
+    'record_booking_payout accepts the bonus, or every manual payout carrying one is refused');
   assert.ok(release.includes("'easer_bonus_cents',") || /easer_bonus_cents,/.test(release),
     'the Connect projection must select the column or the bonus silently reads as 0');
 
@@ -180,7 +184,7 @@ const mig092 = await read('api/migrations/092_connect_payout_owner_supplied_evid
   assert.ok(summary.includes('owedTotalCents'), 'and total it');
   assert.ok(/daysWaiting/.test(summary),
     'how long an Easer has been waiting is the part that matters, not just the amount');
-  assert.ok(summary.includes('Number(r.assembler_due || 0) + Number(r.easer_bonus_cents || 0)'),
+  assert.ok(summary.includes('cents: easerPayoutDueCents(r)') && /easer_bonus_cents, easer_reimbursement_cents/.test(summary),
     'what is owed includes any bonus, or the reminder understates it');
   console.log('PASS the daily summary names every unpaid Easer and how long they have waited');
 }

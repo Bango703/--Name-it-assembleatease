@@ -48,6 +48,7 @@ export const NOTIFICATION_COPY = Object.freeze({
 
   // Money
   easer_bonus_added: notice('Bonus added', 'AssembleAtEase added a bonus to this job. It is paid with the job.', 'job', 'View job', MONEY),
+  easer_reimbursement_added: notice('Reimbursement approved', 'AssembleAtEase approved a reimbursement for this job. It is paid with the job and is not part of your earnings.', 'job', 'View job', MONEY),
   easer_payout_recorded: notice('Payout recorded', 'A payout was recorded for this job. Payouts shows the amount.', 'payouts', 'Open Payouts', MONEY),
   easer_payout_transferred: notice('Payment sent', 'Your earnings for this job were sent to your Stripe account.', 'payouts', 'Open Payouts', MONEY),
   easer_membership_active: notice('Membership active', 'Your Easer membership is active.', 'account', 'Open Account', MONEY),

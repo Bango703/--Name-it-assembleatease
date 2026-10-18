@@ -854,10 +854,13 @@ async function loadContractorTaxYear(sb) {
   const yearStart = new Date(Date.UTC(year, 0, 1)).toISOString();
   const THRESHOLD_CENTS = 200000;
   try {
-    const { data, error } = await sb
-      .from('payout_ledger')
-      .select('assembler_id, assembler_name, payout_amount, recorded_at')
-      .gte('recorded_at', yearStart);
+    // reimbursement_cents (migration 112) is the part of a payout that repaid an
+    // approved expense. It is not income, so it is left out of the 1099 total.
+    const ledgerQuery = columns => sb.from('payout_ledger').select(columns).gte('recorded_at', yearStart);
+    let { data, error } = await ledgerQuery('assembler_id, assembler_name, payout_amount, reimbursement_cents, recorded_at');
+    if (error && /reimbursement_cents|42703|PGRST204/i.test(String(error.message || error.code || ''))) {
+      ({ data, error } = await ledgerQuery('assembler_id, assembler_name, payout_amount, recorded_at'));
+    }
     if (error) {
       console.warn('Contractor tax payout_ledger unavailable:', error.message || error);
       return { year, thresholdCents: THRESHOLD_CENTS, available: false, easers: [], countNeeding1099: 0 };
@@ -866,9 +869,11 @@ async function loadContractorTaxYear(sb) {
     for (const row of data || []) {
       const id = row.assembler_id;
       if (!id) continue;
-      if (!byEaser.has(id)) byEaser.set(id, { assemblerId: id, name: row.assembler_name || 'Easer', ytdPaidCents: 0, payoutCount: 0 });
+      if (!byEaser.has(id)) byEaser.set(id, { assemblerId: id, name: row.assembler_name || 'Easer', ytdPaidCents: 0, ytdReimbursedCents: 0, payoutCount: 0 });
       const e = byEaser.get(id);
-      e.ytdPaidCents += Number(row.payout_amount || 0);
+      const reimbursed = Math.max(0, Number(row.reimbursement_cents || 0));
+      e.ytdPaidCents += Math.max(0, Number(row.payout_amount || 0) - reimbursed);
+      e.ytdReimbursedCents += reimbursed;
       e.payoutCount += 1;
     }
     const easers = Array.from(byEaser.values())

@@ -545,6 +545,10 @@ export function computeBookingFinancialSummary({
   // promised, not from when it is paid — otherwise the margin looks
   // healthier than it is for every job sitting between the two.
   easerBonusCents = 0,
+  // Owner-approved expense reimbursement (migration 112). Paid with the job but
+  // not Easer earnings: it is a business expense, so it lowers the platform's
+  // figures without ever being counted as what the Easer earned.
+  easerReimbursementCents = 0,
 } = {}) {
   const grossChargedCents = Math.max(0, Math.round(Number(amountChargedCents || totalPriceCents) || 0));
   const refundedCents = Math.min(grossChargedCents, Math.max(0, Math.round(Number(refundAmountCents) || 0)));
@@ -559,10 +563,12 @@ export function computeBookingFinancialSummary({
     : estimateStripeFeeCents(netChargedCents);
   const payoutRecorded = Math.max(0, Math.round(Number(payoutAmountCents) || 0));
   const bonusCents = Math.max(0, Math.round(Number(easerBonusCents) || 0));
-  // A recorded payout already includes the bonus (both rails add it before
-  // paying), so it is only added to the un-paid estimate.
+  const reimbursementCents = Math.max(0, Math.round(Number(easerReimbursementCents) || 0));
+  // A recorded payout already includes the bonus and the reimbursement (both
+  // rails pay easerPayoutDueCents), so the reimbursement is taken back out of
+  // it and the bonus is only added to the un-paid estimate.
   const easerCostCents = payoutRecorded > 0
-    ? payoutRecorded
+    ? Math.max(0, payoutRecorded - reimbursementCents)
     : Math.max(0, Math.round(Number(assemblerDueCents) || 0)) + bonusCents;
 
   return {
@@ -574,6 +580,7 @@ export function computeBookingFinancialSummary({
     processingFeeIsActual: stripeFeeCents != null && Number.isFinite(recordedStripeFee),
     easerCostCents,
     easerBonusCents: bonusCents,
+    easerReimbursementCents: reimbursementCents,
     // What the platform actually kept before processing costs — DERIVED, never
     // the stored bookings.platform_fee column. That column is a snapshot of the
     // 30% commission at completion time, and a later goodwill discount does not
@@ -582,9 +589,28 @@ export function computeBookingFinancialSummary({
     // claiming a commission the platform no longer took. Deriving it here means
     // the booking panel and the financial dashboard can never disagree about
     // the same job (Article 2).
-    platformFeeCents: netChargedCents - taxCollectedCents - easerCostCents,
-    platformGrossCents: netChargedCents - taxCollectedCents - processingFeeCents - easerCostCents,
+    platformFeeCents: netChargedCents - taxCollectedCents - easerCostCents - reimbursementCents,
+    platformGrossCents: netChargedCents - taxCollectedCents - processingFeeCents - easerCostCents - reimbursementCents,
   };
+}
+
+/**
+ * What one booking pays its Easer, in cents. The ONE answer for both payout
+ * rails (manual and Stripe Connect), the payout release check, the owner
+ * ledger and the daily summary.
+ *
+ *   completed job:  assembler_due + easer_bonus_cents + easer_reimbursement_cents
+ *   cancellation:   cancellation_easer_due_cents (no job ran: no bonus, no costs)
+ *
+ * The bonus and the reimbursement ride on top of computeBookingSplit, which
+ * stays a pure function of what the customer paid. record_booking_payout
+ * (migration 112) computes the same sum in SQL and refuses any other amount.
+ */
+export function easerPayoutDueCents(booking) {
+  if (!booking) return 0;
+  const cents = value => Math.max(0, Math.round(Number(value) || 0));
+  if (booking.status === 'cancelled') return cents(booking.cancellation_easer_due_cents);
+  return cents(booking.assembler_due) + cents(booking.easer_bonus_cents) + cents(booking.easer_reimbursement_cents);
 }
 
 // Owner-created bookings can be collected in multiple verified payments. Until
