@@ -25,6 +25,7 @@ import { toGsm7 } from '../api/_sms.js';
 import { formatAppointmentDateShort, formatSlotShort } from '../api/booking/_appt-date.js';
 import { buildDayOfReminderSms } from '../api/cron/reminders.js';
 import { buildArrivalNudgeSms } from '../api/cron/easer-arrival-nudge.js';
+import { buildStartNudgeSms } from '../api/cron/easer-start-nudge.js';
 
 const OPT_OUT = ' Reply STOP to opt out.';
 const GSM7_LIMIT = 160;
@@ -63,6 +64,8 @@ const MESSAGES = {
     `You've been added to an AssembleAtEase job: ${service} ${date}. $${(helperDue / 100).toFixed(2)} est. Open the app for details. Ref ${ref}`,
   arrival_nudge:
     buildArrivalNudgeSms(ref),
+  start_nudge:
+    buildStartNudgeSms(ref),
   customer_day_of_reminder:
     buildDayOfReminderSms({ ref, time: longestSlot }, 'customer'),
   easer_day_of_reminder:
@@ -87,6 +90,15 @@ const MESSAGES = {
 const GSM7 = '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?'
   + '¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà'
   + '^{}\\[~]|€';
+
+// Texts to an Easer carry no link. A carrier blocked the day-of reminder as spam
+// on 2026-10-17 while the same Easer received every unlinked text. Easers open
+// the app; only customer texts, who have no account, may link to a page.
+const EASER_TEXTS = ['dispatch_offer', 'assignment_confirmation', 'crew_added', 'arrival_nudge', 'start_nudge', 'easer_day_of_reminder', 'customer_message_easer'];
+for (const name of EASER_TEXTS) {
+  assert.ok(MESSAGES[name], `${name} is measured`);
+  assert.doesNotMatch(MESSAGES[name], /https?:|\.com|\/assembler/i, `${name}: an Easer text carries no link`);
+}
 
 let failures = 0;
 for (const [name, body] of Object.entries(MESSAGES)) {
