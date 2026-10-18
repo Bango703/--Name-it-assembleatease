@@ -2,6 +2,24 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, buildStatusEmail, esc } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 import { chicagoTodayIso, formatAppointmentDate } from '../booking/_appt-date.js';
+import { evaluateAuthorizationWindow, AUTHORIZATION_WINDOW } from '../booking/_authorization-window.js';
+import { sendPushToUser } from '../_push.js';
+
+// Which bookings can be continued on another day, and on what payment terms.
+//   owner-created, paid offline: as before, no card involved.
+//   card booking: the card must be held (authorized) and that hold must still
+//   be good when the return visit ends. The re-hold cron only renews bookings
+//   that have not started, so a job already under way cannot outlive its hold;
+//   the date is refused instead of letting the payment expire unseen.
+export function returnVisitPaymentLane(booking = {}) {
+  if (booking.source === 'owner_manual' && booking.payment_status === 'offline_recorded') return 'offline';
+  if (booking.source !== 'owner_manual' && booking.payment_status === 'authorized') return 'card_hold';
+  return null;
+}
+
+const holdDeadlineText = ms => new Date(ms).toLocaleString('en-US', {
+  timeZone: 'America/Chicago', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+});
 
 function cleanLine(value, max) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, max);
@@ -42,16 +60,38 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error: fetchError } = await sb
     .from('bookings')
-    .select('id, ref, source, status, payment_status, customer_name, customer_email, service, return_visit_required, return_visit_date, return_visit_time, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at')
+    .select('id, ref, source, status, payment_status, customer_name, customer_email, service, assembler_id, assembler_name, date, time, authorization_capture_before, return_visit_required, return_visit_date, return_visit_time, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at')
     .eq('id', bookingId)
     .single();
   if (fetchError || !booking) return res.status(404).json({ error: 'Booking not found' });
 
-  if (booking.source !== 'owner_manual' || booking.payment_status !== 'offline_recorded') {
+  const lane = returnVisitPaymentLane(booking);
+  if (!lane) {
     return res.status(409).json({
-      error: 'This return-visit action currently supports owner-created offline bookings only.',
-      code: 'OWNER_MANUAL_BOOKING_REQUIRED',
+      error: "A return visit needs the customer's card to be held for this job. This booking's payment is not held.",
+      code: 'RETURN_VISIT_PAYMENT_NOT_HELD',
     });
+  }
+  if (lane === 'card_hold') {
+    const verdict = evaluateAuthorizationWindow({
+      ...booking,
+      return_visit_required: true,
+      return_visit_date: returnDate,
+      return_visit_time: returnTime,
+    });
+    if (!verdict.ok) {
+      const byDeadline = verdict.deadline != null && verdict.reason === AUTHORIZATION_WINDOW.EXPIRES_BEFORE_COMPLETION;
+      return res.status(409).json({
+        error: byDeadline
+          ? `The customer's card hold ends ${holdDeadlineText(verdict.deadline)}. Pick a return date that finishes before then.`
+          : verdict.reason === AUTHORIZATION_WINDOW.APPOINTMENT_UNREADABLE
+            ? 'The return time could not be read. Enter it like 9:00 AM - 11:00 AM.'
+            : "The customer's card hold could not be confirmed for that date, so the return visit was not saved.",
+        code: byDeadline ? 'RETURN_VISIT_AFTER_CARD_HOLD' : 'RETURN_VISIT_HOLD_UNVERIFIED',
+        holdEndsAt: verdict.deadline != null ? new Date(verdict.deadline).toISOString() : null,
+        reason: verdict.reason,
+      });
+    }
   }
   if (!['confirmed', 'en_route', 'arrived', 'in_progress'].includes(booking.status)) {
     return res.status(409).json({
@@ -82,8 +122,8 @@ export default async function handler(req, res) {
   })
     .eq('id', booking.id)
     .eq('status', booking.status)
-    .eq('source', 'owner_manual')
-    .eq('payment_status', 'offline_recorded')
+    .eq('source', booking.source)
+    .eq('payment_status', booking.payment_status)
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)
     .is('financial_operation_started_at', null)
@@ -172,6 +212,20 @@ export default async function handler(req, res) {
     });
   }
 
+  // The assigned Easer sees the new date on the job; the app notification
+  // makes sure they hear about it.
+  let easerNotified = null;
+  if (booking.assembler_id) {
+    const push = await sendPushToUser(booking.assembler_id, {
+      title: 'Return visit scheduled',
+      body: `${booking.ref}: back on ${formatAppointmentDate(returnDate)} at ${returnTime}. Remaining: ${remaining.slice(0, 80)}`,
+      url: `https://www.assembleatease.com/assembler/my-assignments?job=${encodeURIComponent(booking.id)}`,
+      jobId: booking.id,
+    }, { bookingId: booking.id, notificationType: 'return_visit_easer', recipientType: 'easer' })
+      .catch(err => ({ ok: false, error: err?.message || String(err) }));
+    easerNotified = push?.ok === true;
+  }
+
   return res.status(notificationDelivered === false ? 202 : 200).json({
     ok: true,
     bookingId: booking.id,
@@ -184,6 +238,8 @@ export default async function handler(req, res) {
     },
     notificationDelivered,
     notificationError,
+    easerNotified,
+    paymentLane: lane,
     warnings: notificationDelivered === false ? ['customer_notification_failed'] : [],
   });
 }

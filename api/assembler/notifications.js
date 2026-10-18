@@ -34,6 +34,7 @@ export const NOTIFICATION_COPY = Object.freeze({
   scheduled_payment_easer_cleared: notice('Job confirmed', 'The hold on this job is cleared. Plan for it as normal.', 'job', 'View job', JOBS),
   arrival_nudge: notice('Check in on arrival', 'Tap Arrived when you are on site. If you are running late, tell the customer from the job.', 'job', 'Open job', JOBS),
   start_nudge: notice('Start the job', 'Tap Start Job before you begin work.', 'job', 'Open job', JOBS),
+  return_visit_easer: notice('Return visit scheduled', 'This job continues on another day. The date and the remaining work are on the job.', 'job', 'Open job', JOBS),
   evidence_request: notice('Photos requested', 'AssembleAtEase asked for photos of this job. Open the job to upload them.', 'job', 'Upload photos', JOBS),
   completion: notice('Job completed', 'This job is marked complete. Your earnings for it are in Payouts.', 'payouts', 'Open Payouts', JOBS),
   easer_no_show_recorded: notice('No-show recorded', 'A no-show was recorded on this job. If you were there, message AssembleAtEase from the job.', 'job_team_messages', 'Message AssembleAtEase', JOBS),

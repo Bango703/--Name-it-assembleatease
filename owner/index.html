@@ -5283,6 +5283,14 @@ window.intelQuick = intelQuick;
       }
       // The whole point: work found ON SITE, while the job is live.
       addChangeOrderAction(b, btns, notices);
+      // A card job that runs into another day. The server decides whether the
+      // card hold covers the return date; this only offers the action.
+      if (b.payment_status === 'authorized') {
+        if (b.return_visit_required) {
+          notices.push('<div style="flex-basis:100%;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:0.65rem 0.8rem;color:#3730a3;font-size:0.78rem;line-height:1.5"><strong>Open return visit:</strong> ' + esc(formatDate(b.return_visit_date)) + (b.return_visit_time ? ' at ' + esc(b.return_visit_time) : '') + '. Remaining: ' + esc(b.return_visit_remaining_scope || 'documented work') + '. The payment is taken when the Easer completes the job.</div>');
+        }
+        btns.push('<button class="btn" data-action="schedule-return-visit" data-id="' + b.id + '">' + (b.return_visit_required ? 'Update Return Visit' : 'Schedule Return Visit') + '</button>');
+      }
       if (b.status === 'in_progress' || b.job_started_at) {
         notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Work started:</strong> automatic cancellation fees are disabled. Best options: complete the job, or reassign it to another Easer (below). If something has gone wrong and you must stop the job, use Owner Override — no fee is charged, the hold is released or captured money refunded, and you settle any partial Easer pay manually.</div>');
         btns.push('<button class="btn btn-red" data-action="cancel-override" data-id="' + b.id + '">Owner Override: Cancel Job</button>');
