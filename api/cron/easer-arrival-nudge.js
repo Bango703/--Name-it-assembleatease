@@ -38,7 +38,7 @@ const LOOKBACK_HOURS = 6;          // ignore anything older; the owner owns it b
 const BOOKING_SELECT = 'id, ref, service, date, time, address, service_zip, service_city, assembler_id, assembler_name, status, checked_in_at, en_route_at, assembler_accepted_at, assigned_at, rescheduled_at, arrival_nudge_sent_at, arrival_nudge_count, return_visit_required';
 
 export function buildArrivalNudgeSms(ref) {
-  return `AssembleAtEase ${ref}: tap Arrived only when on site. If delayed, contact us. assembleatease.com/assembler/my-assignments`;
+  return `AssembleAtEase ${ref}: tap Arrived in the app only when on site. If delayed, contact us.`;
 }
 
 export function arrivalNudgeDue(booking, now) {

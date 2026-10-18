@@ -102,8 +102,10 @@ export function buildReminderEmail({ booking, recipientType = 'customer', firstN
 export function buildDayOfReminderSms(booking, recipientType) {
   const appointment = reminderAppointment(booking);
   const zone = appointmentTimeZone(appointment) === 'America/Denver' ? 'MT' : 'CT';
-  const shortUrl = recipientType === 'easer' ? 'assembleatease.com/assembler/my-assignments' : 'assembleatease.com/track';
-  return `AssembleAtEase: ${booking.ref} today, ${formatSlotShort(appointment.time)} ${zone}. Details: ${shortUrl}`;
+  // Easer texts carry no link: a carrier blocked the linked version as spam
+  // (2026-10-17). Easers have the app; customers need the tracking page.
+  if (recipientType === 'easer') return `AssembleAtEase: ${booking.ref} today, ${formatSlotShort(appointment.time)} ${zone}. Open the app for details.`;
+  return `AssembleAtEase: ${booking.ref} today, ${formatSlotShort(appointment.time)} ${zone}. Details: assembleatease.com/track`;
 }
 
 async function currentAppointment(sb, booking) {
