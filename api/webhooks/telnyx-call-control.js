@@ -1,6 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { voiceConfig, verifyVoiceSignature } from '../_voice-call-history.js';
-import { ownerCallConfig, parseClientState, buildCustomerLegRequest, placeCall } from '../_owner-call.js';
+import { ownerCallConfig, parseClientState, buildCustomerLegRequest, placeCall, peerToHangUp } from '../_owner-call.js';
 import { normalizeUsPhone } from '../_phone.js';
 import { rateLimitKey } from '../_ratelimit.js';
 import { evaluateCustomerContactRelease } from '../booking/_customer-contact-release.js';
@@ -65,8 +65,21 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, ...result });
   }
 
+  // A second leg ended (unanswered, busy, declined or hung up): end the first
+  // leg too, so nobody is left holding a silent line. Hanging up a call that
+  // already ended is harmless.
+  if (eventType === 'call.hangup') {
+    const peer = peerToHangUp(payload.client_state);
+    const cfg = ownerCallConfig();
+    if (peer && cfg.apiKey) {
+      await callControlRequest(cfg.apiKey, `https://api.telnyx.com/v2/calls/${encodeURIComponent(peer)}/actions/hangup`, {});
+      return res.status(200).json({ ok: true, endedPeer: true });
+    }
+    return res.status(200).json({ ok: true, ignored: eventType });
+  }
+
   // Only the owner leg being answered starts a second call. Every other event
-  // is acknowledged and ignored, so a hangup or a busy tone cannot dial anyone.
+  // is acknowledged and ignored, so a busy tone cannot dial anyone.
   if (eventType !== 'call.answered') return res.status(200).json({ ok: true, ignored: eventType });
 
   const state = parseClientState(payload.client_state);
@@ -82,6 +95,16 @@ export default async function handler(req, res) {
   }
 
   const result = await placeCall(cfg, buildCustomerLegRequest(cfg, state, callControlId));
+  // The owner hears something while the customer's phone rings, or hears why
+  // the call cannot go through and is hung up.
+  await callControlRequest(cfg.apiKey, `https://api.telnyx.com/v2/calls/${encodeURIComponent(callControlId)}/actions/speak`, {
+    payload: result.ok ? 'Connecting your call.' : 'The call could not be placed. Please try again.',
+    voice: 'female',
+    language: 'en-US',
+  });
+  if (!result.ok) {
+    await callControlRequest(cfg.apiKey, `https://api.telnyx.com/v2/calls/${encodeURIComponent(callControlId)}/actions/hangup`, {});
+  }
 
   const sb = getSupabase();
   try {
@@ -93,7 +116,8 @@ export default async function handler(req, res) {
       stage: 'customer_leg',
       reason_code: result.ok ? 'customer_leg_dialing' : 'customer_leg_rejected',
       reason_detail: result.ok ? (state.ref || '') : String(result.error).slice(0, 200),
-      mutation_result: result.ok ? 'bridged' : 'not_bridged',
+      // Dialing, not connected: the customer has not answered yet.
+      mutation_result: result.ok ? 'customer_dialing' : 'not_dialed',
       payload: { ref: state.ref || null, bookingId: state.bookingId || null },
     });
   } catch { /* logging is never worth failing the request for */ }
@@ -181,6 +205,8 @@ async function routeInboundBookingCall(payload) {
     to: destination,
     from: cfg.from,
     link_to: callControlId,
+    // Joins the audio when the other person answers; link_to alone does not.
+    bridge_on_answer: true,
     timeout_secs: 45,
     client_state: Buffer.from(JSON.stringify({
       v: 1,
@@ -188,6 +214,7 @@ async function routeInboundBookingCall(payload) {
       bookingId: booking.id,
       ref: booking.ref,
       callerType,
+      peer: callControlId,
     })).toString('base64'),
   });
   try {
@@ -199,7 +226,7 @@ async function routeInboundBookingCall(payload) {
       stage: 'booking_bridge',
       reason_code: outbound.ok ? 'matched_active_booking' : 'destination_call_rejected',
       reason_detail: booking.ref || '',
-      mutation_result: outbound.ok ? 'bridged' : 'not_bridged',
+      mutation_result: outbound.ok ? 'destination_dialing' : 'not_dialed',
       payload: { bookingId: booking.id, callerType },
     });
   } catch { /* operational logging must not change call routing */ }

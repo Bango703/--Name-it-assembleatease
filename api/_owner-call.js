@@ -91,7 +91,10 @@ export function parseClientState(encoded) {
 
 /**
  * Second leg: dial the customer and join it to the answered owner leg.
- * `link_to` is what makes Telnyx bridge them rather than start a separate call.
+ * `link_to` only names the other call; `bridge_on_answer` is what joins the
+ * audio when the customer picks up. Without it (Telnyx defaults it to false)
+ * both people sit on separate silent lines, which is what happened on every
+ * owner call until 2026-10-18.
  */
 export function buildCustomerLegRequest(config, state, ownerCallControlId) {
   return {
@@ -100,11 +103,30 @@ export function buildCustomerLegRequest(config, state, ownerCallControlId) {
     from: config.from,
     from_display_name: 'AssembleAtEase',
     link_to: ownerCallControlId,
+    bridge_on_answer: true,
     timeout_secs: 45,
     client_state: Buffer.from(JSON.stringify({
       v: 1, stage: 'customer_leg', bookingId: state.bookingId || null, ref: state.ref || null,
+      // Lets the hangup of this leg end the owner's leg too.
+      peer: ownerCallControlId || null,
     })).toString('base64'),
   };
+}
+
+/**
+ * The other leg of a two-leg call, from a hangup event's client_state, or null.
+ * Only the second legs we place carry a peer: when one ends unanswered or
+ * hangs up, the person still on the first leg is not left in silence.
+ */
+export function peerToHangUp(encoded) {
+  try {
+    const parsed = JSON.parse(Buffer.from(String(encoded || ''), 'base64').toString('utf8'));
+    if (!parsed || parsed.v !== 1 || !['customer_leg', 'booking_bridge'].includes(parsed.stage)) return null;
+    const peer = String(parsed.peer || '').trim();
+    return peer || null;
+  } catch {
+    return null;
+  }
 }
 
 /** POST a call to Telnyx. Never throws; the caller decides what a failure means. */

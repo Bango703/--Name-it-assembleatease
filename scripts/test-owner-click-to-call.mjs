@@ -85,7 +85,13 @@ const second = buildCustomerLegRequest(CONFIG, state, 'ccid-123');
 assert.equal(second.to, '+15125550147', 'The second leg dials the customer');
 assert.equal(second.from, CONFIG.from, 'The customer sees the business number, never the owner personal one');
 assert.notEqual(second.from, CONFIG.ownerPhone, 'The whole point: the personal number is never presented');
-assert.equal(second.link_to, 'ccid-123', 'link_to is what bridges the legs');
+assert.equal(second.link_to, 'ccid-123', 'link_to names the owner leg');
+// Telnyx defaults bridge_on_answer to false: link_to alone left both people on
+// separate silent lines on every owner call until 2026-10-18.
+assert.equal(second.bridge_on_answer, true, 'bridge_on_answer is what joins the audio');
+const { peerToHangUp } = await import('../api/_owner-call.js');
+assert.equal(peerToHangUp(second.client_state), 'ccid-123', 'when the customer leg ends, the owner leg is ended too');
+assert.equal(peerToHangUp(Buffer.from(JSON.stringify({ v: 1, stage: 'owner_leg', peer: 'x' })).toString('base64')), null, 'an owner leg names no peer');
 
 // --------------------------------------------------------------- endpoints --
 const endpoint = await read('api/owner/call-customer.js');
@@ -120,6 +126,12 @@ assert.match(endpoint, /CALLING_NOT_CONFIGURED/, 'An unconfigured install must s
 
 const webhook = await read('api/webhooks/telnyx-call-control.js');
 assert.match(webhook, /verifyVoiceSignature/, 'The webhook must verify the Telnyx signature');
+// The forwarded customer/Easer call joins its audio the same way, and a second
+// leg that ends takes the first leg with it.
+assert.match(webhook, /stage: 'booking_bridge'/);
+assert.equal((webhook.match(/bridge_on_answer: true/g) || []).length, 1, 'the forwarded call sets bridge_on_answer');
+assert.match(webhook, /eventType === 'call\.hangup'[\s\S]{0,300}peerToHangUp\(payload\.client_state\)/, 'a finished second leg hangs up the first');
+assert.match(webhook, /'Connecting your call\.'/, 'the owner hears that the customer is being called');
 assert.match(webhook, /call\.answered/, 'Only an answered owner leg starts the second call');
 assert.match(webhook, /parseClientState/, 'The number dialled must come from our own state');
 assert.doesNotMatch(webhook, /payload\.to\b/, 'Never dial a number taken from the event body');
