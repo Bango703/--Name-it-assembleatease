@@ -111,19 +111,31 @@ assert.match(migration, /VALUES \(65, 'customer_legal_consent'\)/);
 // and when the agreement was bumped to '2026-08-28' the constant moved but this
 // test did not - leaving test:launch red on main for a reason unrelated to
 // whatever was being shipped. Derive it instead so the two cannot drift.
-const versioningMigration = read('api/migrations/090_agreement_versioning.sql');
-const publishedAgreementVersion = versioningMigration.match(
-  /\('easer_agreement',\s*'(\d{4}-\d{2}-\d{2})',\s*'published'/,
-)?.[1];
-assert.ok(
-  publishedAgreementVersion,
-  'Migration 090 must publish an easer_agreement version',
-);
+// The newest migration that publishes an easer_agreement is the one in force
+// (090 published 2026-08-28; 113 published 2026-10-18).
+const publishing = readdirSync(new URL('../api/migrations/', import.meta.url))
+  .filter(f => /^\d{3}_.*\.sql$/.test(f)).sort()
+  .map(f => ({ f, v: read(`api/migrations/${f}`).match(/\('easer_agreement',\s*'(\d{4}-\d{2}-\d{2})',\s*'published'/)?.[1] }))
+  .filter(x => x.v);
+const publishedAgreementVersion = publishing.at(-1)?.v;
+assert.ok(publishedAgreementVersion, 'A migration must publish an easer_agreement version');
 assert.equal(
   CONTRACTOR_AGREEMENT_VERSION,
   publishedAgreementVersion,
-  'CONTRACTOR_AGREEMENT_VERSION must match the version migration 090 publishes',
+  `CONTRACTOR_AGREEMENT_VERSION must match the version ${publishing.at(-1)?.f} publishes`,
 );
+// What a migration publishes is the exact agreement file: its stored hash is
+// the SHA-256 of assembler/contractor-agreement.html.
+{
+  const { createHash } = await import('node:crypto');
+  const latest = read(`api/migrations/${publishing.at(-1).f}`);
+  const stored = latest.replace(/\r\n/g, '\n').match(/^\s*'([0-9a-f]{64})',$/m)?.[1];
+  assert.ok(stored, 'the publishing migration stores the agreement hash');
+  {
+    const fileHash = createHash('sha256').update(read('assembler/contractor-agreement.html').replace(/\r\n/g, '\n'), 'utf8').digest('hex');
+    assert.equal(stored, fileHash, 'the published agreement hash must be the hash of the agreement file; edit the agreement only with a new version');
+  }
+}
 const agreementMigration = read('api/migrations/066_contractor_agreement_2026_08_16.sql');
 assert.match(agreementMigration, /migration_number = 65/);
 for (const functionName of [
