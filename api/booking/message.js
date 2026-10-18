@@ -694,7 +694,7 @@ export default async function handler(req, res) {
             .eq('channel', 'sms')
             .eq('booking_id', booking.id)
             .eq('notification_type', 'customer_message_easer')
-            .gte('created_at', since)
+            .gte('sent_at', since)
             .limit(1);
           if (recentTextError || !recentText?.length) {
             await sendSms({

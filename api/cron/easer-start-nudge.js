@@ -34,7 +34,7 @@ const SENT_STATUSES = ['provider_accepted', 'sent', 'delivered', 'delivery_delay
 const PENDING_STATUSES = ['queued', 'deferred', 'uncertain'];
 
 export function buildStartNudgeSms(ref) {
-  return `AssembleAtEase ${ref}: tap Start Job before you begin work. assembleatease.com/assembler/my-assignments`;
+  return `AssembleAtEase ${ref}: tap Start Job in the app before you begin work.`;
 }
 
 /** Minutes since the Easer tapped Arrived, or null when this job is not waiting on Start Job. */

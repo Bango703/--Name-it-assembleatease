@@ -43,7 +43,9 @@ assert.match(msg, />Open the job to reply<\/a>/);
 const easerBlock = msg.slice(msg.indexOf("const easerJobUrl"), msg.indexOf("if (easerProfile?.email) {", msg.indexOf("const easerJobUrl")));
 assert.match(easerBlock, /sendPushToUser\(booking\.assembler_id/);
 assert.match(easerBlock, /sendSms\(\{\s*recipient: easerProfile/, 'the text goes through sendSms, which enforces consent');
-assert.match(easerBlock, /notification_type', 'customer_message_easer'\)[\s\S]*gte\('created_at', since\)/, 'one text per booking per 30 minutes');
+// notification_log has no created_at column (migration 004: sent_at). Filtering on it
+// errored on every call, and the error path sent the text, so the limit never held.
+assert.match(easerBlock, /notification_type', 'customer_message_easer'\)[\s\S]*gte\('sent_at', since\)/, 'one text per booking per 30 minutes');
 assert.match(msg, /\.select\('email, full_name, phone, sms_consent_at, sms_opted_out_at'\)/, 'consent fields must be loaded for the gate to work');
 
 // The owner is informed, not asked to act, when the Easer already has it
