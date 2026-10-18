@@ -406,12 +406,14 @@
         </div>
 
         <div class="tabs" id="tabs">
-          <button class="tab active" data-status="all">All</button>
+          <button class="tab active" data-status="active">Active</button>
           <button class="tab" data-status="pending">Pending</button>
           <button class="tab" data-status="confirmed">Confirmed</button>
           <button class="tab" data-status="completed">Completed</button>
-          <button class="tab" data-status="declined">Declined</button>
           <button class="tab" data-status="cancelled">Cancelled</button>
+          <button class="tab" data-status="declined">Declined</button>
+          <button class="tab" data-status="all">All</button>
+          <button class="tab" data-status="test">Test</button>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem" class="content-grid">
@@ -1925,7 +1927,7 @@ window.intelQuick = intelQuick;
   let _msgTarget = 'customer';
   let _messageSending = false;
   let _currentMessages = [];
-  let currentStatus = 'all';
+  let currentStatus = 'active';
   let searchQuery = '';
   let siteChatConversations = [];
   let selectedSiteChatId = null;
@@ -3285,9 +3287,8 @@ window.intelQuick = intelQuick;
     }
     document.querySelectorAll('#tabs .tab').forEach(function(t) {
       var s = t.dataset.status;
-      var c = s === 'all' ? allBookings.length : s === 'confirmed'
-        ? allBookings.filter(function(b){return b.status==='confirmed'||PIPELINE_STATUSES.includes(b.status);}).length
-        : allBookings.filter(function(b){return b.status===s}).length;
+      // A tab's number is the length of the list it opens, from one filter.
+      var c = bookingsForTab(s).length;
       var span = t.querySelector('.tab-count');
       if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
       span.textContent = c;
@@ -3469,12 +3470,27 @@ window.intelQuick = intelQuick;
   });
 
   // ─── Render list with search + status filter ───
+  // ─── Bookings tabs ───
+  // Active opens first: what is waiting, booked or under way. Test bookings
+  // live only under Test, so no other tab, All included, mixes them in.
+  var ACTIVE_BOOKING_TAB_STATUSES = ['pending', 'confirmed'].concat(PIPELINE_STATUSES);
+  var BOOKING_TAB_LABELS = { active: 'active', pending: 'pending', confirmed: 'confirmed', completed: 'completed', cancelled: 'cancelled', declined: 'declined', all: '', test: 'test' };
+  function bookingsForTab(tab) {
+    if (tab === 'test') return allBookings.filter(isTestBooking);
+    var real = allBookings.filter(function(b){ return !isTestBooking(b); });
+    if (tab === 'all') return real;
+    if (tab === 'active') {
+      return real.filter(function(b){
+        return ACTIVE_BOOKING_TAB_STATUSES.includes(b.status)
+          || (b.return_visit_required === true && b.status !== 'cancelled');
+      });
+    }
+    if (tab === 'confirmed') return real.filter(function(b){ return b.status === 'confirmed' || PIPELINE_STATUSES.includes(b.status); });
+    return real.filter(function(b){ return b.status === tab; });
+  }
+
   function renderList() {
-    var filtered = currentStatus === 'all'
-      ? allBookings
-      : currentStatus === 'confirmed'
-        ? allBookings.filter(function(b){ return b.status === 'confirmed' || PIPELINE_STATUSES.includes(b.status); })
-        : allBookings.filter(function(b){ return b.status === currentStatus; });
+    var filtered = bookingsForTab(currentStatus);
     if (searchQuery) {
       filtered = filtered.filter(function(b) {
         var q = searchQuery;
@@ -3490,7 +3506,7 @@ window.intelQuick = intelQuick;
       $list.innerHTML = searchQuery
         ?
          '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="empty-state-title">No results</div><div class="empty-state-desc">No bookings match &ldquo;' + esc(searchQuery) + '&rdquo;</div></div>'
-        : '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-state-title">No ' + (currentStatus === 'all' ? '' : currentStatus + ' ') + 'bookings</div><div class="empty-state-desc">New bookings will appear here as customers submit requests.</div></div>';
+        : '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-state-title">No ' + (BOOKING_TAB_LABELS[currentStatus] ? BOOKING_TAB_LABELS[currentStatus] + ' ' : '') + 'bookings</div><div class="empty-state-desc">New bookings will appear here as customers submit requests.</div></div>';
       return;
     }
     $list.innerHTML = filtered.map(function(b) {
@@ -9872,11 +9888,12 @@ window.intelQuick = intelQuick;
         if (existingIndex >= 0) allBookings[existingIndex] = booking;
         else allBookings.unshift(booking);
       }
-      currentStatus = 'all';
+      // Open the tab that actually holds this booking.
+      currentStatus = isTestBooking(booking) ? 'test' : 'all';
       searchQuery = '';
       var search = document.getElementById('booking-search');
       if (search) search.value = '';
-      document.querySelectorAll('#tabs .tab').forEach(function(tab){ tab.classList.toggle('active', tab.dataset.status === 'all'); });
+      document.querySelectorAll('#tabs .tab').forEach(function(tab){ tab.classList.toggle('active', tab.dataset.status === currentStatus); });
       if (currentView !== 'bookings') document.querySelector('.sidebar-nav a[data-view="bookings"]').click();
       renderList();
       await selectBooking(booking.id);
