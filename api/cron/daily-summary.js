@@ -1,5 +1,6 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { easerPayoutDueCents } from '../_source-of-truth.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -60,14 +61,14 @@ export default async function handler(req, res) {
     // to lose supply, and supply is the platform's only real constraint.
     const { data: owedRows } = await sb
       .from('bookings')
-      .select('ref, assembler_name, assembler_due, easer_bonus_cents, completed_at').eq('is_test_booking', false)
+      .select('ref, status, assembler_name, assembler_due, easer_bonus_cents, easer_reimbursement_cents, completed_at').eq('is_test_booking', false)
       .eq('status', 'completed')
       .eq('payout_status', 'pending')
       .not('assembler_id', 'is', null);
     const owed = (owedRows || []).map(r => ({
       ref: r.ref,
       who: r.assembler_name || 'Easer',
-      cents: Number(r.assembler_due || 0) + Number(r.easer_bonus_cents || 0),
+      cents: easerPayoutDueCents(r),
       daysWaiting: r.completed_at
         ? Math.floor((Date.now() - new Date(r.completed_at).getTime()) / 86400000)
         : null,

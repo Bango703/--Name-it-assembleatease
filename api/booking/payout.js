@@ -1,7 +1,7 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, computeBookingFinancialSummary } from '../_source-of-truth.js';
+import { BOOKING_STATUS, computeBookingFinancialSummary, easerPayoutDueCents } from '../_source-of-truth.js';
 import {
   deriveManualPayoutReadiness,
   hasVerifiedOfflineOwnerPayment,
@@ -140,13 +140,9 @@ export default async function handler(req, res) {
     console.warn(`[payout-no-evidence] ${booking.ref} — proceeding with no completion evidence on file`);
   }
 
-  // The owner-funded bonus rides on top of the split, exactly like the
-  // same-day rush bonus, and is added HERE rather than inside
-  // computeBookingSplit — that function must stay a pure function of what
-  // the customer paid. A cancellation payout carries no bonus: no job ran.
-  const derivedDue = cancellationPayout
-    ? Number(booking.cancellation_easer_due_cents || 0)
-    : Number(booking.assembler_due || 0) + Number(booking.easer_bonus_cents || 0);
+  // Earnings + owner-funded bonus + approved reimbursement, decided once in
+  // _source-of-truth.js. A cancellation payout carries neither: no job ran.
+  const derivedDue = easerPayoutDueCents(booking);
   if (!derivedDue || derivedDue <= 0) return res.status(409).json({ error: 'Canonical Easer earnings are missing. Reconcile completion before payout.' });
   const readiness = deriveManualPayoutReadiness(booking, {
     owed: derivedDue,

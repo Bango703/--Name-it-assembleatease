@@ -25,6 +25,7 @@ export function bookingFinanceContext(booking, row = null) {
       taxAmountCents: split.taxCents,
       assemblerDueCents: split.assemblerDueCents,
       easerBonusCents: booking.easer_bonus_cents || 0,
+      easerReimbursementCents: booking.easer_reimbursement_cents || 0,
       stripeFeeCents: offlineMethod ? offlineMethodFeeCents(offlineMethod, split.totalCents) : null,
     });
     estimate = {
