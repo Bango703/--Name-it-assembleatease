@@ -23,8 +23,12 @@
     var range = data.range;
     var stamp = new Date(data.generatedAt).toLocaleString('en-US', { timeZone: 'America/Chicago', timeZoneName: 'short' });
     el('acquisition-status').textContent = (data.partial ? 'Partial report. ' : '') + (range.from ? range.from + ' through ' + range.to : 'All available creation dates') + ' · America/Chicago · Snapshot ' + stamp;
-    var html = '<p style="font-size:0.82rem;line-height:1.7"><strong>' + Number(summary.bookings) + ' recorded bookings · ' + Number(summary.completed) + ' completed · ' + Number(summary.incompleteAttribution) + ' with incomplete source evidence.</strong><br>Completed-job retained payments: ' + money(summary.recordedPaymentsCents) + ' · Recorded platform gross before overhead/reserves: ' + money(summary.platformGrossCents) + '<br>Explicit test records excluded: ' + Number(data.excludedTests) + '.</p>';
-    if (data.warnings.length) html += '<p style="color:var(--red);font-size:0.8rem;line-height:1.5">' + data.warnings.map(esc).join(' ') + '</p>';
+    function stat(label, value) { return '<div style="flex:1 1 150px;min-width:0;padding:0.7rem 0.9rem;border:1px solid var(--border);border-radius:8px;background:var(--elevated)"><div style="font-size:1.25rem;font-weight:800;color:var(--text)">' + esc(value) + '</div><div style="font-size:0.74rem;color:var(--muted);margin-top:0.15rem">' + esc(label) + '</div></div>'; }
+    var html = '<div style="display:flex;flex-wrap:wrap;gap:0.6rem;margin:0.4rem 0 0.8rem">'
+      + stat('Bookings', Number(summary.bookings)) + stat('Completed', Number(summary.completed))
+      + stat('Payments retained', money(summary.recordedPaymentsCents)) + stat('Platform gross', money(summary.platformGrossCents)) + '</div>'
+      + '<p style="font-size:0.78rem;color:var(--muted);line-height:1.5;margin:0 0 0.5rem">' + Number(summary.incompleteAttribution) + ' of ' + Number(summary.bookings) + ' bookings have no recorded original source, so they are not counted as organic. Owner test bookings (' + Number(data.excludedTests) + ') are excluded.</p>';
+    if (data.warnings.length) html += '<p style="color:var(--muted);font-size:0.78rem;line-height:1.5">' + data.warnings.filter(function(w) { return !/original channel evidence/.test(w); }).map(esc).join(' ') + '</p>';
     html += data.channels.length ? table('Outcomes by original channel', data.channels, false) : '<p>No booking records in this creation-date period.</p>';
     html += '<p style="font-size:0.76rem;color:var(--muted);line-height:1.5;margin:0.6rem 0 0">Booking records are not qualified leads. Unknown sources are not counted as organic. Cancelled / lost includes cancelled, declined and refunded.</p>';
     el('acquisition-report').innerHTML = html;
