@@ -267,7 +267,7 @@ export async function authorizeScheduledBooking({ sb, stripe, booking, expectedL
       eventType: 'payment_authorized',
       actorType: 'system',
       actorName: 'scheduled payment',
-      description: 'Customer card authorized for later capture five days before the appointment.',
+      description: 'Customer card authorized for later capture two days before the appointment.',
       metadata: { paymentIntentId: intent.id, appointmentDate: booking.date },
     }).catch(() => {});
     await notify.customerAuthorized(booking).catch(() => {});

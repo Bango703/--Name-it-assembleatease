@@ -66,8 +66,8 @@ if (!sanitizeReplyLinks('Offer: /apply-promo').includes('/book')) {
 const soraSource = readFileSync('api/chat.js', 'utf8');
 const requiredSoraTruth = [
   'up to 30 days ahead',
-  'seven to 30 days ahead',
-  'typically about five days before',
+  'three to 30 days ahead',
+  'typically about two days before',
   'No appointment or payment authorization is confirmed until the customer approves the quote',
   'Within two hours, after an Easer is on the way, or for a customer no-show',
   'Never expose or speculate about owner actions',
