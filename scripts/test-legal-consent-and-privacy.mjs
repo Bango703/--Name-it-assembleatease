@@ -130,7 +130,14 @@ assert.equal(
   const { createHash } = await import('node:crypto');
   const latest = read(`api/migrations/${publishing.at(-1).f}`);
   const stored = latest.replace(/\r\n/g, '\n').match(/^\s*'([0-9a-f]{64})',$/m)?.[1];
+  const embeddedAgreement = latest.match(/\$agreement_[a-zA-Z0-9_]+\$([\s\S]*?)\$agreement_[a-zA-Z0-9_]+\$/)?.[1];
   assert.ok(stored, 'the publishing migration stores the agreement hash');
+  assert.ok(embeddedAgreement, 'the publishing migration stores the agreement content');
+  assert.equal(
+    embeddedAgreement.replace(/\r\n/g, '\n'),
+    read('assembler/contractor-agreement.html').replace(/\r\n/g, '\n'),
+    'the published agreement content must exactly match the agreement file',
+  );
   {
     const fileHash = createHash('sha256').update(read('assembler/contractor-agreement.html').replace(/\r\n/g, '\n'), 'utf8').digest('hex');
     assert.equal(stored, fileHash, 'the published agreement hash must be the hash of the agreement file; edit the agreement only with a new version');
@@ -151,6 +158,8 @@ assert.doesNotMatch(agreementMigration, /application_status\s*=/);
 assert.doesNotMatch(agreementMigration, /status\s*=/);
 
 const terms = read('terms.html');
+assert.match(terms, /does not calculate a partial service charge for unfinished work/);
+assert.doesNotMatch(terms, /you are charged only for the work that was completed/);
 assert.match(terms, /AAA\) Consumer Arbitration Rules/);
 assert.doesNotMatch(terms, /AAA\) Commercial Arbitration Rules/);
 assert.match(terms, /Nothing in these Terms limits a lawful right to dispute a card transaction/);
@@ -167,6 +176,13 @@ assert.match(contractorAgreement, /standalone disclosure or authorization requir
 assert.match(contractorAgreement, /already earned compensation is not forfeited/);
 assert.match(contractorAgreement, /active Texas coverage areas/);
 assert.doesNotMatch(contractorAgreement, /Launch services are performed only at customer addresses inside the active Austin/);
+assert.match(contractorAgreement, /effective on the date of electronic acceptance through the Easer application or a required account-update process/);
+assert.match(contractorAgreement, /By electronically accepting this Agreement through the Easer application or a required account-update process/);
+assert.match(contractorAgreement, /Last updated: October 18, 2026/);
+assert.match(contractorAgreement, /Services offered through the Platform do not include connecting, extending, or altering line-voltage electrical wiring, gas lines, plumbing, structural elements, or any work that requires a building permit\./);
+assert.doesNotMatch(contractorAgreement, /unless the booking expressly includes that work/);
+assert.match(contractorAgreement, /The Platform does not calculate or record separate Contractor Earnings for an incomplete booking/);
+assert.doesNotMatch(contractorAgreement, /will determine the share of the job&rsquo;s Contractor Earnings/);
 assert.match(read('assembler/apply.html'), /Identity verification is required and is not a full criminal background check/);
 
 const privacy = read('privacy.html');

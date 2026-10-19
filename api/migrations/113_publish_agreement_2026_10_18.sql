@@ -46,7 +46,7 @@ VALUES
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Review the AssembleAtEase independent contractor agreement and complete the required acknowledgment before receiving jobs." />
     <link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
-  
+
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -456,7 +456,7 @@ VALUES
 
   <div class="eff-date-bar">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    <span>This Agreement is effective on the date of electronic acceptance via the AssembleAtEase application form. <strong>Please read the entire document before signing.</strong></span>
+    <span>This Agreement is effective on the date of electronic acceptance through the Easer application or a required account-update process. <strong>Please read the entire document before signing.</strong></span>
   </div>
 
   <!-- Table of Contents -->
@@ -491,7 +491,7 @@ VALUES
       <span class="doc-brand">AssembleAtEase &bull; Texas Service Network</span>
     </div>
 
-    <p style="color:#374151;margin:0 0 2rem"><strong>PARTIES.</strong> This Independent Contractor Agreement ("Agreement") is entered into as of the date of electronic acceptance, between <strong>AssembleAtEase LLC</strong>, a Texas limited liability company operating at assembleatease.com ("Company" or "Platform"), and the individual who applies to and registers as an "Easer" on the AssembleAtEase platform ("Contractor"). By electronically accepting this Agreement during the application process, the parties agree to be bound by the terms set forth herein.</p>
+    <p style="color:#374151;margin:0 0 2rem"><strong>PARTIES.</strong> This Independent Contractor Agreement ("Agreement") is entered into as of the date of electronic acceptance, between <strong>AssembleAtEase LLC</strong>, a Texas limited liability company operating at assembleatease.com ("Company" or "Platform"), and the individual who applies to and registers as an "Easer" on the AssembleAtEase platform ("Contractor"). By electronically accepting this Agreement through the Easer application or a required account-update process, the parties agree to be bound by the terms set forth herein.</p>
 
     <!-- Section 1 -->
     <div class="ica-section" id="s1">
@@ -569,12 +569,12 @@ VALUES
 
       <div class="ica-clause">
         <span class="clause-num">2.6</span>
-        <span class="clause-body"><strong>Licenses, Permits, and Registrations.</strong> The Contractor is solely responsible for obtaining and keeping current, at the Contractor&rsquo;s own expense, every license, permit, registration, certification, and insurance policy that applicable law requires for each service the Contractor accepts, including any license required for electrical work, locksmith work, the installation of alarm or camera systems, or air-conditioning and refrigeration work. The Company does not verify licenses unless it states otherwise in writing. By accepting a job, the Contractor represents that the Contractor is legally permitted to perform all of it. The Contractor shall decline any job, or any part of a job, that the Contractor is not licensed or qualified to perform.</span>
+        <span class="clause-body"><strong>Licenses, Permits, and Registrations.</strong> The Contractor is solely responsible for obtaining and keeping current, at the Contractor&rsquo;s own expense, every license, permit, registration, certification, and insurance policy that applicable law requires for each service the Contractor accepts. The Company does not verify licenses unless it states otherwise in writing. By accepting a job, the Contractor represents that the Contractor is legally permitted to perform all of it. The Contractor shall decline any job, or any part of a job, that the Contractor is not licensed or qualified to perform.</span>
       </div>
 
       <div class="ica-clause">
         <span class="clause-num">2.7</span>
-        <span class="clause-body"><strong>Work Outside the Platform&rsquo;s Scope.</strong> Platform services do not include connecting, extending, or altering line-voltage electrical wiring, gas lines, plumbing, structural elements, or any work that requires a building permit, unless the booking expressly includes that work and the Contractor holds the license it requires. If a job turns out to require such work, the Contractor shall stop before performing it and report it to the Company through the Platform.</span>
+        <span class="clause-body"><strong>Work Outside the Platform&rsquo;s Scope.</strong> Services offered through the Platform do not include connecting, extending, or altering line-voltage electrical wiring, gas lines, plumbing, structural elements, or any work that requires a building permit. If a job turns out to require such work, the Contractor shall stop before performing it and report it to the Company through the Platform.</span>
       </div>
 
       <div class="ica-clause">
@@ -584,7 +584,7 @@ VALUES
 
       <div class="ica-clause">
         <span class="clause-num">2.9</span>
-        <span class="clause-body"><strong>Unfinished Work and Reassignment.</strong> If the Contractor does not finish an accepted job, the Company may reassign the remaining work to another Contractor. From the booking record, photos, and the customer&rsquo;s account, the Company will determine the share of the job&rsquo;s Contractor Earnings attributable to work the Contractor completed in a workmanlike manner; that share may be zero where the work must be redone. The remainder is paid to the Contractor who finishes the job. The Contractor may dispute the determination under Section 3.8.</span>
+        <span class="clause-body"><strong>Unfinished Work and Reassignment.</strong> If the Contractor does not finish an accepted job, the Company may reassign the remaining work to another Contractor. Contractor Earnings are payable only after the whole booking is marked complete and the payout amount is recorded for that booking. The Platform does not calculate or record separate Contractor Earnings for an incomplete booking. The Contractor may dispute the recorded payout amount under Section 3.8.</span>
       </div>
 
       <div class="ica-clause">
@@ -1154,7 +1154,7 @@ VALUES
       </a>
     </div>
 
-    <p class="print-notice">Last updated: August 16, 2026. Material updates apply prospectively after notice and acceptance as required by law. Acceptance of the current version may be required before receiving new offers; already earned compensation is not forfeited. <a href="javascript:window.print()" style="color:#0099cc">Print this Agreement</a></p>
+    <p class="print-notice">Last updated: October 18, 2026. Material updates apply prospectively after notice and acceptance as required by law. Acceptance of the current version may be required before receiving new offers; already earned compensation is not forfeited. <a href="javascript:window.print()" style="color:#0099cc">Print this Agreement</a></p>
 
   </div><!-- /ica-doc -->
 </div><!-- /ica-wrap -->
@@ -1179,7 +1179,7 @@ VALUES
 </body>
 </html>
 $agreement_2026_10_18$,
-   '5b1eb1bd8c87f66c322f280a4f6be866f154ca6720d47dac4622c567b9e880e2',
+   'b3ab9b7213d33372857cf4e3076c9b48f6c78be14d4d6510ec94baa44322e3ae',
    'Easer responsibility for licenses, permits, registrations and required insurance (2.6); work outside the platform scope (2.7); finishing accepted work and return visits (2.8); unfinished work and reassignment (2.9); corrections (2.10); cancellation of accepted jobs and reliability strikes (2.11, REL-02); payment schedule exception for holds (3.7); payout holds (3.10); adjustments after payment (3.11); customer cancellation earnings (3.12); tips (3.13); approved reimbursements are not earnings (5.4); insurance required by law (10.1).',
    NOW(), NOW(), 'migration_113')
 ON CONFLICT (document, version) DO UPDATE
@@ -1208,7 +1208,7 @@ SELECT version, status, content_hash, published_at
   FROM public.agreement_versions
  WHERE document = 'easer_agreement'
  ORDER BY published_at DESC NULLS LAST;
--- Expected: 2026-10-18 published (hash 5b1eb1bd8c87f66c322f280a4f6be866f154ca6720d47dac4622c567b9e880e2), every other version superseded.
+-- Expected: 2026-10-18 published (hash b3ab9b7213d33372857cf4e3076c9b48f6c78be14d4d6510ec94baa44322e3ae), every other version superseded.
 
 SELECT public.current_required_agreement_version() AS required_now;
 -- Expected: 2026-10-18
