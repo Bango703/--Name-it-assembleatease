@@ -38,13 +38,17 @@ assert.match(reviewApi, /!b\.customer_email/);
 assert.doesNotMatch(reviewApi, /owner_manual|source\s*[!=]=|payment_status/);
 assert.match(ownerUi, /b\.status === 'completed'[\s\S]*?Resend Review Request[\s\S]*?Request Review/);
 
-// Owner and automatic requests both lead to the secure platform review first.
-// Google remains an optional second step only after the platform review submits.
+// Owner and automatic requests both lead to the secure platform review. Google is
+// offered alongside it to every customer, and again after the platform review submits.
 assert.match(reviewApi, /buildReviewEmail\(1, b, reviewUrl/);
 assert.match(cronReviewApi, /buildReviewEmail\(step, b, url/);
 assert.match(reviewEmail, /href="\$\{url\}/);
+assert.match(reviewEmail, /href="\$\{GOOGLE_REVIEW_URL\}"[^>]*>Review us on Google/);
+assert.match(reviewEmail, /g\.page\/r\/CeHfRKINOeZsEBM\/review/);
+assert.match(reviewPage, /g\.page\/r\/CeHfRKINOeZsEBM\/review/);
 assert.doesNotMatch(cronReviewApi, /GOOGLE_REVIEW_URL|googleReviewUrl|Leave a Google Review/);
-assert.doesNotMatch(reviewEmail, /GOOGLE_REVIEW_URL|googleReviewUrl|Leave a Google Review/);
+const confirmedEmail = await read('api/booking-confirmed.js');
+assert.match(confirmedEmail, /Share your feedback<\/strong>[^<]*we&rsquo;ll email you a short link to rate the work/);
 const completionReviewCopy = emailHelpers.slice(emailHelpers.indexOf('export function buildReviewCta'));
 assert.doesNotMatch(completionReviewCopy, /GOOGLE_REVIEW_URL|g\.page|Leave a Google review/);
 assert.match(reviewPage, /Also Leave a Google Review/);

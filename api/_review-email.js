@@ -7,6 +7,11 @@ import { loadCustomerFacingCompletionPhoto } from './booking/_completion-evidenc
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
+// Same Google profile link the /review page offers after a rating. Offered to every
+// customer, never only to those who rate highly.
+export const GOOGLE_REVIEW_URL = (process.env.GOOGLE_REVIEW_URL || '').trim()
+  || 'https://g.page/r/CeHfRKINOeZsEBM/review';
+
 // First request and one final follow-up. Step is 1-based. intro(b, pro).
 export const STEP_COPY = {
   1: {
@@ -59,6 +64,10 @@ export function buildReviewEmail(step, b, url, { photoUrl, proFirst } = {}) {
     <p style="margin:0 0 2px;font-size:13px;font-weight:600;color:#374151;text-align:center">Tap a star to rate</p>
     ${starRow(url)}
     <p style="margin:14px 0 0;text-align:center"><a href="${url}" style="font-size:13px;color:#0369a1;text-decoration:underline">or write a full review &rsaquo;</a></p>
+    <table cellpadding="0" cellspacing="0" align="center" style="margin:22px auto 0"><tr><td style="border:1px solid #d4d4d8;border-radius:6px;padding:0">
+      <a href="${GOOGLE_REVIEW_URL}" style="display:inline-block;padding:11px 22px;font-size:14px;font-weight:600;color:#1a1a1a;text-decoration:none">Review us on Google</a>
+    </td></tr></table>
+    <p style="margin:8px 0 0;text-align:center;font-size:12px;color:#71717a">Reviews on Google help neighbors find us.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin:20px 0 16px"><tr><td style="padding:12px 16px;font-size:13px;color:#0c4a6e;line-height:1.6">
       ${c.note}
     </td></tr></table>
