@@ -128,9 +128,9 @@ const rendererNames = ['mdCountRows','mdSupplyCount','mdDemandCount','mdMiniMetr
 vm.runInContext(rendererNames.map(fn).join('\n'), uiContext);
 uiContext.renderMarketRows(markets);
 const marketHtml = elements.get('md-top-markets').innerHTML;
-assert.match(marketHtml, /Most requested services/);
+assert.match(marketHtml, /Top services/);
 assert.match(marketHtml, /No requests recorded yet/);
-assert.match(marketHtml, /Requested ZIPs/);
+assert.match(marketHtml, /ZIPs:/);
 assert.match(marketHtml, /Pending applications: 1/);
 assert.match(marketHtml, /Eligible Easers: 3/);
 assert.match(marketHtml, /Availability on: 2/);
