@@ -869,7 +869,7 @@
         label: currentProfile.contractor_agreement_signed_at ? 'Review the updated contractor agreement' : 'Accept the contractor agreement',
         desc: currentReadinessError
           ? 'Agreement status could not be verified. Open the secure account-update page or retry the dashboard.'
-          : 'A current agreement acknowledgment is required before new offers can be sent.',
+          : 'Please review and sign the updated agreement. Job offers continue in the meantime.',
         action: !currentAgreementAccepted ? { href:'/assembler/verify-identity', label:'Review' } : null,
       },
       {

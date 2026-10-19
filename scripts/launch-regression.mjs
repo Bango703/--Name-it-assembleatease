@@ -206,8 +206,8 @@ const invalidPhoneReadiness = await getEaserReadiness({ ...readyProfile, phone: 
 assert.equal(invalidPhoneReadiness.isReady, false, 'An invalid phone must never satisfy Easer job readiness');
 assert.match(invalidPhoneReadiness.missingItems.join(' '), /valid 10-digit U\.S\. phone/i);
 const staleAgreement = await getEaserReadiness({ ...readyProfile, contractor_agreement_version: 'old' }, { connectRequired: false });
-assert.equal(staleAgreement.isReady, false);
-assert.match(staleAgreement.missingItems.join(' '), /current contractor agreement/i);
+assert.equal(staleAgreement.isReady, true, 'An older agreement version must not block offers');
+assert.equal(staleAgreement.agreementCurrent, false);
 const connectBlocked = await getEaserReadiness(readyProfile, { connectRequired: true, stripeAccount: null });
 assert.equal(connectBlocked.isReady, true, 'Payout setup must NOT block job readiness — offers keep flowing; earnings hold at release until Stripe is ready');
 assert.equal(connectBlocked.payoutSetupComplete, false, 'Payout setup is incomplete without a verified Connect account');

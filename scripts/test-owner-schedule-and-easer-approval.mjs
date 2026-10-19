@@ -54,9 +54,8 @@ const jobReadiness = await getEaserReadiness(approvedOutdated, {
   connectRequired: false,
   requireAvailability: false,
 });
-assert.equal(jobReadiness.isReady, false);
-assert.equal(jobReadiness.agreementCurrent, false);
-assert.ok(jobReadiness.missingItems.some(item => item.includes('Current contractor agreement')));
+assert.equal(jobReadiness.agreementCurrent, false, 'the reminder flag must stay accurate');
+assert.ok(!jobReadiness.missingItems.some(item => item.includes('contractor agreement')));
 assert.equal(hasCurrentEaserAgreement(approvedOutdated), false);
 assert.equal(isActiveApprovedEaserProfile(approvedOutdated), false);
 

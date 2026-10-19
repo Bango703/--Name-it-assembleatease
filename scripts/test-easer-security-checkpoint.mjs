@@ -327,9 +327,11 @@ assert.match(messageApi, /message_notification_failed/);
 assert.match(messageApi, /Message saved, but the notification was not delivered/);
 assert.match(assignmentsApi, /_offer_location = deriveOfferLocation/);
 assert.match(assignmentsApi, /delete b\.address/);
-assert.match(assignmentsApi, /if \(!agreementCurrent\)[\s\S]*current_agreement_required/,
-  'stale-agreement Easers must not receive pending offers');
-assert.match(assignmentsApi, /newOffersAllowed:\s*agreementCurrent/,
+assert.doesNotMatch(assignmentsApi, /if \(!agreementCurrent\)[\s\S]{0,200}current_agreement_required/,
+  'a stale agreement must not hide pending offers');
+assert.match(assignmentsApi, /agreement_update_available/,
+  'a stale agreement must still produce a reminder');
+assert.match(assignmentsApi, /newOffersAllowed:\s*!applicationFeeRefundHold/,
   'assignment responses must disclose the server-authoritative offer-access state');
 
 const dashboardPage = await load('assembler/index.html');
@@ -338,7 +340,7 @@ assert.match(dashboardPage, /agreementRequired === 'true'/,
 assert.match(dashboardPage, /Job readiness could not be verified\. No job information was loaded/,
   'dashboard must fail closed when readiness cannot be verified');
 const assignmentsPage = await load('assembler/my-assignments.html');
-assert.match(assignmentsPage, /Current contractor agreement required/);
+assert.match(assignmentsPage, /An updated version needs your signature/);
 assert.match(assignmentsPage, /APP\.privateFetch\(boundUserId, '\/api\/assembler\/readiness'/,
   'assignment page must verify readiness through the identity-bound request controller before revealing job content');
 const profileUpdateMigration = await load('api/migrations/059_easer_profile_update_projection.sql');

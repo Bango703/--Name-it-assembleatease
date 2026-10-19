@@ -210,9 +210,9 @@ export async function getEaserReadiness(profile = {}, options = {}) {
     missingItems.push('Application fee paid or explicitly waived');
   }
   if (!flags.contractorAgreementAccepted) missingItems.push('Contractor agreement accepted');
-  if (flags.contractorAgreementAccepted && !flags.agreementCurrent) {
-    missingItems.push(`Current contractor agreement accepted (${CONTRACTOR_AGREEMENT_VERSION})`);
-  }
+  // A newer agreement version is a reminder to sign, never a gate: an Easer who
+  // signed an earlier version keeps receiving and accepting offers. agreementCurrent
+  // stays in the result so the sign prompt can render.
   if (!flags.codeOfConductAccepted) missingItems.push('Code of conduct accepted');
   if (!flags.identityVerified) missingItems.push('Identity verified');
   if (!flags.ownerApproved) missingItems.push('Owner approved');

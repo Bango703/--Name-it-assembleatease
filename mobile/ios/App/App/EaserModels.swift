@@ -380,7 +380,7 @@ struct AssignmentsEnvelope: Decodable {
             while !list.isAtEnd {
                 guard let item = try? list.nestedContainer(keyedBy: DynamicKey.self) else { break }
                 let itemCode = item.string("code")
-                if code == nil, itemCode == "current_agreement_required" || itemCode == "new_offers_paused" {
+                if code == nil, itemCode == "agreement_update_available" || itemCode == "new_offers_paused" {
                     code = itemCode
                     reason = item.string("message")
                 }

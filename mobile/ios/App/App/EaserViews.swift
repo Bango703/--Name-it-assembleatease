@@ -502,16 +502,19 @@ private struct SetupCard: View {
             }
             .padding(16)
             .background(Brand.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        } else if store.offersPausedCode == "agreement_update_available" {
+            VStack(alignment: .leading, spacing: 10) {
+                NoticeCard(icon: "doc.text", title: "An updated version needs your signature",
+                           text: "You will keep receiving job offers. Please review and sign when you can.")
+                Button("Review and sign the agreement") { signing = true }
+                    .buttonStyle(PrimaryButtonStyle())
+            }
+            .sheet(isPresented: $signing) { AgreementSheet(legalName: store.profile?.fullName ?? "").environmentObject(store) }
         } else if !store.newOffersAllowed {
             VStack(alignment: .leading, spacing: 10) {
                 NoticeCard(icon: "pause.circle", title: "New offers are paused",
                            text: store.offersPausedReason ?? "Your scheduled jobs are still here. Contact \(Site.supportEmail) to find out what is needed.")
-                if store.offersPausedCode == "current_agreement_required" {
-                    Button("Review and sign the agreement") { signing = true }
-                        .buttonStyle(PrimaryButtonStyle())
-                }
             }
-            .sheet(isPresented: $signing) { AgreementSheet(legalName: store.profile?.fullName ?? "").environmentObject(store) }
         }
     }
 }
