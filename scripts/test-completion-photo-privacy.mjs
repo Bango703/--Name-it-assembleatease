@@ -14,8 +14,8 @@
  *   "Did the Easer provide completion evidence?"  gates COMPLETION
  *   "May the customer be shown this image?"       gates PUBLICATION
  *
- * They are now separate functions. Completion still requires a photo — that
- * gate is deliberately untouched. Publishing one now requires a decision.
+ * They are now separate functions. Completion requires one photo per booked
+ * unit. Publishing one still requires a deliberate decision.
  *
  * This guard exists because the failure is silent and one-way: nobody notices
  * a photo that should not have been sent until the customer has already seen it.
@@ -34,6 +34,10 @@ const reviewEmail = await read('api/_review-email.js');
 const evidenceApi = await read('api/booking/evidence.js');
 const easerUi = await read('assembler/my-assignments.html');
 const ownerUi = await read('owner/index.html');
+const perUnitMigration = await read('api/migrations/114_completion_photos_per_item.sql');
+const assignments = await read('api/booking/my-assignments.js');
+const payoutApi = await read('api/booking/payout.js');
+const releasePayouts = await read('api/cron/release-payouts.js');
 
 // ── The gate itself ────────────────────────────────────────────────────────
 {
@@ -81,23 +85,46 @@ const ownerUi = await read('owner/index.html');
   console.log('PASS every customer surface reads the approved photo, not the raw upload');
 }
 
-// ── Completion still requires a photo — that gate is untouched ─────────────
+// ── Completion requires every photo for the booked scope ──────────────────
 {
-  assert.ok(easerComplete.includes('const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking);'),
-    'the Easer completion gate must keep using the raw loader — a photo is still required to complete');
-  assert.ok(easerComplete.includes('A completion photo is required.'),
-    'the completion requirement must not have been weakened by the privacy fix');
+  assert.match(easerComplete, /loadCurrentCompletionEvidence\(sb, booking, \{\s*requireAllPhotos: true,\s*\}\)/,
+    'the Easer completion gate must verify every required photo');
+  assert.match(easerComplete, /code: 'COMPLETION_PHOTOS_INCOMPLETE'/,
+    'the Easer receives an explicit server reason and required count');
   // The owner path now also accepts a photo the OWNER supplied for the Easer.
   // That is a deadlock fix, not a weakening: without it an Easer who cannot
   // upload makes the job unfinishable by anyone. A photo is still mandatory —
   // it simply no longer has to come from a person who has stopped responding.
   assert.ok(ownerComplete.includes('loadCurrentCompletionEvidence(sb, booking, {'),
     'the owner completion gate must still demand evidence');
+  assert.ok(ownerComplete.includes('requireAllPhotos: true'),
+    'the owner completion gate also verifies every required photo');
   assert.ok(ownerComplete.includes('acceptSuppliedOnBehalf: true'),
     'the owner may rely on evidence they supplied, or an unresponsive Easer strands the job');
   assert.ok(!/acceptSuppliedOnBehalf/.test(easerComplete),
     'an Easer completing their own job must never be able to lean on someone else\'s photo');
-  console.log('PASS completion still requires a photo; only publication and who may supply it changed');
+  console.log('PASS completion requires the full photo set; only publication and who may supply evidence changed');
+}
+
+// ── Every booked unit has a server-owned photo requirement ─────────────────
+{
+  assert.match(perUnitMigration, /GREATEST\(\s*1,\s*COALESCE\(SUM\(GREATEST\(COALESCE\(item\.quantity, 1\), 1\)\), 0\)::INTEGER\s*\)/,
+    'a booking requires at least one photo and counts each booked quantity');
+  assert.match(perUnitMigration, /item\.is_add_on IS NOT TRUE/,
+    'add-ons such as wire concealment never add a required photo');
+  assert.match(perUnitMigration, /booking_required_completion_photo_counts/,
+    'the server can load quantity-aware counts for assignment lists in one call');
+  assert.match(perUnitMigration, /v_required_photo_count \+ 5/,
+    'the evidence allowance grows with booked units while preserving five extra evidence files');
+  assert.match(assignments, /_completion_photo_remaining_count = Math\.max\(/,
+    'the Easer receives how many photos remain after existing uploads');
+  assert.match(assignments, /_completion_photo_count_known = false/,
+    'failed count/evidence reads fail closed instead of showing a made-up requirement');
+  assert.match(payoutApi, /requireAllPhotos: Boolean\(booking\.evidence_requested_at\)/,
+    'manual payout keeps an evidence-request hold until the full requested set is present');
+  assert.match(releasePayouts, /requireAllPhotos: true/,
+    'Connect payout release rechecks the full requested set, including after reservation');
+  console.log('PASS the server requires and rechecks one photo for every booked unit');
 }
 
 // ── No approved photo must not break the email ────────────────────────────
@@ -161,8 +188,10 @@ console.log('\nCompletion photo privacy tests passed.');
   const easerUi = await read('assembler/my-assignments.html');
   assert.ok(!/Remove the photo to skip/.test(easerUi),
     'the UI must not offer skipping a photo the server requires');
-  assert.ok((easerUi.match(/A photo is required to complete this job/g) || []).length >= 2,
-    'both upload-failure paths must say a photo is required, not optional');
+  assert.ok(easerUi.includes('The remaining completion photos are required'),
+    'a connection failure says the remaining photos are still required');
+  assert.ok(easerComplete.includes('Upload all ${requiredCount} completion photos'),
+    'the server response states how many photos remain necessary');
 
   // Completion is only offered once the job is in progress, so the photo always
   // falls inside the window the server accepts. Without this an Easer could

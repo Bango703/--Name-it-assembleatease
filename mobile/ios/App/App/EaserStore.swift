@@ -121,12 +121,6 @@ final class EaserStore: ObservableObject {
     let api = EaserAPI()
     private let location = OneTimeLocation()
     private var registeredPushToken: String?
-    /// How many of a job's completion photos the server has already accepted, so
-    /// a retry sends only the rest and never uploads one twice.
-    private var photosSent: [String: Int] = [:]
-    /// The server keeps at most five evidence files per booking.
-    static let maxCompletionPhotos = 5
-
     init() {
         api.onSessionEnded = { [weak self] in
             Task { @MainActor in self?.endSession(message: "Please sign in again.") }
@@ -185,7 +179,6 @@ final class EaserStore: ObservableObject {
         noticesNextBefore = nil
         loadedOnce = false
         loadProblem = nil
-        photosSent = [:]
         registeredPushToken = nil
         phase = .signedOut
         if let message { banner = Banner(text: message, kind: .problem) }
@@ -442,35 +435,76 @@ final class EaserStore: ObservableObject {
         }
     }
 
-    /// Photos first, one per item, then completion. Returns true only when the
-    /// server confirms completion.
+    /// Photos first, one per booked unit still missing, then completion.
+    /// Returns true only when the server confirms completion.
     func complete(_ job: EaserJob, photos: [UIImage]) async -> Bool {
         busyJobs.insert(job.id)
         defer { busyJobs.remove(job.id) }
         do {
-            let alreadySent = photosSent[job.id] ?? 0
-            for (index, photo) in photos.enumerated() where index >= alreadySent {
+            let currentJob = jobs.first(where: { $0.id == job.id }) ?? job
+            guard currentJob.completionPhotoCountKnown,
+                  let remaining = currentJob.remainingCompletionPhotoCount,
+                  remaining >= 0 else {
+                banner = Banner(text: "The required photo count could not be loaded. Refresh the job and try again.", kind: .problem)
+                await refreshJobs()
+                return false
+            }
+            guard photos.count >= remaining else {
+                banner = Banner(text: "Add \(remaining) clear completion photo\(remaining == 1 ? "" : "s"), one for each booked item still missing.", kind: .problem)
+                return false
+            }
+            for (index, photo) in photos.prefix(remaining).enumerated() {
                 guard let jpeg = PhotoPrep.jpeg(from: photo) else {
                     banner = Banner(text: "Photo \(index + 1) could not be prepared. Take a new one and try again.", kind: .problem)
+                    await refreshJobs()
                     return false
                 }
-                do {
-                    try await api.call("POST", "/api/booking/upload-evidence", body: [
-                        "bookingId": job.id,
-                        "fileBase64": jpeg.base64EncodedString(),
-                        "mimeType": "image/jpeg",
-                        "evidenceType": "completion_photo",
-                    ])
-                    photosSent[job.id] = index + 1
-                } catch let error as AppError where error.status == 409 && index > 0 {
-                    // The booking already holds five files; the ones sent are enough.
-                    break
-                }
+                try await api.call("POST", "/api/booking/upload-evidence", body: [
+                    "bookingId": job.id,
+                    "fileBase64": jpeg.base64EncodedString(),
+                    "mimeType": "image/jpeg",
+                    "evidenceType": "completion_photo",
+                ])
             }
             try await api.call("POST", "/api/booking/assembler-complete", body: ["bookingId": job.id])
-            photosSent[job.id] = nil
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             justCompleted = CompletedJob(id: job.id, title: job.title, pay: job.payEstimateCents.map { Format.money(cents: $0) })
+            await refresh()
+            return true
+        } catch {
+            banner = Banner(text: error.localizedDescription, kind: .problem)
+            await refresh()
+            return false
+        }
+    }
+
+    /// Uploads all remaining photos requested for a completed job.
+    func sendRequestedPhotos(_ photos: [UIImage], for job: EaserJob) async -> Bool {
+        let currentJob = jobs.first(where: { $0.id == job.id }) ?? job
+        guard currentJob.completionPhotoCountKnown,
+              let remaining = currentJob.remainingCompletionPhotoCount,
+              remaining >= 0 else {
+            banner = Banner(text: "The required photo count could not be loaded. Refresh the job and try again.", kind: .problem)
+            await refreshJobs()
+            return false
+        }
+        guard photos.count >= remaining else {
+            banner = Banner(text: "Add \(remaining) clear completion photo\(remaining == 1 ? "" : "s") to continue.", kind: .problem)
+            return false
+        }
+        do {
+            for (index, image) in photos.prefix(remaining).enumerated() {
+                guard let jpeg = PhotoPrep.jpeg(from: image) else {
+                    throw AppError(message: "Photo \(index + 1) could not be prepared. Take a new one and try again.", status: 0)
+                }
+                try await api.call("POST", "/api/booking/upload-evidence", body: [
+                    "bookingId": job.id,
+                    "fileBase64": jpeg.base64EncodedString(),
+                    "mimeType": "image/jpeg",
+                    "evidenceType": "completion_photo",
+                ])
+            }
+            banner = Banner(text: "Photos sent to AssembleAtEase.", kind: .success)
             await refresh()
             return true
         } catch {

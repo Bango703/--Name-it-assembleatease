@@ -339,17 +339,18 @@
     </div>
     <!-- Evidence request section (shown when payout is held pending photo upload) -->
     <div id="evidence-request-section" style="display:none;background:#fffbeb;border:1px solid rgba(245,158,11,0.4);border-radius:10px;padding:0.875rem 1rem;margin-top:0.5rem;margin-bottom:0.75rem">
-      <div style="font-size:0.82rem;font-weight:700;color:#92400e;margin-bottom:0.3rem">Action Required: Completion Photo</div>
-      <div style="font-size:0.78rem;color:#92400e;line-height:1.55;margin-bottom:0.75rem">Upload at least one clear photo of the completed work to continue your payout.</div>
+      <div style="font-size:0.82rem;font-weight:700;color:#92400e;margin-bottom:0.3rem">Action Required: Completion Photos</div>
+      <div id="evidence-req-instruction" style="font-size:0.78rem;color:#92400e;line-height:1.55;margin-bottom:0.75rem">Upload the requested clear photos of the completed work to continue your payout.</div>
       <div style="font-size:0.74rem;color:#92400e;background:#fffbeb;border:1px solid rgba(245,158,11,0.35);border-radius:8px;padding:0.55rem 0.7rem;margin-bottom:0.55rem;line-height:1.5"><strong>Photos of the completed work only.</strong> Do not upload selfies, faces, IDs, personal documents, or unrelated images.</div>
-      <input type="file" id="evidence-req-photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none">
+      <input type="file" id="evidence-req-photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple style="display:none">
       <div id="evidence-req-preview" style="display:none;margin-bottom:0.6rem">
-        <img id="evidence-req-img" src="" alt="Preview" style="max-width:100%;max-height:180px;border-radius:8px;object-fit:cover;display:block">
-        <button type="button" id="evidence-req-remove" style="margin-top:0.35rem;font-size:0.75rem;color:#92400e;background:none;border:none;cursor:pointer;padding:0">Remove photo</button>
+        <div id="evidence-req-thumbnails" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:0.4rem"></div>
+        <div id="evidence-req-count" style="font-size:0.74rem;color:#92400e;margin-top:0.35rem"></div>
+        <button type="button" id="evidence-req-remove" style="margin-top:0.35rem;font-size:0.75rem;color:#92400e;background:none;border:none;cursor:pointer;padding:0">Clear selected photos</button>
       </div>
       <div style="display:flex;gap:0.5rem">
         <button type="button" id="evidence-req-pick" class="btn" style="background:#f59e0b;border-color:#f59e0b;color:#fff;flex:1;font-size:0.85rem;min-height:42px">Choose Photo</button>
-        <button type="button" id="evidence-req-upload" class="btn btn-teal" style="flex:1;font-size:0.85rem;min-height:42px;display:none">Upload</button>
+        <button type="button" id="evidence-req-upload" class="btn btn-teal" style="flex:1;font-size:0.85rem;min-height:42px;display:none">Upload photos</button>
       </div>
       <div id="evidence-req-status" style="font-size:0.75rem;color:#92400e;margin-top:0.45rem;display:none"></div>
     </div>
@@ -419,14 +420,15 @@
   let selectedBookingId = null;
   var _pendingCompleteBookingId = null;
   var _completionInFlight = false;
-  // Completion photos: one per item, up to MAX_COMPLETION_PHOTOS (the server
-  // keeps at most five evidence files per booking). Each entry is
-  // { prepared, uploaded }; prepared comes from AAE_UPLOAD.prepare().
-  var MAX_COMPLETION_PHOTOS = 5;
+  // Completion evidence is quantity-aware and the server returns the remaining
+  // count. Each entry is { prepared, uploaded }.
   var _photos = [];
+  var _completionPhotoCountKnown = false;
+  var _completionPhotosRemaining = null;
 
   // Evidence request upload state
-  var _evidenceReqFile = null;
+  var _evidenceReqFiles = [];
+  var _evidenceReqRemaining = null;
   var _evidenceReqBookingId = null;
   var _evidenceReqInFlight = false;
   var _damageBookingId = null;
@@ -1236,7 +1238,7 @@
     // Mark Complete opens the accessible in-app confirmation sheet.
     // (_completionInFlight and photo state vars are declared at module scope above — openDetail needs them)
     // Draw the photo strip: a thumbnail per photo with Remove, the add button
-    // while there is room, and Complete enabled once there is one photo.
+    // while photos remain, and Complete enabled only when the required count is met.
     function _renderPhotos() {
       var previewArea = document.getElementById('photo-preview-area');
       var pickBtn = document.getElementById('photo-pick-btn');
@@ -1253,14 +1255,17 @@
         }).join('');
         previewArea.style.display = _photos.length ? 'grid' : 'none';
       }
+      var remaining = Number.isInteger(_completionPhotosRemaining) ? _completionPhotosRemaining : null;
       if (pickBtn) {
-        pickBtn.style.display = _photos.length < MAX_COMPLETION_PHOTOS ? 'flex' : 'none';
+        pickBtn.style.display = remaining != null && _photos.length < remaining ? 'flex' : 'none';
         pickBtn.disabled = false;
       }
       if (pickLabel) pickLabel.textContent = _photos.length ? 'Add another photo' : 'Open Camera';
-      if (countEl) countEl.textContent = _photos.length ? _photos.length + ' of ' + MAX_COMPLETION_PHOTOS : '';
+      if (countEl) countEl.textContent = remaining == null
+        ? ''
+        : _photos.length + ' of ' + remaining + ' required photos';
       if (yesBtn) {
-        var ready = _photos.length > 0;
+        var ready = _completionPhotoCountKnown && remaining != null && _photos.length >= remaining;
         yesBtn.disabled = !ready;
         yesBtn.style.opacity = ready ? '' : '0.45';
         yesBtn.style.cursor = ready ? '' : 'not-allowed';
@@ -1280,16 +1285,25 @@
 
     document.getElementById('complete-btn').addEventListener('click', function(e) {
       if (!selectedBookingId) { e.preventDefault(); return; }
+      var job = allAssignments.find(function (x) { return x.id === selectedBookingId; });
+      _completionPhotoCountKnown = Boolean(job && job._completion_photo_count_known === true
+        && Number.isInteger(job._completion_photo_remaining_count));
+      _completionPhotosRemaining = _completionPhotoCountKnown
+        ? job._completion_photo_remaining_count
+        : null;
       _pendingCompleteBookingId = selectedBookingId;
       _resetPhotoState();
-      // Say how many items the job has, so one photo per item is the obvious ask.
-      var job = allAssignments.find(function (x) { return x.id === selectedBookingId; });
-      var itemCount = ((job && job._booking_items) || []).reduce(function (sum, item) { return sum + (Number(item.quantity) || 1); }, 0);
       var bodyEl = document.getElementById('complete-sheet-body');
       if (bodyEl) {
-        bodyEl.textContent = itemCount > 1
-          ? 'This job has ' + itemCount + ' items. Take a photo of each, up to ' + MAX_COMPLETION_PHOTOS + '. At least one is required.'
-          : 'Take a photo of the finished work. At least one is required.';
+        bodyEl.textContent = !_completionPhotoCountKnown
+          ? 'The required photo count is unavailable. Refresh the job before marking it complete.'
+          : _completionPhotosRemaining > 0
+            ? 'Add ' + _completionPhotosRemaining + ' more clear completion photo' + (_completionPhotosRemaining === 1 ? '' : 's') + ', with a photo of each booked item.'
+            : 'The required completion photos are saved. Confirm that all work is done.';
+      }
+      if (!_completionPhotoCountKnown || _completionPhotosRemaining === 0) {
+        e.preventDefault();
+        setAssignmentSheetOpen('complete-sheet', true);
       }
       // Label's default behavior opens the file input (photo-input) natively.
       // No .click() needed — browser label→input binding works on all platforms.
@@ -1309,7 +1323,7 @@
     // Photo taken or chosen → open the sheet if needed, shrink, add to the strip.
     document.getElementById('photo-input').addEventListener('change', function() {
       var photoInputEl = this;
-      var files = Array.prototype.slice.call(this.files || [], 0, MAX_COMPLETION_PHOTOS - _photos.length);
+      var files = Array.prototype.slice.call(this.files || [], 0, Math.max(0, (_completionPhotosRemaining || 0) - _photos.length));
       if (!files.length) return;
       var statusEl = document.getElementById('photo-upload-status');
       statusEl.textContent = files.length > 1 ? 'Preparing photos…' : 'Preparing photo…';
@@ -1327,7 +1341,7 @@
       files.reduce(function (chain, file) {
         return chain.then(function () {
           return window.AAE_UPLOAD.prepare(file).then(function (prepared) {
-            if (_photos.length < MAX_COMPLETION_PHOTOS) _photos.push({ prepared: prepared, uploaded: false });
+            if (_photos.length < _completionPhotosRemaining) _photos.push({ prepared: prepared, uploaded: false });
           });
         });
       }, Promise.resolve()).then(function () {
@@ -1360,64 +1374,98 @@
     });
 
     document.getElementById('evidence-req-photo-input').addEventListener('change', function() {
-      var file = this.files && this.files[0];
-      if (!file) return;
+      var files = Array.prototype.slice.call(this.files || []);
+      if (!files.length || !Number.isInteger(_evidenceReqRemaining)) return;
       var reqInputEl = this;
-      window.AAE_UPLOAD.prepare(file).then(function(prepared) {
-        _evidenceReqFile = prepared;
-        document.getElementById('evidence-req-img').src = prepared.dataUrl;
-        document.getElementById('evidence-req-preview').style.display = '';
-        document.getElementById('evidence-req-upload').style.display = '';
+      var remainingSlots = Math.max(0, _evidenceReqRemaining - _evidenceReqFiles.length);
+      files = files.slice(0, remainingSlots);
+      files.reduce(function(chain, file) {
+        return chain.then(function() {
+          return window.AAE_UPLOAD.prepare(file).then(function(prepared) {
+            if (_evidenceReqFiles.length < _evidenceReqRemaining) {
+              _evidenceReqFiles.push({ prepared: prepared, uploaded: false });
+            }
+          });
+        });
+      }, Promise.resolve()).then(function() {
+        var thumbnails = document.getElementById('evidence-req-thumbnails');
+        thumbnails.innerHTML = _evidenceReqFiles.map(function(entry, index) {
+          return '<img src="' + entry.prepared.dataUrl + '" alt="Completion photo ' + (index + 1) + '" style="width:100%;height:72px;border-radius:8px;object-fit:cover">'
+            + (entry.uploaded ? '<span style="font-size:0.68rem;color:#166534">Sent</span>' : '');
+        }).join('');
+        document.getElementById('evidence-req-count').textContent = _evidenceReqFiles.length + ' of ' + _evidenceReqRemaining + ' required photos';
+        document.getElementById('evidence-req-preview').style.display = _evidenceReqFiles.length ? '' : 'none';
+        document.getElementById('evidence-req-upload').style.display = _evidenceReqFiles.length >= _evidenceReqRemaining ? '' : 'none';
       }).catch(function(err) {
-        _evidenceReqFile = null;
         APP.showAlert('page-alert', err.message, 'error');
       });
       reqInputEl.value = '';
     });
 
     document.getElementById('evidence-req-remove').addEventListener('click', function() {
-      _evidenceReqFile = null;
+      _evidenceReqFiles = [];
+      document.getElementById('evidence-req-thumbnails').innerHTML = '';
       document.getElementById('evidence-req-preview').style.display = 'none';
       document.getElementById('evidence-req-upload').style.display = 'none';
     });
 
     document.getElementById('evidence-req-upload').addEventListener('click', async function() {
-      if (!_evidenceReqFile || !_evidenceReqBookingId || _evidenceReqInFlight) return;
+      if (!_evidenceReqBookingId || _evidenceReqInFlight || !Number.isInteger(_evidenceReqRemaining)
+          || _evidenceReqFiles.length < _evidenceReqRemaining) return;
       _evidenceReqInFlight = true;
       var uploadBtn = document.getElementById('evidence-req-upload');
       var statusEl = document.getElementById('evidence-req-status');
       uploadBtn.disabled = true;
       uploadBtn.textContent = 'Uploading…';
-      statusEl.textContent = 'Uploading photo…';
+      statusEl.textContent = 'Uploading photos…';
       statusEl.style.display = '';
       try {
-        var resp = await fetch('/api/booking/upload-evidence', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-          body: JSON.stringify({ bookingId: _evidenceReqBookingId, fileBase64: _evidenceReqFile.base64, mimeType: _evidenceReqFile.mimeType, evidenceType: 'completion_photo' }),
-        });
-        if (!resp.ok) {
-          statusEl.textContent = await window.AAE_UPLOAD.describeUploadFailure(resp);
-          uploadBtn.disabled = false;
-          uploadBtn.textContent = 'Upload';
-          _evidenceReqInFlight = false;
-          return;
+        for (var i = 0; i < _evidenceReqFiles.length; i++) {
+          var entry = _evidenceReqFiles[i];
+          if (entry.uploaded) continue;
+          var prepared = entry.prepared;
+          statusEl.textContent = 'Uploading photo ' + (i + 1) + ' of ' + _evidenceReqRemaining + '…';
+          var resp = await fetch('/api/booking/upload-evidence', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+            body: JSON.stringify({ bookingId: _evidenceReqBookingId, fileBase64: prepared.base64, mimeType: prepared.mimeType, evidenceType: 'completion_photo' }),
+          });
+          if (!resp.ok) {
+            statusEl.textContent = (await window.AAE_UPLOAD.describeUploadFailure(resp)) + ' Keep the selected photos and retry.';
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload photos';
+            _evidenceReqInFlight = false;
+            return;
+          }
+          var data = await resp.json().catch(function(){ return {}; });
+          if (data.error) {
+            statusEl.textContent = data.error;
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload photos';
+            _evidenceReqInFlight = false;
+            return;
+          }
+          entry.uploaded = true;
         }
-        var data = await resp.json().catch(function(){ return {}; });
-        if (data.error) {
-          statusEl.textContent = data.error;
-          uploadBtn.disabled = false;
-          uploadBtn.textContent = 'Upload';
-          _evidenceReqInFlight = false;
-          return;
-        }
-        // Success — hide the upload prompt, then reload canonical payout truth.
+        // Re-fetch server evidence state before clearing the request or showing a new payout status.
+        var freshResp = await fetchAssignments();
+        if (!freshResp.ok) throw new Error('Photos uploaded, but the updated job status could not be loaded. Refresh before relying on the payout status.');
+        var freshData = await freshResp.json();
+        allAssignments = freshData.bookings || [];
+        var completedEvidenceBookingId = _evidenceReqBookingId;
+        var currentFilter = document.querySelector('.e-filter-pill.active').dataset.filter || 'all';
+        renderAssignments(filterList(allAssignments, currentFilter));
+        updateFilterCounts(allAssignments);
+        _evidenceReqFiles = [];
+        _evidenceReqRemaining = null;
+        _evidenceReqBookingId = null;
         document.getElementById('evidence-request-section').style.display = 'none';
-        var bk = allAssignments.find(function(x) { return x.id === _evidenceReqBookingId; });
-        if (bk) bk._evidence_uploaded = true;
+        document.getElementById('evidence-req-thumbnails').innerHTML = '';
+        document.getElementById('evidence-req-preview').style.display = 'none';
+        document.getElementById('evidence-req-count').textContent = '';
         var payoutTruthRefreshed = await refreshEarningsTruth();
         var refreshedEarning = payoutTruthRefreshed
-          ? earningsByBookingId.get(_evidenceReqBookingId)
+          ? earningsByBookingId.get(completedEvidenceBookingId)
           : null;
         document.getElementById('payout-info-note').textContent = refreshedEarning && refreshedEarning.payout
           ? 'Status: ' + refreshedEarning.payout.status_label + '. ' + refreshedEarning.payout.status_message
@@ -1425,14 +1473,14 @@
         APP.showAlert(
           'page-alert',
           payoutTruthRefreshed
-            ? 'Evidence uploaded. Current payout status refreshed.'
-            : 'Evidence uploaded. Payout status is temporarily unavailable; refresh before relying on it.',
+            ? 'Photos uploaded. Current payout status refreshed.'
+              : 'Photos uploaded. Payout status is temporarily unavailable; refresh before relying on it.',
           payoutTruthRefreshed ? 'success' : 'error'
         );
       } catch (err) {
-        statusEl.textContent = 'Connection error — please try again.';
+        statusEl.textContent = err.message || 'Connection error — please try again.';
         uploadBtn.disabled = false;
-        uploadBtn.textContent = 'Upload';
+        uploadBtn.textContent = 'Upload photos';
       }
       _evidenceReqInFlight = false;
     });
@@ -1543,16 +1591,11 @@
           if (uploadResp.ok) {
             photo.uploaded = true;
             _renderPhotos();
-          } else if (uploadResp.status === 409) {
-            // The booking already holds five files: the rest cannot be added.
-            _photos = _photos.filter(function (p) { return p.uploaded; });
-            _renderPhotos();
-            break;
           } else {
             // Upload failed — keep sheet open so Easer can retry
             const uploadError = await window.AAE_UPLOAD.describeUploadFailure(uploadResp);
             if (statusEl) {
-              statusEl.textContent = uploadError + ' A photo is required to complete this job.';
+              statusEl.textContent = uploadError + ' Keep the remaining photos selected and retry.';
               statusEl.style.color = '#dc2626';
               statusEl.style.display = 'block';
             }
@@ -1563,7 +1606,7 @@
           }
         } catch {
           if (statusEl) {
-            statusEl.textContent = 'Photo upload failed (connection error). A photo is required to complete this job. Check your signal and try again.';
+            statusEl.textContent = 'Photo upload failed (connection error). The remaining completion photos are required. Check your signal and try again.';
             statusEl.style.color = '#dc2626';
             statusEl.style.display = 'block';
           }
@@ -1604,7 +1647,9 @@
               const fd = await freshResp.json();
               allAssignments = fd.bookings || [];
             }
-          } catch {}
+            } catch (refreshError) {
+              console.error('Could not refresh assignments after completion:', refreshError);
+            }
           await refreshEarningsTruth();
           const cf = document.querySelector('.e-filter-pill.active').dataset.filter || 'all';
           renderAssignments(filterList(allAssignments, cf));
@@ -2433,13 +2478,30 @@
     if (evidenceHeld) {
       evReqSection.style.display = '';
       _evidenceReqBookingId = b.id;
-      _evidenceReqFile = null;
+      _evidenceReqFiles = [];
+      _evidenceReqRemaining = b._completion_photo_count_known === true
+        && Number.isInteger(b._completion_photo_remaining_count)
+        ? b._completion_photo_remaining_count
+        : null;
+      var evidenceReqInstruction = document.getElementById('evidence-req-instruction');
+      if (evidenceReqInstruction) {
+        evidenceReqInstruction.textContent = _evidenceReqRemaining == null
+          ? 'The required photo count is unavailable. Refresh the job before uploading evidence.'
+          : 'Upload ' + _evidenceReqRemaining + ' more clear completion photo' + (_evidenceReqRemaining === 1 ? '' : 's') + ', with a photo of each booked item, to continue your payout.';
+      }
+      document.getElementById('evidence-req-pick').disabled = _evidenceReqRemaining == null || _evidenceReqRemaining < 1;
+      document.getElementById('evidence-req-photo-input').value = '';
+      document.getElementById('evidence-req-thumbnails').innerHTML = '';
+      document.getElementById('evidence-req-count').textContent = '';
       document.getElementById('evidence-req-preview').style.display = 'none';
       document.getElementById('evidence-req-upload').style.display = 'none';
       document.getElementById('evidence-req-status').style.display = 'none';
       document.getElementById('evidence-req-status').textContent = '';
     } else {
       evReqSection.style.display = 'none';
+      _evidenceReqBookingId = null;
+      _evidenceReqFiles = [];
+      _evidenceReqRemaining = null;
     }
 
     // Payout summary for completed jobs
@@ -2779,6 +2841,3 @@
 </div>
 </body>
 </html>
-
-
-

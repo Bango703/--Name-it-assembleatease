@@ -107,20 +107,23 @@ export default async function handler(req, res) {
   // uploaded_by records who actually uploaded, uploaded_on_behalf_of records
   // who it was for — so the timeline never claims the Easer took the photo.
   //
-  // api/booking/assembler-complete.js is deliberately NOT changed: an Easer
-  // standing in the customer's home has no excuse for someone else's photo.
   const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking, {
     acceptSuppliedOnBehalf: true,
+    requireAllPhotos: true,
   });
   if (completionEvidenceResult.error) {
     console.error('Owner completion evidence lookup failed:', completionEvidenceResult.error);
     return res.status(503).json({ error: 'Completion evidence could not be verified. No payment was captured.' });
   }
   const completionEvidence = completionEvidenceResult.evidence;
-  if (!completionEvidence) {
+  if (!completionEvidenceResult.satisfied) {
+    const requiredCount = completionEvidenceResult.requiredPhotoCount || 1;
+    const uploadedCount = completionEvidenceResult.evidenceCount || 0;
     return res.status(409).json({
-      error: 'A completion photo from the current assigned Easer, uploaded after work started, is required before completion.',
-      code: 'COMPLETION_EVIDENCE_REQUIRED',
+      error: `All ${requiredCount} completion photos are required before completion. ${uploadedCount} of ${requiredCount} received.`,
+      code: 'COMPLETION_PHOTOS_INCOMPLETE',
+      requiredPhotoCount: requiredCount,
+      uploadedPhotoCount: uploadedCount,
     });
   }
 

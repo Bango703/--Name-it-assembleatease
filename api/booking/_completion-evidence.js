@@ -1,3 +1,22 @@
+export const EXTRA_EVIDENCE_FILE_LIMIT = 5;
+
+export async function loadRequiredCompletionPhotoCounts(sb, bookingIds) {
+  const ids = [...new Set((Array.isArray(bookingIds) ? bookingIds : [bookingIds]).filter(Boolean))];
+  if (!ids.length) return new Map();
+  const { data, error } = await sb.rpc('booking_required_completion_photo_counts', {
+    p_booking_ids: ids,
+  });
+  if (error) throw error;
+  const counts = new Map((data || []).map(row => [
+    row.booking_id,
+    Number(row.required_photo_count),
+  ]));
+  if (ids.some(id => !Number.isInteger(counts.get(id)) || counts.get(id) < 1)) {
+    throw new Error('Required completion photo counts were incomplete.');
+  }
+  return counts;
+}
+
 /**
  * @param {object} row      a booking_evidence row
  * @param {object} booking
@@ -23,6 +42,52 @@ export function isCurrentCompletionEvidence(row, booking, { acceptSuppliedOnBeha
     ? Math.max(workStartedAt, evidenceRequestedAt)
     : workStartedAt;
   return Number.isFinite(createdAt) && Number.isFinite(validAfter) && createdAt >= validAfter;
+}
+
+export function summarizeCurrentCompletionPhotos(rows, booking, requiredPhotoCount, {
+  acceptSuppliedOnBehalf = false,
+} = {}) {
+  const bookingWithoutRequest = { ...booking, evidence_requested_at: null };
+  const validRows = (rows || []).filter(row =>
+    isCurrentCompletionEvidence(row, bookingWithoutRequest, { acceptSuppliedOnBehalf }));
+  const requestAt = booking.evidence_requested_at
+    ? new Date(booking.evidence_requested_at).getTime()
+    : null;
+  if (booking.evidence_requested_at && !Number.isFinite(requestAt)) {
+    return {
+      evidence: validRows[0] || null,
+      evidenceCount: validRows.length,
+      evidenceCountAfterRequest: 0,
+      requiredPhotoCount,
+      requiredAfterRequestCount: requiredPhotoCount,
+      satisfied: false,
+      reason: 'invalid_evidence_request_at',
+    };
+  }
+
+  const priorRequestCount = Number.isFinite(requestAt)
+    ? validRows.filter(row => new Date(row.created_at).getTime() < requestAt).length
+    : 0;
+  const evidenceCountAfterRequest = Number.isFinite(requestAt)
+    ? validRows.length - priorRequestCount
+    : validRows.length;
+  const requiredAfterRequestCount = Number.isFinite(requestAt)
+    ? Math.max(1, requiredPhotoCount - priorRequestCount)
+    : requiredPhotoCount;
+
+  return {
+    evidence: validRows[0] || null,
+    evidenceCount: validRows.length,
+    evidenceCountAfterRequest,
+    requiredPhotoCount,
+    requiredAfterRequestCount,
+    satisfied: evidenceCountAfterRequest >= requiredAfterRequestCount,
+    reason: evidenceCountAfterRequest >= requiredAfterRequestCount
+      ? null
+      : Number.isFinite(requestAt)
+        ? 'post_request_completion_photos_incomplete'
+        : 'completion_photos_incomplete',
+  };
 }
 
 /**
@@ -61,6 +126,7 @@ export async function loadCurrentCompletionEvidence(sb, booking, {
   select = 'id, storage_path, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at',
   allowHistoricalOwnerManual = false,
   customerFacingOnly = false,
+  requireAllPhotos = false,
   // Payout only. Accepts evidence the OWNER supplied for this Easer, recorded
   // honestly via uploaded_on_behalf_of. Never enabled on the completion gate:
   // an Easer still needs their own photo to mark a job done.
@@ -91,12 +157,25 @@ export async function loadCurrentCompletionEvidence(sb, booking, {
     return { evidence: null, error: null, reason: 'work_start_or_assignee_missing' };
   }
 
+  let requiredPhotoCount = 1;
+  if (requireAllPhotos) {
+    try {
+      const counts = await loadRequiredCompletionPhotoCounts(sb, [booking.id]);
+      requiredPhotoCount = counts.get(booking.id);
+    } catch (error) {
+      return { evidence: null, error, reason: 'booking_items_lookup_failed' };
+    }
+  }
+
+  const queryAfter = requireAllPhotos && booking.evidence_requested_at
+    ? (historicalOwnerManual ? validAfter : workStartedAt)
+    : validAfter;
   let query = sb
     .from('booking_evidence')
     .select(select)
     .eq('booking_id', booking.id)
     .eq('evidence_type', 'completion_photo')
-    .gte('created_at', new Date(validAfter).toISOString());
+    .gte('created_at', new Date(queryAfter).toISOString());
 
   // The default path keeps the exact single-column filter it always had.
   // Only the payout path widens to include evidence the owner supplied FOR
@@ -108,30 +187,78 @@ export async function loadCurrentCompletionEvidence(sb, booking, {
   // Only a photo somebody deliberately promoted may leave the building.
   if (customerFacingOnly) query = query.eq('visibility', CUSTOMER_FACING_VISIBILITY);
 
-  const { data, error } = await query
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  query = query.order('created_at', { ascending: false });
+  let evidenceData;
+  let error;
+  if (requireAllPhotos) {
+    ({ data: evidenceData, error } = await query
+      .limit(requiredPhotoCount + EXTRA_EVIDENCE_FILE_LIMIT));
+  } else {
+    const result = await query.limit(1).maybeSingle();
+    evidenceData = result.data;
+    error = result.error;
+  }
 
   if (error) return { evidence: null, error, reason: 'evidence_lookup_failed' };
-  const evidenceIsValid = historicalOwnerManual
-    ? Boolean(data
-      && data.evidence_type === 'completion_photo'
-      && data.uploaded_by === booking.assembler_id
-      && new Date(data.created_at).getTime() >= validAfter)
-    : isCurrentCompletionEvidence(data, booking, { acceptSuppliedOnBehalf });
+  const rows = Array.isArray(evidenceData) ? evidenceData : evidenceData ? [evidenceData] : [];
+  const data = rows[0] || null;
+  const validRows = historicalOwnerManual
+    ? rows.filter(row => row.evidence_type === 'completion_photo'
+      && row.uploaded_by === booking.assembler_id
+      && new Date(row.created_at).getTime() >= validAfter)
+    : rows.filter(row => isCurrentCompletionEvidence(
+      row,
+      requireAllPhotos && booking.evidence_requested_at
+        ? { ...booking, evidence_requested_at: null }
+        : booking,
+      { acceptSuppliedOnBehalf },
+    ));
+  const customerVisibleRows = customerFacingOnly
+    ? validRows.filter(row => row.visibility === CUSTOMER_FACING_VISIBILITY)
+    : validRows;
+  const summary = requireAllPhotos
+    ? summarizeCurrentCompletionPhotos(validRows, booking, requiredPhotoCount, { acceptSuppliedOnBehalf })
+    : null;
+  const evidence = customerVisibleRows[0] || null;
+  const evidenceIsValid = validRows.length > 0;
   const visibilityOk = !customerFacingOnly || data?.visibility === CUSTOMER_FACING_VISIBILITY;
-  if (!data || !evidenceIsValid || !visibilityOk) {
+  const evidenceCount = summary?.evidenceCount ?? (evidence ? 1 : 0);
+  const satisfied = summary?.satisfied ?? Boolean(evidence);
+
+  if (!evidence || !evidenceIsValid || !visibilityOk || (requireAllPhotos && !satisfied)) {
     if (customerFacingOnly && data && evidenceIsValid && !visibilityOk) {
-      return { evidence: null, error: null, reason: 'not_approved_for_customer' };
+      return {
+        evidence: null,
+        error: null,
+        evidenceCount,
+        requiredPhotoCount,
+        evidenceCountAfterRequest: summary?.evidenceCountAfterRequest ?? evidenceCount,
+        requiredAfterRequestCount: summary?.requiredAfterRequestCount ?? requiredPhotoCount,
+        satisfied: false,
+        reason: 'not_approved_for_customer',
+      };
     }
     return {
-      evidence: null,
+      evidence,
       error: null,
-      reason: booking.evidence_requested_at
+      evidenceCount,
+      requiredPhotoCount,
+      evidenceCountAfterRequest: summary?.evidenceCountAfterRequest ?? evidenceCount,
+      requiredAfterRequestCount: summary?.requiredAfterRequestCount ?? requiredPhotoCount,
+      satisfied: false,
+      reason: summary?.reason || (booking.evidence_requested_at
         ? 'post_request_completion_evidence_missing'
-        : 'valid_completion_photo_missing',
+        : 'valid_completion_photo_missing'),
     };
   }
-  return { evidence: data, error: null, reason: null };
+  return {
+    evidence,
+    error: null,
+    evidenceCount,
+    requiredPhotoCount,
+    evidenceCountAfterRequest: summary?.evidenceCountAfterRequest ?? evidenceCount,
+    requiredAfterRequestCount: summary?.requiredAfterRequestCount ?? requiredPhotoCount,
+    satisfied: true,
+    reason: null,
+  };
 }

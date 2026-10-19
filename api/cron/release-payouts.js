@@ -110,14 +110,10 @@ export default async function handler(req, res) {
       const evidenceResult = await loadCurrentCompletionEvidence(sb, b, {
         select: 'id, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at',
         acceptSuppliedOnBehalf: true,
+        requireAllPhotos: true,
       });
-      const requestedAt = new Date(b.evidence_requested_at).getTime();
-      const evidenceAt = new Date(evidenceResult.evidence?.created_at || '').getTime();
       if (evidenceResult.error
-          || !evidenceResult.evidence
-          || !Number.isFinite(requestedAt)
-          || !Number.isFinite(evidenceAt)
-          || evidenceAt < requestedAt) {
+          || !evidenceResult.satisfied) {
         console.error(`release-payouts evidence hold remains for ${b.ref}:`, evidenceResult.error?.message || evidenceResult.reason);
         continue;
       }
@@ -502,14 +498,10 @@ export async function verifyConnectPayoutReleaseState(sb, expected, operationKey
       const evidenceResult = await loadCurrentCompletionEvidence(sb, current, {
         select: 'id, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at',
         acceptSuppliedOnBehalf: true,
+        requireAllPhotos: true,
       });
-      if (evidenceResult.error || !evidenceResult.evidence) {
+      if (evidenceResult.error || !evidenceResult.satisfied) {
         return { ok: false, reason: evidenceResult.error?.message || evidenceResult.reason || 'evidence_hold' };
-      }
-      const requestedAt = new Date(current.evidence_requested_at).getTime();
-      const evidenceAt = new Date(evidenceResult.evidence.created_at).getTime();
-      if (!Number.isFinite(requestedAt) || !Number.isFinite(evidenceAt) || evidenceAt < requestedAt) {
-        return { ok: false, reason: 'post_request_completion_evidence_missing' };
       }
     }
   }

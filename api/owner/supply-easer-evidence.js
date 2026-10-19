@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
+import { loadCurrentCompletionEvidence } from '../booking/_completion-evidence.js';
 import { MAX_UPLOAD_BYTES } from '../_upload-limits.js';
 
 /**
@@ -161,33 +162,28 @@ export default async function handler(req, res) {
   // created_at must sit inside the window the payout check accepts, which is
   // "after work started, and after any evidence request". NOW() satisfies both
   // for a completed job.
-  const { data: inserted, error: recordError } = await sb
-    .from('booking_evidence')
-    .insert({
-      booking_id: booking.id,
-      uploaded_by: ownerProfile.id,
-      uploaded_on_behalf_of: booking.assembler_id,
-      storage_path: storagePath,
-      evidence_type: 'completion_photo',
-      mime_type: mimeType,
-      file_size_bytes: buf.length,
-      // INTERNAL by default, exactly like an Easer upload. Supplying evidence
-      // does not publish it — the owner still has to share it deliberately.
-      visibility: 'owner',
-      notes,
-    })
-    .select('id')
-    .single();
+  const { data: insertedRows, error: recordError } = await sb.rpc('record_completion_evidence_on_behalf', {
+    p_booking_id: booking.id,
+    p_uploaded_by: ownerProfile.id,
+    p_uploaded_on_behalf_of: booking.assembler_id,
+    p_storage_path: storagePath,
+    p_mime_type: mimeType,
+    p_file_size_bytes: buf.length,
+    p_notes: notes,
+  });
+  const inserted = Array.isArray(insertedRows) ? insertedRows[0] : insertedRows;
 
   if (recordError || !inserted) {
     const cleanup = await cleanupStorage(sb, storagePath);
     console.error('[supply-easer-evidence] record failed:', recordError?.message || recordError);
-    const columnMissing = /uploaded_on_behalf_of/i.test(String(recordError?.message || ''));
-    return res.status(columnMissing ? 503 : 409).json({
-      error: columnMissing
-        ? 'Supplying evidence for an Easer needs migration 084. Apply it and retry.'
-        : (recordError?.message || 'Evidence was not recorded.'),
-      code: columnMissing ? 'MIGRATION_084_REQUIRED' : 'EVIDENCE_RECORD_FAILED',
+    const migrationMissing = /record_completion_evidence_on_behalf|does not exist/i.test(String(recordError?.message || ''));
+    return res.status(migrationMissing ? 503 : 409).json({
+      error: migrationMissing
+        ? 'Photo evidence storage is unavailable. Apply the current evidence migration and retry.'
+        : (cleanup.ok
+          ? 'Evidence was not recorded; the uploaded file was removed.'
+          : 'Evidence was not recorded and storage cleanup needs review. Do not upload it again yet.'),
+      code: migrationMissing ? 'COMPLETION_EVIDENCE_MIGRATION_REQUIRED' : 'EVIDENCE_RECORD_FAILED',
       storageCleanupFailed: cleanup.ok ? undefined : true,
     });
   }
@@ -200,14 +196,28 @@ export default async function handler(req, res) {
     actorType: 'owner',
     actorName: ownerProfile.full_name || 'Owner',
     description: `Owner supplied a completion photo on behalf of ${booking.assembler_name || 'the Easer'}`,
-    metadata: { evidenceId: inserted.id, onBehalfOf: booking.assembler_id, notes },
+    metadata: { evidenceId: inserted.evidence_id, onBehalfOf: booking.assembler_id, notes },
   }).catch(() => {});
+
+  const completionEvidence = await loadCurrentCompletionEvidence(sb, booking, {
+    acceptSuppliedOnBehalf: true,
+    requireAllPhotos: true,
+  });
+  if (completionEvidence.error) {
+    console.error('[supply-easer-evidence] saved photo but could not verify the required photo set:', completionEvidence.error);
+  }
 
   return res.status(200).json({
     ok: true,
-    evidenceId: inserted.id,
+    evidenceId: inserted.evidence_id,
     onBehalfOf: booking.assembler_id,
-    // The owner's next question is always "does this release the money?"
-    releasesPayoutHold: Boolean(booking.evidence_requested_at),
+    releasesPayoutHold: Boolean(booking.evidence_requested_at && completionEvidence?.satisfied),
+    completionPhotosSatisfied: Boolean(completionEvidence?.satisfied),
+    photosRemaining: completionEvidence && !completionEvidence.error
+      ? Math.max(0, completionEvidence.requiredAfterRequestCount - completionEvidence.evidenceCountAfterRequest)
+      : undefined,
+    payoutHoldVerificationWarning: completionEvidence?.error
+      ? 'The photo was saved, but the required photo count could not be verified. Refresh the booking before relying on completion or payout status.'
+      : undefined,
   });
 }
