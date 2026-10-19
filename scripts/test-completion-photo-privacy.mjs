@@ -110,6 +110,8 @@ const releasePayouts = await read('api/cron/release-payouts.js');
 {
   assert.match(perUnitMigration, /GREATEST\(\s*1,\s*COALESCE\(SUM\(GREATEST\(COALESCE\(item\.quantity, 1\), 1\)\), 0\)::INTEGER\s*\)/,
     'a booking requires at least one photo and counts each booked quantity');
+  assert.match(perUnitMigration, /item\.is_add_on IS NOT TRUE/,
+    'add-ons such as wire concealment never add a required photo');
   assert.match(perUnitMigration, /booking_required_completion_photo_counts/,
     'the server can load quantity-aware counts for assignment lists in one call');
   assert.match(perUnitMigration, /v_required_photo_count \+ 5/,

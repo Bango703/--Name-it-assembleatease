@@ -24,6 +24,7 @@ AS $$
   )
     FROM public.booking_items item
    WHERE item.booking_id = p_booking_id
+     AND item.is_add_on IS NOT TRUE
      AND NULLIF(BTRIM(item.item_name), '') IS NOT NULL;
 $$;
 
