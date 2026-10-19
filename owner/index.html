@@ -931,9 +931,38 @@
       <div id="analytics-view" style="display:none">
         <div class="fin-subtabs tabs" id="fin-subtabs">
           <button class="tab active" data-fin-tab="money" type="button">Money</button>
+          <button class="tab" data-fin-tab="expenses" type="button">Expenses</button>
           <button class="tab" data-fin-tab="tax" type="button">Tax &amp; Compliance</button>
-          <button class="tab" data-fin-tab="growth" type="button">Growth</button>
-          <button class="tab" data-fin-tab="insights" type="button">Insights</button>
+          <button class="tab" data-fin-tab="more" type="button">More</button>
+        </div>
+        <div class="detail-panel" id="owner-expenses-panel" style="display:none;margin-bottom:1rem">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:0.8rem">
+            <div>
+              <div class="detail-section-title" style="margin:0">Business Expenses</div>
+              <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Track bills and payments for cash planning; this is not a bookkeeping or tax profit report and never changes customer charges or Easer pay. Enter each cost once: Stripe fees, sales tax, and Easer reimbursements are already in booking financials, and do not enter both card charges and the card payment. Loan principal may not be tax-deductible.</div>
+            </div>
+            <button class="btn" id="expense-new-btn" type="button">Add expense</button>
+          </div>
+          <div id="expense-summary-cards" class="stats-row" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-bottom:0.85rem"></div>
+          <form id="expense-form" style="display:none;background:var(--elevated);border:1px solid var(--border);border-radius:10px;padding:0.9rem;margin-bottom:0.9rem">
+            <div class="detail-section-title" id="expense-form-title" style="margin-bottom:0.7rem">Add business expense</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.65rem;align-items:end">
+              <label style="font-size:0.72rem;color:var(--muted)">Expense name<input id="expense-title" required maxlength="120" placeholder="Website hosting" style="display:block;width:100%;margin-top:0.25rem;padding:0.5rem;border:1px solid var(--border-md);border-radius:7px;background:var(--bg);color:var(--text)"/></label>
+              <label style="font-size:0.72rem;color:var(--muted)">Vendor<input id="expense-vendor" maxlength="120" placeholder="Vercel" style="display:block;width:100%;margin-top:0.25rem;padding:0.5rem;border:1px solid var(--border-md);border-radius:7px;background:var(--bg);color:var(--text)"/></label>
+              <label style="font-size:0.72rem;color:var(--muted)">Category<select id="expense-category" required style="display:block;width:100%;margin-top:0.25rem;padding:0.5rem;border:1px solid var(--border-md);border-radius:7px;background:var(--bg);color:var(--text)"><option value="software">Software</option><option value="hosting">Hosting / domains</option><option value="marketing">Marketing</option><option value="insurance">Insurance</option><option value="professional_services">Professional services</option><option value="office">Office</option><option value="credit">Credit / tradeline</option><option value="travel">Travel</option><option value="supplies">Supplies</option><option value="other">Other</option></select></label>
+              <label style="font-size:0.72rem;color:var(--muted)">Amount ($)<input id="expense-amount" type="number" min="0.01" max="1000000" step="0.01" required placeholder="0.00" style="display:block;width:100%;margin-top:0.25rem;padding:0.5rem;border:1px solid var(--border-md);border-radius:7px;background:var(--bg);color:var(--text)"/></label>
+              <label style="font-size:0.72rem;color:var(--muted)">Due date<input id="expense-due-date" type="date" required style="display:block;width:100%;margin-top:0.25rem;padding:0.48rem;border:1px solid var(--border-md);border-radius:7px;background:var(--bg);color:var(--text)"/></label>
+              <label style="font-size:0.72rem;color:var(--muted)">Repeats<select id="expense-recurrence" style="display:block;width:100%;margin-top:0.25rem;padding:0.5rem;border:1px solid var(--border-md);border-radius:7px;background:var(--bg);color:var(--text)"><option value="one_time">One time</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="annual">Annually</option></select></label>
+              <label style="font-size:0.72rem;color:var(--muted)">Payment account (optional)<input id="expense-account" maxlength="80" placeholder="Business card" style="display:block;width:100%;margin-top:0.25rem;padding:0.5rem;border:1px solid var(--border-md);border-radius:7px;background:var(--bg);color:var(--text)"/></label>
+              <label style="font-size:0.72rem;color:var(--muted)">Notes<input id="expense-notes" maxlength="1000" placeholder="Optional details" style="display:block;width:100%;margin-top:0.25rem;padding:0.5rem;border:1px solid var(--border-md);border-radius:7px;background:var(--bg);color:var(--text)"/></label>
+            </div>
+            <div style="display:flex;gap:0.5rem;margin-top:0.75rem;align-items:center">
+              <button class="btn" id="expense-save-btn" type="submit">Save expense</button>
+              <button class="btn" id="expense-cancel-edit" type="button" style="display:none">Cancel</button>
+              <span id="expense-form-message" style="font-size:0.76rem;color:var(--muted)"></span>
+            </div>
+          </form>
+          <div id="expense-list" class="finance-scroll"><div style="padding:1rem;text-align:center;color:var(--muted)">Loading expenses...</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1rem;margin-bottom:1rem" class="content-grid">
           <div class="detail-panel open c-hero">
@@ -952,9 +981,7 @@
             <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.6rem;font-size:0.78rem;color:var(--soft)">
               <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Reserve</strong><br><span id="fin-assumption-reserve">Loading...</span></div>
               <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Processing</strong><br><span id="fin-assumption-processing">Loading...</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Other overhead</strong><br><span id="fin-assumption-opex">Loading...</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Known recurring costs</strong><br><span id="fin-assumption-known-costs">Loading...</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>CAC</strong><br><span id="fin-assumption-cac">Loading...</span></div>
+              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Expenses paid</strong><br><span id="fin-assumption-expenses">Loading...</span></div>
             </div>
             <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.9rem">
               <div class="tabs" style="margin:0">
@@ -964,12 +991,6 @@
               <button class="tab" data-fin-period="today" type="button">Today</button>
               <button class="tab" data-fin-period="all" type="button">All</button>
               </div>
-              <label style="margin-left:auto;font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">Other Opex/mo $
-                <input id="fin-opex-input" type="number" min="0" step="1" placeholder="292 default" style="width:100px;background:var(--elevated);border:1px solid var(--border-md);border-radius:7px;padding:0.35rem 0.5rem;font-family:inherit;color:var(--text)"/>
-              </label>
-              <label style="font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">CAC $
-                <input id="fin-cac-input" type="number" min="0" step="1" placeholder="0" style="width:86px;background:var(--elevated);border:1px solid var(--border-md);border-radius:7px;padding:0.35rem 0.5rem;font-family:inherit;color:var(--text)"/>
-              </label>
             </div>
           </div>
         </div>
@@ -1015,10 +1036,9 @@
           <div class="stat neutral"><div class="stat-value" id="an-uncosted-jobs">—</div><div class="stat-label">Jobs Missing Labor Cost</div></div>
         </div>
         <div class="c-group-title">Operating estimate</div>
-        <div class="stats-row c-metrics c-cols-3">
-          <div class="stat neutral"><div class="stat-value" id="an-known-operating-costs">—</div><div class="stat-label">Known Operating Costs</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-opex-allocated">—</div><div class="stat-label">Other Overhead Allocated</div></div>
-          <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Est. After Reserve &amp; Operating Costs</div></div>
+        <div class="stats-row c-metrics c-cols-2">
+          <div class="stat neutral"><div class="stat-value" id="an-opex-allocated">—</div><div class="stat-label">Business Expenses Paid</div></div>
+            <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Estimated After Reserve &amp; Paid Expenses</div></div>
         </div>
         <div class="c-group-title">Customers and add-ons</div>
         <div class="stats-row c-metrics c-cols-7">
@@ -9066,8 +9086,9 @@ window.intelQuick = intelQuick;
 
   // ─── ANALYTICS / FINANCIALS VIEW ───
   var financialPeriod = localStorage.getItem('aae-owner-financial-period') || 'year';
-  var financialCacDollars = localStorage.getItem('aae-owner-cac-dollars') || '';
-  var financialOpexMonthly = localStorage.getItem('aae-owner-other-opex-monthly') || '';
+  var latestFinancialDashboard = null;
+  var ownerExpenses = [];
+  var expenseEditingId = null;
   var taxGranularity = localStorage.getItem('aae-owner-tax-gran') || 'quarter';
   var reserveParts = { tax: 0, payouts: 0, rewards: 0, clawbacks: 0 };
   var payoutTruthAvailable = false;
@@ -9085,24 +9106,6 @@ window.intelQuick = intelQuick;
   function setText(id, value) {
     var el = document.getElementById(id);
     if (el) el.textContent = value;
-  }
-  var cacInput = document.getElementById('fin-cac-input');
-  if (cacInput) {
-    cacInput.value = financialCacDollars;
-    cacInput.addEventListener('change', function() {
-      financialCacDollars = this.value || '';
-      localStorage.setItem('aae-owner-cac-dollars', financialCacDollars);
-      renderAnalytics();
-    });
-  }
-  var opexInput = document.getElementById('fin-opex-input');
-  if (opexInput) {
-    opexInput.value = financialOpexMonthly;
-    opexInput.addEventListener('change', function() {
-      financialOpexMonthly = this.value || '';
-      localStorage.setItem('aae-owner-other-opex-monthly', financialOpexMonthly);
-      renderAnalytics();
-    });
   }
   var taxGranEls = document.querySelectorAll('[data-tax-gran]');
   taxGranEls.forEach(function(btn) {
@@ -9135,7 +9138,7 @@ window.intelQuick = intelQuick;
     renderAnalytics();
   };
 
-  // Financials sub-tabs (Money / Tax & Compliance / Growth / Insights). Each section
+  // Financials tabs (Money / Expenses / Tax & Compliance / More). Each section
   // card in #analytics-view is classified by a marker element inside it and shown only
   // under its tab, so the view stops being one endless scroll and Expansion/Tax get
   // their own space. Classification, not DOM surgery — safe and reversible.
@@ -9145,9 +9148,10 @@ window.intelQuick = intelQuick;
     // "has" matches the card itself OR any descendant (some cards ARE their marker,
     // e.g. #clawback-panel; others carry a marker child, e.g. #an-expansion-summary).
     var has = function (sel) { return (el.matches && el.matches(sel)) || (el.querySelector && el.querySelector(sel)); };
-    if (has('#an-expansion-summary')) return 'growth';
+    if (has('#owner-expenses-panel')) return 'expenses';
+    if (has('#an-expansion-summary')) return 'more';
     if (has('#ct-year, #clawback-panel, [id^="tax-"]')) return 'tax';
-    if (has('#an-services, #an-monthly, #an-status, #an-rev-service, #an-job-duration')) return 'insights';
+    if (has('#an-services, #an-monthly, #an-status, #an-rev-service, #an-job-duration')) return 'more';
     return 'money';
   }
   function applyFinTab() {
@@ -9192,11 +9196,10 @@ window.intelQuick = intelQuick;
 
     try {
       var params = new URLSearchParams({ period: financialPeriod });
-      if (financialCacDollars) params.set('cacDollars', financialCacDollars);
-      if (financialOpexMonthly) params.set('opexMonthlyDollars', financialOpexMonthly);
       var r = await fetch('/api/owner/financial-dashboard?' + params.toString(), { headers: headers() });
       var d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Failed to load financial dashboard');
+      latestFinancialDashboard = d;
       renderFinancialSummary(d);
       renderServiceProfitability(d.serviceProfitability || []);
       renderExpansionReadiness(d.expansionReadiness || {});
@@ -9209,9 +9212,9 @@ window.intelQuick = intelQuick;
       ['fin-total-platform-gross', 'fin-gross-per-job', 'fin-gross-margin', 'fin-costed-gross-per-job',
         'an-gross-per-job', 'an-gross', 'an-sales-tax', 'an-processing-fees', 'an-easer-payouts',
         'an-owner-easer-earnings', 'an-external-easer-earnings', 'an-ajv', 'an-gross-margin',
-        'an-costed-gross-per-job', 'an-known-operating-costs', 'an-opex-allocated', 'an-net-profit']
+        'an-costed-gross-per-job', 'an-opex-allocated', 'an-net-profit']
         .forEach(function(id){ setText(id, 'Unavailable'); });
-      ['fin-assumption-reserve', 'fin-assumption-processing', 'fin-assumption-opex', 'fin-assumption-known-costs', 'fin-assumption-cac']
+      ['fin-assumption-reserve', 'fin-assumption-processing', 'fin-assumption-expenses']
         .forEach(function(id){ setText(id, 'Unavailable'); });
       setText('an-completed-jobs', '—');
       setText('an-period-note', 'Financial data unavailable · Refresh');
@@ -9395,6 +9398,226 @@ window.intelQuick = intelQuick;
     setText('ct-summary', n + ' Easer' + (n === 1 ? '' : 's') + ' need a 1099-NEC');
   }
 
+  var expenseForm = document.getElementById('expense-form');
+  var expenseList = document.getElementById('expense-list');
+  var expenseNewButton = document.getElementById('expense-new-btn');
+  var expenseCancelEdit = document.getElementById('expense-cancel-edit');
+  if (expenseNewButton) expenseNewButton.addEventListener('click', function() {
+    resetExpenseForm();
+    if (expenseForm) { expenseForm.style.display = ''; document.getElementById('expense-title').focus(); }
+  });
+  if (expenseCancelEdit) expenseCancelEdit.addEventListener('click', resetExpenseForm);
+  if (expenseForm) expenseForm.addEventListener('submit', saveOwnerExpense);
+  if (expenseList) expenseList.addEventListener('click', handleOwnerExpenseAction);
+
+  async function loadOwnerExpenses() {
+    var list = document.getElementById('expense-list');
+    if (list && !ownerExpenses.length) list.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--muted)">Loading expenses...</div>';
+    try {
+      var response = await fetch('/api/owner/expenses', { headers: headers() });
+      var data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not load expenses.');
+      ownerExpenses = Array.isArray(data.expenses)
+        ? data.expenses.map(function(row){ return Object.assign({}, row, { expenseStatus: row.status }); })
+        : [];
+      renderOwnerExpenses();
+    } catch (error) {
+      if (list) list.innerHTML = '<div style="padding:1rem;color:var(--red);font-size:0.82rem">' + esc(error.message || 'Expense data is unavailable.') + '</div>';
+      var cards = document.getElementById('expense-summary-cards');
+      if (cards) cards.innerHTML = '<div class="stat orange"><div class="stat-value">Unavailable</div><div class="stat-label">Expense tracker</div></div>';
+    }
+  }
+
+  function renderOwnerExpenses() {
+    var list = document.getElementById('expense-list');
+    var cards = document.getElementById('expense-summary-cards');
+    if (!list || !cards) return;
+    var exec = latestFinancialDashboard && latestFinancialDashboard.executiveOverview || {};
+    var assumptions = latestFinancialDashboard && latestFinancialDashboard.assumptions || {};
+    var averageGross = Math.max(0, Number(exec.platformGrossProfitPerCompletedJob || 0));
+    var averageAfterReserve = Math.round(averageGross * (1 - Math.max(0, Number(assumptions.reserveRate || 0))));
+    var upcoming = ownerExpenses.filter(function(row){ return row.expenseStatus === 'upcoming'; })
+      .sort(function(a,b){ return String(a.due_date).localeCompare(String(b.due_date)); });
+    var paid = ownerExpenses.filter(function(row){ return row.expenseStatus === 'paid'; })
+      .sort(function(a,b){ return String(b.payment_date).localeCompare(String(a.payment_date)); });
+    var outstanding = upcoming.reduce(function(total,row){ return total + Number(row.amount_cents || 0); }, 0);
+    var today = chicagoTodayIsoClient();
+    var dueThrough = addExpenseDays(today, 30);
+    var due30 = upcoming.filter(function(row){ return row.due_date >= today && row.due_date <= dueThrough; })
+      .reduce(function(total,row){ return total + Number(row.amount_cents || 0); }, 0);
+    var paidPeriod = latestFinancialDashboard
+      ? Number((latestFinancialDashboard.summary || {}).operatingExpenses || 0)
+      : null;
+    var selectedPeriodCashAfterBills = null;
+    if (latestFinancialDashboard && paidPeriod !== null) {
+      var summary = latestFinancialDashboard.summary || {};
+      selectedPeriodCashAfterBills = Number(summary.platformGrossProfit || 0)
+        - Number(summary.reworkRefundReserve || 0) - paidPeriod - outstanding;
+    }
+    var breakEvenJobs = averageAfterReserve > 0 ? Math.ceil(outstanding / averageAfterReserve) : null;
+    cards.innerHTML = statCardHtml('Period gross after bills', selectedPeriodCashAfterBills === null ? 'Unavailable' : fmtSigned$(selectedPeriodCashAfterBills), 'Less reserve, expenses paid, and all open bills; not a bank balance')
+      + statCardHtml('Paid in selected period', paidPeriod === null ? 'Unavailable' : fmt$(paidPeriod), 'Recorded on payment date')
+      + statCardHtml('Outstanding bills', fmt$(outstanding), upcoming.length + ' upcoming')
+      + statCardHtml('Due in next 30 days', fmt$(due30), 'Based on due dates')
+      + statCardHtml('Jobs to cover upcoming bills', breakEvenJobs == null ? 'Unavailable' : String(breakEvenJobs), averageAfterReserve > 0 ? 'After reserve, using current gross per completed job' : 'Need a completed job to estimate');
+
+    var rows = upcoming.map(function(row){ return expenseRowHtml(row, true); })
+      .concat(paid.slice(0, 25).map(function(row){ return expenseRowHtml(row, false); }));
+    if (!rows.length) {
+      list.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--muted)">No expenses yet. Add recurring bills such as hosting, software, insurance, and credit tradelines.</div>';
+      return;
+    }
+    list.innerHTML = '<table class="finance-table" style="width:100%;border-collapse:collapse;font-size:0.8rem"><thead><tr style="text-align:left;border-bottom:1px solid var(--border)">'
+      + '<th style="padding:0.55rem">Expense</th><th style="padding:0.55rem">Category</th><th style="padding:0.55rem">Due / paid</th>'
+      + '<th style="padding:0.55rem;text-align:right">Amount</th><th style="padding:0.55rem">Status</th><th style="padding:0.55rem">Action</th>'
+      + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+    labelResponsiveTable(list.querySelector('table'));
+  }
+
+  function statCardHtml(label, value, note) {
+    return '<div class="stat neutral"><div class="stat-value" style="font-size:1.18rem">' + esc(value) + '</div>'
+      + '<div class="stat-label">' + esc(label) + '</div><div style="font-size:0.65rem;color:var(--muted);margin-top:0.22rem">' + esc(note) + '</div></div>';
+  }
+
+  function expenseRowHtml(row, isUpcoming) {
+    var amount = Number(row.amount_cents || 0);
+    var dateText = isUpcoming ? row.due_date : (row.payment_date || row.due_date);
+    var overdue = isUpcoming && String(row.due_date) < chicagoTodayIsoClient();
+    var recurrence = row.recurrence && row.recurrence !== 'one_time' ? ' · ' + ({monthly:'Monthly',quarterly:'Quarterly',annual:'Annual'}[row.recurrence] || '') : '';
+    var action = isUpcoming
+      ? '<button type="button" class="btn" data-expense-action="paid" data-expense-id="' + esc(row.id) + '" style="padding:0.28rem 0.45rem;font-size:0.68rem">Mark paid</button> '
+        + '<button type="button" class="btn" data-expense-action="edit" data-expense-id="' + esc(row.id) + '" style="padding:0.28rem 0.45rem;font-size:0.68rem">Edit</button> '
+        + '<button type="button" class="btn" data-expense-action="void" data-expense-id="' + esc(row.id) + '" style="padding:0.28rem 0.45rem;font-size:0.68rem">Remove</button>'
+      : '<span style="color:var(--muted)">' + esc(row.payment_account || 'Payment recorded') + '</span>';
+    return '<tr><td style="padding:0.55rem;border-bottom:1px solid var(--border)"><strong>' + esc(row.title || 'Expense') + '</strong>'
+      + (row.vendor ? '<div style="font-size:0.68rem;color:var(--muted)">' + esc(row.vendor) + '</div>' : '')
+      + (row.notes ? '<div style="font-size:0.68rem;color:var(--muted)">' + esc(row.notes) + '</div>' : '')
+      + '<div style="font-size:0.64rem;color:var(--muted)">Recorded by ' + esc(row.created_by || 'owner') + ' · ' + esc(String(row.created_at || '').slice(0,10) || 'date unavailable') + '</div>'
+      + '</td><td style="padding:0.55rem;border-bottom:1px solid var(--border)">' + esc(String(row.category || 'other').replace(/_/g,' ')) + '</td>'
+      + '<td style="padding:0.55rem;border-bottom:1px solid var(--border);color:' + (overdue ? '#b91c1c' : 'var(--text)') + '">' + esc(dateText || '—') + recurrence + (overdue ? ' · overdue' : '') + '</td>'
+      + '<td class="money-cell" style="padding:0.55rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700">' + fmt$(amount) + '</td>'
+      + '<td style="padding:0.55rem;border-bottom:1px solid var(--border)">' + (isUpcoming ? (overdue ? 'Overdue' : 'Upcoming') : 'Paid')
+      + (!isUpcoming ? '<div style="font-size:0.64rem;color:var(--muted)">Recorded by ' + esc(row.updated_by || 'owner') + '</div>' : '') + '</td>'
+      + '<td style="padding:0.55rem;border-bottom:1px solid var(--border);white-space:nowrap">' + action + '</td></tr>';
+  }
+
+  async function saveOwnerExpense(event) {
+    event.preventDefault();
+    var editing = !!expenseEditingId;
+    var button = document.getElementById('expense-save-btn');
+    var message = document.getElementById('expense-form-message');
+    button.disabled = true;
+    button.textContent = expenseEditingId ? 'Saving...' : 'Adding...';
+    message.textContent = '';
+    var payload = {
+      title: document.getElementById('expense-title').value,
+      vendor: document.getElementById('expense-vendor').value,
+      category: document.getElementById('expense-category').value,
+      amount: document.getElementById('expense-amount').value,
+      dueDate: document.getElementById('expense-due-date').value,
+      recurrence: document.getElementById('expense-recurrence').value,
+      paymentAccount: document.getElementById('expense-account').value,
+      notes: document.getElementById('expense-notes').value,
+    };
+    try {
+      var response = await fetch('/api/owner/expenses', {
+        method: expenseEditingId ? 'PATCH' : 'POST',
+        headers: headers({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(expenseEditingId ? Object.assign({ id: expenseEditingId, action: 'edit' }, payload) : payload),
+      });
+      var data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not save this expense.');
+      resetExpenseForm();
+      toast(editing ? 'Expense updated.' : 'Expense added.', 'success');
+      await loadOwnerExpenses();
+      renderAnalytics();
+    } catch (error) {
+      message.textContent = error.message || 'Could not save this expense.';
+      message.style.color = 'var(--red)';
+    } finally {
+      button.disabled = false;
+      button.textContent = editing ? 'Save changes' : 'Save expense';
+    }
+  }
+
+  async function handleOwnerExpenseAction(event) {
+    var button = event.target && event.target.closest ? event.target.closest('[data-expense-action]') : null;
+    if (!button) return;
+    var row = ownerExpenses.find(function(item){ return item.id === button.dataset.expenseId; });
+    if (!row) return;
+    var action = button.dataset.expenseAction;
+    if (action === 'edit') {
+      expenseEditingId = row.id;
+      document.getElementById('expense-title').value = row.title || '';
+      document.getElementById('expense-vendor').value = row.vendor || '';
+      document.getElementById('expense-category').value = row.category || 'other';
+      document.getElementById('expense-amount').value = (Number(row.amount_cents || 0) / 100).toFixed(2);
+      document.getElementById('expense-due-date').value = row.due_date || '';
+      document.getElementById('expense-recurrence').value = row.recurrence || 'one_time';
+      document.getElementById('expense-account').value = row.payment_account || '';
+      document.getElementById('expense-notes').value = row.notes || '';
+      document.getElementById('expense-form-title').textContent = 'Edit upcoming expense';
+      document.getElementById('expense-save-btn').textContent = 'Save changes';
+      document.getElementById('expense-cancel-edit').style.display = '';
+      expenseForm.style.display = '';
+      document.getElementById('expense-title').focus();
+      return;
+    }
+    var payload = { id: row.id, action: action };
+    if (action === 'paid') {
+      payload.action = 'mark_paid';
+      payload.paymentDate = prompt('Payment date (YYYY-MM-DD):', chicagoTodayIsoClient());
+      if (payload.paymentDate === null) return;
+      payload.paymentAccount = prompt('Payment account or method (optional):', row.payment_account || '') || '';
+      button.disabled = true;
+    } else if (action === 'void') {
+      if (!confirm('Remove this upcoming expense from the tracker?')) return;
+      button.disabled = true;
+    } else return;
+    try {
+      var response = await fetch('/api/owner/expenses', {
+        method: 'PATCH',
+        headers: headers({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(payload),
+      });
+      var data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not update the expense.');
+      toast(action === 'paid' ? 'Payment recorded.' : 'Upcoming expense removed.', 'success');
+      await loadOwnerExpenses();
+      renderAnalytics();
+    } catch (error) {
+      toast(error.message || 'Could not update the expense.', 'error');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function resetExpenseForm() {
+    if (!expenseForm) return;
+    expenseEditingId = null;
+    expenseForm.reset();
+    expenseForm.style.display = 'none';
+    document.getElementById('expense-form-title').textContent = 'Add business expense';
+    document.getElementById('expense-save-btn').textContent = 'Save expense';
+    document.getElementById('expense-cancel-edit').style.display = 'none';
+    var message = document.getElementById('expense-form-message');
+    message.textContent = '';
+  }
+
+  function chicagoTodayIsoClient() {
+    var parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(new Date());
+    var values = Object.fromEntries(parts.filter(function(part){ return part.type !== 'literal'; }).map(function(part){ return [part.type, part.value]; }));
+    return values.year + '-' + values.month + '-' + values.day;
+  }
+
+  function addExpenseDays(dateIso, days) {
+    var date = new Date(dateIso + 'T12:00:00Z');
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+
   function renderFinancialSummary(d) {
     var s = d.summary || {};
     var exec = d.executiveOverview || {};
@@ -9411,16 +9634,9 @@ window.intelQuick = intelQuick;
     setText('fin-assumption-processing', (d.labels && d.labels.processingFees) === 'actual'
       ? 'Actual Stripe fees'
       : 'Actual + estimated');
-    setText('fin-assumption-opex', a.operatingExpenseLabel || ('$' + ((a.annualOperatingExpensesCents || 0) / 100).toLocaleString('en-US') + '/year'));
-    var knownCosts = a.knownOperatingCosts || {};
-    var knownCostItems = knownCosts.items || [];
-    var mailboxCost = knownCostItems.find(function(item){ return item.key === 'business_mailbox'; });
-    var knownCostLabel = fmt$(knownCosts.monthlyRunRateCents || 0) + '/month';
-    if (mailboxCost && mailboxCost.nextChargeDate) {
-      knownCostLabel += ' · next ' + new Date(mailboxCost.nextChargeDate + 'T12:00:00Z').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
-    }
-    setText('fin-assumption-known-costs', knownCostLabel);
-    setText('fin-assumption-cac', s.cac ? fmt$(s.cac) : 'Missing / editable');
+      setText('fin-assumption-expenses', exec.expenseDataAvailable === false
+        ? 'Unavailable until migration 113 is applied'
+        : fmt$(exec.operatingExpenses || 0) + ' paid in selected period');
 
     setText('an-gross-per-job', fmt$(exec.platformGrossProfitPerCompletedJob || 0));
     setText('an-gross', fmt$(exec.totalCustomerRevenue || 0));
@@ -9434,9 +9650,8 @@ window.intelQuick = intelQuick;
     setText('an-gross-margin', fmtPct(exec.grossMarginPct));
     setText('an-costed-gross-per-job', Number(exec.costedCompletedJobs || 0) > 0 ? fmt$(exec.costedGrossProfitPerJob || 0) : '—');
     setText('an-uncosted-jobs', String(exec.uncostedCompletedJobs || 0));
-    setText('an-known-operating-costs', fmt$(exec.knownOperatingCosts || 0));
     setText('an-opex-allocated', fmt$(exec.operatingExpenses || 0));
-    setText('an-net-profit', fmtSigned$(exec.estimatedNetOperatingProfit || 0));
+    setText('an-net-profit', exec.expenseDataAvailable === false ? 'Incomplete' : fmtSigned$(exec.estimatedNetOperatingProfit || 0));
     setText('an-addon-rate', fmtPct(exec.addOnAttachmentRate));
     setText('an-addon-source', exec.addOnAttachmentRateSource === 'actual_booking_items' ? '(Actual)' : '(Est.)');
     setText('an-addon-value', exec.averageAddOnValue ? fmt$(exec.averageAddOnValue) : '—');
@@ -9476,7 +9691,7 @@ window.intelQuick = intelQuick;
     setStatTone('an-gross-margin', Number(exec.grossMarginPct || 0) >= 0.30 ? 'teal' : 'orange');
     setStatTone('an-costed-gross-per-job', Number(exec.costedGrossProfitPerJob || 0) >= 3500 ? 'teal' : 'orange');
     setStatTone('an-uncosted-jobs', Number(exec.uncostedCompletedJobs || 0) > 0 ? 'orange' : 'neutral');
-    setStatTone('an-net-profit', Number(exec.estimatedNetOperatingProfit || 0) >= 0 ? 'teal' : 'red');
+    setStatTone('an-net-profit', exec.expenseDataAvailable === false ? 'orange' : (Number(exec.estimatedNetOperatingProfit || 0) >= 0 ? 'teal' : 'red'));
     setStatTone('an-bundle-rate', Number(exec.bundleAttachRate || 0) >= 0.25 ? 'teal' : 'neutral');
     setStatTone('an-ac-liability', Number(exec.assemblecashLiabilityCents || 0) > 0 ? 'amber' : 'neutral');
 
@@ -9500,9 +9715,7 @@ window.intelQuick = intelQuick;
         + '<div class="c-st-col">'
           + stRow('Platform gross', fmtSigned$(s.platformGrossProfit))
           + stRow('Refund and rework reserve', '-' + fmt$(s.reworkRefundReserve || 0))
-          + stRow('Known operating costs', '-' + fmt$(s.knownOperatingCosts || 0))
-          + stRow('Other overhead', '-' + fmt$(s.operatingExpenses || 0))
-          + stRow('Customer acquisition', '-' + fmt$(s.cac || 0))
+            + stRow('Business expenses paid', '-' + fmt$(s.operatingExpenses || 0))
           + stRow('Estimated net', fmtSigned$(s.estimatedNetOperatingProfit), true)
         + '</div>'
         + '</div>';
@@ -9515,7 +9728,7 @@ window.intelQuick = intelQuick;
         ? 'Stripe fees are actual. '
         : 'Some Stripe fees are estimated. ';
       note.textContent = 'Customer payments, tax, and Easer earnings come from booking/payment truth. ' + processingTruth
-        + 'The first mailbox payment is confirmed; future monthly mailbox charges are configured assumptions. Reserve, other overhead, and CAC are planning estimates. '
+        + 'The first mailbox payment is confirmed; future monthly mailbox charges are configured assumptions. Reserve is an estimate; business expenses are owner-entered and counted when paid. '
         + (rec.legacyRows || 0) + ' legacy row(s), ' + (rec.ledgerBackedRows || 0) + ' ledger-backed row(s), '
         + (rec.cancellationEarningRows || 0) + ' cancellation earning row(s).';
     }

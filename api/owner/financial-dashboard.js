@@ -9,7 +9,6 @@ const DEFAULT_ASSUMPTIONS = Object.freeze({
   reserveRate: 0.05,
   processingRate: 0.029,
   processingFixedCents: 30,
-  annualOperatingExpensesCents: 350000,
   baseAddOnAttachmentRate: 0.30,
   baseRepeatCustomerRate: 0.20,
   baseCancellationRate: 0.05,
@@ -36,14 +35,15 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const period = normalizePeriod(req.query.period);
   const range = getFinancialPeriodRange(period);
-  const knownOperatingCosts = summarizeKnownOperatingCosts(period, range);
-  const cacCents = dollarsToCents(req.query.cacDollars ?? req.query.cac);
-  const opexInput = req.query.opexMonthlyDollars ?? req.query.opexMonthly;
-  const ownerOpexProvided = opexInput !== undefined && String(opexInput).trim() !== '';
-  const opexMonthlyCents = dollarsToNonnegativeCents(opexInput);
-  const annualOpexCents = ownerOpexProvided
-    ? opexMonthlyCents * 12
-    : DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents;
+  let expenseSummary = emptyExpenseSummary();
+  try {
+    expenseSummary = await loadOwnerExpenseSummary(sb, range);
+  } catch (error) {
+    // Keep the booking and payout dashboard available if migration 113 has not
+    // been applied. The response makes the expense figure unavailable explicit.
+    console.warn('Owner expense summary unavailable:', error?.message || error);
+    expenseSummary = { ...emptyExpenseSummary(), available: false };
+  }
 
   let finance;
   try {
@@ -91,16 +91,10 @@ export default async function handler(req, res) {
     - Number(row.stripeFee || 0)
     - payoutForProfit(row));
   const reworkRefundReserve = Math.round(completedCustomerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
-  const operatingExpenseAllocation = allocateOperatingExpenses(period, annualOpexCents, {
-    range,
-    rows: financeRows,
-  });
-  const operatingExpenses = operatingExpenseAllocation.cents;
+  const operatingExpenses = expenseSummary.paidInPeriodCents;
   const estimatedNetOperatingProfit = platformGrossProfit
     - reworkRefundReserve
-    - operatingExpenses
-    - knownOperatingCosts.recognizedCents
-    - cacCents;
+    - operatingExpenses;
 
   let activeEasers = 0;
   let ownerEaserIds = new Set();
@@ -143,7 +137,7 @@ export default async function handler(req, res) {
     : 0;
   const serviceProfitability = buildServiceProfitability(rows, itemMetrics);
   const expansionRows = period === 'all' ? financeRows : await loadExpansionRows(sb);
-  const expansionReadiness = await buildExpansionReadiness(sb, expansionRows, activeEasers);
+  const expansionReadiness = await buildExpansionReadiness(sb, expansionRows, activeEasers, expenseSummary.paidAllTimeCents);
 
   const ledger = financeRows
     .slice()
@@ -186,18 +180,12 @@ export default async function handler(req, res) {
     period,
     range,
     excludedTestBookings,
+    expenses: expenseSummary,
     assumptions: {
       ...DEFAULT_ASSUMPTIONS,
-      cacCents,
       processingFeeLabel: processingFeesAllActual
         ? 'Actual recorded Stripe processing fees'
         : 'Actual where recorded; otherwise estimated at 2.9% + $0.30',
-      annualOperatingExpensesCents: annualOpexCents,
-      ownerOpexProvided,
-      operatingExpenseLabel: ownerOpexProvided
-        ? `$${Math.round(opexMonthlyCents / 100).toLocaleString('en-US')}/mo other overhead (owner-entered) allocated across ${operatingExpenseAllocation.days} selected day(s)`
-        : `Default $3,500/yr other overhead allocated across ${operatingExpenseAllocation.days} selected day(s) — known recurring costs are separate`,
-      knownOperatingCosts,
       launchMinimums: MIN_PRETAX_BOOKING_BY_ZONE,
     },
     labels: {
@@ -215,10 +203,8 @@ export default async function handler(req, res) {
       processingFees: processingFeesAllActual ? 'actual' : 'actual_and_estimated',
       platformGrossProfit: processingFeesAllActual ? 'actual' : 'actual_and_estimated',
       reworkRefundReserve: 'estimated',
-      operatingExpenses: 'estimated',
-      knownOperatingCosts: 'confirmed_first_payment_plus_configured_recurring_schedule',
-      cac: cacCents > 0 ? 'estimated' : 'missing_data',
-      estimatedNetOperatingProfit: 'estimated',
+      operatingExpenses: expenseSummary.available ? 'owner_entered_paid_expenses' : 'unavailable_expense_migration_required',
+      estimatedNetOperatingProfit: expenseSummary.available ? 'estimated_reserve_plus_owner_entered_paid_expenses' : 'incomplete_expenses_unavailable',
     },
     summary: {
       completedJobs,
@@ -246,10 +232,9 @@ export default async function handler(req, res) {
       platformGrossProfit,
       reworkRefundReserve,
       operatingExpenses,
-      knownOperatingCosts: knownOperatingCosts.recognizedCents,
-      knownOperatingCostMonthlyRunRate: knownOperatingCosts.monthlyRunRateCents,
-      operatingExpenseDays: operatingExpenseAllocation.days,
-      cac: cacCents,
+      expenseDataAvailable: expenseSummary.available,
+      upcomingExpenses: expenseSummary.outstandingCents,
+      expensesDueNext30Days: expenseSummary.dueNext30DaysCents,
       estimatedNetOperatingProfit,
       grossProfitPerJob,
       averageJobValue,
@@ -291,9 +276,9 @@ export default async function handler(req, res) {
       costedGrossProfitPerJob: laborCosting.costedGrossProfitPerJob,
       costedGrossMarginPct: laborCosting.costedGrossMarginPct,
       operatingExpenses,
-      knownOperatingCosts: knownOperatingCosts.recognizedCents,
-      knownOperatingCostMonthlyRunRate: knownOperatingCosts.monthlyRunRateCents,
-      operatingExpenseDays: operatingExpenseAllocation.days,
+      expenseDataAvailable: expenseSummary.available,
+      upcomingExpenses: expenseSummary.outstandingCents,
+      expensesDueNext30Days: expenseSummary.dueNext30DaysCents,
       estimatedNetOperatingProfit,
       addOnAttachmentRate,
       addOnAttachmentRateSource: hasRealAddOnData ? 'actual_booking_items' : 'assumption',
@@ -329,6 +314,51 @@ export default async function handler(req, res) {
     periodTimeZone: 'America/Chicago',
     reconciliation: finance.reconciliation,
   });
+}
+
+function emptyExpenseSummary() {
+  return {
+    available: true,
+    paidInPeriodCents: 0,
+    paidAllTimeCents: 0,
+    outstandingCents: 0,
+    dueNext30DaysCents: 0,
+    paidInPeriodCount: 0,
+    upcomingCount: 0,
+  };
+}
+
+async function loadOwnerExpenseSummary(sb, range = {}) {
+  const { data, error } = await sb
+    .from('owner_business_expenses')
+    .select('amount_cents, status, due_date, payment_date')
+    .neq('status', 'void')
+    .limit(5000);
+  if (error) throw error;
+
+  const today = chicagoTodayIso(new Date());
+  const dueThrough = addIsoCalendarDays(today, 30);
+  const fromDate = range.from ? String(range.from).slice(0, 10) : null;
+  const toDate = range.to ? String(range.to).slice(0, 10) : today;
+  const summary = emptyExpenseSummary();
+  for (const expense of data || []) {
+    const amount = Math.max(0, Number(expense.amount_cents || 0));
+    if (expense.status === 'paid') {
+      summary.paidAllTimeCents += amount;
+      const paidDate = String(expense.payment_date || '');
+      if (paidDate && (!fromDate || paidDate >= fromDate) && paidDate <= toDate) {
+        summary.paidInPeriodCents += amount;
+        summary.paidInPeriodCount += 1;
+      }
+    } else if (expense.status === 'upcoming') {
+      summary.outstandingCents += amount;
+      summary.upcomingCount += 1;
+      if (expense.due_date >= today && expense.due_date <= dueThrough) {
+        summary.dueNext30DaysCents += amount;
+      }
+    }
+  }
+  return summary;
 }
 
 async function loadAssembleCashMetrics(sb, range = {}) {
@@ -608,7 +638,7 @@ async function loadExpansionRows(sb) {
   }
 }
 
-async function buildExpansionReadiness(sb, rows, activeEasers) {
+async function buildExpansionReadiness(sb, rows, activeEasers, paidExpenseCents = 0) {
   const financeRows = rows || [];
   const completedRows = financeRows.filter(row => row.status === 'completed');
   const completedJobs = completedRows.length;
@@ -622,10 +652,7 @@ async function buildExpansionReadiness(sb, rows, activeEasers) {
   const easerPayouts = sum(financeRows, row => payoutForProfit(row));
   const platformGrossProfit = customerRevenue - salesTaxCollected - processingFees - easerPayouts;
   const reworkRefundReserve = Math.round(completedCustomerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
-  const knownOperatingCosts = summarizeKnownOperatingCosts('all').recognizedCents;
-  const estimatedOperatingProfit = platformGrossProfit - reworkRefundReserve
-    - allocateOperatingExpenses('all', DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents, { rows: financeRows }).cents
-    - knownOperatingCosts;
+  const estimatedOperatingProfit = platformGrossProfit - reworkRefundReserve - Number(paidExpenseCents || 0);
   const refundRate = completedJobs > 0 ? refundedJobs / completedJobs : 0;
   const reworkRate = completedJobs > 0 ? damageClaimBookingIds.size / completedJobs : 0;
   const ratingStats = await loadCustomerRatingStats(sb);
