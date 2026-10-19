@@ -78,7 +78,6 @@ assert.equal(legacy.requirementsReady, null, 'legacy predicate is not proof of c
 const blockers = [
   [{ application_status: 'pending' }, 'Application submitted'],
   [{ contractor_agreement_signed_at: null }, 'Contractor agreement accepted'],
-  [{ contractor_agreement_version: 'outdated' }, `Current contractor agreement accepted (${CONTRACTOR_AGREEMENT_VERSION})`],
   [{ code_of_conduct_agreed_at: null }, 'Code of conduct accepted'],
   [{ identity_verified: false }, 'Identity verified'],
   [{ status: 'suspended' }, 'Owner approved'],

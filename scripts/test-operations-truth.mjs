@@ -31,8 +31,8 @@ const staleAgreement = await getEaserReadiness({
   ...baseProfile,
   contractor_agreement_version: '2026-06-08',
 }, { connectRequired: false });
-assert.equal(staleAgreement.isReady, false);
-assert.ok(staleAgreement.missingItems.some(item => item.includes(CONTRACTOR_AGREEMENT_VERSION)));
+assert.equal(staleAgreement.isReady, true, 'an older agreement version must not block offers');
+assert.equal(staleAgreement.agreementCurrent, false);
 
 const connectAccount = {
   details_submitted: true,

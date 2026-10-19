@@ -283,11 +283,13 @@ export default async function handler(req, res) {
   // they still have the email open.
   let openOffers = [];
   if (!agreementCurrent) {
+    // Reminder only. Offers below are still loaded and accepted as normal.
     pushWarning(
-      'current_agreement_required',
-      'Review and accept the current contractor agreement before viewing or receiving new job offers.',
+      'agreement_update_available',
+      'An updated version of the contractor agreement needs your signature. You will keep receiving job offers.',
     );
-  } else if (applicationFeeRefundHold) {
+  }
+  if (applicationFeeRefundHold) {
     pushWarning(
       'new_offers_paused',
       'New job offers are temporarily paused. Existing assigned work remains available. Contact support if you need help.',
@@ -548,7 +550,7 @@ export default async function handler(req, res) {
     bookings: allBookings,
     access: {
       agreementCurrent,
-      newOffersAllowed: agreementCurrent && !applicationFeeRefundHold,
+      newOffersAllowed: !applicationFeeRefundHold,
     },
   };
   if (warnings.length > 0) {

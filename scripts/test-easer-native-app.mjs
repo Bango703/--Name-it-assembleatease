@@ -196,7 +196,7 @@ assert.match(swift['EaserViews.swift'], /reloadedFor == id/, 'tapping an alert f
 assert.match(swift['EaserViews.swift'], /if store\.appActive \{ await store\.refreshJobs\(\) \}/, 'the open app keeps offers current');
 assert.match(store, /sorted \{ \$0\.startSortKey < \$1\.startSortKey \}/, 'Up next is the soonest job, not the most recently assigned');
 assert.match(assignments, /order\('assigned_at', \{ ascending: false \}\)/, 'the server order is by assignment, which is why the app sorts');
-for (const code of ['current_agreement_required', 'new_offers_paused']) {
+for (const code of ['agreement_update_available', 'new_offers_paused']) {
   assert.ok(assignments.includes(`'${code}'`) && swift['EaserModels.swift'].includes(`"${code}"`), `paused-offer reason ${code} comes from the server`);
 }
 assert.doesNotMatch(swift['EaserViews.swift'], /Open Account to see what is needed/, 'no pointer to a screen that does not have the answer');
