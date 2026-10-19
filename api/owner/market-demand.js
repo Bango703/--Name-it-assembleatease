@@ -124,7 +124,7 @@ export function createMarketDemandHandler(dependencies = {}) {
   const topMarkets = marketRows.slice().sort((a, b) => {
     if (b.requestCount !== a.requestCount) return b.requestCount - a.requestCount;
     return Number(b.potentialRevenue || 0) - Number(a.potentialRevenue || 0);
-  }).slice(0, 12);
+  });
   const pricedDemand = demandSignals.map(signal => positiveCents(signal.estimatedRevenue)).filter(value => value != null);
   const manualAssignmentRows = bookingSignals.filter(isManualAssignmentSignal);
   const manualDispatchDemand = manualAssignmentRows.length;
