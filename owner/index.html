@@ -531,9 +531,9 @@
 
       <!-- ─── MARKET DEMAND VIEW ─── -->
       <div id="market-demand-view" style="display:none">
-        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Online booking is active across Texas. Central Texas can use automatic dispatch; other Texas bookings require owner-managed Easer assignment. Markets outside Texas remain demand collection only.</p>
-        <section style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem" aria-labelledby="acquisition-heading">
-          <h2 id="acquisition-heading" style="font-size:1rem;margin:0 0 0.6rem">Acquisition and completed jobs</h2>
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Where customers are asking for work, and whether you have Easers there. Central Texas dispatches automatically; other Texas bookings need you to assign an Easer.</p>
+        <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.8rem 1rem;margin-bottom:1rem" aria-labelledby="acquisition-heading">
+          <summary id="acquisition-heading" style="cursor:pointer;font-size:0.9rem;font-weight:700">Acquisition and completed jobs</summary>
           <p style="font-size:0.8rem;color:var(--muted);line-height:1.5">Original source evidence stays separate from job status. Unknown sources are not counted as organic. Dates select when bookings were created; outcomes and recorded payments reflect the latest snapshot.</p>
           <div style="display:flex;flex-wrap:wrap;gap:0.7rem;align-items:center;margin:0.8rem 0">
             <label for="acquisition-period">Bookings created</label>
@@ -546,7 +546,7 @@
             <label style="display:block;margin:0.6rem 0"><input type="checkbox" id="acquisition-internal"> Exclude this browser from website analytics</label>
             <p id="acquisition-internal-status" role="status">Applies to subsequent public-page loads in this browser. Booking and payment records remain unchanged.</p>
           </details>
-        </section>
+        </details>
         <div class="stats-row" id="md-stats-row">
           <div class="stat teal"><div class="stat-value" id="md-active">—</div><div class="stat-label">Demand Signals</div></div>
           <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Recorded Bookings</div></div>
@@ -558,9 +558,16 @@
         </div>
 
         <p id="md-snapshot-status" role="status" style="font-size:0.78rem;color:var(--muted);margin:0 0 0.5rem">Market data has not been loaded.</p>
-        <p style="font-size:0.78rem;color:var(--muted);line-height:1.5;margin:0 0 1rem">Counts overlap: approved accounts include eligible Easers. Eligible means current readiness checks passed. Availability on means eligible with availability enabled; this does not confirm a free appointment slot or current app use. Each area uses the existing configured ZIP region, not a verified driving radius.</p>
+        <details style="margin:0 0 1rem;font-size:0.8rem;color:var(--muted)">
+          <summary style="cursor:pointer;font-weight:700;color:var(--text)">How to read this page</summary>
+          <p style="line-height:1.5;margin:0.6rem 0">Counts overlap: approved accounts include eligible Easers. Eligible means current readiness checks passed. Availability on means eligible with availability enabled; this does not confirm a free appointment slot or current app use. Each area uses the existing configured ZIP region, not a verified driving radius.</p>
+          <p style="line-height:1.5;margin:0.4rem 0"><strong style="color:var(--text)">Booking Open:</strong> Texas customers can book and save or authorize a card. This does not prove local Easer coverage.</p>
+          <p style="line-height:1.5;margin:0.4rem 0"><strong style="color:var(--text)">Coverage Needed:</strong> No eligible Easer is recorded in this verified service area. Verify travel coverage before committing a pro.</p>
+          <p style="line-height:1.5;margin:0.4rem 0"><strong style="color:var(--text)">Ready:</strong> At least three eligible Easers are recorded in this service area. Confirm their availability, service skills and travel coverage for the specific appointment.</p>
+          <p style="line-height:1.5;margin:0.4rem 0"><strong style="color:var(--text)">Location Review / Coverage Unverified:</strong> A missing, invalid or unrecognized location cannot prove area coverage. Review the recorded city and ZIP. Supply unavailable means the Easer source could not be read, not that there are no Easers.</p>
+        </details>
         <div id="md-reconciliation" style="display:flex;flex-wrap:wrap;gap:0.75rem;font-size:0.78rem;margin:0 0 1rem"></div>
-        <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1.5rem" class="content-grid">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:1.5rem" class="content-grid">
           <div class="detail-panel open">
             <div class="detail-section-title">All Market Areas</div>
             <!-- Scrolls inside its panel. This list renders EVERY market with demand and
@@ -568,16 +575,6 @@
                  Demand Activity table beside it already scrolled at 60vh. Same convention
                  now applies to both. -->
             <div id="md-top-markets" style="margin-top:0.85rem;max-height:48vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain"></div>
-          </div>
-
-          <div class="detail-panel open">
-            <div class="detail-section-title">Activation Rules</div>
-            <div style="display:grid;gap:0.65rem;margin-top:0.85rem;font-size:0.82rem;color:var(--soft);line-height:1.55">
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Booking Open</strong><br>Texas customers can book and save or authorize a card. This does not prove local Easer coverage.</div>
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Coverage Needed</strong><br>No eligible Easer is recorded in this verified service area. Verify travel coverage before committing a pro.</div>
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Ready</strong><br>At least three eligible Easers are recorded in this service area. Confirm their availability, service skills and travel coverage for the specific appointment.</div>
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Location Review / Coverage Unverified</strong><br>A missing, invalid or unrecognized location cannot prove area coverage. Review the recorded city and ZIP. Supply unavailable means the Easer source could not be read, not that there are no Easers.</div>
-            </div>
           </div>
 
           <div class="detail-panel open" style="grid-column:1/-1">
