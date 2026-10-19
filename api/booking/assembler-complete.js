@@ -123,14 +123,23 @@ export default async function handler(req, res) {
 
   // Completion truth is a photo uploaded by the current assigned Easer after
   // this assignment entered in_progress. Before/damage evidence never qualifies.
-  const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking);
+  const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking, {
+    requireAllPhotos: true,
+  });
   if (completionEvidenceResult.error) {
     console.error('Completion evidence lookup failed:', completionEvidenceResult.error);
     return res.status(503).json({ error: 'Your completion photo could not be confirmed. The job was not marked complete. Refresh and try again.' });
   }
   const completionEvidence = completionEvidenceResult.evidence;
-  if (!completionEvidence) {
-    return res.status(400).json({ error: 'A completion photo is required. Please upload a photo before marking this job complete.' });
+  if (!completionEvidenceResult.satisfied) {
+    const requiredCount = completionEvidenceResult.requiredPhotoCount || 1;
+    const uploadedCount = completionEvidenceResult.evidenceCount || 0;
+    return res.status(409).json({
+      error: `Upload all ${requiredCount} completion photos before marking this job complete. ${uploadedCount} of ${requiredCount} received.`,
+      code: 'COMPLETION_PHOTOS_INCOMPLETE',
+      requiredPhotoCount: requiredCount,
+      uploadedPhotoCount: uploadedCount,
+    });
   }
 
   // Offline owner-manual completion: the owner's own Easer account finishing an

@@ -877,14 +877,20 @@ struct JobDetailView: View {
 
                 if job.photosRequested {
                     DetailBlock(title: "Photos requested") {
-                        Text("AssembleAtEase needs another photo of this job.")
-                            .foregroundStyle(.secondary)
+                        if job.completionPhotoCountKnown, let remaining = job.remainingCompletionPhotoCount {
+                            Text("AssembleAtEase needs \(remaining) more completion photo\(remaining == 1 ? "" : "s") of the booked work.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Refresh the job to load the required photo count.")
+                                .foregroundStyle(.secondary)
+                        }
                         Button {
                             photoSheet = .requested
                         } label: {
-                            Label("Add photo", systemImage: "camera")
+                            Label("Add photos", systemImage: "camera")
                         }
                         .buttonStyle(PrimaryButtonStyle())
+                        .disabled(!job.completionPhotoCountKnown || job.remainingCompletionPhotoCount == nil)
                     }
                 }
 
@@ -1965,20 +1971,29 @@ private struct PhotoSheet: View {
     @EnvironmentObject private var store: EaserStore
     @Environment(\.dismiss) private var dismiss
     @State private var photo: UIImage?
-    /// Completion takes one photo per item, up to EaserStore.maxCompletionPhotos.
+    /// The server supplies how many photos are still required.
     @State private var photos: [UIImage] = []
     @State private var note = ""
     @State private var submitting = false
 
+    private var currentJob: EaserJob {
+        store.jobs.first(where: { $0.id == job.id }) ?? job
+    }
+
+    private var remainingPhotoCount: Int? {
+        guard currentJob.completionPhotoCountKnown else { return nil }
+        return currentJob.remainingCompletionPhotoCount
+    }
+
     /// Items on the job, counting quantity (2 TVs and a soundbar is 3).
     private var itemCount: Int {
-        job.itemGroups.flatMap(\.items).reduce(0) { $0 + max(1, $1.quantity) }
+        currentJob.itemGroups.flatMap(\.items).reduce(0) { $0 + max(1, $1.quantity) }
     }
 
     private var title: String {
         switch mode {
         case .completion: return "Complete job"
-        case .requested: return "Add photo"
+        case .requested: return "Add photos"
         case .damage: return "Report damage"
         }
     }
@@ -1986,17 +2001,39 @@ private struct PhotoSheet: View {
     private var explanation: String {
         switch mode {
         case .completion:
+            guard let remainingPhotoCount else {
+                return "The required photo count is unavailable. Refresh the job and try again."
+            }
             return itemCount > 1
-                ? "This job has \(itemCount) items. Add a photo of each, up to \(EaserStore.maxCompletionPhotos)."
-                : "Add a photo of the finished work."
-        case .requested: return "Add the photo AssembleAtEase asked for."
+                ? "This job has \(itemCount) booked units. Add one clear photo of each. \(remainingPhotoCount) photo\(remainingPhotoCount == 1 ? "" : "s") still needed."
+                : "Add a clear photo of the finished work. \(remainingPhotoCount) photo\(remainingPhotoCount == 1 ? "" : "s") still needed."
+        case .requested:
+            guard let remainingPhotoCount else {
+                return "The required photo count is unavailable. Refresh the job and try again."
+            }
+            return "Add \(remainingPhotoCount) clear photo\(remainingPhotoCount == 1 ? "" : "s") of the completed work."
         case .damage: return "Add a photo of the damage and describe what happened."
         }
     }
 
     private var noteReady: Bool { note.trimmingCharacters(in: .whitespacesAndNewlines).count >= 10 }
-    private var hasPhoto: Bool { mode == .completion ? !photos.isEmpty : photo != nil }
-    private var ready: Bool { hasPhoto && (mode != .damage || noteReady) }
+    private var hasPhoto: Bool {
+        switch mode {
+        case .completion, .requested:
+            return remainingPhotoCount.map { $0 == 0 || photos.count > 0 } ?? false
+        case .damage:
+            return photo != nil
+        }
+    }
+    private var ready: Bool {
+        switch mode {
+        case .completion, .requested:
+            guard let remainingPhotoCount else { return false }
+            return photos.count >= remainingPhotoCount
+        case .damage:
+            return photo != nil && noteReady
+        }
+    }
 
     var body: some View {
         // The completion moment replaces the form in the same sheet.
@@ -2016,8 +2053,14 @@ private struct PhotoSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Text(explanation).foregroundStyle(.secondary)
-                    if mode == .completion {
-                        MultiPhotoChooser(photos: $photos, limit: EaserStore.maxCompletionPhotos)
+                    if mode == .completion || mode == .requested {
+                        if let remainingPhotoCount {
+                            MultiPhotoChooser(photos: $photos, limit: remainingPhotoCount)
+                        } else {
+                            Text("Refresh the job to load the required photo count.")
+                                .font(.subheadline)
+                                .foregroundStyle(Brand.attention)
+                        }
                     } else {
                         PhotoChooser(photo: $photo)
                     }
@@ -2043,8 +2086,12 @@ private struct PhotoSheet: View {
                     Task {
                         let done: Bool
                         switch mode {
-                        case .completion: done = await store.complete(job, photos: photos)
-                        case .requested: done = await store.sendPhoto(photo!, for: job, damageNote: nil)
+                        case .completion:
+                            done = await store.complete(currentJob, photos: photos)
+                            if !done { photos = [] }
+                        case .requested:
+                            done = await store.sendRequestedPhotos(photos, for: currentJob)
+                            if !done { photos = [] }
                         case .damage: done = await store.sendPhoto(photo!, for: job, damageNote: note.trimmingCharacters(in: .whitespacesAndNewlines))
                         }
                         submitting = false
@@ -2054,9 +2101,9 @@ private struct PhotoSheet: View {
                     if submitting {
                         ProgressView().tint(Brand.ink)
                     } else if !hasPhoto {
-                        Text("Add a photo to continue")
+                        Text(mode == .damage ? "Add a photo to continue" : "Add the required photos")
                     } else if !ready {
-                        Text("Describe what happened")
+                        Text(mode == .damage ? "Describe what happened" : "Add the remaining photos")
                     } else {
                         Text(mode == .completion ? "Submit completion" : (mode == .damage ? "Send report" : "Send photo"))
                     }

@@ -170,6 +170,9 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     let itemGroups: [JobItemGroup]
     let evidenceRequested: Bool
     let evidenceUploaded: Bool
+    let completionPhotoCountKnown: Bool
+    let requiredCompletionPhotoCount: Int?
+    let remainingCompletionPhotoCount: Int?
     let selfDropAllowed: Bool
     let enRouteAt: String?
     let arrivedAt: String?
@@ -222,6 +225,9 @@ struct EaserJob: Decodable, Identifiable, Hashable {
         itemGroups = ((try? c.decodeIfPresent([JobItemGroup].self, forKey: DynamicKey("_booking_items"))) ?? []).filter { !$0.items.isEmpty }
         evidenceRequested = c.string("evidence_requested_at") != nil
         evidenceUploaded = c.bool("_evidence_uploaded") ?? false
+        completionPhotoCountKnown = c.bool("_completion_photo_count_known") ?? false
+        requiredCompletionPhotoCount = c.number("_required_completion_photo_count").map { Int($0) }
+        remainingCompletionPhotoCount = c.number("_completion_photo_remaining_count").map { Int($0) }
         selfDropAllowed = c.bool("_can_self_drop") ?? true
         enRouteAt = c.string("en_route_at")
         arrivedAt = c.string("checked_in_at")
@@ -309,7 +315,7 @@ struct EaserJob: Decodable, Identifiable, Hashable {
         if hour == 12 { hour = pm ? 12 : 0 } else if pm { hour += 12 }
         return hour * 60 + minute
     }
-    /// AssembleAtEase asked for more photos and none has arrived yet.
+    /// AssembleAtEase asked for additional completion photos that are still missing.
     var photosRequested: Bool { evidenceRequested && !evidenceUploaded && acceptedAt != nil }
     /// Same rule as the web dashboard: accepted, confirmed, not started.
     var canRelease: Bool { acceptedAt != nil && status == "confirmed" && selfDropAllowed && !isHelper }

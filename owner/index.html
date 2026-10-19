@@ -4347,7 +4347,21 @@ window.intelQuick = intelQuick;
         if (fileInput) fileInput.value = '';
         if (notesInput) notesInput.value = '';
         delete _evidenceCache[uploadBookingId];
-        toast('Historical completion evidence recorded', 'success');
+        if (endpoint === '/api/owner/supply-easer-evidence') {
+          if (data.payoutHoldVerificationWarning) {
+            toast(data.payoutHoldVerificationWarning, 'error');
+          } else if (Number.isInteger(data.photosRemaining) && data.photosRemaining > 0) {
+            toast('Photo saved. ' + data.photosRemaining + ' more completion photo' + (data.photosRemaining === 1 ? '' : 's') + ' needed.', 'success');
+          } else if (data.completionPhotosSatisfied) {
+            toast(data.releasesPayoutHold
+              ? 'All required photos are recorded. The payout status will update.'
+              : 'All required completion photos are recorded.', 'success');
+          } else {
+            toast('Photo saved. Refresh the booking before relying on its completion status.', 'error');
+          }
+        } else {
+          toast('Historical completion evidence recorded', 'success');
+        }
         await window.loadEvidence(uploadBookingId, true);
         loadTimeline(uploadBookingId);
       } catch (error) {

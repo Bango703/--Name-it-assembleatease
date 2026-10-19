@@ -3,7 +3,10 @@ import {
   computeBookingFinancialSummary,
   easerPayoutDueCents,
 } from '../_source-of-truth.js';
-import { isCurrentCompletionEvidence } from '../booking/_completion-evidence.js';
+import {
+  loadRequiredCompletionPhotoCounts,
+  summarizeCurrentCompletionPhotos,
+} from '../booking/_completion-evidence.js';
 import { normalizeOwnerOfflinePaymentMethod } from './_offline-payment.js';
 
 const RESOLVED_DISPUTE_STATUSES = new Set(['won', 'warning_closed', 'prevented']);
@@ -189,22 +192,26 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
   const currentEvidenceBookingIds = new Set();
   if (evidenceRequiredBookings.length) {
     const evidenceBookingIds = evidenceRequiredBookings.map(booking => booking.id);
-    const evidenceBookingById = new Map(evidenceRequiredBookings.map(booking => [booking.id, booking]));
     const { data: evidenceRows, error: evidenceError } = await sb
       .from('booking_evidence')
-      // uploaded_on_behalf_of is required: without it the check below compares
-      // against undefined and every owner-supplied photo reads as missing.
       .select('booking_id, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at')
       .in('booking_id', evidenceBookingIds)
       .eq('evidence_type', 'completion_photo');
     if (evidenceError) throw evidenceError;
-    for (const evidence of evidenceRows || []) {
-      const booking = evidenceBookingById.get(evidence.booking_id);
-      // Same rule as api/booking/payout.js, or the ledger and the payout
-      // endpoint disagree about whether a job is releasable.
-      if (booking && isCurrentCompletionEvidence(evidence, booking, { acceptSuppliedOnBehalf: true })) {
-        currentEvidenceBookingIds.add(evidence.booking_id);
-      }
+    const requiredCounts = await loadRequiredCompletionPhotoCounts(sb, evidenceBookingIds);
+    const rowsByBooking = new Map();
+    (evidenceRows || []).forEach(row => {
+      if (!rowsByBooking.has(row.booking_id)) rowsByBooking.set(row.booking_id, []);
+      rowsByBooking.get(row.booking_id).push(row);
+    });
+    for (const booking of evidenceRequiredBookings) {
+      const summary = summarizeCurrentCompletionPhotos(
+        rowsByBooking.get(booking.id) || [],
+        booking,
+        requiredCounts.get(booking.id),
+        { acceptSuppliedOnBehalf: true },
+      );
+      if (summary.satisfied) currentEvidenceBookingIds.add(booking.id);
     }
   }
 

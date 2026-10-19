@@ -55,7 +55,7 @@ const finalRecheck = releaseSource.indexOf('const immediatelyBeforeTransfer = aw
 const stripeTransfer = releaseSource.indexOf('const transfer = await stripe.transfers.create');
 assert.ok(firstRecheck > 0 && firstRecheck < finalRecheck && finalRecheck < stripeTransfer);
 assert.match(releaseSource, /damage_review_status !== 'review_required'/);
-assert.match(releaseSource, /post_request_completion_evidence_missing/);
+assert.match(releaseSource, /requireAllPhotos: true/);
 
 const requestRpcStart = migrationSource.indexOf('CREATE OR REPLACE FUNCTION public.request_booking_evidence_hold');
 const requestRpcEnd = migrationSource.indexOf('REVOKE ALL ON FUNCTION public.request_booking_evidence_hold', requestRpcStart);
@@ -128,7 +128,7 @@ const baseBooking = {
   financial_operation_started_at: '2026-07-14T12:00:00.000Z',
 };
 
-function fakeReadSupabase(current, evidence = null) {
+function fakeReadSupabase(current, evidence = null, requiredPhotoCount = 1) {
   const terminal = value => ({
     select() { return this; },
     eq() { return this; },
@@ -137,12 +137,25 @@ function fakeReadSupabase(current, evidence = null) {
     order() { return this; },
     limit() { return this; },
     async maybeSingle() { return { data: value ? structuredClone(value) : null, error: null }; },
+    then(resolve, reject) {
+      return Promise.resolve({
+        data: value == null ? [] : (Array.isArray(value) ? structuredClone(value) : [structuredClone(value)]),
+        error: null,
+      }).then(resolve, reject);
+    },
   });
   return {
     from(table) {
       if (table === 'bookings') return terminal(current);
       if (table === 'booking_evidence') return terminal(evidence);
       throw new Error(`Unexpected table ${table}`);
+    },
+    async rpc(name, args) {
+      assert.equal(name, 'booking_required_completion_photo_counts');
+      return {
+        data: args.p_booking_ids.map(booking_id => ({ booking_id, required_photo_count: requiredPhotoCount })),
+        error: null,
+      };
     },
   };
 }
@@ -190,7 +203,7 @@ state = await verifyConnectPayoutReleaseState(
   operationKey,
   10_000,
 );
-assert.deepEqual({ ok: state.ok, reason: state.reason }, { ok: false, reason: 'post_request_completion_evidence_missing' });
+assert.deepEqual({ ok: state.ok, reason: state.reason }, { ok: false, reason: 'post_request_completion_photos_incomplete' });
 
 state = await verifyConnectPayoutReleaseState(
   fakeReadSupabase({
@@ -224,6 +237,24 @@ state = await verifyConnectPayoutReleaseState(
   10_000,
 );
 assert.equal(state.ok, true, 'owner-supplied evidence for the assigned Easer must release the payout hold');
+
+state = await verifyConnectPayoutReleaseState(
+  fakeReadSupabase({
+    ...baseBooking,
+    evidence_requested_at: '2026-07-14T11:00:00.000Z',
+  }, [
+    1, 2, 3,
+  ].map(index => ({
+    id: `evidence-${index}`,
+    evidence_type: 'completion_photo',
+    uploaded_by: baseBooking.assembler_id,
+    created_at: `2026-07-14T11:3${index}:00.000Z`,
+  })), 4),
+  baseBooking,
+  operationKey,
+  10_000,
+);
+assert.equal(state.ok, false, 'a four-unit booking must keep its payout hold until all four requested photos exist');
 
 state = await verifyConnectPayoutReleaseState(
   fakeReadSupabase({ ...baseBooking, easer_bonus_cents: 500 }),

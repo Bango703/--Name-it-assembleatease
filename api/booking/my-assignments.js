@@ -20,6 +20,10 @@ import { loadCrew } from './_crew.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 import { evaluateCustomerContactRelease, maskCustomerNameForEaser } from './_customer-contact-release.js';
 import { loadEaserJobExtras, applyEaserJobExtras } from './_easer-job-extras.js';
+import {
+  loadRequiredCompletionPhotoCounts,
+  summarizeCurrentCompletionPhotos,
+} from './_completion-evidence.js';
 
 const EASER_JOB_STAGES = Object.freeze(['en_route', 'arrived', 'in_progress']);
 
@@ -362,37 +366,6 @@ export default async function handler(req, res) {
   // server-redacted so UI mistakes cannot expose retained customer PII.
   redactAssignmentCustomerData(assignedBookings || []);
 
-  // For completed jobs where evidence was requested, flag whether evidence has been uploaded.
-  // This lets the Easer dashboard show/hide the upload prompt without a separate API call.
-  const evidenceRequestedIds = (assignedBookings || [])
-    .filter(b => b.evidence_requested_at)
-    .map(b => b.id);
-
-  if (evidenceRequestedIds.length) {
-    try {
-      const { data: evidenceRows, error: evidenceError } = await sb
-        .from('booking_evidence')
-        .select('booking_id, created_at')
-        .in('booking_id', evidenceRequestedIds)
-        .eq('evidence_type', 'completion_photo')
-        .eq('uploaded_by', user.id);
-      if (evidenceError) throw evidenceError;
-      const bookingById = new Map((assignedBookings || []).map(booking => [booking.id, booking]));
-      const uploadedSet = new Set((evidenceRows || [])
-        .filter(row => {
-          const booking = bookingById.get(row.booking_id);
-          return booking?.job_started_at
-            && new Date(row.created_at).getTime() >= new Date(booking.job_started_at).getTime();
-        })
-        .map(row => row.booking_id));
-      (assignedBookings || []).forEach(b => {
-        if (b.evidence_requested_at) b._evidence_uploaded = uploadedSet.has(b.id);
-      });
-    } catch (evErr) {
-      console.warn('my-assignments evidence check skipped:', evErr?.message || evErr);
-    }
-  }
-
   // ── 3. Merge and add pay estimates ──────────────────────────────────────
   const allBookings = [...offerBookings, ...(assignedBookings || [])];
   allBookings.forEach(booking => {
@@ -448,15 +421,67 @@ export default async function handler(req, res) {
     try {
       // Same loader the owner uses, so the two roles can never see different
       // scope. No pricing: the Easer must not see customer money (Rule 3).
-      const itemsByBooking = await loadBookingItems(bookingIds, { sb });
+      const [itemsByBooking, requiredPhotoCounts] = await Promise.all([
+        loadBookingItems(bookingIds, { sb }),
+        loadRequiredCompletionPhotoCounts(sb, bookingIds),
+      ]);
       allBookings.forEach(booking => {
         booking._booking_items = itemsByBooking.get(booking.id) || [];
+        booking._required_completion_photo_count = requiredPhotoCounts.get(booking.id);
+        booking._completion_photo_count_known = false;
       });
     } catch (bookingItemsLookupError) {
       console.error('My assignments booking-items warning:', bookingItemsLookupError);
       pushWarning('booking_scope_partial_failure', 'The exact item scope could not be loaded for some jobs.');
       allBookings.forEach(booking => {
         if (!Array.isArray(booking._booking_items)) booking._booking_items = [];
+        booking._required_completion_photo_count = null;
+        booking._completion_photo_count_known = false;
+      });
+    }
+  }
+
+  const completionEvidenceBookings = allBookings
+    .filter(booking => assignedIds.has(booking.id) && booking.job_started_at);
+  const completionEvidenceBookingIds = completionEvidenceBookings
+    .map(booking => booking.id)
+    .filter(Boolean);
+  if (completionEvidenceBookingIds.length) {
+    try {
+      const { data: evidenceRows, error: evidenceError } = await sb
+        .from('booking_evidence')
+        .select('booking_id, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at')
+        .in('booking_id', completionEvidenceBookingIds)
+        .eq('evidence_type', 'completion_photo');
+      if (evidenceError) throw evidenceError;
+      const rowsByBooking = new Map();
+      (evidenceRows || []).forEach(row => {
+        if (!rowsByBooking.has(row.booking_id)) rowsByBooking.set(row.booking_id, []);
+        rowsByBooking.get(row.booking_id).push(row);
+      });
+      completionEvidenceBookings.forEach(booking => {
+        const required = booking._required_completion_photo_count;
+        if (!booking.job_started_at || !Number.isInteger(required)) return;
+        const summary = summarizeCurrentCompletionPhotos(
+          rowsByBooking.get(booking.id) || [],
+          { ...booking, assembler_id: user.id },
+          required,
+          { acceptSuppliedOnBehalf: true },
+        );
+        booking._completion_photo_uploaded_count = summary.evidenceCount;
+        booking._completion_photo_remaining_count = Math.max(
+          0,
+          summary.requiredAfterRequestCount - summary.evidenceCountAfterRequest,
+        );
+        booking._completion_photo_count_known = true;
+        if (booking.evidence_requested_at) booking._evidence_uploaded = summary.satisfied;
+      });
+    } catch (evidenceLookupError) {
+      console.error('My assignments completion-photo count warning:', evidenceLookupError);
+      allBookings.forEach(booking => {
+        if (booking.evidence_requested_at) booking._evidence_uploaded = false;
+        booking._completion_photo_count_known = false;
+        booking._completion_photo_remaining_count = null;
       });
     }
   }

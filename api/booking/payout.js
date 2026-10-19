@@ -122,6 +122,7 @@ export default async function handler(req, res) {
     const evidenceResult = await loadCurrentCompletionEvidence(sb, booking, {
       select: 'id, evidence_type, uploaded_by, uploaded_on_behalf_of, created_at',
       allowHistoricalOwnerManual: true,
+      requireAllPhotos: Boolean(booking.evidence_requested_at),
       // Evidence the owner supplied FOR this Easer releases the payout. The
       // work is documented; who held the phone does not change that, and an
       // Easer who cannot upload must not strand their own money forever.
@@ -131,7 +132,9 @@ export default async function handler(req, res) {
       console.error('Payout completion evidence lookup failed:', evidenceResult.error);
       return res.status(503).json({ error: 'Completion evidence could not be verified. Payout was not recorded.' });
     }
-    hasEvidence = !!evidenceResult.evidence;
+    hasEvidence = booking.evidence_requested_at
+      ? evidenceResult.satisfied
+      : !!evidenceResult.evidence;
   }
   if (booking.evidence_requested_at && !hasEvidence) {
     return res.status(409).json({ error: 'Payout blocked — a completion photo from the current assigned Easer, uploaded after work started, is required.' });

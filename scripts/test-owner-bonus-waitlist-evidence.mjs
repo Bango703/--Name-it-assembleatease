@@ -35,6 +35,7 @@ const ui = await read('owner/index.html');
 const mig084 = await read('api/migrations/084_evidence_uploaded_on_behalf_of.sql');
 const mig085 = await read('api/migrations/085_easer_bonus.sql');
 const mig092 = await read('api/migrations/092_connect_payout_owner_supplied_evidence.sql');
+const mig114 = await read('api/migrations/114_completion_photos_per_item.sql');
 
 // ── 1. Evidence supplied for an Easer keeps honest authorship ──────────────
 {
@@ -78,14 +79,20 @@ const mig092 = await read('api/migrations/092_connect_payout_owner_supplied_evid
   // But the EASER's own completion is deliberately untouched: someone standing
   // in the customer's home has no excuse for submitting another person's photo.
   const easerComplete = await read('api/booking/assembler-complete.js');
-  assert.ok(easerComplete.includes('const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking);'),
-    'an Easer completing their own job must still supply their own photo');
+  assert.match(easerComplete, /loadCurrentCompletionEvidence\(sb, booking, \{\s*requireAllPhotos: true,\s*\}\)/,
+    'an Easer completing their own job must supply the full required photo set');
+  assert.doesNotMatch(easerComplete, /acceptSuppliedOnBehalf/,
+    'an Easer cannot use an owner-supplied photo to complete their own work');
+  assert.ok(supply.includes('photosRemaining:'),
+    'the owner is told how many photos are still required after supplying evidence');
+  assert.ok(ui.includes('data.photosRemaining'),
+    'the owner dashboard explains when more evidence is needed');
 
   assert.ok(ui.includes("(booking.job_started_at || booking.status === 'completed')"),
     'the owner UI must offer this once work has started, not only after completion');
 
   // Supplied evidence is internal like any other upload — supplying is not publishing.
-  assert.ok(supply.includes("visibility: 'owner'"),
+  assert.ok(mig114.includes("'completion_photo', p_mime_type, p_file_size_bytes, 'owner', v_notes"),
     'owner-supplied evidence must not become customer-facing automatically');
   assert.ok(supply.includes("actorType: 'owner'"),
     'the timeline must say the owner did this, not the Easer');
