@@ -25,8 +25,8 @@
     el('acquisition-status').textContent = (data.partial ? 'Partial report. ' : '') + (range.from ? range.from + ' through ' + range.to : 'All available creation dates') + ' · America/Chicago · Snapshot ' + stamp;
     var html = '<p style="font-size:0.82rem;line-height:1.7"><strong>' + Number(summary.bookings) + ' recorded bookings · ' + Number(summary.completed) + ' completed · ' + Number(summary.incompleteAttribution) + ' with incomplete source evidence.</strong><br>Completed-job retained payments: ' + money(summary.recordedPaymentsCents) + ' · Recorded platform gross before overhead/reserves: ' + money(summary.platformGrossCents) + '<br>Explicit test records excluded: ' + Number(data.excludedTests) + '.</p>';
     if (data.warnings.length) html += '<p style="color:var(--red);font-size:0.8rem;line-height:1.5">' + data.warnings.map(esc).join(' ') + '</p>';
-    html += data.channels.length ? table('Outcomes by original channel', data.channels, false) + table('Outcomes by requested service city', data.markets, true) : '<p>No booking records in this creation-date period.</p>';
-    html += '<ul style="font-size:0.76rem;color:var(--muted);line-height:1.5">' + data.notes.map(function(note) { return '<li>' + esc(note) + '</li>'; }).join('') + '</ul>';
+    html += data.channels.length ? table('Outcomes by original channel', data.channels, false) : '<p>No booking records in this creation-date period.</p>';
+    html += '<p style="font-size:0.76rem;color:var(--muted);line-height:1.5;margin:0.6rem 0 0">Booking records are not qualified leads. Unknown sources are not counted as organic. Cancelled / lost includes cancelled, declined and refunded.</p>';
     el('acquisition-report').innerHTML = html;
   }
   async function load() {

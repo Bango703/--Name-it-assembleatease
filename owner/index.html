@@ -532,21 +532,18 @@
       <!-- ─── MARKET DEMAND VIEW ─── -->
       <div id="market-demand-view" style="display:none">
         <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Where customers are asking for work, and whether you have Easers there. Central Texas dispatches automatically; other Texas bookings need you to assign an Easer.</p>
-        <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.8rem 1rem;margin-bottom:1rem" aria-labelledby="acquisition-heading">
-          <summary id="acquisition-heading" style="cursor:pointer;font-size:0.9rem;font-weight:700">Acquisition and completed jobs</summary>
-          <p style="font-size:0.8rem;color:var(--muted);line-height:1.5">Original source evidence stays separate from job status. Unknown sources are not counted as organic. Dates select when bookings were created; outcomes and recorded payments reflect the latest snapshot.</p>
-          <div style="display:flex;flex-wrap:wrap;gap:0.7rem;align-items:center;margin:0.8rem 0">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.8rem 1rem;margin-bottom:1rem">
+          <h3 id="acquisition-heading" style="font-size:0.9rem;font-weight:700;margin:0 0 0.4rem">Acquisition and completed jobs</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:0.7rem;align-items:center;margin:0.6rem 0">
             <label for="acquisition-period">Bookings created</label>
             <select id="acquisition-period" style="font:inherit;max-width:100%;padding:0.4rem"><option value="28">Last 28 complete days</option><option value="90">Last 90 complete days</option><option value="all" selected>All time</option></select>
             <button type="button" class="btn" id="acquisition-refresh">Refresh acquisition report</button>
           </div>
           <p id="acquisition-status" role="status" style="font-size:0.78rem;color:var(--muted)">Report has not loaded.</p>
           <div id="acquisition-report"></div>
-          <details style="margin-top:0.8rem;font-size:0.8rem"><summary>Exclude owner testing from website analytics</summary>
-            <label style="display:block;margin:0.6rem 0"><input type="checkbox" id="acquisition-internal"> Exclude this browser from website analytics</label>
-            <p id="acquisition-internal-status" role="status">Applies to subsequent public-page loads in this browser. Booking and payment records remain unchanged.</p>
-          </details>
-        </details>
+          <label style="display:block;margin:0.8rem 0 0.2rem;font-size:0.8rem"><input type="checkbox" id="acquisition-internal"> Exclude this browser from website analytics</label>
+          <p id="acquisition-internal-status" role="status" style="font-size:0.75rem;color:var(--muted);margin:0">Applies to subsequent public-page loads in this browser. Booking and payment records remain unchanged.</p>
+        </div>
         <div class="stats-row" id="md-stats-row">
           <div class="stat teal"><div class="stat-value" id="md-active">—</div><div class="stat-label">Demand Signals</div></div>
           <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Recorded Bookings</div></div>
@@ -558,14 +555,7 @@
         </div>
 
         <p id="md-snapshot-status" role="status" style="font-size:0.78rem;color:var(--muted);margin:0 0 0.5rem">Market data has not been loaded.</p>
-        <details style="margin:0 0 1rem;font-size:0.8rem;color:var(--muted)">
-          <summary style="cursor:pointer;font-weight:700;color:var(--text)">How to read this page</summary>
-          <p style="line-height:1.5;margin:0.6rem 0">Counts overlap: approved accounts include eligible Easers. Eligible means current readiness checks passed. Availability on means eligible with availability enabled; this does not confirm a free appointment slot or current app use. Each area uses the existing configured ZIP region, not a verified driving radius.</p>
-          <p style="line-height:1.5;margin:0.4rem 0"><strong style="color:var(--text)">Booking Open:</strong> Texas customers can book and save or authorize a card. This does not prove local Easer coverage.</p>
-          <p style="line-height:1.5;margin:0.4rem 0"><strong style="color:var(--text)">Coverage Needed:</strong> No eligible Easer is recorded in this verified service area. Verify travel coverage before committing a pro.</p>
-          <p style="line-height:1.5;margin:0.4rem 0"><strong style="color:var(--text)">Ready:</strong> At least three eligible Easers are recorded in this service area. Confirm their availability, service skills and travel coverage for the specific appointment.</p>
-          <p style="line-height:1.5;margin:0.4rem 0"><strong style="color:var(--text)">Location Review / Coverage Unverified:</strong> A missing, invalid or unrecognized location cannot prove area coverage. Review the recorded city and ZIP. Supply unavailable means the Easer source could not be read, not that there are no Easers.</p>
-        </details>
+        <p style="margin:0 0 1rem;font-size:0.78rem;line-height:1.5;color:var(--muted)">Eligible Easers are included in Approved. Availability on means eligible with availability enabled; it does not confirm a free slot. Areas use configured ZIP regions, not driving distance. Coverage Needed: no eligible Easer in that area. Ready: three or more eligible Easers. Coverage Unverified or Location Review: the recorded location cannot prove coverage. Supply Unavailable means the Easer source could not be read, not that there are none.</p>
         <div id="md-reconciliation" style="display:flex;flex-wrap:wrap;gap:0.75rem;font-size:0.78rem;margin:0 0 1rem"></div>
         <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:1.5rem" class="content-grid">
           <div class="detail-panel open">
