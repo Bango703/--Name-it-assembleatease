@@ -10147,17 +10147,13 @@ window.intelQuick = intelQuick;
         + mdDemandCount('Unbooked', m.unbookedRows || [], requestsAvailable)
         + mdMiniMetric('Priced', !requestsAvailable ? 'Unknown' : m.potentialRevenue == null ? 'Not priced' : fmt$(m.potentialRevenue))
         + '</div>'
-        + '<div style="font-size:0.78rem;color:var(--soft);line-height:1.55"><strong style="color:var(--text)">Most requested services:</strong> ' + services + '</div>'
-        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem">Requested ZIPs: ' + esc((m.requestedZips || []).join(', ') || 'None recorded') + '</div>'
+        + '<div style="font-size:0.78rem;color:var(--soft);line-height:1.55"><strong style="color:var(--text)">Top services:</strong> ' + services + ' &middot; <span style="color:var(--muted)">ZIPs: ' + esc((m.requestedZips || []).join(', ') || 'None') + '</span></div>'
         + '<div style="display:flex;flex-wrap:wrap;gap:0.6rem;font-size:0.75rem;margin-top:0.5rem">'
         + mdSupplyCount('Approved', supply.approved || [], false, available)
         + mdSupplyCount('Eligible Easers', supply.ready || [], false, available)
         + mdSupplyCount('Availability on', supply.online || [], false, available)
         + mdSupplyCount('Pending applications', supply.pending || [], false, available)
-        + mdSupplyCount('Waitlist', supply.waitlist || [], true, waitlistAvailable)
-        + mdSupplyCount('All Easer profiles', supply.all || [], false, available)
-        + mdSupplyCount('Location records to review', supply.reviewRecords || [], false, available && waitlistAvailable)
-        + '</div><div style="font-size:0.7rem;color:var(--muted);margin-top:0.4rem">Each profile is counted once in its recorded ZIP service area. Confirm travel coverage for each job.</div>'
+        + '</div>'
         + (m.locationIssue ? '<div style="font-size:0.75rem;color:var(--red);margin-top:0.4rem">' + esc(m.locationIssue) + '</div>' : '')
         + '</div>';
     }).join('');
