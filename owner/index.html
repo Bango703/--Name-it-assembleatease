@@ -1237,23 +1237,21 @@
             <div id="an-payout-totals" style="font-size:0.78rem;color:var(--muted)"></div>
           </div>
           <div class="finance-scroll">
-            <table class="finance-table" style="width:100%;border-collapse:collapse;font-size:0.82rem" id="an-payout-table">
+            <table class="finance-table" style="width:100%;min-width:62rem;table-layout:fixed;border-collapse:collapse;font-size:0.82rem" id="an-payout-table"><colgroup><col style="width:21%"><col style="width:11%"><col style="width:6%"><col style="width:11%"><col style="width:11%"><col style="width:14%"><col style="width:11%"><col style="width:15%"></colgroup>
               <thead>
                 <tr style="border-bottom:1px solid var(--border)">
                   <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Easer</th>
-                  <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Preferred Method</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Payout Method</th>
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Jobs</th>
-                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Owed</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Total Earned</th>
                   <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Paid</th>
-                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Payable</th>
-                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Automatic Payout Processing</th>
-                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">On Hold</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Outstanding</th>
                   <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Last Earning</th>
-                  <th style="padding:0.5rem 0.75rem;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em"></th>
+                                    <th style="padding:0.5rem 0.75rem;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Status</th>
                 </tr>
               </thead>
               <tbody id="an-payout-body">
-                <tr><td colspan="10" style="padding:1.5rem;text-align:center;color:var(--muted)">Loading…</td></tr>
+                <tr><td colspan="8" style="padding:1.5rem;text-align:center;color:var(--muted)">Loading…</td></tr>
               </tbody>
             </table>
           </div>
@@ -9775,7 +9773,7 @@ window.intelQuick = intelQuick;
       }
 
       if (!easers.length) {
-        tbody.innerHTML = '<tr><td colspan="10" style="padding:1.5rem;text-align:center;color:var(--muted)">No completed-job or cancellation earnings with assigned Easers yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="padding:1.5rem;text-align:center;color:var(--muted)">No completed-job or cancellation earnings with assigned Easers yet.</td></tr>';
         if (selectedId) {
           var selectedWithoutEarnings = allBookings.find(function(item){ return item.id == selectedId; });
           if (selectedWithoutEarnings) renderActions(selectedWithoutEarnings);
@@ -9814,19 +9812,26 @@ window.intelQuick = intelQuick;
             + (isHeld && holdReasons.length ? '<div style="font-size:0.66rem;line-height:1.35;color:#92400e;margin:0 0.2rem 0.3rem">' + esc(holdReasons[0]) + '</div>' : '');
         }).join('');
         if (jobsNeedingAction.length > 3) actionButtons += '<div style="font-size:0.68rem;color:var(--muted)">+' + (jobsNeedingAction.length - 3) + ' more</div>';
-        var contact = '<div style="font-size:0.69rem;color:var(--muted);font-weight:400;margin-top:0.2rem">'
+        var contact = '<div style="font-size:0.69rem;color:var(--muted);font-weight:400;margin-top:0.2rem;line-height:1.5;overflow-wrap:anywhere">'
           + (e.email ? '<a href="mailto:' + esc(e.email) + '" style="color:var(--teal)">' + esc(e.email) + '</a>' : 'Email missing')
-          + (hasValidUsPhone(e.phone) ? '<br>' + phoneWithCall(e.phone, 'easer', e.id) : '<br><span style="color:var(--red)">Valid phone required</span>')
+          + ' &middot; '
+          + (hasValidUsPhone(e.phone) ? phoneWithCall(e.phone, 'easer', e.id) : '<span style="color:var(--red)">Valid phone required</span>')
           + '</div>';
+        var stageLine = function(amount, label, color) {
+          return amount > 0 ? '<div style="font-size:0.68rem;font-weight:400;color:' + color + '">' + label + '</div>' : '';
+        };
+        var outstandingTotal = Number(e.total_payable || 0) + Number(e.total_connect_pending || 0) + Number(e.total_on_hold || 0);
+        var outstandingCell = '<div style="font-weight:700;color:var(--text)">' + fmt$(outstandingTotal) + '</div>'
+          + stageLine(Number(e.total_payable || 0), fmt$(e.total_payable) + ' ready to pay', '#047857')
+          + stageLine(Number(e.total_connect_pending || 0), fmt$(e.total_connect_pending) + ' processing', '#0369a1')
+          + stageLine(Number(e.total_on_hold || 0), fmt$(e.total_on_hold) + ' on hold', '#b45309');
         return '<tr style="border-bottom:1px solid var(--border)">'
           + '<td style="padding:0.6rem 0.75rem;font-weight:600;color:var(--text)">' + esc(e.assembler_name) + ' ' + easerTierBadge(e.assembler_tier) + contact + (['requested','reviewing','completed'].includes(e.account_closure_status) ? '<div style="font-size:0.68rem;color:var(--red);margin-top:0.2rem">Closure: ' + esc(e.account_closure_status) + '</div>' : '') + '</td>'
           + '<td style="padding:0.6rem 0.75rem;font-size:0.76rem;color:' + (e.connect_payouts_ready || e.payout_method_preference ? 'var(--text)' : 'var(--red)') + '">' + esc(preferredMethod) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--soft)">' + e.jobs + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--text)">' + fmt$(e.total_owed) + '</td>'
           + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--green)">' + fmt$(e.total_paid) + '</td>'
-          + '<td style="padding:0.6rem 0.75rem;text-align:right;font-weight:700;color:#047857">' + fmt$(e.total_payable || 0) + '</td>'
-          + '<td style="padding:0.6rem 0.75rem;text-align:right;font-weight:700;color:#0369a1">' + fmt$(e.total_connect_pending || 0) + '</td>'
-          + '<td style="padding:0.6rem 0.75rem;text-align:right;font-weight:700;color:#b45309">' + fmt$(e.total_on_hold || 0) + '</td>'
+          + '<td style="padding:0.6rem 0.75rem;text-align:right">' + outstandingCell + '</td>'
           + '<td style="padding:0.6rem 0.75rem;font-size:0.78rem;color:var(--muted)">' + (e.last_earning_date ? formatDate(e.last_earning_date) : '—') + '</td>'
           + '<td style="padding:0.6rem 0.75rem">' + (actionButtons || '<span style="font-size:0.72rem;color:var(--muted)">No action</span>') + '</td>'
         + '</tr>';
@@ -9842,7 +9847,7 @@ window.intelQuick = intelQuick;
       if (totalsEl) totalsEl.innerHTML = '<span style="color:var(--red);font-weight:700">Payout totals unavailable - do not rely on reserve totals</span>';
       var payoutNavError = document.getElementById('nav-payouts');
       if (payoutNavError) { payoutNavError.textContent = '!'; payoutNavError.title = 'Payout truth unavailable'; payoutNavError.style.display = ''; }
-      if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="padding:1rem;color:var(--red);font-size:0.85rem">Payout data could not be verified. No amounts are being shown as zero. Retry before sending or recording any Easer payment.</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="padding:1rem;color:var(--red);font-size:0.85rem">Payout data could not be verified. No amounts are being shown as zero. Retry before sending or recording any Easer payment.</td></tr>';
       if (selectedId) {
         var selectedWithoutPayoutTruth = allBookings.find(function(item){ return item.id == selectedId; });
         if (selectedWithoutPayoutTruth) renderActions(selectedWithoutPayoutTruth);
