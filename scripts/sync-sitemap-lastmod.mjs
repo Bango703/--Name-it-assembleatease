@@ -25,7 +25,18 @@ export function fileForUrl(loc) {
   return null;
 }
 
+// A blog post's date is its own BlogPosting dateModified: the date the article
+// content changed, which the page also shows. Template-wide edits (nav, footer)
+// do not make an article newer. seo-site-audit.mjs requires the two to match.
+function articleDate(file) {
+  if (!file.startsWith('blog/') || file === 'blog/index.html') return null;
+  const match = readFileSync(file, 'utf8').match(/"dateModified":"(\d{4}-\d{2}-\d{2})"/);
+  return match ? match[1] : null;
+}
+
 function lastChanged(file) {
+  const article = articleDate(file);
+  if (article) return article;
   try {
     return execFileSync('git', ['log', '-1', '--format=%cs', '--', file], { encoding: 'utf8' }).trim() || null;
   } catch {
