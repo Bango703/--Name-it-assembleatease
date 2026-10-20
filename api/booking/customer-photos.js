@@ -3,16 +3,13 @@ import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { verifyOwner } from '../_email.js';
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
-import { customerBookingAccess, usesCustomerAccount } from './_customer-access.js';
+import { bookingEmailMatches } from './_guest-booking-auth.js';
+import { safeTokenHashMatch } from '../_payment-security.js';
 
-import { MAX_UPLOAD_BYTES } from '../_upload-limits.js';
-
-// The real ceiling is Vercel's 4.5 MB request body, which this setting cannot
-// raise. Kept just above MAX_UPLOAD_BYTES so the two never contradict.
-export const config = { api: { bodyParser: { sizeLimit: '5mb' } } };
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 const BUCKET = 'booking-evidence';
-const MAX_BYTES = MAX_UPLOAD_BYTES;
+const MAX_BYTES = 5 * 1024 * 1024;
 const MIME_EXT = {
   'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
   'image/heic': 'heic', 'image/heif': 'heif',
@@ -27,13 +24,13 @@ function magicMatches(mime, buf) {
 
 const notFound = res => res.status(404).json({ error: 'Booking not found' });
 
-async function loadGuestBooking(req, sb, { email, ref, token }) {
-  if (!ref || (!usesCustomerAccount(req, { token }) && (!email || !token))) return null;
+async function loadGuestBooking(sb, { email, ref, token }) {
+  if (!email || !ref || !token) return null;
   const { data } = await sb.from('bookings')
-    .select('id, ref, customer_id, customer_email, guest_mutation_token_hash')
+    .select('id, ref, customer_email, guest_mutation_token_hash')
     .eq('ref', String(ref).trim().toUpperCase())
     .maybeSingle();
-  return data && (await customerBookingAccess(sb, req, data, { email, token })).ok ? data : null;
+  return data && bookingEmailMatches(data, email) && safeTokenHashMatch(token, data.guest_mutation_token_hash) ? data : null;
 }
 
 async function loadAuthorizedBooking(req, sb, input) {
@@ -62,14 +59,14 @@ async function signedPhotos(sb, bookingId) {
 export default async function handler(req, res) {
   if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed' });
   const ip = String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
-  if (!(await rateLimit(ip, req.method === 'GET' ? 'booking_read' : 'booking'))) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+  if (!(await rateLimit(ip, 'booking'))) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
   const sb = getSupabase();
 
   if (req.method === 'GET') {
     const { bookingId, email, ref, token } = req.query || {};
     let booking;
     if (email || token || ref) {
-      if (bookingId || !(booking = await loadGuestBooking(req, sb, { email, ref, token }))) return notFound(res);
+      if (bookingId || !(booking = await loadGuestBooking(sb, { email, ref, token }))) return notFound(res);
     } else {
       booking = await loadAuthorizedBooking(req, sb, { bookingId });
       if (booking?.accessError) return respondWithEaserAccessError(res, booking.accessError);
@@ -80,7 +77,7 @@ export default async function handler(req, res) {
   }
 
   const { email, ref, token, fileBase64, mimeType } = req.body || {};
-  const booking = await loadGuestBooking(req, sb, { email, ref, token });
+  const booking = await loadGuestBooking(sb, { email, ref, token });
   if (!booking) return notFound(res);
   if (!Object.hasOwn(MIME_EXT, mimeType)) return res.status(400).json({ error: 'Use a JPEG, PNG, WebP, HEIC, or HEIF image.' });
   if (typeof fileBase64 !== 'string' || !fileBase64) return res.status(400).json({ error: 'Choose an image to upload.' });

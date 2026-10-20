@@ -86,9 +86,7 @@
 
     }
 
-    @media (hover: hover) and (pointer: fine) {
     .book-nav-back:hover { color: var(--ink); }
-    }
 
     .book-trust-line {
 
@@ -292,9 +290,7 @@
 
     .service-tile:focus-visible { outline: 3px solid rgba(0,191,255,0.25); outline-offset: 3px; }
 
-    @media (hover: hover) and (pointer: fine) {
     .service-tile:hover { border-color: var(--teal); transform: translateY(-2px); box-shadow: 0 14px 32px rgba(0,191,255,0.12), 0 7px 20px rgba(15,23,42,0.06); }
-    }
 
     .service-tile.selected {
       border-color: var(--teal); background: #fff;
@@ -316,9 +312,7 @@
 
     .tile-photo img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(1.03) contrast(1.02); transition: transform 0.55s cubic-bezier(0.23,1,0.32,1); }
 
-    @media (hover: hover) and (pointer: fine) {
     .service-tile:hover .tile-photo img { transform: scale(1.045); }
-    }
 
     .tile-body { padding: 0.9rem 1rem 1rem; display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 0.75rem; align-items: center; }
 
@@ -559,12 +553,10 @@
       white-space: nowrap;
     }
 
-    @media (hover: hover) and (pointer: fine) {
     .item-tool-btn:hover {
       border-color: rgba(0,191,255,0.24);
       box-shadow: 0 8px 18px rgba(0,191,255,0.08);
       color: var(--ink);
-    }
     }
 
     .quick-start-head {
@@ -664,9 +656,7 @@
 
     }
 
-    @media (hover: hover) and (pointer: fine) {
     .subcat-close:hover { color: var(--red); }
-    }
 
     .subcat-body { padding: 0.5rem 0; }
 
@@ -704,9 +694,7 @@
       border-radius: 50%; transition: background var(--transition), color var(--transition);
     }
     .subcat-search-clear.vis { display: block; }
-    @media (hover: hover) and (pointer: fine) {
     .subcat-search-clear:hover { background: #f0f0f0; color: var(--ink); }
-    }
     .subcat-no-results { font-size: 0.85rem; color: var(--muted); padding: 0.25rem 0 0.5rem; display: none; }
 
     .subcat-group {
@@ -720,13 +708,9 @@
     .subcat-group + .subcat-group { margin-top: 0.7rem; }
     .subcat-group:first-child { border-top: 1px solid rgba(148,163,184,0.24); }
     .subcat-group-head { display:flex; align-items:center; gap:0.75rem; width:100%; background:#fbfdff; border:none; cursor:pointer; padding:1rem 1rem 0.95rem; -webkit-tap-highlight-color:transparent; transition: background var(--transition); }
-    @media (hover: hover) and (pointer: fine) {
     .subcat-group-head:hover { background:#f3fbff; }
-    }
     .subcat-group-head.is-static { cursor:default; }
-    @media (hover: hover) and (pointer: fine) {
     .subcat-group-head.is-static:hover { background:#fbfdff; }
-    }
     .subcat-group-head .subcat-group-label { padding:0; margin:0; flex:1; text-align:left; }
     .subcat-group-count { font-size:0.7rem; font-weight:700; color:#46708d; background:rgba(0,191,255,0.12); border-radius:999px; padding:3px 10px; flex-shrink:0; }
     .subcat-chev { color:var(--muted); flex-shrink:0; transition:transform 0.2s; }
@@ -863,9 +847,7 @@
 
     }
 
-    @media (hover: hover) and (pointer: fine) {
     .qty-btn:hover { background: var(--teal-light); border-color: var(--teal); color: var(--teal); }
-    }
 
     .qty-btn:disabled { opacity: 0.45; cursor: not-allowed; background: var(--off-white); }
 
@@ -879,13 +861,6 @@
       .subcat-item-meta {
         width: 100%; padding-left: calc(18px + 0.6rem); justify-content: space-between;
       }
-
-      /* Reserve the quantity-stepper line on every row so selecting an item
-         does not grow the row and shove the list down. Buttons draw at 36px;
-         the ::after keeps a 44px tap target. */
-      .subcat-item-meta { min-height: 36px; }
-      .qty-btn { width: 36px; height: 36px; position: relative; }
-      .qty-btn::after { content: ''; position: absolute; inset: -4px; }
     }
 
 
@@ -906,9 +881,7 @@
 
     }
 
-    @media (hover: hover) and (pointer: fine) {
     .account-option:hover { border-color: var(--teal); }
-    }
 
     .account-option.selected { border-color: var(--teal); background: var(--teal-light); }
 
@@ -1034,9 +1007,7 @@
 
     .dt-cal-nav { background: #fff; border: 1px solid rgba(148,163,184,0.22); border-radius: 10px; width: 44px; height: 44px; cursor: pointer; font-size: 1rem; color: var(--muted); display: flex; align-items: center; justify-content: center; transition: background var(--transition), color var(--transition), border-color var(--transition), box-shadow var(--transition); }
 
-    @media (hover: hover) and (pointer: fine) {
     .dt-cal-nav:hover { background: var(--teal-light); color: var(--teal); border-color: rgba(0,191,255,0.24); box-shadow: 0 8px 18px rgba(0,191,255,0.08); }
-    }
 
     .dt-cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.28rem; padding: 0.85rem; }
 
@@ -1044,9 +1015,7 @@
 
     .dt-day { min-height: 44px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 14px; cursor: pointer; font-size: 0.88rem; font-weight: 600; color: var(--ink); transition: background var(--transition), color var(--transition), border-color var(--transition), box-shadow var(--transition); border: 1px solid transparent; background: none; }
 
-    @media (hover: hover) and (pointer: fine) {
     .dt-day:hover:not(:disabled) { background: var(--teal-light); color: var(--teal); }
-    }
 
     .dt-day.selected { background: linear-gradient(180deg, var(--teal-dark) 0%, var(--teal) 100%); color: #fff; box-shadow: 0 10px 18px rgba(0,191,255,0.18); }
 
@@ -1062,9 +1031,7 @@
 
     .dt-time-btn { min-height: 54px; padding: 0.7rem 0.75rem; border-radius: 14px; border: 1.5px solid rgba(148,163,184,0.22); background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%); font-size: 0.84rem; font-weight: 700; color: var(--ink-soft); cursor: pointer; text-align: center; transition: border-color var(--transition), background var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition); }
 
-    @media (hover: hover) and (pointer: fine) {
     .dt-time-btn:hover { border-color: var(--teal); color: var(--teal); box-shadow: 0 10px 20px rgba(0,191,255,0.08); transform: translateY(-1px); }
-    }
 
     .dt-time-btn.selected { border-color: var(--teal); background: linear-gradient(180deg, #f2fbff 0%, #e6f7ff 100%); color: var(--teal); box-shadow: 0 0 0 3px rgba(0,191,255,0.08); }
 
@@ -1102,7 +1069,7 @@
 
     #klarna-payment-note { display: none; margin: 0.1rem 0 0.75rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: #fafafa; }
 
-    .klarna-availability { display: none; flex-wrap: wrap; align-items: baseline; column-gap: 0.3rem; row-gap: 0; margin: 0.8rem 0 0; padding: 0.7rem 0.8rem; border: 1px solid #e4e4e7; border-radius: var(--radius-md); background: #fafafa; color: var(--ink-soft); font-size: 0.78rem; line-height: 1.45; }
+    .klarna-availability { display: none; align-items: center; gap: 0.55rem; margin: 0.8rem 0 0; padding: 0.7rem 0.8rem; border: 1px solid #e4e4e7; border-radius: var(--radius-md); background: #fafafa; color: var(--ink-soft); font-size: 0.78rem; line-height: 1.45; }
 
     .klarna-availability strong { color: var(--ink); }
 
@@ -1152,12 +1119,10 @@
     .svc-row[data-service="Outdoor & Playsets"]::before { background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(13,17,23,0.18)), url('/images/booking-service-outdoor-playsets.jpg'); }
     .svc-row[data-service="Office Assembly"]::before { background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(13,17,23,0.18)), url('/images/booking-service-office-assembly.jpg'); }
     .svc-row.quote-row::before { background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(13,17,23,0.18)), url('/images/people-service-calm.jpg'); }
-    @media (hover: hover) and (pointer: fine) {
     .svc-row:hover, .svc-row:focus-visible {
       border-color: var(--teal);
       box-shadow: 0 16px 34px rgba(0,191,255,0.14), 0 10px 24px rgba(15,23,42,0.06);
       transform: translateY(-2px);
-    }
     }
     .svc-row.has-items {
       border-color: var(--teal);
@@ -1189,9 +1154,7 @@
       align-self: center;
       margin-right: 1rem;
     }
-    @media (hover: hover) and (pointer: fine) {
     .svc-row:hover .svc-row-chevron, .svc-row.has-items .svc-row-chevron { color: var(--teal); }
-    }
     .svc-row.quote-row { border-color: rgba(0,191,255,0.34); background: linear-gradient(180deg,#f8fdff 0%,#eefbff 100%); }
     .svc-row.quote-row .svc-row-icon { background: var(--teal); color: #fff; }
     .svc-row.quote-row .svc-row-meta strong { color: var(--ink); font-weight: 800; }
@@ -1209,12 +1172,10 @@
       box-shadow: 0 2px 8px rgba(15,23,42,0.04);
     }
     #svc-screen .svc-row::before { display: none; }
-    @media (hover: hover) and (pointer: fine) {
     #svc-screen .svc-row:hover, #svc-screen .svc-row:focus-visible {
       border-color: #18aee2;
       box-shadow: 0 6px 16px rgba(0,119,168,0.11);
       transform: none;
-    }
     }
     #svc-screen .svc-row.has-items {
       border-color: #18aee2;
@@ -1442,12 +1403,10 @@
       font-family: var(--font-body);
     }
 
-    @media (hover: hover) and (pointer: fine) {
     .item-group-card:hover {
       border-color: rgba(0,191,255,0.26);
       box-shadow: 0 16px 32px rgba(0,191,255,0.08);
       transform: translateY(-1px);
-    }
     }
 
     .item-group-card.is-selected {
@@ -1514,18 +1473,6 @@
       scrollbar-width: none;
     }
 
-    /* Selected-count badge overlays the chip corner, so picking an item never
-       widens the chip and reflows the rows after it. Padding keeps it unclipped. */
-    .item-section-switcher { padding-top: 6px; padding-right: 6px; }
-    .item-section-btn { position: relative; }
-    .item-section-count {
-      position: absolute; top: -6px; right: -6px;
-      min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box;
-      border-radius: 999px; background: var(--teal); color: #fff;
-      font-size: 0.68rem; font-weight: 800; line-height: 20px; text-align: center;
-      box-shadow: 0 0 0 2px #fff; pointer-events: none;
-    }
-
     .item-section-switcher::-webkit-scrollbar {
       display: none;
     }
@@ -1544,11 +1491,9 @@
       transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
     }
 
-    @media (hover: hover) and (pointer: fine) {
     .item-section-btn:hover {
       border-color: rgba(0,191,255,0.25);
       box-shadow: 0 8px 18px rgba(0,191,255,0.07);
-    }
     }
 
     .item-section-btn.is-active {
@@ -1724,9 +1669,7 @@
     /* -- Item picker (Screen B) -- */
     .item-screen-nav { margin-bottom: 1.1rem; }
     .item-back-btn { min-height: 44px; background: none; border: none; cursor: pointer; color: var(--teal); font-size: 0.875rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0; transition: opacity var(--transition); font-family: var(--font-body); }
-    @media (hover: hover) and (pointer: fine) {
     .item-back-btn:hover { opacity: 0.72; }
-    }
     .item-back-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
     .item-screen-heading { font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; color: var(--ink); line-height: 1.05; }
     .item-screen-from { font-size: 0.82rem; color: var(--muted); margin-top: 0.35rem; margin-bottom: 1rem; }
@@ -1802,9 +1745,7 @@
 
     .btn-next { flex: 1; padding: 1rem 1.5rem; background: var(--teal); color: #fff; border: none; border-radius: 14px; font-family: var(--font-body); font-size: 0.98rem; font-weight: 800; cursor: pointer; transition: background var(--transition), transform var(--transition), box-shadow var(--transition); text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 14px 28px rgba(0,191,255,0.22); }
 
-    @media (hover: hover) and (pointer: fine) {
     .btn-next:hover:not(:disabled) { background: var(--teal-dark); transform: translateY(-1px); box-shadow: 0 18px 34px rgba(0,153,204,0.24); }
-    }
 
     .btn-next:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -1823,12 +1764,10 @@
       transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
     }
 
-    @media (hover: hover) and (pointer: fine) {
     .btn-back-inline:hover,
     .btn-ghost-inline:hover {
       border-color: rgba(0,191,255,0.24);
       box-shadow: 0 10px 22px rgba(0,191,255,0.08);
-    }
     }
 
     .btn-back-inline[hidden],
@@ -1838,9 +1777,7 @@
 
     .btn-back-link { min-height: 44px; display: inline-flex; align-items: center; background: none; border: none; color: var(--muted); font-size: 0.82rem; cursor: pointer; text-decoration: underline; flex-shrink: 0; }
 
-    @media (hover: hover) and (pointer: fine) {
     .btn-back-link:hover { color: var(--ink); }
-    }
 
     .step-err { font-size: 0.875rem; color: var(--red); background: var(--red-light); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-top: 1rem; display: none; }
 
@@ -1912,19 +1849,15 @@
     .order-action-btn,
     .summary-service-btn { color: var(--teal); }
 
-    @media (hover: hover) and (pointer: fine) {
     .order-line-remove:hover,
     .order-action-btn:hover,
     .summary-service-btn:hover { color: var(--ink); }
-    }
 
     .order-action-btn.remove,
     .summary-service-btn.remove { color: var(--red); }
 
-    @media (hover: hover) and (pointer: fine) {
     .order-action-btn.remove:hover,
     .summary-service-btn.remove:hover { color: #b91c1c; }
-    }
 
     .order-group-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0.5rem 0 0.15rem; }
 
@@ -1976,12 +1909,10 @@
 
     }
 
-    @media (hover: hover) and (pointer: fine) {
     .qp-chip:hover {
       border-color: var(--teal);
       color: var(--teal);
       box-shadow: 0 8px 18px rgba(0,191,255,0.08);
-    }
     }
 
     .qp-chip.selected {
@@ -2063,9 +1994,7 @@
 
     .s5-time-btn { padding: 0.35rem 0.7rem; border: 1.5px solid var(--border); border-radius: var(--radius-md); background: var(--white); font-size: 0.75rem; cursor: pointer; font-family: var(--font-body); transition: border-color 0.12s, background 0.12s; }
 
-    @media (hover: hover) and (pointer: fine) {
     .s5-time-btn:hover { border-color: var(--teal); }
-    }
 
     .s5-time-btn.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal); font-weight: 600; }
 
@@ -2092,9 +2021,7 @@
 
     .promo-apply { min-width: 96px; min-height: 44px; border-radius: var(--radius-md); border: none; background: var(--teal); color: #fff; font-size: 0.84rem; font-weight: 700; cursor: pointer; transition: transform var(--transition), box-shadow var(--transition), background var(--transition); }
 
-    @media (hover: hover) and (pointer: fine) {
     .promo-apply:hover { background: var(--teal-dark); box-shadow: 0 12px 24px rgba(0,191,255,0.22); transform: translateY(-1px); }
-    }
 
     .promo-status { min-height: 1.2rem; margin-top: 0.55rem; font-size: 0.8rem; font-weight: 600; line-height: 1.5; color: var(--ink-soft); }
 
@@ -2122,9 +2049,7 @@
 
     .confirm-actions a { font-size: 0.875rem; color: var(--teal); text-decoration: none; font-weight: 500; }
 
-    @media (hover: hover) and (pointer: fine) {
     .confirm-actions a:hover { text-decoration: underline; }
-    }
 
 
 
@@ -2279,9 +2204,7 @@
 
       .progress-label { display: block; font-size: 0.85rem; }
 
-      /* The sticky step pill already reads "1 Job plan"; the hint line under it
-         repeated it ("Step 1 of 4 - Job plan"). Phones keep the pill only. */
-      .book-progress-hint { display: none; }
+      .book-progress-hint { display: block; font-size: 0.78rem; margin-top: 0; }
 
       .item-screen-nav { margin-bottom: 0.7rem; }
 
@@ -2657,7 +2580,7 @@
       .item-screen-from { margin-bottom: 0.65rem; font-size: 0.8rem; }
       /* Drop the blue container around the search — just the clean white field. */
       .subcat-search-wrap {
-        --search-wrap-pad-y: 0px; --search-wrap-pad-x: 0px; /* units required: calc(0 + 24px) is invalid */
+        --search-wrap-pad-y: 0; --search-wrap-pad-x: 0;
         padding: 0; margin: 0 0 0.7rem;
         border: none; background: none; box-shadow: none; border-radius: 0;
       }
@@ -3447,10 +3370,13 @@
 
         <p id="s5-stripe-note" style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.4rem;line-height:1.5">
 
-          Secured by <strong>Stripe</strong>.
+          Secured by <strong>Stripe</strong>. Review the agreement below before confirming.
 
         </p>
-        <p id="s5-ack-notice" style="font-size:0.8rem;color:var(--muted);line-height:1.55;margin-top:0.7rem;text-align:center">By submitting this booking, you agree to the current <a href="/terms" target="_blank" rel="noopener" style="color:var(--teal)">Terms</a>, including the displayed total, payment and cancellation policy, reassembly terms, and item-condition and safe-use provisions, and you acknowledge the <a href="/privacy" target="_blank" rel="noopener" style="color:var(--teal)">Privacy Notice</a>.</p>
+        <label id="s5-ack-label" style="display:flex;align-items:flex-start;gap:0.55rem;font-size:0.8rem;color:var(--muted);line-height:1.55;margin-top:0.7rem;text-align:left;cursor:pointer">
+          <input type="checkbox" id="s5-ack" style="accent-color:var(--teal);width:16px;height:16px;flex:0 0 auto;margin-top:2px">
+          <span>I agree to the current <a href="/terms" target="_blank" rel="noopener" style="color:var(--teal)">Terms</a>, including the displayed total, payment and cancellation policy, reassembly terms, and item-condition and safe-use provisions, and I acknowledge the <a href="/privacy" target="_blank" rel="noopener" style="color:var(--teal)">Privacy Notice</a>.</span>
+        </label>
 
         <div class="step-actions">
 
@@ -3738,14 +3664,34 @@ var BOOK = {
 
 var TIME_SLOTS = ['8:00 AM \u2013 10:00 AM','10:00 AM \u2013 12:00 PM','12:00 PM \u2013 2:00 PM','2:00 PM \u2013 4:00 PM','4:00 PM \u2013 6:00 PM','6:00 PM \u2013 8:00 PM'];
 var BOOKING_WINDOW_DAYS = 30;
-// Mirrors api/booking/_booking-window.js. Bounded by the shortest card
-// authorization window (Visa merchant-initiated, 4 days 18 hours), not chosen
-// freely. Change it there first.
-var IMMEDIATE_AUTHORIZATION_DAYS = 2;
+var IMMEDIATE_AUTHORIZATION_DAYS = 6;
 
 function captureBookingAttribution() {
-  return window.AAE_ATTRIBUTION ? window.AAE_ATTRIBUTION.capture() : {};
+  var storageKey = 'aaeBookingAttribution';
+  try {
+    var existing = sessionStorage.getItem(storageKey);
+    if (existing) return JSON.parse(existing);
+    var params = new URLSearchParams(window.location.search || '');
+    var referrerHost = '';
+    try { referrerHost = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
+    var value = {
+      utmSource: params.get('utm_source') || '',
+      utmMedium: params.get('utm_medium') || '',
+      utmCampaign: params.get('utm_campaign') || '',
+      utmContent: params.get('utm_content') || '',
+      utmTerm: params.get('utm_term') || '',
+      clickId: params.get('gclid') || params.get('msclkid') || '',
+      landingPath: window.location.pathname || '/book',
+      referrerHost: referrerHost
+    };
+    sessionStorage.setItem(storageKey, JSON.stringify(value));
+    return value;
+  } catch (e) {
+    return { landingPath: '/book' };
+  }
 }
+
+var BOOKING_ATTRIBUTION = captureBookingAttribution();
 
 // Owner "rebook" links (utm_campaign=rebook) prefill the customer's contact step from
 // the URL so a returning customer lands ready to go. Additive: only fills empty fields,
@@ -3769,39 +3715,20 @@ document.addEventListener('DOMContentLoaded', function() {
   } catch (e) {}
 });
 
-var BOOKING_ANALYTICS_ATTEMPT = Date.now().toString(36) + Math.random().toString(36).slice(2);
-var bookingAnalyticsQueue = [];
-function flushBookingAnalytics() {
-  if (!window.AAEAnalytics) return;
-  var pending = bookingAnalyticsQueue.splice(0);
-  pending.forEach(function (entry) {
-    try { window.AAEAnalytics.trackOnce(entry.name, entry.params, entry.key); } catch (e) { /* Measurement cannot block booking. */ }
-  });
-}
-function trackBookingFunnelOnce(eventName, params, bookingRef) {
+function trackBookingFunnelOnce(eventName, params) {
   try {
-  // Cookieless until Accept (Consent Mode); nothing after Decline or a GPC signal.
-  if (window.AAEAnalytics) { if (!window.AAEAnalytics.canMeasure()) return; }
-  else if (navigator.globalPrivacyControl === true || localStorage.getItem('cookie-consent') === 'declined') return;
-  // Funnel milestones belong to this attempt; confirmations belong to their booking.
-  // A second real booking in one tab must be counted, while a repeated confirmation must not.
-  var key = (bookingRef ? 'booking:' + bookingRef : 'attempt:' + BOOKING_ANALYTICS_ATTEMPT) + ':' + eventName;
-  bookingAnalyticsQueue.push({ name: eventName, key: key, params: Object.assign({
-    booking_flow: 'standard',
-    service_count: BOOK.selectedServices.length,
-    service_market: 'unknown', service_city: 'unknown'
-  }, BOOK._analytics || {}, params || {}) });
-  if (window.__AAE_GTAG_READY__) flushBookingAnalytics();
-  } catch (e) { /* Measurement cannot block booking. */ }
+    var key = 'aaeFunnel:' + eventName;
+    if (sessionStorage.getItem(key)) return;
+    if (typeof window.gtag !== 'function') return;
+    window.gtag('event', eventName, Object.assign({
+      page_path: window.location.pathname,
+      booking_flow: 'standard'
+    }, params || {}));
+    sessionStorage.setItem(key, '1');
+  } catch (e) {}
 }
-window.addEventListener('aae-analytics-ready', function () {
-  flushBookingAnalytics();
-  trackBookingFunnelOnce('job_plan_started');
-});
-window.addEventListener('aae-analytics-consent-changed', function () {
-  if (!window.AAEAnalytics.canMeasure()) bookingAnalyticsQueue = [];
-});
-trackBookingFunnelOnce('job_plan_started');
+
+window.setTimeout(function() { trackBookingFunnelOnce('job_plan_started'); }, 0);
 
 var CHICAGO_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
@@ -4999,7 +4926,7 @@ function renderSectionSwitcher(svc, stage) {
     var count = getGroupSelectionCount(svc, group.group);
     return '<button type="button" class="item-section-btn' + (group.group === BOOK.currentGroup ? ' is-active' : '') + '"'
       + ' data-group="' + escAttr(group.group) + '" onclick="switchServiceGroup(this.dataset.group)">'
-      + esc(group.group) + (count > 0 ? '<span class="item-section-count" aria-label="' + count + ' selected">' + count + '</span>' : '')
+      + esc(group.group) + (count > 0 ? ' (' + count + ')' : '')
       + '</button>';
   }).join('');
   wrap.style.display = '';
@@ -6427,37 +6354,6 @@ function goToStep4Contact() {
 
 
 
-// Pure formatters for the step-5 summary rows. They used to live INSIDE
-// goToStep5Payment, so saveDtEdit and saveContactEdit — both declared at this
-// outer level — threw "Can't find variable: renderSummaryDateTime" the moment
-// an owner edited the date or the contact details. Two latent ReferenceErrors,
-// one of which reached Live Ops. They depend only on esc and
-// formatUsPhoneForDisplay, both defined out here, so out here is where they go.
-function renderSummaryContact(first, last, email, phone) {
-
-  return '<span class="summary-contact-details">'
-
-    + '<span>' + esc(first + ' ' + last) + '</span>'
-
-    + '<span>' + esc(email) + '</span>'
-
-    + '<span>' + esc(formatUsPhoneForDisplay(phone)) + '</span>'
-
-    + '</span>';
-
-}
-function renderSummaryDateTime(dateLabel, timeLabel) {
-
-  return '<span class="summary-datetime-details">'
-
-    + '<span>' + esc(dateLabel) + '</span>'
-
-    + '<span>' + esc(timeLabel) + '</span>'
-
-    + '</span>';
-
-}
-
 async function goToStep5Payment() {
 
   var first = document.getElementById('s4-first').value.trim();
@@ -6532,7 +6428,31 @@ async function goToStep5Payment() {
 
   }
 
+  function renderSummaryContact(first, last, email, phone) {
 
+    return '<span class="summary-contact-details">'
+
+      + '<span>' + esc(first + ' ' + last) + '</span>'
+
+      + '<span>' + esc(email) + '</span>'
+
+      + '<span>' + esc(formatUsPhoneForDisplay(phone)) + '</span>'
+
+      + '</span>';
+
+  }
+
+  function renderSummaryDateTime(dateLabel, timeLabel) {
+
+    return '<span class="summary-datetime-details">'
+
+      + '<span>' + esc(dateLabel) + '</span>'
+
+      + '<span>' + esc(timeLabel) + '</span>'
+
+      + '</span>';
+
+  }
 
 
 
@@ -7686,6 +7606,14 @@ async function submitBooking() {
     return;
   }
 
+  var ackEl = document.getElementById('s5-ack');
+  if (ackEl && !ackEl.checked) {
+    errEl.textContent = 'Review and accept the current Terms and acknowledge the Privacy Notice before continuing.';
+    errEl.classList.add('show');
+    try { ackEl.focus(); } catch (e) {}
+    return;
+  }
+
   var legalConfig;
   try {
     var legalResp = await fetch('/api/legal-config', { headers: { 'Accept': 'application/json' } });
@@ -7857,9 +7785,7 @@ async function submitBooking() {
 
         isQuoteRequest: BOOK._isQuoteFlow || false,
 
-        // Submitting is the agreement; the notice beside the button says so.
-        termsAccepted: true,
-        termsConsentMethod: 'web_book_button_notice',
+        termsAccepted: ackEl.checked === true,
 
         termsVersion: legalConfig.customerTermsVersion,
 
@@ -7868,7 +7794,7 @@ async function submitBooking() {
         smsConsent: !!(document.getElementById('s4-sms-consent') || {}).checked,
 
         setupIntentId: (BOOK._isQuoteFlow || BOOK._scheduledAuthorization) ? savedSetupIntentId : null,
-        attribution: captureBookingAttribution()
+        attribution: BOOKING_ATTRIBUTION
 
       })
 
@@ -7917,7 +7843,6 @@ async function submitBooking() {
       throw new Error(data.error || 'Server error. Please try again.');
     }
 
-    BOOK._analytics = data.analytics || {};
     // Hold the created booking so a card retry reuses it instead of creating another.
     BOOK._pendingPayment = { fingerprint: orderFingerprint, data: data };
 
@@ -7947,7 +7872,6 @@ async function submitBooking() {
       time: BOOK.time,
       address: BOOK.address,
       selectedServices: BOOK.selectedServices,
-      analytics: BOOK._analytics || {},
       isQuote: false
     }));
 
@@ -8137,26 +8061,23 @@ function showMarketDemandConfirmation(ref) {
 
 
 
-function trackBookingConfirmation(ref, isQuote, isScheduledAuthorization) {
-  if (!ref) return;
-  var outcome = {
-    booking_type: isQuote ? 'quote' : (isScheduledAuthorization ? 'future' : 'near_term'),
-    outcome_stage: 'form_confirmation'
-  };
-  trackBookingFunnelOnce(isQuote ? 'quote_requested' : 'booking_confirmed', outcome, ref);
-  // Compatibility only. This historical event never meant finished work or captured revenue.
-  // New key-event reporting must select the distinct outcome above, not both aliases.
-  trackBookingFunnelOnce('booking_completed', Object.assign({ deprecated_event: true }, outcome), ref);
+function showConfirmation(ref, isQuote, isScheduledAuthorization) {
 
-  // Existing Ads actions remain separate. Their value is the reservation estimate,
-  // not captured revenue; quote leads have no monetary value.
+  // Google Ads conversions. A completed booking is revenue with a known total.
+  // A quote request is a LEAD whose price does not exist yet - the owner sets it
+  // later. These must not share one conversion action: reporting a quote through
+  // the booking action tells Ads a lead is a sale, and reporting it with
+  // _grandTotalCents would train bidding on a number no customer was ever charged.
+  //
+  // Quote requests were previously reported to Ads NOT AT ALL. Custom quotes are
+  // the highest-value path on the platform (a completed one was $648.42), so Ads
+  // has been optimising against incomplete data and will underbid exactly the
+  // traffic worth the most.
+  //
   var ADS_BOOKING_CONVERSION = 'AW-16551666395/7KS0CIjz1aMcENvFudQ9';
   var ADS_QUOTE_CONVERSION = 'AW-16551666395/YSgLCNCQie8cENvFudQ9';
 
-  var adsKey = 'aaeAdsConfirmation:' + ref + ':' + (isQuote ? 'quote' : 'booking');
-  var adsSent = false;
-  try { adsSent = sessionStorage.getItem(adsKey) === '1'; } catch (e) {}
-  if (!adsSent && window.gtag && window.AAEAnalytics && window.AAEAnalytics.canMeasure()) {
+  if (window.gtag) {
     if (!isQuote) {
       window.gtag('event', 'conversion', {
         send_to: ADS_BOOKING_CONVERSION,
@@ -8171,12 +8092,13 @@ function trackBookingConfirmation(ref, isQuote, isScheduledAuthorization) {
         transaction_id: ref
       });
     }
-    try { sessionStorage.setItem(adsKey, '1'); } catch (e) {}
   }
-}
-
-function showConfirmation(ref, isQuote, isScheduledAuthorization) {
-  try { trackBookingConfirmation(ref, isQuote, isScheduledAuthorization); } catch (e) { /* Confirmation UI does not depend on analytics. */ }
+  trackBookingFunnelOnce('booking_completed', {
+    transaction_id: ref,
+    value: Number(BOOK._grandTotalCents || 0) / 100,
+    currency: 'USD',
+    booking_type: isQuote ? 'quote' : (isScheduledAuthorization ? 'future' : 'near_term')
+  });
 
   for (var i=1;i<=TOTAL_STEPS;i++) { var p=document.getElementById('step-'+i); if(p) p.classList.add('hidden'); }
 
@@ -8360,7 +8282,6 @@ async function recoverRedirectedPayment() {
     if(!confirmResp.ok) throw new Error(confirmData.error||'Booking confirmation is still pending.');
     BOOK.email=recovery.email||''; BOOK.date=recovery.date||''; BOOK.time=recovery.time||''; BOOK.address=recovery.address||'';
     BOOK.selectedServices=Array.isArray(recovery.selectedServices)?recovery.selectedServices:[];
-    BOOK._analytics=recovery.analytics||{};
     BOOK._guestMutationToken=recovery.guestMutationToken||'';
     sessionStorage.removeItem('aaePaymentRecovery');
     history.replaceState({},document.title,'/book');

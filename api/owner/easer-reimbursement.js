@@ -2,6 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
+import { easerPayoutDueCents } from '../_source-of-truth.js';
 
 /**
  * POST /api/owner/easer-reimbursement — the owner repays a cost the Easer paid
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error: bookingErr } = await sb
     .from('bookings')
-    .select('id, ref, service, status, assembler_id, assembler_name, payout_status, financial_operation_key, easer_reimbursement_cents, easer_reimbursement_reason')
+    .select('id, ref, service, status, assembler_id, assembler_name, assembler_due, easer_bonus_cents, payout_status, financial_operation_key, easer_reimbursement_cents, easer_reimbursement_reason')
     .eq('id', bookingId)
     .maybeSingle();
   if (bookingErr) {
@@ -119,6 +120,22 @@ export default async function handler(req, res) {
   }
 
   const money = c => `$${(c / 100).toFixed(2)}`;
+  const completedPayoutBreakdown = booking.status === 'completed' && booking.assembler_due != null
+    ? (() => {
+      const bonusCents = Math.max(0, Math.round(Number(booking.easer_bonus_cents) || 0));
+      const totalCents = easerPayoutDueCents({ ...booking, easer_reimbursement_cents: amount });
+      return `<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin:18px 0">
+        <tr><td style="padding:10px 18px;color:#52525b">Earnings</td><td style="padding:10px 18px;text-align:right;font-weight:600;color:#1a1a1a">${esc(money(Number(booking.assembler_due)))}</td></tr>
+        ${bonusCents > 0 ? `<tr><td style="padding:10px 18px;color:#52525b">Bonus</td><td style="padding:10px 18px;text-align:right;font-weight:600;color:#1a1a1a">${esc(money(bonusCents))}</td></tr>` : ''}
+        <tr><td style="padding:10px 18px;color:#52525b">Reimbursement</td><td style="padding:10px 18px;text-align:right;font-weight:600;color:#1a1a1a">${esc(money(amount))}</td></tr>
+        <tr><td style="padding:10px 18px;color:#52525b">For</td><td style="padding:10px 18px;text-align:right;color:#1a1a1a">${esc(note)}</td></tr>
+        <tr><td style="padding:12px 18px;border-top:1px solid #e4e4e7;font-weight:700;color:#1a1a1a">Total payout</td><td style="padding:12px 18px;border-top:1px solid #e4e4e7;text-align:right;font-weight:700;color:#1a1a1a">${esc(money(totalCents))}</td></tr>
+      </table>`;
+    })()
+    : `<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin:18px 0"><tr><td style="padding:16px 18px;font-size:14px;color:#52525b">
+        For <strong style="color:#1a1a1a;float:right">${esc(note)}</strong><br/>
+        <span style="display:inline-block;margin-top:10px;padding-top:10px;border-top:1px solid #e4e4e7;width:100%">Reimbursement <strong style="color:#1a1a1a;float:right">${esc(money(amount))}</strong></span>
+      </td></tr></table>`;
 
   await writeFinancialAudit(sb, {
     eventType: 'easer_reimbursement_set',
@@ -162,10 +179,7 @@ export default async function handler(req, res) {
         html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;padding:2rem;color:#1a1a1a">
           <h2 style="color:#00BFFF;margin:0 0 10px;font-size:22px">Reimbursement approved, ${first}.</h2>
           <p style="font-size:15px;color:#52525b;line-height:1.7">AssembleAtEase will reimburse <strong>${esc(money(amount))}</strong> for your ${esc(booking.service || 'job')} (${esc(booking.ref)}).</p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin:18px 0"><tr><td style="padding:16px 18px;font-size:14px;color:#52525b">
-            For <strong style="color:#1a1a1a;float:right">${esc(note)}</strong><br/>
-            <span style="display:inline-block;margin-top:10px;padding-top:10px;border-top:1px solid #e4e4e7;width:100%">Reimbursement <strong style="color:#1a1a1a;float:right">${esc(money(amount))}</strong></span>
-          </td></tr></table>
+          ${completedPayoutBreakdown}
           <p style="font-size:14px;color:#52525b;line-height:1.7">It is paid with this job's payout and is not part of your earnings. Keep the receipt.</p>
           <p style="font-size:13px;color:#71717a;margin-top:20px">AssembleAtEase</p>
         </div>`,

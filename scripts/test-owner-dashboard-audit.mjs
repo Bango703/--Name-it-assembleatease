@@ -12,7 +12,6 @@ import { summarizeFinanceRows } from '../api/owner/_finance-ledger.js';
 const read = relative => readFile(new URL(`../${relative}`, import.meta.url), 'utf8');
 const [
   ownerUi,
-  ownerCss,
   liveOps,
   monitor,
   taxReport,
@@ -33,9 +32,6 @@ const [
   casesApi,
 ] = await Promise.all([
   read('owner/index.html'),
-  // Owner styles moved to a stylesheet on 2026-09-23. Markup assertions read
-  // the document; style assertions read the stylesheet.
-  read('owner/assets/owner.css'),
   read('api/owner/live-ops.js'),
   read('api/owner/monitor.js'),
   read('api/owner/tax-report.js'),
@@ -61,18 +57,25 @@ assert.match(ownerAuth, /const allowLegacyPassword = process\.env\.VERCEL_ENV !=
 assert.match(ownerUi, /Authorization': 'Bearer ' \+ ownerSessionToken/);
 assert.match(ownerUi, /replace\(\/"\/g, '&quot;'\)/);
 assert.match(ownerUi, /replace\(\/'\/g, '&#39;'\)/);
-assert.match(ownerCss, /\.modal-row\{grid-template-columns:minmax\(0,1fr\)\}/);
-assert.match(ownerCss, /max-height:calc\(100dvh - 1rem\)/);
+assert.match(ownerUi, /\.modal-row\{grid-template-columns:minmax\(0,1fr\)\}/);
+assert.match(ownerUi, /max-height:calc\(100dvh - 1rem\)/);
 assert.match(ownerUi, /Selected-Period Money Summary/);
 assert.match(ownerUi, /an-sales-tax/);
 assert.match(ownerUi, /an-processing-fees/);
 assert.match(ownerUi, /an-easer-payouts/);
-assert.match(ownerUi, /Total platform gross/i);
+assert.match(ownerUi, /Total Platform Gross/);
 assert.match(ownerUi, /Owner-Easer Labor/);
 assert.match(ownerUi, /External Easer Labor/);
 assert.match(ownerUi, /Jobs Missing Labor Cost/);
-assert.match(ownerUi, /Known Operating Costs/);
-assert.match(ownerUi, /Other Opex\/mo/);
+assert.match(ownerUi, /Business Expenses/);
+assert.match(ownerUi, /id="owner-expenses-panel"/);
+assert.match(ownerUi, /id="expense-due-date"/);
+assert.match(ownerUi, /Repeats/);
+assert.match(ownerUi, /Period gross after bills/);
+assert.match(ownerUi, /never changes customer charges or Easer pay/);
+assert.match(ownerUi, /fetch\('\/api\/owner\/expenses'/);
+assert.match(await read('api/owner/expenses.js'), /requireOwner/);
+assert.match(await read('api/migrations/113_owner_business_expenses.sql'), /mark_owner_business_expense_paid_v1/);
 assert.match(ownerUi, /Labor costing incomplete/);
 assert.doesNotMatch(ownerUi, /Platform Gross After Tax, Stripe &amp; Easer/);
 assert.match(ownerUi, /Central time/);
@@ -103,8 +106,7 @@ const payoutMutation = ownerUi.slice(
 assert.match(payoutMutation, /await loadBookings\(true\);\s*await loadPayoutLedger\(\);\s*if \(selectedId\) selectBooking\(selectedId\);\s*loadLiveOps\(\);/);
 assert.doesNotMatch(ownerUi, /id="test-push-btn"/);
 assert.doesNotMatch(ownerUi, /deleteReview\(/);
-assert.match(ownerUi, /s\.readyEasers \|\| 0/);
-assert.match(ownerUi, /mdSupplyCount\('Availability on', supply\.online/);
+assert.match(ownerUi, /s\.onlineReadyEasers \|\| 0/);
 assert.doesNotMatch(ownerUi, /id="fin-assumption-reserve">2%/);
 assert.match(ownerUi, /Add to Buffer Queue/);
 assert.match(ownerUi, /Confirm Buffer queue/);
@@ -142,7 +144,7 @@ assert.match(jobsApi, /Marketplace jobs must be closed, not permanently deleted/
 assert.match(liveOps, /ownerManualReconciliation/);
 assert.match(liveOps, /source\.eq\.owner_manual/);
 assert.match(liveOps, /return_visit_completed_at\.not\.is\.null/);
-assert.match(ownerUi, /Owner reconciliation/i, 'owner reconciliation is surfaced on Live Ops');
+assert.match(ownerUi, /Owner Reconciliation/);
 assert.match(monitor, /hasReturnVisitHistory/);
 assert.match(monitor, /returnVisitCompleted/);
 assert.match(monitor, /untrusted business data/);
@@ -152,9 +154,7 @@ assert.match(paymentList, /amount_paid_cents/);
 assert.match(paymentList, /totalPriceCents: isOwnerManual \? 0/);
 assert.match(paymentRecorder, /OWNER_MANUAL_INVOICE_ALREADY_PAID/);
 assert.match(trackApi, /Refunds reduce net retained revenue but do not silently create a new/);
-// Built once on the server and rendered by the page (2026-10-13).
-assert.match(trackUi, /b\.payment_summary/);
-assert.match(await readFile('api/booking/_customer-payment-summary.js', 'utf8'), /does not create a new amount due/);
+assert.match(trackUi, /does not create a new amount due/);
 assert.match(payoutApi, /notificationDelivered/);
 assert.match(refundApi, /customer_refund_processed/);
 assert.match(refundApi, /notificationError/);

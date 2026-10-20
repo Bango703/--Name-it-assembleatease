@@ -62,204 +62,6 @@ const SERVICE_PLANNING = {
   },
 };
 
-// Practical service details for priority markets and existing indexing follow-ups. These are preparation
-// instructions, not claims of completed local jobs or guaranteed availability.
-const METRO_SERVICE_GUIDES = {
-  austin: {
-    'furniture-assembly': {
-      description: 'Book IKEA, Wayfair, and flat-pack furniture assembly in Austin. Compare item prices, plan a multi-item move-in, and check availability for your address.',
-      workSummary: 'Furniture assembly examples: a nine-drawer dresser and an upholstered bed. Drawer alignment, a level frame, and securely fitted rails are details to check in the finished setup.',
-      summary: 'Planning IKEA, Wayfair, or other flat-pack furniture assembly in Austin? Add each bed, dresser, nightstand, desk, or shelving unit separately. Include the product link or model, plus drawers, doors, and wardrobe fittings, so your price reflects the complete piece. A storage bed and a simple bed frame can require different work.',
-      preparation: 'For a move-in, choose a visit after the full delivery is expected. Include any loading-zone instructions, stairs, elevator reservation, and the room for each item. Keep the hardware and instructions with their matching boxes, and make space for assembly in the final room.',
-      extraGuide: { href: '/blog/why-hire-handyman-austin', label: 'Decide which setup tasks to handle yourself and which to book' },
-      faq: { q: 'Can I book several furniture items for an Austin move-in?', a: 'Yes. Add each item and its quantity to the same booking, including the model or product link. Check that all packages will be available before the appointment. Share access instructions and the final room for each piece; delivery delays or extra items can change the work needed.' },
-    },
-    'tv-mounting': {
-      summary: 'For TV mounting in an Austin apartment or home, select the screen size and share the TV model, wall-mount model, wall material, and desired location. A standard wall installation, fireplace position, soundbar, and cable concealment are different parts of the scope; include the options you want before choosing the appointment.',
-      preparation: 'If you rent, check permission to drill and any move-out repair requirements first. A photo showing the full wall, nearby outlets, and media console helps explain the setup. Have your compatible mount and its hardware ready, and include building access or parking instructions.',
-      guide: { href: '/blog/tv-mounting-in-apartment-austin-texas', label: 'Read the Austin apartment TV mounting checklist' },
-      extraGuide: { href: '/blog/tv-mounting-tips-austin', label: 'Prepare your TV, mount, wall photos, and cable plan' },
-      faq: { q: 'What should I check before mounting a TV in an Austin rental?', a: 'Check your lease or ask the property manager about drilling, wall restrictions, and move-out repairs. Include those requirements, the TV and mount models, and a photo of the intended wall in your request. Do not assume cable concealment or fireplace work is included in a standard mount.' },
-    },
-  },
-  dallas: {
-    'furniture-assembly': {
-      summary: 'Book Dallas furniture assembly by the exact item: a bed frame, dresser, desk, bookcase, or wardrobe. For IKEA and other modular furniture, include the series, dimensions, number of frames, drawers, and doors. A product link is more useful than a general description such as bedroom set.',
-      preparation: 'For an apartment or condo appointment, include the loading entrance, parking instructions, elevator reservation, and floor. If several rooms are involved, match each boxed item to its final room and note any pieces that require wall anchoring under the manufacturer instructions.',
-      faq: { q: 'How should I describe a wardrobe or multi-item furniture booking in Dallas?', a: 'List each item and quantity, with the product link or model. For a modular wardrobe, include frame count, dimensions, doors, drawers, and interior fittings. Note the final room, wall-anchoring requirements, and building access so the scope reflects the complete setup.' },
-    },
-    'tv-mounting': {
-      summary: 'Plan a Dallas TV mounting visit around the screen, mount, and wall together. Share the TV size and model, the fixed, tilt, or full-motion mount you have, and whether the wall is drywall, masonry, tile, or another surface. Include soundbars, shelves, or additional TVs as separate items.',
-      preparation: 'For a condo or apartment, check building permission and access requirements before booking. Include a wall photo, the outlet position, media-console height, and your preferred viewing position. If the wall material or mount compatibility is unknown, describe that before the appointment.',
-      faq: { q: 'Can I include more than one TV in a Dallas appointment?', a: 'Add every TV separately with its size, mount, wall material, and room location. Include soundbars or cable-management options for the relevant TV. Different walls and mounting heights can require different work, even when the screens are the same size.' },
-    },
-  },
-  houston: {
-    'playset-assembly': {
-      includeMarketContext: true,
-      // Owner audit 2026-10-07: completed outdoor job in Spring/Houston.
-      // No customer identity, private media or association with gallery images.
-      completedWork: 'Completed outdoor assembly work in the Houston area includes a Spring appointment.',
-      summary: 'Plan a Houston outdoor assembly visit with the model, full package count, finished dimensions, and a photo of the intended work area. List each playset, swing set, or trampoline separately so the request describes the complete kit. Include the manufacturer clearances and base requirements before choosing the position.',
-      preparation: 'Share the gate opening, path from the delivered boxes, surface, and any unfinished site preparation. For a gazebo, shed, or outdoor furniture kit, include anchoring instructions and the location of the prepared base. Mention an existing structure, missing parts, or repair work in a custom-quote request. Appointment availability is confirmed for the service address and complete scope.',
-      guide: { href: '/book?service=Other', label: 'Request a quote for a gazebo or custom outdoor setup' },
-      faq: { q: 'What information is needed for a Houston gazebo assembly quote?', a: 'Send the model or product link, kit dimensions and package count, site photos, base type, and manufacturer anchoring requirements. Include delivery location and gate access. Describe any unfinished base work or existing structure so the requested work can be confirmed before scheduling.' },
-    },
-    'furniture-assembly': {
-      summary: 'For furniture assembly in Houston, choose each bed, dresser, desk, dining table, or storage item and include its model or product link. For a townhome or multi-level setup, identify the final floor and room for every piece so the request describes the complete job.',
-      preparation: 'Tell us where the boxes will be when the visit begins and whether any heavy items need to travel upstairs. Do not assume delivery or moving is included in assembly. Include gate instructions, parking, elevator access where relevant, and enough clear space in the room to build and position each piece.',
-      faq: { q: 'Does a Houston furniture assembly booking include moving boxes upstairs?', a: 'Describe any stairs or heavy-box handling in the booking; do not assume it is included in standard assembly. Share the item models, where the boxes are, and the final room before the visit so handling needs and service scope can be confirmed.' },
-    },
-    'tv-mounting': {
-      summary: 'For a Houston TV mounting request, include the TV size, model, wall-mount model, wall surface, and the room or floor. Standard drywall mounting, above-fireplace work, soundbars, and cable concealment require different details. Select the relevant work for each TV instead of describing all of it as one basic mount.',
-      preparation: 'Photograph the full wall and nearby outlets, including any tile, brick, or fireplace surround. Identify where streaming devices, a soundbar, and other cables will sit. Share parking and access instructions, and have the compatible mount and supplied hardware ready before the appointment.',
-      faq: { q: 'What details are needed for a Houston fireplace TV installation?', a: 'Include a photo of the fireplace and surrounding wall, the wall material, TV and mount models, desired height, and nearby outlets. Fireplace placement and cable routing need a scope check before the visit; do not assume they are part of standard wall mounting.' },
-    },
-  },
-  'san-antonio': {
-    'furniture-assembly': {
-      // Owner audit 2026-10-07: completed furniture job in San Antonio.
-      completedWork: 'Completed work in San Antonio includes furniture assembly.',
-      summary: 'Book San Antonio furniture assembly for the exact bed, dresser, desk, table, or storage unit you need built. Share the brand, model or product link, item count, and final room. Include drawers, storage compartments, and wardrobe fittings so the request captures the complete piece.',
-      preparation: 'For a gated property or apartment, include entry, parking, stairs, and elevator details. Check the manufacturer instructions for furniture that needs wall anchoring, and mention the wall surface or rental restrictions. Keep all packages, instructions, and hardware together in a clear work area.',
-      faq: { q: 'What should I include for a dresser or wardrobe assembly in San Antonio?', a: 'Share the model or product link, dimensions, drawer or door count, and the final room. Mention any required wall anchoring and the wall surface if known. If you rent, check permission for anchoring. Include stairs and where the boxes are located so the visit can be scoped accurately.' },
-    },
-    'tv-mounting': {
-      summary: 'Plan TV mounting in San Antonio with the screen size, TV model, mount model, and wall material ready. Identify brick, stone, tile, a fireplace position, or any uncertain wall construction before the visit. Soundbar mounting and cable concealment should be included as their own requested options.',
-      preparation: 'A full-wall photo showing outlets and furniture helps explain the intended placement. If you rent, check permission to drill. Include gated-community or building entry instructions, parking, and the floor; have the mount and compatible hardware available for the appointment.',
-      faq: { q: 'Can I request TV mounting on a brick or stone wall in San Antonio?', a: 'Describe the surface and include a clear wall photo, TV model, and mount model before booking. Masonry, tile, and fireplace installations require a different scope from standard drywall mounting. Cable routing and suitable hardware also need to match the actual wall.' },
-    },
-  },
-  'round-rock': {
-    'furniture-assembly': {
-      includeMarketContext: true,
-      summary: 'Plan a Round Rock bedroom or home-office setup from the exact items being delivered. For a bed, include its size and any storage drawers; for a desk, note an electric frame or return; for a wardrobe, list frames, doors, and interior fittings. Add each item and quantity instead of using one general description for a whole room.',
-      preparation: 'Schedule after all packages arrive and compare the box count with the delivery instructions. For an upstairs room, share the floor, stair access, and where the boxes will be. Keep matching hardware together and leave space for the finished furniture as well as the build. Mention manufacturer-required wall anchoring and any rental restrictions before the visit.',
-      guide: { href: '/blog/ikea-pax-wardrobe-assembly', label: 'Plan a modular wardrobe before booking assembly' },
-      faq: { q: 'Can I book a bed, dresser, and desk together in Round Rock?', a: 'Yes. Add every item and quantity, with its product link or model and final room. Check that all boxes have arrived. Include stairs, box locations, and any required wall anchoring. Your selected items and options determine the total shown before you confirm.' },
-    },
-  },
-  manor: {
-    'playset-assembly': {
-      includeMarketContext: true,
-      summary: 'For a Manor playset, swing set, or trampoline appointment, start with the product link, model, and full package count. Say whether this is a new kit or work on an existing structure. Share the finished footprint and the manufacturer clearance requirements with photos of the intended location.',
-      preparation: 'Show the access path from the boxes to the yard, gate opening, surface, and nearby fences or branches. Note any missing parts, slope, or site preparation still needed before scheduling. For a gazebo, shed, or outdoor furniture kit, include the base and anchoring instructions. Existing damage or a replacement slide needs its own scope check before an appointment is confirmed.',
-      guide: { href: '/book?service=Other', label: 'Request a quote for repairs, replacement parts, or unusual outdoor work' },
-      faq: { q: 'Is replacing a damaged slide the same as new playset assembly in Manor?', a: 'No. Describe the existing structure, the damaged part, and the replacement model, and include clear photos in a custom-quote request. Compatibility, condition, and the work needed must be confirmed before scheduling. A new-build assembly selection does not describe that repair.' },
-    },
-  },
-  buda: {
-    'playset-assembly': {
-      includeMarketContext: true,
-      summary: 'For a Buda backyard assembly appointment, compare the finished dimensions with the usable space before booking. A playset or swing set needs the manufacturer clearances as well as the frame footprint. For a trampoline, send the model, package count, surface, and a wide photo showing the proposed position.',
-      preparation: 'Identify where the boxes will be delivered and the route through any gate to the work area. Share the manufacturer base and anchoring requirements, and describe any site preparation that remains. A gazebo, shed, or outdoor furniture kit has different base and access needs. For an existing structure or an incomplete kit, request a quote with photos so the work can be confirmed first.',
-      guide: { href: '/book?service=Other', label: 'Get a quote for a gazebo, incomplete kit, or custom outdoor project' },
-      faq: { q: 'What should be ready before a Buda backyard assembly appointment?', a: 'Have the complete kit and instructions available, a clear access path, and a work area that meets the manufacturer preparation requirements. Send site photos and describe slope, surface, missing parts, or unfinished base work before the visit. Your appointment is confirmed after the work and availability are checked.' },
-    },
-  },
-  pearland: {
-    'smart-home-installation': {
-      includeMarketContext: true,
-      summary: 'For smart-home setup in Pearland, list each device model and whether it replaces an existing device or goes in a new location. Doorbells, thermostats, security cameras, and smart locks need different compatibility details. Include the current device, power source, mounting surface, and the app or hub you want to use.',
-      preparation: 'Check the manufacturer compatibility information before buying. Have access to your own device account and Wi-Fi on your phone during the visit; do not put passwords in booking notes. Photograph the existing location without removing wiring. Mention rental permission, inaccessible mounting positions, or new wiring needs before choosing the appointment so the supported work can be confirmed.',
-      guide: { href: '/blog/smart-home-installation-austin', label: 'Review device, account, and compatibility preparation' },
-      faq: { q: 'What should I share before replacing a smart device in Pearland?', a: 'Provide the old and new device models, a photo of the existing location, and your preferred app or hub. Tell us whether the device already has suitable power and Wi-Fi. Keep passwords private and available on your own phone during setup. New wiring or uncertain compatibility needs a scope check first.' },
-    },
-  },
-  'san-angelo': {
-    'smart-home-installation': {
-      includeMarketContext: true,
-      summary: 'Plan a San Angelo smart-home visit by room and device. List doorbells, thermostats, security cameras, and smart locks separately, including each model and quantity. For several devices, identify the app or hub they must work with and whether setup is at an existing or new mounting location.',
-      preparation: 'Check the manufacturer requirements for power, Wi-Fi, and compatible equipment. Note which devices and accessories you already have, where they will be installed, and any hard-to-reach positions. Have your own phone and device-account access ready for testing. Do not send passwords in booking notes. Tell us about unfinished wiring or site preparation before scheduling; availability and the supported work are confirmed for your address.',
-      guide: { href: '/blog/smart-home-installation-austin', label: 'Prepare compatible devices and the information needed for setup' },
-      faq: { q: 'Can I request several smart-home devices in one San Angelo visit?', a: 'List each device and quantity with its model, room, existing power, and preferred app or hub. Include accessories and any new-location work. Compatibility, access, and appointment availability need to be confirmed for the complete request. Keep account passwords private and sign in on your own device during setup.' },
-    },
-  },
-};
-
-// Local housing facts per city (U.S. Census ACS 5-year, scripts/lib/city-housing.json).
-// They change what a customer should prepare: renters need drilling/anchoring
-// permission, apartment buildings need elevator and loading plans, older homes
-// have older walls and wiring. Austin reference pages are left unchanged.
-const HOUSING = JSON.parse(readFileSync(new URL('./lib/city-housing.json', import.meta.url), 'utf8'));
-
-function joinList(items) {
-  return items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}` : items[0] || '';
-}
-
-function housingGuide(cfg, city) {
-  if (city.citySlug === 'austin') return null;
-  const h = HOUSING.cities[city.citySlug];
-  if (!h) return null;
-  const n = city.name;
-  const counties = h.counties.map((c) => c.replace(/ County$/, ''));
-  const countyText = `${joinList(counties)} ${counties.length > 1 ? 'counties' : 'County'}`;
-  const facts = `${n} (${countyText}): ${h.renterPct}% of households rent, ${h.apartment5PlusPct}% of homes are in buildings with five or more units, ${h.detachedPct}% are detached houses, and the median home was built in ${h.medianYearBuilt}.`;
-  const renters = h.renterPct >= 40;
-  const apartments = h.apartment5PlusPct >= 25;
-  const older = h.builtBefore1980Pct >= 30;
-  const advice = {
-    'furniture-assembly': [
-      apartments
-        ? 'In a larger apartment building, include the floor, elevator reservation, and loading-zone rules so moving boxes to each room is planned.'
-        : 'In a detached house, the usual planning points are stairs, the room for each piece, and where the boxes will be staged.',
-      renters
-        ? 'If you rent, check whether the lease allows wall anchoring for dressers and tall bookcases.'
-        : 'Tall dressers and bookcases should be anchored to the wall under the manufacturer instructions; mention the wall type if you know it.',
-    ],
-    'tv-mounting': [
-      older
-        ? `${h.builtBefore1980Pct}% of homes here were built before 1980, when plaster and older framing were more common, so describe the wall and add a photo if it is not standard drywall.`
-        : 'Newer homes usually have drywall over wood studs; still flag tile, brick, stone, or a fireplace surround.',
-      renters
-        ? 'With this many renters, check drilling and move-out repair rules before booking.'
-        : 'If you rent, check drilling and move-out repair rules before booking.',
-    ],
-    'smart-home-installation': [
-      older || h.medianYearBuilt < 1990
-        ? `Older homes are more likely to lack a thermostat common wire (C-wire) or a working doorbell transformer, and ${h.builtBefore1980Pct}% of homes here were built before 1980. Share photos of the thermostat wiring and doorbell chime.`
-        : 'Newer wiring usually suits smart thermostats and doorbells; confirm the C-wire and doorbell power before buying a device.',
-      'Renters usually need landlord approval to replace locks, doorbells, or thermostats.',
-    ],
-    'fitness-equipment-assembly': [
-      apartments
-        ? 'In an apartment building, check elevator size, doorway width, and any floor-load or quiet-hours rules before a treadmill or rack arrives.'
-        : 'In a detached house, many home gyms go in a garage or spare room; tell us the floor surface and whether the room is upstairs.',
-    ],
-    'office-furniture-assembly': [
-      apartments
-        ? 'For a home office in an apartment building, include elevator and loading details; for a business suite, include delivery hours and suite access.'
-        : 'For a home office in a detached house, list every desk, chair, and cabinet with its room so a multi-piece setup is scheduled correctly.',
-    ],
-    'playset-assembly': [
-      h.detachedPct >= 60
-        ? 'Detached houses are the homes most likely to have a yard; share the yard slope, ground surface, and gate width so the kit can reach the build site.'
-        : 'Where larger buildings are common, confirm HOA or property rules and the available ground area before ordering an outdoor kit.',
-      ...(renters ? ['If you rent, confirm permission for ground anchors.'] : []),
-    ],
-  }[cfg.prefix];
-  if (!advice) return null;
-  return { facts, advice: advice.join(' '), source: HOUSING.source.replace(/, via Census Reporter$/, '') };
-}
-
-// Responsive WebP versions of the service photos (scripts/lib/service-image-variants.json,
-// made from the originals in /images). The original stays as the <img> fallback, and
-// width/height reserve the box so the photo cannot shift the layout when it loads.
-const IMAGE_VARIANTS = JSON.parse(readFileSync(new URL('./lib/service-image-variants.json', import.meta.url), 'utf8'));
-
-function picture(src, alt, sizes, attrs) {
-  const v = IMAGE_VARIANTS[src];
-  const img = `<img src="/images/${src}" alt="${alt}"${v ? ` width="${v.w}" height="${v.h}"` : ''}${attrs}/>`;
-  if (!v) return img;
-  const base = src.replace(/\.(jpe?g|png)$/i, '');
-  const srcset = v.variants.map((w) => `/images/${base}-${w}.webp ${w}w`).join(', ');
-  return `<picture><source type="image/webp" srcset="${srcset}" sizes="${sizes}"/>${img}</picture>`;
-}
-
-function metroServiceGuide(cfg, city) {
-  return METRO_SERVICE_GUIDES[city.citySlug]?.[cfg.prefix];
-}
-
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -288,12 +90,6 @@ function splitHeroTitle(heroTitle) {
 // neighbors while others link to major Texas markets for crawl discovery; the
 // wording must distinguish those cases instead of calling distant cities nearby.
 function locationFaq(city) {
-  if (city.citySlug === 'san-antonio') {
-    return {
-      q: 'Can I request service outside San Antonio?',
-      a: 'New Braunfels is another listed service area near San Antonio. Other Texas service areas are listed on our Locations page. Enter your service address during booking to check current availability for your location, service, and appointment.',
-    };
-  }
   const names = city.nearby.map((c) => c.name);
   const list = names.length > 1
     ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
@@ -313,7 +109,7 @@ function locationFaq(city) {
 function costFaq(cfg, city) {
   return {
     q: `What does ${cfg.faqNoun} cost in ${city.name}?`,
-    a: `Common ${cfg.faqNoun} pricing starts at ${cfg.fromPrice}. The page shows typical jobs and price ranges; choose the matching service and add the exact item, installation, access, and site details so the scope can be confirmed before the appointment.${metroServiceGuide(cfg, city) ? ' Your selected options and final total are shown in booking before you confirm.' : ''}`,
+    a: `Common ${cfg.faqNoun} pricing starts at ${cfg.fromPrice}. The page shows typical jobs and price ranges; choose the matching service and add the exact item, installation, access, and site details so the scope can be confirmed before the appointment.`,
   };
 }
 
@@ -329,8 +125,7 @@ function neutralizeNote(noteStrong, city) {
 // Austin keeps its exact approved FAQs (the reference pages are never modified);
 // every other city swaps the 4th FAQ for its own real neighbors.
 function serviceFaqs(cfg, city) {
-  const localGuide = metroServiceGuide(cfg, city);
-  return [...cfg.faqs.slice(0, 3), ...(localGuide ? [localGuide.faq] : []), costFaq(cfg, city), locationFaq(city)];
+  return [...cfg.faqs.slice(0, 3), costFaq(cfg, city), locationFaq(city)];
 }
 
 function decodeHtmlText(value) {
@@ -447,12 +242,10 @@ const FA_STYLE = `<style>
 .fa-sub{font-size:1.08rem;line-height:1.7;color:var(--ink-soft);max-width:31rem;margin-bottom:1.85rem}
 .fa-cta-row{display:flex;flex-wrap:wrap;gap:0.9rem;margin-bottom:1.7rem}
 .fa-btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--cyan);color:#03303f;font-weight:700;font-size:1rem;padding:0.95rem 1.95rem;border-radius:999px;text-decoration:none;transition:all .18s;box-shadow:0 12px 30px rgba(0,191,255,0.3)}
-@media (hover: hover) and (pointer: fine){.fa-btn-primary:hover{background:var(--cyan-dark);color:#fff;transform:translateY(-2px)}}
+.fa-btn-primary:hover{background:var(--cyan-dark);color:#fff;transform:translateY(-2px)}
 .fa-btn-ghost{display:inline-flex;align-items:center;gap:8px;color:var(--ink);font-weight:600;font-size:1rem;padding:0.95rem 1.5rem;border-radius:999px;text-decoration:none;border:1.5px solid var(--border);transition:all .18s}
-@media (hover: hover) and (pointer: fine){.fa-btn-ghost:hover{border-color:var(--cyan);color:var(--cyan-dark)}}
+.fa-btn-ghost:hover{border-color:var(--cyan);color:var(--cyan-dark)}
 .fa-hero-media{position:relative}
-.fa-hero-media picture{display:block}
-.fa-shot .frame picture{display:block;width:100%;height:100%}
 .fa-hero-media img{width:100%;height:auto;display:block;border-radius:20px;box-shadow:0 26px 55px rgba(2,32,43,0.22)}
 .fa-media-chip{position:absolute;left:0.9rem;bottom:0.9rem;background:rgba(8,18,30,0.84);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.14);color:#fff;font-size:0.78rem;font-weight:600;padding:0.5rem 0.9rem;border-radius:999px;display:flex;align-items:center;gap:8px}
 .fa-media-chip::before{content:"";width:7px;height:7px;border-radius:50%;background:#28d17c;box-shadow:0 0 0 4px rgba(40,209,124,0.25)}
@@ -467,7 +260,7 @@ const FA_STYLE = `<style>
 .fa-shot{border-radius:16px;overflow:hidden;background:var(--white);border:1px solid var(--border);box-shadow:var(--shadow)}
 .fa-shot .frame{width:100%;aspect-ratio:7/5;overflow:hidden;background:#e9eef2}
 .fa-shot .frame img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
-@media (hover: hover) and (pointer: fine){.fa-shot:hover .frame img{transform:scale(1.04)}}
+.fa-shot:hover .frame img{transform:scale(1.04)}
 .fa-shot .cap{padding:0.95rem 1.1rem;font-size:0.92rem;font-weight:700;color:var(--ink)}
 .fa-shot .cap small{display:block;font-weight:500;color:var(--muted);font-size:0.77rem;margin-top:3px}
 .fa-note{background:var(--off-white);border:1px solid var(--border);border-radius:16px;padding:1.7rem 1.5rem;color:var(--ink);display:flex;flex-direction:column;justify-content:center;min-height:200px}
@@ -493,7 +286,7 @@ const FA_STYLE = `<style>
 .fa-process{max-width:900px;margin:0 auto}
 .fa-process-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.75rem}
 .fa-process-tab{appearance:none;border:1.5px solid var(--border);background:var(--white);border-radius:16px;padding:0.95rem 1rem;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
-@media (hover: hover) and (pointer: fine){.fa-process-tab:hover{border-color:var(--cyan-mid)}}
+.fa-process-tab:hover{border-color:var(--cyan-mid)}
 .fa-process-tab.is-active{border-color:var(--cyan);background:#f7fcfe;box-shadow:0 10px 28px rgba(0,191,255,0.08)}
 .fa-process-num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.05rem;margin-bottom:0.7rem}
 .fa-process-tab.is-active .fa-process-num{background:var(--cyan-dark)}
@@ -511,14 +304,14 @@ const FA_STYLE = `<style>
 .fa-chev{transition:transform .2s;flex-shrink:0;color:var(--cyan-dark);font-size:1.1rem}
 .fa-citylinks{display:flex;flex-wrap:wrap;gap:0.6rem;justify-content:center}
 .fa-citylinks a{display:inline-flex;align-items:center;background:var(--white);border:1px solid var(--cyan-mid);border-radius:999px;padding:0.55rem 1.15rem;font-size:0.875rem;font-weight:600;color:var(--cyan-dark);text-decoration:none;transition:all .15s}
-@media (hover: hover) and (pointer: fine){.fa-citylinks a:hover{background:var(--cyan-light);border-color:var(--cyan)}}
+.fa-citylinks a:hover{background:var(--cyan-light);border-color:var(--cyan)}
 .fa-share-kit{max-width:860px;margin:0 auto}
 .fa-share-inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.15rem 1.25rem;background:var(--white);border:1px solid var(--border);border-radius:18px}
 .fa-share-copy strong{display:block;font-size:1rem;color:var(--ink);margin-bottom:0.2rem}
 .fa-share-copy span{display:block;font-size:0.88rem;line-height:1.6;color:var(--muted);max-width:34rem}
 .fa-share-actions{display:flex;align-items:center;justify-content:flex-end;gap:0.6rem;flex-wrap:wrap}
 .fa-share-btn{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:999px;border:1px solid var(--cyan-mid);background:var(--white);color:var(--cyan-dark);text-decoration:none;transition:background .15s,border-color .15s,color .15s,transform .15s}
-@media (hover: hover) and (pointer: fine){.fa-share-btn:hover{background:var(--cyan-light);border-color:var(--cyan);transform:translateY(-1px)}}
+.fa-share-btn:hover{background:var(--cyan-light);border-color:var(--cyan);transform:translateY(-1px)}
 .fa-share-btn svg{width:18px;height:18px;display:block}
 .fa-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:900px){
@@ -567,9 +360,9 @@ function gallerySection(cfg, city) {
   const header = `    <div class="fa-head">
       <div class="fa-kicker">Recent work</div>
       <h2 class="fa-h2">${cfg.workHeadline}</h2>
-      <p class="fa-lead">${escapeHtml(metroServiceGuide(cfg, city)?.workSummary || 'Recent job photos for this service.')}</p>
+      <p class="fa-lead">Recent job photos for this service.</p>
     </div>`;
-  const shot = (g) => `      <figure class="fa-shot"><div class="frame">${picture(g.src, g.alt, '(max-width: 860px) 100vw, 380px', ` loading="lazy"${g.pos ? ` style="object-position:${g.pos}"` : ''}`)}</div><figcaption class="cap">${g.cap}<small>${g.sub}</small></figcaption></figure>`;
+  const shot = (g) => `      <figure class="fa-shot"><div class="frame"><img src="/images/${g.src}" alt="${g.alt}" loading="lazy"${g.pos ? ` style="object-position:${g.pos}"` : ''}/></div><figcaption class="cap">${g.cap}<small>${g.sub}</small></figcaption></figure>`;
   const noteCell = `      <div class="fa-note"><strong>${noteStrong}</strong><p>${cfg.noteSpan}</p></div>`;
   let inner;
   if (cfg.gallery.length >= 2) {
@@ -617,9 +410,6 @@ function buildBody(cfg, city) {
     || `Include the item count, access details, stairs, room location, and scheduling constraints when booking in ${city.name}.`;
   const servicePlanning = SERVICE_PLANNING[cfg.prefix];
   if (!servicePlanning) throw new Error(`Missing service planning content for ${cfg.prefix}.`);
-  const localGuide = metroServiceGuide(cfg, city);
-  const housing = housingGuide(cfg, city);
-  const planningGuide = localGuide?.guide || (city.name === 'Austin' ? servicePlanning.austinGuide : null);
   const marketContext = city.bio
     ? `${city.bio}${city.landmark ? ` Addresses around ${city.landmark} can have different parking, entry, and item-move requirements.` : ''}`
     : bookingGuidance;
@@ -637,7 +427,7 @@ function buildBody(cfg, city) {
       </div>
     </div>
     <div class="fa-hero-media">
-      ${picture(cfg.heroPhoto, cfg.heroAlt, '(max-width: 860px) 100vw, 540px', ' loading="eager" fetchpriority="high"')}
+      <img src="/images/${cfg.heroPhoto}" alt="${cfg.heroAlt}" loading="eager" fetchpriority="high"/>
       <div class="fa-media-chip">${projectLabel}</div>
     </div>
   </div>
@@ -702,9 +492,10 @@ ${menu}
     <div class="fa-head fa-head--center" style="margin-bottom:1.5rem">
       <div class="fa-kicker">${escapeHtml(city.name)} service guide</div>
       <h2 class="fa-h2">${escapeHtml(servicePlanning.heading)} in ${escapeHtml(city.name)}</h2>
-      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(localGuide?.summary || servicePlanning.summary)}</p>
-      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(localGuide?.preparation || servicePlanning.requestTypes)}</p>
-${localGuide?.completedWork ? `      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(localGuide.completedWork)}</p>\n` : ''}${[planningGuide, localGuide?.extraGuide].filter(Boolean).map((guide) => `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><a href="${guide.href}">${escapeHtml(guide.label)}</a>.</p>\n`).join('')}${localGuide && !localGuide.includeMarketContext ? '' : `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Planning your ${escapeHtml(city.name)} appointment:</strong> ${escapeHtml(marketContext)}${city.bio ? ` ${escapeHtml(bookingGuidance)}` : ''}</p>\n`}${housing ? `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Local homes:</strong> ${escapeHtml(housing.facts)} ${escapeHtml(housing.advice)}</p>\n      <p class="fa-lead" style="margin-left:auto;margin-right:auto;font-size:0.8rem;color:var(--muted)">Source: ${escapeHtml(housing.source)}.</p>\n` : ''}    </div>
+      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(servicePlanning.summary)}</p>
+      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(servicePlanning.requestTypes)}</p>
+${city.name === 'Austin' && servicePlanning.austinGuide ? `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><a href="${servicePlanning.austinGuide.href}">${escapeHtml(servicePlanning.austinGuide.label)}</a> before choosing your items.</p>\n` : ''}      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Planning your ${escapeHtml(city.name)} appointment:</strong> ${escapeHtml(marketContext)}${city.bio ? ` ${escapeHtml(bookingGuidance)}` : ''}</p>
+    </div>
     <div class="fa-mini-facts">
       <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Trusted local pros</strong><span>Assigned and confirmed before the visit.</span></div>
       <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Careful setup</strong><span>Built, mounted, or installed with the finish details checked.</span></div>
@@ -994,74 +785,22 @@ export function applyFlagshipToPage(html, cfg, city) {
   );
   html = upsertJsonLdSchema(html, 'BreadcrumbList', buildBreadcrumbSchema(cfg, city));
   html = upsertJsonLdSchema(html, 'FAQPage', buildFaqSchema(cfg, city));
-  return applyGuideDescription(html, cfg, city);
-}
-
-function applyGuideDescription(html, cfg, city) {
-  const description = metroServiceGuide(cfg, city)?.description;
-  if (!description) return html;
-  return html.replace(/(<meta\s+(?:name="(?:description|twitter:description)"|property="og:description")\s+content=")[^"]*(")/g,
-    (_match, before, after) => before + escapeHtml(description) + after);
-}
-
-// Content-only refresh for existing pages: keeps the governed shell, pricing,
-// booking links, existing local evidence, photos and scripts unchanged.
-// Both full builds and this narrow path render from METRO_SERVICE_GUIDES.
-export function applyServiceGuideToPage(html, cfg, city) {
-  if (!metroServiceGuide(cfg, city)) throw new Error(`No reviewed guide for ${pageSlug(cfg, city)}`);
-  const body = buildBody(cfg, city);
-  for (const marker of ['WHAT TO EXPECT', 'FAQ']) {
-    const section = new RegExp(`<!-- ${marker} -->[\\s\\S]*?(?=<!-- [A-Z ]+ -->)`);
-    const previous = html.match(section)?.[0];
-    let replacement = body.match(section)?.[0];
-    if (!previous || !replacement) throw new Error(`Missing ${marker} block in ${pageSlug(cfg, city)}`);
-    // Other reviewed processes may add local planning and cited evidence here.
-    // Keep that reviewed copy and its source together. The full generator now
-    // renders housing guidance too, so replace that generated copy rather than
-    // appending a second version during a narrow content refresh.
-    if (marker === 'WHAT TO EXPECT') {
-      const evidencePattern = /^[ \t]*<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?(?:Local homes:|Planning your [^<]+ appointment:|Source: U\.S\. Census Bureau)(?:(?!<\/p>)[\s\S])*?<\/p>\n?/gm;
-      const evidence = previous.match(evidencePattern) || [];
-      if (evidence.length) {
-        replacement = replacement.replace(evidencePattern, '');
-        replacement = replacement.replace('    </div>\n    <div class="fa-mini-facts">',
-          evidence.map((paragraph) => `      ${paragraph.trim()}\n`).join('') + '    </div>\n    <div class="fa-mini-facts">');
-      }
-    }
-    html = html.replace(section, () => replacement);
-  }
-  const workSummary = metroServiceGuide(cfg, city)?.workSummary;
-  if (workSummary) html = html.replace(/(<!-- OUR WORK -->[\s\S]*?<p class="fa-lead">)[\s\S]*?(<\/p>)/,
-    (_match, before, after) => before + escapeHtml(workSummary) + after);
-  html = upsertJsonLdSchema(html, 'FAQPage', buildFaqSchema(cfg, city));
-  return applyGuideDescription(html, cfg, city);
+  return html;
 }
 
 // Direct run = regenerate the 6 Austin flagship pages. Importing this module
 // (from the city generator) reuses the builders WITHOUT running this loop.
 function generateAustinFlagshipPages() {
-  const selectedServices = selectServices(process.argv.slice(2));
-  for (const cfg of selectedServices) assertVisibleStartPrice(cfg);
-  // Build and validate every result before writing any selected page.
-  const pages = selectedServices.map((cfg) => {
+  for (const cfg of SERVICES) assertVisibleStartPrice(cfg);
+  let count = 0;
+  for (const cfg of SERVICES) {
     const file = `${cfg.slug}.html`;
-    const refresh = process.argv.includes('--content-only') ? applyServiceGuideToPage : applyFlagshipToPage;
-    const html = refresh(readFileSync(file, 'utf8'), cfg, AUSTIN);
-    return { file, html };
-  });
-  for (const { file, html } of pages) {
+    const html = applyFlagshipToPage(readFileSync(file, 'utf8'), cfg, AUSTIN);
     writeFileSync(file, html);
+    count += 1;
     console.log(`built ${file}`);
   }
-  console.log(`Done: ${pages.length} pages.`);
-}
-
-// Repeat --service=<prefix> to regenerate only the reviewed service pages.
-export function selectServices(args) {
-  const selected = args.filter((arg) => arg.startsWith('--service=')).map((arg) => arg.slice('--service='.length));
-  const unknown = selected.filter((prefix) => !SERVICES.some((cfg) => cfg.prefix === prefix));
-  if (unknown.length) throw new Error(`Unknown service: ${unknown.join(', ')}`);
-  return selected.length ? SERVICES.filter((cfg) => selected.includes(cfg.prefix)) : SERVICES;
+  console.log(`Done: ${count} pages.`);
 }
 
 export { SERVICES, AUSTIN, FA_STYLE, buildBody, buildServiceSchema, buildBreadcrumbSchema, buildFaqSchema, assertVisibleStartPrice, pageSlug };

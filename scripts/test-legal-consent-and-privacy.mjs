@@ -66,12 +66,11 @@ assert.ok(!JSON.stringify(record).includes('203.0.113.8'), 'Raw IP must not be s
 
 const bookingApi = read('api/booking.js');
 assert.match(bookingApi, /validateCustomerLegalConsent/);
-assert.match(bookingApi, /\.\.\.buildCustomerConsentRecord\(req, consentMethod\)/, 'the consent record says how the customer agreed (2026-10-15)');
+assert.match(bookingApi, /\.\.\.buildCustomerConsentRecord\(req\)/);
 assert.match(bookingApi, /LEGAL_CONSENT_MIGRATION_REQUIRED/);
 const bookingPage = read('book.html');
 assert.match(bookingPage, /fetch\('\/api\/legal-config'/);
-// Booking is the agreement, stated beside the button (owner, 2026-10-15).
-assert.match(bookingPage, /termsAccepted: true,\s*termsConsentMethod: 'web_book_button_notice'/);
+assert.match(bookingPage, /termsAccepted: ackEl\.checked === true/);
 assert.match(bookingPage, /privacyNoticeVersion: legalConfig\.privacyNoticeVersion/);
 assert.match(bookingPage, /id="s4-phone"[\s\S]{0,2000}id="s4-sms-consent"/, 'SMS consent must appear directly after the booking phone field');
 assert.match(bookingPage, /<input type="checkbox" id="s4-sms-consent"(?![^>]*\bchecked\b)[^>]*>/, 'SMS consent must be unchecked by default');

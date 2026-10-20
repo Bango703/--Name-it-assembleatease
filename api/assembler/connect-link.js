@@ -1,15 +1,7 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
-import {
-  invalidConnectStateUpdate,
-  isRecoverableConnectAccountError,
-  isStripeConnectEnabled,
-  normalizeStripeConnectAccountId,
-} from '../_stripe-connect.js';
-import { deriveAssemblerStatus } from '../_assembler-state.js';
-import { isEaserClosureBlocking, normalizeEaserClosureStatus } from '../_easer-closure.js';
-import { isDemoEaser } from '../_demo-accounts.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -17,10 +9,10 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (!isStripeConnectEnabled()) {
-    return res.status(400).json({ error: 'Payout setup is not available for this account.' });
+    return res.status(400).json({ error: 'Stripe Connect is not enabled' });
   }
   if (!process.env.STRIPE_SECRET_KEY) {
-    return res.status(503).json({ error: 'Payout setup is temporarily unavailable.' });
+    return res.status(503).json({ error: 'Stripe is not configured' });
   }
 
   const auth = req.headers.authorization;
@@ -34,50 +26,21 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: profile, error: profileErr } = await sb
     .from('profiles')
-    .select('id, role, status, identity_verified, full_name, email, stripe_connect_account_id, account_closure_status')
+    .select('id, role, status, identity_verified, full_name, email, stripe_connect_account_id')
     .eq('id', user.id)
     .maybeSingle();
 
   if (profileErr || !profile) return res.status(404).json({ error: 'Profile not found' });
   if (profile.role !== 'assembler') return res.status(403).json({ error: 'Only Easers can use this endpoint' });
-  if (await isDemoEaser(sb, user.id)) {
-    return res.status(403).json({ error: "Payouts aren't set up on demo accounts.", code: 'DEMO_ACCOUNT' });
-  }
-  if (isEaserClosureBlocking(profile)) {
-    return res.status(409).json({
-      error: 'Resolve your account closure request before starting or changing payout setup.',
-      code: 'ACCOUNT_CLOSURE_BLOCKS_PAYOUT_SETUP',
-      closureStatus: normalizeEaserClosureStatus(profile),
-    });
-  }
-  if (deriveAssemblerStatus(profile) !== 'active') {
+  if (profile.status !== 'active') {
     return res.status(403).json({ error: 'Your account must be approved before setting up payouts.' });
   }
   if (!profile.identity_verified) {
-    return res.status(403).json({ error: 'Complete identity verification before setting up payouts. Reopen your AssembleAtEase verification link if needed.' });
+    return res.status(403).json({ error: 'Complete identity verification before setting up payouts. Check your dashboard for the verification link.' });
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  let accountId = normalizeStripeConnectAccountId(profile.stripe_connect_account_id);
-
-  if (profile.stripe_connect_account_id && !accountId) {
-    await sb.from('profiles').update(invalidConnectStateUpdate()).eq('id', profile.id);
-  }
-
-  if (accountId) {
-    try {
-      await stripe.accounts.retrieve(accountId);
-    } catch (err) {
-      if (isRecoverableConnectAccountError(err)) {
-        console.warn('connect-link resetting invalid Stripe Connect account:', err?.message || err);
-        accountId = null;
-        await sb.from('profiles').update(invalidConnectStateUpdate()).eq('id', profile.id);
-      } else {
-        console.error('connect-link retrieve error:', err?.message || err);
-        return res.status(502).json({ error: 'Payout setup is temporarily unavailable. Please try again shortly.' });
-      }
-    }
-  }
+  let accountId = profile.stripe_connect_account_id || null;
 
   if (!accountId) {
     const account = await stripe.accounts.create({
@@ -92,21 +55,6 @@ export default async function handler(req, res) {
       business_profile: {
         mcc: '7299',
         product_description: 'Home assembly services',
-      },
-      settings: {
-        payments: {
-          // What the CUSTOMER sees on their card statement.
-          //
-          // Stripe defaults this to the Easer's legal name, so a tip showed up as
-          // "TRAPPER A RINEY" or "TRAVIS GIBSON". Someone who does not recognise a
-          // personal name on their statement does not call to ask — they file a
-          // chargeback, and it lands on the Easer's account, not ours.
-          //
-          // Set at creation so no future Easer is ever onboarded with their own
-          // name facing customers. Existing accounts were corrected 2026-08-28.
-          // Stripe allows 5-22 characters; this is 18.
-          statement_descriptor: 'ASSEMBLEATEASE TIP',
-        },
       },
       metadata: {
         userId: profile.id,
@@ -125,7 +73,7 @@ export default async function handler(req, res) {
     }).eq('id', profile.id);
     if (updateErr) {
       console.error('connect-link profile update error:', updateErr);
-      return res.status(500).json({ error: 'Your payout account could not be saved. Please try again.' });
+      return res.status(500).json({ error: 'Failed to save Stripe Connect account' });
     }
   }
 
@@ -138,6 +86,8 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     ok: true,
-    onboardingUrl: String(link.url || '').trim(),
+    accountId,
+    onboardingUrl: link.url,
+    expiresAt: link.expires_at,
   });
 }

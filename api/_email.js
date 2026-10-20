@@ -1,8 +1,5 @@
 import { timingSafeEqual } from 'crypto';
 import { getSupabase } from './_supabase.js';
-import { prepareNotification, settleNotification } from './_notification-policy.js';
-import { unsubscribeUrl, broadcastFooter, normalizeEmail as normalizeSuppressionEmail } from './_broadcast.js';
-import { createHmac, randomBytes } from 'crypto';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -11,6 +8,8 @@ const DEDUPE_WINDOWS_MIN = {
   standard: 30,
   bulk: 24 * 60,
 };
+const BULK_DAILY_CAP = 2;
+
 const CRITICAL_NOTIFICATION_TYPES = new Set([
   'booking_confirmed',
   'assignment_confirmation',
@@ -24,34 +23,8 @@ const CRITICAL_NOTIFICATION_TYPES = new Set([
   'dispatch_offer',
 ]);
 
-/**
- * Mail a person did not ask for on this occasion. CAN-SPAM applies: it needs a
- * one-click unsubscribe, a physical postal address, and it must never reach
- * someone already on the opt-out list.
- *
- * email_suppressions existed and was honoured in exactly ONE place —
- * api/owner/broadcast.js — so every other re-engagement send could email a
- * person who had already unsubscribed. The check belongs here, in the one
- * function they all go through, not in each caller that remembers.
- *
- * Transactional mail is deliberately absent. Someone who opts out of marketing
- * must still receive their own booking confirmation and receipts.
- */
-const MARKETING_NOTIFICATION_TYPES = new Set([
-  'customer_rebook_invite',
-  'rebook_payment_method_requested',
-  'rebook_card_saved',
-  'review_request',
-  'followup',
-  'waitlist_invite',
-  'broadcast',
-  'broadcast_test',
-  'announcement',
-]);
-
 const BULK_NOTIFICATION_TYPES = new Set([
   'review_request',
-  'followup',
   'reminder',
   'daily_summary',
   'weekly_summary',
@@ -60,22 +33,6 @@ const BULK_NOTIFICATION_TYPES = new Set([
 
 export function esc(s) {
   return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-// Normalize a free-typed street address into a clean, consistent, professional
-// format for every customer/Easer/owner surface. Collapses stray whitespace,
-// fixes comma spacing, drops trailing commas, and uppercases (mailing-label
-// style) so "500 main st,  dallas, tx" reads "500 MAIN ST, DALLAS, TX".
-// Not a validator — purely presentational. Escape the result with esc() before
-// embedding in HTML.
-export function formatAddress(raw) {
-  if (!raw) return '';
-  return String(raw)
-    .split(',')
-    .map((part) => part.replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .join(', ')
-    .toUpperCase();
 }
 
 function inferNotificationType(subject, explicitType) {
@@ -107,103 +64,148 @@ function normalizeEmail(addr) {
   return String(addr || '').trim().toLowerCase();
 }
 
-async function reconcileEarlyProviderEvent(sb, providerId) {
-  if (!providerId) return;
+async function insertNotificationLog(sb, payload) {
   try {
-    const { error } = await sb.rpc('reconcile_resend_delivery_events_v1', { p_provider_id: providerId });
-    if (error && !['42883', 'PGRST202'].includes(error.code)) console.error('email provider reconciliation failed:', error.message);
-  } catch (error) { console.error('email provider reconciliation unavailable:', error?.message); }
+    await sb.from('notification_log').insert(payload);
+  } catch (_) {
+    // Never fail caller because notification logging failed.
+  }
 }
 
-/** One shared, durable delivery path. An accepted send is not proof of inbox
- * delivery. A deferred/failed send is never reported as a successful duplicate. */
+async function getSuppressionReason(sb, { recipientEmail, subject, notificationType, priority, meta }) {
+  if (meta?.disableDedupe) return null;
+
+  const dedupeWindowMin = Number.isFinite(Number(meta?.dedupeWindowMin))
+    ? Number(meta.dedupeWindowMin)
+    : DEDUPE_WINDOWS_MIN[priority];
+  const dedupeSince = new Date(Date.now() - dedupeWindowMin * 60000).toISOString();
+
+  const { data: recent } = await sb
+    .from('notification_log')
+    .select('id')
+    .eq('channel', 'email')
+    .eq('recipient_email', recipientEmail)
+    .eq('notification_type', notificationType)
+    .eq('subject', subject)
+    .in('status', ['sent', 'suppressed'])
+    .gte('sent_at', dedupeSince)
+    .limit(1);
+
+  if (recent?.length) {
+    return `duplicate_within_${dedupeWindowMin}m`;
+  }
+
+  if (priority === 'bulk' && !meta?.disableDailyCap) {
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    const dayCap = Number.isFinite(Number(meta?.dailyCap)) ? Number(meta.dailyCap) : BULK_DAILY_CAP;
+
+    const { count } = await sb
+      .from('notification_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('channel', 'email')
+      .eq('recipient_email', recipientEmail)
+      .eq('notification_type', notificationType)
+      .eq('status', 'sent')
+      .gte('sent_at', dayStart.toISOString());
+
+    if ((count || 0) >= dayCap) {
+      return `daily_cap_reached_${dayCap}`;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Send a transactional email via Resend and log the attempt to notification_log.
+ *
+ * meta (optional) — context for the log row:
+ *   bookingId       UUID   — links the log entry to a booking
+ *   notificationType TEXT  — e.g. 'dispatch_offer', 'job_accepted', 'completion'
+ *   recipientType   TEXT   — 'customer' | 'easer' | 'owner'
+ *   recipientUserId UUID   — Supabase user ID if known
+ */
 export async function sendEmail({ to, from, subject, html, replyTo, meta = {} }) {
   const KEY = process.env.RESEND_API_KEY;
-  if (!KEY) return { ok: false, error: 'Email provider is not configured.' };
-  const recipientEmail = normalizeEmail(Array.isArray(to) ? to[0] : to);
-  if (!recipientEmail) return { ok: false, error: 'Missing recipient email' };
-  if (Array.isArray(to) && to.length > 1) return { ok: false, error: 'Send one recipient per notification so delivery and preferences remain attributable.' };
+  if (!KEY) throw new Error('Missing RESEND_API_KEY');
+
+  const recipient = Array.isArray(to) ? to[0] : to;
+  const recipientEmail = normalizeEmail(recipient);
   const notificationType = inferNotificationType(subject, meta.notificationType);
   const priority = meta.priority || inferPriority(notificationType);
-  const explicitType = String(meta.recipientType || '').toLowerCase();
-  const recipientType = ['customer', 'easer', 'owner'].includes(explicitType) ? explicitType
-    : recipientEmail === normalizeEmail(ownerEmail()) ? 'owner' : 'unknown';
-  const context = { ...meta, notificationType, recipientType,
-    dedupeWindowMin: meta.dedupeWindowMin ?? DEDUPE_WINDOWS_MIN[priority] };
-  const isMarketing = MARKETING_NOTIFICATION_TYPES.has(notificationType) && recipientType !== 'owner';
+  const recipientType = meta.recipientType || null;
+
+  if (!recipientEmail) return { ok: false, error: 'Missing recipient email' };
+
   const sb = getSupabase();
+  const suppressionReason = await getSuppressionReason(sb, {
+    recipientEmail,
+    subject,
+    notificationType,
+    priority,
+    meta,
+  });
 
-  // Opt-out is honoured HERE, for every caller. Checked before anything is
-  // built or claimed, so an unsubscribed address costs nothing and leaves no
-  // half-written log row. A failed lookup refuses the send rather than
-  // guessing: mailing someone who opted out cannot be undone.
-  // An unsubscribe link is signed with UNSUBSCRIBE_SECRET (or CRON_SECRET).
-  // With neither set the token is empty and /api/unsubscribe rejects every
-  // click, so the mail would carry an opt-out that silently does nothing.
-  // Refuse to send rather than ship a dead unsubscribe: a misconfigured
-  // environment must not be able to put unopt-outable marketing in an inbox.
-  if (isMarketing && !/&t=.+$/.test(unsubscribeUrl(recipientEmail))) {
-    console.error('[email] marketing send blocked: UNSUBSCRIBE_SECRET/CRON_SECRET is not set, so the unsubscribe link cannot be signed');
-    return { ok: false, error: 'Unsubscribe links cannot be signed in this environment. No marketing email was sent.' };
+  if (suppressionReason) {
+    await insertNotificationLog(sb, {
+      channel: 'email',
+      booking_id: meta.bookingId || null,
+      notification_type: notificationType,
+      recipient_type: recipientType,
+      recipient_email: recipientEmail,
+      recipient_user_id: meta.recipientUserId || null,
+      subject,
+      status: 'suppressed',
+      provider_id: null,
+      error_text: suppressionReason,
+    });
+    return { ok: true, suppressed: true, reason: suppressionReason };
   }
 
-  if (isMarketing) {
-    const { data: suppressed, error: suppressErr } = await sb
-      .from('email_suppressions').select('email')
-      .eq('email', normalizeSuppressionEmail(recipientEmail)).maybeSingle();
-    if (suppressErr) return { ok: false, error: 'Could not verify the opt-out list. Nothing was sent.' };
-    if (suppressed) return { ok: true, suppressed: true, reason: 'unsubscribed', notificationType };
-  }
-
-  // Marketing mail carries the two CAN-SPAM must-haves: a physical postal
-  // address and a one-click unsubscribe that opts out this address alone.
-  // The broadcast tool and the follow-up cron already append it themselves, so
-  // only add it when genuinely absent: two unsubscribe links in one email looks
-  // broken and invites the reader to distrust both.
-  const alreadyHasOptOut = /\/api\/unsubscribe/.test(String(html || ''));
-  const bodyHtml = isMarketing && !alreadyHasOptOut
-    ? `${html}${broadcastFooter(recipientEmail)}`
-    : html;
-  const body = { from, to: [recipientEmail], subject,
-    html: ensureEmailShell(bodyHtml, recipientType, meta.preheader), text: htmlToText(bodyHtml) };
+  const body = { from, to: Array.isArray(to) ? to : [to], subject, html };
   if (replyTo) body.reply_to = replyTo;
-  const oneClick = typeof meta.listUnsubscribe === 'string' && /^https:\/\//.test(meta.listUnsubscribe)
-    ? meta.listUnsubscribe
-    : isMarketing ? unsubscribeUrl(recipientEmail) : null;
-  if (oneClick) {
-    body.headers = { 'List-Unsubscribe': `<${oneClick}>, <mailto:service@assembleatease.com?subject=unsubscribe>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
-  } else if (priority === 'bulk') {
-    body.headers = { 'List-Unsubscribe': '<mailto:service@assembleatease.com?subject=unsubscribe>, <https://www.assembleatease.com/contact?subject=Email%20Preferences>' };
-  }
-  const prepared = await prepareNotification(sb, { channel: 'email', recipient: recipientEmail, subject, meta: context,
-    payload: { kind: 'email', body, original: { to: recipientEmail, from, subject, html, replyTo } } });
-  if (!prepared.claim) return prepared;
-  const claim = prepared.claim;
-  // Always reuse the frozen provider request with its key, even if the caller
-  // rebuilds a signed link or template while retrying an uncertain request.
-  let status = 'provider_accepted', providerId = null, errorText = null, retryable = false;
+
+  let providerId = null;
+  let status = 'sent';
+  let errorText = null;
+
   try {
     const resp = await fetch('https://api.resend.com/emails', {
-      method: 'POST', signal: AbortSignal.timeout(20000),
-      headers: { Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json', 'Idempotency-Key': claim.key },
-      body: JSON.stringify(claim.payload.body),
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
-    const response = await resp.json().catch(() => ({}));
     if (!resp.ok) {
+      errorText = await resp.text();
       status = 'failed';
-      errorText = response.message || `Email provider rejected the send (HTTP ${resp.status}).`;
-      retryable = resp.status === 429 || resp.status >= 500 || (resp.status === 409 && response.name === 'concurrent_idempotent_requests');
-    } else if (!response.id) {
-      status = 'failed'; errorText = 'Email provider response had no message reference.'; retryable = true;
-    } else providerId = response.id;
-  } catch (error) {
-    status = 'failed'; errorText = error?.message || 'Email request timed out.'; retryable = true;
+      console.error('Resend error:', errorText);
+    } else {
+      const data = await resp.json().catch(() => ({}));
+      providerId = data?.id || null;
+    }
+  } catch (fetchErr) {
+    errorText = fetchErr.message;
+    status = 'failed';
+    console.error('Resend fetch error:', fetchErr.message);
   }
-  const logged = await settleNotification(sb, claim, { status, providerId, error: errorText, retryable });
-  if (providerId) await reconcileEarlyProviderEvent(sb, providerId);
-  return status === 'provider_accepted'
-    ? { ok: true, providerAccepted: true, deliveryStatus: status, providerId, notificationType, priority, logged: logged.ok, logError: logged.error }
-    : { ok: false, error: errorText, retryScheduled: logged.ok && retryable && claim.attempt < 4, logged: logged.ok, logError: logged.error };
+
+  // Non-blocking log — never let logging failure break the caller
+  await insertNotificationLog(sb, {
+    channel: 'email',
+    booking_id: meta.bookingId || null,
+    notification_type: notificationType,
+    recipient_type: recipientType,
+    recipient_email: recipientEmail,
+    recipient_user_id: meta.recipientUserId || null,
+    subject,
+    status,
+    provider_id: providerId,
+    error_text: errorText,
+  });
+
+  if (status === 'failed') return { ok: false, error: errorText };
+  return { ok: true, providerId, notificationType, priority };
 }
 
 export function ownerEmail() {
@@ -265,7 +267,11 @@ function recordOwnerAuthSuccess(req) {
   ownerAuthAttempts.delete(key);
 }
 
-export function verifyOwnerPassword(req, suppliedPassword) {
+/**
+ * Verify owner authorization via password header.
+ * Returns true if authorized.
+ */
+export function verifyOwner(req) {
   if (ownerAuthLocked(req)) return false;
 
   const pw = process.env.OWNER_PASSWORD;
@@ -274,7 +280,7 @@ export function verifyOwnerPassword(req, suppliedPassword) {
     return false;
   }
 
-  const provided = suppliedPassword ?? req.headers?.['x-owner-password'] ?? req.body?.ownerPassword;
+  const provided = req.headers['x-owner-password'] || req.body?.ownerPassword;
   if (!provided) {
     recordOwnerAuthFailure(req);
     return false;
@@ -300,190 +306,17 @@ export function verifyOwnerPassword(req, suppliedPassword) {
   }
 }
 
-const OWNER_SESSION_TTL_SECONDS = 8 * 60 * 60;
-
-function ownerSessionSecret() {
-  return String(process.env.OWNER_SESSION_SECRET || '').trim();
-}
-
-function signOwnerSessionPayload(encodedPayload) {
-  const secret = ownerSessionSecret();
-  if (secret.length < 32) return null;
-  return createHmac('sha256', secret).update(encodedPayload).digest('base64url');
-}
-
-export function createOwnerSessionToken() {
-  const now = Math.floor(Date.now() / 1000);
-  const payload = Buffer.from(JSON.stringify({
-    v: 1,
-    sub: 'owner',
-    iat: now,
-    exp: now + OWNER_SESSION_TTL_SECONDS,
-    nonce: randomBytes(16).toString('hex'),
-  })).toString('base64url');
-  const signature = signOwnerSessionPayload(payload);
-  if (!signature) return null;
-  return {
-    token: `${payload}.${signature}`,
-    expiresAt: new Date((now + OWNER_SESSION_TTL_SECONDS) * 1000).toISOString(),
-  };
-}
-
-function verifyOwnerSessionToken(token) {
-  const parts = String(token || '').split('.');
-  if (parts.length !== 2) return false;
-  const [payload, suppliedSignature] = parts;
-  const expectedSignature = signOwnerSessionPayload(payload);
-  if (!expectedSignature) return false;
-
-  try {
-    const a = Buffer.from(expectedSignature);
-    const b = Buffer.from(suppliedSignature);
-    if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
-    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    const now = Math.floor(Date.now() / 1000);
-    return decoded?.v === 1
-      && decoded?.sub === 'owner'
-      && Number.isInteger(decoded?.iat)
-      && Number.isInteger(decoded?.exp)
-      && decoded.iat <= now + 60
-      && decoded.exp > now
-      && decoded.exp - decoded.iat <= OWNER_SESSION_TTL_SECONDS;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Verify owner authorization using a short-lived signed bearer session.
- * Direct password headers remain available only outside production for local
- * operational scripts. Production accepts signed bearer sessions only.
- */
-export function verifyOwner(req) {
-  const authorization = String(req.headers?.authorization || '');
-  if (/^Bearer\s+/i.test(authorization)) {
-    return verifyOwnerSessionToken(authorization.replace(/^Bearer\s+/i, '').trim());
-  }
-
-  const allowLegacyPassword = process.env.VERCEL_ENV !== 'production';
-  return allowLegacyPassword ? verifyOwnerPassword(req) : false;
-}
-
 /**
  * Build a styled status email for customers.
  */
-/* ── The one email frame ────────────────────────────────────────────────────
- * Header and footer live here so every email looks like it came from the same
- * company. The wordmark is TEXT under the logo on purpose: Gmail and Outlook
- * block remote images by default, and a header that collapses to nothing when
- * images are off is not branding.
- */
-const EMAIL_HEADER = `  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
+export function buildStatusEmail({ customerName, ref, status, statusColor, statusBg, headline, bodyHtml }) {
+  const sName = esc(customerName);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
     <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
     <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
-  </td></tr></table>`;
-
-/* The opt-out line is for people who could reasonably want out. The owner
- * cannot unsubscribe from his own operational alerts, so telling him he can
- * would be noise. */
-function emailFooter(recipientType) {
-  const optOut = recipientType === 'owner'
-    ? ''
-    : `\n    <p style="margin:0;font-size:10px;color:#c4c4c4">This is a transactional email related to your booking. To opt out of non-essential emails, <a href="${SITE}/contact?subject=Email+Preferences" style="color:#a1a1aa;text-decoration:underline">contact us here</a>.</p>`;
-  return `  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
-    <img src="${LOGO}" alt="AssembleAtEase" width="28" height="28" style="border-radius:50%;display:inline-block"/>
-    <p style="margin:8px 0 4px;font-size:12px;font-weight:600;color:#71717a">AssembleAtEase</p>
-    <p style="margin:0 0 8px;font-size:11px;color:#a1a1aa;line-height:1.5">Professional Assembly &amp; Handyman Services<br/>Serving customers across Texas &bull; (979) 232-5139</p>
-    <p style="margin:0 0 6px;font-size:11px;color:#a1a1aa"><a href="${SITE}" style="color:#71717a;text-decoration:none">assembleatease.com</a> &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>${optOut}
-  </td></tr></table>`;
-}
-
-const EMAIL_DOC_OPEN = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">`;
-
-/* The inbox preview line. Without one, Gmail shows whatever text comes first —
- * which, now that every email has a logo, is the logo's alt text. The trailing
- * entities stop the client from dragging footer text into the preview. */
-function preheaderBlock(text) {
-  const line = String(text || '').trim();
-  if (!line) return '';
-  return `\n<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;height:0;width:0">${esc(line)}${'&#8204;&nbsp;'.repeat(60)}</div>`;
-}
-
-/* First real sentence of the email, used as the preview line when the caller
- * does not supply one. */
-export function derivePreheader(html, limit = 140) {
-  const text = htmlToText(html).split('\n').map(s => s.trim()).filter(Boolean)[0] || '';
-  if (text.length <= limit) return text;
-  return text.slice(0, limit - 1).replace(/\s+\S*$/, '') + '…';
-}
-
-const ENTITIES = {
-  '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&apos;': "'",
-  '&nbsp;': ' ', '&bull;': '·', '&mdash;': '—', '&ndash;': '–', '&rsquo;': '’',
-  '&lsquo;': '‘', '&ldquo;': '“', '&rdquo;': '”', '&hellip;': '…', '&#8204;': '',
-};
-
-/* A text/plain alternative. HTML-only mail scores worse with spam filters and
- * reads badly on watches and screen readers, and until now every email this
- * platform sent was HTML-only. */
-export function htmlToText(html) {
-  return String(html || '')
-    .replace(/<head[\s\S]*?<\/head>/gi, '')
-    .replace(/<(style|script)[\s\S]*?<\/\1>/gi, '')
-    .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_m, href, label) => {
-      const text = label.replace(/<[^>]+>/g, '').trim();
-      const url = href.replace(/^mailto:/i, '');
-      if (!text) return url;
-      return text === url ? text : `${text} (${url})`;
-    })
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|tr|h[1-6]|li|table)>/gi, '\n')
-    .replace(/<li\b[^>]*>/gi, '- ')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&#?\w+;/g, m => (m in ENTITIES ? ENTITIES[m] : m))
-    .split('\n').map(line => line.replace(/[ \t]+/g, ' ').trim()).join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-/* A caller that already built a whole document keeps it. Everything else is a
- * fragment and gets the frame — which is how 33 senders were shipping bare <p>
- * tags with no logo, no footer and no opt-out line. */
-export function isFullEmailDocument(html) {
-  return /<!DOCTYPE|<html[\s>]/i.test(String(html || ''));
-}
-
-export function ensureEmailShell(html, recipientType, preheader) {
-  const raw = String(html || '');
-  // A hand-rolled full document keeps its own layout, but it may not keep
-  // its own idea of a footer. Six of them shipped to customers and Easers
-  // with no phone number, no contact address and no opt-out line, because
-  // pass-through meant pass-through of the footer too. Rewriting six
-  // bespoke templates risks six new layout bugs; giving them the house
-  // footer does not, and it closes the whole class at once.
-  if (isFullEmailDocument(raw)) {
-    if (recipientType === 'owner' || /assembleatease\.com<\/a>|232-5139/.test(raw)) return raw;
-    const close = raw.lastIndexOf('</body>');
-    if (close === -1) return `${raw}${emailFooter(recipientType)}`;
-    return `${raw.slice(0, close)}${emailFooter(recipientType)}${raw.slice(close)}`;
-  }
-  const preview = preheader === undefined ? derivePreheader(raw) : preheader;
-  return `${EMAIL_DOC_OPEN}${preheaderBlock(preview)}
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-${EMAIL_HEADER}
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px;font-size:15px;line-height:1.7;color:#3f3f46">
-${raw}
   </td></tr></table>
-${emailFooter(recipientType)}
-</div></body></html>`;
-}
-
-export function buildStatusEmail({ customerName, ref, status, statusColor, statusBg, headline, bodyHtml, preheader }) {
-  const sName = esc(customerName);
-  const preview = preheader === undefined ? derivePreheader(bodyHtml) : preheader;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">${preheaderBlock(preview)}
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-${EMAIL_HEADER}
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">${headline}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin:20px 0"><tr><td style="padding:18px 20px">
@@ -497,13 +330,12 @@ ${EMAIL_HEADER}
       <a href="mailto:service@assembleatease.com" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Contact Us</a>
     </td></tr></table>
   </td></tr></table>
-${emailFooter('customer')}
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
+    <img src="${LOGO}" alt="AssembleAtEase" width="28" height="28" style="border-radius:50%;display:inline-block"/>
+    <p style="margin:8px 0 4px;font-size:12px;font-weight:600;color:#71717a">AssembleAtEase</p>
+    <p style="margin:0 0 8px;font-size:11px;color:#a1a1aa;line-height:1.5">Professional Assembly &amp; Handyman Services<br/>Austin, TX 78701 &bull; (737) 290-6129</p>
+    <p style="margin:0 0 6px;font-size:11px;color:#a1a1aa"><a href="${SITE}" style="color:#71717a;text-decoration:none">assembleatease.com</a> &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>
+    <p style="margin:0;font-size:10px;color:#c4c4c4">This is a transactional email related to your booking. To opt out of non-essential emails, <a href="${SITE}/contact?subject=Email+Preferences" style="color:#a1a1aa;text-decoration:underline">contact us here</a>.</p>
+  </td></tr></table>
 </div></body></html>`;
-}
-
-// Completion emails confirm the outcome only. The separate secure review
-// request collects the canonical platform review, then offers Google as an
-// optional second step after submission.
-export function buildReviewCta() {
-  return `<p style="margin:0 0 12px;font-size:15px;color:#52525b;line-height:1.7">We will send a separate secure review link so you can rate the service and share feedback.</p>`;
 }

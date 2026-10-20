@@ -12,6 +12,8 @@ const read = rel => readFile(new URL(`../${rel}`, import.meta.url), 'utf8').then
 assert.equal(easerPayoutDueCents({ status: 'completed', assembler_due: 95000, easer_bonus_cents: 2000, easer_reimbursement_cents: 18900 }), 115900,
   'a completed job pays earnings + bonus + reimbursement');
 assert.equal(easerPayoutDueCents({ status: 'completed', assembler_due: 95000 }), 95000, 'missing extras count as zero');
+assert.equal(easerPayoutDueCents({ status: 'completed', assembler_due: 94710, easer_reimbursement_cents: 3000 }), 97710,
+  'the completion email total includes a $30 reimbursement without adding it to earnings');
 assert.equal(easerPayoutDueCents({ status: 'cancelled', cancellation_easer_due_cents: 4000, easer_bonus_cents: 2000, easer_reimbursement_cents: 18900 }), 4000,
   'a cancellation pays only the cancellation share');
 console.log('PASS easerPayoutDueCents: earnings + bonus + reimbursement; cancellations carry neither');
@@ -65,9 +67,28 @@ assert.match(endpoint, /PAYOUT_ALREADY_SENT/, 'fixed once paid');
 assert.match(endpoint, /\.is\('financial_operation_key', null\)/, 'never changed under a payout in progress');
 assert.match(endpoint, /\.or\('payout_status\.is\.null,payout_status\.not\.in\.\(paid,transferred\)'\)/, 'unfinished jobs with no payout status can be reimbursed');
 assert.match(endpoint, /notificationType: 'easer_reimbursement_added'/, 'the Easer is told in writing');
+assert.match(endpoint, /easerPayoutDueCents\(\{ \.\.\.booking, easer_reimbursement_cents: amount \}\)/,
+  'a reimbursement added after completion uses the canonical total payout');
+assert.match(endpoint, /Total payout/, 'a completed-job reimbursement email shows the updated total');
+assert.match(endpoint, /Earnings<\/td>/, 'the completed-job reimbursement email keeps earnings distinct');
 const owner = await read('owner/index.html');
 assert.match(owner, /fetch\('\/api\/owner\/easer-reimbursement'/, 'the owner dashboard sets it through the endpoint');
 console.log('PASS owner endpoint and dashboard');
+
+// ── Completion email itemizes all money included in the payout ───────────────
+{
+  const completion = await read('api/booking/assembler-complete.js');
+  assert.match(completion, /easerPayoutDueCents\(\{\s*\.\.\.booking,\s*status: BOOKING_STATUS\.COMPLETED,\s*assembler_due: assemblerDue,?\s*\}\)/,
+    'the email total uses the canonical Easer payout calculation');
+  assert.match(completion, /Total payout/, 'the headline is the full payout, not earnings alone');
+  assert.match(completion, /Earnings\$\{sameDay\.bonusCents/,
+    'the earnings row labels an included same-day bonus');
+  assert.match(completion, /Bonus<\/td>/, 'owner-funded bonus is shown separately');
+  assert.match(completion, /Reimbursement<\/td>/, 'the reimbursement is shown separately');
+  assert.match(completion, /reimbursement repays your approved job expense and is separate from earnings/,
+    'the reimbursement is clearly distinguished from earnings');
+}
+console.log('PASS Easer completion email: canonical total with separate earnings, bonus and reimbursement');
 
 // ── The Easer sees it beside earnings, never inside them ───────────────────
 {

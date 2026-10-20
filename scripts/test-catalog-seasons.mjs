@@ -10,12 +10,46 @@
 //   - the day is decided in Central time.
 
 import assert from 'node:assert/strict';
-import { getBookingCatalog } from '../api/_pricing.js';
+import { readFileSync } from 'node:fs';
+import { calculateBookingPricing, getBookingCatalog } from '../api/_pricing.js';
 import { activeSeason } from '../api/booking/catalog.js';
 
 const catalog = getBookingCatalog();
 const seasons = catalog.seasons || [];
 assert.ok(seasons.length >= 4, 'seasons are defined');
+
+// Line-voltage work is outside the service scope. This source catalog also
+// drives server-side price validation, so removed items cannot be submitted by
+// a stale or hand-built booking request.
+const smartHomeItems = new Set(
+  (catalog.subcategories['Smart Home'] || []).flatMap(group => group.items.map(item => item.name))
+);
+const excludedElectricalItems = [
+  'Smart switch install (per switch)',
+  'Smart dimmer install (per switch)',
+  'Floodlight camera (hardwired replacement)',
+  'Outdoor smart lighting (per fixture)',
+];
+for (const item of excludedElectricalItems) {
+  assert.ok(!smartHomeItems.has(item), `"${item}" is not bookable`);
+  const result = calculateBookingPricing({
+    services: ['Smart Home'],
+    itemsByService: { 'Smart Home': [{ name: item, qty: 1 }] },
+    zip: '78701',
+  });
+  assert.ok(result.invalidItems.includes(`Smart Home: ${item}`), `the server rejects "${item}"`);
+}
+for (const item of [
+  'Smart thermostat — Nest, Ecobee, Honeywell',
+  'Smart doorbell — wireless / battery-powered',
+  'Smart doorbell (hardwired replacement)',
+]) {
+  assert.ok(smartHomeItems.has(item), `"${item}" remains bookable`);
+}
+const smartHomePage = readFileSync(new URL('../smart-home-installation-austin-tx.html', import.meta.url), 'utf8');
+assert.match(smartHomePage, /battery-powered, plug-in, and low-voltage devices/);
+assert.match(smartHomePage, /do not install devices that connect to household electrical wiring/);
+assert.doesNotMatch(smartHomePage, /switches and hubs|wire it, and set it up/);
 
 const bookable = new Set();
 for (const [service, groups] of Object.entries(catalog.subcategories || {})) {

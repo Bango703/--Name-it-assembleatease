@@ -8,20 +8,14 @@ window.AAE_BOOKING_SOURCE = {
     state: 'TX',
     label: 'Statewide Texas service',
     statewideTexas: true,
-    // zipPrefixes/zipCodes describe the AUTO-DISPATCH area (Austin and San
-    // Antonio), not who may book. Booking is open statewide; anything outside
-    // this area books but needs owner assignment. Mirrors
-    // AUTOMATIC_DISPATCH_ZIP_PREFIXES / AUTOMATIC_DISPATCH_ZIPS in
-    // api/_source-of-truth.js; scripts/test-dispatch-area-parity.mjs fails if
-    // they drift.
-    zipPrefixes: ['782', '787'],
+    // zipPrefixes/zipCodes describe the Austin AUTO-DISPATCH area, not who may
+    // book. Booking is open statewide (see isActiveServiceZip); anything outside
+    // this area books but needs owner assignment.
+    zipPrefixes: ['787'],
     zipCodes: [
-      // Austin suburbs
       '78610', '78613', '78626', '78628', '78630', '78633', '78634',
       '78640', '78641', '78645', '78646', '78653', '78660', '78664',
       '78665', '78680', '78681', '78682', '78683', '78691',
-      // San Antonio metro towns outside the 782 prefix
-      '78006', '78015', '78108', '78130', '78132', '78148', '78154',
     ],
   },
   // Same-day service fee — the SERVER is the single source of truth. book.html
@@ -127,73 +121,6 @@ window.AAE_BOOKING_SOURCE = {
       seoDescription: 'Crib, dresser, and nursery storage assembled and safely anchored in one visit. Flat, upfront pricing and no charge until the job is done.',
     },
   ],
-  // Seasonal picks for the app's Home: one season at a time, chosen on the server
-  // by today's date in Central time (api/booking/catalog.js activeSeason). Each
-  // item is a real {service, name} in `subcategories`, priced exactly as booked;
-  // from/to are MM-DD, inclusive. Every day of the year belongs to one season.
-  // symbol is an SF Symbol name the app draws beside the title.
-  seasons: [
-    {
-      slug: 'new-year-home-gym', title: 'New year, home gym', symbol: 'dumbbell.fill', from: '01-01', to: '02-29',
-      items: [
-        { service: 'Fitness Equipment', name: 'Treadmill assembly' },
-        { service: 'Fitness Equipment', name: 'Exercise bike / Peloton-style bike' },
-        { service: 'Fitness Equipment', name: 'Rowing machine' },
-        { service: 'Fitness Equipment', name: 'Weight bench' },
-        { service: 'Fitness Equipment', name: 'Power rack / squat rack' },
-      ],
-    },
-    {
-      slug: 'backyard-season', title: 'Backyard season', symbol: 'tree.fill', from: '03-01', to: '05-31',
-      items: [
-        { service: 'Outdoor & Playsets', name: 'Swing set / backyard playset assembly' },
-        { service: 'Outdoor & Playsets', name: 'Trampoline assembly (up to 10 ft)' },
-        { service: 'Outdoor & Playsets', name: 'Grill (gas / charcoal assembly)' },
-        { service: 'Outdoor & Playsets', name: 'Outdoor dining set (table + 4 chairs)' },
-        { service: 'Outdoor & Playsets', name: 'Patio umbrella + base' },
-      ],
-    },
-    {
-      slug: 'beat-the-heat', title: 'Beat the heat', symbol: 'thermometer.sun.fill', from: '06-01', to: '07-14',
-      items: [
-        { service: 'Smart Home', name: 'Smart thermostat — Nest, Ecobee, Honeywell' },
-        { service: 'Smart Home', name: 'Smart AC controller (window / mini-split)' },
-        { service: 'Smart Home', name: 'Smart vent install (per vent)' },
-        { service: 'Mounting & Hanging', name: 'Cellular shade / roller shade install (per window)' },
-        { service: 'Mounting & Hanging', name: 'Motorized blind / shade install (per window)' },
-      ],
-    },
-    {
-      slug: 'back-to-school', title: 'Back to school', symbol: 'backpack.fill', from: '07-15', to: '08-31',
-      items: [
-        { service: 'Furniture Assembly', name: 'Home desk (simple, flat-pack)' },
-        { service: 'Furniture Assembly', name: 'Home office chair (standard)' },
-        { service: 'Furniture Assembly', name: 'Home bookcase / shelving unit (up to 5 shelves)' },
-        { service: 'Furniture Assembly', name: 'Bunk bed / loft bed' },
-        { service: 'Furniture Assembly', name: 'Bed frame — twin / full' },
-      ],
-    },
-    {
-      slug: 'game-day-ready', title: 'Game day ready', symbol: 'football.fill', from: '09-01', to: '11-14',
-      items: [
-        { service: 'Mounting & Hanging', name: 'TV 56"–65" (standard wall)' },
-        { service: 'Mounting & Hanging', name: 'TV 66"–75" (standard wall)' },
-        { service: 'Mounting & Hanging', name: 'In-wall cord concealment' },
-        { service: 'Smart Home', name: 'TV streaming device setup (Apple TV, Roku, Fire)' },
-        { service: 'Furniture Assembly', name: 'Bar stool (per 2 stools)' },
-      ],
-    },
-    {
-      slug: 'holiday-gifts', title: 'Holiday gifts, assembled', symbol: 'gift.fill', from: '11-15', to: '12-31',
-      items: [
-        { service: 'Outdoor & Playsets', name: 'Swing set / backyard playset assembly' },
-        { service: 'Outdoor & Playsets', name: 'Trampoline assembly (up to 10 ft)' },
-        { service: 'Outdoor & Playsets', name: 'Basketball hoop assembly (portable)' },
-        { service: 'Fitness Equipment', name: 'Exercise bike / Peloton-style bike' },
-        { service: 'Furniture Assembly', name: 'Bunk bed / loft bed' },
-      ],
-    },
-  ],
   subcategories: {
     'Furniture Assembly': [
       { group: 'Seating & Sofas', items: [
@@ -273,16 +200,10 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Second TV (same visit)', price: 69, addon: true, tags: ['convenience'], appliesTo: ['tv'], recoLabel: 'Add a second TV', recoWhy: 'Cheaper than booking another trip' }
       ]},
       { group: 'Wall Type Upgrades', items: [
-        // Masonry needs a hammer drill, masonry bits, concrete anchors and the
-        // extra labour that goes with them, and it is unforgiving if done
-        // wrong. Was 75, well under the 100-150 the trade charges.
-        { name: 'Brick or concrete wall', price: 110, addon: true },
+        { name: 'Brick or concrete wall', price: 75, addon: true },
         { name: 'Tile wall', price: 65, addon: true },
         { name: 'Steel stud / metal framing', price: 55, addon: true },
-        // The hardest mount on the menu: height, heat exposure, stone or brick,
-        // ladder work and awkward cable routing. Was 85, against a trade rate
-        // of 125-200.
-        { name: 'Above fireplace mount', price: 175, addon: true }
+        { name: 'Above fireplace mount', price: 85, addon: true }
       ]},
       { group: 'Cable & Cord Management', items: [
         { name: 'Surface cord cover (raceway, up to 6 ft)', price: 89, tags: ['upgrade'], appliesTo: ['tv'], recoLabel: 'Hide the cords', recoWhy: 'Cleaner finish without opening drywall' },

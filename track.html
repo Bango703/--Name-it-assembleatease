@@ -33,7 +33,7 @@
 .page-hero{background:linear-gradient(160deg,#002d38 0%,#00566a 55%,#0099CC 100%);padding:4rem 2rem;text-align:center}
 .page-hero-inner{max-width:560px;margin:0 auto}
 .page-back{display:inline-block;font-size:0.82rem;color:rgba(255,255,255,0.65);text-decoration:none;margin-bottom:1rem;transition:color 0.15s}
-@media (hover: hover) and (pointer: fine){.page-back:hover{color:#fff}}
+.page-back:hover{color:#fff}
 .page-title{font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;margin-bottom:0.6rem}
 .page-desc{font-size:0.95rem;color:rgba(255,255,255,0.75);line-height:1.7}
 
@@ -78,12 +78,6 @@
 .price-breakdown-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:1rem;align-items:start}
 .price-breakdown-value{color:var(--ink);text-align:right;white-space:nowrap}
 .price-breakdown-value.strong{font-weight:700}
-.pay-due{margin-top:1rem;padding-top:0.95rem;border-top:1px solid var(--border)}
-.pay-due-label{color:#b91c1c}
-.pay-due-value{color:#b91c1c}
-.pay-due-btn{margin-top:0.85rem;text-decoration:none}
-.pay-due-line{font-size:0.86rem;color:#b91c1c;font-weight:600;line-height:1.5}
-.price-label.is-due,.price-value.is-due{color:#b91c1c}
 .booking-card-actions{padding:1.5rem 2rem;display:flex;flex-direction:column;gap:0.75rem}
 .booking-communication{margin-top:1rem;padding:1.25rem;background:#fff;border:1.5px solid var(--border);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.06);display:none}
 .booking-communication h2{font-family:var(--font-display);font-size:1.25rem;color:var(--ink);margin:0 0 .35rem}
@@ -96,17 +90,17 @@
 .customer-photos{display:flex;gap:.5rem;flex-wrap:wrap;margin:.8rem 0}.customer-photos img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
 .customer-communication-actions{display:flex;gap:.55rem;align-items:center;flex-wrap:wrap;margin-top:.55rem}.customer-communication-status{font-size:.78rem;color:var(--muted);line-height:1.4}
 .btn-cancel-booking{width:100%;padding:0.85rem;background:#fef2f2;color:#991b1b;border:1.5px solid #fecaca;border-radius:10px;font-family:var(--font-body);font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px}
-@media (hover: hover) and (pointer: fine){.btn-cancel-booking:hover{background:#fee2e2;border-color:#fca5a5}}
+.btn-cancel-booking:hover{background:#fee2e2;border-color:#fca5a5}
 .btn-cancel-booking:disabled{opacity:0.5;cursor:not-allowed}
 .btn-portal{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:0.85rem;background:transparent;color:var(--ink-soft);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.18s;text-decoration:none}
-@media (hover: hover) and (pointer: fine){.btn-portal:hover{background:var(--off-white);border-color:#cbd5e1;color:var(--ink)}}
+.btn-portal:hover{background:var(--off-white);border-color:#cbd5e1;color:var(--ink)}
 .cancel-fee-warn{background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:0.85rem 1rem;font-size:0.83rem;color:#92400e;line-height:1.6;display:none}
 .cancel-fee-warn strong{display:block;margin-bottom:3px;font-size:0.88rem}
 .track-help{text-align:center;margin-top:1.5rem;font-size:0.85rem;color:var(--muted)}
 .track-help a{color:var(--cyan-dark);font-weight:600;text-decoration:none}
-@media (hover: hover) and (pointer: fine){.track-help a:hover{text-decoration:underline}}
+.track-help a:hover{text-decoration:underline}
 .new-lookup-btn{display:block;text-align:center;margin-top:2rem;background:none;border:none;font-family:var(--font-body);font-size:0.85rem;font-weight:600;color:var(--muted);cursor:pointer;text-decoration:underline;width:100%}
-@media (hover: hover) and (pointer: fine){.new-lookup-btn:hover{color:var(--ink)}}
+.new-lookup-btn:hover{color:var(--ink)}
 .form-info{display:none;margin-top:1rem;background:#ecfdf5;border:1.5px solid #86efac;color:#166534;border-radius:10px;padding:0.75rem 0.9rem;font-size:0.82rem;line-height:1.5}
 .track-tools{padding:3rem 2rem 5rem;background:var(--off-white)}
 .track-tools-inner{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:minmax(0,0.95fr) minmax(320px,0.85fr);gap:1.25rem;align-items:stretch}
@@ -121,7 +115,7 @@
 .track-alt-divider::before,.track-alt-divider::after{content:'';flex:1;height:1px;background:var(--border)}
 #tcChooser{display:flex;flex-direction:column;gap:0.5rem;margin-top:0.9rem}
 .tc-choice{text-align:left;border:1.5px solid var(--border);border-radius:12px;padding:0.7rem 0.85rem;background:#fff;cursor:pointer;font:inherit;transition:border-color .15s,background .15s}
-@media (hover: hover) and (pointer: fine){.tc-choice:hover{border-color:var(--cyan);background:var(--off-white)}}
+.tc-choice:hover{border-color:var(--cyan);background:var(--off-white)}
 .tc-choice-service{font-weight:700;color:var(--ink);font-size:0.9rem}
 .tc-choice-meta{font-size:0.78rem;color:var(--muted);margin-top:2px}
 .track-tool-kicker{display:inline-flex;align-items:center;font-size:0.72rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-dark)}
@@ -139,7 +133,7 @@
 .ac-secondary{margin-top:0.6rem}
 .track-side-link{text-align:left;margin-top:1rem;font-size:0.83rem;color:var(--muted)}
 .track-side-link a{color:var(--cyan-dark);font-weight:700;text-decoration:none}
-@media (hover: hover) and (pointer: fine){.track-side-link a:hover{text-decoration:underline}}
+.track-side-link a:hover{text-decoration:underline}
 
 /* ── CONFIRM CANCEL MODAL ───────────────────────────────── */
 .cancel-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
@@ -151,10 +145,10 @@
 .cancel-modal-desc{font-size:0.9rem;color:var(--muted);line-height:1.7;margin-bottom:1.5rem}
 .cancel-modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem}
 .btn-confirm-cancel{padding:0.85rem;background:#dc2626;color:#fff;border:none;border-radius:10px;font-family:var(--font-body);font-size:0.9rem;font-weight:700;cursor:pointer;transition:all 0.18s}
-@media (hover: hover) and (pointer: fine){.btn-confirm-cancel:hover{background:#b91c1c}}
+.btn-confirm-cancel:hover{background:#b91c1c}
 .btn-confirm-cancel:disabled{opacity:0.6;cursor:not-allowed}
 .btn-keep-booking{padding:0.85rem;background:var(--off-white);color:var(--ink);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.18s}
-@media (hover: hover) and (pointer: fine){.btn-keep-booking:hover{background:#e2e8f0}}
+.btn-keep-booking:hover{background:#e2e8f0}
 .cancel-modal-result{text-align:center;padding:0.5rem 0;display:none}
 .cancel-modal-result-icon{font-size:2.5rem;margin-bottom:0.75rem}
 .cancel-modal-result-title{font-family:var(--font-display);font-size:1.2rem;color:var(--ink);margin-bottom:0.4rem}
@@ -179,7 +173,6 @@
 }
 </style>
 <script src="/assets/js/status-source-of-truth.js" defer></script>
-<script src="/assets/js/image-upload.js" defer></script>
   </head>
 <body>
 
@@ -368,36 +361,12 @@
           <span class="price-value" id="bPrice"></span>
         </div>
         <div id="priceBreakdown" class="price-breakdown" style="display:none"></div>
-        <!-- Shown only when the secure payment page would accept this booking,
-             so a customer who lost the email can still pay from here. -->
-        <div id="payDueBox" class="pay-due" style="display:none">
-          <!-- Only when part is already paid. If the whole total is outstanding
-               the figure above IS the amount due, and repeating it reads as a
-               second charge. -->
-          <div class="booking-total-row" id="payDueRow" style="display:none">
-            <span class="price-label pay-due-label">Amount due</span>
-            <span class="price-value pay-due-value" id="payDueAmount"></span>
-          </div>
-          <div class="pay-due-line">This payment did not go through.</div>
-          <a id="payDueLink" class="btn btn-cyan btn-full pay-due-btn" href="#">Update payment details</a>
-        </div>
+      </div>
+
       <!-- Cancel fee warning (shown if applicable) -->
       <div class="cancel-fee-warn" id="cancelFeeWarn">
         <strong>Cancellation fee applies</strong>
         <span id="cancelFeeMsg"></span>
-      </div>
-
-      <!-- A new time the pro proposed (api/booking/time-proposal.js) -->
-      <div id="proposalCard" style="display:none;margin:1rem 0;padding:1rem;border:1.5px solid var(--cyan, #00BFFF);border-radius:14px;background:#f0fbff">
-        <div style="font-weight:700;color:var(--ink);margin-bottom:0.35rem" id="proposalTitle">Your pro proposed a new time</div>
-        <div style="font-size:0.88rem;color:var(--muted)" id="proposalBooked"></div>
-        <div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin:0.25rem 0" id="proposalNew"></div>
-        <div style="font-size:0.85rem;color:var(--muted);margin-bottom:0.6rem" id="proposalNote"></div>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-          <button type="button" class="btn btn-cyan" id="proposalAccept" style="padding:0.7rem 1rem">Accept new time</button>
-          <button type="button" class="btn-portal" id="proposalKeep" style="width:auto;padding:0.7rem 1rem">Keep my time</button>
-        </div>
-        <div style="font-size:0.8rem;margin-top:0.5rem" id="proposalStatus" role="status"></div>
       </div>
 
       <!-- Actions -->
@@ -419,7 +388,7 @@
 
     <section class="booking-communication" id="bookingCommunication" aria-labelledby="bookingCommunicationTitle">
       <h2 id="bookingCommunicationTitle">Message about your booking</h2>
-      <p class="booking-communication-copy" id="bookingCommunicationCopy">Send a note to the AssembleAtEase team. Your message and any photos stay private to your booking.</p>
+      <p class="booking-communication-copy">Send a note to the AssembleAtEase team. Your message and any photos stay private to your booking.</p>
       <div class="customer-thread" id="customerThread" aria-live="polite"></div>
       <div class="customer-photos" id="customerPhotos"></div>
       <div class="customer-compose">
@@ -688,13 +657,8 @@ async function lookupBooking(e) {
       });
       const linkData = await linkResponse.json();
       if (!linkResponse.ok) throw new Error(linkData.error || 'Could not request a secure link.');
-      infoEl.textContent = autoLookupPending
-        ? 'That link has expired, so we have emailed you a fresh one. You can also get straight in with a code below.'
-        : linkData.message;
+      infoEl.textContent = linkData.message;
       infoEl.style.display = 'block';
-      // A dead end is what sent people hunting for the code box themselves.
-      // Offer the second door here, with their email already filled in.
-      offerCodeEntry(email);
       autoLookupPending = false;
       return;
     }
@@ -724,18 +688,6 @@ async function lookupBooking(e) {
 // Customer proves they own the inbox with a 6-digit code, then jumps straight in.
 // The token returned per booking is an ordinary mutation token, so view /
 // reschedule / cancel still run through the same rule-enforcing endpoints.
-// A lookup that cannot authenticate leaves the customer with nothing to do.
-// Put them one tap from the code path instead of making them find it.
-function offerCodeEntry(email) {
-  try {
-    var input = document.getElementById('tc-email');
-    if (input && email && !input.value) input.value = email;
-    var card = document.querySelector('.track-code-alt');
-    if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    if (input && input.focus) input.focus({ preventScroll: true });
-  } catch (_) { /* the code panel is always on the page; this is only a nudge */ }
-}
-
 function tcReset() {
   document.getElementById('tcStepCode').style.display = 'none';
   document.getElementById('tcChooser').style.display = 'none';
@@ -806,55 +758,7 @@ function tcLoadBooking(email, b) {
 }
 
 // ── Render ─────────────────────────────────────────────────
-function renderProposal(b) {
-  var card = document.getElementById('proposalCard');
-  if (!card) return;
-  var p = b && b.easer_time_proposal;
-  if (!p || !currentMutationToken) { card.style.display = 'none'; return; }
-  document.getElementById('proposalTitle').textContent = (b.pro_first_name || 'Your pro') + ' proposed a new time';
-  document.getElementById('proposalBooked').textContent = 'Booked: ' + formatDate(b.date) + (b.time ? ' at ' + b.time : '');
-  document.getElementById('proposalNew').textContent = 'Proposed: ' + formatDate(p.date) + ' at ' + p.time;
-  document.getElementById('proposalNote').textContent = p.note || '';
-  document.getElementById('proposalStatus').textContent = '';
-  card.setAttribute('data-proposal-id', p.id);
-  card.setAttribute('data-date', p.date);
-  card.setAttribute('data-time', p.time);
-  card.style.display = 'block';
-}
-
-async function answerProposal(accept) {
-  var card = document.getElementById('proposalCard');
-  var status = document.getElementById('proposalStatus');
-  var buttons = [document.getElementById('proposalAccept'), document.getElementById('proposalKeep')];
-  buttons.forEach(function(b) { b.disabled = true; });
-  status.style.color = 'var(--muted)';
-  status.textContent = 'Saving…';
-  try {
-    var proposalId = card.getAttribute('data-proposal-id');
-    var res = accept
-      ? await fetch('/api/booking/reschedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: currentEmail, ref: currentBooking.ref, token: currentMutationToken, date: card.getAttribute('data-date'), time: card.getAttribute('data-time'), proposalId: proposalId }) })
-      : await fetch('/api/booking/time-proposal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'decline', email: currentEmail, ref: currentBooking.ref, token: currentMutationToken, proposalId: proposalId }) });
-    var data = await res.json().catch(function() { return {}; });
-    if (!res.ok) throw new Error(data.error || 'That did not go through. Try again.');
-    if (data.guestMutationToken) currentMutationToken = data.guestMutationToken;
-    card.style.display = 'none';
-    await silentRefreshBooking();
-  } catch (error) {
-    status.style.color = '#991b1b';
-    status.textContent = error.message;
-    buttons.forEach(function(b) { b.disabled = false; });
-  }
-}
-
-(function bindProposal() {
-  var accept = document.getElementById('proposalAccept');
-  var keep = document.getElementById('proposalKeep');
-  if (accept) accept.addEventListener('click', function() { answerProposal(true); });
-  if (keep) keep.addEventListener('click', function() { answerProposal(false); });
-})();
-
 function renderBooking(b) {
-  renderProposal(b);
   document.getElementById('bRef').textContent      = b.ref;
   document.getElementById('bService').textContent  = b.service;
   document.getElementById('bName').textContent     = b.customer_name;
@@ -875,56 +779,55 @@ function renderBooking(b) {
       returnScope.style.display = 'none';
     }
   }
-  // The price breakdown comes worked out from the server
-  // (api/booking/_customer-payment-summary.js), the same one the app shows.
-  var summary = b.payment_summary || { total_label: 'Booking Total', total_cents: 0, rows: [], note: null };
-  document.getElementById('bPriceLabel').textContent = summary.total_label;
-  document.getElementById('bPrice').textContent    = summary.total_cents ? formatUsdCents(summary.total_cents) : '—';
+  var isOwnerManualPayment = b.owner_manual_payment === true;
+  var displayTotal = isOwnerManualPayment
+    ? b.total_price
+    : (b.amount_charged != null ? b.amount_charged : b.total_price);
+  var paymentStatus = String(b.payment_status || '');
+  var totalLabel = isOwnerManualPayment
+    ? 'Booking Total'
+    : ['captured','partially_refunded','refunded','cancellation_fee_captured'].includes(paymentStatus)
+    ? 'Total Charged'
+    : (paymentStatus === 'authorized' ? 'Total Authorized' : (paymentStatus === 'deposit_paid' ? 'Deposit Paid' : 'Booking Total'));
+  document.getElementById('bPriceLabel').textContent = totalLabel;
+  document.getElementById('bPrice').textContent    = displayTotal ? formatUsdCents(displayTotal) : '—';
+
+  // Customer breakdown — subtotal / service call / tax / total (reconciles to total).
   (function(){
     var bd = document.getElementById('priceBreakdown');
     if (!bd) return;
-    if (!summary.rows.length) { bd.style.display = 'none'; return; }
-    bd.textContent = '';
-    summary.rows.forEach(function(r){
-      var row = document.createElement('div'); row.className = 'price-breakdown-row';
-      var label = document.createElement('span'); label.textContent = r.label;
-      var value = document.createElement('span'); value.className = 'price-breakdown-value' + (r.strong ? ' strong' : '');
-      value.textContent = formatUsdCents(r.cents);
-      row.appendChild(label); row.appendChild(value); bd.appendChild(row);
-    });
-    if (summary.note) {
-      var note = document.createElement('div');
-      note.style.cssText = 'margin-top:0.55rem;font-size:0.75rem;color:#475569;line-height:1.45';
-      note.textContent = summary.note;
-      bd.appendChild(note);
+    var total = Number(displayTotal) || 0;
+    var rawRefunded = Math.max(0, Number(b.refund_amount) || 0);
+    var refunded = isOwnerManualPayment ? rawRefunded : Math.min(total, rawRefunded);
+    var tax   = Number(b.tax_amount) || 0;
+    var call  = Number(b.service_call_fee) || 0;
+    if (total <= 0) { bd.style.display = 'none'; return; }
+    var serviceItems = Math.max(0, total - tax - call);
+    function money(c){ return formatUsdCents(c); }
+    function row(label, val, strong){
+      return '<div class="price-breakdown-row">'
+        + '<span>' + label + '</span>'
+        + '<span class="price-breakdown-value' + (strong ? ' strong' : '') + '">' + money(val) + '</span></div>';
+    }
+    var serviceRows =
+        row('Service &amp; items', serviceItems)
+      + (call > 0 ? row('Service call fee', call) : '')
+      + (tax  > 0 ? row('Sales tax', tax) : '');
+    if (isOwnerManualPayment) {
+      var grossPayments = Math.max(0, Number(b.gross_payment_cents) || 0);
+      var netPayments = Math.max(0, Number(b.amount_collected_cents) || 0);
+      bd.innerHTML = serviceRows
+        + row('Booking total', total, true)
+        + (grossPayments > 0 ? row('Payment received (gross)', grossPayments) : '')
+        + (refunded > 0 ? row('Refunded', -refunded) : '')
+        + (grossPayments > 0 || refunded > 0 ? row('Net payments retained', netPayments) : '')
+        + row('Remaining amount due', Number(b.remaining_balance_cents) || 0, true)
+        + (refunded > 0 ? '<div style="margin-top:0.55rem;font-size:0.75rem;color:#475569;line-height:1.45">The refund shown above does not create a new amount due.</div>' : '');
+    } else {
+      bd.innerHTML = serviceRows
+        + (refunded > 0 ? row('Refunded', -refunded) + row('Net charged after refund', total - refunded, true) : '');
     }
     bd.style.display = '';
-  })();
-  // Payment needed — same destination as the emailed secure link, reached from
-  // the page the customer already has open. The server decides whether this is
-  // possible; the page never guesses from payment_status.
-  (function () {
-    var box = document.getElementById('payDueBox');
-    if (!box) return;
-    if (!b.payment_action_required || !currentMutationToken) { box.style.display = 'none'; return; }
-    var totalCents = Number(summary.total_cents) || 0;
-    var remaining = Number(b.remaining_balance_cents) || 0;
-    var partlyPaid = remaining > 0 && remaining < totalCents;
-    if (partlyPaid) {
-      // A second figure is real information here: some of it is already paid.
-      document.getElementById('payDueAmount').textContent = formatUsdCents(remaining);
-      document.getElementById('payDueRow').style.display = '';
-    } else {
-      // The whole total is outstanding, so relabel the figure already on the
-      // card rather than printing the same number twice.
-      document.getElementById('payDueRow').style.display = 'none';
-      document.getElementById('bPriceLabel').textContent = 'Amount due';
-      document.getElementById('bPriceLabel').classList.add('is-due');
-      document.getElementById('bPrice').classList.add('is-due');
-    }
-    document.getElementById('payDueLink').href = '/api/booking/payment-recovery?bookingId='
-      + encodeURIComponent(b.id) + '&token=' + encodeURIComponent(currentMutationToken);
-    box.style.display = '';
   })();
   document.getElementById('bCreated').textContent  = 'Booked on ' + formatDate(b.created_at);
   var supportLink = document.getElementById('bookingSupportLink');
@@ -1035,9 +938,9 @@ function renderBooking(b) {
     }
   } else {
     cancelBtn.style.display = '';
-    const p = cancellationPreviewOf(b);
-    if (p && p.fee_cents > 0) {
-      document.getElementById('cancelFeeMsg').textContent = p.message + ' Estimated fee: ' + formatUsdCents(p.fee_cents) + '.';
+    const p = cancelFeeClient(b);
+    if (p.pct > 0) {
+      document.getElementById('cancelFeeMsg').textContent = p.msg + ' Estimated fee: ' + p.feeText + '.';
       feeWarn.style.display = 'block';
     } else {
       feeWarn.style.display = 'none';
@@ -1065,16 +968,7 @@ function setCustomerCommunicationStatus(message, isError) {
 function renderCustomerCommunication(messages, photos) {
   var section = document.getElementById('bookingCommunication');
   if (!section || !currentBooking || !currentMutationToken) return;
-  section.style.display = 'block';
-  // Label the box with who the server actually delivers to (message_recipient,
-  // same rule the message API routes with).
-  var toPro = currentBooking.message_recipient === 'pro';
-  var proName = currentBooking.pro_first_name || 'your pro';
-  document.getElementById('bookingCommunicationTitle').textContent = toPro ? 'Message ' + proName : 'Message about your booking';
-  document.getElementById('bookingCommunicationCopy').textContent = toPro
-    ? 'Your message goes straight to ' + proName + ', your service pro. Messages and photos stay private to your booking.'
-    : 'Send a note to the AssembleAtEase team. Your message and any photos stay private to your booking.';
-  document.getElementById('customerMessage').placeholder = toPro ? 'Write a message to ' + proName : 'Tell us what you need help with';
+  section.style.display = '';
   var thread = document.getElementById('customerThread');
   thread.textContent = '';
   (messages || []).forEach(function(message) {
@@ -1083,7 +977,7 @@ function renderCustomerCommunication(messages, photos) {
     bubble.textContent = message.body || '';
     var meta = document.createElement('span');
     meta.className = 'customer-message-meta';
-    meta.textContent = (message.sender === 'customer' ? 'You' : message.sender === 'assembler' ? (currentBooking.pro_first_name || 'Your service pro') : 'AssembleAtEase') + ' · ' + new Date(message.created_at).toLocaleString();
+    meta.textContent = (message.sender === 'customer' ? 'You' : message.sender === 'assembler' ? 'Your service pro' : 'AssembleAtEase') + ' · ' + new Date(message.created_at).toLocaleString();
     bubble.appendChild(meta); thread.appendChild(bubble);
   });
   if (!messages || !messages.length) {
@@ -1107,18 +1001,7 @@ async function loadCustomerCommunication() {
     if (!results[0].ok || !results[1].ok) throw new Error('Communication unavailable');
     var messageData = await results[0].json(); var photoData = await results[1].json();
     renderCustomerCommunication(messageData.messages || [], photoData.photos || []);
-    if (window.location.hash === '#bookingCommunication' && !window.__aaeScrolledToMessages) {
-      window.__aaeScrolledToMessages = true;
-      setTimeout(function(){ var s = document.getElementById('bookingCommunication'); if (s) s.scrollIntoView({ behavior: 'smooth', block: 'start' }); var t = document.getElementById('customerMessage'); if (t) t.focus({ preventScroll: true }); }, 400);
-    }
-  } catch (_) {
-    // The box stays usable (sending still works) and the page tries again itself.
-    var section = document.getElementById('bookingCommunication');
-    if (section) section.style.display = 'block';
-    setCustomerCommunicationStatus('Messages could not load. Trying again.', true);
-    clearTimeout(window.__aaeCommRetry);
-    window.__aaeCommRetry = setTimeout(loadCustomerCommunication, 8000);
-  }
+  } catch (_) { setCustomerCommunicationStatus('Messages are temporarily unavailable. Please try again.', true); }
 }
 
 (function bindCustomerCommunication() {
@@ -1128,6 +1011,7 @@ async function loadCustomerCommunication() {
   if (pick && input) pick.addEventListener('click', function() { input.click(); });
   if (input) input.addEventListener('change', function() {
     var file = input.files && input.files[0];
+    if (file && file.size > 5 * 1024 * 1024) { input.value = ''; setCustomerCommunicationStatus('Images must be no larger than 5 MB.', true); return; }
     setCustomerCommunicationStatus(file ? file.name + ' selected. Send the message to upload it.' : '', false);
   });
   if (send) send.addEventListener('click', async function() {
@@ -1142,11 +1026,10 @@ async function loadCustomerCommunication() {
         if (!messageResponse.ok) throw new Error('Message could not be sent.');
       }
       if (file) {
-        // Downscaled before sending. A full-resolution phone photo base64-encodes
-        // past the request body limit and never reaches the endpoint.
-        var prepared = await window.AAE_UPLOAD.prepare(file);
-        var photoResponse = await fetch('/api/booking/customer-photos', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ref:currentRef, email:currentEmail, token:currentMutationToken, fileBase64:prepared.dataUrl, mimeType:prepared.mimeType }) });
-        if (!photoResponse.ok) throw new Error(await window.AAE_UPLOAD.describeUploadFailure(photoResponse));
+        var reader = new FileReader();
+        var dataUrl = await new Promise(function(resolve, reject) { reader.onload = function(){ resolve(reader.result); }; reader.onerror = reject; reader.readAsDataURL(file); });
+        var photoResponse = await fetch('/api/booking/customer-photos', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ref:currentRef, email:currentEmail, token:currentMutationToken, fileBase64:dataUrl, mimeType:file.type }) });
+        if (!photoResponse.ok) throw new Error('Photo could not be uploaded.');
       }
       document.getElementById('customerMessage').value = ''; if (input) input.value = '';
       setCustomerCommunicationStatus('Sent.', false); await loadCustomerCommunication();
@@ -1156,29 +1039,19 @@ async function loadCustomerCommunication() {
 })();
 
 // ── Cancel modal ───────────────────────────────────────────
-async function openCancelModal() {
+function openCancelModal() {
   if (!currentBooking) return;
   const feeEl  = document.getElementById('cancelModalFee');
   const descEl = document.getElementById('cancelModalDesc');
 
-  // Re-read the booking so the fee reflects the time the customer is deciding,
-  // not the time the page loaded.
-  await silentRefreshBooking();
-  const p = cancellationPreviewOf(currentBooking);
-  if (p && p.fee_cents > 0) {
-    feeEl.textContent = '';
-    const strong = document.createElement('strong');
-    strong.textContent = 'Cancellation fee: ' + formatUsdCents(p.fee_cents);
-    feeEl.appendChild(strong);
-    feeEl.appendChild(document.createTextNode(' ' + p.message));
+  const p = cancelFeeClient(currentBooking);
+  if (p.pct > 0) {
+    feeEl.innerHTML = '<strong>Cancellation fee: ' + p.feeText + '</strong> ' + p.msg;
     feeEl.style.display = 'block';
     descEl.textContent  = 'Are you sure you want to cancel? This cannot be undone.';
-  } else if (p) {
-    feeEl.style.display = 'none';
-    descEl.textContent  = p.message + ' Are you sure you want to cancel? This cannot be undone.';
   } else {
     feeEl.style.display = 'none';
-    descEl.textContent  = 'Any cancellation fee is calculated when you confirm. Are you sure you want to cancel? This cannot be undone.';
+    descEl.textContent  = 'Your appointment is more than 24 hours away — cancellation is free. Your card hold will be fully released.';
   }
 
   document.getElementById('cancelModalContent').style.display = '';
@@ -1359,7 +1232,6 @@ async function confirmReschedule() {
     currentBooking.time = time;
     currentBooking.was_rescheduled = true;
     renderBooking(currentBooking);
-    silentRefreshBooking();
   } catch (err) {
     errEl.textContent = err.message;
     errEl.style.display = 'block';
@@ -1387,9 +1259,9 @@ async function confirmCancel() {
     document.getElementById('cancelResultIcon').textContent   = 'Done';
     document.getElementById('cancelResultTitle').textContent  = 'Booking cancelled';
     document.getElementById('cancelResultDesc').textContent   =
-      (data.customerMessage || (data.feeCaptured > 0
-        ? 'A cancellation fee of ' + formatUsdCents(data.feeCaptured) + ' was charged.'
-        : 'Your booking is cancelled.')) + ' A confirmation email is on its way.';
+      data.feeCaptured > 0
+        ? 'A cancellation fee of ' + formatUsdCents(data.feeCaptured) + ' was charged. A confirmation email is on its way.'
+        : 'Your booking has been cancelled and your card hold released. A confirmation email is on its way.';
     resultEl.style.display = 'block';
 
     // Update booking card badge
@@ -1484,12 +1356,25 @@ function apptHoursAway(dateStr, timeStr) {
   } catch { return null; }
 }
 
-// The cancellation fee and its reason come from the server
-// (api/booking/track.js -> cancellation_preview), worked out by the same
-// evaluation the cancel endpoint charges with. The page never computes a fee.
-function cancellationPreviewOf(b) {
-  const p = b && b.cancellation_preview;
-  return p && typeof p.message === 'string' ? p : null;
+// Client estimate that mirrors the server cancellation policy
+// (api/_source-of-truth.js → computeCancellationFee). Server is the source of truth.
+function cancelFeeClient(b) {
+  const sub = Math.max(0, (b.total_price || 0) - (b.tax_amount || 0) - (b.service_call_fee || 0));
+  const h = apptHoursAway(b.date, b.time);
+  const st = String(b.status || '').toLowerCase();
+  const committed = st === 'en_route' || st === 'arrived' || st === 'in_progress';
+  let pct = 0, msg = '';
+  if (committed || (h != null && h < 2)) {
+    pct = 15;
+    msg = 'A pro is on the way or your appointment is within 2 hours, so a 15% fee applies (on the service subtotal, no tax). The rest of your hold is released.';
+  } else if ((h != null && h < 24) || b.was_rescheduled) {
+    pct = 10;
+    msg = (b.was_rescheduled && !(h != null && h < 24))
+      ? 'Because this booking was rescheduled, a 10% fee applies (on the service subtotal, no tax).'
+      : 'Your appointment is within 24 hours, so a 10% fee applies (on the service subtotal, no tax). The rest of your hold is released.';
+  }
+  const feeCents = Math.round(sub * pct / 100);
+  return { pct, feeCents, feeText: formatUsdCents(feeCents), msg };
 }
 
 // Pre-fill from URL params.

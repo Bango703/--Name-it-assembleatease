@@ -1,8 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { loadActiveAnnouncements, ruleFor } from '../_announcements.js';
-import { acquireNotificationLease, releaseNotificationLease } from '../_notification-policy.js';
-import { randomUUID } from 'node:crypto';
 
 function actionUrl(announcement) {
   const path = String(announcement?.action_url || '/assembler/profile');
@@ -43,19 +41,12 @@ export default async function handler(req, res) {
       if (!emailResult?.ok || emailResult?.suppressed) return res.status(503).json({ error: 'The opt-in email could not be sent.' });
       return res.status(200).json({ ok: true, message: 'Opt-in email sent.' });
     }
-    const leaseKey = `announcement:${ann.id}:${easerId}`;
-    const lease = await acquireNotificationLease(sb, leaseKey);
-    if (!lease.ok) return res.status(409).json({ error: 'A reminder is being processed. Please try again shortly.' });
-    try {
-      const { error: upErr } = await sb.from('easer_announcement_deliveries')
-        .update({ last_reminded_at: null, reminder_count: 0, reminder_state: { cycle: randomUUID() }, updated_at: new Date().toISOString() })
-        .eq('announcement_id', ann.id)
-        .eq('easer_id', easerId)
-        .is('completed_at', null);
-      if (upErr) return res.status(503).json({ error: 'Resend could not be queued' });
-    } finally {
-      await releaseNotificationLease(sb, leaseKey, lease.token);
-    }
+    const { error: upErr } = await sb.from('easer_announcement_deliveries')
+      .update({ last_reminded_at: null, reminder_count: 0, updated_at: new Date().toISOString() })
+      .eq('announcement_id', ann.id)
+      .eq('easer_id', easerId)
+      .is('completed_at', null);
+    if (upErr) return res.status(503).json({ error: 'Resend could not be queued' });
     return res.status(200).json({ ok: true, message: 'Reminder re-queued; it will send on the next run.' });
   }
 
@@ -74,7 +65,7 @@ export default async function handler(req, res) {
         .eq('role', 'assembler').eq('status', 'active').eq('application_status', 'approved');
 
       // Currently incomplete (the pending list).
-      const { data: incomplete } = await rule.query(sb, a);
+      const { data: incomplete } = await rule.query(sb);
       const pending = incomplete || [];
       const pendingIds = pending.map((p) => p.id);
 
@@ -82,7 +73,7 @@ export default async function handler(req, res) {
       let deliveryByEaser = new Map();
       if (pendingIds.length) {
         const { data: dels } = await sb.from('easer_announcement_deliveries')
-          .select('easer_id, first_notified_at, last_reminded_at, reminder_count, channels_sent, reminder_state')
+          .select('easer_id, first_notified_at, last_reminded_at, reminder_count, channels_sent')
           .eq('announcement_id', a.id).in('easer_id', pendingIds);
         deliveryByEaser = new Map((dels || []).map((d) => [d.easer_id, d]));
       }
@@ -105,11 +96,6 @@ export default async function handler(req, res) {
             firstNotifiedAt: d?.first_notified_at || null,
             lastRemindedAt: d?.last_reminded_at || null,
             channelsSent: d?.channels_sent || [],
-            pendingChannels: d?.reminder_state?.step
-              ? (a.channels || []).filter(channel => ['email', 'push'].includes(channel)
-                && !(d.reminder_state.completed_channels || []).includes(channel)
-                && !(d.reminder_state.uncertain_channels || []).includes(channel)) : [],
-            uncertainChannels: d?.reminder_state?.uncertain_channels || [],
           };
         }),
       });

@@ -2,8 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 
 export default async function handler(req, res) {
-  // A fixed-credential test account must never be creatable in production.
-  if (process.env.VERCEL_ENV === 'production' || String(process.env.ENABLE_TEST_ENDPOINTS || '').toLowerCase() !== 'true') {
+  if (process.env.VERCEL_ENV === 'production' && process.env.ENABLE_TEST_ENDPOINTS !== 'true') {
     return res.status(404).json({ error: 'Not found' });
   }
 
@@ -60,10 +59,6 @@ export default async function handler(req, res) {
     tier: 'starter',
     identity_verified: true,
     identity_verified_at: new Date().toISOString(),
-    // Explicit: dispatch selects Easers with .eq('status', 'active'), so a NULL
-    // status silently excludes this account from every job offer even though the
-    // dashboard displays it as active (that view infers a status from `tier`).
-    status: 'active',
     application_status: 'approved',
     payment_confirmed: true,
     application_fee_paid: true,

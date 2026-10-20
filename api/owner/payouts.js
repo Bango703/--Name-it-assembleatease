@@ -34,9 +34,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to load payout data' });
   }
 
-  // Test bookings (including App Review demo jobs) owe nobody anything, as on
-  // every other owner money panel.
-  const earningsRows = (finance.rows || []).filter(r => r.assemblerId && r.isTestBooking !== true);
+  const earningsRows = (finance.rows || []).filter(r => r.assemblerId);
 
   // Aggregate per Easer
   const byEaser = {};
@@ -115,11 +113,7 @@ export default async function handler(req, res) {
   if (easerIds.length) {
     const { data: profiles, error: profileError } = await sb
       .from('profiles')
-      // Connect readiness comes along so the payout column can say how this
-      // Easer is actually paid. Without it the table showed a red
-      // "Not selected" beside a live automatic transfer, because
-      // payout_method_preference only ever describes a MANUAL payout.
-      .select('id, email, phone, payout_method_preference, account_closure_status, stripe_connect_account_id, stripe_connect_payouts_enabled, stripe_connect_onboarding_complete')
+      .select('id, email, phone, payout_method_preference, account_closure_status')
       .in('id', easerIds);
     if (profileError) {
       console.error('Payout contact lookup error:', profileError);
@@ -135,13 +129,6 @@ export default async function handler(req, res) {
       easer.phone = formatUsPhone(profile.phone);
       easer.payout_method_preference = profile.payout_method_preference || null;
       easer.account_closure_status = profile.account_closure_status || null;
-      // Ready means Stripe will actually move the money without the owner
-      // doing anything. Onboarded but payouts disabled is NOT ready, and the
-      // table has to say so rather than imply either extreme.
-      easer.connect_onboarded = profile.stripe_connect_onboarding_complete === true
-        && !!profile.stripe_connect_account_id;
-      easer.connect_payouts_ready = easer.connect_onboarded
-        && profile.stripe_connect_payouts_enabled === true;
     });
   }
 

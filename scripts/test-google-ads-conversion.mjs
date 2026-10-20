@@ -7,23 +7,18 @@ const bookingPage = readFileSync('book.html', 'utf8');
 
 assert.match(cookies, /function loadMeasurement\(\)/);
 assert.match(cookies, /function grantAnalytics\(\)/);
-// Consent Mode, advanced (2026-10-15): tags may load cookieless before a choice;
-// decline and GPC stop them; cookies are granted only after Accept.
-assert.match(cookies, /function loadMeasurement\(\) \{\s*if \(!measurementAllowed\(\)\) return;/);
-assert.match(cookies, /function grantAnalytics\(\) \{\s*if \(!analyticsAllowed\(\)\) return;/);
-assert.match(bookingPage, /window\.AAEAnalytics\.canMeasure\(\)\) \{/, 'the Ads booking conversion is sent cookieless before a choice, never after decline');
-assert.match(cookies, /consentChoice === 'accepted' && !globalPrivacyControlEnabled\(\)/);
+assert.match(cookies, /if \(globalPrivacyControlEnabled\(\)\)[\s\S]*?return;[\s\S]*?loadMeasurement\(\)/);
 assert.match(cookies, /function acceptCookies\(\)[\s\S]*?grantAnalytics\(\)/);
 assert.ok(
   cookies.indexOf("window.gtag('consent', 'default'") < cookies.indexOf('function loadMeasurement()'),
   'Denied consent defaults must be established before Google measurement can load.',
 );
 
-const confirmationStart = bookingPage.indexOf('function trackBookingConfirmation(ref, isQuote, isScheduledAuthorization)');
-const confirmationEnd = bookingPage.indexOf('function showConfirmation(ref, isQuote, isScheduledAuthorization)', confirmationStart);
-assert.ok(confirmationStart >= 0 && confirmationEnd > confirmationStart, 'Booking confirmation tracking block must exist.');
+const confirmationStart = bookingPage.indexOf('function showConfirmation(ref, isQuote, isScheduledAuthorization)');
+const funnelEventStart = bookingPage.indexOf("trackBookingFunnelOnce('booking_completed'", confirmationStart);
+assert.ok(confirmationStart >= 0 && funnelEventStart > confirmationStart, 'Booking confirmation tracking block must exist.');
 
-const adsConversionBlock = bookingPage.slice(confirmationStart, confirmationEnd);
+const adsConversionBlock = bookingPage.slice(confirmationStart, funnelEventStart);
 const [bookingBranch, quoteBranch = ''] = adsConversionBlock.split('} else if (ADS_QUOTE_CONVERSION) {');
 
 assert.match(adsConversionBlock, /var ADS_BOOKING_CONVERSION = 'AW-16551666395\/7KS0CIjz1aMcENvFudQ9';/);

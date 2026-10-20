@@ -24,16 +24,8 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
   <script src="../config.js?v=20260818a" defer></script>
   <script src="../assets/js/app.js?v=20260818a" defer></script>
-  <script src="../assets/js/native-app.js?v=20261008c" defer></script>
   <script src="../assets/js/easer-notifications.js?v=20260818b" defer></script>
   <style>
-    /* Completion photos: a strip of thumbnails, one per item. */
-    .photo-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;margin-bottom:0.6rem}
-    .photo-thumb{position:relative;border-radius:8px;overflow:hidden;background:#e2e8f0;aspect-ratio:1/1}
-    .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-    .photo-thumb-remove,.photo-thumb-done{position:absolute;left:4px;right:4px;bottom:4px;font:inherit;font-size:0.7rem;font-weight:600;border:0;border-radius:6px;padding:3px 0;text-align:center;-webkit-tap-highlight-color:transparent}
-    .photo-thumb-remove{background:rgba(15,23,32,0.72);color:#fff;cursor:pointer}
-    .photo-thumb-done{background:rgba(19,122,75,0.85);color:#fff}
     :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#00BFFF;--pro-teal-dim:rgba(0,191,255,0.08);--teal:#00BFFF}
     .logout-link{font-size:0.72rem;color:var(--e-muted);text-decoration:none;font-weight:500;white-space:nowrap;padding:0.4rem 0}
     .logout-link:hover{color:var(--e-text)}
@@ -269,7 +261,6 @@
 
   </style>
 <script src="/assets/js/status-source-of-truth.js" defer></script>
-<script src="/assets/js/image-upload.js" defer></script>
   </head>
 <body class="theme-pro easer-booting">
 
@@ -303,7 +294,6 @@
     <a href="/assembler/verify-identity" style="color:#0369a1;font-weight:700;margin-left:0.25rem">Review agreement</a>
   </div>
 
-  <div id="reliability-standing" role="status" style="display:none;margin:0 0 0.75rem;padding:0.65rem 0.85rem;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:0.8rem;line-height:1.5"></div>
   <div class="e-filter-row" id="filter-tabs">
     <button class="e-filter-pill active" data-filter="all">All</button>
     <button class="e-filter-pill" data-filter="offers">Offers <span class="e-pill-count" id="fc-offers"></span></button>
@@ -391,10 +381,6 @@
         <div id="support-workflow" style="display:none"></div>
         <div id="support-status" role="status" aria-live="polite" style="display:none;font-size:0.76rem;line-height:1.5;margin:0.65rem 0"></div>
         <div id="support-conversation" style="display:none">
-          <div id="asgn-thread-tabs" role="tablist" aria-label="Conversation" style="display:flex;gap:0.4rem;margin-bottom:0.6rem">
-            <button type="button" class="asgn-thread-tab" role="tab" data-thread="customer" style="padding:0.35rem 0.8rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">Customer</button>
-            <button type="button" class="asgn-thread-tab" role="tab" data-thread="team" style="padding:0.35rem 0.8rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">AssembleAtEase</button>
-          </div>
           <div class="msg-thread" id="asgn-msg-thread" style="display:none"></div>
           <div id="asgn-customer-photos" style="display:none;margin:0 0 .75rem;padding:.7rem 0;border-top:1px solid var(--pro-border);font-size:.76rem;color:var(--pro-muted)"></div>
           <div class="msg-input-row">
@@ -419,11 +405,9 @@
   let selectedBookingId = null;
   var _pendingCompleteBookingId = null;
   var _completionInFlight = false;
-  // Completion photos: one per item, up to MAX_COMPLETION_PHOTOS (the server
-  // keeps at most five evidence files per booking). Each entry is
-  // { prepared, uploaded }; prepared comes from AAE_UPLOAD.prepare().
-  var MAX_COMPLETION_PHOTOS = 5;
-  var _photos = [];
+  var _photoFile = null;
+  var _photoDataUrl = null;
+  var _photoUploaded = false;
 
   // Evidence request upload state
   var _evidenceReqFile = null;
@@ -436,8 +420,6 @@
   var _selectedSupportType = '';
   // True while the composer is addressed to the CUSTOMER rather than support.
   var _relayToCustomer = false;
-  // This job's messages as the server returned them; each carries its thread.
-  var _threadMessages = [];
   var _supportRequestInFlight = false;
   var _detailReturnFocus = null;
 
@@ -774,9 +756,6 @@
 
   var renderScopeSection = function() { return ''; };
 
-  // The server already masks the surname (redactAssignmentCustomerData).
-  // This stays as the display fallback for a job with no name yet, and is
-  // idempotent on an already-masked name.
   function maskName(n) {
     if (!n) return 'Customer';
     var p = n.trim().split(/\s+/);
@@ -1029,35 +1008,11 @@
         if (!el) return;
         if (!actions.length) { el.style.display = 'none'; return; }
         var a = actions[0];
-        var btn = a.ackRequired
-          ? '<button type="button" id="required-action-ack" style="background:#00BFFF;color:#04222c;font-weight:800;border:0;padding:0.62rem 1.1rem;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;white-space:nowrap;cursor:pointer">I understand</button>'
-          : (a.actionUrl
-            ? '<a href="' + esc(a.actionUrl) + '" style="background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:0.62rem 1.1rem;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;white-space:nowrap">' + esc(a.actionLabel || 'Open') + ' &rarr;</a>'
-            : '');
-        // white-space:pre-line keeps the notice's line breaks (policy lists).
-        el.innerHTML = '<div style="flex:1;min-width:0"><div style="font-weight:800;color:#0a1628;font-size:0.9rem">' + esc(a.title) + '</div><div style="font-size:0.8rem;color:#334155;line-height:1.45;margin-top:2px;white-space:pre-line">' + esc(a.body) + '</div><div id="required-action-status" role="status" style="font-size:0.78rem;margin-top:4px"></div></div>' + btn;
+        var btn = a.actionUrl
+          ? '<a href="' + esc(a.actionUrl) + '" style="background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:0.62rem 1.1rem;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;white-space:nowrap">' + esc(a.actionLabel || 'Open') + ' &rarr;</a>'
+          : '';
+        el.innerHTML = '<div style="flex:1;min-width:0"><div style="font-weight:800;color:#0a1628;font-size:0.9rem">' + esc(a.title) + '</div><div style="font-size:0.8rem;color:#334155;line-height:1.45;margin-top:2px">' + esc(a.body) + '</div></div>' + btn;
         el.style.display = 'flex';
-        var ackBtn = document.getElementById('required-action-ack');
-        if (ackBtn) {
-          ackBtn.addEventListener('click', async function() {
-            ackBtn.disabled = true; ackBtn.textContent = 'Saving...';
-            try {
-              var ackResp = await fetch('/api/assembler/acknowledge-announcement', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-                body: JSON.stringify({ key: a.key }),
-              });
-              var ackData = await ackResp.json();
-              if (!ackResp.ok) throw new Error(ackData.error || 'Your confirmation could not be saved. Please retry.');
-              el.style.display = 'none';
-              APP.showAlert('page-alert', 'Thanks. Your confirmation is saved.', 'info');
-            } catch (ackErr) {
-              ackBtn.disabled = false; ackBtn.textContent = 'I understand';
-              var st = document.getElementById('required-action-status');
-              if (st) { st.textContent = ackErr.message; st.style.color = '#991b1b'; }
-            }
-          });
-        }
       } catch (e) {}
     })();
 
@@ -1142,7 +1097,6 @@
       if (!await earningsPromise) await refreshEarningsTruth(token);
       renderAssignments(allAssignments);
       updateFilterCounts(allAssignments);
-      if (typeof window.loadReliabilityStanding === 'function') window.loadReliabilityStanding();
       if (initialOfferBookingId && typeof window.openDetail === 'function') {
         setTimeout(function(){ window.openDetail(initialOfferBookingId); }, 150);
       }
@@ -1235,62 +1189,28 @@
 
     // Mark Complete opens the accessible in-app confirmation sheet.
     // (_completionInFlight and photo state vars are declared at module scope above — openDetail needs them)
-    // Draw the photo strip: a thumbnail per photo with Remove, the add button
-    // while there is room, and Complete enabled once there is one photo.
-    function _renderPhotos() {
+    function _resetPhotoState() {
+      _photoFile = null;
+      _photoDataUrl = null;
+      _photoUploaded = false;
       var previewArea = document.getElementById('photo-preview-area');
       var pickBtn = document.getElementById('photo-pick-btn');
-      var pickLabel = document.getElementById('photo-pick-label');
-      var countEl = document.getElementById('photo-count');
-      var yesBtn = document.getElementById('complete-sheet-yes');
-      if (previewArea) {
-        previewArea.innerHTML = _photos.map(function (photo, index) {
-          return '<div class="photo-thumb"><img src="' + photo.prepared.dataUrl + '" alt="Completion photo ' + (index + 1) + '">'
-            + (photo.uploaded
-              ? '<span class="photo-thumb-done">Sent</span>'
-              : '<button type="button" class="photo-thumb-remove" data-photo-index="' + index + '" aria-label="Remove photo ' + (index + 1) + '">Remove</button>')
-            + '</div>';
-        }).join('');
-        previewArea.style.display = _photos.length ? 'grid' : 'none';
-      }
-      if (pickBtn) {
-        pickBtn.style.display = _photos.length < MAX_COMPLETION_PHOTOS ? 'flex' : 'none';
-        pickBtn.disabled = false;
-      }
-      if (pickLabel) pickLabel.textContent = _photos.length ? 'Add another photo' : 'Open Camera';
-      if (countEl) countEl.textContent = _photos.length ? _photos.length + ' of ' + MAX_COMPLETION_PHOTOS : '';
-      if (yesBtn) {
-        var ready = _photos.length > 0;
-        yesBtn.disabled = !ready;
-        yesBtn.style.opacity = ready ? '' : '0.45';
-        yesBtn.style.cursor = ready ? '' : 'not-allowed';
-      }
-    }
-
-    function _resetPhotoState() {
-      _photos = [];
       var statusEl = document.getElementById('photo-upload-status');
       var photoInput = document.getElementById('photo-input');
+      if (previewArea) previewArea.style.display = 'none';
+      if (pickBtn) { pickBtn.style.display = 'flex'; pickBtn.disabled = false; }
       if (statusEl) { statusEl.style.display = 'none'; statusEl.textContent = ''; }
       if (photoInput) photoInput.value = '';
       var section = document.getElementById('photo-prompt-section');
       if (section) section.style.display = '';
-      _renderPhotos();
+      var yesBtn = document.getElementById('complete-sheet-yes');
+      if (yesBtn) { yesBtn.disabled = true; yesBtn.style.opacity = '0.45'; yesBtn.style.cursor = 'not-allowed'; }
     }
 
     document.getElementById('complete-btn').addEventListener('click', function(e) {
       if (!selectedBookingId) { e.preventDefault(); return; }
       _pendingCompleteBookingId = selectedBookingId;
       _resetPhotoState();
-      // Say how many items the job has, so one photo per item is the obvious ask.
-      var job = allAssignments.find(function (x) { return x.id === selectedBookingId; });
-      var itemCount = ((job && job._booking_items) || []).reduce(function (sum, item) { return sum + (Number(item.quantity) || 1); }, 0);
-      var bodyEl = document.getElementById('complete-sheet-body');
-      if (bodyEl) {
-        bodyEl.textContent = itemCount > 1
-          ? 'This job has ' + itemCount + ' items. Take a photo of each, up to ' + MAX_COMPLETION_PHOTOS + '. At least one is required.'
-          : 'Take a photo of the finished work. At least one is required.';
-      }
       // Label's default behavior opens the file input (photo-input) natively.
       // No .click() needed — browser label→input binding works on all platforms.
     });
@@ -1306,52 +1226,50 @@
       document.getElementById('photo-input').click();
     });
 
-    // Photo taken or chosen → open the sheet if needed, shrink, add to the strip.
+    // File selected → validate client-side, open sheet (if not already open), show preview
     document.getElementById('photo-input').addEventListener('change', function() {
-      var photoInputEl = this;
-      var files = Array.prototype.slice.call(this.files || [], 0, MAX_COMPLETION_PHOTOS - _photos.length);
-      if (!files.length) return;
+      var file = this.files && this.files[0];
+      if (!file) return;
       var statusEl = document.getElementById('photo-upload-status');
-      statusEl.textContent = files.length > 1 ? 'Preparing photos…' : 'Preparing photo…';
-      statusEl.style.color = '#374151';
-      statusEl.style.display = 'block';
+      if (file.size > 5 * 1024 * 1024) {
+        statusEl.textContent = 'Photo must be under 5 MB. Please choose a smaller image.';
+        statusEl.style.color = '#dc2626';
+        statusEl.style.display = 'block';
+        this.value = '';
+        return;
+      }
+      statusEl.style.display = 'none';
+      _photoFile = file;
+      _photoUploaded = false;
       // Open the confirmation sheet now that we have a photo.
       // This fires after camera returns so the browser allows it.
       var sheet = document.getElementById('complete-sheet');
       if (_pendingCompleteBookingId && !sheet.classList.contains('open')) {
         setAssignmentSheetOpen('complete-sheet', true);
       }
-      // Downscale before anything else. The original is never sent: a full
-      // resolution phone photo base64-encodes past the request body limit and
-      // is rejected by the platform before the upload endpoint ever runs.
-      files.reduce(function (chain, file) {
-        return chain.then(function () {
-          return window.AAE_UPLOAD.prepare(file).then(function (prepared) {
-            if (_photos.length < MAX_COMPLETION_PHOTOS) _photos.push({ prepared: prepared, uploaded: false });
-          });
-        });
-      }, Promise.resolve()).then(function () {
-        statusEl.style.display = 'none';
-        photoInputEl.value = '';
-        _renderPhotos();
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        _photoDataUrl = ev.target.result;
+        var img = document.getElementById('photo-preview-img');
+        var previewArea = document.getElementById('photo-preview-area');
+        var pickBtn = document.getElementById('photo-pick-btn');
+        if (img) img.src = _photoDataUrl;
+        if (previewArea) previewArea.style.display = 'block';
+        if (pickBtn) pickBtn.style.display = 'none';
         var yesBtn = document.getElementById('complete-sheet-yes');
-        if (yesBtn && !yesBtn.disabled) yesBtn.focus();
-      }).catch(function(err) {
-        statusEl.textContent = err.message;
-        statusEl.style.color = '#dc2626';
-        statusEl.style.display = 'block';
-        photoInputEl.value = '';
-        _renderPhotos();
-      });
+        if (yesBtn) {
+          yesBtn.disabled = false;
+          yesBtn.style.opacity = '';
+          yesBtn.style.cursor = '';
+          yesBtn.focus();
+        }
+      };
+      reader.readAsDataURL(file);
     });
 
-    // Remove one photo (only those not yet sent).
-    document.getElementById('photo-preview-area').addEventListener('click', function(e) {
-      var btn = e.target.closest('[data-photo-index]');
-      if (!btn) return;
-      var index = Number(btn.getAttribute('data-photo-index'));
-      if (_photos[index] && !_photos[index].uploaded) _photos.splice(index, 1);
-      _renderPhotos();
+    // Remove photo
+    document.getElementById('photo-remove-btn').addEventListener('click', function() {
+      _resetPhotoState();
     });
 
     // ── Evidence request upload flow ──────────────────────────────────────────
@@ -1362,17 +1280,20 @@
     document.getElementById('evidence-req-photo-input').addEventListener('change', function() {
       var file = this.files && this.files[0];
       if (!file) return;
-      var reqInputEl = this;
-      window.AAE_UPLOAD.prepare(file).then(function(prepared) {
-        _evidenceReqFile = prepared;
-        document.getElementById('evidence-req-img').src = prepared.dataUrl;
+      if (file.size > 5 * 1024 * 1024) {
+        APP.showAlert('page-alert', 'Photo must be under 5 MB', 'error');
+        this.value = '';
+        return;
+      }
+      _evidenceReqFile = file;
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        document.getElementById('evidence-req-img').src = ev.target.result;
         document.getElementById('evidence-req-preview').style.display = '';
         document.getElementById('evidence-req-upload').style.display = '';
-      }).catch(function(err) {
-        _evidenceReqFile = null;
-        APP.showAlert('page-alert', err.message, 'error');
-      });
-      reqInputEl.value = '';
+      };
+      reader.readAsDataURL(file);
+      this.value = '';
     });
 
     document.getElementById('evidence-req-remove').addEventListener('click', function() {
@@ -1391,21 +1312,20 @@
       statusEl.textContent = 'Uploading photo…';
       statusEl.style.display = '';
       try {
+        var base64 = await new Promise(function(resolve, reject) {
+          var r = new FileReader();
+          r.onload = function(e) { resolve(e.target.result); };
+          r.onerror = reject;
+          r.readAsDataURL(_evidenceReqFile);
+        });
         var resp = await fetch('/api/booking/upload-evidence', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-          body: JSON.stringify({ bookingId: _evidenceReqBookingId, fileBase64: _evidenceReqFile.base64, mimeType: _evidenceReqFile.mimeType, evidenceType: 'completion_photo' }),
+          body: JSON.stringify({ bookingId: _evidenceReqBookingId, fileBase64: base64, mimeType: _evidenceReqFile.type, evidenceType: 'completion_photo' }),
         });
-        if (!resp.ok) {
-          statusEl.textContent = await window.AAE_UPLOAD.describeUploadFailure(resp);
-          uploadBtn.disabled = false;
-          uploadBtn.textContent = 'Upload';
-          _evidenceReqInFlight = false;
-          return;
-        }
-        var data = await resp.json().catch(function(){ return {}; });
-        if (data.error) {
-          statusEl.textContent = data.error;
+        var data = await resp.json();
+        if (!resp.ok || data.error) {
+          statusEl.textContent = data.error || 'Upload failed — please try again.';
           uploadBtn.disabled = false;
           uploadBtn.textContent = 'Upload';
           _evidenceReqInFlight = false;
@@ -1448,16 +1368,14 @@
       var file = this.files && this.files[0];
       var fileEl = document.getElementById('damage-report-file');
       if (!file) return;
-      var damageInputEl = this;
-      fileEl.textContent = 'Preparing photo…';
-      window.AAE_UPLOAD.prepare(file).then(function(prepared) {
-        _damagePhotoFile = prepared;
-        fileEl.textContent = file.name || 'Photo selected';
-      }).catch(function(err) {
+      if (file.size > 5 * 1024 * 1024) {
         _damagePhotoFile = null;
-        fileEl.textContent = err.message;
-        damageInputEl.value = '';
-      });
+        fileEl.textContent = 'Photo must be under 5 MB.';
+        this.value = '';
+        return;
+      }
+      _damagePhotoFile = file;
+      fileEl.textContent = file.name || 'Photo selected';
     });
     document.getElementById('damage-report-submit').addEventListener('click', async function() {
       if (_damageInFlight || !_damageBookingId) return;
@@ -1480,20 +1398,25 @@
       statusEl.textContent = 'Saving your report...';
       statusEl.style.display = 'block';
       try {
+        var fileBase64 = await new Promise(function(resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function(event) { resolve(event.target.result); };
+          reader.onerror = reject;
+          reader.readAsDataURL(_damagePhotoFile);
+        });
         var response = await fetch('/api/booking/upload-evidence', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
           body: JSON.stringify({
             bookingId: _damageBookingId,
-            fileBase64: _damagePhotoFile.base64,
-            mimeType: _damagePhotoFile.mimeType,
+            fileBase64: fileBase64,
+            mimeType: _damagePhotoFile.type,
             evidenceType: 'damage_claim',
             notes: notes,
           }),
         });
-        if (!response.ok) throw new Error(await window.AAE_UPLOAD.describeUploadFailure(response));
-        var result = await response.json().catch(function(){ return {}; });
-        if (result.error) throw new Error(result.error);
+        var result = await response.json();
+        if (!response.ok || result.error) throw new Error(result.error || 'Damage report could not be saved.');
         statusEl.textContent = result.message || 'Issue report received. Stop work if continuing could make the issue worse, and contact support.';
         statusEl.style.color = '#166534';
         document.getElementById('damage-report-notes').value = '';
@@ -1522,37 +1445,35 @@
       if (sheetYesBtn) { sheetYesBtn.disabled = true; sheetYesBtn.textContent = 'Processing…'; }
       if (sheetCancelBtn) sheetCancelBtn.disabled = true;
 
-      // ── Upload every photo not yet sent, one at a time ────────────────────
-      // A photo that uploaded stays uploaded; a retry sends only the rest.
-      var pendingPhotos = _photos.filter(function (photo) { return !photo.uploaded; });
-      for (var i = 0; i < pendingPhotos.length; i++) {
-        var photo = pendingPhotos[i];
-        var prepared = photo.prepared;
-        if (statusEl) { statusEl.textContent = 'Uploading photo ' + (_photos.indexOf(photo) + 1) + ' of ' + _photos.length + '…'; statusEl.style.color = '#374151'; statusEl.style.display = 'block'; }
+      // ── Upload photo if selected ──────────────────────────────────────────
+      if (_photoFile && _photoDataUrl && !_photoUploaded) {
+        if (statusEl) { statusEl.textContent = 'Uploading photo…'; statusEl.style.color = '#374151'; statusEl.style.display = 'block'; }
         try {
+          const raw = _photoDataUrl.includes(',') ? _photoDataUrl.split(',')[1] : _photoDataUrl;
           const uploadResp = await fetch('/api/booking/upload-evidence', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
             body: JSON.stringify({
               bookingId: bookingIdToComplete,
-              fileBase64: prepared.base64,
-              mimeType: prepared.mimeType,
+              fileBase64: raw,
+              mimeType: _photoFile.type,
               evidenceType: 'completion_photo',
             }),
           });
           if (uploadResp.ok) {
-            photo.uploaded = true;
-            _renderPhotos();
+            _photoUploaded = true;
+            if (statusEl) { statusEl.textContent = 'Photo uploaded.'; statusEl.style.color = '#16a34a'; }
           } else if (uploadResp.status === 409) {
-            // The booking already holds five files: the rest cannot be added.
-            _photos = _photos.filter(function (p) { return p.uploaded; });
-            _renderPhotos();
-            break;
+            // 5-file limit hit — collapse photo section and proceed without it
+            _photoFile = null; _photoDataUrl = null;
+            var section = document.getElementById('photo-prompt-section');
+            if (section) section.style.display = 'none';
+            if (statusEl) { statusEl.style.display = 'none'; }
           } else {
-            // Upload failed — keep sheet open so Easer can retry
-            const uploadError = await window.AAE_UPLOAD.describeUploadFailure(uploadResp);
+            // Upload failed — keep sheet open so Easer can retry or skip
+            const errData = await uploadResp.json().catch(function(){ return {}; });
             if (statusEl) {
-              statusEl.textContent = uploadError + ' A photo is required to complete this job.';
+              statusEl.textContent = (errData.error || 'Photo upload failed.') + ' A photo is required to complete this job — try again, or take a new one.';
               statusEl.style.color = '#dc2626';
               statusEl.style.display = 'block';
             }
@@ -1563,7 +1484,7 @@
           }
         } catch {
           if (statusEl) {
-            statusEl.textContent = 'Photo upload failed (connection error). A photo is required to complete this job. Check your signal and try again.';
+            statusEl.textContent = 'Photo upload failed (connection error). A photo is required to complete this job — check your signal and try again, or take a new one.';
             statusEl.style.color = '#dc2626';
             statusEl.style.display = 'block';
           }
@@ -1573,7 +1494,6 @@
           return;
         }
       }
-      if (statusEl) { statusEl.style.display = 'none'; }
 
       // ── Close sheet and call assembler-complete ───────────────────────────
       setAssignmentSheetOpen('complete-sheet', false);
@@ -1630,12 +1550,6 @@
 
     // Message send
     document.getElementById('asgn-msg-send').addEventListener('click', sendMsg);
-    document.getElementById('asgn-thread-tabs').addEventListener('click', function(e) {
-      var tab = e.target.closest('.asgn-thread-tab');
-      if (!tab) return;
-      setMessageThread(tab.getAttribute('data-thread'));
-      showSupportStatus('', 'info');
-    });
     document.getElementById('asgn-msg-input').addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
     });
@@ -1677,7 +1591,7 @@
     }
   });
 
-  async function refreshThread(bId, openLatest) {
+  async function refreshThread(bId) {
     var thread = document.getElementById('asgn-msg-thread');
     try {
         var response = await fetch('/api/booking/message?bookingId=' + encodeURIComponent(bId), {
@@ -1685,60 +1599,26 @@
         });
         var data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Could not load messages.');
-        _threadMessages = Array.isArray(data.messages) ? data.messages : [];
-        // A job opened from a customer's reply opens on the customer conversation.
-        var latest = _threadMessages[_threadMessages.length - 1];
-        if (openLatest && latest && latest.thread === 'customer' && latest.sender === 'customer') setMessageThread('customer');
-        else renderThreadMessages();
-        // Existing conversations stay one tap away once Support is opened.
-        if (_threadMessages.length) document.getElementById('support-conversation').style.display = 'block';
+        var msgs = Array.isArray(data.messages) ? data.messages : [];
+        if (!msgs.length) {
+          thread.innerHTML = '';
+          thread.style.display = 'none';
+        } else {
+          thread.style.display = 'block';
+          document.getElementById('support-conversation').style.display = 'block';
+          thread.innerHTML = msgs.map(function(m) {
+            var isMe = m.sender === 'assembler';
+            return '<div style="display:flex;justify-content:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:0.6rem">'
+              + '<div style="max-width:80%;padding:0.55rem 0.85rem;border-radius:12px;font-size:0.875rem;line-height:1.5;'
+              + (isMe ? 'background:var(--teal);color:#fff;border-radius:12px 12px 2px 12px' : 'background:var(--pro-surface);color:var(--pro-text);border:1px solid var(--pro-border);border-radius:12px 12px 12px 2px') + '">' + esc(m.body) + '</div></div>';
+          }).join('');
+          thread.scrollTop = thread.scrollHeight;
+        }
     } catch (error) {
-      _threadMessages = [];
       thread.style.display = 'block';
       thread.innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Could not load messages.</div>';
     }
     loadCustomerPhotosForEaser(bId);
-  }
-
-  // The Easer has two conversations on a job: with the customer, and with
-  // AssembleAtEase. Only the one the composer is addressed to is shown, and the
-  // server decides which thread each message belongs to (m.thread).
-  function renderThreadMessages() {
-    var thread = document.getElementById('asgn-msg-thread');
-    var which = _relayToCustomer ? 'customer' : 'team';
-    document.querySelectorAll('.asgn-thread-tab').forEach(function(tab) {
-      var selected = tab.getAttribute('data-thread') === which;
-      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
-      tab.style.borderColor = selected ? 'var(--pro-teal)' : 'var(--pro-border-md)';
-      tab.style.background = selected ? 'rgba(0,191,255,0.08)' : '#fff';
-      tab.style.color = selected ? 'var(--pro-teal)' : 'var(--pro-soft)';
-    });
-    var send = document.getElementById('asgn-msg-send');
-    if (send) send.setAttribute('aria-label', which === 'customer' ? 'Send message to the customer' : 'Send message to AssembleAtEase');
-    var msgs = _threadMessages.filter(function(m) { return m.thread === which; });
-    thread.style.display = 'block';
-    if (!msgs.length) {
-      thread.innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:0.75rem">'
-        + (which === 'customer' ? 'No messages with the customer yet.' : 'No messages with AssembleAtEase yet.') + '</div>';
-      return;
-    }
-    thread.innerHTML = msgs.map(function(m) {
-      var isMe = m.sender === 'assembler';
-      var who = isMe ? 'You' : (which === 'customer' ? 'Customer' : 'AssembleAtEase');
-      return '<div style="display:flex;flex-direction:column;align-items:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:0.6rem">'
-        + '<div style="font-size:0.68rem;color:var(--pro-muted);margin-bottom:0.15rem">' + esc(who) + '</div>'
-        + '<div style="max-width:80%;padding:0.55rem 0.85rem;border-radius:12px;font-size:0.875rem;line-height:1.5;'
-        + (isMe ? 'background:var(--teal);color:#fff;border-radius:12px 12px 2px 12px' : 'background:var(--pro-surface);color:var(--pro-text);border:1px solid var(--pro-border);border-radius:12px 12px 12px 2px') + '">' + esc(m.body) + '</div></div>';
-    }).join('');
-    thread.scrollTop = thread.scrollHeight;
-  }
-
-  function setMessageThread(which) {
-    _relayToCustomer = which === 'customer';
-    if (_relayToCustomer) _selectedSupportType = '';
-    var input = document.getElementById('asgn-msg-input');
-    if (input) input.placeholder = _relayToCustomer ? 'Message the customer' : 'Message AssembleAtEase';
-    renderThreadMessages();
   }
 
   async function loadCustomerPhotosForEaser(bId) {
@@ -1793,9 +1673,8 @@
 
   function renderSupportWorkflow(type) {
     if (!_supportContext) return;
-    _relayToCustomer = false;
-    renderThreadMessages();
     _selectedSupportType = type || '';
+    _relayToCustomer = false;
     showSupportStatus('', 'info');
     var workflow = document.getElementById('support-workflow');
     var conversation = document.getElementById('support-conversation');
@@ -1814,26 +1693,24 @@
       workflow.innerHTML = supportPanelHtml(
         'Can\'t make this job?',
         canSelfDrop
-          ? 'Select a reason before cancelling. The job will be offered to another Easer.'
-          : 'This job is already underway. Support can help release you from it.',
+          ? 'You are still within the 15-minute self-drop window. Select a reason before releasing the job.'
+          : 'The 15-minute self-drop window has passed. Support can help release you from the job.',
         '<div id="release-reasons" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.7rem">'
           + ['Emergency', 'Vehicle issue', 'Running too late', 'Schedule conflict', 'Other'].map(function(reason) {
             return '<button type="button" class="release-reason" data-release-reason="' + esc(reason) + '" style="padding:0.35rem 0.65rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.73rem;font-weight:600;cursor:pointer">' + esc(reason) + '</button>';
           }).join('')
           + '</div>'
-          + (canSelfDrop ? '<div id="release-impact" role="status" style="margin-top:0.65rem;padding:0.65rem 0.75rem;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:0.78rem;line-height:1.5">Checking what cancelling this job means for your reliability…</div>' : '')
           + '<textarea id="release-note" maxlength="1200" rows="2" placeholder="Tell us anything else we should know (optional)" style="width:100%;box-sizing:border-box;margin-top:0.65rem;border:1px solid var(--pro-border-md);border-radius:9px;padding:0.65rem;font:inherit;font-size:0.78rem;resize:vertical"></textarea>'
-          + '<button type="button" id="release-submit" class="btn btn-teal" disabled style="width:100%;min-height:44px;margin-top:0.55rem;border-radius:10px">' + (canSelfDrop ? 'Cancel this job' : 'Request release') + '</button>'
+          + '<button type="button" id="release-submit" class="btn btn-teal" disabled style="width:100%;min-height:44px;margin-top:0.55rem;border-radius:10px">' + (canSelfDrop ? 'Drop this job' : 'Request release') + '</button>'
           + (canSelfDrop ? '<div id="release-confirmation" role="group" aria-labelledby="release-confirmation-title" style="display:none;margin-top:0.65rem;padding:0.75rem;border:1px solid #fecaca;border-radius:10px;background:#fff7f7">'
-            + '<div id="release-confirmation-title" style="font-size:0.82rem;font-weight:700;color:#991b1b">Cancel this job?</div>'
-            + '<div id="release-confirmation-body" style="font-size:0.75rem;color:#7f1d1d;line-height:1.5;margin-top:0.2rem">You will be removed from the assignment and the job will be offered to another Easer.</div>'
+            + '<div id="release-confirmation-title" style="font-size:0.82rem;font-weight:700;color:#991b1b">Drop this job?</div>'
+            + '<div style="font-size:0.75rem;color:#7f1d1d;line-height:1.5;margin-top:0.2rem">You will be removed from the assignment and the job will be offered to another Easer.</div>'
             + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.65rem">'
             + '<button type="button" id="release-confirm-back" class="btn btn-outline" style="min-height:44px">Go back</button>'
-            + '<button type="button" id="release-confirm-submit" class="btn btn-danger" style="min-height:44px">Confirm cancel</button>'
+            + '<button type="button" id="release-confirm-submit" class="btn btn-danger" style="min-height:44px">Confirm drop</button>'
             + '</div></div>' : '')
       );
       workflow.style.display = 'block';
-      if (canSelfDrop) loadCancellationImpact();
       var selectedReason = '';
       workflow.querySelectorAll('.release-reason').forEach(function(button) {
         button.addEventListener('click', function() {
@@ -1879,24 +1756,15 @@
     if (type === 'customer_unavailable') {
       workflow.innerHTML = supportPanelHtml(
         'Customer unavailable',
-        'The customer is told you are here, and the 15-minute wait starts.',
+        'The booking, appointment, current job status, and request time will be attached automatically.',
         '<textarea id="customer-unavailable-note" maxlength="1200" rows="2" placeholder="Add anything else we should know (optional)" style="width:100%;box-sizing:border-box;margin-top:0.65rem;border:1px solid var(--pro-border-md);border-radius:9px;padding:0.65rem;font:inherit;font-size:0.78rem;resize:vertical"></textarea>'
-          + '<button type="button" id="customer-unavailable-submit" class="btn btn-teal" style="width:100%;min-height:44px;margin-top:0.55rem;border-radius:10px">Tell the customer and wait</button>'
+          + '<button type="button" id="customer-unavailable-submit" class="btn btn-teal" style="width:100%;min-height:44px;margin-top:0.55rem;border-radius:10px">Notify Support</button>'
       );
       workflow.style.display = 'block';
-      // The same timed flow as the job card (api/booking/customer-unavailable.js).
       document.getElementById('customer-unavailable-submit').addEventListener('click', async function() {
         var note = document.getElementById('customer-unavailable-note').value.trim();
-        var submit = this;
-        submit.disabled = true;
-        try {
-          await lifeRequest('POST', '/api/booking/customer-unavailable', { bookingId: selectedBookingId, action: 'start', note: note });
-          showSupportStatus('The customer was told you are here. After 15 minutes, report a no-show from the job.', 'success');
-          await reloadAndReopen();
-        } catch (error) {
-          submit.disabled = false;
-          showSupportStatus(error.message, 'error');
-        }
+        var message = '[Customer unavailable]\nI cannot reach the customer at the appointment.' + (note ? '\nAdditional details: ' + note : '');
+        await submitStructuredSupport(this, message, 'customer_unavailable', 'Support has been notified. Continue following the job instructions unless the situation is unsafe.');
       });
       return;
     }
@@ -1976,69 +1844,12 @@
     }
   }
 
-  function reliabilityImpactText(impact) {
-    if (!impact) return '';
-    var added = impact.strikesAdded;
-    var costLine = impact.kind === 'grace'
-      ? 'You accepted this job less than 15 minutes ago, so cancelling now has no reliability strike.'
-      : impact.kind === 'advance'
-        ? 'The job is more than 24 hours away, so cancelling now has no reliability strike.'
-        : impact.kind === 'same_day'
-          ? 'The job is today. Cancelling counts as ' + added + ' reliability strikes.'
-          : 'The job starts in less than 24 hours. Cancelling counts as ' + added + ' reliability strike' + (added === 1 ? '' : 's') + '.';
-    var standing = ' You have ' + impact.strikesBefore + ' strike' + (impact.strikesBefore === 1 ? '' : 's') + ' in the last ' + impact.windowDays + ' days; at ' + impact.pauseAtStrikes + ', new jobs pause.';
-    var pauseLine = impact.willPause ? ' This cancellation will pause new jobs until AssembleAtEase reviews your account.' : '';
-    return costLine + standing + pauseLine;
-  }
-
-  async function loadCancellationImpact() {
-    var box = document.getElementById('release-impact');
-    if (!box || !_supportContext) return;
-    try {
-      var response = await fetch('/api/booking/drop-job', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-        body: JSON.stringify({ bookingId: _supportContext.bookingId, preview: true }),
-      });
-      var data = await response.json();
-      if (!response.ok || !data.impact) throw new Error(data.error || 'unavailable');
-      var text = reliabilityImpactText(data.impact);
-      box.textContent = text;
-      var confirmBody = document.getElementById('release-confirmation-body');
-      if (confirmBody) confirmBody.textContent = 'You will be removed from the assignment and the job will be offered to another Easer. ' + text;
-    } catch (error) {
-      box.textContent = error && error.message && error.message !== 'unavailable'
-        ? error.message
-        : 'The reliability cost could not be loaded. Cancelling within 24 hours of the job counts as a strike.';
-    }
-  }
-
-  async function loadReliabilityStanding() {
-    var el = document.getElementById('reliability-standing');
-    if (!el) return;
-    try {
-      var response = await fetch('/api/assembler/reliability', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-      var data = await response.json();
-      if (!response.ok) return;
-      if (data.paused) {
-        el.textContent = 'New jobs are paused: ' + data.strikes + ' reliability strikes in the last ' + data.windowDays + ' days. AssembleAtEase will review your account.';
-        el.style.display = 'block';
-      } else if (data.strikes > 0) {
-        el.textContent = 'Reliability: ' + data.strikes + ' strike' + (data.strikes === 1 ? '' : 's') + ' in the last ' + data.windowDays + ' days. At ' + data.pauseAtStrikes + ', new jobs pause. Cancelling within 24 hours of a job is 1 strike; on the day of the job, 2.';
-        el.style.display = 'block';
-      } else {
-        el.style.display = 'none';
-      }
-    } catch (_) { /* standing is informational; the cancel panel always shows the cost */ }
-  }
-  window.loadReliabilityStanding = loadReliabilityStanding;
-
   async function dropCurrentJob(button, reason, note) {
     if (_supportRequestInFlight || !_supportContext) return;
     _supportRequestInFlight = true;
     var originalText = button.textContent;
     button.disabled = true;
-    button.textContent = 'Cancelling...';
+    button.textContent = 'Dropping...';
     try {
       var response = await fetch('/api/booking/drop-job', {
         method: 'POST',
@@ -2048,8 +1859,7 @@
       var data = await response.json();
       if (!response.ok || data.error) throw new Error(data.error || 'Could not drop this job.');
       closeAssignmentModal(false);
-      APP.showAlert('page-alert', data.message || 'Job cancelled. You will not receive further updates for this job.', 'info');
-      loadReliabilityStanding();
+      APP.showAlert('page-alert', data.message || 'Job dropped. You will not receive further updates for this assignment.', 'info');
       var assignmentsResponse = await fetchAssignments();
       if (assignmentsResponse.ok) {
         var assignmentsData = await assignmentsResponse.json();
@@ -2065,204 +1875,6 @@
       _supportRequestInFlight = false;
     }
   }
-
-  // ── The rest of the job (owner audit, 2026-10-12) ─────────────────────────
-  // Same server actions as the iPhone app: customer not home, running late,
-  // propose a new time, add work, tips, the time a reschedule moved from, and
-  // the private customer rating. Each card renders the server's fields only.
-  var LIFE_BOX = 'margin-bottom:1rem;border:1px solid var(--pro-border);border-radius:12px;background:#fff;padding:0.85rem 0.9rem';
-  var LIFE_TITLE = 'font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.4rem';
-  var LIFE_BTN = 'min-height:40px;border-radius:10px;font-size:0.82rem;margin:0.35rem 0.35rem 0 0';
-  var LIFE_INPUT = 'width:100%;box-sizing:border-box;margin-top:0.45rem;border:1px solid var(--pro-border-md);border-radius:9px;padding:0.55rem;font:inherit;font-size:0.82rem';
-  var EXTRA_WORK_LABEL = { pending_customer_approval: 'Waiting for the customer', authorized: 'Approved', captured: 'Approved', declined: 'Declined', refunded: 'Refunded' };
-  var CUSTOMER_FLAG_LABEL = { safety: 'Safety concern', conduct: 'Rude or abusive', payment: 'Asked to pay outside the app', access: 'Could not access the home', other: 'Other' };
-  var _lifeTimer = null;
-
-  function renderJobLifecycle(b, accepted, isCompleted) {
-    var html = '';
-    var lead = accepted && b._crew_role !== 'helper';
-    if (b._previous_slot && b._previous_slot.date && !isCompleted) {
-      html += '<div style="margin-bottom:0.75rem;font-size:0.8rem;color:#92400e">Moved from ' + esc(formatDate(b._previous_slot.date)) + (b._previous_slot.time ? ' &bull; ' + esc(b._previous_slot.time) : '') + '</div>';
-    }
-    if (b._tips && b._tips.count > 0) {
-      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">Tip</div><div style="font-size:0.95rem;font-weight:700;color:var(--pro-text)">' + formatMoneyCents(b._tips.amountCents) + '</div>'
-        + '<div style="font-size:0.75rem;color:var(--pro-muted)">' + (b._tips.feePending ? 'Paid to your Stripe account.' : 'You keep ' + formatMoneyCents(b._tips.netCents) + ' after Stripe\'s fee.') + '</div></div>';
-    }
-    if (b._time_proposal && b._time_proposal.status === 'pending' && !isCompleted) {
-      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">New time you proposed</div><div style="font-size:0.86rem;color:var(--pro-text)">' + esc(formatDate(b._time_proposal.date)) + ' &bull; ' + esc(b._time_proposal.time || '') + '</div>'
-        + '<div style="font-size:0.75rem;color:var(--pro-muted)">Waiting on the customer.</div>'
-        + '<button type="button" class="btn" data-life="withdraw-time" style="' + LIFE_BTN + '">Withdraw</button></div>';
-    }
-    if (lead && b.status === 'arrived') {
-      var cu = b._customer_unavailable;
-      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">Customer isn\'t here?</div>';
-      if (cu && cu.noShowReportedAt) {
-        html += '<div style="font-size:0.86rem;color:var(--pro-text)">No-show reported. You can leave.</div><div style="font-size:0.75rem;color:var(--pro-muted)">AssembleAtEase confirms it with the customer.</div>';
-      } else if (cu) {
-        html += '<div style="font-size:0.84rem;color:var(--pro-text)">The customer was told you\'re here.</div>'
-          + '<div id="life-wait" data-wait-until="' + esc(cu.waitUntil || '') + '" style="font-size:1.05rem;font-weight:700;margin-top:0.25rem"></div>'
-          + '<button type="button" class="btn btn-teal" id="life-no-show" data-life="no-show" style="' + LIFE_BTN + '" disabled>Report a no-show</button>';
-      } else {
-        html += '<div style="font-size:0.78rem;color:var(--pro-muted)">Tell the customer you\'re here and wait 15 minutes.</div>'
-          + '<button type="button" class="btn" data-life="customer-unavailable" style="' + LIFE_BTN + '">Customer isn\'t here</button>';
-      }
-      html += '</div>';
-    }
-    if (Array.isArray(b._extra_work) && b._extra_work.length) {
-      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">Extra work</div>' + b._extra_work.map(function(w) {
-        return '<div style="font-size:0.84rem;color:var(--pro-text);margin-top:0.3rem">' + esc(w.description) + '<div style="font-size:0.72rem;font-weight:700;color:' + (w.status === 'authorized' || w.status === 'captured' ? 'var(--pro-teal)' : 'var(--pro-muted)') + '">' + esc(EXTRA_WORK_LABEL[w.status] || 'Closed') + '</div></div>';
-      }).join('') + '</div>';
-    }
-    if (lead && !isCompleted) {
-      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">Job changes</div><div>'
-        + (b.status === 'confirmed' || b.status === 'en_route'
-          ? '<select id="life-late" style="' + LIFE_INPUT + ';width:auto;margin-right:0.35rem"><option value="">Running late?</option><option value="10">10 minutes</option><option value="20">20 minutes</option><option value="30">30 minutes</option></select>'
-          : '')
-        + (b.status === 'confirmed' && !(b._time_proposal && b._time_proposal.status === 'pending')
-          ? '<button type="button" class="btn" data-life="open-propose" style="' + LIFE_BTN + '">Propose a new time</button>' : '')
-        + '<button type="button" class="btn" data-life="open-work" style="' + LIFE_BTN + '">Add work</button>'
-        + '</div><div id="life-form"></div><div id="life-status" role="status" style="font-size:0.78rem;margin-top:0.4rem"></div></div>';
-    }
-    if (b.status === 'completed') {
-      html += '<div style="' + LIFE_BOX + '"><div style="' + LIFE_TITLE + '">How was the customer?</div>';
-      if (b._customer_feedback) {
-        html += '<div style="font-size:0.84rem;color:var(--pro-text)">' + (b._customer_feedback.flagged ? 'You flagged a concern. ' : '') + (b._customer_feedback.rating ? 'You rated them ' + b._customer_feedback.rating + ' of 5.' : '') + '</div>';
-      } else {
-        html += '<div style="font-size:0.75rem;color:var(--pro-muted)">Only AssembleAtEase sees this.</div>'
-          + '<select id="life-rating" style="' + LIFE_INPUT + '"><option value="">Rating</option><option value="5">5 - Great</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1 - Poor</option></select>'
-          + '<select id="life-flag" style="' + LIFE_INPUT + '"><option value="">No concern</option>' + Object.keys(CUSTOMER_FLAG_LABEL).map(function(k) { return '<option value="' + k + '">Flag: ' + CUSTOMER_FLAG_LABEL[k] + '</option>'; }).join('') + '</select>'
-          + '<textarea id="life-feedback-note" rows="2" maxlength="1000" placeholder="Add details (optional)" style="' + LIFE_INPUT + '"></textarea>'
-          + '<button type="button" class="btn btn-teal" data-life="rate" style="' + LIFE_BTN + '">Save</button>'
-          + '<div id="life-status" role="status" style="font-size:0.78rem;margin-top:0.4rem"></div>';
-      }
-      html += '</div>';
-    }
-    return html;
-  }
-
-  function lifeStatus(message, tone) {
-    var el = document.getElementById('life-status');
-    if (!el) { if (message) alertLife(message); return; }
-    el.textContent = message || '';
-    el.style.color = tone === 'error' ? '#b91c1c' : tone === 'success' ? 'var(--pro-teal)' : 'var(--pro-muted)';
-  }
-  function alertLife(message) { showSupportStatus(message, 'info'); }
-
-  async function lifeRequest(method, path, body) {
-    var response = await fetch(path, {
-      method: method,
-      headers: Object.assign({ 'Authorization': 'Bearer ' + (await getToken()) }, body ? { 'Content-Type': 'application/json' } : {}),
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    var data = await response.json().catch(function() { return {}; });
-    if (!response.ok || data.error) throw new Error(data.error || 'That did not go through. Try again.');
-    return data;
-  }
-
-  async function reloadAndReopen() {
-    try {
-      var resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-      if (resp.ok) {
-        var fresh = await resp.json();
-        allAssignments = fresh.bookings || [];
-        renderAssignments(filterList(allAssignments, currentFilter));
-        updateFilterCounts(allAssignments);
-      }
-    } catch (_) { /* the current view stays */ }
-    if (selectedBookingId) window.openDetail(selectedBookingId);
-  }
-
-  function startLifeTimer() {
-    clearInterval(_lifeTimer);
-    var waitEl = document.getElementById('life-wait');
-    if (!waitEl) return;
-    var until = Date.parse(waitEl.getAttribute('data-wait-until'));
-    function tick() {
-      var left = Math.max(0, Math.round((until - Date.now()) / 1000));
-      var button = document.getElementById('life-no-show');
-      if (!document.body.contains(waitEl)) { clearInterval(_lifeTimer); return; }
-      waitEl.textContent = left > 0 ? 'Wait ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') : 'The wait is over.';
-      if (button) button.disabled = left > 0;
-      if (left <= 0) clearInterval(_lifeTimer);
-    }
-    tick();
-    _lifeTimer = setInterval(tick, 1000);
-  }
-
-  document.getElementById('asgn-modal-body').addEventListener('change', async function(event) {
-    if (event.target.id !== 'life-late' || !event.target.value) return;
-    var minutes = event.target.value;
-    event.target.disabled = true;
-    try {
-      await lifeRequest('POST', '/api/booking/message', { bookingId: selectedBookingId, body: 'Running about ' + minutes + ' minutes late. I\'m on my way.', sender: 'assembler', target: 'customer' });
-      lifeStatus('The customer was told.', 'success');
-    } catch (error) {
-      lifeStatus(error.message, 'error');
-    } finally {
-      event.target.disabled = false;
-      event.target.value = '';
-    }
-  });
-
-  document.getElementById('asgn-modal-body').addEventListener('click', async function(event) {
-    var button = event.target.closest('[data-life]');
-    if (!button) return;
-    var action = button.getAttribute('data-life');
-    var bookingId = selectedBookingId;
-    var form = document.getElementById('life-form');
-    try {
-      if (action === 'customer-unavailable' || action === 'no-show') {
-        button.disabled = true;
-        await lifeRequest('POST', '/api/booking/customer-unavailable', { bookingId: bookingId, action: action === 'no-show' ? 'no_show' : 'start' });
-        await reloadAndReopen();
-      } else if (action === 'withdraw-time') {
-        button.disabled = true;
-        await lifeRequest('POST', '/api/booking/time-proposal', { bookingId: bookingId, action: 'withdraw' });
-        await reloadAndReopen();
-      } else if (action === 'open-propose') {
-        var options = await lifeRequest('GET', '/api/booking/time-proposal?bookingId=' + encodeURIComponent(bookingId));
-        if (!options.canPropose) { lifeStatus(options.reason || 'A new time cannot be proposed here.', 'error'); return; }
-        form.innerHTML = '<input type="date" id="life-date" style="' + LIFE_INPUT + '" min="' + new Date().toISOString().slice(0, 10) + '">'
-          + '<select id="life-slot" style="' + LIFE_INPUT + '">' + options.slots.map(function(s) { return '<option>' + esc(s) + '</option>'; }).join('') + '</select>'
-          + '<textarea id="life-note" rows="2" maxlength="300" placeholder="Note for the customer (optional)" style="' + LIFE_INPUT + '"></textarea>'
-          + '<button type="button" class="btn btn-teal" data-life="send-propose" style="' + LIFE_BTN + '">Send to the customer</button>';
-      } else if (action === 'send-propose') {
-        var date = document.getElementById('life-date').value;
-        if (!date) { lifeStatus('Choose a date.', 'error'); return; }
-        button.disabled = true;
-        await lifeRequest('POST', '/api/booking/time-proposal', { bookingId: bookingId, action: 'propose', date: date, time: document.getElementById('life-slot').value, note: document.getElementById('life-note').value.trim() });
-        await reloadAndReopen();
-      } else if (action === 'open-work') {
-        var work = await lifeRequest('GET', '/api/booking/extra-work?bookingId=' + encodeURIComponent(bookingId));
-        if (!work.canAdd) { lifeStatus(work.reason || 'Extra work cannot be added here.', 'error'); return; }
-        form.innerHTML = '<select id="life-item" style="' + LIFE_INPUT + '">' + work.services.map(function(service) {
-            return '<optgroup label="' + esc(service.name) + '">' + service.items.map(function(item) {
-              return '<option value="' + esc(service.name) + '|' + esc(item.name) + '">' + esc(item.name) + '</option>';
-            }).join('') + '</optgroup>';
-          }).join('') + '</select>'
-          + '<input type="number" id="life-qty" min="1" max="20" value="1" style="' + LIFE_INPUT + ';width:6rem">'
-          + '<textarea id="life-note" rows="2" maxlength="300" placeholder="Note for the customer (optional)" style="' + LIFE_INPUT + '"></textarea>'
-          + '<button type="button" class="btn btn-teal" data-life="send-work" style="' + LIFE_BTN + '">Send to the customer</button>'
-          + '<div style="font-size:0.72rem;color:var(--pro-muted);margin-top:0.3rem">The customer gets a request to approve.</div>';
-      } else if (action === 'send-work') {
-        var picked = document.getElementById('life-item').value.split('|');
-        button.disabled = true;
-        var sent = await lifeRequest('POST', '/api/booking/extra-work', { bookingId: bookingId, items: [{ service: picked[0], name: picked.slice(1).join('|'), qty: Number(document.getElementById('life-qty').value) || 1 }], note: document.getElementById('life-note').value.trim() });
-        await reloadAndReopen();
-        lifeStatus(sent.message || 'Sent to the customer to approve.', 'success');
-      } else if (action === 'rate') {
-        var rating = document.getElementById('life-rating').value;
-        var flag = document.getElementById('life-flag').value;
-        if (!rating && !flag) { lifeStatus('Choose a rating or flag a concern.', 'error'); return; }
-        button.disabled = true;
-        await lifeRequest('POST', '/api/booking/customer-feedback', { bookingId: bookingId, rating: rating ? Number(rating) : null, flagged: !!flag, flagReason: flag || null, note: document.getElementById('life-feedback-note').value.trim() });
-        await reloadAndReopen();
-      }
-    } catch (error) {
-      button.disabled = false;
-      lifeStatus(error.message, 'error');
-    }
-  });
 
   window.openDetail = function(bookingId) {
     const b = allAssignments.find(x => x.id === bookingId);
@@ -2291,11 +1903,7 @@
 
     // Tightened hierarchy: status -> when -> where -> customer -> booked scope
     // -> payout -> next job action.
-    // Turn-by-turn to the address: Apple Maps on an iPhone, Google Maps elsewhere
-    // (both links open the maps app when it is installed).
-    const mapsHref = b.address
-      ? (/iPhone|iPad|iPod/.test(navigator.userAgent) ? 'https://maps.apple.com/?daddr=' : 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=') + encodeURIComponent(b.address)
-      : '';
+    const mapsHref = b.address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.address) : '';
     const pinSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
     const payoutPill = !isCompleted && payEst
       ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.35rem 0.9rem;font-size:0.95rem;margin-bottom:0.75rem"><strong style="color:var(--pro-teal)">' + payEst + '</strong><span style="color:var(--pro-muted);font-size:0.72rem">' + (accepted ? 'Your payout' : 'Estimated payout') + '</span></div>'
@@ -2310,7 +1918,7 @@
     const contactActions = b.customer_phone
       ? '<div style="display:flex;gap:0.4rem;flex-shrink:0">'
           + '<a href="tel:' + esc(b.customer_phone) + '" style="display:inline-flex;align-items:center;background:var(--pro-teal);color:#fff;font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;text-decoration:none">Call</a>'
-          + '<button type="button" class="asgn-contact-relay" data-booking-id="' + esc(b.id) + '" style="display:inline-flex;align-items:center;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;border:1px solid rgba(0,191,255,0.4);cursor:pointer;font-family:inherit">Message</button>'
+          + '<a href="sms:' + esc(b.customer_phone) + '" style="display:inline-flex;align-items:center;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;text-decoration:none;border:1px solid rgba(0,191,255,0.4)">Text</a>'
         + '</div>'
       : (contactHeld
           ? '<button type="button" class="asgn-contact-relay" data-booking-id="' + esc(b.id) + '" style="display:inline-flex;align-items:center;flex-shrink:0;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;border:1px solid rgba(0,191,255,0.4);cursor:pointer;font-family:inherit">Message</button>'
@@ -2364,8 +1972,6 @@
 
       accepted && !isCompleted && b.details ? '<div style="margin-bottom:1rem;border:1px solid var(--pro-border);border-radius:12px;background:#f8fafc;padding:0.85rem 0.9rem"><div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.3rem">Customer notes</div><div style="font-size:0.86rem;color:var(--pro-text);line-height:1.6">' + esc(b.details) + '</div></div>' : '',
 
-      renderJobLifecycle(b, accepted, isCompleted),
-
       // Offer expiry countdown
       isPendingOffer && b._offer_expires_at ? '<div id="offer-timer-box-' + b.id + '" style="display:flex;align-items:center;gap:6px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:0.6rem 0.875rem;margin-bottom:0.875rem;font-size:0.82rem">'
         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
@@ -2377,7 +1983,6 @@
         + '<button id="decline-job-btn" class="btn" style="min-height:48px;border-radius:12px;color:#dc2626;border-color:rgba(239,68,68,0.25)">Decline</button>'
         + '</div>' : '',
     ].join('');
-    startLifeTimer();
 
     // Start offer countdown timer
     if (!accepted && b._offer_expires_at) {
@@ -2574,16 +2179,13 @@
     const hasActiveAssignmentForSupport = accepted
       && !isCompleted
       && (['confirmed', 'en_route', 'arrived', 'in_progress'].includes(b.status) || openReturnVisit);
-    // Any confirmed, accepted job can be cancelled by the Easer themself; the
-    // server decides the reliability cost (grace / advance / late / same-day)
-    // and the panel shows it before they confirm.
     _supportContext = {
       bookingId: b.id,
       canSelfDrop: hasActiveAssignmentForSupport
         && b.status === 'confirmed'
         && b._can_self_drop !== false
-        && !!acceptedAt,
-      minsSinceAcceptance: minsSinceAcceptance,
+        && !!acceptedAt
+        && minsSinceAcceptance <= 15,
     };
     _selectedSupportType = '';
     _supportRequestInFlight = false;
@@ -2700,7 +2302,8 @@
     var relayButton = document.querySelector('#asgn-modal-body .asgn-contact-relay');
     if (relayButton) {
       relayButton.addEventListener('click', function() {
-        setMessageThread('customer');
+        _relayToCustomer = true;
+        _selectedSupportType = '';
         setSupportPanelOpen(true);
         showSupportStatus('Your message goes to the customer through AssembleAtEase. Contact details and payment arrangements stay on the platform.', 'info');
         showSupportConversation('Ask the customer about access, parking, or the job');
@@ -2716,7 +2319,7 @@
     // remain available after the Easer deliberately opens Support.
     setSupportPanelOpen(false);
     // Load messages from Supabase
-    refreshThread(bookingId, true);
+    refreshThread(bookingId);
   };
 </script>
 
@@ -2742,16 +2345,19 @@
 <!-- Complete job confirmation sheet -->
 <div class="sheet-overlay" id="complete-sheet" role="dialog" aria-modal="true" aria-labelledby="complete-sheet-title" aria-hidden="true">
   <div class="sheet-box" tabindex="-1">
-    <div class="sheet-title" id="complete-sheet-title">Completion photos</div>
-    <div class="sheet-body" id="complete-sheet-body">Take a photo of each finished item, up to 5. At least one is required.</div>
+    <div class="sheet-title" id="complete-sheet-title">Take a completion photo</div>
+    <div class="sheet-body" id="complete-sheet-body">Take a clear photo of the finished work. This is required before the job can be marked complete.</div>
     <div id="photo-prompt-section" style="margin:0.75rem 0;border:1px dashed #e2e8f0;border-radius:10px;padding:0.875rem;background:#f8fafc">
-      <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.5rem;display:flex;justify-content:space-between;gap:8px"><span>Completion photos <span style="font-weight:400;color:#dc2626">(at least 1)</span></span><span id="photo-count" style="font-weight:500;color:#64748b"></span></div>
+      <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.5rem">Completion photo <span style="font-weight:400;color:#dc2626">(required to submit)</span></div>
       <div style="font-size:0.74rem;color:#92400e;background:#fffbeb;border:1px solid rgba(245,158,11,0.35);border-radius:8px;padding:0.55rem 0.7rem;margin-bottom:0.55rem;line-height:1.5"><strong>Photos of the completed work only.</strong> Do not upload selfies, faces, IDs, personal documents, or unrelated images.</div>
-      <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" multiple style="display:none">
-      <div id="photo-preview-area" class="photo-strip" style="display:none"></div>
+      <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" style="display:none">
+      <div id="photo-preview-area" style="display:none;margin-bottom:0.5rem">
+        <img id="photo-preview-img" style="width:100%;max-height:140px;object-fit:cover;border-radius:6px" alt="preview"/>
+        <button id="photo-remove-btn" style="font-size:0.72rem;color:#64748b;background:none;border:none;cursor:pointer;margin-top:4px;padding:0;-webkit-tap-highlight-color:transparent">Retake photo</button>
+      </div>
       <button id="photo-pick-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:0.75rem 0.875rem;border:none;border-radius:10px;background:#0ea5e9;color:#fff;font-size:0.925rem;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        <span id="photo-pick-label">Open Camera</span>
+        Open Camera
       </button>
       <div id="photo-upload-status" style="display:none;font-size:0.78rem;margin-top:0.5rem"></div>
     </div>

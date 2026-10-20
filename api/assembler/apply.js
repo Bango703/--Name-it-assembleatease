@@ -1,12 +1,10 @@
 ﻿import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
 import { getSupabase } from '../_supabase.js';
-import { normalizePersonName } from '../_person-name.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { rateLimit } from '../_ratelimit.js';
 import { logActivity } from '../booking/_activity.js';
 import { isActiveInstantBookingZip } from '../_source-of-truth.js';
-import { cleanAcquisitionAttribution, isMissingAttributionColumn } from '../_attribution.js';
 import { formatUsPhone, normalizeUsPhone } from '../_phone.js';
 import {
   buildIdentityResumeUrl,
@@ -68,7 +66,6 @@ export default async function handler(req, res) {
     contractorAgreementSigned,
     applicationAttemptId,
     applicationFeeConsent,
-    attribution,
   } = req.body || {};
 
   // ---- Validation ----
@@ -110,8 +107,6 @@ export default async function handler(req, res) {
   }
 
   const cleanName = fullName.trim();
-  // Stored for display in ordinary capitalisation; the signature keeps cleanName as typed.
-  const displayName = normalizePersonName(cleanName);
   const cleanEmail = email.trim().toLowerCase();
   const applicationAttemptHash = hashApplicationAttemptId(applicationAttemptId);
   const feeConsentGiven = applicationFeeConsent === true;
@@ -211,7 +206,7 @@ export default async function handler(req, res) {
       email_confirm: true,
       user_metadata: {
         role: 'assembler',
-        full_name: displayName,
+        full_name: cleanName,
         application_attempt_hash: applicationAttemptHash,
       },
     });
@@ -229,14 +224,11 @@ export default async function handler(req, res) {
   // the exact server-created PaymentIntent. Owner review cannot start earlier.
   const coreProfile = {
     id: userId,
-    full_name: displayName,
+    full_name: cleanName,
     email: cleanEmail,
     phone: cleanPhone,
     role: 'assembler',
     city: city.trim(),
-    // Which page brought them, sanitised by the same function bookings use.
-    // The city above is what they typed; this is what they arrived on.
-    application_attribution: cleanAcquisitionAttribution(attribution),
     state: cleanState,
     zip: cleanZip,
     status: 'pending',
@@ -297,19 +289,6 @@ export default async function handler(req, res) {
     ({ error: profileError } = await sb.from('profiles').update(updatable).eq('id', userId));
   } else {
     ({ error: profileError } = await sb.from('profiles').insert(coreProfile));
-  }
-
-  // Attribution is analytics. If migration 100 has not run yet the column
-  // does not exist, and losing the channel is not a reason to lose the
-  // applicant — retry once without it. Bookings degrade the same way.
-  if (profileError && isMissingAttributionColumn(profileError)) {
-    const { application_attribution, ...withoutAttribution } = coreProfile;
-    if (profileForThisAuthUser) { // same branch as the first attempt
-      const { id: _omit, ...updatable } = withoutAttribution;
-      ({ error: profileError } = await sb.from('profiles').update(updatable).eq('id', userId));
-    } else {
-      ({ error: profileError } = await sb.from('profiles').insert(withoutAttribution));
-    }
   }
 
   if (profileError) {

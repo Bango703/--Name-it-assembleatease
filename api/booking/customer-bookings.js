@@ -1,62 +1,71 @@
 import { getSupabase } from '../_supabase.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
-import { customerOwnsBooking, normalizeCustomerEmail } from './_customer-booking-auth.js';
-import { customerAccountBookings, customerAccountUser } from './_customer-access.js';
-import { customerCheckoutUnfinished, customerProgress, customerStatusLabel } from './_customer-status.js';
 
 /**
  * GET /api/booking/customer-bookings
- * Returns bookings for the authenticated customer. Bound bookings are owned
- * by customer_id; exact email matching is only a legacy fallback for rows that
- * have not yet been bound to an account.
+ * Returns bookings for the authenticated customer (matched by email).
  * Requires Authorization: Bearer <supabase-jwt>
  */
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const sb = getSupabase();
-  // Only a confirmed email proves the bookings sent to it are this person's
-  // (api/booking/_customer-access.js, the customer app's sign-in).
-  const user = await customerAccountUser(sb, req);
-  if (!user) return res.status(401).json({ error: 'Sign in again to see your bookings.' });
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
 
-  const email = normalizeCustomerEmail(user.email);
+  const token = auth.slice(7);
+  const sb = getSupabase();
+
+  // Verify JWT and get user
+  const { data: { user }, error: authErr } = await sb.auth.getUser(token);
+  if (authErr || !user) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+
+  const email = user.email?.toLowerCase();
   if (!email) {
     return res.status(400).json({ error: 'No email associated with account' });
   }
 
   const { status } = req.query;
 
-  const select = 'id, ref, service, customer_id, customer_name, customer_email, date, time, address, details, status, created_at, assembler_id, assembler_name, assembler_accepted_at, payment_status, payment_collected, return_visit_required, return_visit_date, return_visit_time, stripe_payment_intent_id';
-  const applyStatus = query => (status && status !== 'all' ? query.eq('status', status) : query);
-  const { bookings: owned, error: listError } = await customerAccountBookings(sb, user, select, applyStatus);
-  // An abandoned card checkout stays visible to the owner as an attempt, not to the customer as a booking.
-  const bookings = owned.filter(b => !customerCheckoutUnfinished(b));
-  if (listError) {
-    console.error('Customer bookings error:', listError);
+  let query = sb
+    .from('bookings')
+    .select('id, ref, service, customer_name, customer_email, date, time, address, details, status, created_at, assembler_id, assigned_at, assembler_accepted_at')
+    .ilike('customer_email', email)
+    .order('created_at', { ascending: false });
+
+  if (status && status !== 'all') {
+    query = query.eq('status', status);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Customer bookings error:', error);
     return res.status(500).json({ error: 'Failed to fetch bookings' });
   }
 
-  // What the customer sees of each booking: the same status words as the
-  // booking page, and the pro's first name only once they have accepted.
-  const enriched = bookings.map(b => {
-    const status = customerStatusLabel(b);
-    return {
-      id: b.id,
-      ref: b.ref,
-      service: b.service,
-      date: b.date,
-      time: b.time,
-      address: b.address,
-      details: b.details,
-      status: b.status,
-      created_at: b.created_at,
-      customer_status: status.label,
-      customer_status_detail: status.detail,
-      customer_progress: customerProgress(b),
-      pro_first_name: b.assembler_accepted_at && b.assembler_name ? String(b.assembler_name).split(' ')[0] : null,
-    };
-  });
+  // Enrich with assembler names where assigned
+  const bookings = data || [];
+  const assemblerIds = [...new Set(bookings.filter(b => b.assembler_id).map(b => b.assembler_id))];
+
+  let assemblerMap = {};
+  if (assemblerIds.length) {
+    const { data: assemblers } = await sb
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', assemblerIds);
+    if (assemblers) {
+      assemblers.forEach(a => { assemblerMap[a.id] = a.full_name; });
+    }
+  }
+
+  const enriched = bookings.map(b => ({
+    ...b,
+    assembler_name: assemblerMap[b.assembler_id] || null,
+  }));
 
   // Compute stats
   const CONFIRMED_OR_IN_FLIGHT = new Set([
@@ -73,8 +82,5 @@ export default async function handler(req, res) {
     completed: bookings.filter(b => b.status === BOOKING_STATUS.COMPLETED).length,
   };
 
-  // The name the customer booked under most recently, for the app's greeting.
-  const customerFirstName = String(bookings.find(b => b.customer_name)?.customer_name || '').trim().split(/\s+/)[0] || null;
-
-  return res.status(200).json({ bookings: enriched, stats, customer_first_name: customerFirstName });
+  return res.status(200).json({ bookings: enriched, stats });
 }

@@ -2,36 +2,63 @@
 import { rateLimit } from '../_ratelimit.js';
 import { formatAppointmentDate } from './_appt-date.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
-import { messageDirectionLabel } from '../_owner-inbox.js';
 import { sendPushToUser } from '../_push.js';
-import { sendSms } from '../_sms.js';
-import { safeTokenHashMatch, guestManageUrl } from '../_payment-security.js';
-import { customerMessageRecipient, easerMessageThread } from './_message-routing.js';
+import { safeTokenHashMatch } from '../_payment-security.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
 import { logActivity } from './_activity.js';
 import {
+  authenticateBearerUser,
   requireAssignedWorkEaser,
   respondWithEaserAccessError,
 } from '../_easer-access.js';
 import { customerOwnsBooking } from './_customer-booking-auth.js';
-import { customerAccountUser, customerBookingAccess } from './_customer-access.js';
 import { evaluateCustomerContactRelease } from './_customer-contact-release.js';
 import { inspectRelayMessage } from './_relay-contact-guard.js';
-import { EASER_SUPPORT_TYPES } from './_easer-support.js';
 import {
   OPERATION_CASE_SEVERITIES,
   OPERATION_CASE_SOURCES,
+  OPERATION_CASE_TYPES,
   createOperationCase,
-  operationCaseOwnerStatusLabel,
   operationCasePublicStatus,
 } from '../_operation-cases.js';
-import { notifyCustomerApp } from '../_customer-push.js';
 
 const SITE = 'https://www.assembleatease.com';
+const EASER_SUPPORT_TYPES = Object.freeze({
+  job_issue: {
+    caseType: OPERATION_CASE_TYPES.SUPPORT,
+    severity: OPERATION_CASE_SEVERITIES.NORMAL,
+    subject: 'Easer reported a job issue',
+    notificationType: 'easer_job_issue',
+  },
+  cannot_make: {
+    caseType: OPERATION_CASE_TYPES.SUPPORT,
+    severity: OPERATION_CASE_SEVERITIES.HIGH,
+    subject: 'Easer requested release from an assignment',
+    notificationType: 'easer_release_request',
+  },
+  customer_unavailable: {
+    caseType: OPERATION_CASE_TYPES.SUPPORT,
+    severity: OPERATION_CASE_SEVERITIES.HIGH,
+    subject: 'Customer unavailable at appointment',
+    notificationType: 'easer_customer_unavailable',
+  },
+  safety_concern: {
+    caseType: OPERATION_CASE_TYPES.SAFETY,
+    severity: OPERATION_CASE_SEVERITIES.CRITICAL,
+    subject: 'Urgent Easer safety concern',
+    notificationType: 'easer_safety_concern',
+  },
+  other: {
+    caseType: OPERATION_CASE_TYPES.SUPPORT,
+    severity: OPERATION_CASE_SEVERITIES.NORMAL,
+    subject: 'Easer requested job support',
+    notificationType: 'easer_support_request',
+  },
+});
 
 export default async function handler(req, res) {
   const ip = String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
-  if (!(await rateLimit(ip, req.method === 'GET' ? 'booking_read' : 'booking'))) {
+  if (!(await rateLimit(ip, 'booking'))) {
     return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
   }
 
@@ -63,31 +90,6 @@ export default async function handler(req, res) {
       if (guestMessageError) return res.status(500).json({ error: 'Failed to fetch messages' });
       return res.status(200).json({ messages: guestMessages || [] });
     }
-    // The customer app: a signed-in customer reads the same conversation the
-    // booking page shows (?as=customer&ref=...).
-    if (!ownerRequest && req.query?.as === 'customer') {
-      if (bookingId || !ref) return res.status(404).json({ error: 'Booking not found' });
-      const { data: ownBooking } = await sb.from('bookings')
-        .select('id, ref, customer_id, customer_email')
-        .eq('ref', String(ref).trim().toUpperCase())
-        .maybeSingle();
-      if (!ownBooking || !(await customerBookingAccess(sb, req, ownBooking)).ok) {
-        return res.status(404).json({ error: 'Booking not found' });
-      }
-      const { data: ownMessages, error: ownMessageError } = await sb.from('messages')
-        .select('id, booking_id, sender, sender_user_id, recipient_type, recipient_user_id, body, created_at, read_at')
-        .eq('booking_id', ownBooking.id)
-        .or('sender.eq.customer,recipient_type.eq.customer')
-        .order('created_at', { ascending: true });
-      if (ownMessageError) return res.status(500).json({ error: 'Failed to fetch messages' });
-      // Opening the conversation in the app reads it (api/customer/inbox.js counts the rest).
-      const unreadIds = (ownMessages || []).filter(m => m.recipient_type === 'customer' && !m.read_at).map(m => m.id);
-      if (unreadIds.length) {
-        await sb.from('messages').update({ read_at: new Date().toISOString() }).in('id', unreadIds)
-          .then(({ error }) => { if (error) console.warn('[message] read mark skipped:', error.message); });
-      }
-      return res.status(200).json({ messages: ownMessages || [] });
-    }
     let easerAccess = null;
     if (!ownerRequest) {
       easerAccess = await requireAssignedWorkEaser(req, { supabase: sb });
@@ -108,7 +110,6 @@ export default async function handler(req, res) {
         .select('id')
         .eq('booking_id', bk.id)
         .eq('easer_id', easerAccess.user.id)
-        .eq('role', 'helper')
         .is('removed_at', null)
         .maybeSingle();
       if (!crewRow) return res.status(404).json({ error: 'Booking not found' });
@@ -120,15 +121,9 @@ export default async function handler(req, res) {
     if (!ownerRequest) {
       // Assignment alone is not message ownership: after reassignment, role-
       // only rows could disclose the prior Easer's thread. Legacy rows with no
-      // user identity intentionally remain owner-only. A customer message is
-      // shown only when it was delivered to the assigned Easer: what the
-      // customer wrote to AssembleAtEase stays between them (a crew helper sees
-      // the lead's customer thread, never the customer's notes to the team).
-      const customerToCrew = bk.assembler_id
-        ? `,and(sender.eq.customer,recipient_user_id.eq.${bk.assembler_id}),and(recipient_type.eq.customer,sender_user_id.eq.${bk.assembler_id})`
-        : '';
+      // user identity intentionally remain owner-only.
       messagesQuery = messagesQuery.or(
-        `sender_user_id.eq.${easerAccess.user.id},recipient_user_id.eq.${easerAccess.user.id}${customerToCrew}`,
+        `sender_user_id.eq.${easerAccess.user.id},recipient_user_id.eq.${easerAccess.user.id},sender.eq.customer`,
       );
     }
     const { data: msgs, error: msgsErr } = await messagesQuery
@@ -147,7 +142,7 @@ export default async function handler(req, res) {
           .eq('booking_id', bk.id)
           .order('created_at', { ascending: true });
         if (baseRes.error) return res.status(500).json({ error: 'Failed to fetch messages' });
-        return res.status(200).json({ messages: (baseRes.data || []).map(m => ({ ...m, direction: messageDirectionLabel(m) })) });
+        return res.status(200).json({ messages: baseRes.data || [] });
       }
       return res.status(500).json({ error: 'Failed to fetch messages' });
     }
@@ -225,28 +220,8 @@ export default async function handler(req, res) {
       if (!countErr) unreadRemaining = Number(count || 0);
     }
 
-    // A help request from the Easer opened an Operations Case (sourceRef
-    // easer-support-message:<id>). The owner's thread names that case on the
-    // message, so the request and its case are one thing, not two places.
-    let caseByMessage = new Map();
-    if (ownerRequest && (msgs || []).some(m => m.sender === 'assembler')) {
-      const { data: caseRows } = await sb
-        .from('operations_cases')
-        .select('id, case_ref, status, subject, source_ref')
-        .eq('booking_id', bk.id)
-        .like('source_ref', 'easer-support-message:%');
-      caseByMessage = new Map((caseRows || []).map(row => [
-        String(row.source_ref).slice('easer-support-message:'.length),
-        { id: row.id, ref: row.case_ref || null, statusLabel: operationCaseOwnerStatusLabel(row.status), subject: row.subject || null },
-      ]));
-    }
-
     return res.status(200).json({
-      // The owner sees who wrote to whom; the wording comes from api/_owner-inbox.js.
-      // The Easer gets each row's thread (customer or team) from _message-routing.js.
-      messages: ownerRequest
-        ? (msgs || []).map(m => ({ ...m, direction: messageDirectionLabel(m), case: caseByMessage.get(m.id) || null }))
-        : (msgs || []).map(m => ({ ...m, thread: easerMessageThread(m) })),
+      messages: msgs || [],
       markedRead,
       unreadRemaining,
       readError,
@@ -305,11 +280,11 @@ export default async function handler(req, res) {
     resolvedSender = 'customer';
     resolvedRecipient = 'owner';
   } else {
-    // A signed-in customer (the customer app). Only a confirmed email is proof
-    // of owning the bookings sent to it (api/booking/_customer-access.js).
-    const customer = await customerAccountUser(sb, req);
-    if (!customer) return res.status(401).json({ error: 'Sign in again to send this message.' });
-    authenticatedUser = customer;
+    const authenticated = await authenticateBearerUser(req);
+    if (!authenticated.ok) {
+      return res.status(authenticated.status).json({ error: authenticated.error });
+    }
+    authenticatedUser = authenticated.user;
     resolvedSender = 'customer';
     resolvedRecipient = 'owner';
   }
@@ -337,8 +312,8 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Booking not found' });
     }
   }
-  if (resolvedSender === 'customer') {
-    resolvedRecipient = customerMessageRecipient(booking);
+  if (resolvedSender === 'customer' && booking.assembler_id && booking.assembler_accepted_at) {
+    resolvedRecipient = 'assembler';
   }
   if (resolvedSender === 'owner' && target === 'assembler' && !booking.assembler_id) {
     return res.status(409).json({ error: 'No Easer is assigned to this booking' });
@@ -438,12 +413,7 @@ export default async function handler(req, res) {
   let notificationFailure = null;
   try {
     const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
-    // esc() makes the text safe but leaves the line breaks, and HTML collapses
-    // those to a single space — so every message the owner typed with
-    // paragraphs arrived as one run-on block. The breaks are turned into <br>
-    // AFTER escaping, so nothing typed can inject markup, and <br> rather than
-    // white-space:pre-wrap because Outlook's Word engine ignores pre-wrap.
-    const sBody = esc(messageText).replace(/\r\n|\r|\n/g, '<br>');
+    const sBody = esc(messageText);
 
     if (resolvedSender === 'owner' && target === 'assembler') {
       // Notify assigned Easer
@@ -529,10 +499,6 @@ export default async function handler(req, res) {
       // address is never exposed and replies come back to AssembleAtEase, so
       // the conversation stays on-platform and auditable in both directions.
       const relayFirstName = String(booking.assembler_name || '').trim().split(/\s+/)[0] || 'Your pro';
-      // Conversations happen on the platform only (owner, 2026-09-29): the
-      // customer replies on their booking page, which goes straight to the
-      // Easer. Replying to this email is not a channel.
-      const customerReplyUrl = guestManageUrl(booking, SITE) + '#bookingCommunication';
       const relayHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
@@ -545,8 +511,7 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:16px 18px">
       <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
     </td></tr></table>
-    <p style="margin:22px 0 0"><a href="${esc(customerReplyUrl)}" style="display:inline-block;background:#00BFFF;color:#0d1117;font-weight:700;font-size:14px;text-decoration:none;padding:12px 20px;border-radius:8px">Reply to ${esc(relayFirstName)}</a></p>
-    <p style="margin:12px 0 0;font-size:12px;color:#71717a">Your reply goes to ${esc(relayFirstName)} from your booking page. Replies to this email do not reach your pro.</p>
+    <p style="margin:20px 0 0;font-size:13px;color:#52525b">Reply to this email and we'll pass it straight to ${esc(relayFirstName)}.</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
     Your booking, guarantee, and payment protection are handled by AssembleAtEase &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
@@ -565,47 +530,15 @@ export default async function handler(req, res) {
           disableDedupe: true,
         },
       });
-      // A text saying an email is waiting. An Easer asked a customer for a
-      // photo of the item, the relay went out by email only, and the customer
-      // never opened it — the job reached the day before anyone noticed.
-      // Customers get texts for exactly three things today (booking confirmed,
-      // on the way, arrived) and a question from their Easer was not one of
-      // them, though it is the one that needs an answer before the visit.
-      //
-      // The message body is NOT in the text. It can be long, it can be
-      // personal, and a tokenized tracking link alone would blow the
-      // single-segment budget. The text is a doorbell; the email is the room.
-      const relaySmsResult = await sendSms({
-        recipient: {
-          phone: booking.customer_phone,
-          sms_consent_at: booking.sms_consent_at,
-          sms_opted_out_at: booking.sms_opted_out_at,
-        },
-        body: `AssembleAtEase: ${relayFirstName} sent a question about your job ${booking.ref}. Open the email to reply.`,
-        meta: {
-          bookingId: booking.id,
-          notificationType: 'easer_customer_relay',
-          recipientType: 'customer',
-        },
-      }).catch(error => ({ ok: false, error: error?.message || String(error) }));
-
       // Owner visibility (Rule 8): every relayed message is on the timeline, so
-      // the pro-to-customer channel is never an unobserved back room. The text
-      // outcome rides along, because "we emailed and texted them" and "we
-      // emailed them and the text was refused" are different facts.
+      // the pro-to-customer channel is never an unobserved back room.
       await logActivity(sb, {
         bookingId: booking.id,
         eventType: 'easer_customer_relay_sent',
         actorType: 'easer',
         actorName: booking.assembler_name || 'Easer',
         description: `${relayFirstName} sent the customer a message through the platform relay`,
-        metadata: {
-          messageId: message.id,
-          emailDelivery: notificationResult?.ok === true ? 'accepted' : 'not_accepted',
-          smsDelivery: relaySmsResult?.ok === true
-            ? 'accepted'
-            : (relaySmsResult?.skipped || relaySmsResult?.reason || 'not_accepted'),
-        },
+        metadata: { messageId: message.id },
       }).catch(() => {});
     } else if (resolvedSender === 'assembler') {
       // Notify owner about assembler message
@@ -641,7 +574,7 @@ export default async function handler(req, res) {
       notificationResult = await sendEmail({
         to: ownerEmail(),
         from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
-        subject: (resolvedRecipient === 'assembler' ? 'FYI: customer messaged the Easer — ' : 'Customer Reply — ') + booking.ref + ' from ' + booking.customer_name,
+        subject: 'Customer Reply — ' + booking.ref + ' from ' + booking.customer_name,
         html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #00BFFF"><tr><td style="padding:20px 24px">
@@ -657,9 +590,7 @@ export default async function handler(req, res) {
       <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
-      <p style="margin:0;font-size:13px;color:#1e40af">${resolvedRecipient === 'assembler'
-        ? 'Delivered to the assigned Easer in the app. No action needed; this is your copy.'
-        : `Contact <strong>${esc(booking.customer_name)}</strong> at <a href="mailto:${esc(booking.customer_email)}" style="color:#1e40af">${esc(booking.customer_email)}</a>.`}</p>
+      <p style="margin:0;font-size:13px;color:#1e40af">Contact <strong>${esc(booking.customer_name)}</strong> at <a href="mailto:${esc(booking.customer_email)}" style="color:#1e40af">${esc(booking.customer_email)}</a>.</p>
     </td></tr></table>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Serving customers across Texas</td></tr></table>
@@ -674,47 +605,16 @@ export default async function handler(req, res) {
       });
       if (booking.assembler_id && booking.assembler_accepted_at) {
         const { data: easerProfile } = await sb.from('profiles')
-          .select('email, full_name, phone, sms_consent_at, sms_opted_out_at')
+          .select('email, full_name')
           .eq('id', booking.assembler_id)
           .eq('role', 'assembler')
           .maybeSingle();
-        const easerJobUrl = `${SITE}/assembler/my-assignments?job=${encodeURIComponent(booking.id)}`;
-        // Push and a text so a reply is not missed on the road; email alone was.
-        await sendPushToUser(booking.assembler_id, {
-          title: 'Customer replied',
-          body: messageText.slice(0, 140),
-          url: easerJobUrl,
-          jobId: booking.id,
-        }, { bookingId: booking.id, notificationType: 'customer_message', recipientType: 'easer' }).catch(() => {});
-        if (easerProfile?.phone) {
-          // At most one text per booking per 30 minutes: a burst of messages is one doorbell.
-          const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-          const { data: recentText, error: recentTextError } = await sb.from('notification_log')
-            .select('id')
-            .eq('channel', 'sms')
-            .eq('booking_id', booking.id)
-            .eq('notification_type', 'customer_message_easer')
-            .gte('sent_at', since)
-            .limit(1);
-          if (recentTextError || !recentText?.length) {
-            await sendSms({
-              recipient: easerProfile,
-              body: `AssembleAtEase: Your customer replied about job ${booking.ref}. Open your jobs to read it and reply.`,
-              meta: {
-                bookingId: booking.id,
-                notificationType: 'customer_message_easer',
-                recipientType: 'easer',
-                recipientUserId: booking.assembler_id,
-              },
-            }).catch(() => {});
-          }
-        }
         if (easerProfile?.email) {
           const easerNotice = await sendEmail({
             to: easerProfile.email,
             from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
             subject: 'Customer message — ' + booking.ref,
-            html: `<p style="font-family:Arial,sans-serif;color:#1a1a1a">A customer sent a message about booking <strong>${esc(booking.ref)}</strong>.</p><p style="font-family:Arial,sans-serif;color:#1a1a1a;line-height:1.6">${sBody}</p><p style="margin:18px 0 0"><a href="${esc(easerJobUrl)}" style="display:inline-block;background:#00BFFF;color:#0d1117;font-weight:700;font-size:14px;text-decoration:none;padding:12px 20px;border-radius:8px;font-family:Arial,sans-serif">Open the job to reply</a></p><p style="font-family:Arial,sans-serif;color:#71717a;font-size:12px">Replies to this email do not reach the customer.</p>`,
+            html: `<p style="font-family:Arial,sans-serif;color:#1a1a1a">A customer sent a message about booking <strong>${esc(booking.ref)}</strong>.</p><p style="font-family:Arial,sans-serif;color:#1a1a1a;line-height:1.6">${sBody}</p><p style="font-family:Arial,sans-serif;color:#71717a">Open your assigned job in the Easer dashboard to reply through AssembleAtEase.</p>`,
             replyTo: ownerEmail(),
             meta: {
               bookingId: booking.id,
@@ -758,14 +658,6 @@ export default async function handler(req, res) {
     }).catch(activityError => {
       console.error('Message notification failure activity log error:', activityError?.message || activityError);
     });
-  }
-
-  // The customer app, when installed: a notification for a message to the customer.
-  if (resolvedRecipient === 'customer') {
-    const fromName = resolvedSender === 'assembler'
-      ? (String(booking.assembler_name || '').trim().split(/\s+/)[0] || 'Your pro')
-      : 'AssembleAtEase';
-    await notifyCustomerApp(sb, booking.id, 'message', { fromName, body: messageText });
   }
 
   const response = {

@@ -15,103 +15,9 @@
   var phoneTrackingActive = false;
   var phoneTrackingGeneration = 0;
   var phoneReplacements = [];
-  var trackedEvents = Object.create(null);
-  var measurementConfigured = false;
-  var measurementTagLoaded = false;
-  var consentChoice = null;
-  var attributionLoadAttempted = false;
-  try { consentChoice = localStorage.getItem(CONSENT_KEY); } catch (e) {}
-
-  function analyticsAllowed() {
-    return consentChoice === 'accepted' && !globalPrivacyControlEnabled() && !measurementExcluded();
-  }
-
-  // Google Consent Mode, advanced: until a visitor chooses, Google tags load with
-  // every consent signal denied and send cookieless pings (no cookies, no stored
-  // identifiers), which Google uses to model visits and conversions. Accept turns
-  // on cookies. Decline or a Global Privacy Control signal sends nothing at all.
-  // Owner, 2026-10-15: 0 bookings ever reached Analytics because everyone who did
-  // not press Accept was invisible, including all three real bookings that month.
-  function measurementAllowed() {
-    return consentChoice !== 'declined' && !globalPrivacyControlEnabled() && !measurementExcluded();
-  }
-
-  function audienceType() {
-    var path = window.location.pathname || '';
-    if (/^\/owner(?:\/|$|\.html)/.test(path)) return 'internal';
-    if (/^\/(?:assembler|easer-jobs-|become-an-easer)/.test(path)) return 'easer';
-    if (/^\/(?:track|review)(?:\/|$|\.html)/.test(path)) return 'customer_support';
-    return 'customer';
-  }
-  // The store app does not use optional web marketing tags. Cookie consent is
-  // not Apple's tracking permission; customer routes must keep Ads/CRM off too.
-  function isNativeApp() {
-    var cap = window.Capacitor;
-    return !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
-  }
-  function measurementExcluded() {
-    if (isNativeApp()) return true;
-    if (!/^(?:www\.)?assembleatease\.com$/.test(window.location.hostname || '')) return true;
-    if (/^\/(?:owner|auth)(?:\/|$|\.html)/.test(window.location.pathname || '')) return true;
-    if (/^\/assembler(?:\/|$)/.test(window.location.pathname || '') && !/^\/assembler\/apply(?:\.html)?\/?$/.test(window.location.pathname || '')) return true;
-    try { return localStorage.getItem('aae-analytics-internal') === '1'; } catch (e) { return false; }
-  }
-  function safePagePath() {
-    try {
-      var canonical = document.querySelector('link[rel="canonical"]');
-      var url = new URL(canonical && canonical.href || '');
-      return /^(?:www\.)?assembleatease\.com$/.test(url.hostname)
-        && /^\/(?:[a-z0-9-]+\/)*[a-z0-9-]*\/?$/.test(url.pathname) ? url.pathname : '/unknown';
-    } catch (e) { return '/unknown'; }
-  }
-  function safeReferrer() {
-    try { return document.referrer ? new URL(document.referrer).origin + '/' : ''; } catch (e) { return ''; }
-  }
-
-  window.AAEAnalytics = {
-    isExcluded: measurementExcluded,
-    hasConsent: analyticsAllowed,
-    canMeasure: measurementAllowed,
-    setInternalTraffic: function (excluded) {
-      try { if (excluded) localStorage.setItem('aae-analytics-internal', '1'); else localStorage.removeItem('aae-analytics-internal'); } catch (e) {}
-      window['ga-disable-' + GA_MEASUREMENT_ID] = !measurementAllowed();
-    },
-    trackOnce: function (eventName, params, key) {
-      if (!measurementAllowed() || !measurementConfigured) return false;
-      var storageKey = 'aaeAnalytics:v2:' + String(key || eventName);
-      if (trackedEvents[storageKey]) return false;
-      try { if (sessionStorage.getItem(storageKey)) return false; } catch (e) {}
-      var safe = { page_path: safePagePath(), audience_type: audienceType(), measurement_version: '2' };
-      // Do not forward addresses, emails, contact data, booking-link tokens or arbitrary parameters.
-      ['booking_type', 'booking_flow', 'outcome_stage', 'service_market', 'service_city'].forEach(function (name) {
-        var value = String(params && params[name] || '');
-        if (/^[a-zA-Z][a-zA-Z_ -]{0,59}$/.test(value)) safe[name] = value;
-      });
-      ['service_count', 'days_ahead'].forEach(function (name) {
-        var value = params && params[name];
-        if (Number.isFinite(value) && value >= 0 && value <= 100) safe[name] = value;
-      });
-      if (params && params.deprecated_event === true) safe.deprecated_event = true;
-      // A checkout preview is not captured revenue. Outcome events carry no monetary value.
-      if (eventName === 'begin_checkout' && params && Number.isFinite(params.value) && params.value >= 0) {
-        safe.value = params.value; safe.currency = 'USD';
-      }
-      window.gtag('event', eventName, safe);
-      trackedEvents[storageKey] = true;
-      try { sessionStorage.setItem(storageKey, '1'); } catch (e) {}
-      return true;
-    }
-  };
 
   window.dataLayer = window.dataLayer || [];
-  var existingGtag = window.gtag;
-  window.gtag = function gtag() {
-    if (isNativeApp()) return;
-    if (arguments[0] !== 'consent' && !measurementAllowed()) return;
-    if (existingGtag) return existingGtag.apply(window, arguments);
-    window.dataLayer.push(arguments);
-  };
-  window['ga-disable-' + GA_MEASUREMENT_ID] = !measurementAllowed();
+  window.gtag = window.gtag || function gtag() { window.dataLayer.push(arguments); };
   window.gtag('consent', 'default', {
     analytics_storage: 'denied',
     ad_storage: 'denied',
@@ -119,6 +25,14 @@
     ad_personalization: 'denied',
     wait_for_update: 500
   });
+  // With ad_storage denied there is no cookie to hold the Google click id, so a
+  // visitor who lands from an ad and accepts on a LATER page was unattributable —
+  // the gclid died on the first navigation. url_passthrough carries it in the URL
+  // instead. ads_data_redaction strips identifiers from the pings sent while
+  // consent is denied. Neither sets a cookie, so a visitor who ignores or
+  // declines the banner is no more tracked than before.
+  window.gtag('set', 'url_passthrough', true);
+  window.gtag('set', 'ads_data_redaction', true);
 
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -183,7 +97,6 @@
   }
 
   function initGtag() {
-    if (!measurementAllowed()) return;
     if (window.__AAE_GTAG_READY__) return;
     window.__AAE_GTAG_READY__ = true;
     window.dataLayer = window.dataLayer || [];
@@ -193,32 +106,11 @@
       };
     }
     window.gtag('js', new Date());
-    var measurementContext = { page_location: 'https://www.assembleatease.com' + safePagePath(), page_referrer: safeReferrer(), audience_type: audienceType() };
-    addCampaignContext(measurementContext);
-    window.gtag('set', measurementContext);
     window.gtag('config', GA_MEASUREMENT_ID);
     window.gtag('config', ADS_MEASUREMENT_ID);
-    measurementConfigured = true;
-    window.dispatchEvent(new Event('aae-analytics-ready'));
-  }
-
-  // Keep deliberate campaign tags while replacing the raw URL, which may
-  // contain booking tokens or personal data. These are GA4 config fields:
-  // https://developers.google.com/analytics/devguides/collection/ga4/reference/config
-  // Attribution is stored only after Accept (attribution.js checks consent), so
-  // before a choice this adds nothing; Accept calls it again.
-  function addCampaignContext(target) {
-    try {
-      var acquisition = window.AAE_ATTRIBUTION && window.AAE_ATTRIBUTION.capture();
-      [['utmSource', 'campaign_source'], ['utmMedium', 'campaign_medium'], ['utmCampaign', 'campaign_name'], ['utmContent', 'campaign_content']].forEach(function (fields) {
-        if (acquisition && acquisition.utmSource && acquisition[fields[0]]) target[fields[1]] = acquisition[fields[0]];
-      });
-    } catch (e) { /* Campaign measurement cannot block page use. */ }
-    return target;
   }
 
   function loadHubspot() {
-    if (!analyticsAllowed()) return;
     if (document.getElementById(HUBSPOT_SCRIPT_ID)) return;
     var script = document.createElement('script');
     script.id = HUBSPOT_SCRIPT_ID;
@@ -229,15 +121,14 @@
   }
 
   function loadMeasurement() {
-    if (!measurementAllowed()) return;
-    if (measurementLoaded) { initGtag(); return; }
+    if (measurementLoaded) return;
     measurementLoaded = true;
     if (!document.getElementById(GTAG_SCRIPT_ID)) {
       var script = document.createElement('script');
       script.id = GTAG_SCRIPT_ID;
       script.async = true;
       script.src = 'https://www.googletagmanager.com/gtag/js?id=' + ADS_MEASUREMENT_ID;
-      script.onload = function () { measurementTagLoaded = true; initGtag(); };
+      script.onload = initGtag;
       document.head.appendChild(script);
     }
 
@@ -245,23 +136,6 @@
   }
 
   function grantAnalytics() {
-    if (!analyticsAllowed()) return;
-    // Applications/recruitment include this canonical module directly. Other
-    // public pages obtain it here before optional tags need campaign context.
-    if (!window.AAE_ATTRIBUTION && !attributionLoadAttempted) {
-      attributionLoadAttempted = true;
-      var attributionScript = document.createElement('script');
-      attributionScript.src = '/assets/js/attribution.js';
-      attributionScript.onload = grantAnalytics;
-      attributionScript.onerror = grantAnalytics;
-      document.head.appendChild(attributionScript);
-      return;
-    }
-    window['ga-disable-' + GA_MEASUREMENT_ID] = false;
-    window._hsq = window._hsq || [];
-    window._hsq.push(['doNotTrack', { track: true }]);
-    window.gtag('set', 'url_passthrough', true);
-    window.gtag('set', 'ads_data_redaction', true);
     // ad_user_data must be granted for Google Ads to RECORD a conversion. It was
     // denied here even after the visitor pressed Accept, so Ads set the cookie and
     // was then forbidden from using it to measure. Every campaign read 0
@@ -279,42 +153,27 @@
       ad_user_data: 'granted',
       ad_personalization: 'denied'
     });
-    // The tag may already be running cookieless from before the choice; record
-    // the campaign now that consent allows it.
-    if (measurementConfigured) {
-      var campaign = addCampaignContext({});
-      if (Object.keys(campaign).length) window.gtag('set', campaign);
-    }
-    loadMeasurement();
     enableWebsiteCallTracking();
+    loadMeasurement();
     loadHubspot();
   }
 
-  // Before any choice: Google tags with all consent signals denied (cookieless).
-  function startCookielessMeasurement() {
-    if (!measurementAllowed() || analyticsAllowed()) return;
-    window.gtag('set', 'url_passthrough', true);
-    window.gtag('set', 'ads_data_redaction', true);
-    loadMeasurement();
-  }
-
   function setConsent(value) {
-    consentChoice = value;
     try {
       localStorage.setItem(CONSENT_KEY, value);
     } catch (error) {}
   }
 
   function acceptCookies() {
-    if (isNativeApp()) { hideBanner(); return; }
     if (globalPrivacyControlEnabled()) {
       declineCookies();
       return;
     }
     setConsent('accepted');
     hideBanner();
+    window._hsq = window._hsq || [];
+    window._hsq.push(['doNotTrack', { track: true }]);
     grantAnalytics();
-    window.dispatchEvent(new Event('aae-analytics-consent-changed'));
   }
 
   function declineCookies() {
@@ -322,16 +181,6 @@
     phoneTrackingGeneration += 1;
     restoreBusinessPhone();
     setConsent('declined');
-    window['ga-disable-' + GA_MEASUREMENT_ID] = true;
-    // A tag still downloading must never replay accepted-session events after
-    // withdrawal. Already-sent events cannot be recalled; future calls are gated.
-    if (!measurementTagLoaded) {
-      window.dataLayer.length = 0;
-      measurementConfigured = false;
-      window.__AAE_GTAG_READY__ = false;
-    }
-    if (window.AAE_ATTRIBUTION) window.AAE_ATTRIBUTION.clear();
-    try { sessionStorage.removeItem('aaeAcquisitionAttribution'); sessionStorage.removeItem('aaeBookingAttribution'); } catch (e) {}
     window.gtag('consent', 'update', {
       analytics_storage: 'denied',
       ad_storage: 'denied',
@@ -340,7 +189,6 @@
     });
     window._hsq = window._hsq || [];
     window._hsq.push(['doNotTrack']);
-    window.dispatchEvent(new Event('aae-analytics-consent-changed'));
     hideBanner();
   }
 
@@ -349,7 +197,6 @@
   }
 
   function openCookiePreferences() {
-    if (isNativeApp()) { hideBanner(); return; }
     injectStyles();
     updateBannerCopy();
     bindBannerActions();
@@ -422,7 +269,7 @@
   }
 
   function enableWebsiteCallTracking() {
-    if (phoneTrackingActive || !analyticsAllowed()) return;
+    if (phoneTrackingActive || globalPrivacyControlEnabled()) return;
     phoneTrackingActive = true;
     var generation = ++phoneTrackingGeneration;
     window.gtag('config', PHONE_CALL_CONVERSION, {
@@ -452,15 +299,12 @@
       window.gtag('event', PHONE_CLICK_EVENT, {
         contact_method: 'phone',
         link_location: location,
-        page_path: safePagePath(),
-        audience_type: audienceType(),
-        measurement_version: '2'
+        page_path: window.location.pathname
       });
     });
   }
 
   function initConsent() {
-    if (isNativeApp()) { hideBanner(); return; }
     injectStyles();
     updateBannerCopy();
     bindBannerActions();
@@ -477,6 +321,8 @@
       return;
     }
 
+    loadMeasurement();
+
     if (storedConsent === 'accepted') {
       hideBanner();
       grantAnalytics();
@@ -484,24 +330,16 @@
     }
 
     if (storedConsent === 'declined') {
-      declineCookies();
+      hideBanner();
       return;
     }
 
-    startCookielessMeasurement();
     showBanner();
   }
 
   window.acceptCookies = acceptCookies;
   window.declineCookies = declineCookies;
   window.openCookiePreferences = openCookiePreferences;
-  window.addEventListener('storage', function (event) {
-    if (event.key !== CONSENT_KEY) return;
-    if (isNativeApp()) { hideBanner(); return; }
-    consentChoice = event.newValue;
-    if (analyticsAllowed()) grantAnalytics();
-    else if (consentChoice === 'declined') declineCookies();
-  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initConsent);

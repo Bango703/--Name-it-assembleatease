@@ -178,48 +178,12 @@ export async function insertOperationalEventFailOpen(sb, event, {
     payload: sanitizePayload(event.payload),
   };
 
-  if (!row.request_id) row.request_id = buildRequestId();
-
   try {
-    // Supabase reports a refused row in { error }; it does not throw.
-    const { error } = await sb.from(table).insert(row);
-    if (error) {
-      logger.warn('Operational event insert refused:', error.message || error);
-      return false;
-    }
+    await sb.from(table).insert(row);
     return true;
   } catch (e) {
     logger.warn('Operational event insert skipped:', e?.message || e);
     return false;
-  }
-}
-
-/**
- * Writes rows to operational_events as given, for callers that keep their own
- * reason codes. Fills request_id (NOT NULL, no default in the table), and says
- * when the table refused a row instead of reporting success.
- *
- * 2026-10-15: seven callers inserted without request_id. Every row was refused
- * and nobody saw it, so the stranded-booking alert, which reads its own past
- * rows to stay quiet, emailed the owner the same four bookings 39 times in 20
- * hours.
- *
- * Returns { ok, error }. Never throws.
- */
-export async function recordOperationalEvents(sb, rows, { logger = console } = {}) {
-  const list = (Array.isArray(rows) ? rows : [rows]).filter(r => r && typeof r === 'object');
-  if (!sb || !list.length) return { ok: false, error: 'nothing to record' };
-  const filled = list.map(r => ({ ...r, request_id: r.request_id || buildRequestId() }));
-  try {
-    const { error } = await sb.from(OPERATIONAL_EVENTS_TABLE).insert(filled);
-    if (error) {
-      logger.error('[operational-events] insert refused:', error.message || error, filled.map(r => r.event_type).join(','));
-      return { ok: false, error: error.message || String(error) };
-    }
-    return { ok: true, error: null };
-  } catch (e) {
-    logger.error('[operational-events] insert failed:', e?.message || e);
-    return { ok: false, error: e?.message || String(e) };
   }
 }
 

@@ -5,16 +5,8 @@ import { isStripeConnectEnabled } from './_stripe-connect.js';
 import { isApplicationFeeSatisfied } from './_easer-application-fee.js';
 import { isEaserClosureBlocking, normalizeEaserClosureStatus } from './_easer-closure.js';
 import { normalizeUsPhone } from './_phone.js';
-import { EASER_READINESS_FIELDS } from './_easer-readiness-select.js';
 
 export { isApplicationFeeSatisfied } from './_easer-application-fee.js';
-
-// Job-readiness presentation must distinguish missing evidence from an unmet
-// requirement. payment_confirmed is an approval-only legacy alias; Connect is
-// payout setup. Neither is evidence required by the canonical job gates below.
-export const EASER_REQUIREMENTS_FIELDS = Object.freeze(EASER_READINESS_FIELDS.filter(
-  field => !['payment_confirmed', 'stripe_connect_account_id'].includes(field),
-));
 
 function clean(value) {
   return String(value || '').trim().toLowerCase();
@@ -151,8 +143,6 @@ export async function getEaserReadiness(profile = {}, options = {}) {
     tierEligible: ACTIVE_EASER_TIERS.includes(tier),
     available: profile.is_available === true,
     phoneAvailable: normalizeUsPhone(profile.phone) !== null,
-    // The owner asked for a new profile photo (migration 108); cleared on upload.
-    profilePhotoRequested: profile.profile_photo_requested_at != null,
     jobTextsEnabled: Boolean(
       normalizeUsPhone(profile.phone)
       && profile.sms_consent_at
@@ -219,28 +209,13 @@ export async function getEaserReadiness(profile = {}, options = {}) {
   if (!flags.tierEligible) missingItems.push('Valid Easer tier');
   if (!flags.phoneAvailable) missingItems.push('Valid 10-digit U.S. phone number on file');
   if (!flags.jobTextsEnabled) missingItems.push('Job texts enabled');
-  if (flags.profilePhotoRequested) missingItems.push('New profile photo requested');
-  const availabilityItemIndex = missingItems.length;
+  if (requireAvailability && !flags.available) missingItems.push('Online and available');
   // Named, not generic: these are the two the database used to reject silently.
   if (flags.applicationFeeRefundBlocking) {
     missingItems.push('Application fee refund resolved (a refund is recorded, pending, or under review)');
   }
   if (flags.applicationDecisionInFlight) {
     missingItems.push('Application decision finished (one is still in progress)');
-  }
-
-  // Derive setup presentation from the same gates before availability is added.
-  // Stored null/false values are evidence; an omitted or undefined column is not.
-  const requirementsVerified = EASER_REQUIREMENTS_FIELDS.every(field => (
-    Object.prototype.hasOwnProperty.call(profile, field) && profile[field] !== undefined
-  ));
-  const requirementsMissingItems = requirementsVerified ? [...missingItems] : [];
-  const requirementsReady = requirementsVerified ? requirementsMissingItems.length === 0 : null;
-  const offerStatus = !requirementsVerified ? 'unverified'
-    : !requirementsReady ? 'action_required'
-      : flags.available ? 'ready' : 'offline';
-  if (requireAvailability && !flags.available) {
-    missingItems.splice(availabilityItemIndex, 0, 'Online and available');
   }
 
   // Payout setup (Stripe Connect) does NOT block job offers. An approved Easer
@@ -267,10 +242,6 @@ export async function getEaserReadiness(profile = {}, options = {}) {
     accountStatus: clean(profile.status),
     currentAgreementVersion: CONTRACTOR_AGREEMENT_VERSION,
     missingItems,
-    requirementsVerified,
-    requirementsMissingItems,
-    requirementsReady,
-    offerStatus,
     payoutSetupRequired: connectRequired,
     payoutSetupComplete,
     payoutSetupItems,
@@ -293,9 +264,7 @@ export function publicMissingItems(readiness = {}) {
   if (missing.some(item => /phone/i.test(item))) publicItems.push('Phone number added');
   if (missing.some(item => /contractor agreement/i.test(item))) publicItems.push('Contractor agreement accepted');
   if (missing.some(item => /code of conduct/i.test(item))) publicItems.push('Code of Conduct accepted');
-  if (missing.some(item => /job texts/i.test(item))) publicItems.push('Job texts turned on');
-  if (missing.some(item => /profile photo/i.test(item))) publicItems.push('New profile photo');
-  if (missing.some(item => /availability|online and available/i.test(item))) publicItems.push('Availability enabled');
+  if (missing.some(item => /availability/i.test(item))) publicItems.push('Availability enabled');
   if (missing.some(item => /stripe|payout/i.test(item))) publicItems.push('Payout setup complete');
   if (missing.some(item => /account closure/i.test(item))) publicItems.push('Account available for jobs');
   return publicItems;
@@ -313,11 +282,5 @@ export function publicReadinessError(readiness) {
 export function readinessError(readiness) {
   if (readiness?.isReady) return null;
   const missing = readiness?.missingItems || [];
-  // The same trap approvalReadinessError documents above: missingItems are
-  // named as the REQUIREMENT, so "not ready for jobs: Job texts enabled" reads
-  // as though having texts enabled were the problem. "Still missing:" reads
-  // correctly against every requirement name (Article 14).
-  return missing.length
-    ? `Easer is not ready for jobs. Still missing: ${missing.join(', ')}.`
-    : 'Easer is not ready for jobs: readiness could not be verified.';
+  return `Easer is not ready for jobs: ${missing.join(', ') || 'readiness could not be verified'}.`;
 }

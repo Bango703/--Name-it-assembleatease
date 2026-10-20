@@ -73,9 +73,7 @@ assert.doesNotMatch(
 assert.match(ownerUi, /Record Customer Payment/);
 assert.match(ownerUi, /Schedule Return Visit/);
 assert.match(ownerUi, /remainingBalanceCents/);
-// The breakdown wording is built on the server and rendered by the page (2026-10-13).
-assert.match(await readFile('api/booking/_customer-payment-summary.js', 'utf8'), /Payment received/);
-assert.match(trackUi, /b\.payment_summary/);
+assert.match(trackUi, /Payment received/);
 assert.match(trackUi, /Work remaining/);
 assert.match(liveOps, /is_return_visit/);
 assert.match(liveOps, /returnVisitsOpen/);
@@ -104,8 +102,7 @@ assert.match(
 // this kind of check quietly stops matching anything.
 const trampolineTiers = ['up to 10 ft', '11–14 ft', '15 ft+'].map((label) => {
   const needle = `Trampoline assembly (${label})'`;
-  // Read the priced catalog itself: seasons and bundles above it name items without prices.
-  const at = sourceOfTruth.indexOf(needle, sourceOfTruth.indexOf('subcategories:'));
+  const at = sourceOfTruth.indexOf(needle);
   assert.ok(at !== -1, `Trampoline assembly (${label}) must exist in the catalog.`);
   const priced = sourceOfTruth.slice(at, at + needle.length + 40).match(/price:\s*(\d+)/);
   assert.ok(priced, `Trampoline assembly (${label}) must carry a price.`);

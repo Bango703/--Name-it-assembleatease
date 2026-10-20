@@ -5,7 +5,6 @@ import { sendSms } from '../_sms.js';
 import { formatSlotShort } from './_appt-date.js';
 import { logActivity } from './_activity.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
-import { evaluateAuthorizationWindow, AUTHORIZATION_WINDOW } from './_authorization-window.js';
 import { geocodeAddress, distanceMetres, locationConsentOk } from '../_geocode.js';
 import {
   BOOKING_STATUS,
@@ -16,8 +15,7 @@ import {
 } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { guestManageUrl } from '../_payment-security.js';
-import { isOfflineLiveFlow } from '../_owner-easer.js';
-import { notifyCustomerApp } from '../_customer-push.js';
+import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 
 const STAGES = {
   [EASER_STAGE.EN_ROUTE]:    { status: BOOKING_STATUS.EN_ROUTE,    field: 'en_route_at',    label: 'On the way' },
@@ -50,7 +48,6 @@ export default async function handler(req, res) {
       .select('role')
       .eq('booking_id', booking.id)
       .eq('easer_id', user.id)
-      .eq('role', 'helper')
       .is('removed_at', null)
       .maybeSingle();
     return res.status(403).json({
@@ -80,7 +77,7 @@ export default async function handler(req, res) {
   // Exception: the owner working the live flow on their own offline job. The
   // payment is collected offline by the owner, so there is no Stripe hold to
   // clear. booking.assembler_id === user.id is already proven above.
-  const ownerEaserLiveManual = await isOfflineLiveFlow(sb, booking, profile);
+  const ownerEaserLiveManual = isOwnerManualLiveFlow(booking, profile);
   if (!ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking)) {
     return res.status(409).json({
       error: 'This job is temporarily on hold. Do not travel to or start it until the status changes.',
@@ -106,36 +103,6 @@ export default async function handler(req, res) {
   });
   if (!appointmentGate.allowed) {
     return res.status(409).json(appointmentGate);
-  }
-
-  // ── Payment readiness gate ────────────────────────────────────────────────
-  // A job must not start on a hold that will be dead before it finishes. That
-  // is exactly what happened to AAE-DVSNHXE4OO: a Visa merchant-initiated
-  // authorization is valid 4 days 18 hours, the job was 5 days out, and nobody
-  // found out until capture failed on completed work.
-  //
-  // Only blocks when we KNOW the hold cannot cover the job. An unrecorded
-  // deadline — every booking authorized before the deadline was stored — raises
-  // the flag for the owner and the renewal monitor, but does not strand an Easer
-  // on a doorstep over a value we simply never wrote down.
-  if (stage === EASER_STAGE.EN_ROUTE) {
-    const paymentWindow = evaluateAuthorizationWindow(booking);
-    const knownBad = paymentWindow.reason === AUTHORIZATION_WINDOW.EXPIRES_BEFORE_COMPLETION
-      || paymentWindow.reason === AUTHORIZATION_WINDOW.ALREADY_EXPIRED;
-    if (knownBad) {
-      await logActivity(sb, {
-        bookingId,
-        eventType: 'payment_action_required',
-        actorType: 'system',
-        actorName: 'Payment readiness',
-        description: `Start blocked: the customer's payment will not still be valid when this job finishes (${paymentWindow.reason}).`,
-        metadata: { reason: paymentWindow.reason, deadline: booking.authorization_capture_before || null },
-      });
-      return res.status(409).json({
-        error: 'This job cannot start yet. The customer needs to update their payment method first — we have let the office know.',
-        code: 'PAYMENT_ACTION_REQUIRED',
-      });
-    }
   }
   const now = new Date().toISOString();
 
@@ -255,7 +222,7 @@ export default async function handler(req, res) {
       subject: `Your Easer is on the way — ${esc(booking.ref)}`,
       statusLabel: 'On the way', statusColor: '#1d4ed8', statusBg: '#dbeafe',
       headline: 'Your Easer is on the way.',
-      intro: `${esc(easerFirstName)} is heading to you now.${appointmentTime ? ` Your arrival window is ${esc(appointmentTime)}.` : ''}`,
+      intro: `${esc(easerFirstName)} is heading to you now and should arrive around ${esc(appointmentTime || 'the scheduled time')}.`,
       reach: true,
     },
     arrived: {
@@ -297,7 +264,7 @@ export default async function handler(req, res) {
 
   let customerSmsNotice = { ok: true, skipped: 'stage_not_texted' };
   const customerSmsBodies = {
-    en_route: `${easerFirstName} is on the way to your AssembleAtEase appointment.${appointmentTime ? ` Arrival window: ${formatSlotShort(appointmentTime)}.` : ''} Ref ${booking.ref}`,
+    en_route: `${easerFirstName} is on the way to your AssembleAtEase appointment${appointmentTime ? ` and should arrive around ${formatSlotShort(appointmentTime)}` : ''}. Ref ${booking.ref}`,
     arrived: `${easerFirstName} has arrived for your AssembleAtEase appointment. Ref ${booking.ref}`,
   };
   if (customerSmsBodies[stage]) {
@@ -311,9 +278,6 @@ export default async function handler(req, res) {
       meta: { bookingId, notificationType: stage, recipientType: 'customer' },
     }).catch(err => ({ ok: false, error: err?.message || String(err) }));
   }
-
-  // The customer app, when installed: a notification and the lock-screen tracker.
-  await notifyCustomerApp(sb, bookingId, stage);
 
   const notificationFailures = [];
   if (!ownerNotice?.ok) notificationFailures.push({ recipient: 'owner', error: ownerNotice?.error || 'Owner email failed' });

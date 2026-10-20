@@ -51,19 +51,12 @@ assert.equal(isActiveInstantBookingZip('77002'), true, 'Houston books (then wait
 assert.equal(isActiveInstantBookingZip('79901'), true, 'El Paso books (then waits for owner assignment)');
 assert.equal(isActiveInstantBookingZip('88510'), true, 'El Paso 885 ZIPs book');
 assert.equal(isActiveInstantBookingZip('90210'), false, 'A non-Texas ZIP must never take a booking');
-// The load-bearing safety guarantee: auto-dispatch is NOT statewide. It covers
-// only markets with ready local Easers, so a far-market job can never blast to
-// an Easer hours away. Austin from the start; San Antonio added 2026-09-23 once
-// two ready Easers lived there. Everywhere else still waits for the owner.
+// The load-bearing safety guarantee: only Austin auto-dispatches. If this ever
+// widens to match statewide booking, far-market jobs would blast to Austin
+// Easers. Everything outside Austin must require owner-managed assignment.
 assert.equal(isAutomaticDispatchZip('78701'), true, 'Austin auto-dispatches');
 assert.equal(isAutomaticDispatchZip('78664'), true, 'Austin metro list auto-dispatches');
-assert.equal(isAutomaticDispatchZip('78205'), true, 'San Antonio auto-dispatches (opened 2026-09-23)');
-assert.equal(isAutomaticDispatchZip('78006'), true, 'Boerne is in the San Antonio metro list');
-// Laredo shares San Antonio's 780 prefix and is ~150 miles away, which is why
-// the market was opened by the 782 prefix plus named metro ZIPs rather than by
-// opening 780 wholesale.
-assert.equal(isAutomaticDispatchZip('78040'), false, 'Laredo must wait for owner assignment');
-assert.equal(isAutomaticDispatchZip('78045'), false, 'Laredo must wait for owner assignment');
+assert.equal(isAutomaticDispatchZip('78205'), false, 'San Antonio must wait for owner assignment');
 assert.equal(isAutomaticDispatchZip('75201'), false, 'Dallas must wait for owner assignment');
 assert.equal(isAutomaticDispatchZip('77002'), false, 'Houston must wait for owner assignment');
 assert.equal(isAutomaticDispatchZip('79901'), false, 'El Paso must wait for owner assignment');
@@ -172,7 +165,7 @@ assert.equal(summary.platformGrossCents, -2_344, 'Refunded jobs must retain the 
 // is nobody to compensate when no one took the job.
 assert.deepEqual(
   computeCancellationFee({ serviceSubtotalCents: 20_000, hoursUntilAppointment: 30, easerAccepted: true }),
-  { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false, reason: 'free_window' },
+  { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false },
 );
 assert.equal(computeCancellationFee({ serviceSubtotalCents: 20_000, hoursUntilAppointment: 8, easerAccepted: true }).feeCents, 2_000);
 assert.equal(computeCancellationFee({ serviceSubtotalCents: 20_000, status: 'en_route', easerAccepted: true }).feeCents, 3_000);
@@ -248,8 +241,7 @@ assert.doesNotMatch(legacyAccept, /\.from\(['"]bookings['"]\)|\.update\(/, 'Lega
 assert.match(legacyAccept, /status\(410\)/);
 
 const trackApi = source('api/booking/track.js');
-assert.match(trackApi, /customerBookingAccess\(sb, req, booking, \{ email, token \}\)/);
-assert.match(source('api/booking/_customer-access.js'), /bookingEmailMatches\(booking, email\) && safeTokenHashMatch\(token, booking\.guest_mutation_token_hash\)/);
+assert.match(trackApi, /safeTokenHashMatch/);
 assert.match(trackApi, /email, ref, token/);
 
 const ownerPage = source('owner/index.html');
@@ -266,9 +258,8 @@ assert.match(ownerPage, /phoneDigits\.length !== 10/);
 assert.match(ownerPage, /function hasValidUsPhone\(value\)/);
 assert.doesNotMatch(ownerPage, /var dispatchEligible =/,
   'owner dashboard must use server-authoritative Easer readiness');
-assert.match(ownerPage, /authoritativeDispatchChip\.textContent = presentation\.label/);
-assert.match(ownerPage, /\['Valid Phone On File', readinessChip\(!!r\.phoneAvailable\)\]/,
-  'the requirement checklist must show the server phone verdict, not a duplicate cached check');
+assert.match(ownerPage, /authoritativeDispatchChip\.textContent = ready \? 'Eligible' : 'Ineligible'/);
+assert.match(ownerPage, /chk\(hasValidUsPhone\(a\.phone\), 'Valid U\.S\. phone on file'\)/);
 assert.match(ownerPage, /hasValidUsPhone\(w\.phone\)/);
 assert.match(ownerPage, /Number\(d\.failed \|\| 0\) > 0 \? 'error' : 'success'/);
 
