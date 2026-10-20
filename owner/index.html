@@ -5877,6 +5877,11 @@ window.intelQuick = intelQuick;
           toast('Review request scheduled for ' + sendAt + ' Austin time. It has not been sent yet.', 'success');
           return;
         }
+        if (reviewData.alreadySent) {
+          toast('This review request was already sent' + (reviewData.sentAt ? ' at ' + new Date(reviewData.sentAt).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '') + '. No new email was sent.', 'success');
+          await loadBookings();
+          return;
+        }
         var reviewToast = reviewData.resent ? 'Review request resent to customer' : 'Review request sent to customer';
         if (reviewData.trackingUpdated === false) reviewToast += '; booking timestamp needs review';
         toast(reviewToast, reviewData.trackingUpdated === false ? 'error' : 'success');
