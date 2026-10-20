@@ -70,4 +70,5 @@ assert.match(fitness, /data-job-photos="fitness-equipment-assembly"[^>]*style="d
 const js = await read('assets/js/job-photos.js');
 assert.match(js, /if \(photos\.length\) render\(/, 'with no published photos the page keeps what it had');
 assert.match(js, /img\.alt = photo\.alt/, 'photos are built as elements, never as HTML strings');
+assert.match(js, /photos\.length > 1 && photos\.length % 2/, 'the two-column grid always gets an even number of photos');
 console.log(`PASS all ${files.length} service/city pages show published job photos; empty pages stay as they were`);

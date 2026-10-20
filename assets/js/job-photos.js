@@ -45,6 +45,9 @@
       .then(function (r) { return r.ok ? r.json() : { photos: [] }; })
       .then(function (data) {
         var photos = Array.isArray(data.photos) ? data.photos.filter(function (p) { return p && p.url; }) : [];
+        // The grid is two columns: an odd count leaves one photo alone on the
+        // last row, so show an even number (one photo stays one photo).
+        if (photos.length > 1 && photos.length % 2) photos = photos.slice(0, photos.length - 1);
         if (photos.length) render(gallery, photos, Number(data.localCount) || 0);
       })
       .catch(function () { /* keep the built-in photos */ });
