@@ -42,6 +42,7 @@ export function buildEaserFeeSnapshot(booking, easer, {
     taxCents: booking.tax_amount || 0,
     feePct,
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+    reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
   });
   const updates = {
     easer_fee_snapshot_easer_id: easer.id,

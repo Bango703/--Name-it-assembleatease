@@ -1,6 +1,7 @@
 ﻿import Stripe from 'stripe';
 import { formatAppointmentDate, formatAppointmentDateShort, formatSlotShort } from './booking/_appt-date.js';
 import { getSupabase } from './_supabase.js';
+import { completeReviewReward } from './_review-rewards.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from './_email.js';
 import { sendSms } from './_sms.js';
 import { CANCELLATION_POLICY } from './_source-of-truth.js';
@@ -75,6 +76,7 @@ export default async function handler(req, res) {
   // Guard: already confirmed — idempotent, but still retry dispatch in case
   // a prior authorized request confirmed the booking and dispatch later failed.
   if (booking.payment_status === 'authorized' && booking.status === 'confirmed') {
+    await completeReviewReward(sb, bookingId).catch(error => console.error('[booking-confirmed] review reward redemption finalization failed:', bookingId, error?.message || error));
     await ensureDispatch();
     return res.status(200).json({ success: true, alreadyConfirmed: true });
   }
@@ -189,6 +191,7 @@ export default async function handler(req, res) {
       booking.payment_status = current.payment_status || 'authorized';
       booking.status = current.status || 'confirmed';
       booking.assembler_id = current.assembler_id || null;
+      await completeReviewReward(sb, bookingId).catch(error => console.error('[booking-confirmed] review reward redemption finalization failed:', bookingId, error?.message || error));
       await ensureDispatch();
       return res.status(200).json({ success: true, alreadyConfirmed: true });
     }
@@ -200,6 +203,7 @@ export default async function handler(req, res) {
 
   booking.payment_status = 'authorized';
   booking.status = 'confirmed';
+  await completeReviewReward(sb, bookingId).catch(error => console.error('[booking-confirmed] review reward redemption finalization failed:', bookingId, error?.message || error));
   if (Object.prototype.hasOwnProperty.call(updatePayload, 'dispatch_paused')) {
     booking.dispatch_paused = updatePayload.dispatch_paused;
   }

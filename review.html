@@ -151,9 +151,14 @@ textarea.form-control{resize:vertical;min-height:120px}
         <span class="success-icon">&#10003;</span>
         <div class="success-title">Thank you!</div>
         <p class="success-desc">Your review is live — it means a lot to our team.</p>
-        <p style="font-size:0.88rem;color:var(--ink-soft);font-weight:600;margin-bottom:0.75rem">One more thing: can you share it on Google or Facebook too?</p>
-        <p style="font-size:0.82rem;color:var(--muted);line-height:1.6;margin-bottom:1.25rem">It only takes 30 more seconds and helps other homeowners find us.</p>
-        <p id="google-copy-note" style="display:none;font-size:0.82rem;color:var(--ink-soft);line-height:1.6;margin-bottom:0.75rem">Your review will be copied, so you can paste it there.</p>
+        <div id="review-reward" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:1rem;margin:0 0 1.25rem;text-align:left">
+          <p style="font-weight:700;margin:0 0 0.45rem">Your $10 thank-you offer</p>
+          <p style="font-size:0.86rem;line-height:1.5;margin:0 0 0.55rem">Use once on a future booking with a service subtotal of at least $100. Expires <span id="review-reward-expiry"></span>.</p>
+          <p style="font-size:0.9rem;margin:0">Code: <strong id="review-reward-code"></strong></p>
+          <p id="review-reward-email-note" style="font-size:0.78rem;line-height:1.5;margin:0.55rem 0 0;color:var(--muted)"></p>
+          <a id="review-reward-book-link" href="/book" class="btn btn-cyan" style="width:100%;justify-content:center;margin-top:0.85rem">Book with this code</a>
+        </div>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.6;margin-bottom:0.75rem">Google and Facebook reviews are separate, optional, and not part of this thank-you offer.</p>
         <a id="google-review-link" href="https://g.page/r/CeHfRKINOeZsEBM/review" target="_blank" rel="noopener" class="btn btn-cyan" style="width:100%;justify-content:center;margin-bottom:0.65rem">Also Leave a Google Review</a>
         <a id="facebook-review-link" href="https://www.facebook.com/61572042722009/reviews" target="_blank" rel="noopener" class="btn btn-outline" style="width:100%;justify-content:center;margin-bottom:0.65rem">Recommend Us on Facebook</a>
         <a href="/" class="btn" style="width:100%;justify-content:center;background:#f4f4f5;color:#374151;font-weight:500">No thanks, back to home</a>
@@ -165,6 +170,7 @@ textarea.form-control{resize:vertical;min-height:120px}
 
       <!-- Stars -->
       <div class="stars-wrap">
+        <p style="font-size:0.78rem;color:var(--muted);line-height:1.55;margin:0 0 1rem">After submitting an honest review on this website, you&rsquo;ll receive $10 off one future booking with a service subtotal of $100 or more. Any rating qualifies. The offer is for this website review only; Google reviews are optional and not rewarded.</p>
         <p class="stars-prompt">Tap to rate your experience</p>
         <div class="stars" id="star-row">
           <button type="button" data-val="1" aria-label="1 star">&#9733;</button>
@@ -180,10 +186,6 @@ textarea.form-control{resize:vertical;min-height:120px}
       <div class="form-group">
         <label for="r-body">Your review <span style="font-weight:400;opacity:.65">(optional)</span></label>
         <textarea id="r-body" class="form-control" placeholder="Optional — what did your Pro do well? Anything we can improve?"></textarea>
-        <label for="r-share" style="display:flex;gap:0.55rem;align-items:flex-start;margin-top:0.75rem;font-size:0.8rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);line-height:1.5;cursor:pointer">
-          <input type="checkbox" id="r-share" style="margin-top:0.2rem;flex-shrink:0"/>
-          <span>AssembleAtEase may share my review, first name, and last initial on its Facebook and Google pages.</span>
-        </label>
       </div>
 
       <hr class="divider"/>
@@ -298,31 +300,18 @@ document.getElementById('year').textContent = new Date().getFullYear();
 
 var selectedRating = 0;
 
-// Retyping a review on Google is where most customers stop. Copy what they
-// already wrote so the Google box is one paste away.
-(function () {
-  var links = [document.getElementById('google-review-link'), document.getElementById('facebook-review-link')].filter(Boolean);
-  var note = document.getElementById('google-copy-note');
-  var success = document.getElementById('success-state');
-  if (!links.length || !success) return;
-  new MutationObserver(function () {
-    if (success.style.display === 'block' && window.__aaeReviewBody && note) note.style.display = 'block';
-  }).observe(success, { attributes: true, attributeFilter: ['style'] });
-  links.forEach(function (link) { link.addEventListener('click', function () {
-    var text = window.__aaeReviewBody;
-    if (!text) return;
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).catch(function () {}); return; }
-    } catch (e) {}
-    try {
-      var ta = document.createElement('textarea');
-      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
-      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    } catch (e) {}
-  }); });
-})();
 var prefilled = false;
 var reviewToken = '';
+function showReviewReward(reward) {
+  if (!reward || !reward.code) return;
+  document.getElementById('review-reward-code').textContent = reward.code;
+  document.getElementById('review-reward-expiry').textContent = new Date(reward.expiresAt).toLocaleDateString();
+  document.getElementById('review-reward-book-link').href = '/book?promo=' + encodeURIComponent(reward.code);
+  document.getElementById('review-reward-email-note').textContent = reward.emailSent
+    ? 'We also emailed this code to you. Enter the same email address at checkout.'
+    : 'Save this code. Enter the same email address at checkout.';
+  document.getElementById('review-reward').style.display = 'block';
+}
 var labels = ['','Poor','Fair','Good','Great','Excellent'];
 var stars = document.querySelectorAll('.stars button');
 
@@ -561,7 +550,7 @@ async function submitReview() {
     var resp = await fetch('/api/review', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref: ref, email: email, rating: selectedRating, body: body, token: reviewToken, share_consent: !!(document.getElementById('r-share') && document.getElementById('r-share').checked) })
+      body: JSON.stringify({ ref: ref, email: email, rating: selectedRating, body: body, token: reviewToken })
     });
     var data = await resp.json();
     if (!resp.ok) {
@@ -603,6 +592,7 @@ async function submitReview() {
             return;
           }
           document.getElementById('form-state').style.display = 'none';
+          showReviewReward(data.reward);
           document.getElementById('success-state').style.display = 'block';
           window.scrollTo({ top: 0, behavior: 'smooth' });
         };
@@ -614,6 +604,7 @@ async function submitReview() {
       }
     }
     document.getElementById('form-state').style.display = 'none';
+    showReviewReward(data.reward);
     document.getElementById('success-state').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch(e) {

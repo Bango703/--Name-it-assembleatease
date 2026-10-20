@@ -1,5 +1,6 @@
 import { NEW_CUSTOMER_OFFER } from './_source-of-truth.js';
 import { TX_TAX_RATE } from './_pricing.js';
+import { isReviewRewardCode, REVIEW_REWARD_DISCOUNT_CENTS, REVIEW_REWARD_MINIMUM_CENTS } from './_review-rewards.js';
 
 function buildLegacyPromoSettings() {
   return {
@@ -136,6 +137,26 @@ export async function resolveBookingPromotion({
   };
 
   if (!enteredCode) return base;
+  if (isReviewRewardCode(enteredCode)) {
+    const rewardBase = { ...base, title: 'Review thank-you offer', label: '$10 off your next booking' };
+    if (isQuoteRequest) return { ...rewardBase, reason: 'quote_request_not_eligible' };
+    if (!pricing?.hasPricedBaseItem || pricing?.discountedItemSubtotalCents < REVIEW_REWARD_MINIMUM_CENTS) {
+      return { ...rewardBase, reason: 'minimum_not_met' };
+    }
+    if (!isValidPromoEmail(email)) return { ...rewardBase, reason: 'email_required' };
+    if (!sb) throw new Error('Missing Supabase client for review reward validation');
+    const { data: reward, error } = await sb.from('review_reward_codes')
+      .select('id, customer_email, status, expires_at, reserved_until')
+      .eq('code', enteredCode)
+      .maybeSingle();
+    if (error) throw error;
+    const available = reward && reward.customer_email === String(email || '').trim().toLowerCase()
+      && new Date(reward.expires_at).getTime() > Date.now()
+      && (reward.status === 'issued' || (reward.status === 'reserved' && new Date(reward.reserved_until).getTime() < Date.now()));
+    if (!available) return { ...rewardBase, reason: 'invalid_or_used_code' };
+    const discountCents = Math.min(REVIEW_REWARD_DISCOUNT_CENTS, Number(pricing.discountedItemSubtotalCents || 0));
+    return { ...rewardBase, applied: true, appliedCode: enteredCode, discountCents, reason: 'applied', reviewRewardId: reward.id };
+  }
   if (!activePromo || enteredCode !== activePromo.code) return { ...base, reason: 'invalid_code' };
   if (isQuoteRequest) return { ...base, reason: 'quote_request_not_eligible' };
   if (!pricing?.hasPricedBaseItem || pricing?.discountedItemSubtotalCents <= 0) {

@@ -339,6 +339,7 @@ export default async function handler(req, res) {
     taxCents: (booking.tax_amount || 0) - sameDay.taxCents,
     feePct: feeSnapshot.feePct,
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+    reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
   });
   // Add the same-day fee back on top of the standard split (additive layer).
   split.platformFeeCents  += sameDay.platformExtra;
@@ -626,6 +627,7 @@ async function completeOfflineOwnerManualBooking(sb, res, {
     taxCents: (booking.tax_amount || 0) - sameDay.taxCents,
     feePct: feeSnapshot.feePct,
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+    reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
   });
   // Add the same-day fee back on top of the standard split (additive layer).
   split.platformFeeCents  += sameDay.platformExtra;

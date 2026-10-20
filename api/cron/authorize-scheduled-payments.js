@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
+import { completeReviewReward } from '../_review-rewards.js';
 import { esc, ownerEmail, sendEmail } from '../_email.js';
 import { randomToken, sha256 } from '../_payment-security.js';
 import { isAutomaticDispatchZip } from '../_source-of-truth.js';
@@ -262,6 +263,7 @@ export async function authorizeScheduledBooking({ sb, stripe, booking, expectedL
       return { ok: false, reason: 'authorization_link_failed', actionRequired: true };
     }
 
+    await completeReviewReward(sb, booking.id).catch(error => console.error('[scheduled-auth] review reward redemption finalization failed:', booking.id, error?.message || error));
     await logActivity(sb, {
       bookingId: booking.id,
       eventType: 'payment_authorized',

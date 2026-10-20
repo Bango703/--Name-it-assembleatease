@@ -356,8 +356,8 @@ export function computeBookingSplitAtFeePct(totalInclusiveCents, feePct, { taxCe
 
 /**
  * Compute the payout split from a stored booking snapshot. Use this when a
- * platform-funded credit (for example AssembleCash) reduced what the customer
- * paid but must NOT reduce the Easer's payout basis.
+ * platform-funded credit (for example AssembleCash or a review reward) reduced
+ * what the customer paid but must NOT reduce the Easer's payout basis.
  *
  * @param {{
  *   amountChargedCents?: number|null,
@@ -366,6 +366,7 @@ export function computeBookingSplitAtFeePct(totalInclusiveCents, feePct, { taxCe
  *   isMember?: boolean,
  *   feePct?: number|null,
  *   assemblecashRedeemedCents?: number,
+ *   reviewRewardDiscountCents?: number,
  * }} args
  * @returns {{
  *   totalCents: number,
@@ -386,13 +387,15 @@ export function computeBookingSplitFromSnapshot({
   isMember = false,
   feePct = null,
   assemblecashRedeemedCents = 0,
+  reviewRewardDiscountCents = 0,
 } = {}) {
   const chargedRaw = amountChargedCents != null ? amountChargedCents : totalPriceCents;
   const total = Math.max(0, Math.round(Number(chargedRaw) || 0));
   const tax = Math.min(total, Math.max(0, Math.round(Number(taxCents) || 0)));
   const redeemed = Math.max(0, Math.round(Number(assemblecashRedeemedCents) || 0));
+  const reviewRewardDiscount = Math.max(0, Math.round(Number(reviewRewardDiscountCents) || 0));
   const pretaxCollected = total - tax;
-  const payoutBase = pretaxCollected + redeemed;
+  const payoutBase = pretaxCollected + redeemed + reviewRewardDiscount;
   const canonicalFeePct = normalizePlatformFeePct(feePct, isMember);
   const protectedPlatformFee = Math.round(payoutBase * canonicalFeePct / 100);
   const assemblerDue = payoutBase - protectedPlatformFee;
@@ -408,6 +411,7 @@ export function computeBookingSplitFromSnapshot({
     platformFeeCents: platformFee,
     assemblerDueCents: assemblerDue,
     assemblecashRedeemedCents: redeemed,
+    reviewRewardDiscountCents: reviewRewardDiscount,
   };
 }
 

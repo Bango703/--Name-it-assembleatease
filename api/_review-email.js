@@ -18,13 +18,13 @@ export const STEP_COPY = {
     subject: (b) => `How did your ${b.service} go? — ${b.ref}`,
     headline: 'How was your experience?',
     intro: (b, pro) => `Your <strong>${esc(b.service)}</strong>${pro ? ` with ${esc(pro)}` : ''} is complete. Tap a star below to rate it — your booking details are already filled in.`,
-    note: `Have a question about the work? Reply to this email so we can help with the next steps.`,
+    note: `As a thank-you, you&rsquo;ll receive $10 off one future booking of $100 or more after submitting an honest review on our website. Any rating qualifies. This reward is for our website review only; a Google review is optional and is not rewarded.`,
   },
   2: {
     subject: (b) => `A final invitation to review your ${b.service}`,
     headline: 'Share your experience',
     intro: (b, pro) => `If you would like to leave feedback on your <strong>${esc(b.service)}</strong>${pro ? ` with ${esc(pro)}` : ''}, use the link below. This is our final automatic review reminder for this booking.`,
-    note: `Your review is optional. For help with the work, you can reply to this email.`,
+    note: `As a thank-you, you&rsquo;ll receive $10 off one future booking of $100 or more after submitting an honest review on our website. Any rating qualifies. This reward is for our website review only; a Google review is optional and is not rewarded.`,
   },
 };
 

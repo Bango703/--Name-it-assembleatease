@@ -250,6 +250,7 @@ export default async function handler(req, res) {
       taxCents: booking.tax_amount || 0,
       feePct: feeSnapshot.feePct,
       assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+      reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
     });
     Object.assign(baseUpdates, {
       assembler_accepted_at: booking.completed_at || assignedAt,

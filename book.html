@@ -4038,7 +4038,9 @@ function applyPromoUiState() {
   if (!box || !input) return;
 
   var activeCode = getActivePromoCode();
-  var shouldShow = !!activeCode || !!String(BOOK.promoCode || '').trim();
+  // Review thank-you codes are private and are not returned by /api/promo.
+  // Keep the field available even when the public promotion is turned off.
+  var shouldShow = true;
   box.style.display = shouldShow ? '' : 'none';
   if (!shouldShow) return;
 
@@ -4079,6 +4081,8 @@ function getPromoStatusMessage(reason, code) {
   if (reason === 'quote_request_not_eligible') return 'This offer applies to instant-price bookings, not custom quotes.';
   if (reason === 'no_eligible_items') return 'Add a standard priced item to use this offer.';
   if (reason === 'not_first_booking') return 'This offer is only for a first booking with a new email.';
+  if (reason === 'minimum_not_met') return 'This thank-you offer requires a service subtotal of at least $100.';
+  if (reason === 'invalid_or_used_code') return 'That thank-you code is invalid, expired, or already used. Check the code and booking email.';
   return 'This offer is not available for the current booking.';
 }
 
