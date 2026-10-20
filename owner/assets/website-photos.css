@@ -1,0 +1,19 @@
+/* Owner Website Photos: library grid and the shared photo action buttons. */
+.wp-note{font-size:0.85rem;color:var(--muted);margin:0 0 1rem;max-width:70ch;line-height:1.5}
+.wp-note--error{color:var(--red,#b42318)}
+.wp-tabs{margin-bottom:1rem}
+.wp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+.wp-card{margin:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--elevated,var(--white,#fff));display:flex;flex-direction:column}
+.wp-card img,.wp-noimg{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--off-white,#f3f5f7)}
+.wp-noimg{display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:var(--muted)}
+.wp-card figcaption{padding:0.65rem 0.75rem 0.75rem;display:flex;flex-direction:column;gap:0.2rem;flex:1}
+.wp-meta{font-size:0.8rem;color:var(--text)}
+.wp-sub{font-size:0.72rem;color:var(--muted);line-height:1.45}
+/* Actions: same size and place on every card, in the library and in a booking record. */
+.wp-actions{display:flex;flex-direction:column;gap:6px;margin-top:auto;padding-top:8px;border-top:1px solid var(--border)}
+.btn.wp-btn{width:100%;height:auto;justify-content:center;font-size:12px;padding:6px 8px;min-height:30px;line-height:1.2;white-space:normal;text-align:center}
+.wp-state{font-size:0.68rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;line-height:1.4}
+.wp-state--live{color:var(--green,#0f7a4f)}
+.wp-state--saved{color:var(--teal,#0099cc)}
+.wp-state--off{color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0}
+.wp-optout{background:none;border:none;padding:0;font-size:0.72rem;color:var(--muted);text-decoration:underline;cursor:pointer}

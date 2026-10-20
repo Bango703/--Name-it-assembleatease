@@ -21,7 +21,7 @@ const ui = await read('owner/index.html');
 // ── The column has to be fetched ────────────────────────────────────────────
 // Resolving a field the SELECT never asked for yields undefined, and the row
 // renders as if nothing was on behalf of anyone.
-const evidenceSelect = api.match(/\.select\('(id, uploaded_by[^']*)'\)/);
+const evidenceSelect = api.match(/(?:\.select\(|BASE_COLUMNS = )'(id, uploaded_by[^']*)'/);
 assert.ok(evidenceSelect, 'the evidence query must still exist');
 assert.ok(evidenceSelect[1].includes('uploaded_on_behalf_of'),
   'the SELECT must fetch uploaded_on_behalf_of or the name is always undefined');
