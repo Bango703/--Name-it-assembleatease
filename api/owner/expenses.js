@@ -144,7 +144,7 @@ function respondDbError(res, error, action) {
   console.error(`Owner expenses ${action} error:`, error);
   if (/owner_business_expenses|mark_owner_business_expense_paid_v1|schema cache|does not exist|42P01|42883/i.test(String(error?.message || error?.code || ''))) {
     return res.status(503).json({
-      error: 'The expense tracker is not ready yet. Apply migration 113, then refresh.',
+      error: 'The expense tracker is not ready yet. Apply migration 116, then refresh.',
       code: 'OWNER_EXPENSES_MIGRATION_REQUIRED',
     });
   }

@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   try {
     expenseSummary = await loadOwnerExpenseSummary(sb, range);
   } catch (error) {
-    // Keep the booking and payout dashboard available if migration 113 has not
+    // Keep the booking and payout dashboard available if migration 116 has not
     // been applied. The response makes the expense figure unavailable explicit.
     console.warn('Owner expense summary unavailable:', error?.message || error);
     expenseSummary = { ...emptyExpenseSummary(), available: false };

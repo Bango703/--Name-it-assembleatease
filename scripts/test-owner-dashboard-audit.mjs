@@ -77,7 +77,7 @@ assert.match(ownerUi, /id="expense-due-date"/);
 assert.match(ownerUi, /Repeats/);
 assert.match(ownerUi, /fetch\('\/api\/owner\/expenses'/);
 assert.match(await readFile(new URL('../api/owner/expenses.js', import.meta.url), 'utf8'), /verifyOwner/);
-assert.match(await readFile(new URL('../api/migrations/113_owner_business_expenses.sql', import.meta.url), 'utf8'), /mark_owner_business_expense_paid_v1/);
+assert.match(await readFile(new URL('../api/migrations/116_owner_business_expenses.sql', import.meta.url), 'utf8'), /mark_owner_business_expense_paid_v1/);
 assert.match(ownerUi, /Labor costing incomplete/);
 assert.doesNotMatch(ownerUi, /Platform Gross After Tax, Stripe &amp; Easer/);
 assert.match(ownerUi, /Central time/);

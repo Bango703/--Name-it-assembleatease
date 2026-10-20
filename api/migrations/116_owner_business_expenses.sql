@@ -123,5 +123,15 @@ REVOKE ALL ON FUNCTION public.mark_owner_business_expense_paid_v1(UUID, DATE, TE
 GRANT EXECUTE ON FUNCTION public.mark_owner_business_expense_paid_v1(UUID, DATE, TEXT, TEXT)
   TO service_role;
 
+DO $do$
+BEGIN
+  IF to_regclass('public.platform_schema_state') IS NOT NULL THEN
+    INSERT INTO public.platform_schema_state (migration_number, migration_name)
+    VALUES (116, '116_owner_business_expenses')
+    ON CONFLICT (migration_number) DO NOTHING;
+  END IF;
+END;
+$do$;
+
 NOTIFY pgrst, 'reload schema';
 COMMIT;
