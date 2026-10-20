@@ -51,7 +51,25 @@ export function websiteCitySlug(cityName) {
   return /^[a-z0-9-]{2,40}$/.test(slug) ? slug : null;
 }
 
-// What the owner confirms for every photo before it is published.
+// Terms version 2026-10-20 added the photo-use clause (section 8): photos of
+// completed work may appear on the website with identifying details left out,
+// and the customer can opt out. Bookings made under an earlier version were
+// promised "not used in public marketing without separate permission", so
+// their photos are never used.
+export const PHOTO_USE_TERMS_FROM = '2026-10-20';
+
+/**
+ * May this booking's completion photos be used on the website?
+ * { allowed, reason }: reason is 'terms', 'earlier_terms', or 'opted_out'.
+ */
+export function photoUseForBooking(booking = {}) {
+  if (booking.website_photo_opt_out_at) return { allowed: false, reason: 'opted_out' };
+  const accepted = String(booking.customer_terms_version || '').slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(accepted) && accepted >= PHOTO_USE_TERMS_FROM) return { allowed: true, reason: 'terms' };
+  return { allowed: false, reason: 'earlier_terms' };
+}
+
+// What the owner confirms for every photo before it goes into the collection.
 export const WEBSITE_PHOTO_CHECKLIST = Object.freeze([
   'No people or faces',
   'No house number, street sign, mail, or documents',

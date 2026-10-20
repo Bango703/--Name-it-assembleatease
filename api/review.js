@@ -148,17 +148,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to save review. Please try again.' });
   }
 
-  // Separate permission to show this job's photos on the website (the Terms
-  // say job photos are not used in marketing without it). Opt-in only; a
-  // failure to record it never fails the review.
-  if (payload.website_photo_consent === true) {
-    const { error: consentErr } = await sb.from('bookings')
-      .update({ website_photo_consent_at: new Date().toISOString(), website_photo_consent_source: 'review_page' })
-      .eq('id', booking.id)
-      .is('website_photo_consent_at', null);
-    if (consentErr) console.error('Website photo consent not recorded:', booking.id, consentErr.message);
-  }
-
   const expiryDate = new Date(reward.expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
   let rewardEmail = { ok: false, error: 'Email send did not complete' };
   try {

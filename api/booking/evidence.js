@@ -1,6 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
-import { WEBSITE_PHOTO_SERVICES, WEBSITE_PHOTO_CHECKLIST, websiteServicesForBooking } from '../_website-photos.js';
+import { WEBSITE_PHOTO_SERVICES, WEBSITE_PHOTO_CHECKLIST, websiteServicesForBooking, photoUseForBooking } from '../_website-photos.js';
 
 const BUCKET = 'booking-evidence';
 const SIGNED_URL_EXPIRY_SECONDS = 3600; // 1-hour ephemeral URLs
@@ -76,9 +76,9 @@ export default async function handler(req, res) {
 
   // Confirm booking exists
   const loadBooking = columns => sb.from('bookings').select(columns).eq('id', bookingId).maybeSingle();
-  let { data: booking, error: bookingErr } = await loadBooking('id, ref, status, service, website_photo_consent_at');
-  if (bookingErr && /website_photo_consent_at|42703|PGRST204/i.test(String(bookingErr.message || bookingErr.code || ''))) {
-    ({ data: booking, error: bookingErr } = await loadBooking('id, ref, status, service'));
+  let { data: booking, error: bookingErr } = await loadBooking('id, ref, status, service, customer_terms_version, website_photo_opt_out_at');
+  if (bookingErr && /website_photo_opt_out_at|42703|PGRST204/i.test(String(bookingErr.message || bookingErr.code || ''))) {
+    ({ data: booking, error: bookingErr } = await loadBooking('id, ref, status, service, customer_terms_version'));
   }
 
   if (bookingErr || !booking) {
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
   const BASE_COLUMNS = 'id, uploaded_by, uploaded_on_behalf_of, storage_path, evidence_type, mime_type, file_size_bytes, visibility, notes, created_at';
   const loadRows = columns => sb.from('booking_evidence').select(columns)
     .eq('booking_id', bookingId).order('created_at', { ascending: true });
-  let { data: rows, error: fetchErr } = await loadRows(`${BASE_COLUMNS}, website_published_at, website_service, website_alt`);
+  let { data: rows, error: fetchErr } = await loadRows(`${BASE_COLUMNS}, website_collected_at, website_published_at, website_service, website_alt`);
   if (fetchErr && /website_|42703|PGRST204/i.test(String(fetchErr.message || fetchErr.code || ''))) {
     ({ data: rows, error: fetchErr } = await loadRows(BASE_COLUMNS));
   }
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
 
   // What the owner needs to put a completion photo on the website.
   const website = {
-    customerPermission: Boolean(booking.website_photo_consent_at),
+    photoUse: photoUseForBooking(booking),
     suggestedServices: websiteServicesForBooking(booking.service),
     services: WEBSITE_PHOTO_SERVICES,
     checklist: WEBSITE_PHOTO_CHECKLIST,
@@ -142,6 +142,7 @@ export default async function handler(req, res) {
         mime_type:           row.mime_type,
         file_size_bytes:     row.file_size_bytes,
         visibility:          row.visibility,
+        website_collected_at: row.website_collected_at || null,
         website_published_at: row.website_published_at || null,
         website_service:     row.website_service || null,
         website_alt:         row.website_alt || null,

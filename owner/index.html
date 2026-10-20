@@ -32,7 +32,9 @@
   <script src="/owner/assets/acquisition.js" defer></script>
   <script src="/owner/assets/partners.js" defer></script>
   <script src="/owner/assets/messages.js" defer></script>
+  <script src="/owner/assets/website-photos.js" defer></script>
   <link rel="stylesheet" href="/owner/assets/owner.css" />
+  <link rel="stylesheet" href="/owner/assets/website-photos.css" />
   <link rel="stylesheet" href="/owner/assets/console.css" />
 </head>
 <body>
@@ -93,6 +95,7 @@
         <li><a data-view="partners"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11 4 7l4-4"/><path d="M4 7h11a5 5 0 0 1 0 10h-3"/><path d="M16 13l4 4-4 4"/><path d="M20 17H9"/></svg></span> Partners <span class="nav-count" id="nav-partners" title="Partner follow-ups due" style="display:none;background:#d97706">0</span></a></li>
         <li><a data-view="market-demand"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z"/></svg></span> Market Demand <span class="nav-count" id="nav-market-demand" style="display:none">0</span></a></li>
         <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews</a></li>
+        <li><a data-view="website-photos"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-5-5L5 19"/></svg></span>Website Photos</a></li>
         <li><a data-view="marketing"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M9 14h6"/><path d="M12 14v6"/></svg></span> Marketing</a></li>
         <li><a role="button" aria-haspopup="dialog" title="Open the Buffer content tool" onclick="window.openContentKit&&window.openContentKit()" style="cursor:pointer"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span> Content Kit</a></li>
       </ul>
@@ -781,6 +784,9 @@
           <div class="empty-state-desc">Reviews are collected after job completion. Select a completed booking and click <strong>Request Review</strong> to prompt the customer.</div>
         </div>
       </div>
+
+      <!-- ─── WEBSITE PHOTOS VIEW (owner/assets/website-photos.js) ─── -->
+      <div id="website-photos-view" style="display:none"></div>
 
       <!-- ─── CUSTOMERS VIEW ─── -->
       <div id="customers-view" style="display:none">
@@ -3139,6 +3145,7 @@ window.intelQuick = intelQuick;
       else if (currentView === 'waitlist') await loadWaitlist();
       else if (currentView === 'market-demand') await loadMarketDemand();
       else if (currentView === 'reviews') { await loadReviews(); }
+      else if (currentView === 'website-photos') { if (window.OwnerWebsitePhotos) await window.OwnerWebsitePhotos.refresh(); }
       else if (currentView === 'marketing') { await loadMarketing(); }
       else if (currentView === 'today') { await loadBookings(); renderTodayView(); }
       else if (currentView === 'customers') { await loadBookings(); renderCustomers(); }
@@ -4159,57 +4166,35 @@ window.intelQuick = intelQuick;
     }
   };
 
-  // Website use of a completion photo. The server decides every rule
-  // (customer permission, service, description, checklist); this shows the
-  // state it reports and offers the one action that applies.
+  // Website use of a completion photo in a booking record. The buttons are the
+  // same ones the Website Photos page uses (owner/assets/website-photos.js);
+  // the server decides which photos may be used at all (photoUse).
   function websitePhotoControl(ev, bookingId, website) {
-    if (!website) return '';
-    var box = '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">';
-    var args = '\'' + jsAttr(String(ev.id)) + '\',\'' + jsAttr(String(bookingId)) + '\'';
-    if (ev.website_published_at) {
-      return box + '<div style="font-size:0.7rem;font-weight:700;color:var(--green);margin-bottom:4px">ON WEBSITE &middot; ' + esc((website.services || {})[ev.website_service] || ev.website_service || '') + '</div>'
-        + '<button type="button" class="btn" style="font-size:0.68rem;padding:2px 8px" '
-        + 'onclick="event.stopPropagation();window.setEvidenceWebsite(' + args + ',false)">Remove from website</button></div>';
-    }
-    if (!website.customerPermission) {
-      return box + '<div style="font-size:0.7rem;color:var(--muted)">Customer has not allowed website use</div></div>';
-    }
-    return box + '<button type="button" class="btn btn-teal" style="font-size:0.68rem;padding:2px 8px" '
-      + 'onclick="event.stopPropagation();window.setEvidenceWebsite(' + args + ',true)">Use on website</button></div>';
+    if (!website || !window.OwnerWebsitePhotos) return '';
+    var photo = {
+      id: ev.id,
+      state: ev.website_published_at ? 'on_website' : ev.website_collected_at ? 'collected' : 'available',
+      websiteService: ev.website_service,
+    };
+    return window.OwnerWebsitePhotos.actionsHtml(photo, { services: website.services, use: website.photoUse, bookingId: bookingId });
   }
 
-  window.setEvidenceWebsite = async function(evidenceId, bookingId, publish) {
-    var cache = _evidenceCache[bookingId] || {};
-    var website = cache.website || {};
-    var body = { evidenceId: evidenceId, publish: !!publish };
-    if (publish) {
-      var keys = Object.keys(website.services || {});
-      var suggested = (website.suggestedServices || [])[0] || keys[0];
-      var menu = keys.map(function(k, i){ return (i + 1) + '. ' + website.services[k]; }).join('\n');
-      var pick = prompt('Which service page is this photo for?\n' + menu, String(keys.indexOf(suggested) + 1));
-      if (pick === null) return;
-      var service = keys[Number(pick) - 1];
-      if (!service) { toast('Choose a number from the list', 'error'); return; }
-      var alt = prompt('Describe the photo in a few words. This is shown to visitors and search engines.', '');
-      if (alt === null) return;
-      if (alt.trim().length < 10) { toast('Describe the photo in at least a few words', 'error'); return; }
-      if (!confirm('Before publishing, confirm the photo shows:\n- ' + (website.checklist || []).join('\n- '))) return;
-      body.service = service; body.alt = alt.trim(); body.checklistConfirmed = true;
-    }
-    try {
-      var r = await fetch('/api/owner/website-photo', {
-        method: 'POST',
-        headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
-        body: JSON.stringify(body)
-      });
-      var d = await r.json().catch(function(){ return {}; });
-      if (!r.ok) { toast(d.error || 'The website photo could not be updated, and the server did not say why.', 'error'); return; }
-      toast(publish ? 'Photo is on the website' : 'Photo removed from the website', 'success');
-      await window.loadEvidence(bookingId, true);
-    } catch (err) {
-      toast('Network error. Nothing changed.', 'error');
-    }
+  // What the shared photo buttons need to ask about this booking's photos.
+  window._evidenceWebsiteCtx = function(bookingId) {
+    var website = (_evidenceCache[bookingId] || {}).website || {};
+    return { services: website.services, checklist: website.checklist, suggestedServices: website.suggestedServices };
   };
+
+  // A customer can ask that photos from their bookings are not used (Terms section 8).
+  function websiteOptOutControl(bookingId, website) {
+    if (!website || !website.photoUse) return '';
+    if (website.photoUse.reason === 'opted_out') {
+      return '<div class="wp-note">This customer opted out of website photos.</div>';
+    }
+    if (!website.photoUse.allowed) return '';
+    return '<div class="wp-note"><button type="button" class="wp-optout" data-wp-action="opt_out" data-wp-booking="'
+      + jsAttr(String(bookingId)) + '">Customer asked us not to use their photos</button></div>';
+  }
 
   function _renderEvidence(bookingId, cache, contentEl, warningEl, badgeEl, isActiveTab) {
     var booking = allBookings.find(function(b) { return b.id === bookingId; });
@@ -4360,7 +4345,7 @@ window.intelQuick = intelQuick;
         + '</div></div>';
     }).join('');
 
-    contentEl.innerHTML = damageReviewPanel + '<div class="evidence-grid">' + cards + '</div>';
+    contentEl.innerHTML = damageReviewPanel + '<div class="evidence-grid">' + cards + '</div>' + websiteOptOutControl(bookingId, cache.website);
   }
 
   var ownerEvidenceUploadButton = document.getElementById('owner-evidence-upload-btn');
@@ -8094,6 +8079,7 @@ window.intelQuick = intelQuick;
   var $assemblersView = document.getElementById('assemblers-view');
   var $todayView        = document.getElementById('today-view');
   var $reviewsView      = document.getElementById('reviews-view');
+  var $websitePhotosView = document.getElementById('website-photos-view');
   var $customersView    = document.getElementById('customers-view');
   var $marketingView    = document.getElementById('marketing-view');
   var $analyticsView    = document.getElementById('analytics-view');
@@ -8101,7 +8087,7 @@ window.intelQuick = intelQuick;
   var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$partnersView,$messagesView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
+  var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$partnersView,$messagesView,$waitlistView,$assemblersView,$todayView,$reviewsView,$websitePhotosView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
   var _bookingsLoadPromise = null;
@@ -8118,6 +8104,7 @@ window.intelQuick = intelQuick;
 
   // Expose headers globally so scripts outside IIFE can use it
   window._ownerHeaders = function() { return headers(); };
+  window._ownerToast = function(msg, type) { toast(msg, type); };
 
   function hideAllViews() { allViews.forEach(function(v){ if(v) v.style.display='none'; }); }
 
@@ -8146,6 +8133,7 @@ window.intelQuick = intelQuick;
       // marketplace removed
       else if (view === 'today')       { $todayView.style.display='';       $topbarTitle.textContent='Today\'s Schedule'; renderTodayView(); }
       else if (view === 'reviews')     { $reviewsView.style.display='';     $topbarTitle.textContent='Customer Reviews'; loadReviews(); }
+      else if (view === 'website-photos') { $websitePhotosView.style.display=''; $topbarTitle.textContent='Website Photos'; stopLiveOps(); if (window.OwnerWebsitePhotos) window.OwnerWebsitePhotos.load(); }
       else if (view === 'customers')   { $customersView.style.display='';   $topbarTitle.textContent='Customers'; renderCustomers(); }
       else if (view === 'marketing')   { $marketingView.style.display='';   $topbarTitle.textContent='Marketing'; loadMarketing(); }
       else if (view === 'analytics')     { $analyticsView.style.display='';     $topbarTitle.textContent='Financials'; renderAnalytics(); }

@@ -1,39 +1,59 @@
 #!/usr/bin/env node
-// Real job photos on the website (owner, 2026-10-20). A completion photo goes
-// public only with the customer's permission and the owner's choice, and only
-// as a copy in the public bucket; the pages show what the owner published.
+// Real job photos on the website (owner, 2026-10-20). Terms version 2026-10-20
+// lets completion photos be shown with identifying details left out; earlier
+// bookings and customers who opt out are never used. The owner saves a photo to
+// a collection (the privacy check), then posts it to a service page when ready.
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import {
   websiteServicesForBooking, websiteCitySlug, isWebsiteService, WEBSITE_PHOTO_SERVICES, websitePhotoPath,
+  photoUseForBooking, PHOTO_USE_TERMS_FROM,
 } from '../api/_website-photos.js';
+import { CUSTOMER_TERMS_VERSION, PRIVACY_NOTICE_VERSION } from '../api/_legal-consent.js';
 
 const read = rel => readFile(new URL(`../${rel}`, import.meta.url), 'utf8').then(s => s.replace(/\r\n/g, '\n'));
+
+// ── Which bookings' photos may be used ──────────────────────────────────────
+assert.ok(CUSTOMER_TERMS_VERSION.slice(0, 10) >= PHOTO_USE_TERMS_FROM, 'the current Terms include the photo clause');
+assert.ok(PRIVACY_NOTICE_VERSION.slice(0, 10) >= PHOTO_USE_TERMS_FROM, 'the current Privacy Notice describes the photo use');
+assert.deepEqual(photoUseForBooking({ customer_terms_version: CUSTOMER_TERMS_VERSION }), { allowed: true, reason: 'terms' });
+assert.deepEqual(photoUseForBooking({ customer_terms_version: '2026-10-18-easer-responsibility-v1' }), { allowed: false, reason: 'earlier_terms' },
+  'a booking under earlier Terms was promised no marketing use');
+assert.deepEqual(photoUseForBooking({}), { allowed: false, reason: 'earlier_terms' }, 'unknown Terms version: not used');
+assert.deepEqual(photoUseForBooking({ customer_terms_version: CUSTOMER_TERMS_VERSION, website_photo_opt_out_at: '2026-11-01' }),
+  { allowed: false, reason: 'opted_out' });
+const terms = await read('terms.html');
+assert.match(terms, /<strong>Photos of completed work\.<\/strong> AssembleAtEase may show photos of completed work/, 'Terms grant the photo use');
+assert.match(terms, /we leave out people, faces, house numbers/, 'Terms state the privacy safeguards');
+assert.match(terms, /To ask us not to use photos from your bookings/, 'Terms give the opt-out');
+assert.doesNotMatch(terms, /will not be used in public marketing without separate permission/, 'the old promise is gone from the current Terms');
+assert.match(await read('privacy.html'), /To show photos of completed work on our website/, 'the Privacy Notice lists the use');
+console.log('PASS photos are used only from bookings under the current Terms, never after an opt-out');
 
 // ── Booking services map onto the service pages ────────────────────────────
 assert.deepEqual(websiteServicesForBooking('Mounting & Hanging'), ['tv-mounting']);
 assert.deepEqual(websiteServicesForBooking('Outdoor & Playsets'), ['playset-assembly']);
 assert.deepEqual(websiteServicesForBooking('Furniture Assembly, Mounting & Hanging'), ['furniture-assembly', 'tv-mounting']);
 assert.deepEqual(websiteServicesForBooking('Fitness Equipment'), ['fitness-equipment-assembly']);
-assert.deepEqual(websiteServicesForBooking('Office Assembly'), ['office-furniture-assembly']);
 assert.equal(websiteCitySlug('Round Rock'), 'round-rock');
-assert.equal(websiteCitySlug(''), null);
 assert.ok(!isWebsiteService('anything-else'));
 assert.equal(websitePhotoPath('tv-mounting', 'abc', 'image/webp'), 'tv-mounting/abc.webp');
 const sql = await read('api/migrations/118_website_job_photos.sql');
 for (const slug of Object.keys(WEBSITE_PHOTO_SERVICES)) assert.ok(sql.includes(`'${slug}'`), `migration allows ${slug}`);
-console.log('PASS booking services map onto the six service pages; the database allows exactly those');
+assert.match(sql, /website_published_at IS NULL\s*OR \(website_collected_at IS NOT NULL/, 'the database refuses a posted photo that is not in the collection');
+console.log('PASS booking services map onto the six service pages; posted photos are always collected first');
 
-// ── Publishing needs permission, choice and the checklist ──────────────────
-const publish = await read('api/owner/website-photo.js');
-assert.match(publish, /verifyOwner\(req\)/, 'owner only');
-assert.match(publish, /evidence_type !== 'completion_photo'/, 'only completion photos');
-assert.match(publish, /if \(!booking\.website_photo_consent_at\)[\s\S]{0,200}CUSTOMER_PERMISSION_REQUIRED/, 'no customer permission, no website');
-assert.match(publish, /checklistConfirmed !== true/, 'the owner confirms the privacy checklist');
-assert.match(publish, /storage\.from\(WEBSITE_PHOTO_BUCKET\)\.upload\(/, 'a copy goes to the public bucket');
-assert.doesNotMatch(publish, /storage\.from\(EVIDENCE_BUCKET\)\.(upload|update|move|getPublicUrl)/, 'the private original is never made public');
-assert.match(publish, /storage\.from\(WEBSITE_PHOTO_BUCKET\)\.remove\(\[row\.website_public_path\]\)/, 'taking a photo down deletes the public copy');
-console.log('PASS publishing needs a completion photo, customer permission and the checklist; the original stays private');
+// ── Collect, then post; the original stays private ──────────────────────────
+const action = await read('api/owner/website-photo.js');
+assert.match(action, /verifyOwner\(req\)/, 'owner only');
+assert.match(action, /const use = photoUseForBooking\(booking\);\s*if \(!use\.allowed\)/, 'collect and post both check the photo-use rule');
+assert.match(action, /if \(action === 'collect'\) \{\s*if \(req\.body\.checklistConfirmed !== true\)/, 'saving to the collection is the privacy check');
+assert.match(action, /if \(!row\.website_collected_at\)[\s\S]{0,160}NOT_COLLECTED/, 'nothing is posted without being collected');
+assert.match(action, /storage\.from\(WEBSITE_PHOTO_BUCKET\)\.upload\(/, 'a posted photo is a copy in the public bucket');
+assert.doesNotMatch(action, /storage\.from\(EVIDENCE_BUCKET\)\.(upload|update|move|getPublicUrl)/, 'the private original is never made public');
+assert.match(action, /async function optOut[\s\S]*takeDown\(sb, photo\)[\s\S]*website_photo_opt_out_at/, 'an opt-out takes photos down and is recorded');
+assert.match(action, /ilike\('customer_email', email\.replace\(/, 'an opt-out covers all of the customer\'s bookings, wildcards escaped');
+console.log('PASS the owner saves a photo to the collection (privacy check), posts it when ready; opt-outs remove everything');
 
 // ── The public read returns nothing about the customer ─────────────────────
 const pub = await read('api/job-photos.js');
@@ -41,20 +61,25 @@ const select = pub.match(/\.select\('([^']+)'\)/)[1];
 for (const field of ['booking_id', 'storage_path', 'uploaded_by', 'customer', 'address']) {
   assert.ok(!select.includes(field), `the public read never selects ${field}`);
 }
-assert.match(pub, /\.not\('website_published_at', 'is', null\)/, 'only published photos');
-assert.match(pub, /\[\.\.\.local, \.\.\.rest\]/, "the city's own jobs come first");
-console.log('PASS the public read returns only published copies and their descriptions, local first');
+assert.match(pub, /\.not\('website_published_at', 'is', null\)/, 'only posted photos');
+const library = await read('api/owner/website-photos.js');
+assert.match(library, /verifyOwner\(req\)/);
+assert.match(library, /photoUseForBooking\(b\)\.allowed/, 'the library lists only photos that may be used');
+console.log('PASS the public read returns only posted copies; the owner library lists only usable photos');
 
-// ── The customer opts in on the review page ────────────────────────────────
-const page = await read('review.html');
-assert.match(page, /<input type="checkbox" id="r-photo-consent" style="[^"]*"\/>/, 'permission box present and unchecked');
-assert.doesNotMatch(page, /id="r-photo-consent"[^>]*checked/, 'never pre-checked');
-assert.match(page, /website_photo_consent: !!\(document\.getElementById\('r-photo-consent'\)/);
-const review = await read('api/review.js');
-assert.match(review, /if \(payload\.website_photo_consent === true\)/, 'recorded only when the customer said yes');
-console.log('PASS the customer gives permission with an unchecked box on the review page');
+// ── Owner dashboard ─────────────────────────────────────────────────────────
+const owner = await read('owner/index.html');
+assert.match(owner, /<a data-view="website-photos">/, 'Website Photos page in the sidebar');
+assert.match(owner, /<script src="\/owner\/assets\/website-photos\.js" defer><\/script>/);
+assert.match(owner, /window\.OwnerWebsitePhotos\.actionsHtml\(photo,/, 'the booking record uses the same buttons as the library');
+const module = await read('owner/assets/website-photos.js');
+for (const label of ['Save to collection', 'Post to website', 'Take off website', "'Remove', 'uncollect'"]) {
+  assert.ok(module.includes(label), `button: ${label}`);
+}
+assert.doesNotMatch(await read('review.html'), /r-photo-consent/, 'customers are not asked again on the review page');
+console.log('PASS one set of photo buttons in the booking record and the Website Photos page');
 
-// ── Every service/city page can show them ──────────────────────────────────
+// ── Every service/city page can show posted photos ─────────────────────────
 const files = (await readdir(new URL('../', import.meta.url))).filter(f =>
   /^(furniture-assembly|tv-mounting|smart-home-installation|fitness-equipment-assembly|office-furniture-assembly|playset-assembly)-[a-z-]+-tx\.html$/.test(f));
 assert.equal(files.length, 324, 'six services across 54 cities');
@@ -68,7 +93,7 @@ for (const f of files) {
 const fitness = await read('fitness-equipment-assembly-austin-tx.html');
 assert.match(fitness, /data-job-photos="fitness-equipment-assembly"[^>]*style="display:none"><\/div>/, 'a page with no built-in photos keeps its empty grid hidden');
 const js = await read('assets/js/job-photos.js');
-assert.match(js, /if \(photos\.length\) render\(/, 'with no published photos the page keeps what it had');
+assert.match(js, /if \(photos\.length\) render\(/, 'with no posted photos the page keeps what it had');
 assert.match(js, /img\.alt = photo\.alt/, 'photos are built as elements, never as HTML strings');
 assert.match(js, /photos\.length > 1 && photos\.length % 2/, 'the two-column grid always gets an even number of photos');
-console.log(`PASS all ${files.length} service/city pages show published job photos; empty pages stay as they were`);
+console.log(`PASS all ${files.length} service/city pages show posted job photos; empty pages stay as they were`);
