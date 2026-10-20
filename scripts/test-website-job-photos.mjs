@@ -97,3 +97,36 @@ assert.match(js, /if \(photos\.length\) render\(/, 'with no posted photos the pa
 assert.match(js, /img\.alt = photo\.alt/, 'photos are built as elements, never as HTML strings');
 assert.match(js, /photos\.length > 1 && photos\.length % 2/, 'the two-column grid always gets an even number of photos');
 console.log(`PASS all ${files.length} service/city pages show posted job photos; empty pages stay as they were`);
+
+// ── Layout holds for any number of posted photos ───────────────────────────
+// (Measured in a browser 2026-10-20 at 1280px and 390px with 1, 2, 3, 6 and 9
+// photos, tall and wide: equal sizes, no sideways scroll.)
+assert.match(js, /var MAX_PHOTOS = 6;/, 'never more than six on a page');
+assert.match(js, /\.slice\(0, MAX_PHOTOS\)/);
+assert.match(js, /@media \(max-width:560px\)\{\[data-job-photos-loaded\] > \.fa-shot:nth-child\(n\+5\)\{display:none\}\}/, 'phones show at most four');
+assert.match(js, /photos\.length === 1 \? gallery\.querySelector\('\.fa-shot'\) : null/, 'one photo pairs with a built-in photo');
+assert.match(js, /figures\[0\]\.style\.gridColumn = '1 \/ -1'/, 'or is centred when the page has none');
+for (const f of files) {
+  const html = await read(f);
+  assert.ok(html.includes('.fa-shot .frame{width:100%;aspect-ratio:7/5'), `${f}: every photo is cropped to one shape`);
+  assert.ok(html.includes('.fa-gallery{grid-template-columns:1fr}'), `${f}: one column on phones`);
+}
+console.log('PASS layout: at most six photos (four on phones), one shape, even rows, a single photo never sits alone');
+
+// ── The public copy carries no location or camera data ─────────────────────
+{
+  const { stripImageMetadata } = await import('../api/_website-photos.js');
+  const seg = (m, payload) => { const b = Buffer.alloc(4 + payload.length); b[0] = 0xff; b[1] = m; b.writeUInt16BE(payload.length + 2, 2); payload.copy(b, 4); return b; };
+  const jpeg = Buffer.concat([
+    Buffer.from([0xff, 0xd8]), seg(0xe0, Buffer.from('JFIF\0')), seg(0xe1, Buffer.from('Exif\0\0GPSLatitude30.2672')),
+    Buffer.from([0xff, 0xda, 0x00, 0x04, 0x01, 0x00, 0x11, 0x22, 0xff, 0xd9]),
+  ]);
+  const out = stripImageMetadata(jpeg, 'image/jpeg');
+  assert.ok(out.ok && !out.buffer.includes(Buffer.from('GPS')), 'EXIF/GPS is removed from a JPEG');
+  assert.ok(out.buffer.includes(Buffer.from('JFIF')) && out.buffer.includes(Buffer.from([0x11, 0x22, 0xff, 0xd9])), 'the image data is untouched');
+  assert.equal(stripImageMetadata(Buffer.from('not an image'), 'image/heic').ok, false, 'an unknown format is refused, not posted as-is');
+  assert.match(action, /const cleaned = stripImageMetadata\(/, 'posting strips metadata');
+  assert.match(action, /path, cleaned\.buffer, \{ contentType, cacheControl: '600'/, 'only the cleaned copy is uploaded, with a short cache');
+  assert.match(pub, /s-maxage=300/, 'the page list refreshes within five minutes of a take-down');
+}
+console.log('PASS the public copy is stripped of EXIF/GPS; take-downs leave the site within minutes');

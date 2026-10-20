@@ -3,6 +3,7 @@ import { verifyOwner } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 import {
   WEBSITE_PHOTO_BUCKET, WEBSITE_PHOTO_CHECKLIST, isWebsiteService, websiteCitySlug, websitePhotoPath, photoUseForBooking,
+  stripImageMetadata,
 } from '../_website-photos.js';
 
 const EVIDENCE_BUCKET = 'booking-evidence';
@@ -106,12 +107,21 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: 'The original photo could not be read. Nothing was posted.' });
   }
   const contentType = blob.type || row.mime_type || 'image/jpeg';
+  // The public copy never carries the original's metadata (GPS location in
+  // particular): stripped here whatever device or app uploaded it.
+  const cleaned = stripImageMetadata(Buffer.from(await blob.arrayBuffer()), contentType);
+  if (!cleaned.ok) {
+    console.error('[website-photo] metadata strip refused:', cleaned.reason);
+    return res.status(415).json({ error: 'This photo is not a JPEG, PNG or WebP image, so it cannot be posted. Nothing was posted.', code: 'UNSUPPORTED_IMAGE' });
+  }
   const path = websitePhotoPath(service, row.id, contentType);
   if (row.website_public_path && row.website_public_path !== path) {
     await sb.storage.from(WEBSITE_PHOTO_BUCKET).remove([row.website_public_path]).catch(() => {});
   }
   const { error: uploadErr } = await sb.storage.from(WEBSITE_PHOTO_BUCKET).upload(
-    path, Buffer.from(await blob.arrayBuffer()), { contentType, cacheControl: '86400', upsert: true },
+    // Short cache: a photo taken down (or a customer who opts out) must leave
+    // the site within minutes, not stay cached for a day.
+    path, cleaned.buffer, { contentType, cacheControl: '600', upsert: true },
   );
   if (uploadErr) {
     console.error('[website-photo] public upload failed:', uploadErr.message);

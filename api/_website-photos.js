@@ -80,3 +80,80 @@ export function websitePhotoPath(service, evidenceId, contentType = 'image/jpeg'
   const ext = /png/i.test(contentType) ? 'png' : /webp/i.test(contentType) ? 'webp' : 'jpg';
   return `${service}/${evidenceId}.${ext}`;
 }
+
+/**
+ * Remove embedded metadata (EXIF with GPS location, XMP, comments, text) from
+ * an image before its public copy is written. The website and the Easer app
+ * re-encode photos before upload, which drops metadata, but the server stores
+ * whatever bytes it receives, so the public copy is cleaned here regardless.
+ * Pixels are untouched. Returns { ok, buffer } or { ok: false, reason }.
+ */
+export function stripImageMetadata(input, contentType = '') {
+  const buf = Buffer.isBuffer(input) ? input : Buffer.from(input);
+  const type = String(contentType).toLowerCase();
+  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8) return stripJpeg(buf);
+  if (buf.length > 8 && buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return stripPng(buf);
+  if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return stripWebp(buf);
+  return { ok: false, reason: `unsupported_image_type${type ? `:${type}` : ''}` };
+}
+
+// JPEG: drop APP1-APP15 (EXIF, XMP, ICC-free vendor data) and COM segments;
+// keep APP0 (JFIF) and every coding segment; copy the scan data unchanged.
+function stripJpeg(buf) {
+  const parts = [buf.slice(0, 2)];
+  let i = 2;
+  while (i + 4 <= buf.length) {
+    if (buf[i] !== 0xff) return { ok: false, reason: 'jpeg_malformed' };
+    const marker = buf[i + 1];
+    if (marker === 0xd9) { parts.push(buf.slice(i, i + 2)); i += 2; break; }
+    if (marker === 0xda) { parts.push(buf.slice(i)); i = buf.length; break; }
+    if (marker >= 0xd0 && marker <= 0xd7) { parts.push(buf.slice(i, i + 2)); i += 2; continue; }
+    const length = buf.readUInt16BE(i + 2);
+    if (length < 2 || i + 2 + length > buf.length) return { ok: false, reason: 'jpeg_malformed' };
+    const drop = (marker >= 0xe1 && marker <= 0xef) || marker === 0xfe;
+    if (!drop) parts.push(buf.slice(i, i + 2 + length));
+    i += 2 + length;
+  }
+  return { ok: true, buffer: Buffer.concat(parts) };
+}
+
+// PNG: drop EXIF and text chunks; keep everything else, CRCs included.
+function stripPng(buf) {
+  const DROP = new Set(['eXIf', 'tEXt', 'zTXt', 'iTXt', 'tIME']);
+  const parts = [buf.slice(0, 8)];
+  let i = 8;
+  while (i + 12 <= buf.length) {
+    const length = buf.readUInt32BE(i);
+    const type = buf.toString('ascii', i + 4, i + 8);
+    const end = i + 12 + length;
+    if (end > buf.length) return { ok: false, reason: 'png_malformed' };
+    if (!DROP.has(type)) parts.push(buf.slice(i, end));
+    i = end;
+    if (type === 'IEND') break;
+  }
+  return { ok: true, buffer: Buffer.concat(parts) };
+}
+
+// WebP: drop EXIF and XMP chunks, clear their VP8X flags, fix the RIFF size.
+function stripWebp(buf) {
+  const parts = [];
+  let i = 12;
+  while (i + 8 <= buf.length) {
+    const type = buf.toString('ascii', i, i + 4);
+    const size = buf.readUInt32LE(i + 4);
+    const end = i + 8 + size + (size % 2);
+    if (i + 8 + size > buf.length) return { ok: false, reason: 'webp_malformed' };
+    if (type !== 'EXIF' && type !== 'XMP ') {
+      const chunk = Buffer.from(buf.slice(i, Math.min(end, buf.length)));
+      if (type === 'VP8X' && chunk.length > 8) chunk[8] &= ~0x0c;
+      parts.push(chunk);
+    }
+    i = end;
+  }
+  const body = Buffer.concat(parts);
+  const header = Buffer.alloc(12);
+  header.write('RIFF', 0, 'ascii');
+  header.writeUInt32LE(body.length + 4, 4);
+  header.write('WEBP', 8, 'ascii');
+  return { ok: true, buffer: Buffer.concat([header, body]) };
+}

@@ -46,6 +46,7 @@ export default async function handler(req, res) {
     local: Boolean(citySlug && r.website_city_slug === citySlug),
   }));
 
-  res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=86400');
+  // Five minutes: a photo taken off the website stops being listed quickly.
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=300');
   return res.status(200).json({ photos, localCount: local.length });
 }
