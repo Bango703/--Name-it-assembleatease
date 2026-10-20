@@ -57,6 +57,16 @@ export async function notificationRetryEligibility(sb, row, payload, booking, no
       }
       return { ok: true };
     }
+    if (type === 'review_request') {
+      if (!booking || booking.status !== 'completed'
+          || String(booking.customer_email || '').trim().toLowerCase() !== String(row.recipient_email || '').trim().toLowerCase()) {
+        return { ok: false, reason: 'review_request_no_longer_eligible' };
+      }
+      const step = Math.max(1, Number(meta.reviewRequestStep) || 1);
+      const recordedCount = Math.max(Number(booking.review_request_count || 0), booking.review_requested_at ? 1 : 0);
+      if (recordedCount >= step) return { ok: false, reason: 'review_request_already_recorded' };
+      return { ok: true };
+    }
     if (type === 'followup' || /^review_request_\d+$/.test(type)) {
       const bookingId = row.booking_id || meta.bookingId || booking?.id;
       if (!bookingId) return { ok: false, reason: 'postjob_booking_missing' };
