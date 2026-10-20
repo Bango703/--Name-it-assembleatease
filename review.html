@@ -188,6 +188,11 @@ textarea.form-control{resize:vertical;min-height:120px}
         <textarea id="r-body" class="form-control" placeholder="Optional — what did your Pro do well? Anything we can improve?"></textarea>
       </div>
 
+      <label for="r-photo-consent" style="display:flex;gap:10px;align-items:flex-start;font-size:0.88rem;line-height:1.5;color:var(--ink);margin:0 0 1.25rem;cursor:pointer">
+        <input type="checkbox" id="r-photo-consent" style="width:18px;height:18px;margin-top:2px;flex:0 0 auto"/>
+        <span>You can show photos of my finished project on the AssembleAtEase website. No names, addresses, or people are shown.</span>
+      </label>
+
       <hr class="divider"/>
 
       <!-- Verification fields — hidden when pre-filled from URL -->
@@ -550,7 +555,7 @@ async function submitReview() {
     var resp = await fetch('/api/review', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref: ref, email: email, rating: selectedRating, body: body, token: reviewToken })
+      body: JSON.stringify({ ref: ref, email: email, rating: selectedRating, body: body, token: reviewToken, website_photo_consent: !!(document.getElementById('r-photo-consent') || {}).checked })
     });
     var data = await resp.json();
     if (!resp.ok) {

@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { WEBSITE_PHOTO_SERVICES, WEBSITE_PHOTO_CHECKLIST, websiteServicesForBooking } from '../_website-photos.js';
 
 const BUCKET = 'booking-evidence';
 const SIGNED_URL_EXPIRY_SECONDS = 3600; // 1-hour ephemeral URLs
@@ -74,30 +75,42 @@ export default async function handler(req, res) {
   const sb = getSupabase(); // service key — bypasses RLS
 
   // Confirm booking exists
-  const { data: booking, error: bookingErr } = await sb
-    .from('bookings')
-    .select('id, ref, status')
-    .eq('id', bookingId)
-    .maybeSingle();
+  const loadBooking = columns => sb.from('bookings').select(columns).eq('id', bookingId).maybeSingle();
+  let { data: booking, error: bookingErr } = await loadBooking('id, ref, status, service, website_photo_consent_at');
+  if (bookingErr && /website_photo_consent_at|42703|PGRST204/i.test(String(bookingErr.message || bookingErr.code || ''))) {
+    ({ data: booking, error: bookingErr } = await loadBooking('id, ref, status, service'));
+  }
 
   if (bookingErr || !booking) {
     return res.status(404).json({ error: 'Booking not found' });
   }
 
   // Fetch all evidence rows for this booking
-  const { data: rows, error: fetchErr } = await sb
-    .from('booking_evidence')
-    .select('id, uploaded_by, uploaded_on_behalf_of, storage_path, evidence_type, mime_type, file_size_bytes, visibility, notes, created_at')
-    .eq('booking_id', bookingId)
-    .order('created_at', { ascending: true });
+  // Website-photo fields arrive with migration 118; until then the list must
+  // still load, so a missing column falls back to the original projection.
+  const BASE_COLUMNS = 'id, uploaded_by, uploaded_on_behalf_of, storage_path, evidence_type, mime_type, file_size_bytes, visibility, notes, created_at';
+  const loadRows = columns => sb.from('booking_evidence').select(columns)
+    .eq('booking_id', bookingId).order('created_at', { ascending: true });
+  let { data: rows, error: fetchErr } = await loadRows(`${BASE_COLUMNS}, website_published_at, website_service, website_alt`);
+  if (fetchErr && /website_|42703|PGRST204/i.test(String(fetchErr.message || fetchErr.code || ''))) {
+    ({ data: rows, error: fetchErr } = await loadRows(BASE_COLUMNS));
+  }
 
   if (fetchErr) {
     console.error('evidence fetch error:', fetchErr);
     return res.status(500).json({ error: 'Failed to fetch evidence records' });
   }
 
+  // What the owner needs to put a completion photo on the website.
+  const website = {
+    customerPermission: Boolean(booking.website_photo_consent_at),
+    suggestedServices: websiteServicesForBooking(booking.service),
+    services: WEBSITE_PHOTO_SERVICES,
+    checklist: WEBSITE_PHOTO_CHECKLIST,
+  };
+
   if (!rows?.length) {
-    return res.status(200).json({ evidence: [], bookingRef: booking.ref, total: 0 });
+    return res.status(200).json({ evidence: [], bookingRef: booking.ref, total: 0, website });
   }
 
   // Enrich with uploader names. uploaded_on_behalf_of is resolved too: the
@@ -129,6 +142,9 @@ export default async function handler(req, res) {
         mime_type:           row.mime_type,
         file_size_bytes:     row.file_size_bytes,
         visibility:          row.visibility,
+        website_published_at: row.website_published_at || null,
+        website_service:     row.website_service || null,
+        website_alt:         row.website_alt || null,
         notes:               row.notes || null,
         created_at:          row.created_at,
         uploaded_by_id:      row.uploaded_by,
@@ -148,5 +164,6 @@ export default async function handler(req, res) {
     evidence:   enriched,
     bookingRef: booking.ref,
     total:      enriched.length,
+    website,
   });
 }

@@ -4037,7 +4037,7 @@ window.intelQuick = intelQuick;
                           { headers: headers() });
       var d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Failed to fetch evidence');
-      _evidenceCache[bookingId] = { loading: false, evidence: d.evidence || [], total: d.total || 0, error: null };
+      _evidenceCache[bookingId] = { loading: false, evidence: d.evidence || [], total: d.total || 0, error: null, website: d.website || null };
     } catch (err) {
       _evidenceCache[bookingId] = { loading: false, evidence: [], total: 0, error: err.message };
     }
@@ -4156,6 +4156,58 @@ window.intelQuick = intelQuick;
       await window.loadEvidence(bookingId);
     } catch (err) {
       alert('Network error — the photo was not changed.');
+    }
+  };
+
+  // Website use of a completion photo. The server decides every rule
+  // (customer permission, service, description, checklist); this shows the
+  // state it reports and offers the one action that applies.
+  function websitePhotoControl(ev, bookingId, website) {
+    if (!website) return '';
+    var box = '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">';
+    var args = '\'' + jsAttr(String(ev.id)) + '\',\'' + jsAttr(String(bookingId)) + '\'';
+    if (ev.website_published_at) {
+      return box + '<div style="font-size:0.7rem;font-weight:700;color:var(--green);margin-bottom:4px">ON WEBSITE &middot; ' + esc((website.services || {})[ev.website_service] || ev.website_service || '') + '</div>'
+        + '<button type="button" class="btn" style="font-size:0.68rem;padding:2px 8px" '
+        + 'onclick="event.stopPropagation();window.setEvidenceWebsite(' + args + ',false)">Remove from website</button></div>';
+    }
+    if (!website.customerPermission) {
+      return box + '<div style="font-size:0.7rem;color:var(--muted)">Customer has not allowed website use</div></div>';
+    }
+    return box + '<button type="button" class="btn btn-teal" style="font-size:0.68rem;padding:2px 8px" '
+      + 'onclick="event.stopPropagation();window.setEvidenceWebsite(' + args + ',true)">Use on website</button></div>';
+  }
+
+  window.setEvidenceWebsite = async function(evidenceId, bookingId, publish) {
+    var cache = _evidenceCache[bookingId] || {};
+    var website = cache.website || {};
+    var body = { evidenceId: evidenceId, publish: !!publish };
+    if (publish) {
+      var keys = Object.keys(website.services || {});
+      var suggested = (website.suggestedServices || [])[0] || keys[0];
+      var menu = keys.map(function(k, i){ return (i + 1) + '. ' + website.services[k]; }).join('\n');
+      var pick = prompt('Which service page is this photo for?\n' + menu, String(keys.indexOf(suggested) + 1));
+      if (pick === null) return;
+      var service = keys[Number(pick) - 1];
+      if (!service) { toast('Choose a number from the list', 'error'); return; }
+      var alt = prompt('Describe the photo in a few words. This is shown to visitors and search engines.', '');
+      if (alt === null) return;
+      if (alt.trim().length < 10) { toast('Describe the photo in at least a few words', 'error'); return; }
+      if (!confirm('Before publishing, confirm the photo shows:\n- ' + (website.checklist || []).join('\n- '))) return;
+      body.service = service; body.alt = alt.trim(); body.checklistConfirmed = true;
+    }
+    try {
+      var r = await fetch('/api/owner/website-photo', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+        body: JSON.stringify(body)
+      });
+      var d = await r.json().catch(function(){ return {}; });
+      if (!r.ok) { toast(d.error || 'The website photo could not be updated, and the server did not say why.', 'error'); return; }
+      toast(publish ? 'Photo is on the website' : 'Photo removed from the website', 'success');
+      await window.loadEvidence(bookingId, true);
+    } catch (err) {
+      toast('Network error. Nothing changed.', 'error');
     }
   };
 
@@ -4303,6 +4355,7 @@ window.intelQuick = intelQuick;
               : '<button type="button" class="btn btn-teal" style="font-size:0.68rem;padding:2px 8px" '
                 + 'onclick="event.stopPropagation();window.setEvidenceCustomerFacing(\'' + jsAttr(String(ev.id)) + '\',\'' + jsAttr(String(bookingId)) + '\',true)">Share with customer</button>')
             + '</div>'
+            + websitePhotoControl(ev, bookingId, cache.website)
           : '')
         + '</div></div>';
     }).join('');
