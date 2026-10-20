@@ -88,6 +88,28 @@ export default async function handler(req, res) {
       }
       if (outcome.ok) {
         accepted++;
+        if (row.channel === 'email' && row.notification_type === 'review_request' && row.booking_id) {
+          const step = Math.max(1, Number(payload.meta?.reviewRequestStep) || 1);
+          const reviewPatch = {
+            review_requested_at: new Date().toISOString(),
+            review_request_count: step,
+          };
+          let { data: tracked, error: trackingError } = await sb.from('bookings')
+            .update(reviewPatch).eq('id', row.booking_id).lt('review_request_count', step).select('id');
+          if (trackingError && (trackingError.code === '42703' || /review_request_count/.test(trackingError.message || ''))) {
+            ({ data: tracked, error: trackingError } = await sb.from('bookings')
+              .update({ review_requested_at: reviewPatch.review_requested_at }).eq('id', row.booking_id).select('id'));
+          }
+          if (trackingError) errors.push({ id: row.id, error: 'Review email was accepted, but booking review tracking could not be updated: ' + trackingError.message });
+          else if (!tracked?.length) {
+            const { data: current, error: currentError } = await sb.from('bookings')
+              .select('review_request_count,review_requested_at').eq('id', row.booking_id).maybeSingle();
+            const currentCount = Math.max(Number(current?.review_request_count || 0), current?.review_requested_at ? 1 : 0);
+            if (currentError || currentCount < step) {
+              errors.push({ id: row.id, error: currentError?.message || 'Review email was accepted, but booking review tracking was not recorded.' });
+            }
+          }
+        }
         if (row.notification_type === 'dispatch_offer' && payload.meta?.expiresAt) {
           const { error: projectionError } = await sb.from('dispatch_offers').update({ notification_sent: true })
             .eq('booking_id', row.booking_id).eq('easer_id', row.recipient_user_id).eq('expires_at', payload.meta.expiresAt);

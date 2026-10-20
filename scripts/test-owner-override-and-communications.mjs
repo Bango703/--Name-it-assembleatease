@@ -87,7 +87,10 @@ assert.match(ownerUi, /Switch this message from/);
 assert.match(ownerUi, /Send this message to/);
 assert.match(ownerUi, /Resend Review Request/);
 assert.match(reviewApi, /REVIEW_RESEND_CONFIRMATION_REQUIRED/);
-assert.match(reviewApi, /disableDedupe: resend/);
+// Each confirmed send has its own key (a resend is a new email; a repeat click
+// joins the email already queued or sent, and says so).
+assert.match(reviewApi, /notificationKey: `review_request_manual:\$\{b\.id\}:\$\{sendNumber\}`/);
+assert.match(reviewApi, /alreadySent: true/);
 assert.match(reviewApi, /review_request_resent/);
 
 // The separate AI script owns its escaping helper, fixing the owner runtime

@@ -36,6 +36,14 @@ export default async function handler(req, res) {
     });
   }
 
+  // One durable key per review-request step makes repeated owner clicks join
+  // the existing send instead of creating multiple quiet-hours queue entries.
+  // The key counts every confirmed send, so a third resend is a new email; the
+  // stored count stops at 2 because that is all the automatic sequence reads.
+  const priorCount = Number(b.review_request_count || (b.review_requested_at ? 1 : 0));
+  const sendNumber = priorCount + 1;
+  const nextCount = Math.min(sendNumber, 2);
+
   let reviewToken;
   try {
     reviewToken = issueReviewToken({ bookingId: b.id, ref: b.ref, email: b.customer_email });
@@ -55,18 +63,35 @@ export default async function handler(req, res) {
     subject,
     html,
     replyTo: ownerEmail(),
-    meta:    { bookingId, notificationType: 'review_request', recipientType: 'customer', disableDedupe: resend },
+    meta:    {
+      bookingId,
+      notificationType: 'review_request',
+      recipientType: 'customer',
+      notificationKey: `review_request_manual:${b.id}:${sendNumber}`,
+      reviewRequestStep: nextCount,
+    },
   });
 
-  if (!result.ok || result.suppressed === true) {
+  if (result.deferred) {
+    return res.status(202).json({
+      deferred: true,
+      nextAttemptAt: result.nextAttemptAt || null,
+      message: 'The review request is scheduled for the next permitted sending time. It has not been sent yet.',
+    });
+  }
+
+  if (!result.ok || (result.suppressed === true && result.reason !== 'already_sent')) {
     console.error('Review request send error:', result.error);
     return res.status(500).json({ error: 'Review email delivery was not accepted. Nothing was marked sent.' });
+  }
+  // This click matched an email that had already gone out; nothing new was sent.
+  if (result.suppressed === true) {
+    return res.status(200).json({ success: true, alreadySent: true, sentAt: result.sentAt || null });
   }
 
   // Mark as sent AND advance the shared counter so the automatic cron treats this as
   // a completed step (never re-sends step 1 on top of a manual send).
-  const sentAt = new Date().toISOString();
-  const nextCount = Math.min(Number(b.review_request_count || 0) + 1, 3);
+  const sentAt = result.sentAt || new Date().toISOString();
   let { error: updateError } = await sb
     .from('bookings')
     .update({ review_requested_at: sentAt, review_request_count: nextCount })

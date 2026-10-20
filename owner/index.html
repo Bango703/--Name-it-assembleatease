@@ -5890,6 +5890,18 @@ window.intelQuick = intelQuick;
         });
         var reviewData = await reviewRes.json().catch(function(){ return {}; });
         if (!reviewRes.ok || reviewData.error) throw new Error(reviewData.error || 'Review request could not be sent');
+        if (reviewData.deferred) {
+          var sendAt = reviewData.nextAttemptAt
+            ? new Date(reviewData.nextAttemptAt).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })
+            : 'the next permitted sending time';
+          toast('Review request scheduled for ' + sendAt + ' Austin time. It has not been sent yet.', 'success');
+          return;
+        }
+        if (reviewData.alreadySent) {
+          toast('This review request was already sent' + (reviewData.sentAt ? ' at ' + new Date(reviewData.sentAt).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '') + '. No new email was sent.', 'success');
+          await loadBookings();
+          return;
+        }
         var reviewToast = reviewData.resent ? 'Review request resent to customer' : 'Review request sent to customer';
         if (reviewData.trackingUpdated === false) reviewToast += '; booking timestamp needs review';
         toast(reviewToast, reviewData.trackingUpdated === false ? 'error' : 'success');
