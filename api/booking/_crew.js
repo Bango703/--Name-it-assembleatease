@@ -170,6 +170,7 @@ export function laborPoolCents(booking) {
     taxCents: booking.tax_amount || 0,
     feePct: booking.easer_fee_pct_snapshot ?? null,
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+    reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
   });
   return Math.max(0, split.assemblerDueCents || 0);
 }

@@ -16,6 +16,7 @@ export function bookingFinanceContext(booking, row = null) {
       taxCents: booking.tax_amount || 0,
       feePct: booking.easer_fee_pct_snapshot,
       assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+      reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
     });
     const offlineMethod = booking.source === 'owner_manual'
       ? normalizeOwnerOfflinePaymentMethod(booking.payment_method) : null;
@@ -34,12 +35,13 @@ export function bookingFinanceContext(booking, row = null) {
       customerTotalDollars: dollars(split.totalCents),
       serviceSubtotalDollars: dollars(split.pretaxCollectedCents),
       taxDollars: dollars(split.taxCents),
+      reviewRewardDiscountDollars: dollars(booking.review_reward_discount_cents || 0),
       totalEaserEarningsDollars: dollars(summary.easerCostCents),
       platformBeforeProcessingDollars: dollars(summary.platformFeeCents),
       processingFeeEstimateDollars: feeUnknown ? null : dollars(summary.processingFeeCents),
       platformAfterProcessingEstimateDollars: feeUnknown ? null : dollars(summary.platformGrossCents),
       processingFeeBasis: feeUnknown ? 'unknown_payment_method' : offlineMethod ? 'configured_offline_method_estimate' : 'standard_card_fee_estimate',
-      limitations: 'Estimate if the quoted job completes at this price; includes promised bonus and redeemed credit. Excludes overhead, future refunds, disputes, rework, and future rewards. Not collected revenue or final business profit.',
+      limitations: 'Estimate if the quoted job completes at this price; includes promised bonus, redeemed credit, and platform-funded review reward. Excludes overhead, future refunds, disputes, and rework. Not collected revenue or final business profit.',
     };
   }
 

@@ -2,10 +2,11 @@ import { getSupabase } from './_supabase.js';
 import { rateLimit } from './_ratelimit.js';
 import { logActivity } from './booking/_activity.js';
 import { verifyReviewToken } from './_review-token.js';
-import { shareReviewToSocials } from './_review-social.js';
 import { customerAccountUser, usesCustomerAccount } from './booking/_customer-access.js';
 import { customerOwnsBooking } from './booking/_customer-booking-auth.js';
 import { sendPushToUser } from './_push.js';
+import { sendEmail, ownerEmail } from './_email.js';
+import { issueReviewReward } from './_review-rewards.js';
 
 export default async function handler(req, res) {
   const sb = getSupabase();
@@ -45,8 +46,6 @@ export default async function handler(req, res) {
   const appCustomer = viaApp ? await customerAccountUser(sb, req) : null;
   if (viaApp && !appCustomer) return res.status(401).json({ error: 'Sign in again to leave a review.' });
   const email = viaApp ? appCustomer.email : payload.email;
-  // Opt-in only: the checkbox on review.html, unchecked by default.
-  const shareConsent = payload.share_consent === true;
   const normalizedRef = String(ref || '').toUpperCase().trim();
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const parsedRating = parseInt(rating, 10);
@@ -131,14 +130,40 @@ export default async function handler(req, res) {
     body: reviewBody,
     approved: true,
   };
+  let reward;
+  try {
+    reward = await issueReviewReward(sb, booking);
+  } catch (rewardError) {
+    console.error('Review reward issuance failed before review submission:', rewardError?.code, rewardError?.message);
+    return res.status(503).json({ error: 'The thank-you offer could not be prepared. Your review was not submitted; please try again shortly.' });
+  }
   const { error: insErr } = await insertReviewWithRetry(sb, reviewRow, 2);
 
   if (insErr) {
+    await sb.from('review_reward_codes').delete().eq('booking_id', booking.id).eq('code', reward.code);
     if (insErr.code === '23505') {
       return res.status(409).json({ error: 'A review has already been submitted for this booking.' });
     }
     console.error('Review insert error:', insErr.code, insErr.message);
     return res.status(500).json({ error: 'Failed to save review. Please try again.' });
+  }
+
+  const expiryDate = new Date(reward.expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+  let rewardEmail = { ok: false, error: 'Email send did not complete' };
+  try {
+    rewardEmail = await sendEmail({
+      to: booking.customer_email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      replyTo: ownerEmail(),
+      subject: 'Your $10 AssembleAtEase thank-you offer',
+      html: `<!doctype html><html><body style="margin:0;padding:24px;background:#f4f4f5;font-family:Arial,sans-serif;color:#1a1a1a"><div style="max-width:560px;margin:auto;background:#fff;padding:28px;border:1px solid #e4e4e7;border-radius:8px"><h1 style="font-size:22px">Thank you for sharing your experience</h1><p>Your honest review is appreciated. Any rating qualifies; the reward is not tied to a positive review.</p><p style="font-size:18px">Your code: <strong>${reward.code}</strong></p><p>Use it once for $10 off a future booking with a service subtotal of at least $100. It expires ${expiryDate}. Enter the code and the same email address used for your review at checkout.</p><p><a href="https://www.assembleatease.com/book?promo=${encodeURIComponent(reward.code)}" style="display:inline-block;background:#00BFFF;color:#fff;text-decoration:none;padding:12px 18px;border-radius:6px">Book with this code</a></p><p>This reward applies only to a review submitted on the AssembleAtEase website. Google reviews are optional and are not rewarded.</p><p style="font-size:13px;color:#52525b">Questions? Reply to this email.</p></div></body></html>`,
+      meta: { bookingId: booking.id, notificationType: 'review_reward', recipientType: 'customer' },
+    });
+  } catch (rewardEmailError) {
+    rewardEmail = { ok: false, error: rewardEmailError?.message || 'Email send failed' };
+  }
+  if (!rewardEmail.ok || rewardEmail.suppressed === true) {
+    console.error('Review reward email delivery failed:', rewardEmail.error || 'suppressed', booking.id);
   }
 
   // Log to booking timeline
@@ -148,30 +173,8 @@ export default async function handler(req, res) {
     actorType:   'customer',
     actorName:   booking.customer_name,
     description: `Customer left a ${parsedRating}-star review`,
-    metadata:    { rating: parsedRating, share_consent: shareConsent },
+    metadata:    { rating: parsedRating, reviewRewardIssued: true },
   });
-
-  // With consent, queue the review as a post on the business's own Facebook and
-  // Google Business pages (Buffer queue, owner can edit or remove). The review is
-  // already saved; a share failure is recorded, never returned as an error.
-  if (shareConsent) {
-    const share = await shareReviewToSocials({
-      consent: shareConsent,
-      rating: parsedRating,
-      body: reviewBody,
-      customerName: booking.customer_name,
-      service: booking.service,
-    });
-    logActivity(sb, {
-      bookingId:   booking.id,
-      eventType:   'review_social_share',
-      actorType:   'system',
-      description: share.shared
-        ? 'Review queued for the Facebook and Google Business pages (customer consented)'
-        : `Review not shared to social pages: ${share.reason}`,
-      metadata:    { reason: share.reason, error: share.error || null, channels: share.channels },
-    });
-  }
 
   // Recalculate Easer's average rating from all their approved reviews, and tell
   // the Easer: the review shows in the Reviews screen of their app.
@@ -186,7 +189,7 @@ export default async function handler(req, res) {
     );
   }
 
-  return res.status(200).json({ success: true });
+  return res.status(200).json({ success: true, reward: { code: reward.code, expiresAt: reward.expiresAt, emailSent: rewardEmail.ok === true && rewardEmail.suppressed !== true } });
 }
 
 function isLikelyInternalTestReview(review) {

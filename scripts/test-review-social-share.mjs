@@ -80,15 +80,13 @@ assert.match(serviceImageUrl('Smart Home Setup'), /doorbell/);
   assert.equal(result.reason, 'error', 'a hung Buffer call must not hold the review response');
 }
 
-// Wiring: consent is opt-in on the page, and the share runs only after the review saves
+// Wiring (2026-10-20): a website review now earns a $10 thank-you, so reviews
+// are no longer reposted to Facebook or Google; a rewarded review shown
+// publicly would need a disclosure of the reward. The sharing module stays,
+// unused, so it can return with that disclosure.
 const api = readFileSync('api/review.js', 'utf8');
-assert.match(api, /payload\.share_consent === true/);
-assert.ok(api.indexOf('shareReviewToSocials({') > api.indexOf('insertReviewWithRetry(sb, reviewRow'), 'share must run after the review is saved');
-assert.doesNotMatch(api.slice(api.indexOf('shareReviewToSocials({')), /return res\.status\(5\d\d\)[^\n]*share/, 'a share failure must not fail the review');
+assert.doesNotMatch(api, /shareReviewToSocials\(/, 'rewarded reviews are not reposted to social pages');
 const page = readFileSync('review.html', 'utf8');
-assert.match(page, /<input type="checkbox" id="r-share" style="[^"]*"\/>/, 'consent checkbox present and unchecked by default');
-assert.doesNotMatch(page, /id="r-share"[^>]*checked/, 'consent must not be pre-checked');
-assert.match(page, /share_consent: !!\(document\.getElementById\('r-share'\)/);
-assert.match(page, /id="facebook-review-link" href="https:\/\/www\.facebook\.com\/61572042722009\/reviews"/);
+assert.doesNotMatch(page, /id="r-share"/, 'no share-to-social checkbox on the review page');
 
-console.log('PASS review social share: opt-in only, clean 5-star text, first name + initial, public photo, failures contained.');
+console.log('PASS review social share: module behaviour intact; rewarded reviews are not reposted.');

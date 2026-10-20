@@ -117,6 +117,7 @@ assert.deepEqual(split, {
   platformFeeCents: 2_500,
   assemblerDueCents: 10_500,
   assemblecashRedeemedCents: 2_000,
+  reviewRewardDiscountCents: 0,
 });
 
 const summary = computeBookingFinancialSummary({

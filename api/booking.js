@@ -32,6 +32,7 @@ import {
   totalsAfterAssembleCash,
 } from './_assemblecash.js';
 import { buildCustomerConsentRecord, normalizeConsentMethod, validateCustomerLegalConsent } from './_legal-consent.js';
+import { reserveReviewReward, releaseReviewReward } from './_review-rewards.js';
 import {
   cartAllowsBookingReuse,
   classifyExistingIntent,
@@ -508,6 +509,7 @@ export default async function handler(req, res) {
     deposit_amount: depositAmountCents,
     promo_code: promo.applied ? promo.appliedCode : null,
     promo_discount_cents: promoDiscountCents,
+    review_reward_discount_cents: promo.reviewRewardId ? promoDiscountCents : 0,
     assemblecash_redeemed_cents: assemblecashRedeemedCents,
     bundle_slug: (typeof bundleSlug === 'string' && bundleSlug) ? bundleSlug.slice(0, 64) : null,
     booking_attribution: cleanAcquisitionAttribution(attribution),
@@ -525,6 +527,10 @@ export default async function handler(req, res) {
     const { service_city, service_state, service_zip, ...withoutLocationColumns } = activeBookingInsertPayload;
     activeBookingInsertPayload = withoutLocationColumns;
     ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(activeBookingInsertPayload).select('id').single());
+  }
+
+  if (insertErr && isMissingColumnError(insertErr) && /promo_|review_reward_discount_cents/i.test(String(insertErr.message || '')) && promo.reviewRewardId) {
+    return res.status(503).json({ error: 'Checkout is being updated for this thank-you offer. Please try again later or remove the code.' });
   }
 
   if (insertErr && isMissingColumnError(insertErr) && /promo_|assemblecash|bundle_slug/i.test(String(insertErr.message || ''))) {
@@ -564,6 +570,20 @@ export default async function handler(req, res) {
   }
 
   const bookingId = savedBooking.id;
+  let reviewRewardReserved = false;
+  if (promo.reviewRewardId) {
+    try {
+      reviewRewardReserved = await reserveReviewReward(sb, { code: promo.appliedCode, email, bookingId });
+    } catch (rewardError) {
+      console.error('Review reward reservation failed:', rewardError?.code, rewardError?.message);
+      await sb.from('bookings').delete().eq('id', bookingId);
+      return res.status(503).json({ error: 'This thank-you offer is temporarily unavailable. Please try again or continue without the code.' });
+    }
+    if (!reviewRewardReserved) {
+      await sb.from('bookings').delete().eq('id', bookingId);
+      return res.status(409).json({ error: 'This offer has expired or was already used. Remove the code and review your total.' });
+    }
+  }
   await logActivity(sb, {
     bookingId,
     eventType: 'customer_terms_accepted',
@@ -581,6 +601,7 @@ export default async function handler(req, res) {
     guest_mutation_token_hash: guestMutationTokenHash({ id: bookingId, ref, customer_email: email }),
   }).eq('id', bookingId);
   if (guestTokenErr) {
+    if (reviewRewardReserved) await releaseReviewReward(sb, bookingId).catch(() => {});
     if (assemblecashRedeemedCents > 0) {
       await releasePendingRedemption(sb, { bookingId, bookingRef: ref, customerEmail: email, reason: 'reverse:guest_token_setup_failed' });
     }
@@ -625,6 +646,7 @@ export default async function handler(req, res) {
       payment_status: 'card_saved',
     }).eq('id', bookingId);
     if (quoteCardLinkErr) {
+      if (reviewRewardReserved) await releaseReviewReward(sb, bookingId).catch(() => {});
       await sb.from('bookings').delete().eq('id', bookingId);
       return res.status(500).json({ error: 'Could not save secure quote payment setup. Please try again.' });
     }
@@ -741,6 +763,7 @@ export default async function handler(req, res) {
       if (assemblecashRedeemedCents > 0) {
         await releasePendingRedemption(sb, { bookingId, bookingRef: ref, customerEmail: email, reason: 'reverse:stripe_setup_failed' });
       }
+      if (reviewRewardReserved) await releaseReviewReward(sb, bookingId).catch(() => {});
       // Deletion is safe only when no PaymentIntent exists or Stripe confirmed
       // cancellation of the unlinked intent.
       // A query builder is a thenable, not a Promise: .catch() on it throws
