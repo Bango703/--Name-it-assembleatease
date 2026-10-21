@@ -281,9 +281,72 @@ async function createBufferPost(apiKey, input) {
   return payload.post;
 }
 
+// Buffer refuses any page larger than 100 posts. On 2026-10-21 the snapshot
+// asked for 250, every read failed, and the guard correctly posted nothing.
+const BUFFER_PAGE_MAX = 100;
+// 75 days across three channels fits well inside this; the cap only stops a
+// runaway loop if Buffer ever kept returning the same cursor.
+const BUFFER_RECENT_MAX_PAGES = 20;
+
+const RECENT_POSTS_QUERY = `
+    query SocialAutomationRecent(
+      $organizationId: OrganizationId!,
+      $channelIds: [ChannelId!],
+      $recentStart: DateTime!,
+      $first: Int!,
+      $after: String
+    ) {
+      posts(
+        input: {
+          organizationId: $organizationId,
+          filter: {
+            channelIds: $channelIds,
+            status: [sent, error],
+            createdAt: { start: $recentStart }
+          },
+          sort: [{ field: createdAt, direction: desc }]
+        },
+        first: $first,
+        after: $after
+      ) {
+        edges {
+          node {
+            id
+            channelId
+            status
+            createdAt
+            sentAt
+            dueAt
+            text
+            externalLink
+            error { message }
+          }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  `;
+
+// Every sent and failed post since recentStart, one page at a time. A page that
+// fails throws, so the snapshot fails and nothing is posted on a partial history.
+export async function fetchRecentPosts(apiKey, { organizationId, channelIds, recentStart, pageSize = BUFFER_PAGE_MAX, request = bufferRequest }) {
+  const first = Math.max(1, Math.min(pageSize, BUFFER_PAGE_MAX));
+  const posts = [];
+  let after = null;
+  for (let page = 0; page < BUFFER_RECENT_MAX_PAGES; page += 1) {
+    const json = await request(apiKey, RECENT_POSTS_QUERY, { organizationId, channelIds, recentStart, first, after });
+    const conn = json?.data?.posts;
+    posts.push(...((conn?.edges) || []).map((edge) => edge.node).filter(Boolean));
+    const next = conn?.pageInfo?.hasNextPage ? conn.pageInfo.endCursor : null;
+    if (!next || next === after) return posts;
+    after = next;
+  }
+  throw new Error(`Buffer history did not end after ${BUFFER_RECENT_MAX_PAGES} pages`);
+}
+
 // recentDays covers the 60-day repeat rule in _social-automation.js; at 21 days
 // the rule could never see a post older than three weeks.
-export async function getSocialAutomationSnapshot({ recentDays = 75, scheduledFirst = 50, recentFirst = 250 } = {}) {
+export async function getSocialAutomationSnapshot({ recentDays = 75, scheduledFirst = 50, recentFirst = BUFFER_PAGE_MAX } = {}) {
   const cfg = bufferConfig();
   const status = getSocialAutomationStatus();
   const readyChannels = cfg.channels.filter((channel) => channel.ready);
@@ -333,9 +396,7 @@ export async function getSocialAutomationSnapshot({ recentDays = 75, scheduledFi
     query SocialAutomationSnapshot(
       $organizationId: OrganizationId!,
       $channelIds: [ChannelId!],
-      $recentStart: DateTime!,
-      $scheduledFirst: Int!,
-      $recentFirst: Int!
+      $scheduledFirst: Int!
     ) {
       channels(input: { organizationId: $organizationId }) {
         id
@@ -366,46 +427,18 @@ export async function getSocialAutomationSnapshot({ recentDays = 75, scheduledFi
           }
         }
       }
-      recent: posts(
-        input: {
-          organizationId: $organizationId,
-          filter: {
-            channelIds: $channelIds,
-            status: [sent, error],
-            createdAt: { start: $recentStart }
-          },
-          sort: [{ field: createdAt, direction: desc }]
-        },
-        first: $recentFirst
-      ) {
-        edges {
-          node {
-            id
-            channelId
-            status
-            createdAt
-            sentAt
-            dueAt
-            text
-            externalLink
-            error { message }
-          }
-        }
-      }
     }
   `;
 
     const json = await bufferRequest(cfg.apiKey, query, {
       organizationId,
       channelIds,
-      recentStart,
-      scheduledFirst,
-      recentFirst,
+      scheduledFirst: Math.min(scheduledFirst, BUFFER_PAGE_MAX),
     });
 
     const liveChannels = Array.isArray(json?.data?.channels) ? json.data.channels : [];
     const scheduledPosts = ((json?.data?.scheduled?.edges) || []).map((edge) => edge.node).filter(Boolean);
-    const recentPosts = ((json?.data?.recent?.edges) || []).map((edge) => edge.node).filter(Boolean);
+    const recentPosts = await fetchRecentPosts(cfg.apiKey, { organizationId, channelIds, recentStart, pageSize: recentFirst });
     const liveById = new Map(liveChannels.map((channel) => [channel.id, channel]));
 
     const channels = cfg.channels.map((channel) => {

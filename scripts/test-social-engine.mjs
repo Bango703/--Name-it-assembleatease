@@ -120,5 +120,45 @@ console.log('PASS no article twice inside 60 days; Facebook waits 20 hours after
 }
 console.log('PASS Buffer unreadable: nothing posted, reason logged');
 
+// ── Buffer history is read in pages of at most 100 ──────────────────────────
+// 2026-10-21 20:00 UTC: the snapshot asked for 250 posts in one request, Buffer
+// answered "Maximum 100 items per request", and nothing was posted.
+{
+  const { getSocialAutomationSnapshot } = await import('../api/_social-publisher.js');
+  process.env.BUFFER_ORGANIZATION_ID = 'org-test';
+  const sent = Array.from({ length: 250 }, (_, i) => ({ id: `p${i}`, channelId: 'facebook-test', status: 'sent', createdAt: new Date(Date.now() - i * 3600e3).toISOString(), text: `post ${i}` }));
+  let firsts = [];
+  const fakeBuffer = (failAfterPage) => async (_url, init) => {
+    const { query, variables } = JSON.parse(init.body);
+    const json = (body) => ({ ok: true, status: 200, text: async () => JSON.stringify(body) });
+    const first = variables.first ?? variables.scheduledFirst;
+    if (first > 100) return json({ errors: [{ message: `Pagination limit exceeded. Maximum 100 items per request. You requested ${first}.` }] });
+    if (/SocialAutomationSnapshot/.test(query)) return json({ data: { channels: [{ id: 'facebook-test', name: 'AssembleAtEase', isQueuePaused: false, postingSchedule: [] }], scheduled: { edges: [] } } });
+    firsts.push(first);
+    const start = variables.after ? Number(variables.after) : 0;
+    if (failAfterPage && start >= failAfterPage * first) return json({ errors: [{ message: 'Buffer unavailable' }] });
+    const slice = sent.slice(start, start + first);
+    const end = start + slice.length;
+    return json({ data: { posts: { edges: slice.map((node) => ({ node })), pageInfo: { hasNextPage: end < sent.length, endCursor: String(end) } } } });
+  };
+
+  globalThis.fetch = fakeBuffer(0);
+  const snap = await getSocialAutomationSnapshot();
+  assert.equal(snap.error, undefined, `the snapshot reads: ${snap.error || ''}`);
+  assert.ok(firsts.every((n) => n <= 100), 'no request asks Buffer for more than 100');
+  assert.equal(firsts.length, 3, '250 posts take three pages');
+  assert.equal(snap.recentPosts.length, 250, 'the repeat check sees the whole history');
+  assert.equal(new Set(snap.recentPosts.map((p) => p.id)).size, 250, 'no page is read twice');
+
+  firsts = [];
+  globalThis.fetch = fakeBuffer(1);
+  const partial = await getSocialAutomationSnapshot();
+  assert.ok(partial.error, 'a failed later page fails the snapshot, so nothing posts on half a history');
+
+  globalThis.fetch = () => { throw new Error('test attempted a network request'); };
+  delete process.env.BUFFER_ORGANIZATION_ID;
+}
+console.log('PASS Buffer history: read 100 at a time to the end; a missing page posts nothing');
+
 globalThis.fetch = originalFetch;
 console.log('\nSocial engine tests passed.');
