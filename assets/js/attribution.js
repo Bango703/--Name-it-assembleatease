@@ -39,18 +39,18 @@
     var source = String(item.utmSource || '').trim().toLowerCase();
     var medium = String(item.utmMedium || '').trim().toLowerCase();
     result.utmSource = ['google', 'bing', 'duckduckgo', 'ecosia', 'ecosia.org', 'yahoo', 'google_jobs_apply', 'facebook', 'instagram', 'linkedin', 'nextdoor', 'buffer', 'partner', 'owner', 'sora', 'newsletter'].indexOf(source) !== -1 ? source : '';
-    result.utmMedium = ['organic', 'social', 'organic_social', 'referral', 'email', 'voice', 'cpc', 'ppc', 'paidsearch', 'paid_search'].indexOf(medium) !== -1 ? medium : '';
+    result.utmMedium = ['organic', 'social', 'organic_social', 'referral', 'email', 'voice', 'cpc', 'ppc', 'paidsearch', 'paid_search', 'paid_social', 'paidsocial'].indexOf(medium) !== -1 ? medium : '';
     var campaign = campaignIdentifier(item.utmCampaign);
     // Mirrors api/_partners.js REF_CODE; the partner pipeline generates these.
     var rawCampaign = String(item.utmCampaign || '').trim().toLowerCase();
     var partnerCode = source === 'partner' && /^[a-z0-9]{6}$/.test(rawCampaign);
-    result.utmCampaign = result.utmSource && (/^(?:gbp|rebook|partner|easer|organic|social|newsletter|sora|business|referral|austin|san_antonio|houston|dallas|tyler|texas)(?:[_-][a-z0-9]+)*$/.test(campaign) || partnerCode) ? (partnerCode ? rawCampaign : campaign) : '';
+    result.utmCampaign = result.utmSource && (/^(?:gbp|rebook|partner|easer|organic|social|newsletter|sora|business|referral|austin|san_antonio|houston|dallas|tyler|texas|offer|service|assemblecash|page|meta)(?:[_-][a-z0-9]+)*$/.test(campaign) || partnerCode) ? (partnerCode ? rawCampaign : campaign) : '';
     var content = campaignIdentifier(item.utmContent);
     result.utmContent = result.utmSource && content.length <= 64 && (/^(website|book)$/.test(content) || (source === 'partner' && result.utmCampaign && content)) ? content : '';
     result.referrerHost = acquisitionHost(item.referrerHost);
     result.landingPath = /^\/(?:[a-z0-9-]+\/)*[a-z0-9-]*\/?$/.test(item.landingPath || '') ? item.landingPath : '';
-    result.clickId = /^[a-z0-9_-]{1,180}$/i.test(item.clickId || '') ? item.clickId : '';
-    result.clickIdType = ['gclid', 'msclkid', 'gbraid', 'wbraid'].indexOf(item.clickIdType) !== -1 ? item.clickIdType : '';
+    result.clickId = /^[a-z0-9_-]{1,255}$/i.test(item.clickId || '') ? item.clickId : '';
+    result.clickIdType = ['gclid', 'msclkid', 'gbraid', 'wbraid', 'fbclid'].indexOf(item.clickIdType) !== -1 ? item.clickIdType : '';
     return result;
   }
   function captureBookingAttributionEntry() {
@@ -63,14 +63,14 @@
     // Internal navigation and payment/email-service returns cannot erase the entry source.
     if (existing.utmSource || existing.referrerHost || existing.clickId) {
       try { sessionStorage.setItem(storageKey, JSON.stringify(existing)); sessionStorage.removeItem('aaeBookingAttribution'); } catch (e) {}
-      return existing;
+      return withAdConsent(existing);
     }
     var next = {};
     try {
       var params = new URLSearchParams(window.location.search || '');
       var referrerHost = '';
       try { referrerHost = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
-      var clickIdType = ['gclid', 'msclkid', 'gbraid', 'wbraid'].filter(function (key) { return params.has(key); })[0] || '';
+      var clickIdType = ['gclid', 'msclkid', 'gbraid', 'wbraid', 'fbclid'].filter(function (key) { return params.has(key); })[0] || '';
       next = sanitizeAcquisition({
         utmSource: params.get('utm_source') || '',
         utmMedium: params.get('utm_medium') || '',
@@ -86,7 +86,16 @@
     if (!next.utmSource && !next.referrerHost && !next.clickId && existing.landingPath) next.landingPath = existing.landingPath;
     acquisitionMemory = next;
     try { sessionStorage.setItem(storageKey, JSON.stringify(next)); sessionStorage.removeItem('aaeBookingAttribution'); } catch (e) {}
-    return next;
+    return withAdConsent(next);
+  }
+
+  // Only reached after Accept. The server reports a booking to an ad platform
+  // only when this is true on the booking's own record.
+  function withAdConsent(value) {
+    var out = {};
+    for (var k in value) if (Object.prototype.hasOwnProperty.call(value, k)) out[k] = value[k];
+    out.adConsent = true;
+    return out;
   }
 
   window.AAE_ATTRIBUTION = window.AAEAcquisition = { capture: captureBookingAttributionEntry, clear: clearAcquisition, STORAGE_KEY: STORAGE_KEY };

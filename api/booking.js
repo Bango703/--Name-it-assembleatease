@@ -22,6 +22,7 @@ import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 import { assertGuestTokenConfiguration, deriveGuestMutationToken, guestMutationTokenHash, randomToken } from './_payment-security.js';
 import { parseServiceLocation } from './_booking-location.js';
 import { bookingAnalyticsContext } from './_booking-attribution.js';
+import { reportBookingToMeta } from './_meta-capi.js';
 import {
   verifyRedemptionToken,
   getAvailableBalanceCents,
@@ -941,6 +942,17 @@ export default async function handler(req, res) {
     if (scheduledAuthorization && !requiresOwnerAssignment) {
       await dispatchBooking(bookingId).catch(err => console.error('[booking] scheduled dispatch failed:', err?.message || err));
     }
+    // Ad measurement for bookings that need no card hold now (quotes, scheduled
+    // saved-card bookings). Card bookings report from /api/booking-confirmed.
+    if (!clientSecret) {
+      await reportBookingToMeta({
+        booking: { id: bookingId, ref, customer_email: email, customer_phone: phone },
+        milestone: quoteRequested ? 'quote_requested' : 'booking_confirmed',
+        attribution: cleanAcquisitionAttribution(attribution),
+        req,
+      });
+    }
+
     // HubSpot CRM — non-blocking
     if (process.env.HUBSPOT_ACCESS_TOKEN) {
       try {
