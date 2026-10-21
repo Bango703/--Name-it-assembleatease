@@ -1059,14 +1059,20 @@
         <div id="an-finance-warning" style="display:none;background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:0.8rem 0.9rem;margin-top:0.85rem;color:#9a3412;font-size:0.8rem;line-height:1.55"></div>
         <div id="an-empty-period" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:0.8rem 0.9rem;margin-top:0.85rem;color:#1e3a8a;font-size:0.8rem;line-height:1.5"></div>
 
-        <!-- Contractor Tax / 1099 (calendar year, from payout_ledger) -->
+        <!-- Contractor Tax / 1099 (calendar year; api/owner/_contractor-tax.js) -->
         <div class="detail-panel open" style="margin-top:1.5rem">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">
             <div>
               <div class="detail-section-title" style="margin:0">Contractor Tax &mdash; 1099 Tracking <span id="ct-year" style="color:var(--muted);font-weight:400"></span></div>
-              <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">YTD paid per Easer from the payout ledger. For payments made after December 31, 2025, the current federal 1099-NEC service-payment threshold is $2,000; confirm filing details with your tax professional.</div>
+              <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem;max-width:70ch">Paid to each Easer this year, by Stripe transfer and manually. Reimbursements are not income and are left out. An Easer paid $2,000 or more needs a 1099-NEC.</div>
             </div>
-            <div id="ct-summary" style="font-size:0.82rem;color:var(--muted);white-space:nowrap"></div>
+            <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+              <div id="ct-summary" style="font-size:0.82rem;color:var(--muted);white-space:nowrap"></div>
+              <button type="button" class="btn" id="ct-stripe-file" style="display:none">Download Stripe adjustment file</button>
+            </div>
+          </div>
+          <div style="background:#f8fafc;border:1px solid var(--border);border-radius:9px;padding:0.75rem 0.9rem;margin-bottom:0.9rem;font-size:0.76rem;color:var(--soft);line-height:1.55">
+            <strong style="color:var(--text)">Filing through Stripe:</strong> in the Stripe Dashboard, open Connect, then Tax reporting. Stripe totals each Easer's transfers, including reimbursements. Before filing (by January 22), import the Stripe adjustment file there with Import, 1099-NEC, Delta, so those totals match the column here. File manual payouts separately.
           </div>
           <div style="background:#f8fafc;border:1px solid var(--border);border-radius:9px;padding:0.75rem 0.9rem;margin-bottom:0.9rem;font-size:0.76rem;color:var(--soft);line-height:1.55">
             <strong style="color:var(--text)">Manual payout process:</strong> send the exact Easer amount through the agreed external method first, then open that booking and record the confirmation reference. Recording a payout does not send money. Never store bank credentials in this dashboard.
@@ -1074,8 +1080,8 @@
           <div id="payout-adoption-card" style="display:none;background:#eff9ff;border:1px solid rgba(0,191,255,0.3);border-radius:9px;padding:0.85rem 0.9rem;margin-bottom:0.9rem;font-size:0.8rem;color:var(--soft);line-height:1.5"></div>
           <div class="finance-scroll">
             <table class="pro-table finance-table" id="ct-table">
-              <thead><tr><th>Easer</th><th style="text-align:right">YTD Paid</th><th style="text-align:right">Payouts</th><th style="text-align:right">1099 Required</th></tr></thead>
-              <tbody id="ct-body"><tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--muted)">Loading&hellip;</td></tr></tbody>
+              <thead><tr><th>Easer</th><th style="text-align:right">Paid by Stripe</th><th style="text-align:right">Paid manually</th><th style="text-align:right">Reimbursed (not income)</th><th style="text-align:right">1099 total</th><th style="text-align:right">1099 required</th></tr></thead>
+              <tbody id="ct-body"><tr><td colspan="6" style="padding:1rem;text-align:center;color:var(--muted)">Loading&hellip;</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -9427,13 +9433,15 @@ window.intelQuick = intelQuick;
     if (!body) return;
     setText('ct-year', ct.year ? '(' + ct.year + ')' : '');
     var easers = ct.easers || [];
+    var download = document.getElementById('ct-stripe-file');
+    if (download) download.style.display = ct.stripeAdjustmentRows ? '' : 'none';
     if (ct.available === false) {
-      body.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--muted)">Payout ledger unavailable.</td></tr>';
+      body.innerHTML = '<tr><td colspan="6" style="padding:1rem;text-align:center;color:var(--muted)">Payout records could not be loaded. Refresh to try again.</td></tr>';
       setText('ct-summary', '');
       return;
     }
     if (!easers.length) {
-      body.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--muted)">No payouts recorded this year yet.</td></tr>';
+      body.innerHTML = '<tr><td colspan="6" style="padding:1rem;text-align:center;color:var(--muted)">No Easer payouts this year yet.</td></tr>';
       setText('ct-summary', '');
       return;
     }
@@ -9442,14 +9450,39 @@ window.intelQuick = intelQuick;
       var flag = e.needs1099
         ? '<span style="color:#dc2626;font-weight:700">Yes</span>'
         : '<span style="color:var(--muted)">Not yet</span>';
+      var dash = '<span style="color:var(--muted)">&mdash;</span>';
       return '<tr><td>' + nm + '</td>'
+        + '<td style="text-align:right">' + (e.stripePaidCents ? fmt$(e.stripePaidCents) : dash) + '</td>'
+        + '<td style="text-align:right">' + (e.manualPaidCents ? fmt$(e.manualPaidCents) : dash) + '</td>'
+        + '<td style="text-align:right">' + (e.ytdReimbursedCents ? fmt$(e.ytdReimbursedCents) : dash) + '</td>'
         + '<td style="text-align:right;font-weight:700">' + fmt$(e.ytdPaidCents || 0) + '</td>'
-        + '<td style="text-align:right">' + (e.payoutCount || 0) + '</td>'
         + '<td style="text-align:right">' + flag + '</td></tr>';
     }).join('');
     var n = ct.countNeeding1099 || 0;
     setText('ct-summary', n + ' Easer' + (n === 1 ? '' : 's') + ' need a 1099-NEC');
   }
+
+  // The Delta file for Stripe Tax reporting: subtracts reimbursements that were
+  // paid inside Stripe transfers from each Easer's Stripe-filed 1099.
+  var ctStripeFile = document.getElementById('ct-stripe-file');
+  if (ctStripeFile) ctStripeFile.addEventListener('click', async function() {
+    try {
+      var r = await fetch('/api/owner/stripe-1099-adjustments', { headers: headers() });
+      if (!r.ok) {
+        var d = await r.json().catch(function(){ return {}; });
+        toast(d.error || 'The Stripe file could not be made, and the server did not say why.', 'error');
+        return;
+      }
+      var name = (r.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/);
+      var url = URL.createObjectURL(await r.blob());
+      var a = document.createElement('a');
+      a.href = url; a.download = name ? name[1] : 'stripe-1099-nec-reimbursement-deltas.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    } catch (err) {
+      toast('Network error. No file was made.', 'error');
+    }
+  });
 
   var expenseForm = document.getElementById('expense-form');
   var expenseList = document.getElementById('expense-list');

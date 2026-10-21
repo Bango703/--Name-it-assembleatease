@@ -1,4 +1,5 @@
 import { getSupabase } from '../_supabase.js';
+import { loadContractorTaxYear } from './_contractor-tax.js';
 import { verifyOwner } from '../_email.js';
 import { MIN_PRETAX_BOOKING_BY_ZONE } from '../_source-of-truth.js';
 import { chicagoTodayIso } from '../booking/_appt-date.js';
@@ -869,53 +870,6 @@ async function loadOpenClawbacks(sb) {
   } catch (error) {
     console.warn('Clawbacks load skipped:', error?.message || error);
     return { available: false, items: [], totalOwedCents: 0, count: 0 };
-  }
-}
-
-// Calendar-year payouts per Easer from the immutable ledger — drives 1099-NEC
-// tracking (current $2,000 threshold for payments made after 2025-12-31).
-// Read-only; stores no TIN/SSN. Graceful if the
-// ledger table is unavailable.
-async function loadContractorTaxYear(sb) {
-  const year = new Date().getFullYear();
-  const yearStart = new Date(Date.UTC(year, 0, 1)).toISOString();
-  const THRESHOLD_CENTS = 200000;
-  try {
-    // reimbursement_cents (migration 112) is the part of a payout that repaid an
-    // approved expense. It is not income, so it is left out of the 1099 total.
-    const ledgerQuery = columns => sb.from('payout_ledger').select(columns).gte('recorded_at', yearStart);
-    let { data, error } = await ledgerQuery('assembler_id, assembler_name, payout_amount, reimbursement_cents, recorded_at');
-    if (error && /reimbursement_cents|42703|PGRST204/i.test(String(error.message || error.code || ''))) {
-      ({ data, error } = await ledgerQuery('assembler_id, assembler_name, payout_amount, recorded_at'));
-    }
-    if (error) {
-      console.warn('Contractor tax payout_ledger unavailable:', error.message || error);
-      return { year, thresholdCents: THRESHOLD_CENTS, available: false, easers: [], countNeeding1099: 0 };
-    }
-    const byEaser = new Map();
-    for (const row of data || []) {
-      const id = row.assembler_id;
-      if (!id) continue;
-      if (!byEaser.has(id)) byEaser.set(id, { assemblerId: id, name: row.assembler_name || 'Easer', ytdPaidCents: 0, ytdReimbursedCents: 0, payoutCount: 0 });
-      const e = byEaser.get(id);
-      const reimbursed = Math.max(0, Number(row.reimbursement_cents || 0));
-      e.ytdPaidCents += Math.max(0, Number(row.payout_amount || 0) - reimbursed);
-      e.ytdReimbursedCents += reimbursed;
-      e.payoutCount += 1;
-    }
-    const easers = Array.from(byEaser.values())
-      .map(e => ({ ...e, needs1099: e.ytdPaidCents >= THRESHOLD_CENTS }))
-      .sort((a, b) => b.ytdPaidCents - a.ytdPaidCents);
-    return {
-      year,
-      thresholdCents: THRESHOLD_CENTS,
-      available: true,
-      easers,
-      countNeeding1099: easers.filter(e => e.needs1099).length,
-    };
-  } catch (error) {
-    console.warn('Contractor tax year load skipped:', error?.message || error);
-    return { year, thresholdCents: THRESHOLD_CENTS, available: false, easers: [], countNeeding1099: 0 };
   }
 }
 
