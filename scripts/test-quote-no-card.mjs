@@ -66,6 +66,13 @@ console.log('PASS spam: decoy, timing, link and rate checks; a real person is ne
   assert.match(booking, /if \(quoteRequested\) await markQuoteLeadConverted\(sb, email\);/, 'sending the quote converts the lead');
   assert.match(booking, /'You approve the price and add a card then\. Nothing is charged until the work is done\.'/, 'the email says what is true');
 }
+{
+  const booking = read('api/booking.js');
+  const box = booking.indexOf('<strong>Need to change plans?</strong>');
+  assert.ok(box > 0);
+  assert.ok(booking.lastIndexOf('${quoteRequested ? `', box) > booking.lastIndexOf('What Happens Next', box), 'the cancellation box sits behind the quote check');
+  assert.match(booking, /\$\{quoteRequested \? `<table[^`]*<strong>Need to change something\?<\/strong> Reply to this email\.\n    <\/td><\/tr><\/table>` : `<table/, 'a quote email shows no hold or late-cancel terms');
+}
 console.log('PASS server: a cardless quote is saved and converts its lead; scheduled bookings still need a card');
 
 // ── One rule for "a quote waiting for a price" (server and owner dashboard) ─

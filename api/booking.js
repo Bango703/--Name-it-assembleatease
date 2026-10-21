@@ -901,9 +901,11 @@ export default async function handler(req, res) {
       `}
     </table>
 
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
+    ${quoteRequested ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#3f3f46;line-height:1.6">
+      <strong>Need to change something?</strong> Reply to this email.
+    </td></tr></table>` : `<table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
       <strong>Need to change plans?</strong> Reply to this email. Cancel at least ${CANCELLATION_POLICY.freeWindowHours} hours before your appointment for a full release of any hold. Inside ${CANCELLATION_POLICY.freeWindowHours} hours, a late-cancel fee may apply once a pro has accepted your job.
-    </td></tr></table>
+    </td></tr></table>`}
 
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
       <a href="${esc(guestTrackUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Track or manage this request</a>
