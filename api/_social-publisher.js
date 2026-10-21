@@ -1,11 +1,16 @@
+import { findClaimViolations, hasPostText, describeViolations } from './_social-claims.js';
+
 const BUFFER_GRAPHQL_URL = 'https://api.buffer.com';
 const BUFFER_DEFAULT_MODE = process.env.BUFFER_POST_MODE || 'addToQueue';
 const BUFFER_DEFAULT_SCHEDULING_TYPE = process.env.BUFFER_SCHEDULING_TYPE || 'automatic';
 
 const CHANNEL_POLICIES = {
+  // One post a day (owner, 2026-10-21): two a day to a new page ran the blog out
+  // in nine days and repeated it. dailyMax is enforced by the top-up.
   facebook: {
-    targetQueued: 2,
-    maxPerRun: 2,
+    targetQueued: 1,
+    maxPerRun: 1,
+    dailyMax: 1,
     lane: 'Local trust and homeowner awareness',
     attachImage: true,
   },
@@ -69,6 +74,16 @@ export async function publishContentKit({ title, url, kit, imageUrl, channels, d
     }
 
     const input = buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt, aiAssisted, altText, source });
+    // Every post, from any source, passes here before Buffer sees it.
+    if (!hasPostText(input.text)) {
+      results[channel.key] = { status: 'blocked', provider: 'buffer', reason: 'Post has no text.', payload: input };
+      continue;
+    }
+    const violations = findClaimViolations(input.text);
+    if (violations.length) {
+      results[channel.key] = { status: 'blocked', provider: 'buffer', reason: `Post says something it may not: ${describeViolations(violations)}`, violations, payload: input };
+      continue;
+    }
     if (dryRun) {
       results[channel.key] = { status: 'dry_run', provider: 'buffer', payload: input };
       continue;
@@ -266,7 +281,9 @@ async function createBufferPost(apiKey, input) {
   return payload.post;
 }
 
-export async function getSocialAutomationSnapshot({ recentDays = 21, scheduledFirst = 50, recentFirst = 100 } = {}) {
+// recentDays covers the 60-day repeat rule in _social-automation.js; at 21 days
+// the rule could never see a post older than three weeks.
+export async function getSocialAutomationSnapshot({ recentDays = 75, scheduledFirst = 50, recentFirst = 250 } = {}) {
   const cfg = bufferConfig();
   const status = getSocialAutomationStatus();
   const readyChannels = cfg.channels.filter((channel) => channel.ready);
@@ -419,6 +436,8 @@ export async function getSocialAutomationSnapshot({ recentDays = 21, scheduledFi
         queuedCount: queued.length,
         nextDueAt,
         recentSentCount: recent.filter((post) => post.status === 'sent').length,
+        lastSentAt: recent.filter((post) => post.status === 'sent').map((post) => post.sentAt || post.dueAt || post.createdAt).filter(Boolean).sort().pop() || null,
+        dailyMax: channel.dailyMax || 0,
         recentErrorCount: recentErrors.length,
         deficit,
         descriptor: live?.descriptor || '',

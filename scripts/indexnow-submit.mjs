@@ -11,9 +11,14 @@
 //   node scripts/indexnow-submit.mjs /furniture-assembly-dallas-tx /pricing
 //     (submit only these paths/URLs — use after changing a few pages)
 //   node scripts/indexnow-submit.mjs --dry-run       # print what would be sent
+//   node scripts/indexnow-submit.mjs --changed-from <sha> [--changed-to <sha>]
+//     (submit only sitemap pages whose files changed between two commits; the
+//     IndexNow workflow runs this after every production deploy)
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sitemapUrlsFromXml, urlsForChangedFiles, lastmodChanges } from './lib/indexnow-urls.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const HOST = 'www.assembleatease.com';
@@ -24,8 +29,25 @@ const ENDPOINT = 'https://api.indexnow.org/indexnow';
 const MAX_URLS = 10000; // IndexNow per-request cap
 
 function sitemapUrls() {
-  const xml = readFileSync(join(ROOT, 'sitemap.xml'), 'utf8');
-  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
+  return sitemapUrlsFromXml(readFileSync(join(ROOT, 'sitemap.xml'), 'utf8'));
+}
+
+function git(...gitArgs) {
+  return execFileSync('git', gitArgs, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+}
+
+function changedUrls(from, to) {
+  const files = git('diff', '--name-only', '--no-renames', `${from}..${to}`).split(/\r?\n/).filter(Boolean);
+  let beforeXml = '';
+  try { beforeXml = git('show', `${from}:sitemap.xml`); } catch { beforeXml = ''; }
+  const nowXml = git('show', `${to}:sitemap.xml`);
+  const urls = urlsForChangedFiles(files, sitemapUrlsFromXml(nowXml), sitemapUrlsFromXml(beforeXml));
+  return [...new Set([...urls, ...lastmodChanges(nowXml, beforeXml)])].sort();
+}
+
+function flagValue(name) {
+  const i = args.indexOf(name);
+  return i === -1 ? null : args[i + 1] || null;
 }
 
 function normalize(arg) {
@@ -36,9 +58,15 @@ function normalize(arg) {
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
-const explicit = args.filter((a) => a !== '--dry-run');
+const changedFrom = flagValue('--changed-from');
+const changedTo = flagValue('--changed-to') || 'HEAD';
+const explicit = args.filter((a, i) => a !== '--dry-run' && !a.startsWith('--changed-') && !String(args[i - 1] || '').startsWith('--changed-'));
 
-let urls = explicit.length ? explicit.map(normalize) : sitemapUrls();
+let urls = changedFrom ? changedUrls(changedFrom, changedTo) : explicit.length ? explicit.map(normalize) : sitemapUrls();
+if (changedFrom && !urls.length) {
+  console.log(`No public pages changed between ${changedFrom} and ${changedTo}; nothing to submit.`);
+  process.exit(0);
+}
 // De-dupe and keep only our own host (IndexNow rejects mixed hosts).
 urls = [...new Set(urls)].filter((u) => u.startsWith(ORIGIN));
 

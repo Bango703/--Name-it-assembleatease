@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { buildPublicCookieConsentBlock } from './lib/public-consent.mjs';
 import { buildPublicFooterBlock } from './lib/public-footer.mjs';
 import { buildPublicNavBlock } from './lib/public-nav.mjs';
+import { fitTitle } from './lib/seo-title.mjs';
 
 const SITE = 'https://www.assembleatease.com';
 const root = process.cwd();
@@ -664,7 +665,7 @@ function renderPost(post) {
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>${esc(post.title)} | AssembleAtEase</title>
+<title>${esc(fitTitle(post.title))}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="${esc(metaDescription)}"/>
 <meta name="robots" content="index,follow,max-image-preview:large"/>
