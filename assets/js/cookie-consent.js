@@ -6,6 +6,13 @@
   var STYLE_ID = 'aae-cookie-consent-style';
   var GTAG_SCRIPT_ID = 'aae-gtag-script';
   var HUBSPOT_SCRIPT_ID = 'hs-script-loader';
+  // Meta Pixel ID from Events Manager. Empty keeps Meta fully off: no script,
+  // no cookie, no event. It loads only after Accept, like the HubSpot tag.
+  var META_PIXEL_ID = '';
+  var META_SCRIPT_ID = 'aae-meta-pixel';
+  // Booking milestones Meta can optimize for. The event ID matches the server's
+  // Conversions API event so Meta counts one booking once.
+  var META_EVENTS = { booking_confirmed: 'Schedule', quote_requested: 'Lead', begin_checkout: 'InitiateCheckout' };
   var PHONE_CLICK_EVENT = 'phone_call_click';
   var PHONE_CALL_CONVERSION = 'AW-16551666395/NyDNCOCKq-8cENvFudQ9';
   // Kept in sync with page-governance/site-governance.json by the Ads tests.
@@ -97,6 +104,7 @@
         safe.value = params.value; safe.currency = 'USD';
       }
       window.gtag('event', eventName, safe);
+      trackMetaEvent(eventName, safe, key);
       trackedEvents[storageKey] = true;
       try { sessionStorage.setItem(storageKey, '1'); } catch (e) {}
       return true;
@@ -228,6 +236,34 @@
     document.head.appendChild(script);
   }
 
+  function loadMetaPixel() {
+    if (!META_PIXEL_ID || !analyticsAllowed()) return;
+    if (window.fbq) { window.fbq('consent', 'grant'); return; }
+    var fbq = window.fbq = function () {
+      if (fbq.callMethod) fbq.callMethod.apply(fbq, arguments); else fbq.queue.push(arguments);
+    };
+    if (!window._fbq) window._fbq = fbq;
+    fbq.push = fbq; fbq.loaded = true; fbq.version = '2.0'; fbq.queue = [];
+    var script = document.createElement('script');
+    script.id = META_SCRIPT_ID;
+    script.async = true;
+    script.src = 'https://connect.facebook.net/en_US/fbevents.js';
+    document.head.appendChild(script);
+    fbq('consent', 'grant');
+    // Limited Data Use, matching the server events (api/_meta-capi.js).
+    fbq('dataProcessingOptions', ['LDU'], 0, 0);
+    fbq('init', META_PIXEL_ID);
+    fbq('track', 'PageView');
+  }
+
+  function trackMetaEvent(eventName, params, key) {
+    var metaName = META_EVENTS[eventName];
+    if (!metaName || !window.fbq || !analyticsAllowed()) return;
+    var data = {};
+    if (Number.isFinite(params && params.value)) { data.value = params.value; data.currency = 'USD'; }
+    window.fbq('track', metaName, data, { eventID: String(key || eventName) });
+  }
+
   function loadMeasurement() {
     if (!measurementAllowed()) return;
     if (measurementLoaded) { initGtag(); return; }
@@ -288,6 +324,7 @@
     loadMeasurement();
     enableWebsiteCallTracking();
     loadHubspot();
+    loadMetaPixel();
   }
 
   // Before any choice: Google tags with all consent signals denied (cookieless).
@@ -340,6 +377,7 @@
     });
     window._hsq = window._hsq || [];
     window._hsq.push(['doNotTrack']);
+    if (window.fbq) window.fbq('consent', 'revoke');
     window.dispatchEvent(new Event('aae-analytics-consent-changed'));
     hideBanner();
   }

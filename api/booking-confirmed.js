@@ -12,6 +12,7 @@ import { logActivity } from './booking/_activity.js';
 import { safeTokenHashMatch } from './_payment-security.js';
 import { normalizeBookingPaymentMethod } from './booking/_payment-method.js';
 import { fetchCaptureDeadline } from './booking/_authorization-window.js';
+import { reportBookingToMeta } from './_meta-capi.js';
 
 /**
  * POST /api/booking-confirmed
@@ -386,6 +387,10 @@ export default async function handler(req, res) {
 
   const sb2 = getSupabase();
   logActivity(sb2, { bookingId, eventType: 'booking_created', actorType: 'customer', actorName: booking.ref ? 'Customer' : 'Unknown', description: `Booking created — ${paymentMethodLabel.toLowerCase()} authorized. ${booking.service} on ${formatAppointmentDate(booking.date)}.`, metadata: { amount: booking.total_price, paymentMethodType: verifiedPaymentMethodType } });
+
+  // Ad measurement only; off until configured, needs the customer's cookie
+  // consent, and never changes this response.
+  await reportBookingToMeta({ booking, milestone: 'booking_confirmed', req });
 
   return res.status(200).json({
     success: true,

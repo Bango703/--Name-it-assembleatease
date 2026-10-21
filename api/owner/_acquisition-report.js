@@ -2,7 +2,7 @@ import { parseServiceLocation } from '../_booking-location.js';
 import { cleanBookingAttribution } from '../_booking-attribution.js';
 import { chicagoTodayIso } from '../booking/_appt-date.js';
 
-const LABELS = { organic_search: 'Organic search', organic_social: 'Organic social', referral: 'Referral', email: 'Email', campaign: 'Other tagged campaign', paid_search: 'Paid search', paid_unclassified: 'Paid source, type unknown', search_unclassified: 'Search source, medium unknown', owner_recorded: 'Owner recorded, original source unknown', unattributed: 'Original source unknown' };
+const LABELS = { organic_search: 'Organic search', organic_social: 'Organic social', referral: 'Referral', email: 'Email', campaign: 'Other tagged campaign', paid_search: 'Paid search', paid_social: 'Paid social', paid_unclassified: 'Paid source, type unknown', search_unclassified: 'Search source, medium unknown', owner_recorded: 'Owner recorded, original source unknown', unattributed: 'Original source unknown' };
 
 export function acquisitionForBooking(booking = {}) {
   const a = booking.booking_attribution && typeof booking.booking_attribution === 'object' && !Array.isArray(booking.booking_attribution) ? booking.booking_attribution : {};
