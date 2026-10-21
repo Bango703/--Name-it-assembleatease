@@ -1,12 +1,20 @@
 import { listBlogArticles } from './_blog-articles.js';
 import { generateContentKit } from './_content-kit.js';
 import { getSocialAutomationSnapshot, publishContentKit } from './_social-publisher.js';
+import { findClaimViolations } from './_social-claims.js';
+import { facebookSlotKind, facebookCampaignPost } from './_social-campaigns.js';
+import { loadMarketingSettings } from './_promotions.js';
+import { getSupabase } from './_supabase.js';
 
 const SAME_CHANNEL_REPEAT_DAYS = 60;
 const CROSS_CHANNEL_REPEAT_DAYS = 7;
+// A channel with a daily cap gets nothing new until this long after its last post.
+const DAILY_CAP_HOURS = 20;
 
 const CHANNEL_HOOK_STYLES = {
-  facebook: ['local', 'proof', 'cost', 'mistake'],
+  // No 'cost' or 'mistake' on Facebook: they produced "can cost you thousands"
+  // openings on almost every post (owner, 2026-10-21).
+  facebook: ['local', 'proof', 'tip'],
   googleBusiness: ['local', 'direct-offer', 'proof'],
   linkedin: ['mistake', 'cost', 'proof', 'local'],
 };
@@ -16,11 +24,13 @@ export async function runSocialQueueTopUp({ dryRun = false, channels } = {}) {
   const requested = normalizeRequestedChannels(channels);
   const inventory = listBlogArticles();
   const usage = buildUsageMap(snapshot);
+  const promoSettings = await loadPromoSettings();
 
   const eligibleChannels = (snapshot.channels || []).filter((channel) => {
     if (requested && !requested.has(channel.key)) return false;
     if (!channel.ready || channel.queuePaused) return false;
     if (!channel.targetQueued || !channel.maxPerRun) return false;
+    if (postedWithinDailyCap(channel)) return false;
     return channel.deficit > 0;
   });
 
@@ -34,6 +44,14 @@ export async function runSocialQueueTopUp({ dryRun = false, channels } = {}) {
     const needed = Math.min(channel.deficit || 0, channel.maxPerRun || 0);
 
     for (let slotIndex = 0; slotIndex < needed; slotIndex += 1) {
+      // Facebook runs a weekly mix; on a non-blog day the post comes from what is
+      // true today (a service and its price, a live offer, AssembleCash).
+      const slotKind = channel.key === 'facebook' ? facebookSlotKind({ promoSettings }) : 'blog';
+      if (slotKind !== 'blog') {
+        planned.push(await publishCampaign({ channel, kind: slotKind, promoSettings, dryRun }));
+        continue;
+      }
+
       const article = selectArticleForChannel({
         channel,
         inventory,
@@ -42,9 +60,15 @@ export async function runSocialQueueTopUp({ dryRun = false, channels } = {}) {
       });
 
       if (!article) {
+        // Every article ran here in the last 60 days: post a service instead of
+        // repeating one.
+        if (channel.key === 'facebook') {
+          planned.push(await publishCampaign({ channel, kind: 'service', promoSettings, dryRun }));
+          continue;
+        }
         planned.push({
           status: 'skipped',
-          reason: 'No eligible blog article found for this channel.',
+          reason: 'Every blog article went to this channel in the last 60 days.',
         });
         break;
       }
@@ -60,6 +84,10 @@ export async function runSocialQueueTopUp({ dryRun = false, channels } = {}) {
           tag: channel.lane,
           hookStyle,
         });
+        // The AI broke a content rule: ask once more, then give up on this slot.
+        if (kit && findClaimViolations(kit[channel.kitKey || channel.key]).length) {
+          kit = await generateContentKit({ title: article.title, url: article.url, tag: channel.lane, hookStyle });
+        }
         if (kit) kitCache.set(kitKey, kit);
       }
 
@@ -113,6 +141,7 @@ export async function runSocialQueueTopUp({ dryRun = false, channels } = {}) {
       queuedNow: planned.filter((item) => item.status === 'queued').length,
       dryRunCount: planned.filter((item) => item.status === 'dry_run').length,
       errorCount: planned.filter((item) => item.status === 'error').length,
+      blockedCount: planned.filter((item) => item.status === 'blocked').length,
       skippedCount: planned.filter((item) => item.status === 'skipped').length,
       remainingDeficitEstimate: Math.max(
         0,
@@ -138,6 +167,7 @@ export async function runSocialQueueTopUp({ dryRun = false, channels } = {}) {
       queued: posts.filter((item) => item.status === 'queued').length,
       dryRuns: posts.filter((item) => item.status === 'dry_run').length,
       errors: posts.filter((item) => item.status === 'error').length,
+      blocked: posts.filter((item) => item.status === 'blocked').length,
       skipped: posts.filter((item) => item.status === 'skipped').length,
       remainingDeficitEstimate: Object.values(byChannel).reduce((sum, item) => sum + (item.remainingDeficitEstimate || 0), 0),
     },
@@ -181,9 +211,12 @@ function selectArticleForChannel({ channel, inventory, usage, reservedSlugs }) {
     return { article, channelLast, globalLast, isFreshForChannel, isFreshGlobally, updatedAt };
   });
 
+  // Never repeat an article on the same channel inside the window. The old
+  // fallback reused the oldest one, which is how Facebook got the same guide
+  // three times in eighteen days.
   const preferred = scored.filter((item) => item.isFreshForChannel && item.isFreshGlobally);
-  const pool = preferred.length ? preferred : scored.filter((item) => item.isFreshForChannel);
-  const fallback = pool.length ? pool : scored;
+  const fallback = preferred.length ? preferred : scored.filter((item) => item.isFreshForChannel);
+  if (!fallback.length) return null;
 
   fallback.sort((a, b) => {
     if (a.channelLast !== b.channelLast) return a.channelLast - b.channelLast;
@@ -232,6 +265,51 @@ function registerUsage(usage, channelKey, url, when) {
   if (ts > currentGlobal) usage.global.set(url, ts);
 }
 
+function postedWithinDailyCap(channel, now = Date.now()) {
+  if (!channel.dailyMax || !channel.lastSentAt) return false;
+  const last = new Date(channel.lastSentAt).getTime();
+  return Number.isFinite(last) && now - last < DAILY_CAP_HOURS * 60 * 60 * 1000;
+}
+
+async function loadPromoSettings() {
+  try {
+    return await loadMarketingSettings(getSupabase(), { allowFallback: false });
+  } catch (error) {
+    // No settings means no offer post, never an offer that may not work.
+    console.warn('Social offer settings unavailable:', error?.message || error);
+    return null;
+  }
+}
+
+async function publishCampaign({ channel, kind, promoSettings, dryRun }) {
+  const post = facebookCampaignPost({ kind, promoSettings });
+  if (!post) return { status: 'skipped', kind, reason: `No ${kind} post could be built today.` };
+  const publish = await publishContentKit({
+    title: post.title,
+    url: post.url,
+    imageUrl: post.imageUrl,
+    altText: post.altText,
+    kit: { [channel.kitKey || channel.key]: post.text },
+    channels: [channel.key],
+    dryRun,
+    aiAssisted: false,
+    source: `assembleatease-campaign-${post.kind}`,
+  });
+  const result = publish?.[channel.key] || { status: 'error', error: 'Publish result missing' };
+  return {
+    status: result.status,
+    kind: post.kind,
+    title: post.title,
+    url: post.url,
+    imageUrl: post.imageUrl,
+    provider: result.provider || 'buffer',
+    postId: result.id || null,
+    error: result.error || result.reason || null,
+  };
+}
+
+export { postedWithinDailyCap, selectArticleForChannel };
+
 function resolvePostTimestamp(post) {
   const value = post?.sentAt || post?.dueAt || post?.createdAt;
   if (!value) return 0;
@@ -247,3 +325,4 @@ function extractBlogUrls(post) {
   }
   return [...urls];
 }
+

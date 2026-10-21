@@ -35,6 +35,7 @@ Use the assigned hook style to avoid boring recap posts:
 - local: city move-ins, apartments, weather, rentals, tight schedules, local homes. Use Austin when the article is Austin-local.
 - proof: careful work, clean finish, verified pro, job done right.
 - direct-offer: short, clear service offer with one practical benefit.
+- tip: one practical planning tip the reader can use today, stated calmly, then the article for the rest.
 
 Hard content rules:
 - No emojis or emoji-style symbols on any platform.
@@ -44,7 +45,13 @@ Hard content rules:
 - Do not claim service outside Texas. Broader articles may give generally useful planning advice, but the call to action must ask the reader to check availability for the service address.
 - No generic "Ready to..." opener unless it is the direct-offer style.
 - Keep each post direct, useful, and easy to approve.
-- Hashtags must be clean, specific, and platform-appropriate. Do not use unrelated viral tags.`;
+- Hashtags must be clean, specific, and platform-appropriate. Do not use unrelated viral tags. Never use #handyman or any handyman tag.
+- Do not open with what something costs when done wrong. No "can cost you thousands", fire risk, falling TVs, liability, or other fear openings.
+- Never mention wiring, electrical work, outlets being installed, hardwired devices, or security or alarm systems. Describe smart home work by the device (thermostats, locks, doorbells, cameras, hubs, Wi-Fi), never by the wiring behind it.
+- Never say insured, licensed, bonded, guaranteed, or a number of years of experience.
+- Never state a price unless it is in the article inputs, and never as "per item".
+- Never invent technical details (torque specs, weather effects on mounts, wall quirks of a city).
+- Name the city at most once in a post.`;
 
   const user = `Article title: "${title}"
 Article URL: ${url || ''}
@@ -85,7 +92,7 @@ Plain text only (no HTML). Keep it genuine, specific to the topic, and different
 }
 
 function pickHookStyle(seed) {
-  const styles = ['security', 'cost', 'mistake', 'local', 'proof', 'direct-offer'];
+  const styles = ['security', 'cost', 'mistake', 'local', 'proof', 'direct-offer', 'tip'];
   let total = 0;
   for (const ch of String(seed || '')) total += ch.charCodeAt(0);
   return styles[total % styles.length];
@@ -93,7 +100,7 @@ function pickHookStyle(seed) {
 
 function normalizeHookStyle(value) {
   const v = String(value || '').trim().toLowerCase();
-  return ['security', 'cost', 'mistake', 'local', 'proof', 'direct-offer'].includes(v) ? v : '';
+  return ['security', 'cost', 'mistake', 'local', 'proof', 'direct-offer', 'tip'].includes(v) ? v : '';
 }
 
 function esc(s) {
