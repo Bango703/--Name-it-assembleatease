@@ -26,39 +26,17 @@
 //                       number anyone can be held to.
 //   - price <= 0        excluded for the same reason.
 //
+// The rule itself lives in scripts/lib/catalog-prices.mjs (trueFromPrice),
+// shared with scripts/generate-llms.mjs.
+//
 // It does NOT police whether a price is a good business decision. It only proves
 // that every place quoting a starting price is quoting the same, real one.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createContext, runInNewContext } from 'node:vm';
+import { loadCatalog, trueFromPrice } from './lib/catalog-prices.mjs';
 
 const ROOT = process.cwd();
-
-/** Load the front-end catalog without trusting it with a real global scope. */
-function loadCatalog() {
-  const src = readFileSync(join(ROOT, 'assets', 'js', 'booking-source-of-truth.js'), 'utf8');
-  const sandbox = createContext({ window: {} });
-  runInNewContext(src, sandbox);
-  const source = sandbox.window.AAE_BOOKING_SOURCE;
-  if (!source || !source.subcategories) {
-    throw new Error('booking-source-of-truth.js did not expose window.AAE_BOOKING_SOURCE.subcategories');
-  }
-  return source.subcategories;
-}
-
-/** Cheapest independently bookable item in a service, or null if quote-only. */
-function trueFromPrice(groups) {
-  let best = null;
-  for (const group of groups || []) {
-    for (const item of group.items || []) {
-      if (item.addon || item.customQuote) continue;
-      if (!(item.price > 0)) continue;
-      if (best === null || item.price < best) best = item.price;
-    }
-  }
-  return best;
-}
 
 /**
  * Pull displayed prices out of a page.
