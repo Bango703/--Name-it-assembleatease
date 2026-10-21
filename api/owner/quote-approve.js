@@ -9,6 +9,7 @@ import { rateLimit } from '../_ratelimit.js';
 import { randomToken, sha256 } from '../_payment-security.js';
 import { validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
 import { logActivity } from '../booking/_activity.js';
+import { isQuoteAwaitingPrice, quoteNeedsCardAtApproval } from '../booking/_quote-state.js';
 
 const QUOTE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const QUOTE_TERMS_VERSION = '2026-07-cancellation-v1';
@@ -44,15 +45,17 @@ async function prepareQuote(req, res) {
   if (booking.status !== BOOKING_STATUS.PENDING) {
     return res.status(409).json({ error: 'Only a pending quote request can be priced. This booking is already closed or active.' });
   }
-  if (!['card_saved', 'quote_pending_approval'].includes(String(booking.payment_status || ''))) {
+  if (!isQuoteAwaitingPrice(booking) && String(booking.payment_status || '') !== 'quote_pending_approval') {
     return res.status(409).json({
       error: 'This booking is not in a quote-pricing state. Reconcile its payment status before issuing a quote.',
       code: 'QUOTE_STATE_MISMATCH',
     });
   }
-  if (!booking.stripe_customer_id || !booking.stripe_payment_method_id) {
+  // A quote sent with a card (before 2026-10-21) must still have it on file.
+  // A quote sent without one gets the card on the approval page.
+  if (booking.payment_status === 'card_saved' && (!booking.stripe_customer_id || !booking.stripe_payment_method_id)) {
     return res.status(400).json({
-      error: 'No saved payment method on this booking. Customer must submit a new quote request with a card.',
+      error: 'This quote was sent with a card, but the card is missing from the booking. Reconcile it in Stripe before pricing.',
       code: 'NO_PAYMENT_METHOD',
     });
   }
@@ -141,7 +144,7 @@ async function renderQuoteApproval(req, res) {
 
   const sb = getSupabase();
   const { data: booking } = await sb.from('bookings')
-    .select('id, ref, service, status, payment_status, customer_name, date, time, quote_amount_cents, quote_subtotal_cents, quote_tax_cents, quote_expires_at, quote_approved_at, quote_token_hash, stripe_payment_intent_id, financial_operation_key, financial_operation_type, financial_operation_started_at')
+    .select('id, ref, service, status, payment_status, customer_name, customer_email, date, time, quote_amount_cents, quote_subtotal_cents, quote_tax_cents, quote_expires_at, quote_approved_at, quote_token_hash, stripe_payment_intent_id, stripe_payment_method_id, financial_operation_key, financial_operation_type, financial_operation_started_at')
     .eq('quote_token_hash', sha256(token))
     .maybeSingle();
 
@@ -163,7 +166,7 @@ async function renderQuoteApproval(req, res) {
   }
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  return res.status(200).send(buildApprovalPage({ booking, token, publishableKey }));
+  return res.status(200).send(buildApprovalPage({ booking, token, publishableKey, needsCard: quoteNeedsCardAtApproval(booking) }));
 }
 
 async function authorizeCustomerApprovedQuote(req, res) {
@@ -194,9 +197,14 @@ async function authorizeCustomerApprovedQuote(req, res) {
   if (!booking.quote_expires_at || Date.parse(booking.quote_expires_at) <= Date.now()) {
     return res.status(410).json({ error: 'This quote has expired. Contact AssembleAtEase for a new quote.' });
   }
-  if (!booking.stripe_customer_id || !booking.stripe_payment_method_id || !booking.quote_amount_cents) {
+  if (!booking.quote_amount_cents) {
+    return res.status(409).json({ error: 'This quote has no price yet. Contact AssembleAtEase.' });
+  }
+  // A quote sent with a card (before 2026-10-21) must still have it on file.
+  if (booking.stripe_payment_method_id && !booking.stripe_customer_id) {
     return res.status(409).json({ error: 'This quote is missing secure payment details. Contact AssembleAtEase.' });
   }
+  const cardAtApproval = quoteNeedsCardAtApproval(booking);
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -216,11 +224,23 @@ async function authorizeCustomerApprovedQuote(req, res) {
         return res.status(409).json({ error: `The quote authorization is in an unexpected state (${pi.status}). Contact AssembleAtEase.` });
       }
     } else {
+      // A quote sent without a card gets its Stripe customer here; the card is
+      // entered on the approval page and confirmed there by Stripe.js.
+      let customerId = booking.stripe_customer_id || null;
+      if (!customerId) {
+        const email = String(booking.customer_email || '').trim().toLowerCase();
+        const existing = await stripe.customers.list({ email, limit: 1 });
+        customerId = existing.data[0]?.id || (await stripe.customers.create({
+          email,
+          name: booking.customer_name || email,
+          metadata: { source: 'quote_approval', bookingRef: booking.ref },
+        }, { idempotencyKey: `quote-approval-customer-${booking.id}` })).id;
+      }
       pi = await stripe.paymentIntents.create({
         amount: booking.quote_amount_cents,
         currency: 'usd',
-        customer: booking.stripe_customer_id,
-        payment_method: booking.stripe_payment_method_id,
+        customer: customerId,
+        ...(cardAtApproval ? { payment_method_types: ['card'] } : { payment_method: booking.stripe_payment_method_id }),
         capture_method: 'manual',
         setup_future_usage: 'off_session',
         receipt_email: booking.customer_email,
@@ -234,10 +254,12 @@ async function authorizeCustomerApprovedQuote(req, res) {
         },
       }, { idempotencyKey: `quote-customer-authorize-${booking.id}-${booking.quote_amount_cents}` });
 
+      const customerLink = booking.stripe_customer_id ? {} : { stripe_customer_id: customerId };
       const { data: linkRows, error: linkErr } = await sb.from('bookings').update({
         stripe_payment_intent_id: pi.id,
         payment_status: 'quote_authorization_pending',
         quote_approval_started_at: new Date().toISOString(),
+        ...customerLink,
       })
         .eq('id', booking.id)
         .eq('status', BOOKING_STATUS.PENDING)
@@ -284,6 +306,7 @@ async function authorizeCustomerApprovedQuote(req, res) {
             stripe_payment_intent_id: pi.id,
             payment_status: 'quote_authorization_pending',
             quote_approval_started_at: new Date().toISOString(),
+            ...customerLink,
           })
             .eq('id', booking.id)
             .eq('status', BOOKING_STATUS.PENDING)
@@ -331,6 +354,7 @@ async function authorizeCustomerApprovedQuote(req, res) {
         }
       }
       booking.stripe_payment_intent_id = pi.id;
+      booking.stripe_customer_id = customerId;
       booking.payment_status = 'quote_authorization_pending';
     }
 
@@ -377,7 +401,16 @@ async function finalizeQuote({ req, res, sb, booking, pi, tokenHash }) {
 
   const now = new Date().toISOString();
   const quoteCaptureDeadline = captureBeforeFromIntent(pi);
+  // A card entered on the approval page is saved to the booking here, where
+  // capture after completion and re-authorization look for it.
+  const intentCardId = typeof pi.payment_method === 'string' ? pi.payment_method : pi.payment_method?.id || null;
+  const intentCustomerId = typeof pi.customer === 'string' ? pi.customer : pi.customer?.id || null;
+  const cardLink = {
+    ...(!booking.stripe_payment_method_id && intentCardId ? { stripe_payment_method_id: intentCardId } : {}),
+    ...(!booking.stripe_customer_id && intentCustomerId ? { stripe_customer_id: intentCustomerId } : {}),
+  };
   const { data: rows, error: updateErr } = await sb.from('bookings').update({
+    ...cardLink,
     total_price: booking.quote_amount_cents,
     tax_amount: booking.quote_tax_cents,
     payment_status: 'authorized',
@@ -496,16 +529,20 @@ function validateQuotePaymentIntent(booking, paymentIntent) {
   return validation;
 }
 
-function buildApprovalPage({ booking, token, publishableKey }) {
+export function buildApprovalPage({ booking, token, publishableKey, needsCard = false }) {
   const firstName = esc(String(booking.customer_name || 'there').split(' ')[0]);
   const subtotal = (booking.quote_subtotal_cents / 100).toFixed(2);
   const tax = (booking.quote_tax_cents / 100).toFixed(2);
   const total = (booking.quote_amount_cents / 100).toFixed(2);
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Approve quote — AssembleAtEase</title><script src="https://js.stripe.com/v3/"></script><style>body{margin:0;background:#f4f4f5;color:#18181b;font-family:Arial,sans-serif}.card{max-width:560px;margin:40px auto;background:#fff;border:1px solid #e4e4e7;border-radius:14px;padding:28px}.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f4f4f5}.total{font-size:20px;font-weight:800}.terms{margin:20px 0;padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;line-height:1.6}.btn{width:100%;padding:14px;border:0;border-radius:8px;background:#00BFFF;color:#002b3a;font-size:16px;font-weight:800;cursor:pointer}.btn:disabled{opacity:.55}.msg{font-size:14px;line-height:1.6;margin-top:14px}</style></head><body><main class="card"><h1>Review your quote, ${firstName}</h1><p>Booking <strong>${esc(booking.ref)}</strong> for ${esc(booking.service)}</p><div class="row"><span>Service subtotal</span><strong>$${subtotal}</strong></div><div class="row"><span>Texas sales tax</span><strong>$${tax}</strong></div><div class="row total"><span>Total authorized</span><span>$${total}</span></div><div class="terms"><strong>Payment and cancellation terms:</strong> Your card will be authorized now and captured after completed work. Cancellation is free until 24 hours before the appointment. A 10% service-subtotal fee may apply inside 24 hours, or 15% once a pro is on the way; tax is not included in the cancellation fee.</div><button class="btn" id="approve">Approve quote and authorize $${total}</button><p class="msg" id="msg"></p></main><script>const stripe=Stripe(${JSON.stringify(publishableKey)});const token=${JSON.stringify(token)};const btn=document.getElementById('approve');const msg=document.getElementById('msg');btn.onclick=async()=>{btn.disabled=true;msg.textContent='Starting secure payment…';try{let r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'authorize'})});let d=await r.json();if(!r.ok)throw new Error(d.error||'Could not start authorization.');if(d.confirmed){msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';return;}const result=await stripe.confirmCardPayment(d.clientSecret);if(result.error)throw new Error(result.error.message);r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'finalize'})});d=await r.json();if(!r.ok)throw new Error(d.error||'Could not save confirmation.');msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';}catch(e){msg.textContent=e.message;btn.disabled=false;}};</script></body></html>`;
+  // Quotes sent without a card (since 2026-10-21) take the card here, after the price.
+  const cardField = needsCard
+    ? '<label for="card" style="display:block;font-size:14px;font-weight:700;margin:18px 0 8px">Card</label><div id="card" style="padding:12px;border:1px solid #d4d4d8;border-radius:8px;background:#fff"></div><p id="card-err" class="msg" style="color:#b91c1c;margin-top:8px"></p>'
+    : '';
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Approve quote — AssembleAtEase</title><script src="https://js.stripe.com/v3/"></script><style>body{margin:0;background:#f4f4f5;color:#18181b;font-family:Arial,sans-serif}.card{max-width:560px;margin:40px auto;background:#fff;border:1px solid #e4e4e7;border-radius:14px;padding:28px}.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f4f4f5}.total{font-size:20px;font-weight:800}.terms{margin:20px 0;padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;line-height:1.6}.btn{width:100%;padding:14px;border:0;border-radius:8px;background:#00BFFF;color:#002b3a;font-size:16px;font-weight:800;cursor:pointer}.btn:disabled{opacity:.55}.msg{font-size:14px;line-height:1.6;margin-top:14px}</style></head><body><main class="card"><h1>Review your quote, ${firstName}</h1><p>Booking <strong>${esc(booking.ref)}</strong> for ${esc(booking.service)}</p><div class="row"><span>Service subtotal</span><strong>$${subtotal}</strong></div><div class="row"><span>Texas sales tax</span><strong>$${tax}</strong></div><div class="row total"><span>Total</span><span>$${total}</span></div><div class="terms"><strong>Payment and cancellation:</strong> Approving places a hold of $${total} on your card. You are charged after the work is done. Cancellation is free until 24 hours before the appointment. A 10% fee on the service subtotal applies inside 24 hours, or 15% once a pro is on the way; tax is not included in a cancellation fee.</div>${cardField}<button class="btn" id="approve"${needsCard ? ' disabled' : ''}>Approve quote and hold $${total}</button><p class="msg" id="msg"></p></main><script>const stripe=Stripe(${JSON.stringify(publishableKey)});const token=${JSON.stringify(token)};const needsCard=${needsCard ? 'true' : 'false'};const btn=document.getElementById('approve');const msg=document.getElementById('msg');let card=null;if(needsCard){card=stripe.elements().create('card',{hidePostalCode:false});card.mount('#card');card.on('change',e=>{btn.disabled=!e.complete;document.getElementById('card-err').textContent=e.error?e.error.message:'';});}btn.onclick=async()=>{btn.disabled=true;msg.textContent='Approving…';try{let r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'authorize'})});let d=await r.json();if(!r.ok)throw new Error(d.error||'The approval could not start.');if(d.confirmed){msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';return;}const result=needsCard?await stripe.confirmCardPayment(d.clientSecret,{payment_method:{card}}):await stripe.confirmCardPayment(d.clientSecret);if(result.error)throw new Error(result.error.message);r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'finalize'})});d=await r.json();if(!r.ok)throw new Error(d.error||'The approval could not be saved.');msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';if(card)card.unmount();}catch(e){msg.textContent=e.message;btn.disabled=false;}};</script></body></html>`;
 }
 
 function buildQuoteReadyEmail({ booking, subtotalCents, taxCents, priceCents, approvalUrl, expiresAt }) {
-  return `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;padding:24px;color:#18181b"><h2>Your custom quote is ready</h2><p>Hi ${esc(String(booking.customer_name || '').split(' ')[0])}, review the exact price and terms before authorizing your card.</p><table width="100%" style="font-size:14px"><tr><td style="padding:8px 0">Service subtotal</td><td style="text-align:right">$${(subtotalCents / 100).toFixed(2)}</td></tr><tr><td style="padding:8px 0">Texas sales tax</td><td style="text-align:right">$${(taxCents / 100).toFixed(2)}</td></tr><tr><td style="padding:10px 0;font-weight:700">Total</td><td style="text-align:right;font-weight:700">$${(priceCents / 100).toFixed(2)}</td></tr></table><p><a href="${esc(approvalUrl)}" style="display:inline-block;background:#00BFFF;color:#002b3a;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:700">Review and approve quote</a></p><p style="font-size:13px;color:#52525b">This secure link expires ${esc(expiresAt.toLocaleDateString('en-US', { timeZone: 'America/Chicago' }))}. No appointment is confirmed and no amount is authorized until you approve.</p></div>`;
+  return `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;padding:24px;color:#18181b"><h2>Your custom quote is ready</h2><p>Hi ${esc(String(booking.customer_name || '').split(' ')[0])}, review the price and terms, then approve to book.</p><table width="100%" style="font-size:14px"><tr><td style="padding:8px 0">Service subtotal</td><td style="text-align:right">$${(subtotalCents / 100).toFixed(2)}</td></tr><tr><td style="padding:8px 0">Texas sales tax</td><td style="text-align:right">$${(taxCents / 100).toFixed(2)}</td></tr><tr><td style="padding:10px 0;font-weight:700">Total</td><td style="text-align:right;font-weight:700">$${(priceCents / 100).toFixed(2)}</td></tr></table><p><a href="${esc(approvalUrl)}" style="display:inline-block;background:#00BFFF;color:#002b3a;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:700">Review and approve quote</a></p><p style="font-size:13px;color:#52525b">This secure link expires ${esc(expiresAt.toLocaleDateString('en-US', { timeZone: 'America/Chicago' }))}. Nothing is booked and nothing is held on a card until you approve.</p></div>`;
 }
 
 function buildSimplePage(title, body) {
