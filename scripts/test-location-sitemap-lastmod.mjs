@@ -27,6 +27,7 @@ try {
     'scripts/lib/public-consent.mjs',
     'scripts/lib/public-footer.mjs',
     'scripts/lib/public-nav.mjs',
+    'scripts/lib/seo-title.mjs',
     'scripts/lib/site-governance.mjs',
     'business-artifacts/page-governance/site-governance.json',
     'locations.html',
