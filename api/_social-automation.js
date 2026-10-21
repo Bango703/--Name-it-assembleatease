@@ -21,6 +21,22 @@ const CHANNEL_HOOK_STYLES = {
 
 export async function runSocialQueueTopUp({ dryRun = false, channels } = {}) {
   const snapshot = await getSocialAutomationSnapshot();
+  // Without Buffer's queue and history, every channel looks empty and never
+  // posted: the top-up would repeat articles, overfill queues and ignore the
+  // daily cap. Post nothing and report why (owner, 2026-10-21: Facebook got
+  // yesterday's article again and Google Business had 4 queued against 2).
+  if (snapshot?.error) {
+    return {
+      success: false,
+      dryRun: dryRun === true,
+      fetchedAt: new Date().toISOString(),
+      error: `Buffer queue and history could not be read, so nothing was posted: ${snapshot.error}`,
+      snapshot,
+      summary: { eligibleChannels: 0, attemptedPosts: 0, queued: 0, dryRuns: 0, errors: 0, blocked: 0, skipped: 0, remainingDeficitEstimate: 0 },
+      byChannel: {},
+      posts: [],
+    };
+  }
   const requested = normalizeRequestedChannels(channels);
   const inventory = listBlogArticles();
   const usage = buildUsageMap(snapshot);

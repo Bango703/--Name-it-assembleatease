@@ -34,6 +34,10 @@ export default async function handler(req, res) {
 
   try {
     const result = await runSocialQueueTopUp({ dryRun: false });
+    if (result.success === false) {
+      await logCron('auto-social', { status: 'error', records: 0, error: result.error, duration: Date.now() - startedAt });
+      return res.status(200).json(result);
+    }
     const status = result.summary.errors ? 'partial' : 'ok';
     const errorText = status === 'partial' ? summarizeSocialErrors(result) : null;
     await logCron('auto-social', {

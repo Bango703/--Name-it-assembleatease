@@ -3,6 +3,7 @@
 // twice in 60 days, a weekly mix of real offers and services, and no post that
 // claims something untrue. The bad captions below are real posts that went out.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 process.env.BUFFER_API_KEY = 'test-key';
 process.env.BUFFER_FACEBOOK_CHANNEL_ID = 'facebook-test';
@@ -105,6 +106,19 @@ console.log('PASS campaign posts: real prices and photos, an offer only while it
   assert.equal(postedWithinDailyCap({ dailyMax: 0, lastSentAt: new Date(now).toISOString() }, now), false, 'channels without a cap are unaffected');
 }
 console.log('PASS no article twice inside 60 days; Facebook waits 20 hours after a post');
+
+// ── Blind posting: no Buffer queue/history means no post ─────────────────────
+{
+  const { runSocialQueueTopUp } = await import('../api/_social-automation.js');
+  // fetch throws (set at the top), so the Buffer snapshot falls back with an error.
+  const result = await runSocialQueueTopUp({ dryRun: true });
+  assert.equal(result.success, false, 'an unreadable Buffer queue stops the run');
+  assert.equal(result.posts.length, 0, 'nothing is queued blind');
+  assert.match(result.error, /could not be read, so nothing was posted/);
+  const cron = readFileSync(new URL('../api/cron/auto-social.js', import.meta.url), 'utf8');
+  assert.match(cron, /if \(result\.success === false\) \{\s*await logCron\('auto-social', \{ status: 'error', records: 0, error: result\.error/, 'the owner sees the reason in the cron log');
+}
+console.log('PASS Buffer unreadable: nothing posted, reason logged');
 
 globalThis.fetch = originalFetch;
 console.log('\nSocial engine tests passed.');
