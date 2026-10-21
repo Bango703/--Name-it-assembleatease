@@ -5,6 +5,7 @@ import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { bookingCancellationPaymentIntentIds } from './_cancellation-stripe-truth.js';
+import { isQuoteAwaitingPrice } from './_quote-state.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -93,6 +94,11 @@ export default async function handler(req, res) {
          </td></tr></table>`
       : '';
 
+    // A quote sent without a card (2026-10-21) never had one; say nothing
+    // about a card unless the customer actually saved one.
+    const isQuote = isQuoteAwaitingPrice(booking);
+    const cardNote = booking.stripe_payment_method_id ? ' Nothing was charged to your card.' : '';
+
     const html = buildStatusEmail({
       customerName: booking.customer_name,
       ref: booking.ref,
@@ -101,7 +107,7 @@ export default async function handler(req, res) {
       statusBg: '#f4f4f5',
       headline: `We're sorry, ${esc(booking.customer_name)} — we can't take this one.`,
       bodyHtml: `
-        <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Unfortunately we are not able to accommodate your request for <strong>${esc(booking.service)}</strong> at this time. No charge has been made to your card.</p>
+        <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Unfortunately we are not able to take on your ${isQuote ? 'quote request' : 'request'} for <strong>${esc(booking.service)}</strong> at this time.${cardNote}</p>
         ${reasonHtml}
         <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.7">We'd love to help you on another date or with a different service. Feel free to submit a new booking and we'll do our best to make it work.</p>
         <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">We apologize for any inconvenience and appreciate your understanding.</p>`,
@@ -110,7 +116,7 @@ export default async function handler(req, res) {
     await sendEmail({
       to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: 'Your Booking Request — ' + booking.ref,
+      subject: (isQuote ? 'Your Quote Request — ' : 'Your Booking Request — ') + booking.ref,
       html,
       replyTo: ownerEmail(),
       meta: { bookingId: booking.id, notificationType: 'booking_declined', recipientType: 'customer' },

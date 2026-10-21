@@ -126,6 +126,19 @@ console.log('PASS one rule: server and owner dashboard agree on a quote waiting 
 }
 console.log('PASS approval: price first, then the card; same hold, finalize saves the card');
 
+// ── Declined quote: no card is mentioned when none was added ───────────────
+// Owner, 2026-10-21: declining AAE-O35L76FFJQ emailed "No charge has been made
+// to your card" to a customer who never added one.
+{
+  const decline = read('api/booking/decline.js');
+  assert.doesNotMatch(decline, /No charge has been made to your card/, 'the card line is no longer unconditional');
+  assert.match(decline, /const cardNote = booking\.stripe_payment_method_id \? ' Nothing was charged to your card\.' : '';/, 'the card is named only when one was saved');
+  assert.match(decline, /const isQuote = isQuoteAwaitingPrice\(booking\);/, 'a quote is recognized by the one rule');
+  assert.match(decline, /subject: \(isQuote \? 'Your Quote Request — ' : 'Your Booking Request — '\) \+ booking\.ref/);
+  assert.doesNotMatch(decline, /booking\.status\s*=[^=]/, 'the quote is recognized from the booking as fetched, before the decline');
+}
+console.log('PASS decline: a quote without a card is never told about a card');
+
 // ── The lead: saved when the quote step opens, alerted if never sent ───────
 {
   const writes = [];
