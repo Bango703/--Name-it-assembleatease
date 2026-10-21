@@ -10,6 +10,7 @@ import { buildPublicCookieConsentBlock } from './lib/public-consent.mjs';
 import { buildPublicFooterBlock } from './lib/public-footer.mjs';
 import { buildPublicNavBlock } from './lib/public-nav.mjs';
 import { governanceConfig } from './lib/site-governance.mjs';
+import { fitTitle } from './lib/seo-title.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -622,7 +623,7 @@ function generatePage(city, service) {
   const heroAlt = service.heroAlt || `${serviceDisplayName} service visit in ${city.name}, TX`;
   const heroImageUrl = `https://www.assembleatease.com/images/${heroPhoto}`;
   const titleFromPrice = service.titleFromPrice || service.fromPrice;
-  const title = `${serviceDisplayName} in ${city.name}, TX — From ${titleFromPrice} | AssembleAtEase`;
+  const title = fitTitle(`${serviceDisplayName} in ${city.name}, TX — From ${titleFromPrice}`);
   const metaDesc = buildMetaDescription(service.slug, city.name);
   const bookingGuidance = city.bookingGuidance || `Include the item count, access details, stairs, room location, and any scheduling constraints when booking in ${city.name}. Complete project notes help us review the appointment and confirm the right assignment.`;
 

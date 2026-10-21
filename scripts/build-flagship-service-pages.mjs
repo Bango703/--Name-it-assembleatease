@@ -8,6 +8,7 @@
 // Copy is location-NEUTRAL except the SEO spots (eyebrow, service-area, FAQ, links).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { fitTitle } from './lib/seo-title.mjs';
 
 // Austin is the reference market. Every other Texas city reuses this exact
 // template through the same builders (see scripts/generate-location-pages.js),
@@ -969,7 +970,7 @@ export function applyFlagshipToPage(html, cfg, city) {
   html = html.replace(CITY_TEMPLATE_STYLE_RE, '');
   html = html.replace('</head>', `${FA_STYLE}\n</head>`);
 
-  const pageTitle = `${cfg.titleLabel || cfg.linkLabel} in ${city.name}, TX — From ${cfg.fromPrice} | AssembleAtEase`;
+  const pageTitle = fitTitle(`${cfg.titleLabel || cfg.linkLabel} in ${city.name}, TX — From ${cfg.fromPrice}`);
   html = html.replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`);
   html = html.replace(/<meta property="og:title" content="[^"]*"\/>/, `<meta property="og:title" content="${pageTitle}"/>`);
   html = html.replace(/<meta name="twitter:title" content="[^"]*"\/>/, `<meta name="twitter:title" content="${pageTitle}"/>`);
