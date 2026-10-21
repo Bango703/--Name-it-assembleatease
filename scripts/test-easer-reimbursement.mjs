@@ -53,8 +53,10 @@ assert.match(sql, /reimbursement_cents <= payout_amount/, 'the reimbursed part c
 console.log('PASS migration 112: payout function and ledger match the API');
 
 // ── 1099 leaves it out ──────────────────────────────────────────────────────
-const dashboard = await read('api/owner/financial-dashboard.js');
-assert.match(dashboard, /e\.ytdPaidCents \+= Math\.max\(0, Number\(row\.payout_amount \|\| 0\) - reimbursed\);/, '1099 totals exclude reimbursements');
+// The totals live in api/owner/_contractor-tax.js (both payout rails);
+// scripts/test-contractor-tax.mjs runs them on sample data.
+const dashboard = await read('api/owner/_contractor-tax.js');
+assert.match(dashboard, /const pay = Math\.max\(0, Number\(row\.payout_amount \|\| 0\) - reimbursed\);/, '1099 totals exclude reimbursements');
 console.log('PASS 1099 totals exclude reimbursements');
 
 // ── The owner endpoint holds the rules ──────────────────────────────────────
