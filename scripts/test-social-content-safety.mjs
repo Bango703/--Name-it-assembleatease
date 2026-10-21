@@ -18,7 +18,6 @@ process.env.BUFFER_GOOGLE_BUSINESS_CHANNEL_ID = 'google-test';
 process.env.BUFFER_LINKEDIN_CHANNEL_ID = 'linkedin-test';
 
 const { publishContentKit } = await import('../api/_social-publisher.js');
-const { addArticleToIndexSchema, sanitizeArticleHtml } = await import('../api/cron/auto-blog.js');
 const { cleanBookingAttribution } = await import('../api/_booking-attribution.js');
 
 // Exercise actual dry-run publication. No Buffer request or live queue write is allowed.
@@ -129,39 +128,7 @@ assert.equal(
   'AssembleAtEase guide: TV Mounting Checklist',
 );
 
-const usefulParagraph = 'Confirm the product model, room access, measurements, installation surface, manufacturer instructions, required hardware, final placement, and any property restrictions before the appointment. Share photos and complete job notes so the requested scope can be reviewed accurately before a professional is assigned. ';
-const generatedHtml = [
-  '<h2>Check the product and room</h2>',
-  `<p>${usefulParagraph.repeat(3)}</p>`,
-  '<h2>List the complete scope</h2>',
-  `<p>${usefulParagraph.repeat(3)}</p>`,
-  '<ul><li>Product model</li><li>Room photos</li><li>Access instructions</li></ul>',
-  '<h2>Wait for assignment confirmation</h2>',
-  `<p>${usefulParagraph.repeat(3)}</p>`,
-  `<p>${usefulParagraph.repeat(3)}</p>`,
-  '<script>throw new Error("unsafe")</script>',
-].join('');
-const accepted = sanitizeArticleHtml(generatedHtml, 'test topic', 'Austin, Texas');
-assert.equal(accepted.ok, true);
-assert.ok(accepted.wordCount >= 350);
-assert.ok(!accepted.html.includes('<script'));
-assert.ok(accepted.html.includes('Check Texas Availability'));
-
-const rejected = sanitizeArticleHtml(
-  generatedHtml.replace('Confirm the product model', 'We recently helped hundreds of homes. Confirm the product model'),
-  'test topic',
-  'Austin, Texas',
-);
-assert.equal(rejected.ok, false);
-assert.match(rejected.reason, /unsupported/i);
-
-const indexHtml = '<script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","mainEntity":{"@type":"ItemList","itemListElement":[]}}</script>';
-const updatedIndex = addArticleToIndexSchema(indexHtml, {
-  title: 'Test Guide',
-  canonicalUrl: 'https://www.assembleatease.com/blog/test-guide',
-});
-assert.ok(updatedIndex.includes('https://www.assembleatease.com/blog/test-guide'));
-assert.ok(updatedIndex.includes('"position":1'));
+// Blog article checks live in scripts/test-blog-engine.mjs (api/_blog-engine.js).
 
 const contentKitSource = readFileSync(join(ROOT, 'api', '_content-kit.js'), 'utf8');
 assert.ok(contentKitSource.includes('Never invent a meeting'));

@@ -20,7 +20,7 @@ assert.equal(fitTitle('TV Mounting in Austin, TX — From $89'), 'TV Mounting in
 assert.equal(fitTitle('Smart Home Installation in College Station, TX — From $69'), 'Smart Home Installation in College Station, TX — From $69',
   'the brand suffix is dropped when it would pass 70 characters');
 assert.equal(fitTitle('Furniture Assembly & TV Mounting Jobs in Allen, TX', ' | Become an Easer').endsWith(' | Become an Easer'), true);
-for (const rel of ['scripts/generate-location-pages.js', 'scripts/build-flagship-service-pages.mjs', 'scripts/generate-easer-recruit-pages.js', 'scripts/cleanup-blog-pages.mjs']) {
+for (const rel of ['scripts/generate-location-pages.js', 'scripts/build-flagship-service-pages.mjs', 'scripts/generate-easer-recruit-pages.js', 'scripts/lib/blog-article-page.mjs']) {
   assert.match(read(rel), /fitTitle\(/, `${rel} builds titles through fitTitle`);
 }
 console.log('PASS titles: one rule in scripts/lib/seo-title.mjs, used by every generator');

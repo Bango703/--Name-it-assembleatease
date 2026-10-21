@@ -482,7 +482,7 @@ Auto-dispatch flow (`api/booking/_dispatch-internal.js`):
 | `review-request` | Daily 14:00 UTC | Send post-job review requests |
 | `daily-summary` | Daily 13:00 UTC | Owner daily ops email |
 | `weekly-summary` | Monday 14:00 UTC | Owner weekly stats email |
-| `auto-blog` | 1st & 15th 09:00 UTC | AI-generated blog posts |
+| `auto-blog` | Mondays 14:00 UTC | Blog engine (`api/_blog-engine.js`): writes the next calendar topic with catalog prices and opens a PR for the owner to merge; off unless `AUTO_BLOG_PUBLISH_ENABLED=true` |
 
 All cron handlers verify `Authorization: Bearer {CRON_SECRET}` before executing.
 
