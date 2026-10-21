@@ -1,7 +1,9 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from './_supabase.js';
 import { upsertContact, createDeal } from './_hubspot.js';
-import { rateLimit } from './_ratelimit.js';
+import { rateLimit, rateLimitKey } from './_ratelimit.js';
+import { isLikelySpamQuote } from './booking/_quote-spam.js';
+import { markQuoteLeadConverted } from './booking/quote-lead.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from './_email.js';
 import { guardCustomerFacing } from './_customer-error-alert.js';
 import { calculateBookingPricing, TX_TAX_RATE } from './_pricing.js';
@@ -83,6 +85,8 @@ export default async function handler(req, res) {
     smsConsent,
     paymentMethod,
     accountMode,
+    company,
+    formStartedAt,
   } = req.body;
 
   const legalConsent = validateCustomerLegalConsent({ termsAccepted, termsVersion, privacyNoticeVersion });
@@ -93,6 +97,17 @@ export default async function handler(req, res) {
 
   const phone = normalizeUsPhone(rawPhone);
   const quoteRequested = isQuoteRequest === true;
+
+  // Custom quotes are sent without a card (owner, 2026-10-21). These checks
+  // stand where the card used to filter spam (api/booking/_quote-spam.js).
+  if (quoteRequested && !setupIntentId) {
+    if (isLikelySpamQuote({ company, formStartedAt, details, name, now: Date.now() })) {
+      return res.status(400).json({ error: 'This request could not be sent. Wait a moment and send it again.', code: 'QUOTE_REQUEST_REJECTED' });
+    }
+    if (!await rateLimitKey(`${ip}:${String(email || '').trim().toLowerCase()}`, 'quote_request')) {
+      return res.status(429).json({ error: 'Too many quote requests from this address. We will reply to the ones already sent.', code: 'QUOTE_REQUEST_RATE_LIMITED' });
+    }
+  }
 
   // Support both new multi-service payload (services=[]) and legacy single-service (service='')
   const serviceList = Array.isArray(services) && services.length > 0
@@ -307,7 +322,7 @@ export default async function handler(req, res) {
   let verifiedQuotePaymentMethodId = null;
   let verifiedQuoteCustomerId = null;
 
-  if (quoteRequested || scheduledAuthorization) {
+  if (scheduledAuthorization || (quoteRequested && setupIntentId)) {
     if (!setupIntentId || !process.env.STRIPE_SECRET_KEY) {
       return res.status(409).json({
         error: scheduledAuthorization
@@ -639,6 +654,8 @@ export default async function handler(req, res) {
     }
   }
 
+  if (quoteRequested) await markQuoteLeadConverted(sb, email);
+
   // Quote booking with saved card: store the customer + payment method from SetupIntent
   if (quoteRequested && verifiedQuotePaymentMethodId && verifiedQuoteCustomerId) {
     const { error: quoteCardLinkErr } = await sb.from('bookings').update({
@@ -876,7 +893,7 @@ export default async function handler(req, res) {
       ${quoteRequested ? `
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We review the scope</strong> — A real person checks your notes before confirming availability.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We send the final price</strong> — No appointment is confirmed until the quote is approved.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Then we schedule</strong> — Your card is saved securely, but no payment has been taken.</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Then we schedule</strong> — ${verifiedQuotePaymentMethodId ? 'Your card is saved securely, but no payment has been taken.' : 'You approve the price and add a card then. Nothing is charged until the work is done.'}</td></tr>
       ` : `
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Email confirmation</strong> — We'll follow up to confirm date, time, and scope.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a reviewed local pro arrives with the tools needed for the job.</td></tr>

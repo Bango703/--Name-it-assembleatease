@@ -36,6 +36,11 @@ const limiters = {
   apply: buildLimiter('rl:apply', 5, '600 s'),
   setup_intent: buildLimiter('rl:setup_intent', 3, '600 s'),
   setup_intent_email: buildLimiter('rl:setup_intent_email', 2, '600 s'),
+  // Custom quotes are sent without a card (owner, 2026-10-21), so the card no
+  // longer filters spam. Saved leads per address, and sent quotes per address
+  // and email (api/booking/quote-lead.js, api/booking.js).
+  quote_lead: buildLimiter('rl:quote_lead', 10, '600 s'),
+  quote_request: buildLimiter('rl:quote_request', 3, '3600 s'),
   owner_auth: buildLimiter('rl:owner_auth', 5, '900 s'),
   track_link: buildLimiter('rl:track_link', 3, '900 s'),
 };

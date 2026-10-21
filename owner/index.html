@@ -3716,7 +3716,7 @@ window.intelQuick = intelQuick;
             ? '<span style="color:var(--muted)">Not available until Easer earnings are finalized</span>'
             : fmtSigned$(financial.platformGrossCents) + ' <span style="font-size:0.7rem;color:var(--muted)">(' + (collectedAmount != null ? 'recorded inputs' : 'estimate') + '; before operating costs)</span>')
         : '—'),
-      field('Status', bookingBadge(b) + (b.payment_status ? ' ' + paymentBadge(b.payment_status) : '')),
+      field('Status', bookingBadge(b) + (b.payment_status ? ' ' + paymentBadge(isQuoteAwaitingCard(b) ? 'quote_no_card' : b.payment_status) : '')),
       field('Payment', paymentStatusLabel(b)),
       field('Payment Method', paymentMethodLabel(b)),
       field('Easer Payout', b.payout_status === 'transferred'
@@ -6999,6 +6999,13 @@ window.intelQuick = intelQuick;
   // decides it, so the list, the badge, and the detail panel can never disagree.
   // Stages: needs_price -> awaiting_customer -> authorizing (after which it becomes
   // a real confirmed booking and renders normally).
+  // A custom quote sent without a card (since 2026-10-21): pending, payment
+  // not required, payment type card. Mirrors isQuoteAwaitingPrice in
+  // api/booking/_quote-state.js; scripts/test-quote-no-card.mjs holds them together.
+  function isQuoteAwaitingCard(b) {
+    return !!b && b.status === 'pending' && b.payment_status === 'not_required' && b.payment_method_type === 'card';
+  }
+
   function quoteLane(b) {
     if (!b || b.status !== 'pending') return null;
     var pay = String(b.payment_status || '');
@@ -7006,7 +7013,7 @@ window.intelQuick = intelQuick;
     if (pay === 'quote_authorization_pending') return 'authorizing';
     // A pending rebooking is a real priced job waiting on a card, not a quote.
     if (b.rebooked_from_booking_id && pay === 'pending') return null;
-    if (pay === 'card_saved' || Number(b.quote_amount_cents) > 0 || !Number(b.total_price)) return 'needs_price';
+    if (pay === 'card_saved' || isQuoteAwaitingCard(b) || Number(b.quote_amount_cents) > 0 || !Number(b.total_price)) return 'needs_price';
     return null;
   }
 
@@ -7413,6 +7420,7 @@ window.intelQuick = intelQuick;
       pending:      ['py-pending',      'Not Authorized'],
       not_required: ['py-not-required', 'Not Required'],
       card_saved:   ['py-authorized',   'Card on File'],
+      quote_no_card: ['py-not-required', 'Card at Approval'],
       authorized:   ['py-authorized',   'Authorized'],
       deposit_paid: ['py-deposit-paid', 'Deposit Paid'],
       offline_recorded: ['py-not-required', 'Owner Payment Workflow'],
@@ -7430,6 +7438,7 @@ window.intelQuick = intelQuick;
 
   function paymentStatusLabel(booking) {
     var status = String(booking && booking.payment_status || 'unknown');
+    if (isQuoteAwaitingCard(booking)) return 'Quote request: the customer adds a card when they approve the price';
     var usesKlarna = booking && booking.payment_method_type === 'klarna';
     if (status === 'offline_recorded') {
       var receivedCents = Number((booking && booking.amount_collected_cents) || 0);

@@ -3406,7 +3406,7 @@
 
         </div>
 
-        <div class="auth-note" style="margin-top:0.7rem;padding:0.5rem 0.7rem;gap:0.5rem;font-size:0.75rem;line-height:1.45;background:#f0f9ff;border:1px solid #bae6fd">
+        <div class="auth-note" id="s5-cancel-note" style="margin-top:0.7rem;padding:0.5rem 0.7rem;gap:0.5rem;font-size:0.75rem;line-height:1.45;background:#f0f9ff;border:1px solid #bae6fd">
           <span class="auth-note-icon" style="margin-top:0"><svg viewBox="0 0 24 24" width="13" height="13" style="fill:var(--teal-dark)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span>
           <div><strong>Free cancellation</strong> up to 24 hours before your appointment; after that a small fee applies (10%, or 15% once a pro is on the way) on the service price only, never tax.</div>
         </div>
@@ -3677,6 +3677,7 @@ var ACTIVE_MARKET_LABEL = 'Statewide Texas booking coverage';
 // ----------------------------------------------------------------------------
 
 var BOOK = {
+  _formStartedAt: Date.now(),
 
   selectedServices: [],
 
@@ -6463,6 +6464,31 @@ function renderSummaryDateTime(dateLabel, timeLabel) {
 
 }
 
+// Saves a started custom quote as a lead (api/booking/quote-lead.js). Sending
+// the quote marks it converted; one that is never sent stays in the owner's
+// Unbooked Requests. Never blocks or slows the page.
+function captureQuoteLead() {
+  try {
+    var key = [BOOK.email, BOOK.zip, JSON.stringify(BOOK.selectedServices)].join('|');
+    if (BOOK._quoteLeadKey === key) return;
+    BOOK._quoteLeadKey = key;
+    fetch('/api/booking/quote-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({
+        name: (BOOK.firstName + ' ' + BOOK.lastName).trim(),
+        email: BOOK.email, phone: BOOK.phone,
+        address: BOOK.address, city: BOOK.city, state: BOOK.state, zip: BOOK.zip,
+        date: BOOK.date, time: BOOK.time, details: BOOK.details,
+        services: BOOK.selectedServices, items: buildItemsPayload(),
+        company: (document.getElementById('bk-company') || {}).value || '',
+        formStartedAt: BOOK._formStartedAt || null
+      })
+    }).catch(function () { /* A lead that fails to save never stops the quote. */ });
+  } catch (e) { /* never blocks the page */ }
+}
+
 async function goToStep5Payment() {
 
   var first = document.getElementById('s4-first').value.trim();
@@ -6654,6 +6680,7 @@ async function goToStep5Payment() {
 
     document.getElementById('s5-stripe-note').style.display = 'none';
 
+    document.getElementById('s5-cancel-note').style.display = 'none';
     document.getElementById('s5-confidence').innerHTML =
       '<span>No payment</span><span>Demand tracked by market</span><span>We contact you before scheduling</span>';
 
@@ -6681,6 +6708,7 @@ async function goToStep5Payment() {
   document.getElementById('s5-charge-note').style.display = 'none';
 
   document.getElementById('s5-stripe-note').style.display = '';
+  document.getElementById('s5-cancel-note').style.display = '';
 
   document.getElementById('s5-confidence').innerHTML =
     '';
@@ -6705,6 +6733,29 @@ async function goToStep5Payment() {
   renderBookingPaymentMethods();
   syncPaymentSubmitState();
   await refreshPromoPreview({ silentFailure: true });
+
+  // Custom quote (owner, 2026-10-21): no card on this step. 12 of 15 people
+  // left at a card form shown before any price. The card is taken on the
+  // approval page, after the customer sees the quoted price.
+  if (isQuoteFlow) {
+    document.getElementById('s5-banner').textContent = 'Almost done - send your quote request';
+    document.getElementById('s5-heading').textContent = 'Send your quote request';
+    document.getElementById('s5-sub').textContent = 'No card needed. We email you a price, and nothing is booked or charged until you approve it.';
+    document.getElementById('s5-payment-section').style.display = 'none';
+    document.getElementById('s5-quote-section').style.display = 'block';
+    document.getElementById('s5-quote-section').innerHTML = '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius-md);padding:1rem 1.25rem;font-size:0.875rem;color:#075985;line-height:1.6"><strong>What happens next.</strong> We review your project and email you a price. You approve it and add a card at that point. Nothing is charged until the work is done.</div>';
+    document.getElementById('s5-charge-note').style.display = 'none';
+    document.getElementById('s5-stripe-note').style.display = 'none';
+    document.getElementById('s5-cancel-note').style.display = 'none';
+    document.getElementById('s5-confidence').innerHTML = '<span>No card needed</span><span>Price before booking</span><span>Reply by email</span>';
+    document.getElementById('s5-confidence').style.display = '';
+    document.getElementById('s5-submit').innerHTML = 'Send Quote Request <span>&#8594;</span>';
+    var quoteProgLabel = document.querySelector('#prog-4 .progress-label');
+    if (quoteProgLabel) quoteProgLabel.textContent = 'Request';
+    syncPaymentSubmitState();
+    captureQuoteLead();
+    return;
+  }
 
 
 
@@ -7436,6 +7487,11 @@ function syncPaymentSubmitState() {
 
   var submitBtn = document.getElementById('s5-submit');
   if (!submitBtn || BOOK.isEmergingMarket) return;
+  if (BOOK._isQuoteFlow) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = 'Send Quote Request <span>&#8594;</span>';
+    return;
+  }
 
   var paymentFormReady = !!BOOK._stripe && !!BOOK._cardEl;
   var usesSetupIntent = !!BOOK._isQuoteFlow || !!BOOK._scheduledAuthorization;
@@ -7711,7 +7767,7 @@ async function submitBooking() {
 
 
 
-  if (!BOOK._stripe || !BOOK._cardEl) {
+  if (!BOOK._isQuoteFlow && (!BOOK._stripe || !BOOK._cardEl)) {
 
     errEl.textContent = 'Payment form not ready. Please refresh and try again.';
 
@@ -7721,7 +7777,7 @@ async function submitBooking() {
 
   var usesKlarna = !BOOK._isQuoteFlow && !BOOK._scheduledAuthorization && BOOK.paymentMethod === 'klarna';
 
-  if (!usesKlarna && !BOOK._cardComplete) {
+  if (!BOOK._isQuoteFlow && !usesKlarna && !BOOK._cardComplete) {
 
     errEl.textContent = 'Complete your card details before continuing.';
 
@@ -7729,7 +7785,7 @@ async function submitBooking() {
 
   }
 
-  if ((BOOK._isQuoteFlow || BOOK._scheduledAuthorization) && !BOOK._setupIntentSecret) {
+  if (BOOK._scheduledAuthorization && !BOOK._setupIntentSecret) {
 
     errEl.textContent = 'Payment setup failed. Please refresh and try again.';
 
@@ -7757,7 +7813,7 @@ async function submitBooking() {
 
   var savedSetupIntentId = null;
 
-  if ((BOOK._isQuoteFlow || BOOK._scheduledAuthorization) && BOOK._setupIntentSecret) {
+  if (BOOK._scheduledAuthorization && BOOK._setupIntentSecret) {
 
     submitBtn.innerHTML = 'Saving card&hellip;';
 
@@ -7872,7 +7928,8 @@ async function submitBooking() {
 
         smsConsent: !!(document.getElementById('s4-sms-consent') || {}).checked,
 
-        setupIntentId: (BOOK._isQuoteFlow || BOOK._scheduledAuthorization) ? savedSetupIntentId : null,
+        setupIntentId: BOOK._scheduledAuthorization ? savedSetupIntentId : null,
+        formStartedAt: BOOK._formStartedAt || null,
         attribution: captureBookingAttribution()
 
       })
@@ -8205,7 +8262,7 @@ function showConfirmation(ref, isQuote, isScheduledAuthorization) {
       steps.innerHTML =
         '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">We review your notes</strong> - a real person checks the scope before scheduling.</div></div>'
         + '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">We send the final price</strong> - no appointment is confirmed until the quote is approved.</div></div>'
-        + '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Then we schedule</strong> - your card is saved securely, but no payment has been taken.</div></div>';
+        + '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">You approve and add a card</strong> - nothing is charged until the work is done.</div></div>';
     }
 
     if (portal) portal.textContent = 'Track Your Request \u2192';
