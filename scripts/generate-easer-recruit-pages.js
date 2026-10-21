@@ -22,6 +22,7 @@ import { buildPublicCookieConsentBlock } from './lib/public-consent.mjs';
 import { buildPublicFooterBlock } from './lib/public-footer.mjs';
 import { buildPublicNavBlock } from './lib/public-nav.mjs';
 import { ALL_TEXAS_CITIES } from './lib/texas-cities.mjs';
+import { fitTitle } from './lib/seo-title.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -232,8 +233,8 @@ ${buildPublicCookieConsentBlock()}
 function buildCityPage(city) {
   const served = SERVED_SLUGS.has(city.slug);
   const url = `${ORIGIN}/easer-jobs-${city.slug}-tx`;
-  const title = `Furniture Assembly & TV Mounting Jobs in ${city.name}, TX | Become an Easer`;
-  const metaDesc = `Earn as an independent assembly and TV-mounting pro in ${city.name}, TX. Set your own schedule, bring your own tools, keep 70% of every completed job. Apply to become an Easer.`;
+  const title = fitTitle(`Furniture Assembly & TV Mounting Jobs in ${city.name}, TX`, ' | Become an Easer');
+  const metaDesc = `Earn as an independent assembly and TV-mounting pro in ${city.name}, TX. Set your own schedule, bring your own tools, and keep 70% of every job.`;
   const applyHref = `/assembler/apply?city=${encodeURIComponent(city.name)}`;
   const nearby = (city.nearby || []).slice(0, 4);
 
@@ -303,8 +304,8 @@ ${footerBlock()}`;
 // ── HUB PAGE (/become-an-easer) ──
 function buildHubPage() {
   const url = `${ORIGIN}/become-an-easer`;
-  const title = 'Become an Easer — Assembly & Handyman Jobs Across Texas | AssembleAtEase';
-  const metaDesc = 'Earn as an independent furniture assembly, TV mounting, and home-setup pro across Texas. Set your own schedule, bring your own tools, keep 70% of every completed job. Apply to become an Easer.';
+  const title = 'Become an Easer — Assembly & Handyman Jobs in Texas | AssembleAtEase';
+  const metaDesc = 'Earn as an independent furniture assembly, TV mounting, and home-setup pro across Texas. Set your own schedule, bring your own tools, and keep 70% of every job.';
   const applyHref = '/assembler/apply';
   const genericCity = { name: 'Texas', slug: 'texas' };
 

@@ -1,0 +1,65 @@
+# Tells Bing (and through it Yahoo, DuckDuckGo, Ecosia, ChatGPT search and
+# Copilot) about changed pages as soon as they are live. Runs after Vercel
+# reports a successful Production deploy and submits only the sitemap pages
+# whose files changed since the previous successful Production deploy.
+# Run it by hand (Actions > IndexNow > Run workflow) to submit the whole sitemap.
+name: IndexNow
+
+on:
+  deployment_status:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: read
+
+concurrency:
+  group: indexnow
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    name: Submit changed pages
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha || github.sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Submit the whole sitemap
+        if: github.event_name == 'workflow_dispatch'
+        run: node scripts/indexnow-submit.mjs
+
+      - name: Find the previous successful Production deploy
+        if: github.event_name == 'deployment_status'
+        id: prev
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.deployment.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          prev=""
+          for row in $(gh api "repos/$REPO/deployments?environment=Production&per_page=30" --jq '.[] | "\(.id):\(.sha)"'); do
+            id="${row%%:*}"; sha="${row#*:}"
+            [ "$sha" = "$SHA" ] && continue
+            git merge-base --is-ancestor "$sha" "$SHA" 2>/dev/null || continue
+            state=$(gh api "repos/$REPO/deployments/$id/statuses" --jq '[.[] | select(.state=="success")] | length')
+            if [ "$state" != "0" ]; then prev="$sha"; break; fi
+          done
+          [ -z "$prev" ] && prev=$(git rev-parse "$SHA^1")
+          echo "Previous Production deploy: $prev"
+          echo "sha=$prev" >> "$GITHUB_OUTPUT"
+
+      - name: Submit pages changed since then
+        if: github.event_name == 'deployment_status'
+        run: node scripts/indexnow-submit.mjs --changed-from "${{ steps.prev.outputs.sha }}" --changed-to "${{ github.event.deployment.sha }}"
