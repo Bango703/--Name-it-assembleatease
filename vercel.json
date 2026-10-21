@@ -73,6 +73,11 @@
       "permanent": true
     }
   ],
+  "functions": {
+    "api/cron/auto-blog.js": {
+      "includeFiles": "{business-artifacts/page-governance/site-governance.json,assets/js/booking-source-of-truth.js}"
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/notification-retries",
@@ -152,7 +157,7 @@
     },
     {
       "path": "/api/cron/auto-blog",
-      "schedule": "0 9 1,15 * *"
+      "schedule": "0 14 * * 1"
     },
     {
       "path": "/api/cron/auto-social",

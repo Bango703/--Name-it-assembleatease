@@ -1,781 +1,151 @@
+// Weekly blog article, delivered as a pull request the owner merges.
+//
+// The engine (api/_blog-engine.js) picks the next topic from the editorial
+// calendar, writes it with the real catalog prices, checks it, gives it a photo
+// no other article uses, renders it with the same renderer as every other
+// article, and opens a pull request with the page, its data file, the index card
+// and the sitemap entry. CI runs every guard on it; merging publishes it, and the
+// IndexNow workflow and the social top-up take it from there.
+//
+// It never commits to main (branch protection blocks that, which is part of why
+// the old pipeline published nothing after June). Off unless
+// AUTO_BLOG_PUBLISH_ENABLED=true.
+
 import Anthropic from '@anthropic-ai/sdk';
-import { sendEmail, ownerEmail } from '../_email.js';
-import { generateContentKit, renderContentKitEmailHtml } from '../_content-kit.js';
-import { publishContentKit } from '../_social-publisher.js';
 import { logCron } from './_cron-logger.js';
+import { getSupabase } from '../_supabase.js';
+import { WEBSITE_PHOTO_BUCKET } from '../_website-photos.js';
+import { sendEmail, ownerEmail, esc } from '../_email.js';
+import {
+  SITE, BLOG_MODEL, SERVICES, pickNextTopic, catalogFactsFor, buildArticlePrompt, validateArticleData,
+  pickArticleImage, buildEngineArticle, relatedArticleFor, indexGroupId, addToBlogIndex, addToSitemap,
+  readRepoFile, listRepoDir, openBlogPullRequest,
+} from '../_blog-engine.js';
 
-const REPO_OWNER = 'Bango703';
-const REPO_NAME  = '--Name-it-assembleatease';
-const SITE       = 'https://www.assembleatease.com';
-
-// Topic pool: AI picks the best untouched one each run.
-const LEGACY_AUSTIN_TOPIC_POOL = [
-  // -- FURNITURE ASSEMBLY -------------------------------------------
-  'how to hang a tv on a brick wall in austin',
-  'wayfair furniture assembly tips austin tx',
-  'home office setup assembly austin',
-  'nursery furniture assembly checklist',
-  'murphy bed assembly and installation austin',
-  'how long does furniture assembly take',
-  'west elm furniture assembly austin',
-  'costco furniture assembly austin tx',
-  'amazon furniture assembly service austin',
-  'bookshelf and shelving unit assembly austin',
-  'outdoor patio furniture assembly austin',
-  'desk assembly service austin tx',
-  'dining table and chair assembly austin',
-  'wardrobe and closet assembly austin tx',
-  'baby crib and changing table assembly austin',
-  'home gym equipment assembly austin',
-  'floating shelves installation austin tx',
-  'ashley furniture assembly service austin tx',
-  'target furniture assembly austin tx',
-  'cb2 furniture assembly austin texas',
-  'article furniture assembly austin',
-  'home depot furniture assembly austin',
-  'walmart furniture assembly service austin',
-  'restoration hardware furniture assembly austin',
-  'pottery barn furniture assembly austin tx',
-  'room and board furniture assembly austin',
-  'bobs furniture assembly austin texas',
-  'value city furniture assembly austin tx',
-  'overstock furniture assembly austin',
-  'crate and barrel furniture assembly austin',
-  'how to assemble a sectional sofa austin',
-  'bunk bed assembly service austin tx',
-  'loft bed assembly austin texas',
-  'platform bed assembly austin tx',
-  'daybed assembly austin texas',
-  'filing cabinet assembly austin tx',
-  'entertainment center assembly austin',
-  'tv console assembly service austin tx',
-  'kitchen island assembly austin',
-  'bar cabinet assembly austin texas',
-  'shoe rack and entryway assembly austin',
-  'storage ottoman assembly austin tx',
-  'standing desk assembly austin',
-  'l shaped desk assembly austin tx',
-  'corner desk assembly service austin',
-
-  // -- TV MOUNTING ---------------------------------------------------
-  'how to mount a tv without studs',
-  'tv mounting cost austin tx',
-  'best height to mount a tv in bedroom',
-  'how to hide tv wires in wall austin',
-  'tv mounting above fireplace austin tx',
-  'outdoor tv installation austin texas',
-  'projector screen installation austin',
-  'how to mount a 75 inch tv austin',
-  'tv wall mount installation cost austin',
-  'dual monitor wall mount installation austin',
-  'commercial tv mounting austin tx',
-  'tv mounting in apartment austin texas',
-  'tv mounting on stone wall austin',
-  'soundbar installation and mounting austin',
-  'tv mounting above mantle austin tx',
-  'tilt vs full motion tv mount austin',
-  'tv mounting service same day austin',
-  'how to find studs for tv mounting austin',
-  'cord concealment service austin tx',
-  'tv mounting and cable management austin',
-
-  // -- SMART HOME ----------------------------------------------------
-  'smart doorbell installation austin',
-  'nest thermostat installation austin tx',
-  'ring doorbell installation austin texas',
-  'smart lock installation austin tx',
-  'ecobee thermostat installation austin',
-  'arlo security camera installation austin',
-  'google nest camera installation austin tx',
-  'smart light switch installation austin',
-  'smart home setup austin texas',
-  'amazon echo setup and installation austin',
-  'google home setup austin tx',
-  'smart smoke detector installation austin',
-  'august smart lock installation austin tx',
-  'lutron smart lighting austin texas',
-  'smart garage door opener installation austin',
-  'wifi thermostat installation cost austin tx',
-  'whole home smart lighting installation austin',
-  'security camera system installation austin tx',
-  'doorbell camera installation cost austin',
-  'smart home device setup and configuration austin',
-
-  // -- AUSTIN NEIGHBORHOODS (hyper-local "near me" SEO) -------------
-  'furniture assembly south congress austin',
-  'furniture assembly service east austin tx',
-  'furniture assembly domain northside austin',
-  'tv mounting service south lamar austin',
-  'furniture assembly westlake hills texas',
-  'handyman service mueller austin texas',
-  'furniture assembly tarrytown austin tx',
-  'tv mounting hyde park austin texas',
-  'furniture assembly service barton hills austin',
-  'same day furniture assembly north austin',
-  'furniture assembly bouldin creek austin',
-  'handyman assembly service cedar park texas',
-  'furniture assembly steiner ranch austin tx',
-  'tv mounting round rock texas near me',
-  'furniture assembly pflugerville tx near me',
-  'handyman assembly lakeway texas',
-  'furniture assembly bee cave tx',
-  'ikea assembly service near me austin tx',
-  'wayfair furniture assembly near me austin',
-  'same day assembly service near me austin',
-
-  // -- HIGH-INTENT BUYER KEYWORDS ------------------------------------
-  'how much does furniture assembly cost in austin',
-  'furniture assembly service cost austin 2025',
-  'is it worth hiring someone to assemble furniture austin',
-  'how to find a furniture assembler near me austin',
-  'best furniture assembly companies austin tx',
-  'how to book furniture assembly online austin',
-  'what to expect from a furniture assembly service',
-  'furniture assembly tips for new homeowners austin',
-  'apartment furniture assembly service austin texas',
-  'moving into a new home furniture assembly austin',
-
-  // -- COMPARISON + FAQ CONTENT --------------------------------------
-  'ikea vs wayfair which is harder to assemble austin',
-  'diy furniture assembly vs hiring a pro austin',
-  'how long does ikea furniture assembly take austin',
-  'what tools does furniture assembly require',
-  'how to prepare your home for furniture assembly service',
-  'furniture assembly mistakes to avoid austin',
-  'tv mount types explained which is best for your wall',
-  'how to pick the right tv wall mount austin',
-  'smart home thermostat nest vs ecobee austin',
-];
-
-// Active editorial calendar: practical, market-specific Texas content. These
-// topics rotate across major metros and regions instead of publishing another
-// Austin variant every run. Publishing remains disabled unless the existing
-// AUTO_BLOG_PUBLISH_ENABLED safety flag is explicitly enabled.
-const TOPIC_POOL = [
-  'furniture assembly planning for a Houston apartment move-in',
-  'TV mounting on brick walls in Houston homes',
-  'patio furniture assembly before Houston storm season',
-  'home office furniture setup for Houston hybrid workers',
-  'fitness equipment assembly in Houston garages',
-  'how Dallas renters can prepare for furniture assembly day',
-  'TV mounting and cable planning for Dallas condos',
-  'standing desk and office assembly for Dallas home offices',
-  'nursery furniture assembly checklist for Dallas families',
-  'outdoor furniture assembly timing in North Texas weather',
-  'San Antonio move-in furniture assembly checklist',
-  'TV mounting considerations for San Antonio stucco and masonry walls',
-  'backyard playset assembly planning in San Antonio',
-  'home gym assembly for San Antonio garages',
-  'Fort Worth furniture assembly after delivery day',
-  'TV and soundbar mounting guide for Fort Worth homes',
-  'office furniture assembly for Fort Worth small businesses',
-  'outdoor furniture setup in Fort Worth wind and heat',
-  'El Paso furniture assembly and room setup checklist',
-  'TV mounting on masonry walls in El Paso homes',
-  'Corpus Christi outdoor furniture assembly and coastal humidity',
-  'Corpus Christi TV mounting and salt-air hardware care',
-  'Rio Grande Valley move-in furniture assembly checklist',
-  'McAllen home office and desk assembly planning',
-  'Waco student apartment furniture assembly checklist',
-  'College Station move-in assembly planning for students and families',
-  'Lubbock home gym and fitness equipment assembly planning',
-  'Amarillo furniture anchoring and assembly in high-wind conditions',
-  'Midland and Odessa home office furniture assembly guide',
-  'Austin furniture assembly planning for a same-week move-in',
-  'Austin TV mounting preparation and cable-management checklist',
-  'Central Texas playset and gazebo assembly site-preparation guide',
-  'Texas furniture assembly checklist for used and previously assembled items',
-  'Texas TV mounting checklist for renters and homeowners',
-  'Texas home gym assembly safety checklist',
-  'Texas business furniture assembly planning for multi-room projects',
-];
+const MAX_ATTEMPTS = 2;
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST' && req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   const startedAt = Date.now();
   const cronSecret = String(process.env.CRON_SECRET || '');
-  if (!cronSecret || req.headers.authorization !== 'Bearer ' + cronSecret) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (!cronSecret || req.headers.authorization !== 'Bearer ' + cronSecret) return res.status(401).json({ error: 'Unauthorized' });
 
   if (String(process.env.AUTO_BLOG_PUBLISH_ENABLED || '').toLowerCase() !== 'true') {
     await logCron('auto-blog', { status: 'ok', records: 0, duration: Date.now() - startedAt });
-    return res.status(200).json({
-      success: true,
-      disabled: true,
-      reason: 'AUTO_BLOG_PUBLISH_ENABLED is not enabled.',
+    return res.status(200).json({ success: true, disabled: true, reason: 'AUTO_BLOG_PUBLISH_ENABLED is not enabled.' });
+  }
+
+  const token = process.env.GITHUB_TOKEN;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (!token || !anthropicKey) {
+    const error = `Missing ${!token ? 'GITHUB_TOKEN' : 'ANTHROPIC_API_KEY'}; no article was written.`;
+    await logCron('auto-blog', { status: 'error', records: 0, error, duration: Date.now() - startedAt });
+    return res.status(500).json({ error });
+  }
+
+  try {
+    const result = await writeNextArticle({ token, anthropicKey });
+    await logCron('auto-blog', {
+      status: result.ok ? 'ok' : 'error',
+      records: result.ok ? 1 : 0,
+      error: result.ok ? null : result.reason,
+      duration: Date.now() - startedAt,
     });
+    return res.status(result.ok ? 200 : 422).json(result);
+  } catch (error) {
+    await logCron('auto-blog', { status: 'error', records: 0, error: error?.message || String(error), duration: Date.now() - startedAt });
+    return res.status(500).json({ error: 'Blog run failed', detail: error?.message || String(error) });
   }
+}
 
-  const githubToken   = process.env.GITHUB_TOKEN;
-  const anthropicKey  = process.env.ANTHROPIC_API_KEY;
+export async function writeNextArticle({ token, anthropicKey, now = new Date(), anthropic, fetchImpl = globalThis.fetch, jobPhotos, notify = true } = {}) {
+  const writer = anthropic || new Anthropic({ apiKey: anthropicKey });
+  const today = now.toISOString().slice(0, 10);
+  const files = await listRepoDir(token, 'blog', { fetchImpl });
+  const existingSlugs = files.filter((f) => f.name.endsWith('.html') && f.name !== 'index.html').map((f) => f.name.replace(/\.html$/, ''));
+  const index = await readRepoFile(token, 'blog/index.html', { fetchImpl });
+  const existingTitles = [...index.content.matchAll(/<span class="guide-title"[^>]*>([^<]+)<\/span>/g)].map((m) => m[1]);
+  const usedImages = [...index.content.matchAll(/<img src="([^"]+)"/g)].map((m) => m[1]);
 
-  if (!githubToken || !anthropicKey) {
-    return res.status(500).json({ error: 'Missing GITHUB_TOKEN or ANTHROPIC_API_KEY' });
-  }
+  const topic = pickNextTopic({ existingSlugs, existingTitles, now });
+  if (!topic) return { ok: false, reason: 'Every calendar topic is already published; add topics to BLOG_CALENDAR.' };
 
-  // -- 1. Get existing blog files to avoid duplicates --------------
-  let existingSlugs = [];
-  try {
-    const ghRes = await fetch(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/blog`,
-      { headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' } }
-    );
-    const files = await ghRes.json();
-    if (Array.isArray(files)) {
-      existingSlugs = files
-        .filter(f => f.name.endsWith('.html') && f.name !== 'index.html')
-        .map(f => f.name.replace('.html', ''));
-    }
-  } catch (e) {
-    console.error('GitHub file list error:', e);
-  }
-
-  // Filter out already-covered topics
-  const available = TOPIC_POOL.filter(t => {
-    const slug = topicToSlug(t);
-    return !existingSlugs.includes(slug);
-  });
-
-  if (!available.length) {
-    return res.status(200).json({ message: 'All topics already published' });
-  }
-
-  // Pick a random unused topic
-  const topic = available[Math.floor(Math.random() * available.length)];
-  const market = marketForTopic(topic);
-  const slug  = topicToSlug(topic);
-  const today = new Date().toISOString().slice(0, 10);
-
-  // -- 2. Generate blog post HTML with Claude -----------------------
-  const anthropic = new Anthropic({ apiKey: anthropicKey });
-
-  const systemPrompt = `You are an SEO content writer for AssembleAtEase, a professional assembly and home-service marketplace serving customers across Texas.
-
-Write a useful, booking-focused guide as complete HTML content (article body only - no <html>, <head>, or <body> tags).
-
-Rules:
-- Target audience: homeowners, renters, property managers, and businesses in ${market}
-- Tone: helpful, expert, conversational, direct
-- Begin with one <h1> containing the proposed article title
-- Use 3-5 descriptive <h2> sections, useful <p> paragraphs, and one practical <ul> or <ol> checklist
-- Answer the topic completely enough that the reader does not need another generic article to understand the next step
-- Do not write to an arbitrary word count, pad the article, repeat points, or create city-name filler
-- Reference AssembleAtEase naturally once
-- Use ${market} naturally only where the local context is genuinely useful
-- Do not claim local job history, local staff, first-person field experience, meetings, partnerships, project counts, same-day availability, guaranteed coverage, or customer results
-- Do not quote a price or fee because no live catalog data was supplied in this prompt
-- Do not claim service outside Texas; say that availability is confirmed for the service address before assignment
-- Use <strong> for key phrases
-- Do NOT include CSS, scripts, or outer HTML structure
-
-Output ONLY the HTML article content - nothing else.`;
-
-  const userPrompt = `Write a practical booking-focused guide about: "${topic}"
-
-The article title should be an SEO-friendly question or statement about this topic for ${market}.
-Make it genuinely useful with specific preparation, scope, safety, and booking advice. Avoid generic marketing filler.`;
-
-  let articleHtml;
-  try {
-    const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
-      messages: [{ role: 'user', content: userPrompt }],
-      system: systemPrompt,
+  const facts = catalogFactsFor(topic.service);
+  const { system, user } = buildArticlePrompt(topic, facts);
+  let checked = null;
+  let lastReason = '';
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS && !checked; attempt += 1) {
+    const message = await writer.messages.create({
+      model: BLOG_MODEL,
+      max_tokens: 8000,
+      system,
+      messages: [{ role: 'user', content: attempt === 1 ? user : `${user}\n\nThe previous draft was rejected: ${lastReason} Fix that.` }],
     });
-    articleHtml = message.content[0]?.text?.trim();
-  } catch (e) {
-    console.error('Anthropic error:', e);
-    return res.status(500).json({ error: 'Failed to generate blog content', detail: e?.message || String(e) });
+    const result = validateArticleData(message.content?.[0]?.text || '', { allowedPrices: facts.prices });
+    if (result.ok) checked = result.article;
+    else lastReason = result.reason;
   }
+  if (!checked) return { ok: false, slug: topic.slug, reason: `Draft for "${topic.slug}" failed its checks twice: ${lastReason}` };
 
-  if (!articleHtml) {
-    return res.status(500).json({ error: 'Empty response from AI' });
-  }
-
-  // Extract title from first <h1> or first <h2>
-  const h1Match = articleHtml.match(/<h1[^>]*>(.*?)<\/h1>/i);
-  const h2Match = articleHtml.match(/<h2[^>]*>(.*?)<\/h2>/i);
-  const rawTitle = (h1Match?.[1] || h2Match?.[1] || topic)
-    .replace(/<[^>]+>/g, '').trim();
-  const title = rawTitle.length > 10 ? rawTitle : `${capitalize(topic)} - ${market}`;
-
-  // Remove any accidental h1 from body (we put it in the hero)
-  const cleaned = sanitizeArticleHtml(articleHtml.replace(/<h1[^>]*>.*?<\/h1>/gi, ''), topic, market);
-  if (!cleaned.ok) {
-    console.error('Auto-blog content rejected:', cleaned.reason);
-    return res.status(422).json({ error: 'Generated article did not pass content quality and claim-safety checks.', reason: cleaned.reason });
-  }
-  const cleanBody = cleaned.html;
-
-  // -- 3. Build the full HTML page ----------------------------------
-  const canonicalUrl = `${SITE}/blog/${slug}`;
-  const readTime = Math.max(3, Math.ceil(cleaned.wordCount / 225));
-  const articleImage = imageForTopic({ title, topic, slug });
-
-  const fullHtml = buildBlogPage({ title, canonicalUrl, today, readTime, body: cleanBody, image: articleImage, market });
-
-  // -- 4. Commit to GitHub ------------------------------------------
-  const filePath = `blog/${slug}.html`;
-  const content  = Buffer.from(fullHtml).toString('base64');
-
-  try {
-    const ghPut = await fetch(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: `token ${githubToken}`,
-          Accept: 'application/vnd.github+json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: `Auto-blog: ${title}`,
-          content,
-          branch: 'main',
-        }),
-      }
-    );
-
-    if (!ghPut.ok) {
-      const err = await ghPut.text();
-      console.error('GitHub commit error:', err);
-      return res.status(500).json({ error: 'Failed to commit blog post to GitHub' });
-    }
-  } catch (e) {
-    console.error('GitHub API error:', e);
-    return res.status(500).json({ error: 'GitHub API request failed' });
-  }
-
-  console.log(`Auto-blog published: ${filePath}`);
-
-  // -- 5. Update blog/index.html: prepend new card ----------------
-  try {
-    // Fetch current index
-    const idxRes = await fetch(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/blog/index.html`,
-      { headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' } }
-    );
-    if (idxRes.ok) {
-      const idxData  = await idxRes.json();
-      const idxHtml  = Buffer.from(idxData.content, 'base64').toString('utf8');
-      const idxSha   = idxData.sha;
-
-      // Derive tag from topic keywords
-      const tLower = topic.toLowerCase();
-      const tag = tLower.includes('tv') || tLower.includes('mount') || tLower.includes('projector') ? 'TV mounting'
-        : tLower.includes('smart') || tLower.includes('nest') || tLower.includes('ring') || tLower.includes('camera') || tLower.includes('thermostat') || tLower.includes('lock') ? 'Smart home'
-        : 'Furniture assembly';
-      const groupId = tag === 'TV mounting' ? 'tv-guides' : tag === 'Furniture assembly' ? 'furniture-guides' : 'home-guides';
-      const image = tag === 'TV mounting' ? '/images/service-tv-mounting.jpg'
-        : tag === 'Smart home' ? '/images/service-smart-home.jpg'
-        : '/images/service-furniture-assembly.jpg';
-
-      const excerpt = cleanBody.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) + '...';
-      const safeTitle = title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      const safeExcerpt = excerpt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      const newCard = `\n      <a href="/blog/${slug}" class="guide-card">
-        <span class="guide-thumb"><img src="${image}" alt="${tag} guide for ${market}" loading="lazy" width="300" height="300"></span>
-        <span><span class="guide-meta">${tag}</span><span class="guide-title">${safeTitle}</span><span class="guide-copy">${safeExcerpt}</span><span class="guide-link">Read blog</span></span>
-      </a>\n`;
-
-      const groupGrid = new RegExp(`(<section class="guide-group" id="${groupId}"[\\s\\S]*?<div class="guides-grid">)`);
-      const withCard = idxHtml.replace(groupGrid, (match) => `${match}${newCard}`);
-      if (withCard === idxHtml) {
-        throw new Error(`Guide grid marker not found for ${groupId} in blog/index.html`);
-      }
-      const updatedIdx = addArticleToIndexSchema(withCard, { title, canonicalUrl });
-
-      await fetch(
-        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/blog/index.html`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `token ${githubToken}`,
-            Accept: 'application/vnd.github+json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: `Auto-blog index: add ${slug}`,
-            content: Buffer.from(updatedIdx).toString('base64'),
-            sha: idxSha,
-            branch: 'main',
-          }),
-        }
-      );
-      console.log(`Auto-blog index updated with: ${slug}`);
-    }
-  } catch (idxErr) {
-    console.error('Blog index update error (non-fatal):', idxErr);
-  }
-
-  try {
-    await updateRemoteSitemap({ githubToken, canonicalUrl, today });
-  } catch (sitemapErr) {
-    console.error('Sitemap update error (non-fatal):', sitemapErr);
-  }
-
-  // -- 6. Generate the social kit and optionally auto-publish (non-fatal) --
-  // Email remains as an owner record. Real posting happens when SOCIAL_AUTO_PUBLISH
-  // is true and the Buffer API key/channel IDs are configured.
-  let contentKitEmailed = false;
-  let socialPublish = null;
-  try {
-    const kit = await generateContentKit({ title, url: canonicalUrl, tag: topic });
-    if (kit) {
-      await sendEmail({
-        to: ownerEmail(),
-        from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: `Social content kit - ${title}`,
-        html: renderContentKitEmailHtml({ title, url: canonicalUrl, kit }),
-      });
-      contentKitEmailed = true;
-      console.log('Auto-blog: content kit emailed to owner for', slug);
-
-      if (String(process.env.SOCIAL_AUTO_PUBLISH || '').toLowerCase() === 'true') {
-        socialPublish = await publishContentKit({
-          title,
-          url: canonicalUrl,
-          imageUrl: `${SITE}${imageForTopic({ title, topic, slug })}`,
-          kit,
-        });
-        console.log('Auto-blog: social publish attempted for', slug, socialPublish);
-      }
-    }
-  } catch (kitErr) {
-    console.error('Auto-blog content kit (non-fatal):', kitErr?.message || kitErr);
-  }
-
-  return res.status(200).json({ success: true, slug, title, url: canonicalUrl, contentKitEmailed, socialPublish });
-}
-
-function imageForTopic({ title = '', topic = '', slug = '' } = {}) {
-  const text = `${title} ${topic} ${slug}`.toLowerCase();
-  if (/(smart|camera|lock|doorbell|thermostat|security|ring|nest|ecobee)/.test(text)) return '/images/service-smart-home.jpg';
-  if (/(tv|mount|wall|cord|outdoor-tv)/.test(text)) return '/images/service-tv-mounting.jpg';
-  if (/(bed|ikea|wayfair|crate|barrel|furniture|pax|dresser|desk)/.test(text)) return '/images/service-furniture-assembly.jpg';
-  if (/(garage|shelving|storage)/.test(text)) return '/images/work-office-assembly.jpg';
-  if (/(fitness|treadmill|bike|gym|rack|bench)/.test(text)) return '/images/service-fitness-equipment.jpg';
-  if (/(playset|outdoor|gazebo|patio|backyard)/.test(text)) return '/images/service-outdoor-playsets.jpg';
-  if (/(office|workspace|cubicle)/.test(text)) return '/images/service-office-assembly.jpg';
-  return '/images/people-service-calm.jpg';
-}
-
-export function sanitizeArticleHtml(html, topic, market) {
-  let safe = String(html || '')
-    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
-    .replace(/<style\b[\s\S]*?<\/style>/gi, '')
-    .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, '')
-    .replace(/<!--([\s\S]*?)-->/g, '')
-    .replace(/<div[^>]*class=["'][^"']*article-cta[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, '')
-    .replace(/<a\b[^>]*>/gi, '')
-    .replace(/<\/a>/gi, '')
-    .replace(/<(h2|h3|p|ul|ol|li|strong|em)\b[^>]*>/gi, '<$1>')
-    .replace(/<\/(h2|h3|p|ul|ol|li|strong|em)\s*>/gi, '</$1>')
-    .replace(/<(?!\/?(?:h2|h3|p|ul|ol|li|strong|em)\b)[^>]+>/gi, '')
-    .trim();
-
-  const text = safe.replace(/<[^>]+>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' ').replace(/\s+/g, ' ').trim();
-  const wordCount = text.split(/\s+/).filter(Boolean).length;
-  const h2Count = (safe.match(/<h2>/gi) || []).length;
-  const paragraphCount = (safe.match(/<p>/gi) || []).length;
-  const hasList = /<(?:ul|ol)>/i.test(safe);
-  const unsupportedClaim = /\b(?:we recently|we have (?:helped|served|completed)|our customers (?:say|tell)|dozens of (?:customers|jobs|homes)|hundreds of (?:customers|jobs|homes)|same-day available|guaranteed coverage|our local team|seeing in the field)\b/i.test(text);
-
-  if (wordCount < 350) return { ok: false, reason: `Article is too thin (${wordCount} words).` };
-  if (h2Count < 3) return { ok: false, reason: `Article has only ${h2Count} H2 sections.` };
-  if (paragraphCount < 4 || !hasList) return { ok: false, reason: 'Article needs at least four paragraphs and one practical list.' };
-  if (unsupportedClaim) return { ok: false, reason: 'Article contains an unsupported experience, volume, or availability claim.' };
-  if (/\$\s*\d/.test(text)) return { ok: false, reason: 'Article contains a price that was not supplied by the live catalog.' };
-
-  safe += `
-<aside class="article-market-note"><strong>Location note.</strong> This guide focuses on ${market}. Service availability is confirmed for the service address before assignment.</aside>
-<div class="article-cta">
-  <div><strong>Ready to plan the full job?</strong><span>Enter the service address and complete scope so availability and pricing can be checked before assignment.</span></div>
-  <a href="/book" class="btn btn-cyan btn-lg">Check Texas Availability</a>
-</div>`;
-  return { ok: true, html: safe, wordCount };
-}
-
-export function addArticleToIndexSchema(html, { title, canonicalUrl } = {}) {
-  let found = false;
-  const updated = String(html || '').replace(
-    /<script\s+type="application\/ld\+json">([\s\S]*?)<\/script>/gi,
-    (full, rawJson) => {
-      try {
-        const data = JSON.parse(rawJson);
-        if (data?.['@type'] !== 'CollectionPage') return full;
-        const items = data?.mainEntity?.itemListElement;
-        if (!Array.isArray(items)) return full;
-        found = true;
-        if (!items.some((item) => item?.url === canonicalUrl)) {
-          items.push({ '@type': 'ListItem', position: items.length + 1, name: title, url: canonicalUrl });
-        }
-        items.forEach((item, index) => { item.position = index + 1; });
-        return `<script type="application/ld+json">${JSON.stringify(data)}</script>`;
-      } catch {
-        return full;
-      }
-    },
-  );
-  if (!found) throw new Error('CollectionPage JSON-LD not found in blog/index.html');
-  return updated;
-}
-
-async function updateRemoteSitemap({ githubToken, canonicalUrl, today }) {
-  if (!canonicalUrl.startsWith(`${SITE}/blog/`)) throw new Error('Refusing to add a non-blog URL to sitemap.xml');
-  const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/sitemap.xml`;
-  const response = await fetch(apiUrl, {
-    headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' },
+  const photos = jobPhotos || await publishedJobPhotos(SERVICES[topic.service].photo);
+  const image = pickArticleImage({ service: topic.service, usedImages, jobPhotos: photos });
+  const url = `${SITE}/blog/${topic.slug}`;
+  const related = relatedArticleFor(index.content, topic);
+  const built = buildEngineArticle({ topic, article: checked, image, today, related: related ? [related] : [] });
+  const sitemap = await readRepoFile(token, 'sitemap.xml', { fetchImpl });
+  const pr = await openBlogPullRequest({
+    token,
+    slug: topic.slug,
+    title: checked.title,
+    fetchImpl,
+    files: [
+      { path: `blog/data/${topic.slug}.json`, content: `${JSON.stringify({ post: built.post, content: built.content, source: { model: BLOG_MODEL, topic: topic.topic, generatedAt: now.toISOString() } }, null, 2)}\n` },
+      { path: `blog/${topic.slug}.html`, content: built.html },
+      { path: 'blog/index.html', content: addToBlogIndex(index.content, { card: built.card, groupId: indexGroupId(topic.service), title: checked.title, url }), sha: index.sha },
+      { path: 'sitemap.xml', content: addToSitemap(sitemap.content, { url, today }), sha: sitemap.sha },
+    ],
+    body: [
+      `New article from the blog engine: **${checked.title}**`,
+      '',
+      `- Topic: ${topic.topic}`,
+      `- Service: ${topic.service}; every price checked against the catalog`,
+      `- ${checked.wordCount} words, ${checked.sections.length} sections, ${checked.faq.length} FAQ questions`,
+      `- Photo: ${image.source === 'job-photo' ? 'a published job photo' : 'a site photo'}${image.reused ? '. **Already used by another article; replace it before merging.**' : ', not used by any other article'}`,
+      '',
+      'Read it in the Vercel preview, edit anything on this branch, then merge to publish.',
+      '',
+      '🤖 Generated with [Claude Code](https://claude.com/claude-code)',
+    ].join('\n'),
   });
-  if (!response.ok) throw new Error(`Could not read sitemap.xml (${response.status})`);
-  const data = await response.json();
-  let sitemap = Buffer.from(data.content, 'base64').toString('utf8');
-  sitemap = sitemap.replace(
-    /(<loc>https:\/\/www\.assembleatease\.com\/blog<\/loc><lastmod>)[^<]+/,
-    `$1${today}`,
-  );
-  if (!sitemap.includes(`<loc>${canonicalUrl}</loc>`)) {
-    const entry = `  <url><loc>${canonicalUrl}</loc><lastmod>${today}</lastmod><priority>0.6</priority></url>`;
-    sitemap = sitemap.replace(/\s*<\/urlset>\s*$/, `\n${entry}\n</urlset>\n`);
+
+  if (notify) {
+    await sendEmail({
+      to: ownerEmail(),
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `New blog article ready to review: ${checked.title}`,
+      html: `<p>A new article is ready to review: <strong>${esc(checked.title)}</strong>.</p><p>Read it in the preview and merge the pull request to publish it:<br/><a href="${esc(pr.url)}">${esc(pr.url)}</a></p>${image.reused ? '<p>The photo is already used by another article. Replace it before merging.</p>' : ''}`,
+      meta: { notificationType: 'blog_article_ready', recipientType: 'owner' },
+    }).catch((error) => console.error('Blog review email failed:', error?.message || error));
   }
-  const put = await fetch(apiUrl, {
-    method: 'PUT',
-    headers: {
-      Authorization: `token ${githubToken}`,
-      Accept: 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      message: `Auto-blog sitemap: add ${new URL(canonicalUrl).pathname}`,
-      content: Buffer.from(sitemap).toString('base64'),
-      sha: data.sha,
-      branch: 'main',
-    }),
-  });
-  if (!put.ok) throw new Error(`Could not update sitemap.xml (${put.status})`);
+
+  return { ok: true, slug: topic.slug, title: checked.title, pullRequest: pr.url, photoReused: image.reused };
 }
 
-// -- Helpers ----------------------------------------------------------
-
-function topicToSlug(topic) {
-  return topic
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
-function capitalize(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function marketForTopic(topic) {
-  const value = String(topic || '').toLowerCase();
-  const markets = [
-    ['Houston', /houston/], ['Dallas', /dallas/], ['San Antonio', /san antonio/],
-    ['Fort Worth', /fort worth/], ['El Paso', /el paso/], ['Corpus Christi', /corpus christi/],
-    ['Rio Grande Valley', /rio grande valley|mcallen/], ['Waco', /waco/],
-    ['College Station', /college station/], ['Lubbock', /lubbock/], ['Amarillo', /amarillo/],
-    ['Midland–Odessa', /midland|odessa/], ['Austin', /austin/], ['Central Texas', /central texas/],
-  ];
-  const found = markets.find(([, pattern]) => pattern.test(value));
-  return found ? `${found[0]}, Texas` : 'Texas';
-}
-
-function buildBlogPage({ title, canonicalUrl, today, readTime, body, image, market }) {
-  const escaped = title.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-  const displayDate = new Date(today).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const shareUrl = encodeURIComponent(canonicalUrl);
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<title>${escaped} &mdash; AssembleAtEase</title>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="description" content="${escaped}. Practical assembly and home-service guidance from AssembleAtEase for ${market}."/>
-<meta name="robots" content="index,follow,max-image-preview:large"/>
-<link rel="stylesheet" href="/assets/css/marketing.css"/>
-<link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
-<link rel="canonical" href="${canonicalUrl}"/>
-<meta property="og:type" content="article"/>
-<meta property="og:title" content="${escaped}"/>
-<meta property="og:description" content="${escaped}. Practical guidance from AssembleAtEase for ${market}."/>
-<meta property="og:url" content="${canonicalUrl}"/>
-<meta property="og:site_name" content="AssembleAtEase"/>
-<meta property="og:image" content="${SITE}${image}"/>
-<meta property="og:image:alt" content="${escaped} guide from AssembleAtEase"/>
-<meta property="article:published_time" content="${today}"/>
-<meta property="article:modified_time" content="${today}"/>
-<meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="${escaped}"/>
-<meta name="twitter:description" content="${escaped}. Practical guidance from AssembleAtEase for ${market}."/>
-<meta name="twitter:image" content="${SITE}${image}"/>
-<meta name="twitter:image:alt" content="${escaped} guide from AssembleAtEase"/>
-<link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/><link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
-<noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--cyan:#00BFFF;--cyan-dark:#00BFFF;--cyan-light:#e0f7fa;--ink:#0d1117;--ink-soft:#374151;--muted:#6b7280;--border:#e5e7eb;--off-white:#f9fafb;--white:#ffffff;--radius:12px;--radius-xl:24px;--font-display:'DM Serif Display',serif;--font-body:'DM Sans',sans-serif;--shadow:0 4px 20px rgba(0,0,0,0.08)}
-html{scroll-behavior:smooth}
-body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-.nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
-.nav-inner{max-width:1100px;margin:0 auto;padding:0 2rem;height:68px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
-.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.nav-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover}
-.nav-logo-text{font-family:var(--font-display);font-size:1.15rem;color:var(--ink)}
-.nav-logo-text span{color:var(--cyan)}
-.nav-links{display:flex;align-items:center;gap:2rem;list-style:none}
-.nav-links a{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
-.nav-links a:hover{color:var(--cyan)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0.65rem 1.5rem;border-radius:999px;font-family:var(--font-body);font-size:0.875rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s}
-.btn-cyan{background:var(--cyan);color:#fff}
-.btn-cyan:hover{background:#0099CC;box-shadow:0 4px 16px rgba(0,191,255,0.35);transform:translateY(-1px)}
-.btn-lg{padding:1rem 2.5rem;font-size:1rem}
-.page-hero{background:linear-gradient(135deg,#00BFFF,#0099CC);padding:3.5rem 2rem;text-align:center}
-.page-hero-inner{max-width:700px;margin:0 auto}
-.page-back{display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,0.75);text-decoration:none;font-size:0.82rem;font-weight:500;margin-bottom:1.25rem;transition:color 0.15s}
-.page-back:hover{color:#fff}
-.page-title{font-family:var(--font-display);font-size:clamp(1.75rem,3.5vw,2.5rem);color:#fff;margin-bottom:0.75rem;line-height:1.3}
-.page-desc{font-size:0.9rem;color:rgba(255,255,255,0.7);line-height:1.75}
-.article{padding:3rem 2rem 4rem;max-width:720px;margin:0 auto}
-.article h2{font-family:var(--font-display);font-size:1.35rem;color:var(--ink);margin:2.25rem 0 0.75rem}
-.article p{font-size:0.95rem;color:var(--ink-soft);line-height:1.85;margin-bottom:1rem}
-.article ul,.article ol{margin:0 0 1rem 1.5rem;color:var(--ink-soft);font-size:0.95rem;line-height:1.85}
-.article li{margin-bottom:0.35rem}
-.article strong{color:var(--ink)}
-.article a:not(.btn){color:var(--cyan);text-decoration:underline}
-.price-table{width:100%;border-collapse:collapse;margin:1rem 0 1.5rem;font-size:0.9rem}
-.price-table th{text-align:left;padding:0.6rem 1rem;background:var(--off-white);border-bottom:2px solid var(--border);font-weight:600;color:var(--ink)}
-.price-table td{padding:0.6rem 1rem;border-bottom:1px solid var(--border);color:var(--ink-soft)}
-.article-cta{text-align:center;margin-top:2.5rem;padding:2.5rem;background:var(--off-white);border-radius:var(--radius-xl)}
-.article-cta p{font-size:1rem;color:var(--ink);margin-bottom:1rem}
-.footer{background:#0a1628;padding:3rem 2rem 2rem}
-.footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:2rem}
-.footer-logo{display:flex;align-items:center;gap:10px;margin-bottom:0.75rem}
-.footer-logo img{width:38px;height:38px;border-radius:50%;object-fit:cover}
-.footer-logo-text{font-family:var(--font-display);font-size:1.05rem;color:#fff}
-.footer-logo-text span{color:var(--cyan)}
-.footer-tagline{font-size:0.82rem;color:rgba(255,255,255,0.38);line-height:1.65;margin-bottom:1rem}
-.footer-contact a{display:block;font-size:0.85rem;color:rgba(255,255,255,0.5);text-decoration:none;margin-bottom:3px}
-.footer-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.28);margin-bottom:0.85rem;font-weight:700}
-.footer-links{list-style:none;display:flex;flex-direction:column;gap:0.55rem}
-.footer-links a{font-size:0.85rem;color:rgba(255,255,255,0.45);text-decoration:none}
-.footer-links a:hover{color:#fff}
-.footer-bottom{max-width:1100px;margin:0 auto;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
-.footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.2)}
-.footer-legal{display:flex;gap:1.25rem}
-.footer-legal a{font-size:0.72rem;color:rgba(255,255,255,0.25);text-decoration:none}
-.footer-legal a:hover{color:rgba(255,255,255,0.6)}
-@media(max-width:900px){.nav-links{display:none}.footer-inner{grid-template-columns:1fr;gap:2rem}}
-</style>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","headline":"${escaped}","description":"${escaped}. Practical guidance from AssembleAtEase for ${market}.","url":"${canonicalUrl}","datePublished":"${today}","dateModified":"${today}","author":{"@type":"Organization","name":"AssembleAtEase","url":"${SITE}"},"publisher":{"@type":"Organization","name":"AssembleAtEase","url":"${SITE}","logo":{"@type":"ImageObject","url":"${SITE}/images/logo.jpg"}},"image":"${SITE}${image}","mainEntityOfPage":"${canonicalUrl}"}
-</script>
-</head>
-<body>
-<a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#00BFFF;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
-<nav class="nav"><div class="nav-inner"><a href="/" class="nav-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="nav-logo-text">Assemble<span>AtEase</span></div></a><ul class="nav-links"><li><a href="/#services">Services</a></li><li><a href="/blog/">Blogs</a></li><li><a href="/about">About Us</a></li><li><a href="/contact">Contact</a></li></ul><a href="/book" class="btn btn-cyan">Book Now</a></div></nav>
-
-<section class="page-hero" id="main-content"><div class="page-hero-inner"><a href="/blog/" class="page-back">&larr; Back to Blogs</a><h1 class="page-title">${escaped}</h1><p class="page-desc">${displayDate} &bull; ${readTime} min read</p></div></section>
-
-<article class="article">
-${body}
-</article>
-
-<section class="article-share-kit" aria-label="Share this blog">
-  <div class="article-share-inner">
-    <div class="article-share-copy">
-      <strong>Share this setup blog.</strong>
-      <span>Send it to someone planning a move-in, mount, assembly, or smart home visit.</span>
-    </div>
-    <div class="article-share-actions">
-      <a href="https://www.facebook.com/sharer/sharer.php?u=${shareUrl}" target="_blank" rel="noopener">Facebook</a>
-      <a href="https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}" target="_blank" rel="noopener">LinkedIn</a>
-      <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow</a>
-    </div>
-  </div>
-</section>
-
-<section style="background:linear-gradient(135deg,#003d47,#006070);padding:3rem 2rem;text-align:center;margin-top:3rem">
-  <div style="max-width:560px;margin:0 auto">
-    <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.6);margin-bottom:0.75rem;font-weight:700">${market} &bull; Availability Confirmed Before Assignment</div>
-    <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:#fff;margin-bottom:0.85rem;line-height:1.2">Ready to plan your service?</h2>
-    <p style="font-size:0.95rem;color:rgba(255,255,255,0.8);margin-bottom:1.75rem;line-height:1.7">Flat-rate pricing. Identity-verified pros. Secure checkout.</p>
-    <a href="/book" class="btn btn-cyan btn-lg" style="color:#fff;font-weight:700">Book a Service</a>
-  </div>
-</section>
-
-<footer class="footer">
-  <div class="footer-inner">
-    <div>
-      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
-      <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services with clear pricing and careful work.</p>
-      <div class="footer-contact">
-        <a href="tel:+19792325139">(979) 232-5139</a>
-        <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
-        <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow our project updates</a>
-      </div>
-    </div>
-    <div>
-      <div class="footer-col-title">Services</div>
-      <ul class="footer-links">
-        <li><a href="/furniture-assembly-austin-tx">Furniture Assembly</a></li>
-        <li><a href="/tv-mounting-austin-tx">TV Mounting</a></li>
-        <li><a href="/smart-home-installation-austin-tx">Smart Home Setup</a></li>
-        <li><a href="/fitness-equipment-assembly-austin-tx">Fitness Equipment</a></li>
-        <li><a href="/office-furniture-assembly-austin-tx">Office Furniture</a></li>
-        <li><a href="/playset-assembly-austin-tx">Outdoor / Playsets</a></li>
-        <li><a href="/business">Business &amp; Custom Quotes</a></li>
-      </ul>
-    </div>
-    <div>
-      <div class="footer-col-title">Company</div>
-      <ul class="footer-links">
-        <li><a href="/about">About Us</a></li>
-        <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/blog/">Blogs</a></li>
-        <li><a href="/#faq">FAQ</a></li>
-        <li><a href="/track">Track My Booking</a></li>
-        <li><a href="/contact">Contact</a></li>
-        <li><a href="/business">Business Services</a></li>
-        <li><a href="/assembler/apply">Become an Easer</a></li>
-      </ul>
-    </div>
-    <div style="grid-column:1 / -1">
-      <div class="footer-col-title">Home Setup Blogs</div>
-      <ul class="footer-links" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem">
-        <li><a href="/blog/">Furniture Assembly Guides</a></li>
-        <li><a href="/blog/">TV Mounting Guides</a></li>
-        <li><a href="/blog/">Smart Home Guides</a></li>
-        <li><a href="/blog/">Move-In Checklists</a></li>
-        <li><a href="/blog/">Business Setup Guides</a></li>
-        <li><a href="/blog/">All Texas Guides &rarr;</a></li>
-      </ul>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <div class="footer-copy">&copy; ${new Date().getFullYear()} AssembleAtEase LLC. All rights reserved.</div>
-    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
-  </div>
-</footer>
-<div id="cookie-banner" class="hidden" data-cookie-banner>
-  <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
-  <div class="cookie-btns">
-    <button type="button" class="cookie-btn cookie-decline" data-cookie-decline>Decline</button>
-    <button type="button" class="cookie-btn cookie-accept" data-cookie-accept>Accept</button>
-  </div>
-</div>
-<script src="/assets/js/cookie-consent.js" defer></script>
-</body>
-</html>`;
+async function publishedJobPhotos(serviceSlug) {
+  try {
+    const sb = getSupabase();
+    const { data, error } = await sb.from('booking_evidence')
+      .select('website_public_path, website_alt')
+      .eq('website_service', serviceSlug)
+      .not('website_published_at', 'is', null)
+      .order('website_published_at', { ascending: false })
+      .limit(30);
+    if (error) return [];
+    return (data || []).filter((r) => r.website_public_path).map((r) => ({
+      url: sb.storage.from(WEBSITE_PHOTO_BUCKET).getPublicUrl(r.website_public_path).data.publicUrl,
+      alt: r.website_alt,
+    }));
+  } catch (_) {
+    return [];
+  }
 }
