@@ -172,7 +172,6 @@ export default async function handler(req, res) {
     try {
       const result = await sendEmail({
         to: booking.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Return appointment confirmed — ${booking.ref}`,
         html: buildStatusEmail({
           customerName: booking.customer_name,

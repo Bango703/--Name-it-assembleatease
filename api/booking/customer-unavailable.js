@@ -91,7 +91,6 @@ export default async function handler(req, res) {
       }).catch(error => ({ ok: false, error: error?.message || String(error) })),
       booking.customer_email ? sendEmail({
         to: booking.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Your pro is at your home — ${booking.ref}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
           <p style="font-size:18px;font-weight:700;margin:0 0 10px">${esc(firstName)} is at your home and can't reach you</p>
@@ -140,7 +139,6 @@ export default async function handler(req, res) {
 
   await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
     subject: `Customer no-show reported — ${booking.ref}`,
     html: `<p style="font-family:Arial,sans-serif">${esc(easerName)} reported a customer no-show on <strong>${esc(booking.ref)}</strong> after waiting ${CUSTOMER_WAIT_MINUTES} minutes.</p>
       <p style="font-family:Arial,sans-serif">To confirm, cancel the booking with the <strong>No-show</strong> reason. That applies the cancellation policy and pays ${esc(firstName)} their share.</p>

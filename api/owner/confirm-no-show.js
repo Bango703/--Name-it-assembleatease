@@ -64,7 +64,6 @@ export default async function handler(req, res) {
   if (easer?.email) {
     const sent = await sendEmail({
       to: easer.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `No-show recorded — ${booking.ref}`,
       html: `<p>A no-show was recorded for job <strong>${esc(booking.ref)}</strong> on ${esc(formatAppointmentDate(booking.date))} at ${esc(booking.time || '')}.</p>
 <p>This counts as ${classification.strikes} reliability strikes. You now have ${strikes} in the last ${EASER_RELIABILITY_POLICY.windowDays} days.${pause.paused ? ' New jobs are paused until AssembleAtEase reviews your account.' : ` At ${EASER_RELIABILITY_POLICY.pauseAtStrikes}, new jobs pause.`}</p>

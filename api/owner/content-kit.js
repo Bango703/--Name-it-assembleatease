@@ -43,7 +43,6 @@ export default async function handler(req, res) {
     try {
       await sendEmail({
         to: ownerEmail(),
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Social content kit - ${article.title}`,
         html: renderContentKitEmailHtml({ title: article.title, url: article.url, kit }),
       });

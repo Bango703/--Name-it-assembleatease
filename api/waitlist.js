@@ -80,7 +80,6 @@ export default async function handler(req, res) {
 
   const ownerMail = sendEmail({
     to: TO,
-    from: 'AssembleAtEase Waitlist <waitlist@assembleatease.com>',
     subject: 'New Easer waitlist signup - ' + name + ' (' + city + ', ' + state + ')',
     html: ownerHtml,
     replyTo: email,
@@ -89,7 +88,6 @@ export default async function handler(req, res) {
   const welcome = buildWaitlistEmail({ name, city, state, variant: WAITLIST_EMAIL_VARIANT.SIGNUP });
   const easerMail = sendEmail({
     to: email,
-    from: 'AssembleAtEase <waitlist@assembleatease.com>',
     subject: welcome.subject,
     html: welcome.html,
     replyTo: TO,

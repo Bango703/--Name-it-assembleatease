@@ -236,7 +236,6 @@ export default async function handler(req, res) {
   // Notify owner
   const ownerNotice = await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `${label} — ${esc(booking.ref)} · ${esc(booking.service)}`,
     html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:1.5rem"><p style="font-size:1.1rem;font-weight:700;color:#00BFFF">${label}</p><p><strong>${esc(booking.assembler_name||'Easer')}</strong> — ${esc(booking.service)}<br>Customer: ${esc(booking.customer_name)}<br>Address: ${esc(formatAddress(booking.address))}</p><p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">View Dashboard</a></p></div>`,
     meta: { bookingId, notificationType: stage, recipientType: 'owner' },
@@ -279,7 +278,6 @@ export default async function handler(req, res) {
     const msg = customerMessages[stage];
     customerNotice = await sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: msg.subject,
       html: buildStatusEmail({
         customerName: customerFirstName,

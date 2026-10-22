@@ -225,7 +225,6 @@ async function sendCaseUpdate(operationCase, recipient, publicMessage) {
   const firstName = String(recipient.name || (recipient.type === 'easer' ? 'Easer' : 'Customer')).split(/\s+/)[0];
   const result = await sendEmail({
     to: recipient.email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Update for your AssembleAtEase request - ${operationCase.case_ref}`,
     html: buildStatusEmail({
       customerName: firstName,

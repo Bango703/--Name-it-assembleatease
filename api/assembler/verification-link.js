@@ -71,7 +71,6 @@ async function resolveAssemblerProfile(req, sb) {
       const replacementUrl = buildIdentityResumeUrl(replacementToken);
       const delivery = await sendEmail({
         to: profile.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'Your New Secure Easer Verification Link',
         replyTo: ownerEmail(),
         html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px"><h2 style="color:#00BFFF">New secure verification link</h2><p>Hi ${esc((profile.full_name || 'there').split(' ')[0])},</p><p>Your previous secure link expired. Use the new time-limited link below to continue the verification or agreement step required for your AssembleAtEase Easer account.</p><p><a href="${esc(replacementUrl)}" style="color:#00BFFF;font-weight:700">Continue account verification</a></p><p>If you did not request this, contact AssembleAtEase support.</p></div>`,

@@ -147,7 +147,6 @@ export default async function handler(req, res) {
 
     await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: fresh.length
         ? `${fresh.length} quote request${fresh.length === 1 ? '' : 's'} never reached your queue`
         : `Still waiting: ${outstanding.length} quote request${outstanding.length === 1 ? '' : 's'} nobody has answered`,

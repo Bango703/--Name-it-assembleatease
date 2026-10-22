@@ -36,7 +36,6 @@ export default async function handler(req, res) {
   try {
     await sendEmail({
       to: email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Your AssembleCash code: ${code}`,
       meta: { notificationType: 'assemblecash_access_code', recipientType: 'customer',
         verificationCodeHash: hashCode(code), expiresAt: new Date(Date.now() + 5 * 60000).toISOString() },

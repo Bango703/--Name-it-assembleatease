@@ -171,7 +171,6 @@ export default async function handler(req, res) {
   if (!alreadyApplied && booking.customer_email) {
     const emailResult = await sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Balance paid in full — ${booking.ref}`,
       html: buildStatusEmail({
         customerName: booking.customer_name,

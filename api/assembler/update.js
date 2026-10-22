@@ -411,7 +411,6 @@ export default async function handler(req, res) {
       });
       const emailResult = rawProfile.email ? await sendEmail({
         to: rawProfile.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         replyTo: ownerEmail(),
         subject: 'Your application payment hold was cleared',
         html: '<p>The temporary payment hold on your application has been cleared.</p><p>Your availability remains Offline until you choose to go Online, and your other account settings have not changed. Contact support if you have questions.</p>',
@@ -615,7 +614,6 @@ export default async function handler(req, res) {
     });
     const emailResult = await sendEmail({
       to: profile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Welcome to AssembleAtEase — Set your password to get started',
       replyTo: 'service@assembleatease.com',
       html: buildApprovalEmail(firstName, profile.email, resetUrl, { ...accountReadiness, alreadyOnboarded }),
@@ -937,7 +935,6 @@ export default async function handler(req, res) {
     const firstName = greetingFirstName(profile.full_name);
     const rejectionEmail = await sendEmail({
       to: profile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your AssembleAtEase Application',
       replyTo: 'service@assembleatease.com',
       html: buildRejectionEmail(firstName, rejectionReason?.trim() || null, refundConfirmed, feeWaived),
@@ -1006,7 +1003,6 @@ export default async function handler(req, res) {
       });
       await sendEmail({
         to: profile.email,
-        from: 'AssembleAtEase <waitlist@assembleatease.com>',
         subject: welcome.subject,
         html: welcome.html,
         replyTo: ownerEmail(),
@@ -1085,7 +1081,6 @@ export default async function handler(req, res) {
       const firstName = greetingFirstName(profile.full_name);
       const suspendEmail = await sendEmail({
         to: profile.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'An update on your AssembleAtEase Easer account',
         replyTo: 'service@assembleatease.com',
         html: buildEaserAccountEmail({
@@ -1136,7 +1131,6 @@ export default async function handler(req, res) {
     const tierLabel = { starter: 'Starter Pro', professional: 'Professional', elite: 'Elite Pro' }[restoredTier] || restoredTier;
     const reinstateEmail = await sendEmail({
       to: profile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your AssembleAtEase account has been reinstated',
       replyTo: 'service@assembleatease.com',
       html: buildEaserAccountEmail({
@@ -1236,7 +1230,6 @@ export default async function handler(req, res) {
     const dFirstName = greetingFirstName(profile.full_name);
     const deactivateEmail = await sendEmail({
       to: profile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'An update on your AssembleAtEase Easer account',
       replyTo: 'service@assembleatease.com',
       html: buildEaserAccountEmail({
@@ -1290,7 +1283,6 @@ export default async function handler(req, res) {
     const rFirstName = greetingFirstName(profile.full_name);
     const reEmail = await sendEmail({
       to: profile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'An update on your AssembleAtEase Easer account',
       replyTo: 'service@assembleatease.com',
       html: buildEaserAccountEmail({
@@ -1327,7 +1319,6 @@ export default async function handler(req, res) {
     const pFirstName = greetingFirstName(profile.full_name);
     const photoEmail = await sendEmail({
       to: profile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Please update your AssembleAtEase profile photo',
       replyTo: 'service@assembleatease.com',
       html: buildEaserAccountEmail({
@@ -1404,7 +1395,6 @@ export default async function handler(req, res) {
     if (action === 'promote') {
       tierEmail = await sendEmail({
         to: profile.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Congratulations — you've been promoted to ${tierLabel}`,
         replyTo: 'service@assembleatease.com',
         html: buildPromotionEmail(firstName, tierLabel, tier),
@@ -1451,7 +1441,6 @@ export default async function handler(req, res) {
 
     const ownerNotice = await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `ID Verified — ${esc(profile.full_name)} ready to approve`,
       html: `<div style="font-family:sans-serif;padding:1.5rem"><p><strong>${esc(profile.full_name)}</strong> identity manually verified. They can now be approved. <a href="${SITE}/owner/" style="color:#00BFFF">Open dashboard</a></p></div>`,
       meta: { notificationType: 'easer_identity_verified', recipientType: 'owner', recipientUserId: assemblerId, disableDedupe: true },
@@ -1651,7 +1640,6 @@ export default async function handler(req, res) {
 
     const closureNotice = await sendEmail({
       to: rawProfile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your Easer account has been closed',
       html: buildEaserAccountEmail({
         heading: 'Account closed',

@@ -141,7 +141,6 @@ export default async function handler(req, res) {
       if (sent > 0) await sleep(minSendIntervalMs());
       const emailResult = await sendEmail({
         to: b.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject,
         html: html.replace('</body>', `${broadcastFooter(b.customer_email)}</body>`),
         replyTo: ownerEmail(),

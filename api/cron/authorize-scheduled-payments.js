@@ -632,7 +632,6 @@ async function markReconciliation(sb, booking, operationKey, reason) {
 async function sendAuthorizationSuccess(booking) {
   return sendEmail({
     to: booking.customer_email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Your appointment is ready — ${booking.ref}`,
     replyTo: 'service@assembleatease.com',
     meta: { bookingId: booking.id, notificationType: 'scheduled_payment_authorized', recipientType: 'customer' },
@@ -669,7 +668,6 @@ async function sendCustomerRecovery(sb, booking, outcome = null) {
   const url = `${SITE}/api/booking/payment-recovery?bookingId=${encodeURIComponent(booking.id)}&token=${encodeURIComponent(token)}`;
   const emailResult = await sendEmail({
     to: booking.customer_email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Confirm your card for ${booking.ref}`,
     replyTo: 'service@assembleatease.com',
     meta: { bookingId: booking.id, notificationType: 'scheduled_payment_action_required', recipientType: 'customer', dedupeWindowMin: 2 },
@@ -712,7 +710,6 @@ async function notifyAssignedEaserPaymentHold(sb, booking) {
   if (!easerEmail) return { ok: false, reason: 'easer_email_unresolved' };
   return sendEmail({
     to: easerEmail,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Job on hold — ${booking.ref}`,
     replyTo: 'service@assembleatease.com',
     meta: { bookingId: booking.id, notificationType: 'scheduled_payment_easer_hold', recipientType: 'easer', recipientUserId: booking.assembler_id },
@@ -736,7 +733,6 @@ async function notifyAssignedEaserPaymentCleared(sb, booking) {
   if (!easerEmail) return { ok: false, reason: 'easer_email_unresolved' };
   return sendEmail({
     to: easerEmail,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Job confirmed — ${booking.ref}`,
     replyTo: 'service@assembleatease.com',
     meta: { bookingId: booking.id, notificationType: 'scheduled_payment_easer_cleared', recipientType: 'easer', recipientUserId: booking.assembler_id },
@@ -748,7 +744,6 @@ async function notifyAssignedEaserPaymentCleared(sb, booking) {
 async function sendOwnerAlert(booking, message) {
   return sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase Alerts <booking@assembleatease.com>',
     subject: `Payment action needed — ${booking.ref}`,
     replyTo: booking.customer_email || 'service@assembleatease.com',
     meta: { bookingId: booking.id, notificationType: 'scheduled_payment_owner_action', recipientType: 'owner' },

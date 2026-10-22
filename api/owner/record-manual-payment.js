@@ -363,7 +363,6 @@ export default async function handler(req, res) {
     const fullyPaid = result.payment_collected === true;
     const emailResult = await sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Payment received — ${money(amountCents)} — ${booking.ref}`,
       html: buildStatusEmail({
         customerName: booking.customer_name,

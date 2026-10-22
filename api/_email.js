@@ -115,9 +115,38 @@ async function reconcileEarlyProviderEvent(sb, providerId) {
   } catch (error) { console.error('email provider reconciliation unavailable:', error?.message); }
 }
 
+// ─── Who an email is from ────────────────────────────────────────────────────
+//
+// Owner, 2026-10-22: an Easer's rejection arrived from
+// "AssembleAtEase <booking@assembleatease.com>", and email went out under ten
+// different sender names chosen call by call. The sender is now decided here,
+// once, from who the email is for. Callers do not pass one.
+export const EMAIL_SENDERS = Object.freeze({
+  customer: 'AssembleAtEase <booking@assembleatease.com>',
+  customerCare: 'AssembleAtEase Customer Care <service@assembleatease.com>',
+  easer: 'AssembleAtEase Easer Support <service@assembleatease.com>',
+  owner: 'AssembleAtEase Alerts <booking@assembleatease.com>',
+});
+
+// Customer email that is a conversation with a person, not a booking update.
+const CUSTOMER_CARE_TYPES = new Set([
+  'support_case_confirmation',
+  'business_inquiry_received',
+  'owner_message',
+  'stripe_dispute_customer',
+]);
+
+export function senderFor({ recipientType, notificationType } = {}) {
+  if (recipientType === 'owner') return EMAIL_SENDERS.owner;
+  if (recipientType === 'easer') return EMAIL_SENDERS.easer;
+  const type = String(notificationType || '');
+  if (CUSTOMER_CARE_TYPES.has(type) || type.startsWith('case_update')) return EMAIL_SENDERS.customerCare;
+  return EMAIL_SENDERS.customer;
+}
+
 /** One shared, durable delivery path. An accepted send is not proof of inbox
  * delivery. A deferred/failed send is never reported as a successful duplicate. */
-export async function sendEmail({ to, from, subject, html, replyTo, meta = {} }) {
+export async function sendEmail({ to, subject, html, replyTo, meta = {} }) {
   const KEY = process.env.RESEND_API_KEY;
   if (!KEY) return { ok: false, error: 'Email provider is not configured.' };
   const recipientEmail = normalizeEmail(Array.isArray(to) ? to[0] : to);
@@ -164,6 +193,7 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
   const bodyHtml = isMarketing && !alreadyHasOptOut
     ? `${html}${broadcastFooter(recipientEmail)}`
     : html;
+  const from = senderFor({ recipientType, notificationType });
   const body = { from, to: [recipientEmail], subject,
     html: ensureEmailShell(bodyHtml, recipientType, meta.preheader), text: htmlToText(bodyHtml) };
   if (replyTo) body.reply_to = replyTo;

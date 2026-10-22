@@ -74,7 +74,6 @@ async function alertOwnerOfCustomerBlock({ req, context, statusCode, errText, er
 
   await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Action needed — a customer hit an error (${context})`,
     html: `<p style="font-size:15px;line-height:1.7"><strong>A customer just hit a server error and may not have finished their booking.</strong></p>
       <p style="font-size:14px;line-height:1.7;color:#52525b">Where: <strong>${esc(context)}</strong><br>Status: ${statusCode}${errCode ? ` &middot; <code>${esc(errCode)}</code>` : ''}<br>Message the customer saw: &ldquo;${esc(errText || 'Server error')}&rdquo;</p>

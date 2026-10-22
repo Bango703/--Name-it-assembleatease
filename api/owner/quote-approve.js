@@ -117,7 +117,6 @@ async function prepareQuote(req, res) {
   const approvalUrl = `${site}/api/owner/quote-approve?token=${encodeURIComponent(token)}`;
   const emailResult = await sendEmail({
     to: booking.customer_email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Review and approve your quote — ${booking.ref}`,
     html: buildQuoteReadyEmail({ booking, subtotalCents, taxCents, priceCents, approvalUrl, expiresAt }),
     replyTo: ownerEmail(),
@@ -461,7 +460,6 @@ async function finalizeQuote({ req, res, sb, booking, pi, tokenHash }) {
   await Promise.allSettled([
     sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Quote approved and booking confirmed — ${booking.ref}`,
       html: `<p>Your quote for <strong>${esc(booking.service)}</strong> was approved for <strong>${amountDisplay}</strong>.</p><p>Your card is safely on file — nothing is charged now. You're only charged after completed work, except for any disclosed cancellation fee.</p>`,
       replyTo: ownerEmail(),
@@ -469,7 +467,6 @@ async function finalizeQuote({ req, res, sb, booking, pi, tokenHash }) {
     }),
     sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Customer approved quote — ${booking.ref} — ${amountDisplay}`,
       html: `<p><strong>${esc(booking.customer_name)}</strong> approved quote <strong>${esc(booking.ref)}</strong> for ${amountDisplay}. Stripe authorization ${esc(pi.id)} is ready for capture after completion.</p>`,
       meta: { bookingId: booking.id, notificationType: 'quote_approved', recipientType: 'owner' },

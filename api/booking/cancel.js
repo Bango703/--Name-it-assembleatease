@@ -626,7 +626,6 @@ export default async function handler(req, res) {
 
     await sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Booking Cancelled — ' + booking.ref,
       html,
       replyTo: ownerEmail(),

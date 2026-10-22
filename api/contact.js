@@ -71,7 +71,6 @@ export default async function handler(req, res) {
   const notificationResults = await Promise.allSettled([
     sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase Support <contact@assembleatease.com>',
       subject: `New support case ${caseRef}: ${payload.subject || 'General inquiry'}`,
       replyTo: payload.email,
       meta: {
@@ -83,7 +82,6 @@ export default async function handler(req, res) {
     }),
     sendEmail({
       to: payload.email,
-      from: 'AssembleAtEase <contact@assembleatease.com>',
       subject: `We received your message - ${caseRef}`,
       replyTo: ownerEmail(),
       meta: {

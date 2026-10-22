@@ -104,7 +104,6 @@ export default async function handler(req, res) {
 
     await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Customer declined additional work — ${booking.ref}`,
       html: `<p>${esc(booking.customer_name || 'The customer')} declined the additional work on <strong>${esc(booking.ref)}</strong>.</p>
              <p>${esc(changeOrder.description)} — ${money(changeOrder.total_cents)}</p>
@@ -240,7 +239,6 @@ export default async function handler(req, res) {
 
   await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Customer approved additional work — ${booking.ref}`,
     html: `<p>${esc(booking.customer_name || 'The customer')} approved additional work on <strong>${esc(booking.ref)}</strong>.</p>
            <p>${esc(changeOrder.description)} — <strong>${money(changeOrder.total_cents)}</strong> authorized on their saved card.</p>

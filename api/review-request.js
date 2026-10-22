@@ -59,7 +59,6 @@ export default async function handler(req, res) {
 
   const result = await sendEmail({
     to:      b.customer_email,
-    from:    'AssembleAtEase <booking@assembleatease.com>',
     subject,
     html,
     replyTo: ownerEmail(),

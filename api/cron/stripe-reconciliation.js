@@ -169,7 +169,6 @@ export default async function handler(req, res) {
         + `<td style="padding:6px 10px;border-bottom:1px solid #e4e4e7;font-size:13px">${esc(f.detail)}</td></tr>`).join('');
       await sendEmail({
         to: ownerEmail(),
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Stripe reconciliation — ${findings.length} booking(s) disagree with Stripe`,
         html: `<div style="font-family:sans-serif;max-width:760px;margin:0 auto;padding:2rem">
           <h2 style="color:#dc2626">The books and Stripe do not agree</h2>

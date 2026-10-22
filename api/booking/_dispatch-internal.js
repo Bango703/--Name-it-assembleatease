@@ -68,7 +68,6 @@ async function sendSoftJobNudges(sb, offeredEaserIds, bookingZip) {
       const first = String(e.full_name || 'there').split(' ')[0] || 'there';
       await sendEmail({
         to: e.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'A job is available near you — come Online',
         html: buildWorkAvailableNudge(first),
         replyTo: ownerEmail(),
@@ -452,7 +451,6 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     try {
       emailResult = await sendEmail({
         to:       easer.email,
-        from:     'AssembleAtEase <booking@assembleatease.com>',
         // Ref in the subject for the same reason as assign.js: dedupe keys on
         // subject, so two same-service offers in one city collapsed into one.
         subject:  `New Job Available — ${booking.service || 'Service'} in ${bookingCity} (${booking.ref})`,

@@ -170,7 +170,7 @@ export function createReceptionistHandler({
       let notice;
       try {
         notice = await email({
-          to: ownerAddress(), from: 'AssembleAtEase <contact@assembleatease.com>',
+          to: ownerAddress(),
           subject: `${testLabel}Sora callback request ${saved.case_ref}`,
           html: `<h2>Customer callback requested</h2><p>Reference: ${esc(saved.case_ref)}</p><p>${esc(input.name)} | ${esc(input.phone)}</p><p style="white-space:pre-wrap">${esc(description)}</p><p>Open Owner Dashboard &gt; Cases to acknowledge and follow up. This is a request, not a booking.</p>`,
           meta: { operationCaseId: saved.id, notificationType: 'ai_callback_owner', recipientType: 'owner' },

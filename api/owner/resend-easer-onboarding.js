@@ -78,7 +78,6 @@ export default async function handler(req, res) {
   try {
     delivery = await sendEmail({
       to: profile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your New Secure AssembleAtEase Onboarding Link',
       replyTo: ownerEmail(),
       meta: {

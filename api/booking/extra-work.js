@@ -95,7 +95,6 @@ export default async function handler(req, res) {
   // The owner sees every request an Easer raises (Rule 8).
   await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
     subject: `Extra work requested on site — ${booking.ref}`,
     html: `<p style="font-family:Arial,sans-serif">${esc(easerName)} asked the customer on <strong>${esc(booking.ref)}</strong> to approve extra work: ${esc(lines.join(', '))}.</p>
       <p style="font-family:Arial,sans-serif">Customer price $${(priced.totalCents / 100).toFixed(2)} including tax. ${request.emailResult?.ok === true ? 'The approval email was sent.' : '<strong>The approval email did not send.</strong> Contact the customer.'}</p>

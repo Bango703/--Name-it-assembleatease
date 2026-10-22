@@ -157,7 +157,6 @@ export default async function handler(req, res) {
       const first = esc((easer.full_name || booking.assembler_name || 'there').split(' ')[0]);
       const r = await sendEmail({
         to: easer.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `A ${money(amount)} reimbursement has been added to job ${booking.ref}`,
         html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;padding:2rem;color:#1a1a1a">
           <h2 style="color:#00BFFF;margin:0 0 10px;font-size:22px">Reimbursement approved, ${first}.</h2>

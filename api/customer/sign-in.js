@@ -72,7 +72,6 @@ export default async function handler(req, res) {
     }
     const sent = await sendEmail({
       to: email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Your AssembleAtEase code: ${code}`,
       replyTo: ownerEmail(),
       html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head>

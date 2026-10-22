@@ -102,7 +102,6 @@ export default async function handler(req, res) {
         const manageUrl = `https://www.assembleatease.com/track?ref=${encodeURIComponent(b.ref)}`;
         const customerResult = customerSentAt ? { ok: true, suppressed: true } : !b.customer_email ? { ok: false, reason: 'missing_customer_email' } : await sendEmail({
           to: b.customer_email,
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: `We haven't confirmed a pro for your ${esc(formatAppointmentDateShort(b.date))} appointment — ${esc(b.ref)}`,
           html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
             <h2 style="color:#00BFFF">Your appointment needs an update</h2>
@@ -161,7 +160,6 @@ export default async function handler(req, res) {
         const customerNotified = customerResult?.ok === true;
         const ownerResult = await sendEmail({
           to: ownerEmail(),
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: `${customerNotified ? 'CUSTOMER EMAIL SENT' : 'CUSTOMER CONTACT NEEDED'} — ${b.ref} still has no pro`,
           html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
             <h2 style="color:#dc2626">${customerNotified ? 'Customer staffing email accepted for delivery' : 'Staffing notice not confirmed: contact the customer'}</h2>
@@ -192,7 +190,6 @@ export default async function handler(req, res) {
         if (await verifiedNoticeAt(sb, b, 'unassigned_sourcing_escalation', 'owner', b.unassigned_escalated_at)) continue;
         const ownerResult = await sendEmail({
           to: ownerEmail(),
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: `URGENT — ${esc(b.ref)} has no pro and is ${Math.round(hoursUntil)}h away`,
           html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
             <h2 style="color:#dc2626">Source a pro now</h2>

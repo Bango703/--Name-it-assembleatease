@@ -336,7 +336,6 @@ async function finalizeFutureCard(req, res, state) {
   const emailResults = await Promise.all([
     sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Your rebooking is scheduled - ${booking.ref}`,
       replyTo: ownerEmail(),
       html: `<p>Hi ${esc(booking.customer_name)},</p><p>Your payment method is saved for <strong>${esc(booking.service)}</strong> on <strong>${esc(formatRebookDate(booking.date))}</strong>${booking.time ? ` at <strong>${esc(booking.time)}</strong>` : ''}.</p><p>Nothing has been charged. We will place a hold for ${money(booking.total_price)} closer to your appointment, and let you know if your bank asks you to confirm it.</p><p>Booking reference: <strong>${esc(booking.ref)}</strong></p><p><a href="${esc(trackUrl)}">Track or manage your booking</a></p>`,
@@ -344,7 +343,6 @@ async function finalizeFutureCard(req, res, state) {
     }),
     sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Rebooking card saved - ${booking.ref}`,
       replyTo: booking.customer_email,
       html: `<p><strong>${esc(booking.ref)}</strong> has a verified payment method saved.</p><p>The ${money(booking.total_price)} authorization is scheduled closer to the ${esc(formatAppointmentDate(booking.date))} appointment. Dispatch remains paused until authorization succeeds.</p>`,

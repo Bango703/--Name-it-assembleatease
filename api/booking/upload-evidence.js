@@ -299,7 +299,6 @@ export default async function handler(req, res) {
     }
     ownerNotification = await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Owner action required: damage reported — ${booking.ref}`,
       replyTo: ownerEmail(),
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">

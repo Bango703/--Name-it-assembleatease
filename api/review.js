@@ -153,7 +153,6 @@ export default async function handler(req, res) {
   try {
     rewardEmail = await sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: ownerEmail(),
       subject: 'Your $10 AssembleAtEase thank-you offer',
       html: `<!doctype html><html><body style="margin:0;padding:24px;background:#f4f4f5;font-family:Arial,sans-serif;color:#1a1a1a"><div style="max-width:560px;margin:auto;background:#fff;padding:28px;border:1px solid #e4e4e7;border-radius:8px"><h1 style="font-size:22px">Thank you for sharing your experience</h1><p>Your honest review is appreciated. Any rating qualifies; the reward is not tied to a positive review.</p><p style="font-size:18px">Your code: <strong>${reward.code}</strong></p><p>Use it once for $10 off a future booking with a service subtotal of at least $100. It expires ${expiryDate}. Enter the code and the same email address used for your review at checkout.</p><p><a href="https://www.assembleatease.com/book?promo=${encodeURIComponent(reward.code)}" style="display:inline-block;background:#00BFFF;color:#fff;text-decoration:none;padding:12px 18px;border-radius:6px">Book with this code</a></p><p>This reward applies only to a review submitted on the AssembleAtEase website. Google reviews are optional and are not rewarded.</p><p style="font-size:13px;color:#52525b">Questions? Reply to this email.</p></div></body></html>`,

@@ -302,7 +302,6 @@ export default async function handler(req, res) {
   const nextTrackUrl = `${SITE}/track?ref=${encodeURIComponent(booking.ref)}&email=${encodeURIComponent(booking.customer_email)}&token=${encodeURIComponent(nextGuestMutationToken)}`;
   const customerResult = await sendEmail({
     to: booking.customer_email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Appointment Rescheduled — ${booking.ref}`,
     replyTo: ownerEmail(),
     html: buildStatusEmail({
@@ -337,7 +336,6 @@ export default async function handler(req, res) {
 
   const ownerResult = await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase System <booking@assembleatease.com>',
     subject: `Rescheduled — ${booking.ref}`,
     replyTo: ownerEmail(),
     html: `<p>Customer rescheduled <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}).</p>
@@ -355,7 +353,6 @@ export default async function handler(req, res) {
       const acceptUrl = `${SITE}/assembler/my-assignments?accept=${booking.id}&token=${encodeURIComponent(assignmentToken)}`;
       const easerResult = await sendEmail({
         to: easer.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Action required: job date changed — ${booking.ref}`,
         replyTo: ownerEmail(),
         html: `<p>Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')},</p>
@@ -380,7 +377,6 @@ export default async function handler(req, res) {
     if (easer?.email) {
       const easerResult = await sendEmail({
         to: easer.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `New time accepted — ${booking.ref}`,
         replyTo: ownerEmail(),
         html: `<p>Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')},</p>

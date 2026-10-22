@@ -95,7 +95,6 @@ export default async function handler(req, res) {
     const list = noEaserFailed.map(b => `• ${b.ref} — ${b.service} on ${b.date}`).join('\n');
     await sendEmail({
       to:   ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `${noEaserFailed.length} booking(s) need Easer assignment`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
         <h2 style="color:#dc2626">No Easers Available</h2>

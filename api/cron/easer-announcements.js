@@ -160,7 +160,6 @@ export async function processAnnouncement(sb, a, counters, dependencies = {}) {
           if (counters.sent > 0) await wait(minSendIntervalMs());
           result = await email({
             to: easer.email,
-            from: 'AssembleAtEase <booking@assembleatease.com>',
             subject: a.title,
             html: buildEmailHtml(a),
             replyTo: ownerEmail(),

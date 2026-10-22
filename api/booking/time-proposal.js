@@ -126,7 +126,6 @@ export default async function handler(req, res) {
     }).catch(e => ({ ok: false, error: e?.message })),
     booking.customer_email ? sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `New time proposed — ${booking.ref}`,
       html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
         <p style="font-size:18px;font-weight:700;margin:0 0 10px">${esc(firstName)} proposed a new time</p>
@@ -142,7 +141,6 @@ export default async function handler(req, res) {
   await notifyCustomerApp(sb, booking.id, 'time_proposed');
   await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
     subject: `Easer proposed a new time — ${booking.ref}`,
     html: `<p style="font-family:Arial,sans-serif">${esc(booking.assembler_name || 'The Easer')} proposed ${esc(formatAppointmentDate(date))} at ${esc(slot.normalizedTime)} for <strong>${esc(booking.ref)}</strong> (booked ${esc(booking.date || '')} ${esc(booking.time || '')}). The customer accepts or declines on their booking page.</p>`,
     meta: { bookingId: booking.id, notificationType: 'easer_time_proposal_owner', recipientType: 'owner', disableDedupe: true },
@@ -187,7 +185,6 @@ async function customerDecline(req, res, sb) {
   if (easer?.email) {
     await sendEmail({
       to: easer.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Customer kept the booked time — ${booking.ref}`,
       html: `<p>Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')},</p><p>The customer kept the booked time for <strong>${esc(booking.ref)}</strong>. If you cannot make it, open the job and use I can't make this job.</p>`,
       meta: { bookingId: booking.id, notificationType: 'easer_time_proposal_declined', recipientType: 'easer', recipientUserId: open.easer_id, disableDedupe: true },

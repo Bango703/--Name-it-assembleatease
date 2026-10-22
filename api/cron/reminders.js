@@ -171,7 +171,7 @@ export default async function handler(req, res) {
           try {
             if (purpose === 'day_before') {
               if (!person.email) continue;
-              result = await sendEmail({ to: person.email, from: 'AssembleAtEase <booking@assembleatease.com>',
+              result = await sendEmail({ to: person.email,
                 subject: `Reminder: Your ${booking.return_visit_required ? 'return appointment' : recipientType === 'easer' ? 'AssembleAtEase job' : 'appointment'} is tomorrow — ${booking.ref}`,
                 html: buildReminderEmail({ booking, recipientType, firstName: (person.full_name || 'there').split(' ')[0] }),
                 replyTo: 'service@assembleatease.com', meta });

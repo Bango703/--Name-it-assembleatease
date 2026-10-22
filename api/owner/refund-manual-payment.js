@@ -125,7 +125,6 @@ async function sendCustomerRefundEmail({ booking, amountCents, cumulativeRefundC
   const cumulativeDisplay = money(cumulativeRefundCents);
   return sendEmail({
     to: booking.customer_email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Your ${amountDisplay} refund is on the way — ${booking.ref}`,
     html: buildStatusEmail({
       customerName: booking.customer_name,
