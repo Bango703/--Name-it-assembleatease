@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { pathToFileURL } from 'node:url';
-import { renderBlogArticle, guideCard, headingId, wordCount, formatDate, nav, footer, cookieBanner, esc } from './lib/blog-article-page.mjs';
+import { renderBlogArticle, guideCard, headingId, wordCount, formatDate, nav, footer, cookieBanner, promoScript, esc } from './lib/blog-article-page.mjs';
 import { fitTitle } from './lib/seo-title.mjs';
 
 const SITE = 'https://www.assembleatease.com';
@@ -714,6 +714,7 @@ ${groupHtml}
 </main>
 ${footer()}
 ${cookieBanner()}
+${promoScript()}
 </body>
 </html>
 `;

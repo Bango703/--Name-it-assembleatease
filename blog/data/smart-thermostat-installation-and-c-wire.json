@@ -1,0 +1,145 @@
+{
+  "post": {
+    "slug": "smart-thermostat-installation-and-c-wire",
+    "title": "Smart Thermostat Installed for $99, No C-Wire for $129",
+    "tag": "Smart home",
+    "image": "/images/work-smart-home.jpg",
+    "alt": "Completed smart home job",
+    "serviceUrl": "/book?service=Smart+Home",
+    "cta": "Book Smart Home Setup",
+    "description": "How to check whether your system works with a smart thermostat, what the C-wire does, when an adapter is needed and what it costs.",
+    "metaDescription": "Smart thermostat installation: checking compatibility, why the C-wire matters, adapter installs when there is none, first setup, and catalog prices.",
+    "paragraphs": [
+      "A smart thermostat follows your schedule, adjusts from your phone and shows how long your system runs. Installing one is mostly about matching wires correctly and giving the thermostat steady power.",
+      "One question decides most of the job: whether there is a C-wire. This guide explains how to check for it and what happens when your wall does not have one."
+    ],
+    "relatedLinks": [
+      {
+        "href": "/smart-home-installation-austin-tx",
+        "label": "Smart home setup service and pricing"
+      },
+      {
+        "href": "/pricing",
+        "label": "Complete service pricing"
+      },
+      {
+        "href": "/blog/smart-home-installation-austin",
+        "label": "Smart Home Installation in Austin"
+      }
+    ]
+  },
+  "content": {
+    "published": "2026-10-22",
+    "modified": "2026-10-22",
+    "quickAnswer": "A smart thermostat is installed and set up for $99 when your wall has a C-wire, and for $129 when it needs the maker's adapter kit instead. Most homes with central heating and cooling can take one, and the visit ends with heating, cooling and the fan tested from your phone.",
+    "sections": [
+      {
+        "title": "Check compatibility first",
+        "paragraphs": [
+          "Smart thermostats work with most central systems that run on low voltage, which covers most gas furnaces, heat pumps and central air. They do not work directly with high-voltage baseboard or line-voltage heaters, which use thick wires and are often labeled 120 or 240 volts.",
+          "Each maker has a compatibility checker on its website. You photograph the wires behind your current thermostat and enter the letters printed beside each terminal."
+        ],
+        "bullets": [
+          "Switch the system off at the thermostat",
+          "Remove the faceplate and photograph the wires and terminal letters",
+          "Run the maker's compatibility checker with that photo",
+          "Thick wires or a high-voltage label mean a different product is needed"
+        ]
+      },
+      {
+        "title": "What the C-wire is and why it matters",
+        "paragraphs": [
+          "The C-wire, short for common, gives the thermostat a constant 24-volt supply. A smart thermostat runs a screen and Wi-Fi all day, so it needs steady power that older thermostats never did.",
+          "Without one, some thermostats borrow power through the other wires. That can make the system switch on and off unexpectedly or the thermostat drop off Wi-Fi. A C-wire or an adapter avoids both."
+        ],
+        "bullets": []
+      },
+      {
+        "title": "If there is no C-wire",
+        "paragraphs": [
+          "Sometimes a spare wire is folded back behind the wall plate and only needs connecting at both ends. If there is none, an adapter kit made by the thermostat maker adds power by connecting at the furnace or air handler control board. That install is $129.",
+          "If neither option works, running a new wire from the furnace to the thermostat is a job for an HVAC technician."
+        ],
+        "bullets": [
+          "A spare wire behind the wall plate: connected at both ends",
+          "An adapter kit: installed at the furnace or air handler",
+          "No spare wire and no adapter: an HVAC technician runs a new wire"
+        ]
+      },
+      {
+        "title": "What the visit involves",
+        "paragraphs": [
+          "The pro turns off power to the system, labels each wire, removes the old thermostat, mounts the new base and connects the wires to the matching terminals. Then the power goes back on and the thermostat walks through its setup: system type, Wi-Fi, schedule and the app.",
+          "The last step is a test. Heat, cooling and the fan each run from the new thermostat before the visit ends, so you know it controls the whole system."
+        ],
+        "bullets": []
+      },
+      {
+        "title": "Where the thermostat sits on the wall",
+        "paragraphs": [
+          "A smart thermostat reads the temperature where it hangs, so the spot matters. A thermostat in direct afternoon sun, beside a supply vent or next to the kitchen reads warmer or cooler than the rest of the home and runs the system to match.",
+          "Most smart thermostats are smaller than the old unit they replace and leave paint marks or old screw holes showing. Many include a trim plate that covers them; check the box before the visit so it can go on during the install."
+        ],
+        "bullets": [
+          "Away from direct sunlight and supply vents",
+          "Not beside the oven, a lamp or an exterior door",
+          "On an inside wall in a room you use often",
+          "The trim plate from the box, if the old outline shows"
+        ]
+      },
+      {
+        "title": "Settings worth deciding",
+        "paragraphs": [
+          "Most people adjust the schedule during the first week, then leave it. Learning features work best when you change the temperature normally rather than overriding it often."
+        ],
+        "bullets": [
+          "Home and away temperatures",
+          "A schedule for weekdays and weekends",
+          "Who in the household gets app access",
+          "Whether your energy provider offers a rebate for smart thermostats",
+          "Remote sensors for rooms that run hot or cold"
+        ]
+      },
+      {
+        "title": "What it costs",
+        "paragraphs": [
+          "A smart thermostat installed on an existing C-wire is $99. Without a C-wire, with an adapter kit installed, it is $129. Homes with more than one zone pay $99 for each additional zone, and smart vents are $79 per vent."
+        ],
+        "bullets": [
+          "Smart thermostat, Nest, Ecobee or Honeywell: $99",
+          "No C-wire, adapter kit installed: $129",
+          "Each additional zone: $99",
+          "Smart vent: $79 per vent"
+        ]
+      }
+    ],
+    "faq": [
+      {
+        "q": "How do I know if I have a C-wire?",
+        "a": "Remove the thermostat faceplate and look for a wire on a terminal marked C. A wire folded back into the wall unused may also be available."
+      },
+      {
+        "q": "Can a smart thermostat work without a C-wire?",
+        "a": "Yes, with an adapter kit from the thermostat maker that powers it from the furnace or air handler. That install is $129."
+      },
+      {
+        "q": "Will a smart thermostat work with my heat pump?",
+        "a": "Most do. Check the terminal letters in the maker's compatibility checker before buying."
+      },
+      {
+        "q": "Do I buy the thermostat first?",
+        "a": "Yes. You provide the thermostat and any adapter kit it needs, and the pro brings the tools to install them."
+      },
+      {
+        "q": "Does the install include setting up the app?",
+        "a": "Yes. The visit ends with the thermostat on your Wi-Fi, the app set up, and heating, cooling and the fan tested."
+      }
+    ]
+  },
+  "source": {
+    "model": "claude-opus-5-5",
+    "topic": "Smart thermostat installation: compatibility, the C-wire question and first setup",
+    "generatedAt": "2026-10-22T23:37:03.090Z",
+    "writer": "owner-requested batch"
+  }
+}

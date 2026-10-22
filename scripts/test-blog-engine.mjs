@@ -96,24 +96,24 @@ console.log('PASS drafts: real catalog prices only; cities, handyman, insurance,
 console.log('PASS photos: job photos first, never one another article uses, reuse flagged');
 
 // ── Same renderer as the hand-written articles; index and sitemap ───────────
-const topic = engine.BLOG_CALENDAR.find((t) => t.slug === 'mounting-a-tv-above-a-fireplace');
+const topic = engine.BLOG_CALENDAR.find((t) => t.slug === 'tv-mounting-on-brick-and-stone');
 const article = engine.validateArticleData(draft(), { allowedPrices: facts.prices }).article;
 {
   const built = engine.buildEngineArticle({ topic, article, image: { image: '/images/real-tv-setup-console.jpg', alt: 'TV mounted over a console' }, today: '2026-10-26' });
   assert.equal(built.html, renderBlogArticle(built.post, built.content, { related: built.post.relatedLinks, defaultModified: '2026-10-26' }), 'the data file reproduces the page');
-  assert.match(built.html, /<link rel="canonical" href="https:\/\/www\.assembleatease\.com\/blog\/mounting-a-tv-above-a-fireplace"\/>/);
+  assert.match(built.html, /<link rel="canonical" href="https:\/\/www\.assembleatease\.com\/blog\/tv-mounting-on-brick-and-stone"\/>/);
   assert.match(built.html, /"@type":"FAQPage"/);
   assert.match(built.html, /<h2 id="faq">Frequently asked questions<\/h2>/);
   assert.match(built.html, /"@type":"BlogPosting"/);
   assert.match(built.html, /href="\/book\?service=Mounting\+%26\+Hanging"/);
   const title = built.html.match(/<title>([^<]*)<\/title>/)[1];
   assert.ok(title.length <= 70, `title fits (${title.length})`);
-  const index = engine.addToBlogIndex(read('blog/index.html'), { card: built.card, groupId: engine.indexGroupId(topic.service), title: article.title, url: 'https://www.assembleatease.com/blog/mounting-a-tv-above-a-fireplace' });
-  assert.match(index, /href="\/blog\/mounting-a-tv-above-a-fireplace" class="guide-card"/);
-  assert.ok(index.includes('"url":"https://www.assembleatease.com/blog/mounting-a-tv-above-a-fireplace"'), 'listed in the CollectionPage schema');
-  const sitemap = engine.addToSitemap(read('sitemap.xml'), { url: 'https://www.assembleatease.com/blog/mounting-a-tv-above-a-fireplace', today: '2026-10-26' });
-  assert.match(sitemap, /<loc>https:\/\/www\.assembleatease\.com\/blog\/mounting-a-tv-above-a-fireplace<\/loc><lastmod>2026-10-26<\/lastmod>/);
-  assert.equal(engine.addToSitemap(sitemap, { url: 'https://www.assembleatease.com/blog/mounting-a-tv-above-a-fireplace', today: '2026-10-27' }), sitemap, 'added once');
+  const index = engine.addToBlogIndex(read('blog/index.html'), { card: built.card, groupId: engine.indexGroupId(topic.service), title: article.title, url: 'https://www.assembleatease.com/blog/tv-mounting-on-brick-and-stone' });
+  assert.match(index, /href="\/blog\/tv-mounting-on-brick-and-stone" class="guide-card"/);
+  assert.ok(index.includes('"url":"https://www.assembleatease.com/blog/tv-mounting-on-brick-and-stone"'), 'listed in the CollectionPage schema');
+  const sitemap = engine.addToSitemap(read('sitemap.xml'), { url: 'https://www.assembleatease.com/blog/tv-mounting-on-brick-and-stone', today: '2026-10-26' });
+  assert.match(sitemap, /<loc>https:\/\/www\.assembleatease\.com\/blog\/tv-mounting-on-brick-and-stone<\/loc><lastmod>2026-10-26<\/lastmod>/);
+  assert.equal(engine.addToSitemap(sitemap, { url: 'https://www.assembleatease.com/blog/tv-mounting-on-brick-and-stone', today: '2026-10-27' }), sitemap, 'added once');
   const cleanup = read('scripts/cleanup-blog-pages.mjs');
   assert.match(cleanup, /const engineDataDir = join\(blogDir, 'data'\);/, 'a full regeneration keeps engine articles');
   assert.match(cleanup, /import \{ renderBlogArticle, guideCard,/);
@@ -176,3 +176,18 @@ console.log('PASS end to end: rejected draft rewritten once, files on the articl
   assert.doesNotMatch(handler, /branch: 'main'/);
 }
 console.log('PASS weekly schedule; off until AUTO_BLOG_PUBLISH_ENABLED');
+
+// ── Every blog page carries the live offer and a price-first close ──────────
+// Owner, 2026-10-22: the offer bar ran on every public page except the blog,
+// so readers never saw the live discount, and each article closed with a
+// paragraph about "assignment". The offer bar is in the shared layout now.
+{
+  const { readdirSync: listDir, readFileSync: readText } = await import('node:fs');
+  const pages = listDir(new URL('../blog/', import.meta.url)).filter((f) => f.endsWith('.html'));
+  const missing = pages.filter((f) => !readText(new URL(`../blog/${f}`, import.meta.url), 'utf8').includes('/assets/js/site-promo.js'));
+  assert.deepEqual(missing, [], `blog pages without the offer bar: ${missing.join(', ')}`);
+  const layout = readText(new URL('../scripts/lib/blog-article-page.mjs', import.meta.url), 'utf8');
+  assert.match(layout, /See your exact price before you book\./);
+  assert.doesNotMatch(layout, /checked before assignment/);
+}
+console.log('PASS every blog page shows the live offer and closes on the price');
