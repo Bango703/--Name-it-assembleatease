@@ -28,6 +28,8 @@ import { loadLedgerFirstFinanceRows } from '../owner/_finance-ledger.js';
 import { CONTRACTOR_AGREEMENT_VERSION } from '../_assembler-onboarding.js';
 import { logActivity } from '../booking/_activity.js';
 import { sendPushToUser } from '../_push.js';
+import { normalizePersonName } from '../_person-name.js';
+import { EASER_APPLICATION_FEE_DISPLAY } from '../_easer-application-fee.js';
 import { inspectApplicationText, describeApplicationFindings } from '../booking/_relay-contact-guard.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -36,6 +38,14 @@ const SITE = 'https://www.assembleatease.com';
 // Branded Easer account email — always carries the AAE logo in the header so the
 // message reads as AssembleAtEase, not a bare text note. Used for suspend /
 // reinstate and any other Easer account-status notice.
+// The name an email greets an Easer by. A first name typed all in lowercase or
+// all in capitals is shown in ordinary capitalisation ("innocent" -> "Innocent"),
+// the same rule as api/_person-name.js.
+export function greetingFirstName(fullName) {
+  const first = String(fullName || '').trim().split(/\s+/)[0] || '';
+  return first ? normalizePersonName(first) : 'there';
+}
+
 function buildEaserAccountEmail({ heading, firstName, bodyHtml, ctaText, ctaUrl }) {
   const cta = (ctaText && ctaUrl)
     ? `<div style="text-align:center;margin:1.75rem 0 0.5rem"><a href="${ctaUrl}" style="display:inline-block;background:#00BFFF;color:#fff;padding:13px 34px;border-radius:8px;text-decoration:none;font-size:0.95rem;font-weight:700">${ctaText}</a></div>`
@@ -595,7 +605,7 @@ export default async function handler(req, res) {
       } catch(e) { console.warn('generateLink error:', e.message); }
     }
 
-    const firstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const firstName = greetingFirstName(profile.full_name);
     const accountReadiness = await approvedAccountReadiness({
       ...approvalProfile,
       status: 'active',
@@ -924,7 +934,7 @@ export default async function handler(req, res) {
 
     sb.from('assembler_waitlist').update({ status: 'rejected' }).eq('email', profile.email.toLowerCase()).then(() => {});
 
-    const firstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const firstName = greetingFirstName(profile.full_name);
     const rejectionEmail = await sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
@@ -1072,7 +1082,7 @@ export default async function handler(req, res) {
     // Email failure must never block the suspension itself.
     let suspendEmailDelivered = false;
     if (suspension.result_action === 'suspended') {
-      const firstName = (profile.full_name || '').split(' ')[0] || 'there';
+      const firstName = greetingFirstName(profile.full_name);
       const suspendEmail = await sendEmail({
         to: profile.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
@@ -1122,7 +1132,7 @@ export default async function handler(req, res) {
     }
     if (!reinstatedProfile) return respondWithOwnerClosureRace(res);
 
-    const firstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const firstName = greetingFirstName(profile.full_name);
     const tierLabel = { starter: 'Starter Pro', professional: 'Professional', elite: 'Elite Pro' }[restoredTier] || restoredTier;
     const reinstateEmail = await sendEmail({
       to: profile.email,
@@ -1223,7 +1233,7 @@ export default async function handler(req, res) {
       metadata: { reason: deactReason || null, previousStatus: profile.status },
     }).catch((e) => console.error('deactivate logActivity error:', e?.message || e));
 
-    const dFirstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const dFirstName = greetingFirstName(profile.full_name);
     const deactivateEmail = await sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
@@ -1277,7 +1287,7 @@ export default async function handler(req, res) {
       description: `${profile.full_name || assemblerId} was reactivated — sign-in access restored; returned to suspended for review.`,
       metadata: { restoredTo: 'suspended' },
     }).catch((e) => console.error('reactivate logActivity error:', e?.message || e));
-    const rFirstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const rFirstName = greetingFirstName(profile.full_name);
     const reEmail = await sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
@@ -1314,7 +1324,7 @@ export default async function handler(req, res) {
     if (clearErr) {
       return res.status(503).json({ error: 'Could not update the profile photo. Please retry.', code: 'PHOTO_UPDATE_FAILED' });
     }
-    const pFirstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const pFirstName = greetingFirstName(profile.full_name);
     const photoEmail = await sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
@@ -1388,7 +1398,7 @@ export default async function handler(req, res) {
     if (!tierChangedProfile) return respondWithOwnerClosureRace(res);
 
     const tierLabel = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[tier];
-    const firstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const firstName = greetingFirstName(profile.full_name);
 
     let tierEmail = null;
     if (action === 'promote') {
@@ -2025,11 +2035,25 @@ function buildPromotionEmail(firstName, tierLabel, tier) {
 </body></html>`;
 }
 
-function buildRejectionEmail(firstName, reason, refunded, feeWaived) {
-  const refundNote = feeWaived
-    ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#1e40af"><strong>No application fee was collected:</strong> Your Founding Easer application was submitted under the launch fee waiver.</p></div>`
+export function buildRejectionEmail(firstName, reason, refunded, feeWaived) {
+  // A reason typed by the owner is shown as written, ending as a sentence.
+  const reasonText = reason ? (/[.!?]$/.test(reason) ? reason : `${reason}.`) : '';
+  const reasonBlock = reasonText
+    ? `<div style="background:#fafafa;border:1px solid #e4e4e7;border-radius:8px;padding:14px 18px;margin:0 0 16px"><p style="margin:0 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#71717a">Reason</p><p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.6">${esc(reasonText)}</p></div>`
+    : '';
+  // A waived fee needs no mention. A refund is stated; a kept fee follows the
+  // policy shown at submission.
+  const feeBlock = feeWaived
+    ? ''
     : (refunded
-      ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#166534"><strong>Refund issued:</strong> Your $30 application fee has been refunded to your original payment method. Please allow 5–10 business days for it to appear.</p></div>`
-      : `<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#92400e">The application fee policy shown at submission applies.</p></div>`);
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;padding:2rem"><img src="${LOGO}" width="36" height="36" style="border-radius:50%;display:block;margin:0 0 1rem"/><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Hi ${esc(firstName)},</p><p style="color:#52525b;line-height:1.7;margin:0 0 16px">Thank you for your interest in AssembleAtEase. After careful review, we are not able to move forward with your application at this time.</p>${reason ? `<div style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#52525b"><strong>Feedback:</strong> ${esc(reason)}</p></div>` : ''}${refundNote}<p style="color:#52525b;line-height:1.7">You are welcome to reapply after 90 days. Questions? <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a></p></div></div></body></html>`;
+      ? `<p style="color:#52525b;line-height:1.7;margin:0 0 16px">Your ${EASER_APPLICATION_FEE_DISPLAY} application fee has been refunded to your original payment method. It can take 5 to 10 business days to appear.</p>`
+      : `<p style="color:#52525b;line-height:1.7;margin:0 0 16px">The application fee policy shown when you applied applies.</p>`);
+  return buildEaserAccountEmail({
+    heading: 'Your application',
+    firstName,
+    bodyHtml: `<p style="color:#52525b;line-height:1.7;margin:0 0 16px">Thank you for applying to join AssembleAtEase. We have reviewed your application and will not be moving forward with it.</p>
+      ${reasonBlock}
+      ${feeBlock}
+      <p style="color:#52525b;line-height:1.7;margin:0">We appreciate the time you took to apply. If you have a question, reply to this email.</p>`,
+  });
 }

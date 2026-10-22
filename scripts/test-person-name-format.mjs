@@ -37,3 +37,28 @@ assert.doesNotMatch(migration, /contractor_agreement_signed_name|bookings/, 'sig
 assert.match(migration, /NOTIFY pgrst, 'reload schema'/);
 
 console.log('PASS person name format: all-caps and all-lowercase names stored in ordinary capitalisation, typed casing kept, signatures untouched.');
+
+// ── Easer emails greet by a properly capitalised first name ────────────────
+// Owner, 2026-10-22: a rejection email opened "Hi innocent,". Every greeting in
+// api/assembler/update.js goes through greetingFirstName.
+{
+  const { greetingFirstName, buildRejectionEmail } = await import('../api/assembler/update.js');
+  assert.equal(greetingFirstName('innocent Joshua'), 'Innocent');
+  assert.equal(greetingFirstName('THOMAS J WILLIAMS-GIBSON'), 'Thomas');
+  assert.equal(greetingFirstName('DeShawn Carter'), 'DeShawn', 'typed casing is kept');
+  assert.equal(greetingFirstName(''), 'there');
+  const update = readFileSync(new URL('../api/assembler/update.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(update, /full_name \|\| ''\)\.split\(' '\)\[0\]/, 'no greeting takes the raw first word');
+
+  const waived = buildRejectionEmail('Innocent', 'Your application listed no competing business', false, true);
+  assert.match(waived, /Hi Innocent,/);
+  assert.match(waived, />Reason</);
+  assert.match(waived, /listed no competing business\./, 'the reason ends as a sentence');
+  assert.doesNotMatch(waived, /fee waiver|No application fee was collected/, 'a waived fee is not mentioned');
+  assert.doesNotMatch(waived, /reapply after 90 days/, 'no reapply promise the system does not enforce');
+  const refunded = buildRejectionEmail('Ana', '', true, false);
+  assert.match(refunded, /application fee has been refunded/);
+  const { EASER_APPLICATION_FEE_DISPLAY } = await import('../api/_easer-application-fee.js');
+  assert.ok(refunded.includes(`Your ${EASER_APPLICATION_FEE_DISPLAY} application fee`), 'the fee comes from the fee setting');
+}
+console.log('PASS Easer emails: greetings capitalised; the rejection email states the reason, never the fee waiver or an unenforced reapply date.');
