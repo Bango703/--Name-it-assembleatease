@@ -4,6 +4,7 @@ import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { normalizeAssemblerProfile } from '../_assembler-state.js';
 import { getEaserReadiness, getEaserApprovalReadiness } from '../_easer-readiness.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
+import { inspectApplicationText } from '../booking/_relay-contact-guard.js';
 
 /**
  * GET /api/assembler/list
@@ -52,6 +53,8 @@ export default async function handler(req, res) {
       // readiness must use the stored approval evidence, as dispatch does.
       readiness: await getEaserReadiness(profile, { connectRequired: requireConnect }),
       approvalReadiness: getEaserApprovalReadiness(assembler),
+      // Same verdict the approve action enforces (api/assembler/update.js).
+      applicationScreen: inspectApplicationText(profile.bio),
     };
   }));
 

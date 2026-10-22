@@ -17,6 +17,7 @@ import { customerOwnsBooking } from './_customer-booking-auth.js';
 import { customerAccountUser, customerBookingAccess } from './_customer-access.js';
 import { evaluateCustomerContactRelease } from './_customer-contact-release.js';
 import { inspectRelayMessage } from './_relay-contact-guard.js';
+import { recordBlockedRelayAttempt } from './_solicitation-alert.js';
 import { EASER_SUPPORT_TYPES } from './_easer-support.js';
 import {
   OPERATION_CASE_SEVERITIES,
@@ -362,6 +363,11 @@ export default async function handler(req, res) {
     }
     const inspection = inspectRelayMessage(messageText);
     if (!inspection.ok) {
+      // Every refused attempt reaches the owner (owner, 2026-10-22: no
+      // exceptions for taking customers). Recording never blocks the refusal.
+      await recordBlockedRelayAttempt(sb, {
+        booking, easerId: authenticatedUser.id, messageText, inspection,
+      }).catch((error) => console.error('[message] solicitation alert failed:', error?.message || error));
       return res.status(422).json({ error: inspection.error, code: inspection.code });
     }
   }

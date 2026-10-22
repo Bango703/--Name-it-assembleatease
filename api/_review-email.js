@@ -71,6 +71,7 @@ export function buildReviewEmail(step, b, url, { photoUrl, proFirst } = {}) {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin:20px 0 16px"><tr><td style="padding:12px 16px;font-size:13px;color:#0c4a6e;line-height:1.6">
       ${c.note}
     </td></tr></table>
+    <p style="margin:0 0 12px;font-size:13px;color:#52525b;line-height:1.6">Did your pro offer to work with you directly, outside AssembleAtEase? Reply to this email and tell us.</p>
     <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Thank you for choosing AssembleAtEase.</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">

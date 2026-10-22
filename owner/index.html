@@ -11018,6 +11018,12 @@ window.intelQuick = intelQuick;
       try {
         var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:aId, action:'approve' }) });
         var d = await r.json();
+        // The server holds a flagged application until the owner confirms the review.
+        if (r.status === 409 && d.code === 'APPLICATION_SOLICITATION_REVIEW') {
+          if (!window.confirm(d.error + '\n\nApprove anyway?')) { approveBtn.disabled = false; approveBtn.textContent = 'Approve'; return; }
+          r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:aId, action:'approve', solicitationReviewed:true }) });
+          d = await r.json();
+        }
         if (d.error) { toast(d.error, 'error'); approveBtn.disabled = false; approveBtn.textContent = 'Approve'; return; }
         var approvalState = d.requiresCurrentAgreement
           ? 'Easer approved and kept Offline — the current contractor agreement must be accepted before going Online.'
@@ -11246,6 +11252,12 @@ window.intelQuick = intelQuick;
       actionBtns += '<button class="btn" data-resend-onboarding="' + a.id + '" onclick="resendEaserOnboarding(\'' + a.id + '\',this)">Resend Secure Onboarding Link</button> ';
       if (idStatus !== 'verified') {
         actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'mark_id_verified\')">Mark ID Verified</button> ';
+      }
+      // Server verdict (api/assembler/list.js): the About text advertises the
+      // applicant's own business or carries contact details.
+      if (a.applicationScreen && a.applicationScreen.flagged) {
+        var screenText = (a.applicationScreen.findings || []).map(function(f){ return f.label; }).join(', ');
+        actionBtns += '<span style="display:block;margin:0 0 8px;font-size:0.8rem;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:6px 10px"><strong>Possible own business or contact details:</strong> ' + esc(screenText) + '. Read the About text before approving.</span>';
       }
       if (idStatus === 'verified' && easerApprovalFeeSatisfied(a)) {
         actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'approve\')">Approve Application</button> ';
@@ -11566,6 +11578,13 @@ window.intelQuick = intelQuick;
     try {
       var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify(body) });
       var d = await r.json();
+      // The server holds a flagged application until the owner confirms the review.
+      if (r.status === 409 && d.code === 'APPLICATION_SOLICITATION_REVIEW') {
+        if (!window.confirm(d.error + '\n\nApprove anyway?')) return;
+        body.solicitationReviewed = true;
+        r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify(body) });
+        d = await r.json();
+      }
       if (!r.ok || d.error) {
         var msg = d.error || 'Action failed';
         if (d.activeJobs && d.activeJobs.length) {

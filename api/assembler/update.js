@@ -28,6 +28,7 @@ import { loadLedgerFirstFinanceRows } from '../owner/_finance-ledger.js';
 import { CONTRACTOR_AGREEMENT_VERSION } from '../_assembler-onboarding.js';
 import { logActivity } from '../booking/_activity.js';
 import { sendPushToUser } from '../_push.js';
+import { inspectApplicationText, describeApplicationFindings } from '../booking/_relay-contact-guard.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -457,6 +458,17 @@ export default async function handler(req, res) {
       return res.status(400).json({
         error: approvalReadinessError(approvalReadiness),
         missingItems: approvalReadiness.missingItems,
+      });
+    }
+    // An application whose About text advertises the applicant's own business
+    // or carries contact details is approved only after the owner confirms the
+    // review (owner, 2026-10-22: nobody joins to take customers).
+    const applicationScreen = inspectApplicationText(rawProfile.bio);
+    if (applicationScreen.flagged && req.body?.solicitationReviewed !== true) {
+      return res.status(409).json({
+        error: `This application's About text contains ${describeApplicationFindings(applicationScreen.findings)}. Confirm you have reviewed it to approve.`,
+        code: 'APPLICATION_SOLICITATION_REVIEW',
+        findings: applicationScreen.findings,
       });
     }
 
