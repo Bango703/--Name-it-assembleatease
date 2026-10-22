@@ -108,7 +108,6 @@ export default async function handler(req, res) {
 
   try {
     const ownerResp = await sendEmail({
-        from: 'AssembleAtEase Business <contact@assembleatease.com>',
         to: TO,
         subject: `New Business Lead - ${company}${recurring ? ' (recurring?)' : ''}`,
         html: ownerHtml,
@@ -141,7 +140,6 @@ export default async function handler(req, res) {
 
     // Partnership-grade auto-response to the business (non-blocking on failure)
     const bizResp = await sendEmail({
-        from: 'AssembleAtEase <contact@assembleatease.com>',
         to: email,
         subject: `We received your request - ${company}`,
         html: bizHtml,

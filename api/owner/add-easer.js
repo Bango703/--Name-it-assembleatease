@@ -122,7 +122,6 @@ export default async function handler(req, res) {
   try {
     easerEmailResult = await sendEmail({
       to: cleanEmail,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Welcome to AssembleAtEase — Complete Your Setup',
       replyTo: ownerEmail(),
       html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
@@ -165,7 +164,6 @@ export default async function handler(req, res) {
   try {
     await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Easer Manually Added — ' + cleanName,
       html: `<p style="font-family:sans-serif;font-size:14px;color:#111"><strong>${esc(cleanName)}</strong> (${esc(cleanEmail)}) was manually added as an Easer. Application fee waived. They have been sent a password setup link and a time-limited onboarding link for agreement acceptance plus identity verification. They appear as <strong>Pending</strong> in the Easers tab — approve after they complete onboarding.</p>`,
       replyTo: cleanEmail,

@@ -513,7 +513,6 @@ export default async function handler(req, res) {
       const refundDisplay = `$${(stripeRefund.amount / 100).toFixed(2)}`;
       await sendEmail({
         to: ownerEmail(),
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Payout Review Required — Refund after payout — ${esc(booking.ref)}`,
         html: `
           <div style="font-family:Inter,Arial,sans-serif;max-width:620px;margin:0 auto;padding:24px;color:#18181b">
@@ -587,7 +586,6 @@ export default async function handler(req, res) {
 
     await sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Your refund is on the way — ${booking.ref}`,
       html,
       replyTo: ownerEmail(),

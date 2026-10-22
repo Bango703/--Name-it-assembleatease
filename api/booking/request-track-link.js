@@ -61,7 +61,6 @@ export default async function handler(req, res) {
       const trackUrl = `${process.env.PUBLIC_SITE_URL || SITE}/track?ref=${encodeURIComponent(booking.ref)}&email=${encodeURIComponent(booking.customer_email)}&token=${encodeURIComponent(token)}`;
       const emailResult = await sendEmail({
         to: booking.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         replyTo: ownerEmail(),
         subject: `Your secure booking link - ${booking.ref}`,
         html: `<p>Hi ${esc(String(booking.customer_name || 'there').split(' ')[0])},</p><p>Use the secure link below to view or manage booking <strong>${esc(booking.ref)}</strong>.</p><p><a href="${esc(trackUrl)}">Open secure booking details</a></p><p>If you did not request this, no action is needed.</p>`,

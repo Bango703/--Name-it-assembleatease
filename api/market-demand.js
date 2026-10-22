@@ -150,7 +150,6 @@ async function notifyOwner(row) {
   try {
     await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase Market Demand <booking@assembleatease.com>',
       subject: `New market demand request — ${row.city}, ${row.state} — ${row.requested_service}`,
       replyTo: row.customer_email,
       meta: { notificationType: 'market_demand', recipientType: 'owner', disableDedupe: true },
@@ -165,7 +164,6 @@ async function notifyCustomer(row) {
   try {
     await sendEmail({
       to: row.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `We received your AssembleAtEase request — ${row.request_ref}`,
       replyTo: ownerEmail(),
       meta: { notificationType: 'market_demand_confirmation', recipientType: 'customer', disableDedupe: true },

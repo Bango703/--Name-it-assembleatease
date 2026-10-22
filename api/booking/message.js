@@ -477,7 +477,6 @@ export default async function handler(req, res) {
 </div></body></html>`;
       notificationResult = await sendEmail({
         to: easerUser.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'Job update from AssembleAtEase — ' + booking.ref,
         html: easerHtml,
         replyTo: ownerEmail(),
@@ -519,7 +518,6 @@ export default async function handler(req, res) {
 </div></body></html>`;
       notificationResult = await sendEmail({
         to: booking.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'Message about booking ' + booking.ref,
         html,
         replyTo: ownerEmail(),
@@ -560,7 +558,6 @@ export default async function handler(req, res) {
 </div></body></html>`;
       notificationResult = await sendEmail({
         to: booking.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Message about your ${booking.service || 'booking'} — ${booking.ref}`,
         html: relayHtml,
         replyTo: ownerEmail(),
@@ -620,7 +617,6 @@ export default async function handler(req, res) {
         : 'Easer Message — ' + booking.ref;
       notificationResult = await sendEmail({
         to: ownerEmail(),
-        from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
         subject: ownerSubject,
         html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
@@ -646,7 +642,6 @@ export default async function handler(req, res) {
       // Customer message — notify owner
       notificationResult = await sendEmail({
         to: ownerEmail(),
-        from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
         subject: (resolvedRecipient === 'assembler' ? 'FYI: customer messaged the Easer — ' : 'Customer Reply — ') + booking.ref + ' from ' + booking.customer_name,
         html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
@@ -718,7 +713,6 @@ export default async function handler(req, res) {
         if (easerProfile?.email) {
           const easerNotice = await sendEmail({
             to: easerProfile.email,
-            from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
             subject: 'Customer message — ' + booking.ref,
             html: `<p style="font-family:Arial,sans-serif;color:#1a1a1a">A customer sent a message about booking <strong>${esc(booking.ref)}</strong>.</p><p style="font-family:Arial,sans-serif;color:#1a1a1a;line-height:1.6">${sBody}</p><p style="margin:18px 0 0"><a href="${esc(easerJobUrl)}" style="display:inline-block;background:#00BFFF;color:#0d1117;font-weight:700;font-size:14px;text-decoration:none;padding:12px 20px;border-radius:8px;font-family:Arial,sans-serif">Open the job to reply</a></p><p style="font-family:Arial,sans-serif;color:#71717a;font-size:12px">Replies to this email do not reach the customer.</p>`,
             replyTo: ownerEmail(),

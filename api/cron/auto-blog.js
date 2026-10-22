@@ -121,7 +121,6 @@ export async function writeNextArticle({ token, anthropicKey, now = new Date(), 
   if (notify) {
     await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `New blog article ready to review: ${checked.title}`,
       html: `<p>A new article is ready to review: <strong>${esc(checked.title)}</strong>.</p><p>Read it in the preview and merge the pull request to publish it:<br/><a href="${esc(pr.url)}">${esc(pr.url)}</a></p>${image.reused ? '<p>The photo is already used by another article. Replace it before merging.</p>' : ''}`,
       meta: { notificationType: 'blog_article_ready', recipientType: 'owner' },

@@ -461,7 +461,6 @@ export default async function handler(req, res) {
     await sendEmail({
       to: booking.customer_email,
       meta: { bookingId: booking.id, notificationType: 'cancellation', recipientType: 'customer', recipientUserId: user.id },
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Booking Cancelled — ${booking.ref}`,
       html: buildStatusEmail({
         customerName: booking.customer_name,
@@ -484,7 +483,6 @@ export default async function handler(req, res) {
     await sendEmail({
       to: ownerEmail(),
       meta: { bookingId: booking.id, notificationType: 'cancellation', recipientType: 'owner' },
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Customer Cancelled — ${booking.ref}`,
       html: `<p>Customer <strong>${esc(booking.customer_name)}</strong> cancelled booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}).</p>
 <p>Job date: ${esc(formatAppointmentDate(booking.date))} at ${esc(booking.time)}</p>
@@ -504,7 +502,6 @@ ${proTripCutCents > 0 ? '<p style="background:#eff6ff;border:1px solid #bfdbfe;b
         const wasAccepted = !!booking.assembler_accepted_at;
         await sendEmail({
           to: pro.email,
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: `Job cancelled — ${booking.ref}`,
           replyTo: ownerEmail(),
           html: buildStatusEmail({

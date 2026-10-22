@@ -276,7 +276,6 @@ export default async function handler(req, res) {
       try {
         await sendEmail({
           to: ownerEmail(),
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: `Payment Capture Failed - ${booking.ref}`,
           html: `<p>Payment capture failed while the Easer attempted to complete booking <strong>${esc(booking.ref)}</strong>. The booking was not marked complete and no Easer earnings were created.</p>
 <p>Customer: ${esc(booking.customer_name)} | Error: ${esc(stripeErr?.message)}</p>
@@ -479,7 +478,6 @@ export default async function handler(req, res) {
 
     await sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Job Complete & Payment Receipt — ${booking.ref}`,
       html: buildStatusEmail({
         customerName: booking.customer_name,
@@ -508,7 +506,6 @@ export default async function handler(req, res) {
     if (asmProfile?.email && finalAmount > 0) {
       await sendEmail({
         to: asmProfile.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Job complete — here's what you earned (${booking.ref})`,
         // A FRAGMENT, not a full document. This email used to start with
         // <!DOCTYPE html>, which makes sendEmail's shared frame skip it — so the
@@ -548,7 +545,6 @@ export default async function handler(req, res) {
   try {
     const ownerNotice = await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Job Completed by Easer — ${booking.ref}`,
       html: `<p>Booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}) has been marked complete by the Easer.</p>
 <p>Customer: ${esc(booking.customer_name)} | Amount: $${(finalAmount/100).toFixed(2)} | Easer due: $${(assemblerDue/100).toFixed(2)}</p>`,
@@ -762,7 +758,6 @@ async function completeOfflineOwnerManualBooking(sb, res, {
 
       await sendEmail({
         to: booking.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Your job is complete — ${booking.ref}`,
         html: buildStatusEmail({
           customerName: booking.customer_name,
@@ -793,7 +788,6 @@ async function completeOfflineOwnerManualBooking(sb, res, {
       : `Customer payment is not yet recorded as collected. Confirm the exact $${(totalCents / 100).toFixed(2)} customer payment before recording the payout.`;
     const ownerNotice = await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Offline job completed — ${booking.ref}`,
       html: `<p>Your offline job <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}) is marked complete.</p>
 <p>Customer: ${esc(booking.customer_name)} | Your earnings: $${(split.assemblerDueCents / 100).toFixed(2)}.</p>

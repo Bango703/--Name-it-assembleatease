@@ -169,7 +169,6 @@ export default async function handler(req, res) {
     const finalCompletion = action === 'complete';
     const emailResult = await sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: finalCompletion
         ? `Your return visit is complete — ${booking.ref}`
         : `Your return visit remains scheduled — ${booking.ref}`,

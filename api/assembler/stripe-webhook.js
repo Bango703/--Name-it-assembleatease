@@ -210,7 +210,6 @@ export default async function handler(req, res) {
           try {
             await sendEmail({
               to: ownerEmail(),
-              from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: `Identity Verified — ${esc(profile.full_name)}`,
               html: buildVerifiedEmail(profile.full_name, profile.email, 'verified'),
               meta: { notificationType: 'identity_verified_owner', recipientType: 'owner' },
@@ -220,7 +219,6 @@ export default async function handler(req, res) {
           try {
             await sendEmail({
               to: profile.email,
-              from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: 'Identity verified — next steps',
               html: buildApplicantVerifiedEmail(profile.full_name.split(' ')[0]),
               replyTo: ownerEmail(),
@@ -263,7 +261,6 @@ export default async function handler(req, res) {
           try {
             await sendEmail({
               to: ownerEmail(),
-              from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: `Identity Verification Failed — ${esc(profile.full_name)}`,
               html: buildVerifiedEmail(profile.full_name, profile.email, 'failed', lastError),
               meta: { notificationType: 'identity_failed_owner', recipientType: 'owner' },
@@ -273,7 +270,6 @@ export default async function handler(req, res) {
           try {
             await sendEmail({
               to: profile.email,
-              from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: 'Action Required — Retry Identity Verification',
               html: buildAssemblerFailEmail(profile.full_name.split(' ')[0], lastError, resumeUrl),
               replyTo: ownerEmail(),
@@ -593,7 +589,6 @@ export default async function handler(req, res) {
           try {
             await sendEmail({
               to: bk.customer_email,
-              from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: `Booking Confirmed — ${esc(bk.ref)}`,
               html: buildBookingConfirmEmail(bk, totalDisplay),
               replyTo: ownerEmail(),
@@ -632,7 +627,6 @@ export default async function handler(req, res) {
             try {
               await sendEmail({
                 to: profile.email,
-                from: 'AssembleAtEase <booking@assembleatease.com>',
                 subject: 'Payment Failed — AssembleAtEase Application',
                 html: buildPaymentFailEmail(profile.full_name.split(' ')[0], reason),
                 replyTo: ownerEmail(),
@@ -764,7 +758,6 @@ export default async function handler(req, res) {
             try {
               await sendEmail({
                 to: currentBooking.customer_email,
-                from: 'AssembleAtEase <booking@assembleatease.com>',
                 subject: `Your booking wasn't completed - ${esc(currentBooking.ref)}`,
                 html: buildCustomerPaymentFailEmail((currentBooking.customer_name || 'Customer').split(' ')[0], currentBooking.ref),
                 replyTo: ownerEmail(),
@@ -777,7 +770,6 @@ export default async function handler(req, res) {
           try {
             await sendEmail({
               to: ownerEmail(),
-              from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: `Payment Failed — ${esc(currentBooking.ref || bookingId)}`,
               html: buildOwnerPaymentFailEmail(currentBooking, reason),
               meta: { bookingId, notificationType: 'payment_failed_owner', recipientType: 'owner' },
@@ -868,7 +860,6 @@ export default async function handler(req, res) {
 
         await sendEmail({
           to: ownerEmail(),
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: `Payment Hold Released - ${esc(booking.ref)}`,
           html: `<p>Stripe canceled the current card authorization for <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}).</p><p>Dispatch is blocked. Review the booking timeline, then send a secure payment continuation or new quote approval link. Do not assign an Easer until payment is verified.</p>`,
           meta: { bookingId: booking.id, notificationType: 'payment_authorization_canceled_owner', recipientType: 'owner' },
@@ -947,7 +938,6 @@ export default async function handler(req, res) {
         });
         await sendEmail({
           to: ownerEmail(),
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: `Refund Failed - ${esc(booking.ref)}`,
           html: `<p>Stripe reports that refund <strong>${esc(refund.id || 'unknown')}</strong> for booking <strong>${esc(booking.ref)}</strong> failed.</p><p>Review the aggregate refund in Stripe before retrying. A webhook never releases an owner refund lock because this event may belong to an older attempt. Retry only from the owner booking action, which rechecks fresh Stripe truth first.</p>`,
           meta: { bookingId: booking.id, notificationType: 'refund_failed_owner', recipientType: 'owner' },
@@ -1130,7 +1120,6 @@ export default async function handler(req, res) {
             }
             await sendEmail({
               to: ownerEmail(),
-              from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: `Payout Review Required - Refund after payout - ${esc(booking.ref)}`,
               html: `<p>Booking <strong>${esc(booking.ref)}</strong> has an aggregate Stripe refund of <strong>$${(cumulativeRefund / 100).toFixed(2)}</strong>, but the Easer payout is already ${esc(booking.payout_status)}.</p><p>A durable clawback review is open in the Owner dashboard. Do not close this financial record until the recovery or owner adjustment is documented.</p>`,
               meta: { bookingId: booking.id, notificationType: 'refund_clawback_required', recipientType: 'owner' },
@@ -1333,7 +1322,6 @@ export default async function handler(req, res) {
         const disputeAmount = `$${(liveAmount / 100).toFixed(2)}`;
         await sendEmail({
           to: ownerEmail(),
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: `URGENT: Chargeback Dispute - ${disputeAmount} - ${esc(disputeBk.ref)}`,
           html: `${buildOwnerDisputeEmail(liveDispute, disputeAmount, disputeBk)}<p><strong>Easer payout hold:</strong> Active. Do not pay externally. ${['paid', 'transferred'].includes(hold.payout_status || disputeBk.payout_status) ? 'Funds may already have left the platform; review recovery immediately.' : 'Use owner dispute resolution only after fresh Stripe truth is resolved and any withdrawn funds are reinstated.'}</p>`,
           meta: { bookingId: disputeBk.id, notificationType: 'stripe_dispute_owner', recipientType: 'owner' },
@@ -1342,7 +1330,6 @@ export default async function handler(req, res) {
         if (event.type === 'charge.dispute.created' && disputeBk.customer_email) {
           await sendEmail({
             to: disputeBk.customer_email,
-            from: 'AssembleAtEase <booking@assembleatease.com>',
             subject: `Dispute Received - ${esc(disputeBk.ref)}`,
             html: buildCustomerDisputeEmail(
               (disputeBk.customer_name || '').split(' ')[0],
@@ -1386,7 +1373,6 @@ export default async function handler(req, res) {
           if (p) {
             sendEmail({
               to: p.email,
-              from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: 'Membership Active — You now get priority jobs!',
               html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
                 <h2 style="color:#00BFFF">Your membership is active!</h2>
@@ -1584,7 +1570,6 @@ export default async function handler(req, res) {
           try {
             await sendEmail({
               to: ownerEmail(),
-              from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: `Easer bank payout FAILED — ${flagged} payout(s) need attention`,
               html: `<p>Stripe could not pay out to an Easer's bank (connected account ${esc(connectedAccount)}).</p>`
                 + `<p>Affected bookings: ${esc((failedRows || []).map((r) => r.ref).join(', '))}.</p>`
@@ -1645,7 +1630,6 @@ export default async function handler(req, res) {
 
         const alert = await sendEmail({
           to: ownerEmail(),
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: 'Action needed — a customer saved a card for a quote but didn’t finish',
           html: `<p style="font-size:15px;line-height:1.7"><strong>A customer saved their card to request a custom quote, but never finished submitting the project details.</strong> It won’t appear in your &ldquo;Quotes to Price&rdquo; list, so reach out and close it.</p>
             <p style="font-size:14px;line-height:1.7;color:#52525b">Name: <strong>${esc(custName || 'Not provided')}</strong><br>Email: <a href="mailto:${esc(email)}" style="color:#00BFFF">${esc(email || 'unknown')}</a><br>Saved card: on file in Stripe${customerId ? ` (customer ${esc(customerId)})` : ''}</p>
@@ -1880,7 +1864,6 @@ async function syncEaserApplicationFeeDispute({
 
     const ownerNotice = await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `URGENT: Easer Application Fee Dispute - ${esc(profile.full_name || profile.id)}`,
       html: `<p>Stripe reports dispute <strong>${esc(freshDispute?.id || dispute.id)}</strong> on the ${EASER_APPLICATION_FEE_DISPLAY} application fee for <strong>${esc(profile.full_name || profile.id)}</strong>.</p><p>Status: <strong>${esc(freshDispute?.status || dispute.status || 'unknown')}</strong>. New offers, assignments, and acceptance are blocked. Existing accepted jobs remain available to finish.</p><p>Review the dispute and PaymentIntent <strong>${esc(paymentIntentId)}</strong> in Stripe. Do not restore availability until the owner reconciliation action proves the dispute is resolved.</p>`,
       meta: {
@@ -1892,7 +1875,6 @@ async function syncEaserApplicationFeeDispute({
     }).catch(error => ({ ok: false, error: error?.message || String(error) }));
     const easerNotice = profile.email ? await sendEmail({
       to: profile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: ownerEmail(),
       subject: 'Your application payment needs attention',
       html: '<p>A payment dispute was reported for your application fee. New job offers are temporarily unavailable.</p><p>Any job you already accepted remains available to complete. Reply to this email if you believe this is an error or need help.</p>',
@@ -1974,7 +1956,6 @@ async function recordEaserApplicationFeeRefundNotice({
 
   const ownerNotice = await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Owner Action Required - Easer Application Fee Refund - ${esc(profile.full_name || profile.id)}`,
     html: validationError
       ? `<p>Stripe reported application-fee refund activity for <strong>${esc(profile.full_name || profile.id)}</strong>, but the complete Stripe payment/refund truth could not be validated.</p><p>The Easer is offline for all new offers and assignments. Existing accepted work remains available to complete. Review PaymentIntent <strong>${esc(profile.stripe_payment_intent_id)}</strong> in Stripe before changing availability.</p><p>Validation error: ${esc(validationError)}</p>`
@@ -1989,7 +1970,6 @@ async function recordEaserApplicationFeeRefundNotice({
 
   const easerNotice = profile.email ? await sendEmail({
     to: profile.email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     replyTo: ownerEmail(),
     subject: 'Your application fee status was updated',
     html: validationError
@@ -2176,7 +2156,6 @@ async function syncAuthorizedCustomerQuote({ sb, stripe, pi, event }) {
   await Promise.allSettled([
     sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Quote approved and booking confirmed - ${booking.ref}`,
       html: `<p>Your quote for <strong>${esc(booking.service)}</strong> was approved for <strong>${amountDisplay}</strong>.</p><p>We have placed a hold on your card. Nothing has been taken. You are charged after the work is done, apart from a cancellation fee if one applies.</p>`,
       replyTo: ownerEmail(),
@@ -2184,7 +2163,6 @@ async function syncAuthorizedCustomerQuote({ sb, stripe, pi, event }) {
     }),
     sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Customer approved quote - ${booking.ref} - ${amountDisplay}`,
       html: `<p><strong>${esc(booking.customer_name)}</strong> approved quote <strong>${esc(booking.ref)}</strong> for ${amountDisplay}. Stripe authorization ${esc(pi.id)} is ready for capture after completion.</p>`,
       meta: { bookingId: booking.id, notificationType: 'quote_approved', recipientType: 'owner' },
@@ -2331,7 +2309,6 @@ async function syncCapturedCustomerPayment({ sb, stripe, pi, event }) {
 
     await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Owner review: balance captured before completion finalized - ${esc(current.ref)}`,
       html: `<p>Stripe captured the remaining balance for booking <strong>${esc(current.ref)}</strong>. Combined deposit and balance: <strong>$${(combinedAmount / 100).toFixed(2)}</strong>.</p><p>The booking still needs completion reconciliation. Do not charge the customer again.</p>`,
       meta: { bookingId, notificationType: 'balance_capture_recovery_owner', recipientType: 'owner', disableDedupe: true },
@@ -2432,7 +2409,6 @@ async function syncCapturedCustomerPayment({ sb, stripe, pi, event }) {
   await Promise.allSettled([
     sendEmail({
       to: current.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Payment Receipt — ${esc(current.ref)}`,
       html: buildCustomerReceiptEmail(current, amountDisplay),
       replyTo: ownerEmail(),
@@ -2440,7 +2416,6 @@ async function syncCapturedCustomerPayment({ sb, stripe, pi, event }) {
     }),
     sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Payment Captured — ${esc(current.ref)} — ${amountDisplay || ''}`,
       html: buildOwnerCaptureEmail(current, amountDisplay),
       meta: { bookingId, notificationType: 'payment_captured_owner', recipientType: 'owner' },

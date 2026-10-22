@@ -118,7 +118,6 @@ async function alertOwner(sb, booking, minutes) {
   const mins = Math.round(minutes);
   const result = await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase System <booking@assembleatease.com>',
     subject: `Job not started — ${booking.ref} (${booking.assembler_name || 'Easer'})`,
     html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">

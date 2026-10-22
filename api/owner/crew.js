@@ -237,7 +237,6 @@ export default async function handler(req, res) {
 
   notify.easer = await sendEmail({
     to: easer.email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `You've been added to a job — ${esc(booking.service || 'Service')} (${esc(booking.ref)})`,
     html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
       <h2 style="color:#00BFFF">You're on a job</h2>
@@ -271,7 +270,6 @@ export default async function handler(req, res) {
   if (booking.customer_email) {
     notify.customer = await sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `A second pro is joining your appointment — ${esc(booking.ref)}`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
         <h2 style="color:#00BFFF">A second pro is joining your appointment</h2>

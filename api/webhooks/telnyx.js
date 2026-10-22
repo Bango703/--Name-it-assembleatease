@@ -184,7 +184,6 @@ async function handleInbound(sb, payload, stamp) {
     try {
       const alertResult = await sendEmail({
         to: ownerEmail(),
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `New text to (979) 232-5139 from ${from || 'unknown number'}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#0a1628">
   <h2 style="margin:0 0 10px;font-size:18px">New text message to the business line</h2>

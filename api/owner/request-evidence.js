@@ -66,7 +66,6 @@ export default async function handler(req, res) {
     try {
       await sendEmail({
         to: profile.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Action Required: Upload Evidence for Job ${booking.ref}`,
         html: buildEvidenceRequestEmail({ firstName, ref: booking.ref, service: booking.service, date: booking.date }),
         replyTo: ownerEmail(),

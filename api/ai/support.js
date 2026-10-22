@@ -243,7 +243,7 @@ export function createSupportHandler({ env = process.env, catalog = getBookingCa
     if (saved.case_ref === proposedRef) {
       let notice;
       try {
-        notice = await email({ to: ownerAddress(), from: 'AssembleAtEase <contact@assembleatease.com>',
+        notice = await email({ to: ownerAddress(),
           subject: `${severity === 'critical' ? 'URGENT ' : ''}Sora ${input.callerRole === 'customer' ? 'customer' : 'Service Pro'} request ${saved.case_ref}`,
           html: `<h2>${esc(label)}</h2><p>Reference: ${esc(saved.case_ref)} | Priority: ${esc(severity)}</p><p style="white-space:pre-wrap">${esc(validated.description)}</p><p>Open Owner Dashboard &gt; Cases to acknowledge, verify and follow up. This is not a confirmed booking or account action.</p>`,
           meta: { operationCaseId: saved.id, notificationType: input.callerRole === 'customer' ? 'ai_customer_intake_owner' : 'ai_pro_support_owner', recipientType: 'owner' },

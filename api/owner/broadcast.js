@@ -36,7 +36,6 @@ async function sendOne(email, subject, bodyHtml, { notificationKey, test = false
   try {
     const result = await sendEmail({
       to: email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject,
       html: buildBroadcastHtml(bodyHtml, email),
       replyTo: ownerEmail(),

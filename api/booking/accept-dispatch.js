@@ -581,7 +581,6 @@ async function sendNotifications(sb, booking, easer, assemblerId) {
     });
     const result = await sendEmail({
       to:   booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: email.subject,
       html: email.html,
       replyTo: ownerEmail(),
@@ -595,7 +594,6 @@ async function sendNotifications(sb, booking, easer, assemblerId) {
   // Owner: "Job Accepted"
   const ownerResult = await sendEmail({
     to:   ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Job Accepted — ${esc(booking.ref)} · ${esc(easer.full_name)}`,
     html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
       <h2 style="color:#00BFFF">Job Accepted</h2>

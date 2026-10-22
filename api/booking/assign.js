@@ -433,7 +433,6 @@ export default async function handler(req, res) {
   try {
     emailResult = await sendEmail({
       to: assembler.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: ownerEmail(),
       // The booking ref MUST be in the subject. sendEmail dedupes on
       // recipient + notificationType + SUBJECT, so a ref-less subject made two

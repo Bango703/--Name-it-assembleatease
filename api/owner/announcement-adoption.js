@@ -34,7 +34,6 @@ export default async function handler(req, res) {
       const firstName = String(easer.full_name || 'Easer').split(/\s+/)[0];
       const emailResult = await sendEmail({
         to: easer.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'Turn on AssembleAtEase job texts',
         replyTo: ownerEmail(),
         html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#0a1628"><h2 style="color:#0a1628">Turn on job texts, ${esc(firstName)}</h2><p style="font-size:15px;line-height:1.6;color:#334155">Job offers and arrival reminders are sent by text. Open your profile and turn on job texts so you can receive new offers.</p><p style="margin:22px 0"><a href="${esc(actionUrl(ann))}" style="display:inline-block;background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:12px 22px;border-radius:8px">Turn on job texts</a></p><p style="font-size:12px;color:#64748b">Message and data rates may apply. Reply STOP to any text to turn messages off.</p></div>`,

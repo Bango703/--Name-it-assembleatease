@@ -242,7 +242,6 @@ export default async function handler(req, res) {
         });
         const customerResult = await sendEmail({
           to: booking.customer_email,
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: `Your quote is ready — ${booking.ref}`,
           html,
           replyTo: ownerEmail(),
@@ -273,7 +272,6 @@ export default async function handler(req, res) {
           });
           const customerResult = await sendEmail({
             to: booking.customer_email,
-            from: 'AssembleAtEase <booking@assembleatease.com>',
             subject: 'Your booking has been updated — ' + booking.ref,
             html,
             replyTo: ownerEmail(),
@@ -301,7 +299,6 @@ export default async function handler(req, res) {
       const acceptUrl = `${SITE}/assembler/my-assignments?accept=${booking.id}&token=${encodeURIComponent(nextAssignmentToken)}`;
       const easerResult = await sendEmail({
         to: easer.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Action required: job schedule changed - ${booking.ref}`,
         replyTo: ownerEmail(),
         html: `<p>Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')},</p>

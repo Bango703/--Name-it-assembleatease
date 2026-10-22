@@ -65,7 +65,6 @@ export async function reconcileCancellationAssembleCash(sb, booking, eventSource
 
   await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Rewards Reconciliation Required - Cancelled booking ${esc(booking.ref)}`,
     html: `<p>Booking <strong>${esc(booking.ref)}</strong> was cancelled, but its AssembleCash redemption or earned reward could not be fully reconciled.</p><p>Keep the financial record open until the rewards ledger is corrected.</p>`,
     meta: { bookingId: booking.id, notificationType: 'assemblecash_cancellation_reconciliation_required', recipientType: 'owner' },

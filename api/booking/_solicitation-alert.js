@@ -96,7 +96,6 @@ export async function recordBlockedRelayAttempt(sb, { booking, easerId, messageT
   try {
     const mail = await send({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Customer contact blocked: ${easerName} on ${booking.ref}`,
       html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:2rem">
         <h2 style="margin:0 0 0.5rem;color:#b91c1c">An Easer tried to send a customer ${esc(inspection?.label || 'contact details')}</h2>

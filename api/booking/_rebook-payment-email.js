@@ -29,7 +29,6 @@ export async function sendRebookPaymentEmail({ booking, token, disableDedupe = f
   const paymentUrl = rebookPaymentUrl({ bookingId: booking.id, token });
   return sendEmail({
     to: booking.customer_email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Complete your rebooking - ${booking.ref}`,
     replyTo: ownerEmail(),
     html: buildRebookPaymentEmail({ booking, paymentUrl }),

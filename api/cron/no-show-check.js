@@ -121,7 +121,6 @@ export default async function handler(req, res) {
       const notificationKey = ['no-show', b.id, b.date, b.time, b.assembler_id, b.assembler_accepted_at].join(':');
       const result = await sendEmail({
         to: ownerEmail(),
-        from: 'AssembleAtEase System <booking@assembleatease.com>',
         subject: `Possible no-show — ${b.ref} (${easer})`,
         html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">

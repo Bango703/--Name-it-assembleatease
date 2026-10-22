@@ -301,7 +301,6 @@ export default async function handler(req, res) {
 </div></body></html>`;
 
   const customerEmailResult = await sendEmail({
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     to: email,
     subject: `Booking request received — ${ref}`,
     html: customerHtml,
@@ -373,7 +372,6 @@ export default async function handler(req, res) {
 </div></body></html>`;
 
   const ownerEmailResult = await sendEmail({
-    from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
     to: TO,
     subject: `New Booking (${paymentMethodLabel} Authorized) — ${ref} — ${service}`,
     html: ownerHtml,

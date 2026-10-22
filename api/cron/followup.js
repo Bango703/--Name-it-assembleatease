@@ -89,7 +89,6 @@ export default async function handler(req, res) {
       if (sent > 0) await new Promise(resolve => setTimeout(resolve, minSendIntervalMs()));
       const result = await sendEmail({
         to: b.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'Planning another assembly or setup project?',
         replyTo: ownerEmail(),
         html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">

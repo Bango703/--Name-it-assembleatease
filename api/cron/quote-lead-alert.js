@@ -57,7 +57,6 @@ export function createQuoteLeadAlert({ getSb = getSupabase, send = (message) => 
       if (fresh.length) {
         const result = await send({
           to: ownerEmail(),
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: `${fresh.length} quote${fresh.length === 1 ? '' : 's'} started and not sent`,
           html: buildQuoteLeadEmail(fresh),
           meta: { notificationType: 'quote_lead_alert', recipientType: 'owner' },

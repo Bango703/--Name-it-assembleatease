@@ -823,7 +823,6 @@ export async function finalizeEaserApplicationSubmission({
   try {
     ownerNotification = await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: finalizedProfile.email,
       subject: (inspectApplicationText(finalizedProfile.bio).flagged ? 'Review needed: possible own business - ' : 'New Easer Application - ') + finalizedProfile.full_name,
       html: buildOwnerEmail({
@@ -854,7 +853,6 @@ export async function finalizeEaserApplicationSubmission({
   try {
     applicantNotification = await sendEmail({
       to: finalizedProfile.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Application Received - AssembleAtEase',
       html: buildApplicantEmail(String(finalizedProfile.full_name || '').split(' ')[0], {
         feeWaived: finalizedFeeWaived,

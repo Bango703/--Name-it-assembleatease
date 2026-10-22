@@ -118,7 +118,6 @@ export default async function handler(req, res) {
     }
     await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
       subject: `${flagReason === 'safety' ? 'Urgent: ' : ''}Customer flagged by an Easer — ${booking.ref}`,
       html: `<p style="font-family:Arial,sans-serif">${esc(easerName)} flagged the customer on <strong>${esc(booking.ref)}</strong>: <strong>${esc(CUSTOMER_FLAG_REASONS[flagReason])}</strong>.</p>
         ${note ? `<p style="font-family:Arial,sans-serif">${esc(note)}</p>` : ''}

@@ -37,7 +37,6 @@ export default async function handler(req, res) {
     try {
       const emailResult = await sendEmail({
         to: e.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'Action Required — Add Your Phone Number',
         replyTo: ownerEmail(),
         meta: { notificationType: 'easer_phone_required', recipientType: 'easer', recipientUserId: e.id },

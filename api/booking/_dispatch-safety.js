@@ -96,7 +96,6 @@ export async function notifyOwnerManualDispatch(sb, {
 
   const email = await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Action Required: ${esc(ref)} needs manual assignment`,
     html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
       <h2 style="color:#dc2626">Job Needs Manual Assignment</h2>
@@ -158,7 +157,6 @@ export async function holdDispatchForPaymentReconciliation(sb, {
 
   const email = await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Payment Reconciliation Required: ${esc(ref)}`,
     html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
       <h2 style="color:#dc2626">Dispatch Paused for Payment Review</h2>

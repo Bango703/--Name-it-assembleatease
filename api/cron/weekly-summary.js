@@ -78,7 +78,6 @@ export default async function handler(req, res) {
 
     await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Weekly Revenue Summary — ${weekLabel}`,
       html,
       meta: { notificationType: 'weekly_summary', recipientType: 'owner' },

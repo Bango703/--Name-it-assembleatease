@@ -146,7 +146,6 @@ async function sendTierEmail(p, kind, tier, eventAt) {
     const { subject, html } = tierEmail(kind, p.full_name, tier);
     return await sendEmail({
       to: p.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject,
       html,
       replyTo: ownerEmail(),
@@ -179,7 +178,6 @@ async function sendOwnerReliabilityAlert(p, opts) {
   try {
     return await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase System <booking@assembleatease.com>',
       subject: `Reliability review — ${p.full_name || 'Easer'}`,
       html: shell(`
         <div style="padding:22px 24px;border-bottom:3px solid #dc2626">
@@ -207,7 +205,6 @@ async function sendCoachingEmail(p, acceptance) {
   try {
     return await sendEmail({
       to: p.email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Keep getting the best AssembleAtEase jobs',
       html: shell(`
         <div style="padding:22px 24px;border-bottom:3px solid #f59e0b">

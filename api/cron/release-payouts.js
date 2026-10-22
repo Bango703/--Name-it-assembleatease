@@ -328,7 +328,6 @@ export default async function handler(req, res) {
           const payoutDisplay = '$' + (dueCents / 100).toFixed(2);
           await sendEmail({
             to: easerProfile.email,
-            from: 'AssembleAtEase <booking@assembleatease.com>',
             subject: `Your payment is on the way — ${payoutDisplay}` + (b.service ? ` for ${b.service}` : ''),
             html: buildPayoutEmail({
               firstName: (easerProfile.full_name || b.assembler_name || 'there').split(' ')[0],

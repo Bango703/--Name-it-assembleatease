@@ -207,7 +207,6 @@ export default async function handler(req, res) {
       try {
         await sendEmail({
           to: ownerEmail(),
-          from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: `Payment Capture Failed - ${booking.ref}`,
           html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
@@ -464,7 +463,6 @@ export default async function handler(req, res) {
 
     completionNotification = await sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Payment Receipt & Job Complete — ${booking.ref}`,
       html,
       replyTo: ownerEmail(),
@@ -600,7 +598,6 @@ async function completeOwnerManualBooking(sb, res, booking) {
   if (booking.customer_email) {
     const emailResult = await sendEmail({
       to: booking.customer_email,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Your job is complete — ${booking.ref}`,
       html: buildStatusEmail({
         customerName: booking.customer_name,

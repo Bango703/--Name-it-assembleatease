@@ -81,7 +81,6 @@ export async function createChangeOrderRequest(sb, { booking, description: clean
   const approvalUrl = `${SITE}/api/booking/change-order-approve?token=${encodeURIComponent(token)}`;
   const emailResult = await sendEmail({
     to: booking.customer_email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Approval needed for additional work — ${booking.ref}`,
     html: buildApprovalEmail({ booking, description: cleanDescription, priced, approvalUrl, expiresAt }),
     replyTo: ownerEmail(),

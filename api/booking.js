@@ -935,7 +935,6 @@ export default async function handler(req, res) {
     if (!clientSecret) {
       const ownerAlert = await sendEmail({
         to: TO,
-        from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
         subject: (quoteRequested ? 'New Quote Request - ' : 'New Booking - ') + (quoteRequested && service === 'Other' ? 'Custom Quote' : service) + ' from ' + name,
         html: ownerHtml,
         replyTo: email,
@@ -946,7 +945,6 @@ export default async function handler(req, res) {
       // Send customer email immediately too (no payment to wait for)
       await sendEmail({
         to: email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: quoteRequested ? 'Quote request received - ' + ref : 'Booking Confirmed - We received your request!',
         html: customerHtml,
         replyTo: TO,

@@ -119,7 +119,6 @@ export default async function handler(req, res) {
     // is no dispatch retry behind it to pick the job back up.
     await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Easer declined an assigned job — ${assigned.ref}`,
       html: `<p><strong>${esc(assigned.assembler_name || 'The assigned Easer')}</strong> declined <strong>${esc(assigned.ref)}</strong>.</p>
              ${reason ? `<p>Reason: ${esc(declineReasonLabel(reason))}</p>` : ''}
@@ -234,7 +233,6 @@ export default async function handler(req, res) {
   // the successfully persisted offer state.
   const declineEmail = await sendEmail({
     to:   ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Offer Declined — ${esc(booking?.ref || bookingId)}`,
     html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
       <h3 style="color:#f59e0b">Job Offer Declined</h3>

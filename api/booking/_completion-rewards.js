@@ -205,7 +205,6 @@ export async function surfaceCompletionRewardHold(sb, booking, operationKey, rew
     try {
       await sendEmail({
         to: ownerEmail(),
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Completion Reward Hold - ${booking.ref}`,
         html: `<p>Booking <strong>${esc(booking.ref)}</strong> is completed and payment is captured, but the AssembleCash reward could not be verified.</p><p>Refund and other financial actions remain locked. Review Live Ops before taking any separate payment action.</p><p>Reason: ${esc(reason)}</p>`,
         meta: { bookingId: booking.id, notificationType: 'completion_reward_reconciliation_required', recipientType: 'owner' },

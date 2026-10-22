@@ -280,7 +280,6 @@ export default async function handler(req, res) {
     try {
       await sendEmail({
         to: assembler.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: cancellationPayout
           ? `Your payment is on the way — ${payoutDisplay}`
           : `Your payment is on the way — ${payoutDisplay} for ${booking.service}`,

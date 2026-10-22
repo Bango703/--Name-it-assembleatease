@@ -106,7 +106,6 @@ export default async function handler(req, res) {
       // Notify owner to reassign
       await sendEmail({
         to: ownerEmail(),
-        from: 'AssembleAtEase System <booking@assembleatease.com>',
         subject: `Action Required: Booking ${b.ref} needs reassignment`,
         html: `<p>Booking <strong>${esc(b.ref)}</strong> (${esc(b.service)} for ${esc(b.customer_name)}) was not accepted by the assigned assembler within 24 hours.</p>
 <p>The customer booking remains confirmed and is now flagged for manual reassignment. Please log in and assign a replacement as soon as possible.</p>
@@ -118,7 +117,6 @@ export default async function handler(req, res) {
       // Reassure customer there is no disruption
       await sendEmail({
         to: b.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Update on your booking — ${esc(b.ref)}`,
         html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
@@ -333,7 +331,6 @@ export default async function handler(req, res) {
 
       await sendEmail({
         to: b.customer_email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'Booking ' + b.ref + ' - request expired',
         html,
         replyTo: ownerEmail(),
@@ -353,7 +350,6 @@ export default async function handler(req, res) {
     try {
       await sendEmail({
         to: ownerEmail(),
-        from: 'AssembleAtEase System <booking@assembleatease.com>',
         subject: 'Expired ' + declined + ' stale pending request(s)',
         html: '<p>' + declined + ' pending request(s) were expired only after external payment state was cleared or verified absent.</p><p>Refs: ' + declinedBookings.map(function(b){return esc(b.ref)}).join(', ') + '</p>',
         replyTo: ownerEmail(),
@@ -367,7 +363,6 @@ export default async function handler(req, res) {
   if (reconciliationIssues.length > 0) {
     await sendEmail({
       to: ownerEmail(),
-      from: 'AssembleAtEase System <booking@assembleatease.com>',
       subject: `Action required - ${reconciliationIssues.length} pending payment state(s) need review`,
       html: `<p>The stale-booking job left these records unchanged because Stripe or database truth was not safe to expire:</p><ul>${reconciliationIssues.map(issue => `<li><strong>${esc(issue.booking.ref)}</strong>: ${esc(issue.reason)}${issue.stripeStatus ? ` (${esc(issue.stripeStatus)})` : ''}</li>`).join('')}</ul><p>Review Stripe and the booking timeline before changing status.</p>`,
       replyTo: ownerEmail(),

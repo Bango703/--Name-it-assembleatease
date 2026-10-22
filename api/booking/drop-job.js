@@ -282,7 +282,6 @@ export default async function handler(req, res) {
   if ((!manualRequired && !paymentHeld) || pause.paused || classification.strikes > 0) {
     await sendEmail({
       to:   ownerEmail(),
-      from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `${classification.kind === 'same_day' ? 'Same-day Easer cancellation' : classification.kind === 'late' ? 'Late Easer cancellation' : 'Job Dropped'} — ${esc(booking.ref || bookingId)}`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
         <h3 style="color:#f59e0b">${classification.kind === 'grace' ? 'Easer dropped a job within 15 minutes of accepting' : 'Easer cancelled an accepted job'}</h3>

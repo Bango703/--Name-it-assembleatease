@@ -185,7 +185,6 @@ export default async function handler(req, res) {
         });
         const r = await sendEmail({
           to: email,
-          from: 'AssembleAtEase <waitlist@assembleatease.com>',
           subject: welcome.subject,
           html: welcome.html,
           replyTo: ownerEmail(),
@@ -276,7 +275,6 @@ export default async function handler(req, res) {
           to: entry.email,
           // Every other waitlist email sends from waitlist@. A thread that changes
           // sender halfway through reads as a different company to the recipient.
-          from: 'AssembleAtEase <waitlist@assembleatease.com>',
           subject: 'You are invited to join AssembleAtEase',
           replyTo: 'service@assembleatease.com',
           html: buildInviteEmail(firstName, inviteUrl, entry.city, entry.state),

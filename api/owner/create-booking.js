@@ -444,7 +444,6 @@ export default async function handler(req, res) {
   // Owner notice
   await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `${rebookSource ? 'Rebooking prepared' : 'Owner booking created'} — ${ref} — ${money(finalCents)}`,
     html: `<p>You created ${rebookSource ? `a pending replacement booking <strong>${esc(ref)}</strong> from cancelled booking <strong>${esc(rebookSource.ref)}</strong>` : `a manual booking <strong>${esc(ref)}</strong>`} for <strong>${esc(customerName)}</strong>.</p>
       <p>${esc(cleanService)} · ${esc(formatAppointmentDate(cleanDate))}${cleanTime ? ` · ${esc(cleanTime)}` : ''}<br>${esc(cleanAddress)}</p>
@@ -505,7 +504,6 @@ export default async function handler(req, res) {
     try {
       const emailResult = await sendEmail({
         to: cleanEmail,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Booking confirmed — ${cleanService} — ${ref}`,
         html: buildStatusEmail({
           customerName,
@@ -535,7 +533,6 @@ export default async function handler(req, res) {
     try {
       const completionResult = await sendEmail({
         to: cleanEmail,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Your job is complete — ${ref}`,
         html: buildStatusEmail({
           customerName,

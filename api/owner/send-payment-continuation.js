@@ -290,7 +290,6 @@ export default async function handler(req, res) {
   const firstName = String(booking.customer_name || 'there').trim().split(/\s+/)[0] || 'there';
   const emailResult = await sendEmail({
     to: booking.customer_email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Continue your secure booking payment - ${booking.ref}`,
     replyTo: ownerEmail(),
     html: buildContinuationEmail({ booking, continuationUrl, total, firstName }),

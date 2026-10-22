@@ -148,7 +148,6 @@ export default async function handler(req, res) {
         try {
           await sendEmail({
             to: booking.customer_email,
-            from: 'AssembleAtEase <booking@assembleatease.com>',
             subject: `Your upcoming appointment is confirmed — ${booking.ref}`,
             html: buildReauthEmail(booking),
             replyTo: 'service@assembleatease.com',
@@ -993,7 +992,7 @@ async function sendCurrentPaymentReviewAlert(sb, booking, outcome) {
     payment_deadline_save_failed: 'The card hold was verified, but its deadline could not be saved to the booking. The booking still needs payment review before work starts.',
   }[reason] || 'The current card hold could not be verified. This does not establish that the card was declined. Confirm the payment arrangement before work starts.';
   return sendEmail({
-    to: ownerEmail(), from: 'AssembleAtEase <booking@assembleatease.com>',
+    to: ownerEmail(),
     subject: `Payment review before appointment: ${booking.ref}`,
     html: ensureEmailShell(`<h1 style="font-size:22px">Review this booking's payment</h1><p><strong>${esc(booking.ref)}</strong>: ${esc(booking.service || 'Service')}, ${esc(formatAppointmentDate(booking.date))}.</p><p>${esc(description)}</p><p>Open the booking in the owner dashboard and review its payment details and timeline. If the records disagree, check the linked payment in Stripe before taking action. Do not mark work complete just to collect payment.</p><p>This check did not create a new card hold, collect a payment, or cancel a payment.</p><p><a href="https://www.assembleatease.com/owner/">Open the owner dashboard</a></p>`, 'owner'),
     replyTo: 'service@assembleatease.com',
@@ -1006,7 +1005,6 @@ async function sendCurrentPaymentReviewAlert(sb, booking, outcome) {
 async function sendAuthenticationRequiredAlert(booking) {
   return sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `ACTION REQUIRED: Card re-auth failed for ${booking.ref} — customer authentication required`,
     html: `<p>The payment re-authorization for booking <strong>${esc(booking.ref)}</strong> (${esc(booking.customer_name)}, ${esc(booking.service)}, ${esc(formatAppointmentDate(booking.date))}) requires customer authentication.</p><p>The original authorization remains linked. Contact the customer before it expires.</p>`,
     replyTo: 'service@assembleatease.com',
@@ -1017,7 +1015,6 @@ async function sendAuthenticationRequiredAlert(booking) {
 async function sendReauthOwnerAlert(booking, outcome) {
   return sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `ACTION REQUIRED: Payment re-authorization needs reconciliation — ${booking.ref}`,
     html: `<p>Booking <strong>${esc(booking.ref)}</strong> is locked against further financial changes because payment re-authorization could not be safely finalized.</p><p>Reason: <strong>${esc(outcome.reason)}</strong></p><p>Review the booking's current and replacement PaymentIntents in Stripe before clearing the financial reconciliation marker.</p>`,
     replyTo: 'service@assembleatease.com',

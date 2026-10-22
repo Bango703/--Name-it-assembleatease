@@ -84,7 +84,6 @@ export default async function handler(req, res) {
   const total = fresh.reduce((sum, b) => sum + (Number(b.total_price) || 0), 0);
   const emailResult = await sendEmail({
     to: ownerEmail(),
-    from: 'AssembleAtEase System <booking@assembleatease.com>',
     subject: `${fresh.length} booking${fresh.length === 1 ? '' : 's'} nobody is working on — ${money(total)}`,
     html: `<p><strong>${fresh.length} paid-intent booking${fresh.length === 1 ? ' has' : 's have'} been sitting unassigned`
       + ` for more than ${STRANDED_AFTER_MINUTES} minutes.</strong> No Easer has been offered ${fresh.length === 1 ? 'it' : 'them'}.</p>
