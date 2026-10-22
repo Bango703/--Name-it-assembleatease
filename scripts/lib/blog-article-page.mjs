@@ -139,13 +139,14 @@ ${content.faq.map((item) => `      <h3>${esc(item.q)}</h3>\n      <p>${esc(item.
       <ul>${relatedHtml}</ul>
     </section>
     <div class="article-cta">
-      <div><strong>Ready to plan the full job?</strong><span>Enter the address and every item so pricing and availability can be checked before assignment.</span></div>
+      <div><strong>See your exact price before you book.</strong><span>Pick your items, choose a time, and pay once the work is done.</span></div>
       <a href="${post.serviceUrl}" class="btn btn-cyan btn-lg">${esc(post.cta)}</a>
     </div>
   </article>
 </main>
 ${footer()}
 ${cookieBanner()}
+${promoScript()}
 </body>
 </html>
 `;
@@ -185,6 +186,13 @@ export function footer() {
     variant: 'blog_resources',
     tagline: 'Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services with clear pricing and careful work.',
   });
+}
+
+// The live offer bar (assets/js/site-promo.js): shows the owner's current
+// offer under the nav, adds its code to every /book link, and hides itself when
+// the offer is switched off. Every other public page already loads it.
+export function promoScript() {
+  return '<script src="/assets/js/site-promo.js" defer></script>';
 }
 
 export function cookieBanner() {
