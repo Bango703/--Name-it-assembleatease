@@ -33,6 +33,11 @@ const PATTERNS = Object.freeze([
   // Long digit runs that dodge the shape above (e.g. "5125550134").
   { code: 'digit_run', re: /\d[\d\s.\-]{9,}/, label: 'a phone number' },
 
+  // A number spelled out ("five one two five five five 0134"): seven or more
+  // digits in a row, as words or mixed with figures.
+  { code: 'phone_words', re: /\b(?:zero|oh|one|two|three|four|five|six|seven|eight|nine|\d+)(?:[\s,.\-]+(?:zero|oh|one|two|three|four|five|six|seven|eight|nine|\d+)\b){6,}/i,
+    label: 'a phone number' },
+
   // Off-platform handles and solicitation shorthand.
   { code: 'handle', re: /(?:^|\s)@[A-Za-z0-9_]{3,}/, label: 'an off-platform handle' },
   { code: 'off_platform', re: /\b(?:text|call|reach|contact|hit)\s+me\s+(?:at|on|direct(?:ly)?)\b/i,
@@ -54,9 +59,57 @@ export function inspectRelayMessage(text) {
         code,
         // Article 16: name the actual reason. A generic "message blocked" leaves
         // the pro guessing and looks like a bug rather than a policy.
-        error: `This message looks like it contains ${label}. Messages to the customer go through AssembleAtEase, so direct contact details and payment arrangements can't be included. Remove it and send again — for anything else, use "Report an issue" to reach the AssembleAtEase team.`,
+        error: `This message contains ${label} and was not sent. Contact details and payment arrangements can't be shared with customers. AssembleAtEase has been notified. To reach the AssembleAtEase team, use "Report an issue".`,
+        label,
       };
     }
   }
   return { ok: true };
+}
+
+// ─── Application screening ───────────────────────────────────────────────────
+//
+// Owner, 2026-10-22, after the application from "innocent Joshua": he answered
+// "no" to running a competing business, and his About text was an advert for
+// his own TV-mounting company ("Call or message Pro TV Mount today for a free
+// estimate"). The disclosure flag was driven by the checkbox alone, so nothing
+// noticed. The owner's rule: nobody joins AssembleAtEase to take its customers,
+// no exceptions.
+//
+// This never rejects anyone by itself. It names what it found, the owner's
+// email and dashboard show it, and approval is refused until the owner
+// confirms the review (api/assembler/update.js).
+const APPLICATION_PATTERNS = Object.freeze([
+  ...PATTERNS.filter(({ code }) => !['cash_deal'].includes(code)),
+  { code: 'website', re: /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]+\.(?:com|net|org|co|biz|us|io)\b/i, label: 'a website' },
+  { code: 'business_ad', re: /\b(?:call|text|message|contact)\s+(?:or\s+(?:call|text|message)\s+)?(?:us|me|[A-Z][\w&'-]*(?:\s+[A-Z][\w&'-]*){0,3})\s+(?:today|now|for)\b/,
+    label: 'an advert asking customers to contact a business' },
+  { code: 'free_estimate', re: /\bfree\s+(?:estimates?|quotes?|consultations?)\b/i, label: 'an offer of free estimates' },
+  { code: 'business_offer', re: /\b(?:what\s+we\s+offer|we\s+(?:offer|provide|specialize)|our\s+(?:company|business|services|team))\b/i,
+    label: 'a description of the applicant\'s own business' },
+  { code: 'business_entity', re: /\b(?:llc|l\.l\.c\.|inc\.?|incorporated|ltd\.?)\b/i, label: 'a company name' },
+]);
+
+/**
+ * Screen an Easer application's free text (About, competing-business details).
+ * @returns {{flagged:boolean, findings:Array<{code:string,label:string}>}}
+ */
+export function inspectApplicationText(text) {
+  const value = String(text || '')
+    // The application form writes its own disclosure line into this field.
+    .replace(/^No competing home-services business disclosed\.\s*/i, '');
+  const findings = [];
+  const seen = new Set();
+  for (const { code, re, label } of APPLICATION_PATTERNS) {
+    if (re.test(value) && !seen.has(label)) {
+      seen.add(label);
+      findings.push({ code, label });
+    }
+  }
+  return { flagged: findings.length > 0, findings };
+}
+
+/** One line for the owner: "a website, an offer of free estimates". */
+export function describeApplicationFindings(findings = []) {
+  return findings.map((f) => f.label).join(', ');
 }

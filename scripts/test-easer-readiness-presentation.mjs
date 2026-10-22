@@ -8,6 +8,7 @@ import { EASER_READINESS_FIELDS } from '../api/_easer-readiness-select.js';
 import { CONTRACTOR_AGREEMENT_VERSION } from '../api/_assembler-onboarding.js';
 import { normalizeAssemblerProfile } from '../api/_assembler-state.js';
 import { hasEffectiveEaserMembership } from '../api/_easer-membership.js';
+import { inspectApplicationText } from '../api/booking/_relay-contact-guard.js';
 
 const baseProfile = {
   ...Object.fromEntries(EASER_READINESS_FIELDS.map(field => [field, null])),
@@ -167,7 +168,7 @@ async function callHandler(kind, profiles, options = {}) {
     getSupabase: () => sb,
     verifyOwner: () => options.authorized !== false,
     isStripeConnectEnabled: () => connectRequired,
-    normalizeAssemblerProfile, hasEffectiveEaserMembership, getEaserApprovalReadiness,
+    normalizeAssemblerProfile, hasEffectiveEaserMembership, getEaserApprovalReadiness, inspectApplicationText,
     getEaserReadiness: (profile, args) => getEaserReadiness(profile, { ...args, stripeClient: new MockStripe() }),
     Stripe: MockStripe,
     isSmsEnabled: () => true,

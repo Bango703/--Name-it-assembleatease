@@ -36,6 +36,7 @@ import {
   reconcileEaserApplicationFeeRefund,
 } from '../_easer-application-refund.js';
 import { isEaserClosureBlocking } from '../_easer-closure.js';
+import { inspectApplicationText, describeApplicationFindings } from '../booking/_relay-contact-guard.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const APPLICATION_PAYMENT_PENDING = 'payment_pending';
@@ -824,7 +825,7 @@ export async function finalizeEaserApplicationSubmission({
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: finalizedProfile.email,
-      subject: 'New Easer Application - ' + finalizedProfile.full_name,
+      subject: (inspectApplicationText(finalizedProfile.bio).flagged ? 'Review needed: possible own business - ' : 'New Easer Application - ') + finalizedProfile.full_name,
       html: buildOwnerEmail({
         cleanName: finalizedProfile.full_name,
         cleanEmail: finalizedProfile.email,
@@ -950,6 +951,13 @@ function buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, state, zip, 
     ? `&#10003; Founding Easer application &bull; ${EASER_APPLICATION_FEE_DISPLAY} fee waived${foundingNumber ? ` &bull; Founding #${foundingNumber}` : ''}`
     : `&#10003; ${EASER_APPLICATION_FEE_DISPLAY} application fee paid`;
   const verificationLine = verificationResumeUrl ? ' &bull; Time-limited identity-verification link sent' : ' &bull; Identity verification follow-up needed';
+  const screen = inspectApplicationText(bio);
+  const screenBanner = screen.flagged
+    ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px"><tr><td style="padding:14px 18px">
+      <p style="margin:0 0 4px;font-size:14px;color:#b91c1c;font-weight:700">Possible own business or contact details</p>
+      <p style="margin:0;font-size:13px;color:#7f1d1d;line-height:1.6">The About text contains ${esc(describeApplicationFindings(screen.findings))}. Approval is held until you confirm you have reviewed it.</p>
+    </td></tr></table>`
+    : '';
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #00BFFF"><tr><td style="padding:20px 24px">
@@ -961,6 +969,7 @@ function buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, state, zip, 
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
     <p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#1a1a1a">New Assembler Application</p>
     <p style="margin:0 0 20px;font-size:13px;color:#71717a">${esc(cleanName)} wants to join the team</p>
+    ${screenBanner}
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
       <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:140px">Name</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(cleanName)}</td></tr>
       <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Email</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0">${esc(cleanEmail)}</td></tr>
