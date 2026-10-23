@@ -126,8 +126,6 @@ export const EMAIL_SENDERS = Object.freeze({
   customerCare: 'AssembleAtEase Customer Care <service@assembleatease.com>',
   easer: 'AssembleAtEase Easer Support <service@assembleatease.com>',
   owner: 'AssembleAtEase Alerts <booking@assembleatease.com>',
-  // A review request reads as a note from the owner, so it is from him (2026-10-23).
-  personal: 'Travis at AssembleAtEase <service@assembleatease.com>',
 });
 
 // Customer email that is a conversation with a person, not a booking update.
@@ -142,7 +140,6 @@ export function senderFor({ recipientType, notificationType } = {}) {
   if (recipientType === 'owner') return EMAIL_SENDERS.owner;
   if (recipientType === 'easer') return EMAIL_SENDERS.easer;
   const type = String(notificationType || '');
-  if (type.startsWith('review_request')) return EMAIL_SENDERS.personal;
   if (CUSTOMER_CARE_TYPES.has(type) || type.startsWith('case_update')) return EMAIL_SENDERS.customerCare;
   return EMAIL_SENDERS.customer;
 }

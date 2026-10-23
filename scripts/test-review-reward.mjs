@@ -30,6 +30,10 @@ assert.match(reviewPage, /Google reviews are optional and not rewarded/, 'Google
 const email = await read('api/_review-email.js');
 assert.doesNotMatch(email, /\$10|thank-you offer|<img/, 'the request email carries no offer or images');
 assert.doesNotMatch(email, /&#9733;|starRow/, 'no star grid');
+// Owner, 2026-10-23: customer email speaks as the business, never as one person.
+assert.doesNotMatch(email, /Travis|I will|I would/, 'the review email speaks as the business');
+assert.match(email, /The AssembleAtEase Team/);
+assert.doesNotMatch(await read('api/_email.js'), /Travis at AssembleAtEase/, 'no founder-name sender');
 const reviewApi = await read('api/review.js');
 assert.doesNotMatch(reviewApi, /rating\s*>=\s*4[\s\S]{0,200}issueReviewReward/, 'issuing the reward is not gated on a high rating');
 console.log('PASS the reward is for an honest website review, any rating; Google is not rewarded');

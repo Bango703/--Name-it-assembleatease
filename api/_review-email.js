@@ -13,7 +13,7 @@ export const GOOGLE_REVIEW_URL = (process.env.GOOGLE_REVIEW_URL || '').trim()
 
 // Owner, 2026-10-23: no reviews came back, and the request was landing in
 // Gmail's Promotions tab. It read like an advert: a star grid, a large photo, a
-// discount box and button blocks. It now reads like a note from a person: a
+// discount box and button blocks. It now reads like a plain note from the business: a
 // few plain lines, two text links and a signature. The thank-you reward and its
 // "any rating qualifies" terms are shown on /review before submitting, and
 // the opt-out footer still comes from the marketing path in api/_email.js.
@@ -26,7 +26,7 @@ export const STEP_COPY = {
   },
   2: {
     subject: (b) => `Quick follow-up on your ${b.service} job`,
-    opening: (b) => `Following up once on your ${esc(b.service)} job. If you have a minute, I would love to hear how it went.`,
+    opening: (b) => `Following up once on your ${esc(b.service)} job. If you have a minute, we would love to hear how it went.`,
   },
 };
 
@@ -44,9 +44,9 @@ export function buildReviewEmail(step, b, url, { proFirst } = {}) {
   <p style="${p}">Hi ${esc(first || 'there')},</p>
   <p style="${p}">${c.opening(b, proFirst)}</p>
   <p style="${p}">If you have a minute, you can leave a quick review here: <a href="${url}" style="color:#0369a1">rate your ${esc(b.service)} job</a>. You can also leave one on Google: <a href="${GOOGLE_REVIEW_URL}" style="color:#0369a1">Review us on Google</a>.</p>
-  <p style="${p}">If anything is not right, reply to this email and I will take care of it.</p>
+  <p style="${p}">If anything is not right, reply to this email and we will take care of it.</p>
   <p style="${p}">Did your pro offer to work with you directly, outside AssembleAtEase? Reply to this email and tell us.</p>
-  <p style="margin:0;font-size:15px;line-height:1.6;color:#1a1a1a">Thanks,<br/>Travis<br/><a href="https://www.assembleatease.com" style="color:#52525b">AssembleAtEase</a></p>
+  <p style="margin:0;font-size:15px;line-height:1.6;color:#1a1a1a">Thanks,<br/>The AssembleAtEase Team</p>
   <p style="margin:18px 0 0;font-size:12px;color:#71717a">Serving customers across Texas</p>
 </div></body></html>`;
   return { subject: c.subject(b, first), html };
