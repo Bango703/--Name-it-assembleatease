@@ -21,9 +21,15 @@ assert.notEqual(code, createReviewRewardCode(), 'codes are random');
 console.log('PASS the offer: $10 off a $100+ booking, random single-use codes');
 
 // ── Any rating qualifies; only the website review is rewarded ───────────────
+// The offer and its terms are shown on /review before submitting. The request
+// email is a plain personal note (owner, 2026-10-23: it was landing in Promotions)
+// and does not pitch the reward.
+const reviewPage = await read('review.html');
+assert.match(reviewPage, /Any rating qualifies\./, 'the reward never depends on the rating');
+assert.match(reviewPage, /Google reviews are optional and not rewarded/, 'Google reviews are never incentivized');
 const email = await read('api/_review-email.js');
-assert.match(email, /Any rating qualifies\./, 'the reward never depends on the rating');
-assert.match(email, /a Google review is optional and is not rewarded/, 'Google reviews are never incentivized');
+assert.doesNotMatch(email, /\$10|thank-you offer|<img/, 'the request email carries no offer or images');
+assert.doesNotMatch(email, /&#9733;|starRow/, 'no star grid');
 const reviewApi = await read('api/review.js');
 assert.doesNotMatch(reviewApi, /rating\s*>=\s*4[\s\S]{0,200}issueReviewReward/, 'issuing the reward is not gated on a high rating');
 console.log('PASS the reward is for an honest website review, any rating; Google is not rewarded');

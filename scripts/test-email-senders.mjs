@@ -17,6 +17,9 @@ for (const care of ['support_case_confirmation', 'business_inquiry_received', 'o
   assert.equal(senderFor({ recipientType: 'customer', notificationType: care }), EMAIL_SENDERS.customerCare, care);
 }
 assert.equal(senderFor({ recipientType: 'unknown', notificationType: 'transactional' }), EMAIL_SENDERS.customer, 'an unknown recipient gets the plain sender');
+for (const review of ['review_request', 'review_request_1', 'review_request_2']) {
+  assert.equal(senderFor({ recipientType: 'customer', notificationType: review }), 'Travis at AssembleAtEase <service@assembleatease.com>', review);
+}
 console.log('PASS senders: customers, Customer Care, Easer Support and owner alerts each have one sender');
 
 const email = readFileSync(new URL('../api/_email.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
