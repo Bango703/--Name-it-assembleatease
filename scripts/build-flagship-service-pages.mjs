@@ -124,6 +124,33 @@ const METRO_SERVICE_GUIDES = {
       preparation: 'For a condo or apartment, check building permission and access requirements before booking. Include a wall photo, the outlet position, media-console height, and your preferred viewing position. If the wall material or mount compatibility is unknown, describe that before the appointment.',
       faq: { q: 'Can I include more than one TV in a Dallas appointment?', a: 'Add every TV separately with its size, mount, wall material, and room location. Include soundbars or cable-management options for the relevant TV. Different walls and mounting heights can require different work, even when the screens are the same size.' },
     },
+    // 2026-10-22: the Dallas smart home, fitness, office and playset pages read
+    // 88-93% the same as the other hub cities. Each gets its own pricing and
+    // preparation; every price is taken from the booking catalog.
+    'smart-home-installation': {
+      description: 'Smart lock, keypad, camera and lighting installation in Dallas, priced per device: deadbolt smart locks $109, four-camera systems $279.',
+      summary: 'Dallas smart home requests are priced per device. A smart lock that replaces the deadbolt is $109, an outdoor keypad entry is $119 and a floodlight camera that replaces a wired fixture is $169. Camera systems are $279 for four cameras, with recorder setup at $129. Smart switches are $89 each, dimmers $99, and LED strip lighting $99 per ten-foot run.',
+      preparation: 'In a condo or apartment, check building and HOA rules on door hardware, exterior cameras and drilling before booking, and keep the original lock for move-out if the lease asks for it. List each device with its brand and model, its room, the app you want to use and whether the spot already has power. Sign in to the apps on your own phone during setup.',
+      faq: { q: 'Can a smart lock be installed in a Dallas apartment?', a: 'Often, with the building\'s approval. A lock that replaces the deadbolt is $109, and the original lock can go back on at move-out. Check the lease and any HOA rules first, and include the door type in the booking.' },
+    },
+    'fitness-equipment-assembly': {
+      description: 'Rowing machine, exercise bike, elliptical and cable machine assembly in Dallas, priced per machine: rowers $189, bikes $179, ellipticals $239.',
+      summary: 'This fitness equipment assembly service prices each machine on its own. A rowing machine is $189, an exercise bike $179 and elliptical assembly $239. An inversion table is $139, and squat rack assembly for a power rack is $279. For a full gym equipment assembly, a cable machine is $399. Floor leveling is a $59 add-on, and moving the finished machine to another room on the same floor is $79.',
+      preparation: 'In a high-rise or apartment, reserve the freight elevator and check quiet hours and any floor rules before a treadmill or rack is delivered. Have the boxes in the room where the machine will stay, and note a nearby outlet for powered equipment. For a house, say whether the gym is upstairs, in a spare room or in the garage.',
+      faq: { q: 'Can fitness equipment be assembled in a Dallas high-rise?', a: 'Yes. Book the machine and include the floor, freight elevator reservation and building access in the booking. Have the boxes in the final room before the visit, because a built machine is hard to move through hallways.' },
+    },
+    'office-furniture-assembly': {
+      description: 'Office workstation, conference table and reception desk assembly in Dallas, priced per piece: workstation setups $399, conference tables $229.',
+      summary: 'The office furniture assembly service is priced per piece, which suits a corporate suite as well as a home office. Workstation setups with a cubicle or several desks are $399, conference table assembly is $229, a reception desk or front counter is $399 and an office partition $189. Standing desk assembly for an electric frame is $199, and an ergonomic chair $109. Monitor arms and cable routing are $39 add-ons, and haul-away of old furniture is $59.',
+      preparation: 'For a suite, include the building, floor, loading dock, freight elevator, delivery hours and the person who will let the pro in, and list every piece by room. After-hours or weekend work should be requested in the booking. For a home office, note the room and the nearest outlet for a standing desk.',
+      faq: { q: 'Can a Dallas office be set up outside business hours?', a: 'Request the time you need in the booking and include building access, the loading dock and freight elevator. Larger setups with many workstations can need more than one pro, and that is confirmed before the appointment is scheduled.' },
+    },
+    'playset-assembly': {
+      description: 'Swing set, trampoline, sports goal and patio set assembly in Dallas with prices up front: playsets $349, trampolines up to 14 ft $389.',
+      summary: 'Backyard work in Dallas is priced per item. A swing set or backyard playset is $349, and a trampoline from 11 to 14 feet is $389. Soccer goals and portable pickleball nets are $119 each. On the patio, a dining set with six or more chairs is $219, a lounge set with a sofa and two chairs $199 and a patio umbrella with its base $109. Anchoring and leveling is a $119 add-on.',
+      preparation: 'Check the HOA rules on backyard structures before the kit arrives, and pick a level spot with the clearance the instructions list. Make sure the boxes can reach the yard through the gate, and say whether the ground is grass, turf or concrete. Pergolas, gazebos and sheds are priced by custom quote.',
+      faq: { q: 'Does a backyard playset in Dallas need HOA approval?', a: 'Some neighborhoods require it for structures above a set height or visible from the street. Check with the HOA before ordering, then book the playset assembly at $349 with the model and a photo of the spot.' },
+    },
   },
   houston: {
     'playset-assembly': {
@@ -146,6 +173,27 @@ const METRO_SERVICE_GUIDES = {
       preparation: 'Photograph the full wall and nearby outlets, including any tile, brick, or fireplace surround. Identify where streaming devices, a soundbar, and other cables will sit. Share parking and access instructions, and have the compatible mount and supplied hardware ready before the appointment.',
       faq: { q: 'What details are needed for a Houston fireplace TV installation?', a: 'Include a photo of the fireplace and surrounding wall, the wall material, TV and mount models, desired height, and nearby outlets. Fireplace placement and cable routing need a scope check before the visit; do not assume they are part of standard wall mounting.' },
     },
+    // 2026-10-22: the Houston smart home, fitness and office pages read 90-93%
+    // the same as the other hub cities. Each gets its own pricing and preparation;
+    // every price is taken from the booking catalog.
+    'smart-home-installation': {
+      description: 'Outdoor camera, garage opener, sensor and window AC controller installation in Houston, priced per device: outdoor cameras from $109.',
+      summary: 'Houston smart home work is priced per device. An outdoor camera on an eave or soffit is $109, or $139 on brick or concrete, and a six-camera system is $379. A floodlight camera that replaces a wired fixture is $169. A smart garage door opener or controller is $109, door and window sensors are $89 for up to four, battery smart smoke and CO detectors are $79, and a smart controller for a window or mini-split AC is $89.',
+      preparation: 'Heat and humidity are hard on outdoor electronics, so choose cameras and doorbells rated for outdoor use and mount them under an eave where you can. List each device with its location, whether power is already there and the app you want, and check that Wi-Fi reaches the garage and the yard.',
+      faq: { q: 'Can a smart garage door opener be installed in Houston?', a: 'Yes. A smart garage door opener or controller is $109. Include the opener brand and model and check that Wi-Fi reaches the garage, since the controller needs a steady connection.' },
+    },
+    'fitness-equipment-assembly': {
+      description: 'Garage gym, power rack, treadmill and stair climber assembly in Houston, priced per machine: power racks $279, treadmills $219, home gyms $399.',
+      summary: 'The fitness equipment assembly service is priced per machine, and garage gyms are common. Squat rack assembly for a power or squat rack is $279, a weight bench $149 and a dumbbell or weight set $159. A treadmill is $219, a stair climber $219 and elliptical assembly $239. For larger gym equipment assembly, a home gym or cable machine is $399. Wall anchoring is a $69 add-on.',
+      preparation: 'For a garage gym, clear the floor and lay mats before the visit; humidity rusts bare steel and concrete is hard on equipment feet. For a townhome, say which floor the machine goes on and whether the stairs turn, and have the boxes in the final room.',
+      faq: { q: 'Can a power rack be set up in a Houston garage?', a: 'Yes. Power rack assembly is $279. Measure the ceiling height for the pull-up bar, note the floor surface, and add wall anchoring at $69 if the rack\'s instructions call for it.' },
+    },
+    'office-furniture-assembly': {
+      description: 'Home office and business office assembly in Houston, priced per piece: L-shape desks $179, standing desks $199, storage cabinets $129.',
+      summary: 'The office furniture assembly service is priced per piece for homes and businesses alike. An L-shape or executive desk is $179, standing desk assembly for an electric frame is $199 and a standard office chair is $89. A bookcase with up to five shelves is $99, an office storage cabinet or lateral file is $129 and a wall-mounted overhead cabinet is $119. Conference table assembly is $229, and workstation setups for several desks are $399.',
+      preparation: 'For a multi-story townhome office, say which floor and whether the stairs turn. For a business, include the suite, delivery hours, parking and access. Box breakdown and packaging cleanup is a $35 add-on, which keeps the cardboard out of the room.',
+      faq: { q: 'Can office furniture be assembled on an upper floor of a Houston townhome?', a: 'Yes. Book each piece and say which floor it goes on and how the stairs turn. Have the boxes on that floor before the visit, since a built desk is hard to carry up a turning stair.' },
+    },
   },
   'san-antonio': {
     'furniture-assembly': {
@@ -159,6 +207,34 @@ const METRO_SERVICE_GUIDES = {
       summary: 'Plan TV mounting in San Antonio with the screen size, TV model, mount model, and wall material ready. Identify brick, stone, tile, a fireplace position, or any uncertain wall construction before the visit. Soundbar mounting and cable concealment should be included as their own requested options.',
       preparation: 'A full-wall photo showing outlets and furniture helps explain the intended placement. If you rent, check permission to drill. Include gated-community or building entry instructions, parking, and the floor; have the mount and compatible hardware available for the appointment.',
       faq: { q: 'Can I request TV mounting on a brick or stone wall in San Antonio?', a: 'Describe the surface and include a clear wall photo, TV model, and mount model before booking. Masonry, tile, and fireplace installations require a different scope from standard drywall mounting. Cable routing and suitable hardware also need to match the actual wall.' },
+    },
+    // 2026-10-22: the San Antonio smart home, fitness, office and playset pages
+    // read 88-92% the same as the other hub cities. Each gets its own pricing and
+    // preparation; every price is taken from the booking catalog.
+    'smart-home-installation': {
+      description: 'Video doorbell, smart lock, thermostat and indoor camera setup in San Antonio, priced per device: doorbells from $89, plug-in cameras $79.',
+      summary: 'San Antonio smart home setups are priced per device. A battery video doorbell is $89, a plug-in indoor camera $79 and a pair of smart plugs $69. A smart lock on a lever handle is $99, a smart thermostat $99, or $129 with a C-wire adapter, and Wi-Fi router setup and optimization $99. Battery devices and plug-in cameras suit rentals and military housing, since they leave the walls and wiring alone.',
+      preparation: 'For base or privatized military housing, check the housing office rules on doorbells, locks and cameras, and include gate access in the booking. For any home, install the device app beforehand and check that Wi-Fi reaches the front door. Keep the original hardware if it has to go back on when you move out.',
+      guide: { href: '/blog/video-doorbell-installation-guide', label: 'Battery or wired: what video doorbell installation involves' },
+      faq: { q: 'Can a video doorbell be installed in San Antonio military housing?', a: 'Usually, with a battery model that needs no wiring, installed for $89. Check the housing office rules first and include gate access in the booking.' },
+    },
+    'fitness-equipment-assembly': {
+      description: 'Home gym, weight bench, power rack and treadmill assembly in San Antonio, priced per machine: benches $149, power racks $279, treadmills $219.',
+      summary: 'The fitness equipment assembly service is priced per machine. A weight bench is $149, a dumbbell or weight set $159, a punching bag stand $149 and squat rack assembly for a power rack $279. A treadmill is $219 and elliptical assembly $239. For a full gym equipment assembly, a home gym or cable machine is $399. Wall anchoring is a $69 add-on.',
+      preparation: 'Garage gyms get hot in the afternoon, so morning appointments suit them. If you are moving in or out, keep every bolt and the manual from the machine together; taking a machine apart before a move or for storage is an $89 add-on. Have the boxes in the room where the equipment will stay.',
+      faq: { q: 'Can a home gym be reassembled after a move to San Antonio?', a: 'Yes. Book each machine by type at the new home, such as a treadmill at $219 or a power rack at $279, and keep the bolts and manual from the disassembly together for the visit.' },
+    },
+    'office-furniture-assembly': {
+      description: 'Home office and small business furniture assembly in San Antonio, priced per piece: credenzas $149, lateral files $129, reception desks $399.',
+      summary: 'The office furniture assembly service is priced per piece. A credenza or sideboard is $149, an office storage cabinet or lateral file $129, a two to four drawer file cabinet $89 and a bookcase with six or more shelves $129. Standing desk assembly for an electric frame is $199 and conference table assembly $229. For a front office, a reception desk or counter is $399, and workstation setups for several desks are $399.',
+      preparation: 'For a small business, include the suite, opening hours and the best time to work, and list every piece by room. For a home office in a spare bedroom, measure the wall where the desk and storage will stand before ordering. Haul-away of old furniture is a $59 add-on.',
+      faq: { q: 'Can a small office in San Antonio be set up before opening day?', a: 'Book every desk, chair, cabinet and counter with its quantity and the date you need it done. Larger setups can need more than one pro, and that is confirmed before the appointment is scheduled.' },
+    },
+    'playset-assembly': {
+      description: 'Swing set, trampoline, basketball hoop and backyard furniture assembly in San Antonio with prices up front: playsets $349, trampolines from $319.',
+      summary: 'Backyard assembly in San Antonio is priced per item. A swing set or backyard playset is $349, monkey bars or a climbing frame $299 and a sandbox or outdoor playhouse $199. A 15 foot or larger trampoline is $449, an outdoor swing or glider $179, a patio swing $159 and a fire pit $119. Anchoring and leveling is a $119 add-on.',
+      preparation: 'Many yards here have rocky or caliche ground under the topsoil, so tell us whether the spot is soil, rock or turf, since that changes how a playset is anchored. Pick a level spot with the clearance the instructions list, and check that the boxes can reach the yard through the gate. Summer afternoons are hot, so morning appointments suit long builds.',
+      faq: { q: 'Can a playset be anchored in rocky San Antonio ground?', a: 'Usually, with anchors suited to the ground. Tell us whether the spot is soil, rock or caliche when you book the playset at $349, and add anchoring and leveling at $119. The anchors themselves come with the kit or are bought separately.' },
     },
   },
   'round-rock': {
