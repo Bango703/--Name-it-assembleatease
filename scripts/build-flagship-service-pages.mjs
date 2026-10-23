@@ -82,6 +82,36 @@ const METRO_SERVICE_GUIDES = {
       extraGuide: { href: '/blog/tv-mounting-tips-austin', label: 'Prepare your TV, mount, wall photos, and cable plan' },
       faq: { q: 'What should I check before mounting a TV in an Austin rental?', a: 'Check your lease or ask the property manager about drilling, wall restrictions, and move-out repairs. Include those requirements, the TV and mount models, and a photo of the intended wall in your request. Do not assume cable concealment or fireplace work is included in a standard mount.' },
     },
+    // 2026-10-22: Search Console listed the Austin fitness page as "Crawled -
+    // currently not indexed"; it and the smart home, office and playset pages
+    // read 86% the same as their Round Rock pages. Each gets its own pricing
+    // and preparation copy, every price taken from the booking catalog.
+    'smart-home-installation': {
+      description: 'Video doorbell, smart lock, thermostat and camera installation in Austin, priced per device: doorbells from $89, thermostats $99, locks from $99.',
+      summary: 'Smart home work is priced per device. A battery video doorbell is $89 and a hardwired doorbell replacement is $119. A smart thermostat is $99, or $129 when it needs a C-wire adapter. Smart locks are $99 for a lever handle and $109 for a deadbolt replacement, and camera systems start at $169 for two cameras. Each visit ends with the device on your Wi-Fi and working in its app on your phone.',
+      preparation: 'Before the visit, install the device app and sign in, check that Wi-Fi reaches the spot (doorbells and outdoor cameras are the usual weak points), and have the device with everything from its box. The work uses existing wiring and low-voltage connections; new circuits or outlets are for a licensed electrician.',
+      guide: { href: '/blog/video-doorbell-installation-guide', label: 'Battery or wired: what video doorbell installation involves' },
+      extraGuide: { href: '/blog/smart-thermostat-installation-and-c-wire', label: 'Check whether your thermostat needs a C-wire adapter' },
+      faq: { q: 'Can a wired doorbell be replaced with a video doorbell in Austin?', a: 'Yes, when an existing doorbell button and chime are in place. The new doorbell connects to the wires already there for $119. Without doorbell wiring, a battery model installs on any door frame for $89.' },
+    },
+    'fitness-equipment-assembly': {
+      description: 'Treadmill, Peloton-style bike, rower and power rack assembly in Austin with item prices up front: treadmills $219, bikes $179, racks $279.',
+      summary: 'The fitness equipment assembly service is priced per machine, so pick the exact one. A treadmill is $219, an exercise or Peloton-style bike $179, a rowing machine $189, elliptical assembly $239 and squat rack assembly for a power or squat rack $279. For larger gym equipment assembly, a home gym or cable machine is $399, and a multi-station gym is priced by custom quote. Add-ons cover wall anchoring ($69), floor leveling ($59) and moving the finished machine to another room on the same floor ($79).',
+      preparation: 'Treadmills and racks arrive in large, heavy boxes, so have them in or near the room where the machine will live and check that it fits through the doorway once built. Note the floor surface (carpet, tile or garage concrete), the nearest outlet for powered equipment, and the ceiling height for a rack with a pull-up bar. Taking a machine apart before a move is $89.',
+      faq: { q: 'Can a treadmill be assembled upstairs in an Austin home?', a: 'Yes. Choose treadmill assembly and note the stairs and doorway in the booking. Have the boxes in or near the final room, since a built treadmill is hard to carry upstairs. Moving it to another room on the same floor afterwards is a $79 add-on.' },
+    },
+    'office-furniture-assembly': {
+      description: 'Desk, standing desk, office chair and workstation assembly in Austin, priced per piece: desks from $99, electric standing desks $199, chairs $89.',
+      summary: 'The office furniture assembly service is priced per piece, so a home office and a business suite are booked the same way. A simple flat-pack desk is $99, an L-shape or executive desk $179, standing desk assembly for an electric frame $199, a standard office chair $89 and an ergonomic or heavy-duty chair $109. Conference table assembly is $229, and workstation setups with a cubicle or several desks are $399. Monitor arm installs and cable routing are $39 add-ons.',
+      preparation: 'For a business, list every piece with its room, plus delivery hours, suite number, loading dock and elevator access. For a home office, check that a standing desk sits within reach of an outlet. Box breakdown and packaging cleanup is a $35 add-on, and haul-away of old furniture is $59.',
+      faq: { q: 'Can a whole office be set up in one Austin visit?', a: 'List every desk, chair, cabinet and workstation with its quantity in one booking. Larger setups can need more than one pro or a longer visit, and that is confirmed before the appointment is scheduled.' },
+    },
+    'playset-assembly': {
+      description: 'Swing set, trampoline, basketball hoop and patio furniture assembly in Austin with prices up front: playsets $349, trampolines from $319.',
+      summary: 'Backyard assembly is priced by the item. A swing set or backyard playset is $349. Trampolines are $319 up to 10 feet, $389 from 11 to 14 feet and $449 at 15 feet and up. A portable basketball hoop is $249, a grill $129 and an outdoor dining set with four chairs $179. Pergolas, gazebos, sheds and in-ground hoops are priced by custom quote.',
+      preparation: 'Choose a level spot with the clearance the instructions list on every side, and check that the boxes can reach the yard through the gate. Summer afternoons are hot, so morning appointments suit long outdoor builds. Anchoring and leveling is a $119 add-on.',
+      faq: { q: 'Can a trampoline be moved to a new house in Austin?', a: 'Trampoline relocation, with disassembly, transport and reassembly, is priced by custom quote. Disassembly only, when you handle the transport, is a $149 add-on.' },
+    },
   },
   dallas: {
     'furniture-assembly': {
