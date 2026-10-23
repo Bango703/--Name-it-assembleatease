@@ -1,84 +1,55 @@
 import { esc } from './_email.js';
+import { normalizePersonName } from './_person-name.js';
 import { loadCustomerFacingCompletionPhoto } from './booking/_completion-evidence.js';
 
 // Single source of truth for the customer review-request email — used by BOTH the
 // automatic cron (api/cron/review-request.js) and the owner's manual send
 // (api/review-request.js), so the two can never drift apart again.
 
-const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
-
 // Same Google profile link the /review page offers after a rating. Offered to every
 // customer, never only to those who rate highly.
 export const GOOGLE_REVIEW_URL = (process.env.GOOGLE_REVIEW_URL || '').trim()
   || 'https://g.page/r/CeHfRKINOeZsEBM/review';
 
-// First request and one final follow-up. Step is 1-based. intro(b, pro).
+// Owner, 2026-10-23: no reviews came back, and the request was landing in
+// Gmail's Promotions tab. It read like an advert: a star grid, a large photo, a
+// discount box and button blocks. It now reads like a note from a person: a
+// few plain lines, two text links and a signature. The thank-you reward and its
+// "any rating qualifies" terms are shown on /review before submitting, and
+// the opt-out footer still comes from the marketing path in api/_email.js.
+
+// First request and one follow-up. Step is 1-based.
 export const STEP_COPY = {
   1: {
-    subject: (b) => `How did your ${b.service} go? — ${b.ref}`,
-    headline: 'How was your experience?',
-    intro: (b, pro) => `Your <strong>${esc(b.service)}</strong>${pro ? ` with ${esc(pro)}` : ''} is complete. Tap a star below to rate it — your booking details are already filled in.`,
-    note: `As a thank-you, you&rsquo;ll receive $10 off one future booking of $100 or more after submitting an honest review on our website. Any rating qualifies. This reward is for our website review only; a Google review is optional and is not rewarded.`,
+    subject: (b, first) => (first ? `How did it go, ${first}?` : `How did your ${b.service} go?`),
+    opening: (b, pro) => `Thanks for booking with AssembleAtEase. ${pro ? `${esc(pro)} finished your ${esc(b.service)} job` : `Your ${esc(b.service)} job is finished`}. How did it go?`,
   },
   2: {
-    subject: (b) => `A final invitation to review your ${b.service}`,
-    headline: 'Share your experience',
-    intro: (b, pro) => `If you would like to leave feedback on your <strong>${esc(b.service)}</strong>${pro ? ` with ${esc(pro)}` : ''}, use the link below. This is our final automatic review reminder for this booking.`,
-    note: `As a thank-you, you&rsquo;ll receive $10 off one future booking of $100 or more after submitting an honest review on our website. Any rating qualifies. This reward is for our website review only; a Google review is optional and is not rewarded.`,
+    subject: (b) => `Quick follow-up on your ${b.service} job`,
+    opening: (b) => `Following up once on your ${esc(b.service)} job. If you have a minute, I would love to hear how it went.`,
   },
 };
 
-// Clickable in-email star rating — each star deep-links to the review page with the
-// rating pre-selected, so a single tap from the inbox starts the review.
-export function starRow(url) {
-  let cells = '';
-  for (let n = 1; n <= 5; n++) {
-    cells += `<td style="padding:0 3px"><a href="${url}&rating=${n}" style="display:inline-block;font-size:40px;line-height:1;color:#f5b301;text-decoration:none" aria-label="${n} star${n > 1 ? 's' : ''}">&#9733;</a></td>`;
-  }
-  return `<table cellpadding="0" cellspacing="0" align="center" style="margin:2px auto"><tr>${cells}</tr></table>`;
+function firstNameOf(b) {
+  const first = String(b?.customer_name || '').trim().split(/\s+/)[0] || '';
+  return first ? normalizePersonName(first) : '';
 }
 
-// The Easer's completion photo — visual proof of the finished work, so the customer
-// sees exactly what they're rating right in the email.
-export function photoBlock(url, service) {
-  if (!url) return '';
-  return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px"><tr><td>
-    <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#374151">Here&rsquo;s the ${esc(service)} your pro completed:</p>
-    <img src="${url}" alt="Completed ${esc(service)}" style="width:100%;max-width:520px;border-radius:10px;border:1px solid #e4e4e7;display:block"/>
-  </td></tr></table>`;
-}
-
-export function buildReviewEmail(step, b, url, { photoUrl, proFirst } = {}) {
+export function buildReviewEmail(step, b, url, { proFirst } = {}) {
   const c = STEP_COPY[step] || STEP_COPY[1];
-  const headline = (step === 1 && proFirst) ? `How did ${esc(proFirst)} do?` : c.headline;
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
-    <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
-    <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
-  </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">${headline}</p>
-    <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.6">${c.intro(b, proFirst)}</p>
-    ${photoBlock(photoUrl, b.service)}
-    <p style="margin:0 0 2px;font-size:13px;font-weight:600;color:#374151;text-align:center">Tap a star to rate</p>
-    ${starRow(url)}
-    <p style="margin:14px 0 0;text-align:center"><a href="${url}" style="font-size:13px;color:#0369a1;text-decoration:underline">or write a full review &rsaquo;</a></p>
-    <table cellpadding="0" cellspacing="0" align="center" style="margin:22px auto 0"><tr><td style="border:1px solid #d4d4d8;border-radius:6px;padding:0">
-      <a href="${GOOGLE_REVIEW_URL}" style="display:inline-block;padding:11px 22px;font-size:14px;font-weight:600;color:#1a1a1a;text-decoration:none">Review us on Google</a>
-    </td></tr></table>
-    <p style="margin:8px 0 0;text-align:center;font-size:12px;color:#71717a">Reviews on Google help neighbors find us.</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin:20px 0 16px"><tr><td style="padding:12px 16px;font-size:13px;color:#0c4a6e;line-height:1.6">
-      ${c.note}
-    </td></tr></table>
-    <p style="margin:0 0 12px;font-size:13px;color:#52525b;line-height:1.6">Did your pro offer to work with you directly, outside AssembleAtEase? Reply to this email and tell us.</p>
-    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Thank you for choosing AssembleAtEase.</p>
-  </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
-    Ref: ${esc(b.ref)} &bull; AssembleAtEase &bull; Serving customers across Texas
-  </td></tr></table>
+  const first = firstNameOf(b);
+  const p = 'margin:0 0 14px;font-size:15px;line-height:1.6;color:#1a1a1a';
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:560px;margin:0 auto;padding:24px 18px">
+  <p style="${p}">Hi ${esc(first || 'there')},</p>
+  <p style="${p}">${c.opening(b, proFirst)}</p>
+  <p style="${p}">If you have a minute, you can leave a quick review here: <a href="${url}" style="color:#0369a1">rate your ${esc(b.service)} job</a>. You can also leave one on Google: <a href="${GOOGLE_REVIEW_URL}" style="color:#0369a1">Review us on Google</a>.</p>
+  <p style="${p}">If anything is not right, reply to this email and I will take care of it.</p>
+  <p style="${p}">Did your pro offer to work with you directly, outside AssembleAtEase? Reply to this email and tell us.</p>
+  <p style="margin:0;font-size:15px;line-height:1.6;color:#1a1a1a">Thanks,<br/>Travis<br/><a href="https://www.assembleatease.com" style="color:#52525b">AssembleAtEase</a></p>
+  <p style="margin:18px 0 0;font-size:12px;color:#71717a">Serving customers across Texas</p>
 </div></body></html>`;
-  return { subject: c.subject(b), html };
+  return { subject: c.subject(b, first), html };
 }
 
 // The Easer's completion photo as a signed URL (30-day), or null. Reuses the same
