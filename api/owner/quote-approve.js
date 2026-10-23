@@ -10,6 +10,7 @@ import { randomToken, sha256 } from '../_payment-security.js';
 import { validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
 import { logActivity } from '../booking/_activity.js';
 import { isQuoteAwaitingPrice, quoteNeedsCardAtApproval } from '../booking/_quote-state.js';
+import { normalizePersonName } from '../_person-name.js';
 
 const QUOTE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const QUOTE_TERMS_VERSION = '2026-07-cancellation-v1';
@@ -539,7 +540,7 @@ export function buildApprovalPage({ booking, token, publishableKey, needsCard = 
 }
 
 function buildQuoteReadyEmail({ booking, subtotalCents, taxCents, priceCents, approvalUrl, expiresAt }) {
-  return `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;padding:24px;color:#18181b"><h2>Your custom quote is ready</h2><p>Hi ${esc(String(booking.customer_name || '').split(' ')[0])}, review the price and terms, then approve to book.</p><table width="100%" style="font-size:14px"><tr><td style="padding:8px 0">Service subtotal</td><td style="text-align:right">$${(subtotalCents / 100).toFixed(2)}</td></tr><tr><td style="padding:8px 0">Texas sales tax</td><td style="text-align:right">$${(taxCents / 100).toFixed(2)}</td></tr><tr><td style="padding:10px 0;font-weight:700">Total</td><td style="text-align:right;font-weight:700">$${(priceCents / 100).toFixed(2)}</td></tr></table><p><a href="${esc(approvalUrl)}" style="display:inline-block;background:#00BFFF;color:#002b3a;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:700">Review and approve quote</a></p><p style="font-size:13px;color:#52525b">This secure link expires ${esc(expiresAt.toLocaleDateString('en-US', { timeZone: 'America/Chicago' }))}. Nothing is booked and nothing is held on a card until you approve.</p></div>`;
+  return `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;padding:24px;color:#18181b"><h2>Your custom quote is ready</h2><p>Hi ${esc(normalizePersonName(String(booking.customer_name || '').trim().split(/\s+/)[0] || 'there'))}, review the price and terms, then approve to book.</p><table width="100%" style="font-size:14px"><tr><td style="padding:8px 0">Service subtotal</td><td style="text-align:right">$${(subtotalCents / 100).toFixed(2)}</td></tr><tr><td style="padding:8px 0">Texas sales tax</td><td style="text-align:right">$${(taxCents / 100).toFixed(2)}</td></tr><tr><td style="padding:10px 0;font-weight:700">Total</td><td style="text-align:right;font-weight:700">$${(priceCents / 100).toFixed(2)}</td></tr></table><p style="text-align:center;margin:24px 0"><a href="${esc(approvalUrl)}" style="display:inline-block;background:#00BFFF;color:#002b3a;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:700">Review and approve quote</a></p><p style="font-size:13px;color:#52525b">This secure link expires ${esc(expiresAt.toLocaleDateString('en-US', { timeZone: 'America/Chicago' }))}. Nothing is booked and nothing is held on a card until you approve.</p></div>`;
 }
 
 function buildSimplePage(title, body) {
