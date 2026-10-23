@@ -27,6 +27,16 @@ import {
   resolveOwnerCancellationReservation,
 } from './_cancellation-operation.js';
 import { notifyCustomerApp } from '../_customer-push.js';
+import { normalizePersonName } from '../_person-name.js';
+
+const SITE = 'https://www.assembleatease.com';
+// Services /book can preselect from a link; any other service opens the booking
+// page at its start. Kept here rather than read from the catalog file, so the
+// cancellation email cannot fail on a file this function does not ship.
+const REBOOK_SERVICES = new Set([
+  'Furniture Assembly', 'Mounting & Hanging', 'Smart Home',
+  'Outdoor & Playsets', 'Office Assembly', 'Fitness Equipment',
+]);
 
 async function holdCancellationForReconciliation(sb, booking, operationKey, metadata = {}) {
   const { error: holdError, data: heldRows } = await sb.from('bookings').update({
@@ -609,19 +619,29 @@ export default async function handler(req, res) {
          </p>`
       : '';
 
+    // Owner, 2026-10-23: one apology when nothing was charged, a way back to
+    // booking every time, and the customer greeted by first name. A fee and an
+    // apology in the same email read as contradictory, so a fee email stays factual.
+    const firstName = normalizePersonName(String(booking.customer_name || '').trim().split(/\s+/)[0] || '') || 'there';
+    const apologyHtml = feeCaptured > 0
+      ? ''
+      : `<p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">We're sorry this one didn't work out.</p>`;
+    const rebookUrl = `${SITE}/book${REBOOK_SERVICES.has(booking.service) ? `?service=${encodeURIComponent(booking.service)}` : ''}`;
     const html = buildStatusEmail({
       customerName: booking.customer_name,
       ref: booking.ref,
       status: 'CANCELLED',
       statusColor: '#71717a',
       statusBg: '#f4f4f5',
-      headline: `Your booking has been cancelled, ${esc(booking.customer_name)}.`,
+      headline: `Your booking has been cancelled, ${esc(firstName)}.`,
       bodyHtml: `
         <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your booking for <strong>${esc(booking.service)}</strong> on <strong>${esc(formatAppointmentDate(booking.date))}</strong> has been cancelled.</p>
+        ${apologyHtml}
         ${refundHtml}
         ${feeHtml}
         ${reasonHtml}
-        <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">If you'd like to rebook or have any questions, please don't hesitate to reach out.</p>`,
+        <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.7">When you're ready, we'd be glad to help. Questions? Reply to this email.</p>
+        <p style="margin:0;text-align:center"><a href="${rebookUrl}" style="display:inline-block;background:#00BFFF;color:#002b3a;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px">Book again</a></p>`,
     });
 
     await sendEmail({

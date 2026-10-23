@@ -6,6 +6,7 @@ import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { bookingCancellationPaymentIntentIds } from './_cancellation-stripe-truth.js';
 import { isQuoteAwaitingPrice } from './_quote-state.js';
+import { normalizePersonName } from '../_person-name.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -98,6 +99,7 @@ export default async function handler(req, res) {
     // about a card unless the customer actually saved one.
     const isQuote = isQuoteAwaitingPrice(booking);
     const cardNote = booking.stripe_payment_method_id ? ' Nothing was charged to your card.' : '';
+    const firstName = normalizePersonName(String(booking.customer_name || '').trim().split(/\s+/)[0] || '') || 'there';
 
     const html = buildStatusEmail({
       customerName: booking.customer_name,
@@ -105,12 +107,15 @@ export default async function handler(req, res) {
       status: 'UNABLE TO FULFIL',
       statusColor: '#71717a',
       statusBg: '#f4f4f5',
-      headline: `We're sorry, ${esc(booking.customer_name)} — we can't take this one.`,
+      // Owner, 2026-10-23: one apology, then thanks (thanking outperforms a second
+      // apology after a service failure), a way back to booking, and the first name.
+      headline: `We're sorry, ${esc(firstName)}. We can't take this one.`,
       bodyHtml: `
-        <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Unfortunately we are not able to take on your ${isQuote ? 'quote request' : 'request'} for <strong>${esc(booking.service)}</strong> at this time.${cardNote}</p>
+        <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">We are not able to take on your ${isQuote ? 'quote request' : 'request'} for <strong>${esc(booking.service)}</strong> at this time.${cardNote}</p>
         ${reasonHtml}
         <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.7">We'd love to help you on another date or with a different service. Feel free to submit a new booking and we'll do our best to make it work.</p>
-        <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">We apologize for any inconvenience and appreciate your understanding.</p>`,
+        <p style="margin:0 0 20px;text-align:center"><a href="https://www.assembleatease.com/book" style="display:inline-block;background:#00BFFF;color:#002b3a;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px">Book again</a></p>
+        <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Thank you for your understanding.</p>`,
     });
 
     await sendEmail({
