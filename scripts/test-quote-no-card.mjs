@@ -191,3 +191,11 @@ console.log('PASS decline: a quote without a card is never told about a card');
   assert.match(read('vercel.json'), /"path": "\/api\/cron\/quote-lead-alert",\s*"schedule": "30 12 \* \* \*"/);
 }
 console.log('PASS leads: saved on the quote step, one per person per day, alerted once after two hours');
+
+// The quote email's approve button is centered, and the greeting name is capitalized.
+{
+  const approve = read('api/owner/quote-approve.js');
+  assert.match(approve, /<p style="text-align:center;margin:24px 0"><a href="\$\{esc\(approvalUrl\)\}"/, 'the approve button is centered');
+  assert.match(approve, /Hi \$\{esc\(normalizePersonName\(/, 'the greeting name is capitalized');
+}
+console.log('PASS quote email: centered approve button, capitalized greeting');
