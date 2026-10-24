@@ -21,6 +21,13 @@ const EXCLUDED_DIRS = new Set([
 ]);
 
 export const PAGE_TYPE_RULES = {
+  // A customer page built but not on sale yet (gift cards before checkout
+  // accepts codes). Kept out of search until it opens; then it becomes 'support'.
+  prelaunch: {
+    visibility: 'private_customer',
+    required: ['title', 'metaDescription', 'canonical', 'sharedCookieConsent'],
+    recommended: [],
+  },
   app_entry: {
     visibility: 'private_customer',
     required: ['title', 'metaDescription', 'canonical'],
@@ -255,6 +262,7 @@ export function classifyPage(pagePath) {
   if (path === 'business.html') return 'business';
   if (path === '404.html') return 'utility';
   if (path === 'terms.html' || path === 'privacy.html') return 'policy';
+  if (path === 'gift-cards.html') return 'prelaunch';
   if (path === 'track.html' || path === 'review.html' || path === 'assemblecash.html' || path === 'setup-club.html') return 'support';
   if (path === 'about.html' || path === 'contact.html' || path === 'bundles.html' || path === 'locations.html' || path === 'compare-assembly-options.html' || path === 'furniture-stores-texas.html') return 'core_marketing';
   if (path.startsWith('owner/')) return 'owner_portal';
@@ -283,7 +291,7 @@ export function resolveGeneratorOwners(pagePath, pageType) {
   if (pageType === 'recruit_hub' || pageType === 'recruit_city') return ['scripts/generate-easer-recruit-pages.js'];
   if (pageType === 'blog_article' || pageType === 'blog_index') return ['manual content', 'scripts/cleanup-blog-pages.mjs'];
   if (pageType === 'home' || pageType === 'pricing' || pageType === 'business' || pageType === 'booking') return ['manual core page'];
-  if (pageType === 'core_marketing' || pageType === 'policy' || pageType === 'support') return ['manual marketing page'];
+  if (pageType === 'core_marketing' || pageType === 'policy' || pageType === 'support' || pageType === 'prelaunch') return ['manual marketing page'];
   if (pageType === 'app_entry') return ['manual native app entry'];
   if (pageType === 'auth') return ['manual auth page'];
   if (pageType === 'assembler_public' || pageType === 'assembler_portal') return ['manual assembler page'];

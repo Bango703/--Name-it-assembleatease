@@ -1,0 +1,22 @@
+.giftcards-view{padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.giftcards-toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.giftcards-toolbar h2{margin:0 0 4px;font-size:20px}
+.giftcards-muted{color:#64748b;font-size:12px;margin:0}
+.giftcards-status{font-size:12px;font-weight:700;color:#0369a1;background:#e0f2fe;border-radius:999px;padding:4px 10px}
+.giftcards-note{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;margin:0}
+.giftcards-note-error{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+.giftcards-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.giftcards-tile{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px}
+.giftcards-tile-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b}
+.giftcards-tile-value{font-size:22px;font-weight:700;color:#0f172a;margin-top:4px;font-variant-numeric:tabular-nums}
+.giftcards-tile-hint{font-size:12px;color:#64748b;margin-top:2px}
+.giftcards-tablewrap{overflow-x:auto;background:#fff;border:1px solid #e2e8f0;border-radius:10px}
+.giftcards-table{width:100%;border-collapse:collapse;font-size:13px}
+.giftcards-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#64748b;padding:10px 12px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.giftcards-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9;vertical-align:top;font-variant-numeric:tabular-nums}
+.giftcards-void td{color:#94a3b8}
+.giftcards-warn{color:#b45309;font-weight:600}
+.giftcards-actions{white-space:nowrap}
+.giftcards-btn{font:inherit;font-size:12px;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;cursor:pointer}
+.giftcards-btn:disabled{opacity:0.5;cursor:default}
+.giftcards-danger{border-color:#fca5a5;color:#b91c1c}

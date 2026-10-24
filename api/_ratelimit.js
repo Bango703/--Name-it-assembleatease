@@ -43,6 +43,8 @@ const limiters = {
   quote_request: buildLimiter('rl:quote_request', 3, '3600 s'),
   owner_auth: buildLimiter('rl:owner_auth', 5, '900 s'),
   track_link: buildLimiter('rl:track_link', 3, '900 s'),
+  // Gift card checkout and balance checks (api/gift-cards/*).
+  gift_card: buildLimiter('rl:gift_card', 10, '600 s'),
 };
 
 export function hasDurableRateLimit() {
