@@ -3382,6 +3382,56 @@
 
 
 
+        <!-- Gift card. Shown only while codes are accepted (api/gift-cards/checkout). -->
+        <div class="promo-box" id="s5-gc-box" style="margin-top:0" hidden>
+          <button type="button" id="s5-gc-toggle" onclick="var w=document.getElementById('s5-gc-collapse');var isOpen=w.style.display==='none';w.style.display=isOpen?'':'none';this.setAttribute('aria-expanded',isOpen);" aria-expanded="false" style="background:none;border:none;padding:0;cursor:pointer;font:inherit;color:var(--teal);font-weight:700;font-size:0.85rem;-webkit-tap-highlight-color:transparent">Have a gift card? Enter the code &rarr;</button>
+          <div id="s5-gc-collapse" style="display:none;margin-top:0.6rem">
+            <div class="promo-row">
+              <input type="text" class="promo-input" id="s5-gc-code" placeholder="AAEG-XXXX-XXXX-XXXX" aria-label="Gift card code" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+              <button type="button" class="promo-apply" id="s5-gc-applybtn" onclick="giftCardApply()">Apply</button>
+            </div>
+            <div class="promo-status" id="s5-gc-status"></div>
+          </div>
+        </div>
+        <script>
+        (function(){
+          fetch('/api/gift-cards/checkout',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+            if(window.BOOK){ BOOK._giftCardsAccepting=!!(d&&d.acceptingCodes); if(typeof renderStep5OrderTotal==='function') renderStep5OrderTotal(); }
+          }).catch(function(){});
+        })();
+        window.giftCardStatus = function(text, color){ var st=document.getElementById('s5-gc-status'); if(st){ st.textContent=text||''; st.style.color=color||''; } };
+        window.giftCardRefresh = async function(){
+          if(!window.BOOK || !BOOK.giftCardCode || BOOK._giftCardLoading) return;
+          BOOK._giftCardLoading=true;
+          var forTotal=BOOK._grandTotalCents||0;
+          try{
+            var r=await fetch('/api/booking/promo-preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+              services:BOOK.selectedServices, items:buildItemsPayload(), zip:BOOK.zip, email:BOOK.email,
+              promoCode:BOOK.promoCode||'', isQuoteRequest:BOOK._isQuoteFlow||false, date:BOOK.date||'',
+              assemblecashToken:BOOK.assemblecashToken||'', giftCardCode:BOOK.giftCardCode
+            })});
+            var d=await r.json().catch(function(){return {};});
+            BOOK._giftCardFor=forTotal;
+            if(!r.ok){ BOOK._giftCard=null; giftCardStatus(d.error||'Gift cards are unavailable right now. Try again in a moment.','#b91c1c'); }
+            else if(d.gift_card_error){ BOOK._giftCard=null; giftCardStatus(d.gift_card_error.error,'#b91c1c'); }
+            else if(d.gift_card){
+              BOOK._giftCard={appliedCents:Number(d.gift_card.applied_cents||0), last4:d.gift_card.last4||'', remainingCents:Number(d.gift_card.remaining_cents||0)};
+              giftCardStatus(dollars(BOOK._giftCard.appliedCents/100)+' applied from your gift card.'+(BOOK._giftCard.remainingCents>0?' '+dollars(BOOK._giftCard.remainingCents/100)+' stays on the card.':''),'#067647');
+            }
+          }catch(e){ BOOK._giftCard=null; giftCardStatus('Could not check the gift card. Try again in a moment.','#b91c1c'); }
+          BOOK._giftCardLoading=false;
+          renderStep5OrderTotal();
+        };
+        window.giftCardApply = async function(){
+          var code=(document.getElementById('s5-gc-code').value||'').trim();
+          if(!code){ BOOK.giftCardCode=''; BOOK._giftCard=null; giftCardStatus(''); renderStep5OrderTotal(); return; }
+          BOOK.giftCardCode=code; BOOK._giftCardFor=null;
+          var b=document.getElementById('s5-gc-applybtn'); b.disabled=true;
+          await giftCardRefresh();
+          b.disabled=false;
+        };
+        </script>
+
         <!-- Card payment (standard bookings) -->
 
         <div id="s5-payment-section" class="form-fields">
@@ -4181,7 +4231,17 @@ function renderStep5OrderTotal() {
   var totalDisplay = itemsBlock.hasCustom && localPricing.itemSubtotalCents === 0
     ? 'Custom quote'
     : dollars((pricing.totalCents || 0) / 100) + (itemsBlock.hasCustom ? '+ (some items need a quote)' : '');
-  var totalNote = BOOK.isEmergingMarket ? 'No payment collected' : (assemblecashAppliedCents > 0 ? 'Rewards applied' : (promoApplied ? 'Offer applied' : 'Secure checkout'));
+  // Gift card: paid after tax, previewed by the server (giftCardRefresh).
+  var giftBox = document.getElementById('s5-gc-box');
+  var giftUsable = !!BOOK._giftCardsAccepting && !BOOK._isQuoteFlow && !BOOK.isEmergingMarket && !(itemsBlock.hasCustom && localPricing.itemSubtotalCents === 0);
+  if (giftBox) giftBox.hidden = !giftUsable;
+  if (BOOK.giftCardCode && giftUsable && BOOK._giftCardFor !== BOOK._grandTotalCents && !BOOK._giftCardLoading) setTimeout(window.giftCardRefresh, 0);
+  var giftCardCents = giftUsable && BOOK._giftCard && BOOK._giftCardFor === BOOK._grandTotalCents ? Math.min(Number(BOOK._giftCard.appliedCents || 0), Number(pricing.totalCents || 0)) : 0;
+  if (giftCardCents > 0 && taxLineHtml) {
+    taxLineHtml += '<div class="booking-money-row" style="color:#0369a1;font-weight:700"><span>Gift card ending ' + esc(BOOK._giftCard.last4) + '</span><span>&minus;' + dollars(giftCardCents / 100) + '</span></div>';
+    totalDisplay = dollars(((pricing.totalCents || 0) - giftCardCents) / 100) + (itemsBlock.hasCustom ? '+ (some items need a quote)' : '');
+  }
+  var totalNote = BOOK.isEmergingMarket ? 'No payment collected' : (giftCardCents > 0 ? 'Gift card applied' : (assemblecashAppliedCents > 0 ? 'Rewards applied' : (promoApplied ? 'Offer applied' : 'Secure checkout')));
 
   summaryEl.insertAdjacentHTML('beforeend',
     '<div class="summary-row" id="s5-order-total-row" style="border-top:2px solid var(--border);margin-top:0.25rem;padding-top:1rem">'
@@ -7862,6 +7922,7 @@ async function submitBooking() {
     totalCents: totalCents,
     promoCode: BOOK.promoCode || '',
     assemblecashToken: BOOK.assemblecashToken || '',
+    giftCardCode: BOOK.giftCardCode || '',
     bundleSlug: BOOK.bundleSlug || '',
     paymentMethod: BOOK.paymentMethod,
     smsConsent: !!(document.getElementById('s4-sms-consent') || {}).checked
@@ -7913,6 +7974,8 @@ async function submitBooking() {
         promoPreviewTotalCents: BOOK._grandTotalCents || 0,
 
         assemblecashToken: BOOK.assemblecashToken || '',
+
+        giftCardCode: (BOOK._giftCardsAccepting && !BOOK._isQuoteFlow && BOOK.giftCardCode) || '',
 
         bundleSlug: BOOK.bundleSlug || '',
 

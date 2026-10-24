@@ -359,6 +359,12 @@ export function computeBookingSplitAtFeePct(totalInclusiveCents, feePct, { taxCe
  * platform-funded credit (for example AssembleCash or a review reward) reduced
  * what the customer paid but must NOT reduce the Easer's payout basis.
  *
+ * A gift card is different: it is money the customer already paid (migration
+ * 120). amountCharged/totalPrice is what the card paid; giftCardAppliedCents
+ * is added back so tax, the Easer's pay and the platform's share are all
+ * figured on the full price, exactly as on a job paid entirely by card.
+ * totalCents stays the card amount.
+ *
  * @param {{
  *   amountChargedCents?: number|null,
  *   totalPriceCents?: number|null,
@@ -367,6 +373,7 @@ export function computeBookingSplitAtFeePct(totalInclusiveCents, feePct, { taxCe
  *   feePct?: number|null,
  *   assemblecashRedeemedCents?: number,
  *   reviewRewardDiscountCents?: number,
+ *   giftCardAppliedCents?: number,
  * }} args
  * @returns {{
  *   totalCents: number,
@@ -388,13 +395,16 @@ export function computeBookingSplitFromSnapshot({
   feePct = null,
   assemblecashRedeemedCents = 0,
   reviewRewardDiscountCents = 0,
+  giftCardAppliedCents = 0,
 } = {}) {
   const chargedRaw = amountChargedCents != null ? amountChargedCents : totalPriceCents;
   const total = Math.max(0, Math.round(Number(chargedRaw) || 0));
-  const tax = Math.min(total, Math.max(0, Math.round(Number(taxCents) || 0)));
+  const giftCard = Math.max(0, Math.round(Number(giftCardAppliedCents) || 0));
+  const fullTotal = total + giftCard;
+  const tax = Math.min(fullTotal, Math.max(0, Math.round(Number(taxCents) || 0)));
   const redeemed = Math.max(0, Math.round(Number(assemblecashRedeemedCents) || 0));
   const reviewRewardDiscount = Math.max(0, Math.round(Number(reviewRewardDiscountCents) || 0));
-  const pretaxCollected = total - tax;
+  const pretaxCollected = fullTotal - tax;
   const payoutBase = pretaxCollected + redeemed + reviewRewardDiscount;
   const canonicalFeePct = normalizePlatformFeePct(feePct, isMember);
   const protectedPlatformFee = Math.round(payoutBase * canonicalFeePct / 100);
@@ -412,6 +422,7 @@ export function computeBookingSplitFromSnapshot({
     assemblerDueCents: assemblerDue,
     assemblecashRedeemedCents: redeemed,
     reviewRewardDiscountCents: reviewRewardDiscount,
+    giftCardAppliedCents: giftCard,
   };
 }
 
@@ -553,13 +564,20 @@ export function computeBookingFinancialSummary({
   // not Easer earnings: it is a business expense, so it lowers the platform's
   // figures without ever being counted as what the Easer earned.
   easerReimbursementCents = 0,
+  // Paid by gift card (migration 120): money collected when the card was sold,
+  // so it counts beside the card charge. Refunds and processing fees apply to
+  // the card charge only.
+  giftCardAppliedCents = 0,
 } = {}) {
   const grossChargedCents = Math.max(0, Math.round(Number(amountChargedCents || totalPriceCents) || 0));
   const refundedCents = Math.min(grossChargedCents, Math.max(0, Math.round(Number(refundAmountCents) || 0)));
   const netChargedCents = Math.max(0, grossChargedCents - refundedCents);
-  const originalTaxCents = Math.min(grossChargedCents, Math.max(0, Math.round(Number(taxAmountCents) || 0)));
-  const taxCollectedCents = grossChargedCents > 0
-    ? Math.min(netChargedCents, Math.round(originalTaxCents * netChargedCents / grossChargedCents))
+  const giftCardCents = grossChargedCents > 0 ? Math.max(0, Math.round(Number(giftCardAppliedCents) || 0)) : 0;
+  const grossCollectedCents = grossChargedCents + giftCardCents;
+  const netCollectedCents = netChargedCents + giftCardCents;
+  const originalTaxCents = Math.min(grossCollectedCents, Math.max(0, Math.round(Number(taxAmountCents) || 0)));
+  const taxCollectedCents = grossCollectedCents > 0
+    ? Math.min(netCollectedCents, Math.round(originalTaxCents * netCollectedCents / grossCollectedCents))
     : 0;
   const recordedStripeFee = Number(stripeFeeCents);
   const processingFeeCents = stripeFeeCents != null && Number.isFinite(recordedStripeFee)
@@ -593,8 +611,9 @@ export function computeBookingFinancialSummary({
     // claiming a commission the platform no longer took. Deriving it here means
     // the booking panel and the financial dashboard can never disagree about
     // the same job (Article 2).
-    platformFeeCents: netChargedCents - taxCollectedCents - easerCostCents - reimbursementCents,
-    platformGrossCents: netChargedCents - taxCollectedCents - processingFeeCents - easerCostCents - reimbursementCents,
+    giftCardAppliedCents: giftCardCents,
+    platformFeeCents: netCollectedCents - taxCollectedCents - easerCostCents - reimbursementCents,
+    platformGrossCents: netCollectedCents - taxCollectedCents - processingFeeCents - easerCostCents - reimbursementCents,
   };
 }
 

@@ -37,7 +37,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, sms_consent_at, sms_opted_out_at, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_method_type, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, payment_recovery_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, sms_consent_at, sms_opted_out_at, address, date, time, details, total_price, gift_card_applied_cents, gift_card_last4, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_method_type, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, payment_recovery_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
     .eq('id', bookingId)
     .single();
 
@@ -240,6 +240,9 @@ export default async function handler(req, res) {
     ? (usesKlarna
       ? `Klarna approved your payment method for this $${(amount / 100).toFixed(2)} booking. Klarna will provide your payment schedule; we finalize the service charge after the job is complete.`
       : `Nothing is charged today — we'll charge the $${(amount / 100).toFixed(2)} total only after your Easer completes the job to your satisfaction.`)
+      + (Number(booking.gift_card_applied_cents || 0) > 0
+        ? ` Your gift card${booking.gift_card_last4 ? ` ending ${esc(booking.gift_card_last4)}` : ''} paid $${(Number(booking.gift_card_applied_cents) / 100).toFixed(2)} of the price.`
+        : '')
     : `No payment has been collected for this request.`;
   const customerPaymentHeading = usesKlarna
     ? 'Klarna approved — payment schedule provided by Klarna'

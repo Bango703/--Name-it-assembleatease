@@ -2,7 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import {
   readBalances, summarizeForOwner, isMissingGiftCardTable, isGiftCardsEnabled, isGiftCardsConfigured,
-  codeForSession, deliverCard, voidCard,
+  codeForSession, deliverCard, voidCard, releaseBookingGiftCard, formatCents,
 } from '../_gift-cards.js';
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -14,7 +14,7 @@ const MIGRATION_MESSAGE = 'Gift cards are not set up yet. Run migration 119 in S
  * POST /api/owner/gift-cards { action:'resend', id } email the code again
  * POST /api/owner/gift-cards { action:'void', id, note } nothing left can be used
  */
-export function createOwnerGiftCardsHandler({ getSb = getSupabase, verify = verifyOwner, env = process.env, deliver = deliverCard, voidOne = voidCard } = {}) {
+export function createOwnerGiftCardsHandler({ getSb = getSupabase, verify = verifyOwner, env = process.env, deliver = deliverCard, voidOne = voidCard, releaseOne = releaseBookingGiftCard } = {}) {
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'private, no-store');
     if (!verify(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -40,6 +40,19 @@ export function createOwnerGiftCardsHandler({ getSb = getSupabase, verify = veri
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
     const action = String(req.body?.action || '');
+
+    if (action === 'return_booking_credit') {
+      const bookingRef = String(req.body?.bookingRef || '').trim().toUpperCase();
+      if (!/^AAE-[A-Z0-9]{6,20}$/.test(bookingRef)) return res.status(400).json({ error: 'Enter a booking reference, for example AAE-ABC123XYZ0.' });
+      const { data: booking, error: bookingError } = await sb.from('bookings')
+        .select('id, ref, gift_card_applied_cents').eq('ref', bookingRef).maybeSingle();
+      if (bookingError) return res.status(503).json({ error: 'The booking could not be loaded.' });
+      if (!booking) return res.status(404).json({ error: 'That booking was not found.' });
+      if (!(Number(booking.gift_card_applied_cents) > 0)) return res.status(409).json({ error: 'No gift card credit is on this booking.' });
+      const released = await releaseOne(sb, booking, 'returned by owner');
+      if (!released.ok) return res.status(502).json({ error: `The credit was not returned: ${released.error}` });
+      return res.status(200).json({ ok: true, message: `${formatCents(booking.gift_card_applied_cents)} returned to the gift card.` });
+    }
     const id = String(req.body?.id || '');
     if (!UUID.test(id)) return res.status(400).json({ error: 'Choose a card.' });
     const { data: card, error } = await sb.from('gift_cards').select('*').eq('id', id).maybeSingle();

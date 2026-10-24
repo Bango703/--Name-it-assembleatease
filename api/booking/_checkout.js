@@ -32,12 +32,15 @@ function taxLabel() {
  * The price breakdown a customer reads before booking, in the order and words
  * book.html uses. Rows add up to the total.
  */
-export function checkoutSummary(pricingWithPromo, promo, assemblecash = null) {
+export function checkoutSummary(pricingWithPromo, promo, assemblecash = null, giftCard = null) {
   const p = pricingWithPromo || {};
   const cents = (value) => Math.max(0, Math.round(Number(value) || 0));
   // AssembleCash, when applied, replaces the tax and total (_assemblecash.js totalsAfterAssembleCash).
   const credit = assemblecash && cents(assemblecash.redeemCents) > 0 ? assemblecash : null;
-  const total = credit ? cents(credit.totals.totalCents) : cents(p.totalCents);
+  const fullTotal = credit ? cents(credit.totals.totalCents) : cents(p.totalCents);
+  // A gift card pays part of the total after tax (api/_gift-cards.js).
+  const giftCents = giftCard ? Math.min(fullTotal, cents(giftCard.appliedCents)) : 0;
+  const total = fullTotal - giftCents;
   const customOnly = !!p.hasCustomQuote && cents(p.itemSubtotalCents) === 0;
   const rows = [];
   if (total > 0) {
@@ -48,6 +51,7 @@ export function checkoutSummary(pricingWithPromo, promo, assemblecash = null) {
     if (cents(p.serviceCallFeeCents) > 0) rows.push({ label: 'Service call fee', cents: cents(p.serviceCallFeeCents) });
     if (cents(p.sameDayFeeCents) > 0) rows.push({ label: 'Same-day service', cents: cents(p.sameDayFeeCents) });
     rows.push({ label: taxLabel(), cents: credit ? cents(credit.totals.taxCents) : cents(p.taxCents) });
+    if (giftCents > 0) rows.push({ label: `Gift card ending ${giftCard.last4}`, cents: -giftCents });
   }
   return {
     rows,

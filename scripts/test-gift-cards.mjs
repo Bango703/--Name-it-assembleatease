@@ -41,18 +41,27 @@ function mockRes() {
   assert.throws(() => gc.codeForSession('cs_test_abc123', { GIFT_CARD_CODE_SECRET: 'short' }), /GIFT_CARD_CODE_SECRET/);
 }
 
-// ── Nothing is sold before a code can be spent ──────────────────────────
-assert.equal(gc.GIFT_CARD_REDEMPTION_READY, false, 'stage 1 ships with redemption off');
-assert.equal(gc.isGiftCardsEnabled(ENV), false, 'GIFT_CARDS_ENABLED alone cannot open sales before checkout accepts codes');
+// ── Sales open only with GIFT_CARDS_ENABLED, and only once codes can be spent ──
+assert.equal(gc.GIFT_CARD_REDEMPTION_READY, true, 'checkout accepts codes (stage 2)');
+assert.equal(gc.isGiftCardsEnabled({ ...ENV, GIFT_CARDS_ENABLED: '' }), false, 'nothing is sold until the owner switches sales on');
+assert.equal(gc.isGiftCardsEnabled(ENV), true);
 {
-  const handler = createGiftCardCheckoutHandler({ env: ENV, limit: async () => true, stripeFactory: () => { throw new Error('Stripe must not be called'); } });
+  const OFF = { ...ENV, GIFT_CARDS_ENABLED: '' };
+  const noCards = () => ({ from: () => ({ select: () => ({ eq: () => ({ limit: async () => ({ data: [] }) }) }) }) });
+  const handler = createGiftCardCheckoutHandler({ env: OFF, limit: async () => true, getSb: noCards, stripeFactory: () => { throw new Error('Stripe must not be called'); } });
   const res = mockRes();
   await handler({ method: 'POST', headers: {}, body: { kind: 'gift_card', amountDollars: 50, purchaserEmail: 'a@b.com' } }, res);
   assert.equal(res.statusCode, 409, 'a purchase is refused while sales are off');
   const get = mockRes();
   await handler({ method: 'GET', headers: {} }, get);
   assert.equal(get.body.enabled, false);
+  assert.equal(get.body.acceptingCodes, false, 'no field on /book while no card exists');
   assert.deepEqual(get.body.moveInPass, { paidCents: 4900, bonusCents: 1100, bonusDays: 30, priorityDays: 30 });
+  const someCards = () => ({ from: () => ({ select: () => ({ eq: () => ({ limit: async () => ({ data: [{ id: 'x' }] }) }) }) }) });
+  const paused = createGiftCardCheckoutHandler({ env: OFF, getSb: someCards });
+  const pausedGet = mockRes();
+  await paused({ method: 'GET', headers: {} }, pausedGet);
+  assert.equal(pausedGet.body.acceptingCodes, true, 'cards already sold stay usable when sales are paused');
 }
 
 // ── The server sets the price ───────────────────────────────────────────
@@ -118,7 +127,7 @@ function session(overrides = {}) {
 
 // Minimal Supabase stand-in for the two tables, with the unique rules the migration enforces.
 function fakeSb() {
-  const db = { gift_cards: [], gift_card_ledger: [] };
+  const db = { gift_cards: [], gift_card_ledger: [], bookings: [] };
   let seq = 0;
   function query(table) {
     const filters = [];
@@ -128,6 +137,7 @@ function fakeSb() {
       eq(k, v) { filters.push((r) => r[k] === v); return api; },
       is(k, v) { filters.push((r) => (r[k] ?? null) === v); return api; },
       in(k, vs) { filters.push((r) => vs.includes(r[k])); return api; },
+      gt(k, v) { filters.push((r) => Number(r[k]) > v); return api; },
       or(expr) {
         const [, stale] = expr.match(/lt\.(.+)$/) || [];
         filters.push((r) => r.delivery_claimed_at == null || (stale && r.delivery_claimed_at < stale));

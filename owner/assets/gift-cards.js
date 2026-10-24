@@ -72,7 +72,14 @@
     });
     html += '</tbody></table></div>';
     if (state.confirmVoid) html += '<p class="giftcards-muted">Voiding stops any remaining credit on the card from being used. Use it for a refunded or disputed purchase.</p>';
+    html += returnCreditForm();
     body.innerHTML = html;
+  }
+
+  function returnCreditForm() {
+    return '<form class="giftcards-return" id="giftcards-return-form"><label class="giftcards-muted" for="giftcards-return-ref">Return gift card credit from a refunded booking</label>' +
+      '<div class="giftcards-return-row"><input id="giftcards-return-ref" placeholder="AAE-ABC123XYZ0" maxlength="24" autocomplete="off"> ' +
+      '<button type="submit" class="giftcards-btn">Return credit</button></div></form>';
   }
 
   function updateBadge() {
@@ -113,6 +120,15 @@
     else if (t.dataset.voidCancel) { state.confirmVoid = null; render(); }
     else if (t.dataset.voidConfirm) { t.disabled = true; act({ action: 'void', id: t.dataset.voidConfirm, confirm: true, note: 'from dashboard' }, 'Card voided.'); }
     else if (t.id === 'giftcards-refresh') load();
+  });
+
+  document.addEventListener('submit', function (event) {
+    if (!event.target || event.target.id !== 'giftcards-return-form') return;
+    event.preventDefault();
+    var input = el('giftcards-return-ref');
+    var ref = input ? input.value.trim() : '';
+    if (!ref) { note('Enter a booking reference.', true); return; }
+    act({ action: 'return_booking_credit', bookingRef: ref }, 'Credit returned.');
   });
 
   window.OwnerGiftCards = { load: load, refresh: load };

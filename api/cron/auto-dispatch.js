@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   // Confirmed, unassigned, not paused, not flagged
   const { data: candidates, error: candidatesError } = await sb
     .from('bookings')
-    .select('id, ref, service, date, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_payment_method_id, confirmed_by, stripe_dispute_id, stripe_dispute_status')
+    .select('id, ref, service, date, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_payment_method_id, confirmed_by, stripe_dispute_id, stripe_dispute_status, gift_card_priority')
     .eq('status', 'confirmed')
     .in('payment_status', STAFFING_PAYMENT_STATUSES)
     .is('assembler_id', null)
@@ -66,7 +66,12 @@ export default async function handler(req, res) {
   }
 
   const bookingsWithOpenOffers = new Set((openOffers || []).map(o => o.booking_id));
-  const toDispatch = paymentReadyCandidates.filter(b => !bookingsWithOpenOffers.has(b.id));
+  // Move-In Pass priority (migration 120): those bookings are offered to pros
+  // first; the rest go soonest appointment first.
+  const toDispatch = paymentReadyCandidates
+    .filter(b => !bookingsWithOpenOffers.has(b.id))
+    .sort((a, b) => (Number(b.gift_card_priority === true) - Number(a.gift_card_priority === true))
+      || String(a.date || '').localeCompare(String(b.date || '')));
 
   if (!toDispatch.length) {
     await logCron('auto-dispatch', { status: 'ok', records: 0 });
