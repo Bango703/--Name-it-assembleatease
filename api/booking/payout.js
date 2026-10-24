@@ -205,6 +205,7 @@ export default async function handler(req, res) {
   const platformRevenue = computeBookingFinancialSummary({
     amountChargedCents: booking.amount_charged || 0,
     totalPriceCents: booking.total_price || 0,
+    giftCardAppliedCents: cancellationPayout ? 0 : (booking.gift_card_applied_cents || 0),
     refundAmountCents: booking.refund_amount || 0,
     taxAmountCents: cancellationPayout ? 0 : (booking.tax_amount || 0),
     stripeFeeCents: booking.stripe_fee,

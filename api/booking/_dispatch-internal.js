@@ -424,6 +424,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
           isMember: hasEffectiveEaserMembership(easer),
           assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
           reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
+          giftCardAppliedCents: booking.gift_card_applied_cents || 0,
         }).assemblerDueCents
       : 0;
     const pushPay = estPayCents > 0
@@ -604,6 +605,7 @@ function buildOfferEmail(easer, booking, city, offerUrl, expiresAt) {
     isMember: hasEffectiveEaserMembership(easer),
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
     reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
+    giftCardAppliedCents: booking.gift_card_applied_cents || 0,
   });
   const payEstimate = booking.total_price > 0
     ? '$' + Math.round(split.assemblerDueCents / 100).toLocaleString()

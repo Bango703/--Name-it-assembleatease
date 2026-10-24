@@ -62,7 +62,7 @@ export default async function handler(req, res) {
 
   const { data: booking, error: bookingErr } = await sb
     .from('bookings')
-    .select('id, ref, status, assembler_id, assembler_name, assembler_accepted_at, total_price, amount_charged, tax_amount, assembler_due, easer_fee_pct_snapshot, assemblecash_redeemed_cents, payout_status, service, date, time, customer_name, customer_email, address, city, zip, is_test_booking')
+    .select('id, ref, status, assembler_id, assembler_name, assembler_accepted_at, total_price, amount_charged, tax_amount, assembler_due, easer_fee_pct_snapshot, assemblecash_redeemed_cents, gift_card_applied_cents, payout_status, service, date, time, customer_name, customer_email, address, city, zip, is_test_booking')
     .eq('id', bookingId)
     .single();
   if (bookingErr || !booking) return res.status(404).json({ error: 'Booking not found' });

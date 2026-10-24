@@ -49,6 +49,7 @@ const INTERNAL_FINANCIAL_FIELDS = [
   'total_price',
   'tax_amount',
   'assemblecash_redeemed_cents',
+  'gift_card_applied_cents',
   'review_reward_discount_cents',
   'cancellation_fee',
   'cancellation_easer_due_cents',
@@ -257,7 +258,7 @@ export default async function handler(req, res) {
   // ── 1. Bookings assigned to this Easer ──────────────────────────────────
   let query = sb
     .from('bookings')
-    .select('id, ref, source, service, customer_name, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, easer_bonus_cents, easer_bonus_reason, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, expected_bank_arrival_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, review_reward_discount_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, same_day_fee_cents, same_day_easer_bonus_cents, is_test_booking');
+    .select('id, ref, source, service, customer_name, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, easer_bonus_cents, easer_bonus_reason, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, expected_bank_arrival_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, gift_card_applied_cents, review_reward_discount_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, same_day_fee_cents, same_day_easer_bonus_cents, is_test_booking');
 
   query = crewBookingIds.length
     ? query.or(`assembler_id.eq.${user.id},id.in.(${crewBookingIds.join(',')})`)
@@ -319,7 +320,7 @@ export default async function handler(req, res) {
     try {
       const { data, error } = await sb
         .from('bookings')
-        .select('id, ref, service, date, time, status, total_price, tax_amount, assemblecash_redeemed_cents, address')
+        .select('id, ref, service, date, time, status, total_price, tax_amount, assemblecash_redeemed_cents, gift_card_applied_cents, address')
         .in('id', unacceptedOfferBookingIds)
         .eq('status', BOOKING_STATUS.CONFIRMED)
         .is('assembler_id', null);
@@ -514,6 +515,7 @@ export default async function handler(req, res) {
           : null,
         assemblecashRedeemedCents: b.assemblecash_redeemed_cents || 0,
         reviewRewardDiscountCents: b.review_reward_discount_cents || 0,
+        giftCardAppliedCents: b.gift_card_applied_cents || 0,
       });
       const estimateDue = split.assemblerDueCents + sdBonus;
       b._pay_estimate_lo = estimateDue;

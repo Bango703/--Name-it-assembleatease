@@ -50,9 +50,15 @@ export function cartAllowsBookingReuse({ hasPromo, hasAssembleCash }) {
  * truth for that booking — must match what this attempt priced. A mismatch
  * means the cart changed, and reusing the row would charge the wrong amount.
  */
-export function isReusableBookingRow(row, { amountCents }) {
+export function isReusableBookingRow(row, { amountCents, giftCardId = null }) {
   if (!row) return false;
-  if (Number(row.total_price) !== Number(amountCents)) return false;
+  // A gift card paid part of the row (migration 120): the retry must carry the
+  // same card, and the full price (card hold plus gift card) must match.
+  const giftCents = Number(row.gift_card_applied_cents || 0);
+  if (giftCardId || giftCents > 0) {
+    if (!giftCardId || row.gift_card_id !== giftCardId || giftCents <= 0) return false;
+    if (Number(row.total_price) + giftCents !== Number(amountCents)) return false;
+  } else if (Number(row.total_price) !== Number(amountCents)) return false;
   if (row.promo_code) return false;
   if (Number(row.assemblecash_redeemed_cents || 0) > 0) return false;
   if (!row.stripe_payment_intent_id) return false;

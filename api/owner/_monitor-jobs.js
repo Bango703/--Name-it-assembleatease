@@ -17,12 +17,14 @@ export function bookingFinanceContext(booking, row = null) {
       feePct: booking.easer_fee_pct_snapshot,
       assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
       reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
+      giftCardAppliedCents: booking.gift_card_applied_cents || 0,
     });
     const offlineMethod = booking.source === 'owner_manual'
       ? normalizeOwnerOfflinePaymentMethod(booking.payment_method) : null;
     const feeUnknown = booking.source === 'owner_manual' && !offlineMethod;
     const summary = computeBookingFinancialSummary({
       totalPriceCents: split.totalCents,
+      giftCardAppliedCents: split.giftCardAppliedCents,
       taxAmountCents: split.taxCents,
       assemblerDueCents: split.assemblerDueCents,
       easerBonusCents: booking.easer_bonus_cents || 0,

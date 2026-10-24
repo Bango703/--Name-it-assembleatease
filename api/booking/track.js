@@ -190,6 +190,8 @@ export default async function handler(req, res) {
     total_price: booking.total_price || null,
     tax_amount: booking.tax_amount || 0,
     service_call_fee: booking.service_call_fee || 0,
+    gift_card_applied_cents: booking.gift_card_applied_cents || 0,
+    gift_card_last4: booking.gift_card_applied_cents > 0 ? (booking.gift_card_last4 || null) : null,
     amount_charged: booking.amount_charged || null,
     refund_amount: booking.refund_amount || 0,
     deposit_amount: booking.deposit_amount || null,

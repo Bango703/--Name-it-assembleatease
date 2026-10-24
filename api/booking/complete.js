@@ -280,6 +280,7 @@ export default async function handler(req, res) {
     feePct: feeSnapshot.feePct,
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
     reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
+    giftCardAppliedCents: booking.gift_card_applied_cents || 0,
   });
   const PLATFORM_FEE_PCT = split.feePct;
   const platformFee      = split.platformFeeCents;

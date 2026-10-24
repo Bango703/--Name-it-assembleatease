@@ -106,6 +106,7 @@ export default async function handler(req, res) {
         // flag) is the only customer-money source of truth.
         amountChargedCents: isOwnerManual ? ownerManualGrossCents : booking.amount_charged,
         totalPriceCents: isOwnerManual ? 0 : booking.total_price,
+        giftCardAppliedCents: isOwnerManual ? 0 : (booking.gift_card_applied_cents || 0),
         refundAmountCents: isOwnerManual && paymentEvents.length
           ? ledgerRefundedCents
           : booking.refund_amount,

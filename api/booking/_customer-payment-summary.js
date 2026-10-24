@@ -26,9 +26,12 @@ export function customerPaymentSummary(b = {}) {
   const refunded = ownerManual ? rawRefunded : Math.min(total, rawRefunded);
   const tax = Number(b.tax_amount) || 0;
   const call = Number(b.service_call_fee) || 0;
-  const rows = [{ label: 'Service & items', cents: Math.max(0, total - tax - call), strong: false }];
+  // A gift card paid part of the price after tax; the total is the card's part.
+  const giftCard = ownerManual ? 0 : Math.max(0, Number(b.gift_card_applied_cents) || 0);
+  const rows = [{ label: 'Service & items', cents: Math.max(0, total + giftCard - tax - call), strong: false }];
   if (call > 0) rows.push({ label: 'Service call fee', cents: call, strong: false });
   if (tax > 0) rows.push({ label: 'Sales tax', cents: tax, strong: false });
+  if (giftCard > 0) rows.push({ label: b.gift_card_last4 ? `Gift card ending ${b.gift_card_last4}` : 'Gift card', cents: -giftCard, strong: false });
 
   let note = null;
   if (ownerManual) {

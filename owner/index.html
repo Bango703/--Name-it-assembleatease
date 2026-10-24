@@ -3607,7 +3607,9 @@ window.intelQuick = intelQuick;
     $detailRef.textContent = b.ref;
     var bookedTotal = Number(b.total_price || 0);
     var bookedTax = Number(b.tax_amount || 0);
-    var bookedSubtotal = Math.max(0, bookedTotal - bookedTax);
+    // A gift card paid part of the price after tax (migration 120); total_price is the card's part.
+    var giftCardCents = Number(b.gift_card_applied_cents || 0);
+    var bookedSubtotal = Math.max(0, bookedTotal + giftCardCents - bookedTax);
     var financial = b.financial_summary || {};
     var rebookedFrom = b.rebooked_from_booking_id
       ? allBookings.find(function(item){ return item.id === b.rebooked_from_booking_id; })
@@ -3660,7 +3662,9 @@ window.intelQuick = intelQuick;
       field('Sales Tax', b.tax_amount != null ? fmt$(bookedTax) : '—'),
       documentedDiscountCents > 0 ? field('Original Customer Total', fmt$(originalCustomerTotal)) : '',
       documentedDiscountCents > 0 ? field('Documented Discount', '<span style="color:#065f46">-' + fmt$(documentedDiscountCents) + '</span>') : '',
-      field(documentedDiscountCents > 0 ? 'Adjusted Customer Total' : 'Customer Total', b.total_price != null ? fmt$(bookedTotal) : '—'),
+      field(documentedDiscountCents > 0 ? 'Adjusted Customer Total' : 'Customer Total', b.total_price != null ? fmt$(bookedTotal + giftCardCents) : '—'),
+      giftCardCents > 0 ? field('Paid by Gift Card', '<span style="color:#0369a1">-' + fmt$(giftCardCents) + '</span> <span style="font-size:0.72rem;color:var(--muted)">ending ' + esc(b.gift_card_last4 || '') + (b.gift_card_priority ? ' &bull; Move-In Pass priority' : '') + '</span>') : '',
+      giftCardCents > 0 ? field('Card Total', fmt$(bookedTotal)) : '',
       isOfflinePayment ? field('Gross Customer Payments', fmt$(grossManualPayments)) : '',
       field(isOfflinePayment ? 'Net Payments Retained' : 'Total Charged', collectedAmount != null
         ? fmt$(collectedAmount)

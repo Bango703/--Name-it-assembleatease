@@ -43,6 +43,7 @@ export function buildEaserFeeSnapshot(booking, easer, {
     feePct,
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
     reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
+    giftCardAppliedCents: booking.gift_card_applied_cents || 0,
   });
   const updates = {
     easer_fee_snapshot_easer_id: easer.id,

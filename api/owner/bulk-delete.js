@@ -124,6 +124,7 @@ function getBookingBlockers(booking) {
     'deposit_amount', 'amount_charged',
     'assembler_due', 'platform_fee', 'platform_revenue', 'payout_amount',
     'refund_amount', 'promo_discount_cents', 'assemblecash_redeemed_cents',
+    'gift_card_applied_cents',
   ];
   if (moneyFields.some(field => Number(booking[field] || 0) !== 0)) reasons.push('non-zero money state');
 

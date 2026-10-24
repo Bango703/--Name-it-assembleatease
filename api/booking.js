@@ -36,6 +36,7 @@ import {
 } from './_assemblecash.js';
 import { buildCustomerConsentRecord, normalizeConsentMethod, validateCustomerLegalConsent } from './_legal-consent.js';
 import { reserveReviewReward, releaseReviewReward } from './_review-rewards.js';
+import { GIFT_CARD_REDEMPTION_READY, applyGiftCardToBooking, releaseGiftCardReservation, formatCents as formatGiftCardCents, hashCode as hashGiftCardCode } from './_gift-cards.js';
 import {
   cartAllowsBookingReuse,
   classifyExistingIntent,
@@ -76,6 +77,7 @@ export default async function handler(req, res) {
     promoPreviewApplied,
     promoPreviewTotalCents,
     assemblecashToken,
+    giftCardCode,
     bundleSlug,
     attribution,
     termsAccepted,
@@ -266,6 +268,7 @@ export default async function handler(req, res) {
         email, date, time, service, address, amount,
         hasPromo: !!promo.applied,
         hasAssembleCash: !!assemblecashToken,
+        giftCardCode,
         paymentMethodType: requestedPaymentMethod,
         name,
         phone,
@@ -308,7 +311,8 @@ export default async function handler(req, res) {
             serviceCallFeeCents,
             taxableSubtotalCents,
             taxCents,
-            totalCents: amount,
+            giftCardAppliedCents: Number(reused.booking.gift_card_applied_cents || 0),
+            totalCents: Number(reused.booking.total_price),
             minimumPretaxCents: getMinimumPretaxBookingCents(pricingWithPromo.callZone),
           },
         });
@@ -484,6 +488,55 @@ export default async function handler(req, res) {
     }
   }
 
+  // -- Gift card (migration 120) --
+  // Money the customer already paid, so it comes off the total AFTER tax:
+  // tax_amount stays the tax on the full price and the Easer's pay is figured
+  // on the full price (computeBookingSplitFromSnapshot adds it back). The card
+  // keeps a hold big enough for the largest cancellation fee, so cancel,
+  // capture and refund work exactly as on a card-only booking.
+  let giftCardAppliedCents = 0;
+  let giftCardApplied = null;
+  const enteredGiftCardCode = String(giftCardCode || '').trim();
+  const releaseHeldCredits = async (reason) => {
+    if (assemblecashRedeemedCents > 0) await releasePendingRedemption(sb, { bookingRef: ref, customerEmail: email, reason });
+  };
+  if (enteredGiftCardCode) {
+    if (!GIFT_CARD_REDEMPTION_READY) {
+      await releaseHeldCredits('reverse:gift_card_not_ready');
+      return res.status(409).json({ error: 'Gift cards cannot be used yet. Remove the code to continue.', code: 'GIFT_CARD_NOT_AVAILABLE' });
+    }
+    if (!pricedBooking) {
+      await releaseHeldCredits('reverse:gift_card_on_quote');
+      return res.status(409).json({ error: 'A gift card can be used on a priced booking. Remove the code to send your quote request.', code: 'GIFT_CARD_QUOTE' });
+    }
+    try {
+      const giftResult = await applyGiftCardToBooking(sb, {
+        code: enteredGiftCardCode,
+        bookingRef: ref,
+        totalCents: amount,
+        serviceSubtotalCents: amount - taxCents - serviceCallFeeCents,
+        maxCancellationFeePct: Math.max(CANCELLATION_POLICY.lateFeePct, CANCELLATION_POLICY.imminentFeePct),
+      });
+      if (!giftResult.ok) {
+        await releaseHeldCredits('reverse:gift_card_rejected');
+        return res.status(giftResult.status).json({ error: giftResult.error, code: giftResult.code });
+      }
+      if (giftResult.appliedCents > 0) {
+        giftCardAppliedCents = giftResult.appliedCents;
+        giftCardApplied = giftResult;
+        amount -= giftCardAppliedCents;
+      }
+    } catch (giftError) {
+      console.error('Gift card redemption failed:', giftError?.message || giftError);
+      await releaseGiftCardReservation(sb, ref, 'reverse:gift_card_error');
+      await releaseHeldCredits('reverse:gift_card_error');
+      return res.status(503).json({ error: 'Gift cards are unavailable right now. Remove the code to book, or try again in a moment.', code: 'GIFT_CARD_UNAVAILABLE' });
+    }
+  }
+  const releaseGiftCard = async (reason) => {
+    if (giftCardAppliedCents > 0) await releaseGiftCardReservation(sb, ref, reason);
+  };
+
   const isDeposit = false;
   const depositAmountCents = null;
   const requiresOwnerAssignment = !isAutomaticDispatchZip(zip);
@@ -528,6 +581,14 @@ export default async function handler(req, res) {
     review_reward_discount_cents: promo.reviewRewardId ? promoDiscountCents : 0,
     assemblecash_redeemed_cents: assemblecashRedeemedCents,
     bundle_slug: (typeof bundleSlug === 'string' && bundleSlug) ? bundleSlug.slice(0, 64) : null,
+    // Only written when a gift card paid part of this booking, so a booking
+    // without one never depends on migration 120.
+    ...(giftCardAppliedCents > 0 ? {
+      gift_card_applied_cents: giftCardAppliedCents,
+      gift_card_id: giftCardApplied.giftCardId,
+      gift_card_last4: giftCardApplied.last4,
+      gift_card_priority: giftCardApplied.priority === true,
+    } : {}),
     booking_attribution: cleanAcquisitionAttribution(attribution),
     ...(smsConsent === true ? {
       sms_consent_at: new Date().toISOString(),
@@ -543,6 +604,12 @@ export default async function handler(req, res) {
     const { service_city, service_state, service_zip, ...withoutLocationColumns } = activeBookingInsertPayload;
     activeBookingInsertPayload = withoutLocationColumns;
     ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(activeBookingInsertPayload).select('id').single());
+  }
+
+  if (insertErr && isMissingColumnError(insertErr) && /gift_card_/i.test(String(insertErr.message || ''))) {
+    await releaseGiftCard('reverse:gift_card_schema_missing');
+    await releaseHeldCredits('reverse:gift_card_schema_missing');
+    return res.status(503).json({ error: 'Gift cards are being set up. Remove the code to book now, or try again later.', code: 'GIFT_CARD_UNAVAILABLE' });
   }
 
   if (insertErr && isMissingColumnError(insertErr) && /promo_|review_reward_discount_cents/i.test(String(insertErr.message || '')) && promo.reviewRewardId) {
@@ -568,6 +635,7 @@ export default async function handler(req, res) {
   }
 
   if (insertErr && isMissingColumnError(insertErr) && /customer_terms_|customer_privacy_notice_/i.test(String(insertErr.message || ''))) {
+    await releaseGiftCard('reverse:legal_consent_schema_missing');
     if (assemblecashRedeemedCents > 0) {
       await releasePendingRedemption(sb, { bookingRef: ref, customerEmail: email, reason: 'reverse:legal_consent_schema_missing' });
     }
@@ -578,6 +646,7 @@ export default async function handler(req, res) {
   }
 
   if (insertErr) {
+    await releaseGiftCard('reverse:booking_insert_failed');
     if (assemblecashRedeemedCents > 0) {
       await releasePendingRedemption(sb, { bookingRef: ref, customerEmail: email, reason: 'reverse:booking_insert_failed' });
     }
@@ -593,10 +662,12 @@ export default async function handler(req, res) {
     } catch (rewardError) {
       console.error('Review reward reservation failed:', rewardError?.code, rewardError?.message);
       await sb.from('bookings').delete().eq('id', bookingId);
+      await releaseGiftCard('reverse:review_reward_failed');
       return res.status(503).json({ error: 'This thank-you offer is temporarily unavailable. Please try again or continue without the code.' });
     }
     if (!reviewRewardReserved) {
       await sb.from('bookings').delete().eq('id', bookingId);
+      await releaseGiftCard('reverse:review_reward_unavailable');
       return res.status(409).json({ error: 'This offer has expired or was already used. Remove the code and review your total.' });
     }
   }
@@ -622,6 +693,7 @@ export default async function handler(req, res) {
       await releasePendingRedemption(sb, { bookingId, bookingRef: ref, customerEmail: email, reason: 'reverse:guest_token_setup_failed' });
     }
     await sb.from('bookings').delete().eq('id', bookingId);
+    await releaseGiftCard('reverse:guest_token_setup_failed');
     console.error('Booking guest-token setup failed:', guestTokenErr);
     return res.status(503).json({
       error: 'Secure booking access is temporarily unavailable. Please try again shortly.',
@@ -781,6 +853,7 @@ export default async function handler(req, res) {
       if (assemblecashRedeemedCents > 0) {
         await releasePendingRedemption(sb, { bookingId, bookingRef: ref, customerEmail: email, reason: 'reverse:stripe_setup_failed' });
       }
+      await releaseGiftCard('reverse:stripe_setup_failed');
       if (reviewRewardReserved) await releaseReviewReward(sb, bookingId).catch(() => {});
       // Deletion is safe only when no PaymentIntent exists or Stripe confirmed
       // cancellation of the unlinked intent.
@@ -840,6 +913,7 @@ export default async function handler(req, res) {
       ${discountCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Bundle Discount</td><td style="padding:10px 0;font-weight:600;color:#0d9488">-$${(discountCents/100).toFixed(2)}</td></tr>` : ''}
       ${promoDiscountCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">${esc(promo.label)}</td><td style="padding:10px 0;font-weight:600;color:#0369a1">-$${(promoDiscountCents/100).toFixed(2)}</td></tr>` : ''}
       ${assemblecashRedeemedCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">AssembleCash applied</td><td style="padding:10px 0;font-weight:600;color:#0369a1">-$${(assemblecashRedeemedCents/100).toFixed(2)}</td></tr>` : ''}
+      ${giftCardAppliedCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Gift card ${esc(giftCardApplied.last4)}</td><td style="padding:10px 0;font-weight:600;color:#0369a1">-${formatGiftCardCents(giftCardAppliedCents)} (after tax)${giftCardApplied.priority ? ' &middot; Priority' : ''}</td></tr>` : ''}
       ${serviceCallFeeCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Service Call</td><td style="padding:10px 0;font-weight:600">$${(serviceCallFeeCents/100).toFixed(2)}</td></tr>` : ''}
       <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Tax</td><td style="padding:10px 0;font-weight:600">$${(taxCents/100).toFixed(2)}</td></tr>
       <tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">Est. Total</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:700;color:#065f46">$${(amount/100).toFixed(2)}</td></tr>` : ''}
@@ -998,6 +1072,8 @@ export default async function handler(req, res) {
         serviceCallFeeCents,
         taxableSubtotalCents,
         taxCents,
+        giftCardAppliedCents,
+        giftCardLast4: giftCardApplied?.last4 || null,
         totalCents: amount,
         minimumPretaxCents: minBookingCents,
       },
@@ -1059,14 +1135,25 @@ function buildBookingItemRows({ bookingId, itemsByService }) {
 //   { conflict: true, booking } — the card already authorized; do not charge again
 async function reuseUnpaidBooking(sb, {
   email, date, time, service, address, amount, hasPromo, hasAssembleCash,
-  paymentMethodType, name, phone, city, zip,
+  paymentMethodType, name, phone, city, zip, giftCardCode = '',
 }) {
   if (!cartAllowsBookingReuse({ hasPromo, hasAssembleCash })) return null;
   if (!process.env.STRIPE_SECRET_KEY) return null;
 
+  // A retry with the same gift card lands on the same booking, so the credit it
+  // already holds is not held twice (the first booking keeps it for days).
+  let giftCardId = null;
+  if (String(giftCardCode || '').trim()) {
+    const giftHash = hashGiftCardCode(giftCardCode);
+    if (!giftHash) return null;
+    const { data: card, error: cardError } = await sb.from('gift_cards').select('id').eq('code_hash', giftHash).maybeSingle();
+    if (cardError || !card) return null;
+    giftCardId = card.id;
+  }
+
   const since = new Date(Date.now() - UNPAID_BOOKING_REUSE_WINDOW_MS).toISOString();
   const { data: rows, error } = await sb.from('bookings')
-    .select('id, ref, total_price, stripe_payment_intent_id, stripe_customer_id, created_at, promo_code, assemblecash_redeemed_cents')
+    .select('id, ref, total_price, stripe_payment_intent_id, stripe_customer_id, created_at, promo_code, assemblecash_redeemed_cents, gift_card_applied_cents, gift_card_id')
     .eq('customer_email', email)
     .eq('date', date)
     .eq('time', time)
@@ -1082,12 +1169,14 @@ async function reuseUnpaidBooking(sb, {
   if (error || !rows?.length) return null;
 
   const booking = rows[0];
-  if (!isReusableBookingRow(booking, { amountCents: amount })) return null;
+  if (!isReusableBookingRow(booking, { amountCents: amount, giftCardId })) return null;
+  // What the customer's card is held for: the full price less the gift card.
+  const chargeCents = Number(booking.total_price);
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const intent = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
 
-  switch (classifyExistingIntent(intent, { amountCents: amount, paymentMethodType })) {
+  switch (classifyExistingIntent(intent, { amountCents: chargeCents, paymentMethodType })) {
     case 'already_authorized':
       return { conflict: true, booking };
     case 'reuse':
@@ -1100,7 +1189,7 @@ async function reuseUnpaidBooking(sb, {
         if (canceled.status !== 'canceled') throw new Error('Prior payment attempt could not be canceled safely.');
       }
       const replacement = await stripe.paymentIntents.create(buildBookingPaymentIntentParams({
-        amount,
+        amount: chargeCents,
         customerId: booking.stripe_customer_id,
         paymentMethodType,
         email,

@@ -1,10 +1,14 @@
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
 import { reconcileBookingCredits } from '../_assemblecash.js';
+import { releaseBookingGiftCard } from '../_gift-cards.js';
 
 export const CANCELLATION_REWARDS_RECONCILIATION_REASON = 'AssembleCash cancellation reconciliation did not complete. Do not retry payment, refund, or payout actions until reviewed.';
 
 export async function reconcileCancellationAssembleCash(sb, booking, eventSource, operationKey) {
+  // Gift card credit goes back to the card on every cancellation (migration
+  // 120). A failure alerts the owner and never blocks the cancellation.
+  await releaseBookingGiftCard(sb, booking, `returned: booking cancelled (${eventSource})`);
   const reconciliation = await reconcileBookingCredits(sb, {
     bookingId: booking.id,
     releaseRedemption: true,
