@@ -63,5 +63,7 @@ assert.match(migration, /record_booking_payout/);
 assert.match(ownerHtml, /ocb-external-agreement/);
 assert.match(ownerHtml, /Customer communication stays in Thumbtack/);
 assert.match(ownerHtml, /collection-reference/);
+assert.match(ownerHtml, /thumbtackLiveAssignment = b\.source === 'owner_manual'[\s\S]*?b\.external_platform === 'thumbtack'[\s\S]*?eligibleAssemblers\.filter\(function\(a\) \{\s*if \(thumbtackLiveAssignment\) return a\.is_owner !== true && a\.is_demo_account !== true;/,
+  'verified Thumbtack bookings must offer ready real Easers without opening owner-manual assignment to other booking types');
 
 console.log('PASS: Thumbtack booking consent, assignment, payment, and payout gates');
