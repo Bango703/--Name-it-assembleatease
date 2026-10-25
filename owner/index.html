@@ -1671,6 +1671,7 @@ window.intelQuick = intelQuick;
           <option value="cashapp">Cash App</option>
           <option value="card_on_site">Card on-site</option>
           <option value="invoice">Invoice</option>
+          <option value="thumbtack">Thumbtack (payment pending)</option>
         </select>
         <p class="modal-hint" style="margin:6px 0 0;font-size:0.78rem;color:var(--muted);line-height:1.5">"To be collected" creates the booking now — come back and <strong>mark payment collected</strong> on the booking once the customer pays.</p>
       </div>
@@ -1686,9 +1687,13 @@ window.intelQuick = intelQuick;
       <input type="checkbox" id="ocb-already-completed" style="width:15px;height:15px;accent-color:var(--teal)"/>
       Job already completed - create as completed and send the completion email instead of the booking confirmation
     </label>
-    <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer;margin-top:0.65rem;line-height:1.5">
+    <label id="ocb-customer-terms-row" style="display:flex;align-items:flex-start;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer;margin-top:0.65rem;line-height:1.5">
       <input type="checkbox" id="ocb-customer-terms" style="width:15px;height:15px;accent-color:var(--teal);margin-top:3px;flex:0 0 auto"/>
       <span>I confirmed the customer agreed to the current <a href="/terms" target="_blank" rel="noopener">Terms</a>, including the displayed total and cancellation policy, and received the current <a href="/privacy" target="_blank" rel="noopener">Privacy Notice</a>. This records my owner attestation.</span>
+    </label>
+    <label id="ocb-external-agreement-row" style="display:none;align-items:flex-start;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer;margin-top:0.65rem;line-height:1.5">
+      <input type="checkbox" id="ocb-external-agreement" style="width:15px;height:15px;accent-color:var(--teal);margin-top:3px;flex:0 0 auto"/>
+      <span>I verified in Thumbtack that the customer agreed to the service, total including tax, and scheduled time. Customer communications stay in Thumbtack.</span>
     </label>
     <div class="modal-error" id="ocb-error" style="display:none;margin-top:0.75rem"></div>
     <div class="modal-actions" style="margin-top:1.2rem">
@@ -1833,7 +1838,11 @@ window.intelQuick = intelQuick;
         <option value="zelle">Zelle</option>
         <option value="cashapp">Cash App</option>
         <option value="invoice">Invoice</option>
+        <option value="thumbtack">Thumbtack deposit</option>
       </select>
+      <label id="collection-reference-row" class="modal-label" style="display:none;margin-top:0.5rem">Thumbtack payout / bank reference
+        <input id="collection-reference" class="modal-input" maxlength="120" placeholder="Transfer or deposit reference"/>
+      </label>
       <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;font-size:0.82rem;color:var(--soft);line-height:1.45;margin-top:0.75rem">
         <input type="checkbox" id="collection-confirm-cb" style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
         <span id="collection-confirm-copy">I confirm this exact amount reached the business outside the online checkout.</span>
@@ -2015,6 +2024,8 @@ window.intelQuick = intelQuick;
   const $payoutReference = document.getElementById('payout-reference');
   const $collectionMethodRow = document.getElementById('collection-method-row');
   const $collectionMethod = document.getElementById('collection-method');
+  const $collectionReference = document.getElementById('collection-reference');
+  const $collectionReferenceRow = document.getElementById('collection-reference-row');
   const $collectionConfirm = document.getElementById('collection-confirm-cb');
   const $collectionAmount = document.getElementById('collection-amount');
   const $collectionConfirmCopy = document.getElementById('collection-confirm-copy');
@@ -2065,6 +2076,8 @@ window.intelQuick = intelQuick;
     if ($collectionMethodRow) $collectionMethodRow.style.display = show ? '' : 'none';
     if (!show) {
       if ($collectionMethod) $collectionMethod.value = '';
+      if ($collectionReference) $collectionReference.value = '';
+      if ($collectionReferenceRow) $collectionReferenceRow.style.display = 'none';
       if ($collectionConfirm) $collectionConfirm.checked = false;
       if ($collectionAmount) $collectionAmount.textContent = '$0.00';
       return;
@@ -2076,12 +2089,19 @@ window.intelQuick = intelQuick;
     }
     if ($collectionMethod) {
       var existingMethod = String((booking && booking.payment_method) || '');
-      $collectionMethod.value = ['cash','zelle','cashapp','invoice'].includes(existingMethod)
+      $collectionMethod.value = ['cash','zelle','cashapp','invoice','thumbtack'].includes(existingMethod)
         ? existingMethod
         : '';
+      if ($collectionReferenceRow) $collectionReferenceRow.style.display = $collectionMethod.value === 'thumbtack' ? '' : 'none';
+      if ($collectionReference) $collectionReference.value = '';
     }
     if ($collectionConfirm) $collectionConfirm.checked = false;
   }
+
+  if ($collectionMethod) $collectionMethod.addEventListener('change', function() {
+    if ($collectionReferenceRow) $collectionReferenceRow.style.display = this.value === 'thumbtack' ? '' : 'none';
+    if (this.value !== 'thumbtack' && $collectionReference) $collectionReference.value = '';
+  });
 
   var manualPaymentMatchRequest = 0;
   var manualPaymentCandidates = [];
@@ -3639,12 +3659,14 @@ window.intelQuick = intelQuick;
       secure_tracking_confirmation: 'Customer secure confirmation',
       owner_attested_customer_agreement: 'Owner attestation of customer agreement',
     };
-    var customerAgreement = b.customer_terms_accepted_at
-      ? '<span style="color:#065f46;font-weight:600">Recorded</span> &bull; '
-        + esc(consentMethodLabels[b.customer_terms_acceptance_method] || String(b.customer_terms_acceptance_method || 'Recorded acceptance'))
-        + ' &bull; ' + esc(formatDateTime(b.customer_terms_accepted_at))
-        + (b.customer_terms_version ? '<br><span style="font-size:0.72rem;color:var(--muted)">Terms ' + esc(b.customer_terms_version) + (b.customer_privacy_notice_version ? ' &bull; Privacy ' + esc(b.customer_privacy_notice_version) : '') + '</span>' : '')
-      : '<span style="color:var(--amber)">No versioned acceptance record for this historical booking</span>';
+    var customerAgreement = b.external_platform === 'thumbtack' && b.external_agreement_verified_at
+      ? '<span style="color:#065f46;font-weight:600">Verified in Thumbtack</span> &bull; ' + esc(formatDateTime(b.external_agreement_verified_at)) + '<br><span style="font-size:0.72rem;color:var(--muted)">External booking agreement; AAE Terms were not attested</span>'
+      : (b.customer_terms_accepted_at
+        ? '<span style="color:#065f46;font-weight:600">Recorded</span> &bull; '
+          + esc(consentMethodLabels[b.customer_terms_acceptance_method] || String(b.customer_terms_acceptance_method || 'Recorded acceptance'))
+          + ' &bull; ' + esc(formatDateTime(b.customer_terms_accepted_at))
+          + (b.customer_terms_version ? '<br><span style="font-size:0.72rem;color:var(--muted)">Terms ' + esc(b.customer_terms_version) + (b.customer_privacy_notice_version ? ' &bull; Privacy ' + esc(b.customer_privacy_notice_version) : '') + '</span>' : '')
+        : '<span style="color:var(--amber)">No versioned acceptance record for this historical booking</span>');
     var quoteStage = quoteLane(b);
     $detailGrid.innerHTML = quoteStage ? renderQuoteDetailGrid(b, quoteStage, customerAgreement) : [
       field('Customer', esc(b.customer_name || '—')),
@@ -3733,6 +3755,7 @@ window.intelQuick = intelQuick;
       field('Status', bookingBadge(b) + (b.payment_status ? ' ' + paymentBadge(isQuoteAwaitingCard(b) ? 'quote_no_card' : b.payment_status) : '')),
       field('Payment', paymentStatusLabel(b)),
       field('Payment Method', paymentMethodLabel(b)),
+      field('Lead Source', b.external_platform === 'thumbtack' ? 'Thumbtack' : (b.source === 'owner_manual' ? 'Owner-recorded' : 'Website booking')),
       field('Easer Payout', b.payout_status === 'transferred'
         ? 'Transferred to Stripe balance; bank payout not yet verified'
         : b.payout_status === 'paid'
@@ -4567,6 +4590,27 @@ window.intelQuick = intelQuick;
     preview.textContent = 'Tax-inclusive split: ' + fmt$(finalCents) + ' = ' + fmt$(subtotal) + ' subtotal + ' + fmt$(tax) + ' tax.';
   }
 
+  function updateOwnerCreateAgreementMode() {
+    var isThumbtack = document.getElementById('ocb-payment-method').value === 'thumbtack';
+    var termsRow = document.getElementById('ocb-customer-terms-row');
+    var externalRow = document.getElementById('ocb-external-agreement-row');
+    var externalCheckbox = document.getElementById('ocb-external-agreement');
+    var confirmation = document.getElementById('ocb-send-confirmation');
+    var confirmationCopy = document.getElementById('ocb-send-confirmation-copy');
+    var completedRow = document.getElementById('ocb-completed-row');
+    if (termsRow) termsRow.style.display = isThumbtack ? 'none' : 'flex';
+    if (externalRow) externalRow.style.display = isThumbtack ? 'flex' : 'none';
+    if (!isThumbtack && externalCheckbox) externalCheckbox.checked = false;
+    if (confirmation) {
+      if (isThumbtack) confirmation.checked = false;
+      confirmation.disabled = isThumbtack || !!document.getElementById('ocb-already-completed').checked;
+    }
+    if (confirmationCopy) confirmationCopy.textContent = isThumbtack
+      ? 'Customer communication stays in Thumbtack'
+      : 'Email confirmation to customer if email is provided';
+    if (completedRow) completedRow.style.display = isThumbtack ? 'none' : 'flex';
+  }
+
   function closeOwnerCreateBookingModal() {
     var modal = document.getElementById('owner-create-booking-modal');
     if (modal) modal.classList.remove('open');
@@ -4600,8 +4644,11 @@ window.intelQuick = intelQuick;
     if (alreadyCompleted) alreadyCompleted.checked = false;
     var customerTerms = document.getElementById('ocb-customer-terms');
     if (customerTerms) customerTerms.checked = false;
+    var externalAgreement = document.getElementById('ocb-external-agreement');
+    if (externalAgreement) externalAgreement.checked = false;
     var paymentMethodLabel = document.getElementById('ocb-payment-method-label');
     if (paymentMethodLabel) paymentMethodLabel.textContent = 'Payment Method';
+    updateOwnerCreateAgreementMode();
     var errEl = document.getElementById('ocb-error');
     if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
 
@@ -4672,6 +4719,7 @@ window.intelQuick = intelQuick;
     if (e.target === this) closeOwnerCreateBookingModal();
   });
   document.getElementById('ocb-final').addEventListener('input', updateOwnerCreateTaxPreview);
+  document.getElementById('ocb-payment-method').addEventListener('change', updateOwnerCreateAgreementMode);
   document.getElementById('ocb-already-completed').addEventListener('change', function() {
     var sendConfirmation = document.getElementById('ocb-send-confirmation');
     var paymentMethodLabel = document.getElementById('ocb-payment-method-label');
@@ -4719,15 +4767,24 @@ window.intelQuick = intelQuick;
         return;
       }
     }
+    var ownerBookingPaymentMethod = (document.getElementById('ocb-payment-method').value || '') || null;
+    var thumbtackBooking = ownerBookingPaymentMethod === 'thumbtack';
     var customerTermsAcceptedByOwner = !!document.getElementById('ocb-customer-terms').checked;
-    if (!customerTermsAcceptedByOwner) {
+    var externalAgreementVerified = !!document.getElementById('ocb-external-agreement').checked;
+    if (thumbtackBooking && !externalAgreementVerified) {
+      if (errEl) {
+        errEl.textContent = 'Confirm you verified the agreed job and total in Thumbtack.';
+        errEl.style.display = '';
+      }
+      return;
+    }
+    if (!thumbtackBooking && !customerTermsAcceptedByOwner) {
       if (errEl) {
         errEl.textContent = 'Confirm the customer agreed to the current total, cancellation policy, Terms, and Privacy Notice.';
         errEl.style.display = '';
       }
       return;
     }
-    var ownerBookingPaymentMethod = (document.getElementById('ocb-payment-method').value || '') || null;
     if (alreadyCompleted && !ownerBookingPaymentMethod) {
       if (errEl) {
         errEl.textContent = 'Select how the customer paid before creating an already-completed booking.';
@@ -4735,17 +4792,19 @@ window.intelQuick = intelQuick;
       }
       return;
     }
-    var legalConfig;
-    try {
-      var legalResponse = await fetch('/api/legal-config', { headers: { 'Accept': 'application/json' } });
-      legalConfig = await legalResponse.json();
-      if (!legalResponse.ok || !legalConfig.customerTermsVersion || !legalConfig.privacyNoticeVersion) throw new Error();
-    } catch (_) {
-      if (errEl) {
-        errEl.textContent = 'Current legal versions could not be verified. Refresh before creating the booking.';
-        errEl.style.display = '';
+    var legalConfig = {};
+    if (!thumbtackBooking) {
+      try {
+        var legalResponse = await fetch('/api/legal-config', { headers: { 'Accept': 'application/json' } });
+        legalConfig = await legalResponse.json();
+        if (!legalResponse.ok || !legalConfig.customerTermsVersion || !legalConfig.privacyNoticeVersion) throw new Error();
+      } catch (_) {
+        if (errEl) {
+          errEl.textContent = 'Current legal versions could not be verified. Refresh before creating the booking.';
+          errEl.style.display = '';
+        }
+        return;
       }
-      return;
     }
     var payload = {
       service: service,
@@ -4762,11 +4821,13 @@ window.intelQuick = intelQuick;
       priceOverrideReason: (document.getElementById('ocb-reason').value || '') || null,
       paymentMethod: ownerBookingPaymentMethod,
       note: (document.getElementById('ocb-note').value || '').trim() || null,
-      sendConfirmation: !!(document.getElementById('ocb-send-confirmation').checked),
+      sendConfirmation: !thumbtackBooking && !!(document.getElementById('ocb-send-confirmation').checked),
+      externalPlatform: thumbtackBooking ? 'thumbtack' : null,
+      externalAgreementVerified: thumbtackBooking && externalAgreementVerified,
       alreadyCompleted: alreadyCompleted,
       customerTermsAcceptedByOwner: customerTermsAcceptedByOwner,
-      termsVersion: legalConfig.customerTermsVersion,
-      privacyNoticeVersion: legalConfig.privacyNoticeVersion,
+      termsVersion: thumbtackBooking ? null : legalConfig.customerTermsVersion,
+      privacyNoticeVersion: thumbtackBooking ? null : legalConfig.privacyNoticeVersion,
       rebookedFromBookingId: rebookedFromBookingId,
     };
 
@@ -6389,6 +6450,10 @@ window.intelQuick = intelQuick;
         toast('Select how the customer paid', 'error');
         return;
       }
+      if (collectionMethod === 'thumbtack' && (!$collectionReference || ($collectionReference.value || '').trim().length < 3)) {
+        toast('Enter the Thumbtack payout or bank deposit reference', 'error');
+        return;
+      }
       if (!$collectionConfirm || !$collectionConfirm.checked) {
         toast('Confirm that the exact customer payment reached the business', 'error');
         return;
@@ -6406,6 +6471,7 @@ window.intelQuick = intelQuick;
             bookingId: collectBookingId,
             paymentMethod: collectionMethod,
             confirmedAmountCents: confirmedAmountCents,
+            externalPaymentReference: ($collectionReference && $collectionReference.value || '').trim() || null,
           }),
         });
         var collectData = await collectRes.json().catch(function(){ return {}; });

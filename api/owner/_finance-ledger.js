@@ -18,6 +18,8 @@ export function hasVerifiedOfflineOwnerPayment(booking = {}) {
     && Boolean(booking.payment_collected_at)
     && String(booking.payment_collected_by || '').trim().length > 0
     && Boolean(normalizeOwnerOfflinePaymentMethod(booking.payment_method))
+    && (String(booking.payment_method || '') !== 'thumbtack'
+      || (booking.external_platform === 'thumbtack' && Boolean(String(booking.external_payment_reference || '').trim())))
     && Number(booking.amount_charged ?? booking.total_price ?? 0) > 0;
 }
 
@@ -130,7 +132,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
 
   let bookingsQuery = sb
     .from('bookings')
-    .select('id, ref, is_test_booking, source, payment_method, payment_collected, payment_collected_at, payment_collected_by, status, created_at, completed_at, cancelled_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, easer_bonus_cents, easer_reimbursement_cents, payout_status, payout_amount, paid_out_at, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes, evidence_requested_at, job_started_at, return_visit_required, return_visit_date, return_visit_time, return_visit_remaining_scope, financial_operation_key, financial_reconciliation_required_at, stripe_transfer_id, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_hold, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status')
+    .select('id, ref, is_test_booking, source, payment_method, external_platform, external_payment_reference, payment_collected, payment_collected_at, payment_collected_by, status, created_at, completed_at, cancelled_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, easer_bonus_cents, easer_reimbursement_cents, payout_status, payout_amount, paid_out_at, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes, evidence_requested_at, job_started_at, return_visit_required, return_visit_date, return_visit_time, return_visit_remaining_scope, financial_operation_key, financial_reconciliation_required_at, stripe_transfer_id, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_hold, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status')
     .in('status', ['completed', 'cancelled']);
 
   if (assemblerId) bookingsQuery = bookingsQuery.eq('assembler_id', assemblerId);

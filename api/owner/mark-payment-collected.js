@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { bookingId, ref, paymentMethod, confirmedAmountCents } = req.body || {};
+  const { bookingId, ref, paymentMethod, confirmedAmountCents, externalPaymentReference } = req.body || {};
   if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref is required' });
 
   const normalizedMethod = normalizeOwnerOfflinePaymentMethod(paymentMethod);
@@ -28,9 +28,16 @@ export default async function handler(req, res) {
       code: 'STRIPE_PAYMENT_INTENT_VERIFICATION_REQUIRED',
     });
   }
+  const cleanExternalReference = String(externalPaymentReference || '').trim().slice(0, 120);
+  if (normalizedMethod === 'thumbtack' && cleanExternalReference.length < 3) {
+    return res.status(400).json({
+      error: 'Enter the Thumbtack payout or bank deposit reference after the money reaches the business.',
+      code: 'THUMBTACK_PAYMENT_REFERENCE_REQUIRED',
+    });
+  }
 
   const sb = getSupabase();
-  let query = sb.from('bookings').select('id, ref, source, status, payment_status, payment_method, payment_collected, payment_collected_at, payment_collected_by, amount_charged, total_price, financial_operation_key, financial_operation_type, financial_operation_started_at');
+  let query = sb.from('bookings').select('id, ref, source, status, payment_status, payment_method, external_platform, external_payment_reference, payment_collected, payment_collected_at, payment_collected_by, amount_charged, total_price, financial_operation_key, financial_operation_type, financial_operation_started_at');
   query = bookingId ? query.eq('id', bookingId) : query.eq('ref', ref);
   const { data: booking, error: fetchErr } = await query.single();
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
@@ -46,6 +53,9 @@ export default async function handler(req, res) {
       error: 'This booking is not in the offline payment workflow.',
       code: 'OFFLINE_PAYMENT_STATE_REQUIRED',
     });
+  }
+  if (normalizedMethod === 'thumbtack' && booking.external_platform !== 'thumbtack') {
+    return res.status(409).json({ error: 'This is not recorded as a Thumbtack booking.', code: 'THUMBTACK_BOOKING_REQUIRED' });
   }
   if (!['confirmed', 'en_route', 'arrived', 'in_progress', 'completed'].includes(booking.status)) {
     return res.status(409).json({
@@ -100,6 +110,7 @@ export default async function handler(req, res) {
     payment_collected_at: booking.payment_collected_at || now,
     payment_collected_by: booking.payment_collected_by || 'owner',
     payment_method: normalizedMethod,
+    ...(normalizedMethod === 'thumbtack' ? { external_payment_reference: cleanExternalReference } : {}),
     // This is the final server-side payment-method truth. Recompute the fee here
     // so a booking created as "to be collected" cannot retain a false $0 fee
     // when the customer ultimately pays by card.
@@ -147,6 +158,7 @@ export default async function handler(req, res) {
     metadata: {
       source: 'owner_manual',
       paymentMethod: normalizedMethod,
+      ...(normalizedMethod === 'thumbtack' ? { externalPaymentReference: cleanExternalReference } : {}),
       amountCents: canonicalAmountCents,
       repairedMissingMethod: booking.payment_collected === true && !existingMethod,
     },

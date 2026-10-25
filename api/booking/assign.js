@@ -14,7 +14,7 @@ import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
 import { verifyOwnerManualCustomerFundsForPayout } from '../owner/_manual-payment-truth.js';
-import { isOwnerManualLiveFlow, isDemoTestLiveFlow } from '../_owner-easer.js';
+import { isOwnerManualLiveFlow, isThumbtackLiveFlow, isDemoTestLiveFlow } from '../_owner-easer.js';
 import { demoBookingBlock, isDemoEaser } from '../_demo-accounts.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
   // Verify assembler exists and is eligible
   const { data: assembler, error: aErr } = await sb
     .from('profiles')
-    .select('id, role, full_name, email, phone, sms_consent_at, sms_opted_out_at, status, application_status, tier, has_membership, identity_verified, is_owner, is_available, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled, profile_photo_requested_at')
+    .select('id, role, full_name, email, phone, sms_consent_at, sms_opted_out_at, status, application_status, tier, has_membership, identity_verified, is_owner, is_demo_account, is_available, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled, profile_photo_requested_at')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .maybeSingle();
@@ -152,6 +152,7 @@ export default async function handler(req, res) {
   if (!assembler) return res.status(404).json({ error: 'Easer not found' });
 
   const ownerEaserManual = isOwnerManualLiveFlow(booking, assembler);
+  const thumbtackManual = isThumbtackLiveFlow(booking, assembler);
   if (recordOnlyOwnerManualCompleted && !ownerEaserManual) {
     return res.status(409).json({
       error: 'Only the configured owner-Easer account may be linked to an owner-created offline booking.',
@@ -165,7 +166,7 @@ export default async function handler(req, res) {
   // still requires verified payment before assignment.
   // The owner-Easer, or a demo (App Review) Easer on an offline TEST booking.
   const ownerEaserLiveManual = ownerManualConfirmed
-    && (ownerEaserManual || await isDemoTestLiveFlow(sb, booking, assemblerId));
+    && (ownerEaserManual || thumbtackManual || await isDemoTestLiveFlow(sb, booking, assemblerId));
   if (!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual) {
     // Say WHICH payment and WHY. The old message named neither, and an owner
     // assigning a payout-ready pro read it as the PRO's payment setup.

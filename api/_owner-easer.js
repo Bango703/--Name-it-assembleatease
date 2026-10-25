@@ -36,6 +36,19 @@ export function isOwnerManualLiveFlow(booking, profile) {
   return isOwnerManualOfflineBooking(booking) && isOwnerEaserProfile(profile);
 }
 
+// Thumbtack-originated bookings are paid through Thumbtack, outside AAE Stripe.
+// A real, ready Easer may accept and work the job, but the payout ledger remains
+// held until the owner records that the exact funds reached the business.
+export function isThumbtackLiveFlow(booking, profile) {
+  return isOwnerManualOfflineBooking(booking)
+    && String(booking?.payment_method || '') === 'thumbtack'
+    && String(booking?.external_platform || '') === 'thumbtack'
+    && !!booking?.external_agreement_verified_at
+    && profile?.role === 'assembler'
+    && profile?.is_owner === false
+    && profile?.is_demo_account !== true;
+}
+
 // The second, equally narrow exception: a DEMO Easer account (App Store review,
 // profiles.is_demo_account) working an offline booking the owner marked as a
 // TEST booking. It lets a reviewer run the whole job flow without any customer,
@@ -55,6 +68,6 @@ export async function isDemoTestLiveFlow(sb, booking, easerId) {
 
 /** Owner-Easer or demo-test live flow: the only cases that skip the card gates. */
 export async function isOfflineLiveFlow(sb, booking, profile) {
-  if (isOwnerManualLiveFlow(booking, profile)) return true;
+  if (isOwnerManualLiveFlow(booking, profile) || isThumbtackLiveFlow(booking, profile)) return true;
   return isDemoTestLiveFlow(sb, booking, profile?.id);
 }
