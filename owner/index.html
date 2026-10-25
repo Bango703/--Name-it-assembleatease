@@ -3845,7 +3845,12 @@ window.intelQuick = intelQuick;
       && booking.source === 'owner_manual'
       && booking.payment_status === 'offline_recorded';
     if (booking && booking.status === 'confirmed' && !booking.assembler_id && ownerManualOffline) {
-      ctrls = '<div style="font-size:0.78rem;color:#9a3412;line-height:1.5"><strong>Owner-created offline booking.</strong> Automatic marketplace dispatch is intentionally disabled. Use the Assignment section on the booking record to assign the configured owner-Easer, or complete the job through the documented owner path.</div>';
+      var verifiedThumbtackBooking = booking.payment_method === 'thumbtack'
+        && booking.external_platform === 'thumbtack'
+        && !!booking.external_agreement_verified_at;
+      ctrls = verifiedThumbtackBooking
+        ? '<div style="font-size:0.78rem;color:#9a3412;line-height:1.5"><strong>Thumbtack booking.</strong> Automatic marketplace dispatch is disabled. Assign a ready Easer from the Assignment section; record the Thumbtack deposit before paying the Easer.</div>'
+        : '<div style="font-size:0.78rem;color:#9a3412;line-height:1.5"><strong>Owner-created offline booking.</strong> Automatic marketplace dispatch is intentionally disabled. Use the Assignment section on the booking record to assign the configured owner-Easer, or complete the job through the documented owner path.</div>';
     } else if (booking && booking.status === 'confirmed' && !booking.assembler_id) {
       ctrls += '<button class="btn btn-teal" onclick="dispatchWithConfirm(\'' + bookingId + '\')" style="font-size:0.78rem">Dispatch Now</button>';
       ctrls += '<button class="btn" onclick="dispatchControl(\'' + bookingId + '\',\'dry_run\')" style="font-size:0.78rem">Preview Scoring</button>';
@@ -7759,7 +7764,15 @@ window.intelQuick = intelQuick;
     var select   = document.getElementById('assign-select');
     var assignButton = document.getElementById('assign-btn');
     var allowOwnerManualCompleted = b.source === 'owner_manual' && b.status === 'completed';
-    var allowOwnerManualLive = b.source === 'owner_manual' && b.status === 'confirmed';
+    var thumbtackLiveAssignment = b.source === 'owner_manual'
+      && b.status === 'confirmed'
+      && b.payment_status === 'offline_recorded'
+      && b.payment_method === 'thumbtack'
+      && b.external_platform === 'thumbtack'
+      && !!b.external_agreement_verified_at;
+    var allowOwnerManualLive = b.source === 'owner_manual'
+      && b.status === 'confirmed'
+      && !thumbtackLiveAssignment;
     var ownerEaserOnly = allowOwnerManualLive || allowOwnerManualCompleted;
     var completedAttributionReady = allowOwnerManualCompleted
       && b.return_visit_required !== true
@@ -7824,6 +7837,7 @@ window.intelQuick = intelQuick;
       var assignmentChoices = allowOwnerManualCompleted
         ? (ownerEaserProfile ? [ownerEaserProfile] : [])
         : (allowOwnerManualLive ? readyOwnerChoices : eligibleAssemblers.filter(function(a) {
+            if (thumbtackLiveAssignment) return a.is_owner !== true && a.is_demo_account !== true;
             return a.is_demo_account !== true || b.is_test_booking === true;
           }));
       var ownerMissingItems = ownerEaserProfile && Array.isArray(ownerEaserProfile.missing_items)
