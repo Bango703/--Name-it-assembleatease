@@ -29,6 +29,15 @@ export default async function handler(req, res) {
   const { bookingId, date, time, address, service, notifyCustomer, totalPrice, quoteNote } = req.body;
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
 
+  let detailsProvided = Object.prototype.hasOwnProperty.call(req.body || {}, 'details');
+  let nextDetails = null;
+  if (detailsProvided) {
+    if (req.body.details !== null && typeof req.body.details !== 'string') {
+      return res.status(400).json({ error: 'Job details must be text.' });
+    }
+    nextDetails = String(req.body.details || '').trim().replace(/\s+/g, ' ').slice(0, 2000) || null;
+  }
+
   const sb = getSupabase();
   const { data: booking, error: fetchErr } = await sb
     .from('bookings').select('*').eq('id', bookingId).single();
@@ -95,6 +104,8 @@ export default async function handler(req, res) {
   if (time)    updates.time    = time;
   if (address) updates.address = address;
   if (service) updates.service = service;
+  const detailsChanged = detailsProvided && nextDetails !== (booking.details || null);
+  if (detailsChanged) updates.details = nextDetails;
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to update' });
 
@@ -165,6 +176,7 @@ export default async function handler(req, res) {
     ['time', booking.time],
     ['address', booking.address],
     ['service', booking.service],
+    ['details', booking.details],
     ['payment_status', booking.payment_status],
     ['stripe_payment_intent_id', booking.stripe_payment_intent_id],
     ['stripe_deposit_intent_id', booking.stripe_deposit_intent_id],
@@ -202,9 +214,10 @@ export default async function handler(req, res) {
     eventType: 'owner_booking_updated',
     actorType: 'owner',
     actorName: 'owner',
-    description: `Owner updated booking ${booking.ref}${scheduleChanged ? ' and reset schedule dispatch state' : ''}`,
+    description: `Owner updated booking ${booking.ref}${detailsChanged ? ' job details' : ''}${scheduleChanged ? ' and reset schedule dispatch state' : ''}`,
     metadata: {
       updates: Object.keys(updates),
+      detailsChanged,
       easerReconfirmationRequired,
       dispatchOfferCleanupFailed,
     },
@@ -304,8 +317,31 @@ export default async function handler(req, res) {
         html: `<p>Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')},</p>
           <p>Booking <strong>${esc(booking.ref)}</strong> is now scheduled for <strong>${esc(formatAppointmentDate(updates.date || booking.date))}</strong> at <strong>${esc(updates.time || booking.time)}</strong>.</p>
           <p>Review the updated schedule and accept it before starting travel.</p>
+          ${detailsChanged && nextDetails ? `<p><strong>Updated job details:</strong> ${esc(nextDetails)}</p>` : ''}
           <p><a href="${esc(acceptUrl)}">Review and accept the updated job</a></p>`,
         meta: { bookingId: booking.id, notificationType: 'owner_edit_easer_reconfirmation', recipientType: 'easer', recipientUserId: booking.assembler_id, disableDedupe: true },
+      }).catch(error => ({ ok: false, error: error?.message || String(error) }));
+      if (!easerResult?.ok) notificationFailures.push({ recipient: 'easer', error: easerResult?.error || 'Delivery failed' });
+    }
+  }
+
+  if (!recordOnlyOwnerManual && detailsChanged && booking.assembler_id && !easerReconfirmationRequired) {
+    const { data: easer, error: easerLookupError } = await sb.from('profiles')
+      .select('email, full_name')
+      .eq('id', booking.assembler_id)
+      .maybeSingle();
+    if (easerLookupError || !easer?.email) {
+      notificationFailures.push({ recipient: 'easer', error: easerLookupError?.message || 'Assigned Easer email is missing' });
+    } else {
+      const easerResult = await sendEmail({
+        to: easer.email,
+        subject: `Updated job details — ${booking.ref}`,
+        replyTo: ownerEmail(),
+        html: `<p>Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')},</p>
+          <p>The job details for your assigned booking <strong>${esc(booking.ref)}</strong> have been updated. Your assignment, appointment time, and agreed price are unchanged.</p>
+          ${nextDetails ? `<p><strong>Current job details:</strong> ${esc(nextDetails)}</p>` : '<p>The job details have been cleared.</p>'}
+          <p>Review the current details in your Easer dashboard before starting the job.</p>`,
+        meta: { bookingId: booking.id, notificationType: 'owner_edit_easer_details', recipientType: 'easer', recipientUserId: booking.assembler_id, disableDedupe: true },
       }).catch(error => ({ ok: false, error: error?.message || String(error) }));
       if (!easerResult?.ok) notificationFailures.push({ recipient: 'easer', error: easerResult?.error || 'Delivery failed' });
     }
@@ -328,6 +364,7 @@ export default async function handler(req, res) {
   console.log(JSON.stringify({ audit: true, action: 'edit_booking', actor: 'owner', bookingId, updates, timestamp: new Date().toISOString() }));
   return res.status(200).json({
     ok: true,
+    detailsChanged,
     easerReconfirmationRequired,
     dispatchOfferCleanupFailed,
     notificationFailures,
