@@ -57,7 +57,9 @@ for (const f of files) {
 }
 assert.ok(triggerMigrations.length, 'the assignment trigger must be defined in a migration');
 const latest = triggerMigrations.at(-1);
-const raised = [...latest.sql.matchAll(/RAISE EXCEPTION '([^']+)'/g)].map(m => m[1])
+const triggerBody = latest.sql.match(/CREATE OR REPLACE FUNCTION public\.guard_booking_easer_closure_assignment\(\)[\s\S]*?AS \$\$([\s\S]*?)\$\$;/)?.[1];
+assert.ok(triggerBody, `${latest.f} must contain the complete assignment trigger function`);
+const raised = [...triggerBody.matchAll(/RAISE EXCEPTION '([^']+)'/g)].map(m => m[1])
   .filter(m => !m.startsWith('Apply migration'));
 assert.ok(raised.length >= 10, `expected the full guard set in ${latest.f}, found ${raised.length}`);
 for (const message of raised) {

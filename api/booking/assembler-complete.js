@@ -19,7 +19,7 @@ import { finalizeCompletionRewards, surfaceCompletionRewardHold } from './_compl
 import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { captureOrRecoverBookingPayment } from './_stripe-booking-payment.js';
 import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
-import { isOwnerManualLiveFlow, isDemoTestLiveFlow } from '../_owner-easer.js';
+import { isOwnerManualLiveFlow, isThumbtackLiveFlow, isDemoTestLiveFlow } from '../_owner-easer.js';
 import { notifyCustomerApp } from '../_customer-push.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
   // owner-Easer, with no payout obligation (see completeOfflineOwnerManualBooking).
   const demoTestJob = !isOwnerManualLiveFlow(booking, profile)
     && await isDemoTestLiveFlow(sb, booking, user.id);
-  const offlineOwnerEaserLiveFlow = isOwnerManualLiveFlow(booking, profile) || demoTestJob;
+  const offlineOwnerEaserLiveFlow = isOwnerManualLiveFlow(booking, profile) || isThumbtackLiveFlow(booking, profile) || demoTestJob;
   if (booking.status === BOOKING_STATUS.COMPLETED) {
     if (offlineOwnerEaserLiveFlow) {
       return res.status(200).json({
@@ -741,7 +741,7 @@ async function completeOfflineOwnerManualBooking(sb, res, {
   // Customer completion email — identical branding to a dispatched job so the
   // customer never sees this was owner-performed. Photo + review ask included.
   try {
-    if (booking.customer_email) {
+    if (booking.customer_email && booking.external_platform !== 'thumbtack') {
       let photoBlock = '';
       try {
         const path = completionEvidence?.storage_path;
@@ -777,7 +777,9 @@ async function completeOfflineOwnerManualBooking(sb, res, {
     }
   } catch (e) { console.error('Offline completion customer email error:', e); }
   // The customer app, when installed: a notification, and the tracker ends.
-  await notifyCustomerApp(sb, booking.id, 'completed');
+  if (booking.external_platform !== 'thumbtack') {
+    await notifyCustomerApp(sb, booking.id, 'completed');
+  }
 
   // Owner earnings summary (owner = the performing Easer here). Completion and
   // collection remain separate truths; never claim funds were collected unless

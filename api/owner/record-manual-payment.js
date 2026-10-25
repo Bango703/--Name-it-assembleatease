@@ -146,6 +146,13 @@ export default async function handler(req, res) {
   const adjustmentNote = String(payload.adjustmentNote || '').trim().replace(/\s+/g, ' ').slice(0, 500);
   const paymentNote = String(payload.paymentNote || '').trim().replace(/\s+/g, ' ').slice(0, 500);
 
+  if (paymentMethod === 'thumbtack') {
+    return res.status(400).json({
+      error: 'Record Thumbtack funds only after they reach the business, using Mark Payment Collected.',
+      code: 'THUMBTACK_EXTERNAL_COLLECTION_REQUIRED',
+    });
+  }
+
   if (hasSubmittedAmount
       && (!submittedAmountCents || submittedAmountCents <= 0 || submittedAmountCents > MAX_PAYMENT_CENTS)) {
     return res.status(400).json({ error: 'The submitted payment amount is invalid.' });

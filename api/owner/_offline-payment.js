@@ -5,6 +5,7 @@ export const OWNER_OFFLINE_PAYMENT_METHODS = Object.freeze([
   'cashapp',
   'card_on_site',
   'invoice',
+  'thumbtack',
 ]);
 
 export function normalizeOwnerOfflinePaymentMethod(value) {
@@ -24,6 +25,7 @@ export const OFFLINE_METHOD_FEE_RULES = Object.freeze({
   zelle:         { pct: 0,     fixedCents: 0 },   // bank transfer, free
   cashapp:       { pct: 0,     fixedCents: 0 },   // Cash App personal is free
   invoice:       { pct: 0,     fixedCents: 0 },   // assume ACH / check
+  thumbtack:     { pct: 0,     fixedCents: 0 },   // collected by Thumbtack, not Stripe
   stripe_manual: { pct: 0.029, fixedCents: 30 },  // Stripe keyed card
   card_on_site:  { pct: 0.029, fixedCents: 30 },  // card terminal
 });
