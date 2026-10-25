@@ -28,6 +28,7 @@ export const NOTIFICATION_COPY = Object.freeze({
   easer_job_cancelled: notice('Job cancelled', 'The customer cancelled this job. It is off your schedule.', 'job', 'View job', JOBS),
   reschedule_easer_reconfirmation: notice('Schedule changed', 'The customer moved this job. Review the new time and accept the job.', 'job', 'Review new time', JOBS),
   owner_edit_easer_reconfirmation: notice('Job details changed', 'AssembleAtEase updated this job. Review the changes and confirm you can still do it.', 'job', 'Review changes', JOBS),
+  owner_edit_easer_details: notice('Job details updated', 'Review the latest job instructions in your Easer dashboard before starting.', 'job', 'View job', JOBS),
   easer_time_proposal_accepted: notice('New time accepted', 'The customer accepted the time you proposed. The job is on the new time.', 'job', 'View job', JOBS),
   easer_time_proposal_declined: notice('New time declined', 'The customer kept the original time.', 'job', 'View job', JOBS),
   scheduled_payment_easer_hold: notice('Job on hold', 'Do not travel to this job until it is confirmed.', 'job', 'View job', JOBS),

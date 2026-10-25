@@ -1543,6 +1543,9 @@ window.intelQuick = intelQuick;
     </select>
     <label class="modal-label">Address</label>
     <input type="text" class="modal-input" id="eb-address" placeholder="Full address"/>
+    <label class="modal-label" for="eb-details">Job details and instructions</label>
+    <textarea class="modal-input" id="eb-details" maxlength="2000" rows="4" placeholder="Work details and instructions for the Easer" style="resize:vertical"></textarea>
+    <div style="font-size:0.75rem;color:var(--muted);margin-top:0.3rem">Keep this within the agreed work and price. The assigned Easer is notified when these details change.</div>
     <label id="eb-notify-row" style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);margin-top:0.75rem;cursor:pointer">
       <input type="checkbox" id="eb-notify" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
       Notify customer of changes by email
@@ -5694,6 +5697,7 @@ window.intelQuick = intelQuick;
       fillEditServiceOptions(bEdit.service);
       document.getElementById('eb-service').value = bEdit.service || '';
       document.getElementById('eb-address').value = bEdit.address || '';
+      document.getElementById('eb-details').value = bEdit.details || '';
       document.getElementById('edit-booking-modal').querySelector('h3').textContent = (bEdit.source === 'owner_manual' && bEdit.status === 'completed') ? 'Edit Completed Owner Booking' : 'Edit Booking';
       var editDesc = document.getElementById('edit-booking-modal').querySelector('p');
       if (editDesc) {
@@ -11858,9 +11862,18 @@ window.intelQuick = intelQuick;
     var time    = document.getElementById('eb-time').value;
     var service = document.getElementById('eb-service').value;
     var address = document.getElementById('eb-address').value.trim();
+    var details = document.getElementById('eb-details').value.trim();
     var notify  = document.getElementById('eb-notify').checked;
     var errEl   = document.getElementById('eb-error');
-    if (!date && !time && !service && !address) { errEl.textContent='Nothing changed.'; errEl.style.display=''; return; }
+    var original = allBookings.find(function(item){ return item.id == id; }) || {};
+    var detailsChangedInForm = details !== String(original.details || '').trim();
+    var customerFieldsChangedInForm = Boolean(
+      (date && date !== original.date)
+      || (time && time !== original.time)
+      || (service && service !== original.service)
+      || (address && address !== original.address)
+    );
+    if (!detailsChangedInForm && !customerFieldsChangedInForm) { errEl.textContent='Nothing changed.'; errEl.style.display=''; return; }
     btn.disabled = true; btn.textContent = 'Saving…';
     try {
       var payload = { bookingId: id, notifyCustomer: notify };
@@ -11868,16 +11881,20 @@ window.intelQuick = intelQuick;
       if (time)    payload.time    = time;
       if (service) payload.service = service;
       if (address) payload.address = address;
+      payload.details = details;
       var r = await fetch('/api/owner/edit-booking', { method:'POST', headers:headers(), body:JSON.stringify(payload) });
       var d = await r.json();
       if (d.error) { errEl.textContent = d.error; errEl.style.display = ''; return; }
       document.getElementById('edit-booking-modal').classList.remove('open');
-      var notificationFailed = Array.isArray(d.notificationFailures) && d.notificationFailures.length > 0;
-      var customerWasNotified = notify && !d.recordOnlyOwnerManual && !notificationFailed;
+      var notificationFailures = Array.isArray(d.notificationFailures) ? d.notificationFailures : [];
+      var customerNotificationFailed = notificationFailures.some(function(item){ return item.recipient === 'customer'; });
+      var easerNotificationFailed = notificationFailures.some(function(item){ return item.recipient === 'easer'; });
+      var customerWasNotified = notify && customerFieldsChangedInForm && !d.recordOnlyOwnerManual && !customerNotificationFailed;
       toast('Booking updated'
         + (customerWasNotified ? ' — customer notified' : '')
-        + (notificationFailed ? ' — customer email needs follow-up' : ''),
-        notificationFailed ? 'error' : 'success');
+        + (customerNotificationFailed ? ' — customer email needs follow-up' : '')
+        + (easerNotificationFailed ? ' — Easer notification needs follow-up' : ''),
+        customerNotificationFailed || easerNotificationFailed ? 'error' : 'success');
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
     } catch { errEl.textContent = 'Failed to save. Try again.'; errEl.style.display = ''; }
