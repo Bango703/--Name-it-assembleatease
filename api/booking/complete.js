@@ -14,6 +14,7 @@ import { releaseBookingFinancialOperation, reserveBookingFinancialOperation } fr
 import { finalizeCompletionRewards, surfaceCompletionRewardHold } from './_completion-rewards.js';
 import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { captureOrRecoverBookingPayment } from './_stripe-booking-payment.js';
+import { usesThumbtackStripePayment } from '../_owner-easer.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -31,10 +32,9 @@ export default async function handler(req, res) {
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
 
-  // Owner-created manual (offline) bookings are record-only: the owner fulfilled
-  // the job and takes payment directly. No Stripe capture, no Easer, no payout,
-  // no evidence — just mark the sale complete so it counts in analytics/tax.
-  if (booking.source === 'owner_manual') {
+  // Truly offline owner-created bookings are record-only. Thumbtack bookings
+  // linked to AAE Stripe stay on the regular evidence, capture, and payout path.
+  if (booking.source === 'owner_manual' && !usesThumbtackStripePayment(booking)) {
     return completeOwnerManualBooking(sb, res, booking);
   }
 
@@ -136,7 +136,9 @@ export default async function handler(req, res) {
   }
 
   let feeSnapshot;
-  let completionNotification = { ok: false, error: 'Completion email was not attempted.' };
+  let completionNotification = booking.external_platform === 'thumbtack'
+    ? { ok: false, skipped: true, reason: 'Thumbtack completion is confirmed through its existing customer conversation; Stripe sends the payment receipt.' }
+    : { ok: false, error: 'Completion email was not attempted.' };
   try {
     feeSnapshot = await resolveOrCreateEaserFeeSnapshot(sb, booking, booking.assembler_id);
   } catch (feeError) {
@@ -412,7 +414,7 @@ export default async function handler(req, res) {
     // Job is done — release the Easer's daily slot
     adjustActiveJobs(sb, booking.assembler_id, -1).catch(() => {});
   }
-  try {
+  if (booking.external_platform !== 'thumbtack') try {
     const amountDisplay = finalAmountCharged > 0 ? `$${(finalAmountCharged / 100).toFixed(2)}` : null;
     // The completion gate above still requires a photo. This is the separate
     // question of whether the CUSTOMER may see one — only a photo deliberately
@@ -506,8 +508,9 @@ export default async function handler(req, res) {
     booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
     payout: connectPayout,
     reconciliationRequired: !rewardResult.ok,
-    notificationDelivered: completionNotification?.ok === true,
-    notificationError: completionNotification?.ok ? null : (completionNotification?.error || completionNotification?.reason || 'Delivery failed'),
+    notificationDelivered: completionNotification?.ok === true && !completionNotification?.skipped,
+    notificationSkipped: completionNotification?.skipped === true,
+    notificationError: completionNotification?.ok || completionNotification?.skipped ? null : (completionNotification?.error || completionNotification?.reason || 'Delivery failed'),
     code: rewardResult.ok ? undefined : rewardResult.code,
   });
 }

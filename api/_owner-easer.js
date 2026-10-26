@@ -20,6 +20,16 @@ export function isOwnerManualBooking(booking = {}) {
   return String(booking?.source || '') === OWNER_MANUAL_SOURCE;
 }
 
+// Thumbtack-originated owner-created jobs that have been moved to AAE Stripe
+// must use the ordinary authorization/capture and payout paths. Keep this
+// predicate shared so offline reporting and completion cannot disagree.
+export function usesThumbtackStripePayment(booking = {}) {
+  return isOwnerManualBooking(booking)
+    && String(booking?.external_platform || '') === 'thumbtack'
+    && Boolean(booking?.stripe_payment_intent_id)
+    && String(booking?.payment_method || '') !== 'thumbtack';
+}
+
 export function isOwnerManualOfflineBooking(booking = {}) {
   return isOwnerManualBooking(booking)
     && String(booking?.payment_status || '') === 'offline_recorded';
