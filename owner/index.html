@@ -5123,7 +5123,7 @@ window.intelQuick = intelQuick;
         'manual-refund-recovery': 'Continue the existing refund recovery. The server will recheck Stripe and the ledger before changing money state.',
         'refund-recovery': 'Continue the existing refund recovery. The server will recheck aggregate Stripe truth before changing money state.',
         'stripe-dispute-review': 'Refresh Stripe dispute truth before any refund, dispatch, or Easer payment decision.',
-        'create-thumbtack-payment': 'Create a secure AAE Stripe card-hold link. Nothing is charged now, and no message is sent; copy the link into Thumbtack only after confirming no Thumbtack payment was already initiated.',
+        'create-thumbtack-payment': 'Email the customer a secure AAE card-authorization link. Nothing is charged now. Continue only if Thumbtack payment has not started and its checkout is not required for this booking.',
         'damage-review': 'Review the saved evidence and record the outcome before releasing any Easer payment.',
         'retry-authorization': 'Finish the card hold this booking already has on file. Nothing is captured, and the customer is not asked for anything.',
         'reconcile-payment': 'Verify the linked Stripe authorization before confirming or dispatching this booking.',
@@ -5190,8 +5190,8 @@ window.intelQuick = intelQuick;
         : Math.max(0, Number(b.total_price || 0) - manualCollectedCents));
       notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Owner-created payment workflow:</strong> this booking does not use the website checkout authorization. Customer payments and Easer payout remain separate audited records.</div>');
       if (b.external_platform === 'thumbtack' && b.payment_status === 'offline_recorded' && !b.stripe_payment_intent_id) {
-        notices[notices.length - 1] = '<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Thumbtack booking:</strong> create an AAE Stripe authorization link for the agreed total. The card is held, not charged, until Phil marks the job complete. Easer payout remains separate.</div>';
-        btns.push('<button class="btn btn-teal" data-action="create-thumbtack-payment" data-id="' + b.id + '">Create Stripe Authorization Link</button>');
+        notices[notices.length - 1] = '<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Thumbtack booking:</strong> email the customer a secure AAE authorization link for the agreed total. The card is not charged when authorized; the agreed total is captured after the job is completed. Easer payout remains separate.</div>';
+        btns.push('<button class="btn btn-teal" data-action="create-thumbtack-payment" data-id="' + b.id + '">Email Stripe Authorization Link</button>');
       }
       if (manualGrossPaidCents > 0 && manualBalanceCents > 0) {
         notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Partial payment:</strong> ' + fmt$(manualGrossPaidCents) + ' paid toward the invoice and ' + fmt$(manualBalanceCents) + ' remaining. The booking is not fully paid and payout stays blocked.</div>');
@@ -5925,7 +5925,9 @@ window.intelQuick = intelQuick;
         toast('This is not a verified Thumbtack booking.', 'error');
         return;
       }
-      var checkedForThumbtackPayment = confirm('Before creating a Stripe authorization link, confirm the customer has NOT already submitted payment through Thumbtack and no Thumbtack payment is pending.\n\nThis creates a temporary card hold request for ' + fmt$(thumbtackBooking.total_price) + ' through AAE Stripe. It does not charge the card or send a message. Continue?');
+      var thumbtackEmail = String(thumbtackBooking.customer_email || '').trim();
+      var emailDestination = thumbtackEmail ? ' It will be emailed to ' + thumbtackEmail + '.' : ' No customer email is on file, so you will be shown a copyable link instead.';
+      var checkedForThumbtackPayment = confirm('Before continuing, confirm that the customer has NOT started or scheduled payment through Thumbtack, and that Thumbtack does not require checkout through its payment flow.\n\nThis creates an AAE Stripe card authorization request for ' + fmt$(thumbtackBooking.total_price) + '.' + emailDestination + ' The customer is not charged when authorizing; a temporary card hold may appear, and the agreed total is captured after the job is completed. Continue?');
       if (!checkedForThumbtackPayment) return;
       btn.disabled = true;
       var originalThumbtackPaymentText = btn.textContent;
@@ -5940,8 +5942,12 @@ window.intelQuick = intelQuick;
         if (!thumbtackPaymentResponse.ok || !thumbtackPaymentData.paymentUrl) {
           throw new Error(thumbtackPaymentData.error || 'The authorization link could not be created.');
         }
-        window.prompt('Copy this secure AAE authorization link and send it in the existing Thumbtack conversation. No message was sent.', thumbtackPaymentData.paymentUrl);
-        toast('Secure link created. Nothing was charged and no message was sent.', 'success');
+        if (thumbtackPaymentData.emailAccepted) {
+          toast('Secure authorization email accepted for ' + thumbtackEmail + '. Nothing was charged.', 'success');
+        } else {
+          window.prompt('The email was not accepted. Copy this secure link and use the customer channel agreed for this booking.', thumbtackPaymentData.paymentUrl);
+          toast('Secure link created, but the email was not accepted. Copy the link to continue.', 'error');
+        }
         await loadBookings(true);
         if (selectedId) selectBooking(selectedId);
         loadTimeline(id);

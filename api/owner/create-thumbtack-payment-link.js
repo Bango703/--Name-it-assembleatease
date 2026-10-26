@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
-import { verifyOwner } from '../_email.js';
+import { esc, sendEmail, verifyOwner } from '../_email.js';
 import { randomToken, sha256 } from '../_payment-security.js';
 import { logActivity } from '../booking/_activity.js';
 import { isRecoverablePaymentIntentStatus, validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required.' });
   const sb = getSupabase();
   const { data: booking, error: readError } = await sb.from('bookings')
-    .select('id, ref, source, service, customer_name, customer_email, customer_phone, status, payment_status, payment_method, payment_collected, external_platform, external_agreement_verified_at, external_payment_reference, total_price, stripe_payment_intent_id, stripe_customer_id, payment_method_type, payment_recovery_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
+    .select('id, ref, source, service, customer_name, customer_email, customer_phone, status, payment_status, payment_method, payment_collected, external_platform, external_agreement_verified_at, external_payment_reference, total_price, tax_amount, stripe_payment_intent_id, stripe_customer_id, payment_method_type, payment_recovery_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
     .eq('id', bookingId)
     .maybeSingle();
   if (readError) return res.status(503).json({ error: 'Booking payment state could not be verified.' });
@@ -164,9 +164,46 @@ export default async function handler(req, res) {
       eventType: 'thumbtack_stripe_authorization_link_created',
       actorType: 'owner',
       actorName: 'Owner',
-      description: 'A secure AAE Stripe card authorization link was created. No payment was collected and no customer message was sent.',
+      description: 'A secure AAE Stripe card authorization link was created. No payment was collected.',
       metadata: { paymentIntentId: intent.id, amountCents: Number(booking.total_price), expiresAt: expiry, leadSource: 'thumbtack' },
     }).catch(error => console.error('[thumbtack-payment-link] activity log failed:', error?.message || error));
+
+    const paymentUrl = `${SITE}/api/booking/payment-recovery?bookingId=${encodeURIComponent(booking.id)}&token=${encodeURIComponent(token)}`;
+    let emailResult = { ok: false, error: 'No customer email is on file.' };
+    if (booking.customer_email) {
+      emailResult = await sendEmail({
+        to: booking.customer_email,
+        subject: `Secure card authorization for booking ${booking.ref}`,
+        replyTo: 'service@assembleatease.com',
+        html: buildAuthorizationEmail({ booking, paymentUrl }),
+        meta: {
+          bookingId: booking.id,
+          recipientType: 'customer',
+          notificationType: 'thumbtack_authorization_link',
+          notificationKey: `thumbtack_authorization_link:${booking.id}:${tokenHash.slice(0, 20)}`,
+          priority: 'critical',
+          dedupeWindowMin: 0,
+          expiresAt: expiry,
+        },
+      }).catch(error => ({ ok: false, error: error?.message || String(error) }));
+    }
+    const emailAccepted = emailResult?.ok === true
+      && (emailResult?.providerAccepted === true || emailResult?.suppressed === true);
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'owner_action',
+      actorType: 'owner',
+      actorName: 'Owner',
+      description: emailAccepted
+        ? `Secure card authorization email accepted by the email provider for ${booking.customer_email}.`
+        : 'The secure card authorization email was not accepted. The owner can copy the link and send it through the agreed customer channel.',
+      metadata: {
+        action: 'thumbtack_authorization_email',
+        emailAccepted,
+        notificationType: 'thumbtack_authorization_link',
+        emailError: emailResult?.error || null,
+      },
+    }).catch(error => console.error('[thumbtack-payment-link] email activity log failed:', error?.message || error));
 
     return res.status(200).json({
       success: true,
@@ -175,8 +212,12 @@ export default async function handler(req, res) {
       totalCents: Number(booking.total_price),
       paymentIntentStatus: intent.status,
       expiresAt: expiry,
-      paymentUrl: `${SITE}/api/booking/payment-recovery?bookingId=${encodeURIComponent(booking.id)}&token=${encodeURIComponent(token)}`,
-      message: 'Link created. Copy it into the existing Thumbtack conversation only after confirming that no Thumbtack payment has already been initiated. No email or message was sent.',
+      paymentUrl,
+      emailAccepted,
+      emailError: emailAccepted ? null : emailResult?.error || 'The email was not accepted for sending.',
+      message: emailAccepted
+        ? 'The secure authorization link was emailed to the customer. No payment was collected.'
+        : 'The secure authorization link was created, but the email was not accepted. Copy the link and use the customer channel agreed for this booking.',
     });
   } catch (error) {
     console.error('[thumbtack-payment-link] Stripe authorization preparation failed:', error?.message || error);
@@ -192,6 +233,29 @@ export default async function handler(req, res) {
     await releaseLock(sb, booking.id, operationKey);
     return res.status(502).json({ error: 'A secure card authorization link could not be prepared. No customer message was sent.' });
   }
+}
+
+function buildAuthorizationEmail({ booking, paymentUrl }) {
+  const totalCents = Number(booking.total_price || 0);
+  const taxCents = Number(booking.tax_amount || 0);
+  const subtotalCents = Math.max(0, totalCents - taxCents);
+  const money = cents => `$${(Number(cents || 0) / 100).toFixed(2)}`;
+  const firstName = String(booking.customer_name || '').trim().split(/\s+/)[0] || 'there';
+  return `
+    <p style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1a1a1a">Secure card authorization</p>
+    <p style="margin:0 0 18px;font-size:15px;color:#52525b;line-height:1.7">Hello ${esc(firstName)}, please review and authorize the card for your ${esc(booking.service)} booking.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:8px;margin-bottom:22px"><tr><td style="padding:18px 20px">
+      <p style="margin:0 0 12px;font-size:12px;color:#71717a">Booking ${esc(booking.ref)}</p>
+      <p style="margin:0 0 6px;font-size:14px;color:#52525b">Service subtotal <span style="float:right;color:#1a1a1a">${esc(money(subtotalCents))}</span></p>
+      <p style="margin:0 0 10px;font-size:14px;color:#52525b">Sales tax <span style="float:right;color:#1a1a1a">${esc(money(taxCents))}</span></p>
+      <p style="margin:0;padding-top:10px;border-top:1px solid #e4e4e7;font-size:17px;font-weight:700;color:#1a1a1a">Total <span style="float:right">${esc(money(totalCents))}</span></p>
+    </td></tr></table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px"><tr><td style="text-align:center">
+      <a href="${esc(paymentUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:14px 32px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:700">Review and authorize card</a>
+    </td></tr></table>
+    <p style="margin:0 0 10px;font-size:13px;color:#52525b;line-height:1.6">Your card will not be charged when you authorize it. A temporary hold may appear on your account; the agreed total is charged after the job is completed.</p>
+    <p style="margin:0 0 14px;font-size:13px;color:#71717a;line-height:1.6">This secure link expires in 48 hours. If you have questions, reply to this email or call (979) 232-5139.</p>
+    <p style="margin:0;font-size:12px;color:#71717a">AssembleAtEase</p>`;
 }
 
 function hasFinancialHold(booking) {
