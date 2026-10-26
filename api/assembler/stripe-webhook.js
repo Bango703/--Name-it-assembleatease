@@ -32,6 +32,7 @@ import { finalizeEaserApplicationSubmission } from './apply.js';
 import { loadBookingStripeRefundTruth, refundPaymentStatus } from '../booking/_stripe-refund-truth.js';
 import { reconcileRefundAssembleCash } from '../booking/_refund-credits.js';
 import { normalizeBookingPaymentMethod } from '../booking/_payment-method.js';
+import { CUSTOMER_TERMS_VERSION, PRIVACY_NOTICE_VERSION } from '../_legal-consent.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const STRIPE_DISPUTE_STATUSES = new Set([
@@ -405,7 +406,7 @@ export default async function handler(req, res) {
         webhookPaymentIntentId = pi.id;
 
         const { data: existing, error: existingError } = await sb.from('bookings')
-          .select('id, ref, payment_status, payment_method_type, status, payment_authorized_at, confirmed_at, dispatch_status, dispatch_paused, needs_manual_dispatch, call_zone, service_zip, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit, assembler_id, stripe_payment_intent_id, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at, guest_mutation_token_hash')
+          .select('id, ref, payment_status, payment_method_type, status, external_platform, customer_terms_version, customer_terms_accepted_at, customer_privacy_notice_version, payment_authorized_at, confirmed_at, confirmed_by, dispatch_status, dispatch_paused, needs_manual_dispatch, call_zone, service_zip, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit, assembler_id, stripe_payment_intent_id, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at, guest_mutation_token_hash')
           .eq('id', bookingId)
           .maybeSingle();
 
@@ -417,6 +418,15 @@ export default async function handler(req, res) {
         if (!existing) {
           webhookOutcome = 'ignored';
           webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found', bookingId };
+          break;
+        }
+        if (existing.external_platform === 'thumbtack'
+            && (!existing.customer_terms_accepted_at
+              || existing.customer_terms_version !== CUSTOMER_TERMS_VERSION
+              || existing.customer_privacy_notice_version !== PRIVACY_NOTICE_VERSION)) {
+          webhookOutcome = 'failed';
+          webhookError = 'Thumbtack Stripe authorization is missing current recorded customer consent';
+          webhookMetadata = { ...webhookMetadata, reason: 'thumbtack-customer-consent-missing', bookingId };
           break;
         }
         if (existing.financial_operation_key || existing.financial_operation_type || existing.financial_operation_started_at
@@ -465,7 +475,7 @@ export default async function handler(req, res) {
         }
 
         if (existing.payment_status === 'authorized' && existing.status === 'confirmed') {
-          if (existing.status === 'confirmed' && !existing.assembler_id) {
+          if (existing.external_platform !== 'thumbtack' && existing.status === 'confirmed' && !existing.assembler_id) {
             try {
               const retry = await dispatchBooking(bookingId);
               webhookMetadata = { ...webhookMetadata, dispatchRetry: retry };
@@ -514,7 +524,13 @@ export default async function handler(req, res) {
         // validated first, and the linked PaymentIntent participates in the CAS.
         const requiresOwnerAssignment = existing.call_zone === 'texas_statewide'
           || !isAutomaticDispatchZip(existing.service_zip || '');
-        const authorizationUpdate = {
+        const authorizationUpdate = existing.external_platform === 'thumbtack' ? {
+          payment_status: 'authorized',
+          authorization_capture_before: captureBeforeFromIntent(liveAuthorization),
+          payment_method_type: paymentMethodType,
+          payment_authorized_at: existing.payment_authorized_at || authorizedAt,
+          stripe_payment_method_id: paymentMethodId,
+        } : {
           payment_status: 'authorized',
           authorization_capture_before: captureBeforeFromIntent(liveAuthorization),
           payment_method_type: paymentMethodType,
@@ -554,7 +570,7 @@ export default async function handler(req, res) {
           if (current?.status === 'confirmed'
               && current?.payment_status === 'authorized'
               && current?.stripe_payment_intent_id === pi.id) {
-            if (!current.assembler_id) {
+            if (!current.assembler_id && existing.external_platform !== 'thumbtack') {
               try {
                 const retry = await dispatchBooking(bookingId);
                 webhookMetadata = { ...webhookMetadata, dispatchRetry: retry };
@@ -573,18 +589,20 @@ export default async function handler(req, res) {
           break;
         }
 
-        try {
-          const dispatchResult = await dispatchBooking(bookingId);
-          webhookMetadata = { ...webhookMetadata, dispatchResult };
-        } catch (err) {
-          console.error('webhook dispatch error:', err?.message || err);
-          webhookMetadata = { ...webhookMetadata, dispatchError: err?.message || String(err) };
+        if (existing.external_platform !== 'thumbtack') {
+          try {
+            const dispatchResult = await dispatchBooking(bookingId);
+            webhookMetadata = { ...webhookMetadata, dispatchResult };
+          } catch (err) {
+            console.error('webhook dispatch error:', err?.message || err);
+            webhookMetadata = { ...webhookMetadata, dispatchError: err?.message || String(err) };
+          }
         }
 
         // Send customer confirmation email
         const bk = existing;
 
-        if (bk) {
+        if (bk && existing.external_platform !== 'thumbtack') {
           const totalDisplay = bk.total_price ? `$${(bk.total_price/100).toFixed(2)}` : 'TBD';
           try {
             await sendEmail({
@@ -645,7 +663,7 @@ export default async function handler(req, res) {
           webhookBookingId = bookingId;
 
           const { data: currentBooking, error: bookingLookupError } = await sb.from('bookings')
-            .select('id, payment_status, status, customer_name, customer_email, customer_phone, ref, service, date, time, total_price, quote_amount_cents, stripe_payment_intent_id, financial_operation_key, financial_operation_type')
+            .select('id, payment_status, status, external_platform, customer_name, customer_email, customer_phone, ref, service, date, time, total_price, quote_amount_cents, stripe_payment_intent_id, financial_operation_key, financial_operation_type')
             .eq('id', bookingId)
             .maybeSingle();
 
@@ -753,7 +771,7 @@ export default async function handler(req, res) {
 
           const reason = pi.last_payment_error?.message || 'Card could not be authorized.';
 
-          if (currentBooking.customer_email) {
+          if (currentBooking.customer_email && currentBooking.external_platform !== 'thumbtack') {
             // Notify customer
             try {
               await sendEmail({

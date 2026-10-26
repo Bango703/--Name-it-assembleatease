@@ -13,6 +13,7 @@ import { safeTokenHashMatch } from './_payment-security.js';
 import { normalizeBookingPaymentMethod } from './booking/_payment-method.js';
 import { fetchCaptureDeadline } from './booking/_authorization-window.js';
 import { reportBookingToMeta } from './_meta-capi.js';
+import { CUSTOMER_TERMS_VERSION, PRIVACY_NOTICE_VERSION } from './_legal-consent.js';
 
 /**
  * POST /api/booking-confirmed
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, sms_consent_at, sms_opted_out_at, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_method_type, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, payment_recovery_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
+    .select('id, ref, service, source, external_platform, customer_terms_version, customer_terms_accepted_at, customer_privacy_notice_version, customer_name, customer_phone, customer_email, sms_consent_at, sms_opted_out_at, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_method_type, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, payment_recovery_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
     .eq('id', bookingId)
     .single();
 
@@ -47,7 +48,8 @@ export default async function handler(req, res) {
   }
 
   async function ensureDispatch() {
-    if (booking.status !== 'confirmed' || booking.assembler_id || booking.dispatch_paused || booking.needs_manual_dispatch) return;
+    if (booking.external_platform === 'thumbtack'
+        || booking.status !== 'confirmed' || booking.assembler_id || booking.dispatch_paused || booking.needs_manual_dispatch) return;
     try {
       await dispatchBooking(bookingId);
     } catch (dispatchErr) {
@@ -60,6 +62,13 @@ export default async function handler(req, res) {
   const validRecoveryToken = !!suppliedRecoveryToken && safeTokenHashMatch(suppliedRecoveryToken, booking.payment_recovery_token_hash);
   if (!validGuestToken && !validRecoveryToken) {
     return res.status(403).json({ error: 'Invalid secure booking confirmation token.' });
+  }
+  const thumbtackStripeFlow = booking.external_platform === 'thumbtack' && validRecoveryToken && !validGuestToken;
+  if (thumbtackStripeFlow
+      && (!booking.customer_terms_accepted_at
+        || booking.customer_terms_version !== CUSTOMER_TERMS_VERSION
+        || booking.customer_privacy_notice_version !== PRIVACY_NOTICE_VERSION)) {
+    return res.status(409).json({ error: 'Review and accept the current AssembleAtEase Terms and Privacy Notice before authorizing the card hold.', code: 'THUMBTACK_CUSTOMER_CONSENT_MISSING' });
   }
   // A job already under way must not be pushed back to 'confirmed' by paying.
   // 'authorized' belongs here even though it owes nothing: if this endpoint
@@ -77,6 +86,13 @@ export default async function handler(req, res) {
   // Guard: already confirmed — idempotent, but still retry dispatch in case
   // a prior authorized request confirmed the booking and dispatch later failed.
   if (booking.payment_status === 'authorized' && booking.status === 'confirmed') {
+    if (thumbtackStripeFlow) {
+      await sb.from('bookings').update({
+        payment_recovery_token_hash: null,
+        external_payment_authorization_expires_at: null,
+      }).eq('id', bookingId).eq('payment_recovery_token_hash', booking.payment_recovery_token_hash);
+      return res.status(200).json({ success: true, alreadyAuthorized: true, thumbtackStripeFlow: true });
+    }
     await completeReviewReward(sb, bookingId).catch(error => console.error('[booking-confirmed] review reward redemption finalization failed:', bookingId, error?.message || error));
     await ensureDispatch();
     return res.status(200).json({ success: true, alreadyConfirmed: true });
@@ -132,11 +148,15 @@ export default async function handler(req, res) {
   // Confirm booking + mark payment authorized. Promotes status so dispatch can
   // run — except on a job already under way, where promoting would rewrite the
   // Easer's own progress. There the money is recorded and nothing else moves.
-  const updatePayload = activeRecovery
+  const updatePayload = activeRecovery || thumbtackStripeFlow
     ? {
       payment_status: 'authorized',
       payment_authorized_at: new Date().toISOString(),
       authorization_capture_before: captureDeadline,
+      ...(thumbtackStripeFlow ? {
+        payment_recovery_token_hash: null,
+        external_payment_authorization_expires_at: null,
+      } : {}),
     }
     : {
       payment_status: 'authorized',
@@ -213,6 +233,21 @@ export default async function handler(req, res) {
   }
 
   await ensureDispatch();
+
+  if (thumbtackStripeFlow) {
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'thumbtack_stripe_card_authorized',
+      actorType: 'customer',
+      actorName: 'Customer',
+      description: 'Customer authorized the AAE Stripe card hold for the confirmed Thumbtack booking. The card has not been charged; capture will occur after completion.',
+      metadata: {
+        paymentIntentId: booking.stripe_payment_intent_id,
+        amountCents: Number(booking.total_price || 0),
+      },
+    }).catch(error => console.error('[booking-confirmed] Thumbtack authorization activity log failed:', error?.message || error));
+    return res.status(200).json({ success: true, authorized: true, thumbtackStripeFlow: true });
+  }
 
   const { ref, service, customer_name: name, customer_email: email, address, date, time, details,
           total_price: amount } = booking;
