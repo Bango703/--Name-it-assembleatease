@@ -173,7 +173,7 @@ export default async function handler(req, res) {
     if (booking.customer_email) {
       emailResult = await sendEmail({
         to: booking.customer_email,
-        subject: `Secure card authorization for booking ${booking.ref}`,
+        subject: `Confirm a temporary card hold for booking ${booking.ref}`,
         replyTo: 'service@assembleatease.com',
         html: buildAuthorizationEmail({ booking, paymentUrl }),
         meta: {
@@ -242,8 +242,8 @@ function buildAuthorizationEmail({ booking, paymentUrl }) {
   const money = cents => `$${(Number(cents || 0) / 100).toFixed(2)}`;
   const firstName = String(booking.customer_name || '').trim().split(/\s+/)[0] || 'there';
   return `
-    <p style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1a1a1a">Secure card authorization</p>
-    <p style="margin:0 0 18px;font-size:15px;color:#52525b;line-height:1.7">Hello ${esc(firstName)}, please review and authorize the card for your ${esc(booking.service)} booking.</p>
+    <p style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1a1a1a">Confirm your card</p>
+    <p style="margin:0 0 18px;font-size:15px;color:#52525b;line-height:1.7">Hello ${esc(firstName)}, please review and confirm a temporary card hold for your ${esc(booking.service)} booking.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:8px;margin-bottom:22px"><tr><td style="padding:18px 20px">
       <p style="margin:0 0 12px;font-size:12px;color:#71717a">Booking ${esc(booking.ref)}</p>
       <p style="margin:0 0 6px;font-size:14px;color:#52525b">Service subtotal <span style="float:right;color:#1a1a1a">${esc(money(subtotalCents))}</span></p>
@@ -251,7 +251,7 @@ function buildAuthorizationEmail({ booking, paymentUrl }) {
       <p style="margin:0;padding-top:10px;border-top:1px solid #e4e4e7;font-size:17px;font-weight:700;color:#1a1a1a">Total <span style="float:right">${esc(money(totalCents))}</span></p>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px"><tr><td style="text-align:center">
-      <a href="${esc(paymentUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:14px 32px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:700">Review and authorize card</a>
+      <a href="${esc(paymentUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:14px 32px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:700">Review and confirm card</a>
     </td></tr></table>
     <p style="margin:0 0 10px;font-size:13px;color:#52525b;line-height:1.6">Your card will not be charged when you authorize it. A temporary hold may appear on your account; the agreed total is charged after the job is completed.</p>
     <p style="margin:0 0 14px;font-size:13px;color:#71717a;line-height:1.6">This secure link expires in 48 hours. If you have questions, reply to this email or call (979) 232-5139.</p>
