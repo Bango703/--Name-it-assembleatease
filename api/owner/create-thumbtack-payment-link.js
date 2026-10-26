@@ -6,6 +6,12 @@ import { logActivity } from '../booking/_activity.js';
 import { isRecoverablePaymentIntentStatus, validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
 
 const SITE = String(process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com').replace(/\/$/, '');
+const THUMBTACK_AUTHORIZATION_BOOKING_STATUSES = new Set([
+  'confirmed',
+  'en_route',
+  'arrived',
+  'in_progress',
+]);
 // Reuse the existing constrained payment-recovery lock bucket so link setup
 // does not require a second database migration just to widen the lock enum.
 const LOCK_TYPE = 'payment_recovery_replacement';
@@ -30,7 +36,7 @@ export default async function handler(req, res) {
   if (booking.source !== 'owner_manual'
       || booking.external_platform !== 'thumbtack'
       || !booking.external_agreement_verified_at
-      || booking.status !== 'confirmed'
+      || !THUMBTACK_AUTHORIZATION_BOOKING_STATUSES.has(String(booking.status || ''))
       || !['offline_recorded', 'pending', 'failed'].includes(String(booking.payment_status || ''))
       || booking.payment_collected === true
       || booking.external_payment_reference
