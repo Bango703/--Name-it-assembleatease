@@ -52,7 +52,15 @@ assert.match(createLink, /capture_method:\s*'manual'/);
 assert.match(createLink, /payment_method:\s*null/);
 assert.match(createLink, /payment_status:\s*'pending'/);
 assert.match(createLink, /Number\(booking\.total_price\)/);
-assert.doesNotMatch(createLink, /sendEmail\s*\(/, 'creating the link must not contact the customer automatically');
+assert.match(createLink, /if \(booking\.customer_email\)\s*\{\s*emailResult = await sendEmail\(/,
+  'the secure authorization link is emailed when a customer email is on file');
+assert.match(createLink, /No payment was collected/,
+  'creating the authorization link must not charge the customer');
+for (const status of ['confirmed', 'en_route', 'arrived', 'in_progress']) {
+  assert.match(createLink, new RegExp(`'${status}'`), `authorization links allow ${status} bookings`);
+}
+assert.match(createLink, /THUMBTACK_AUTHORIZATION_BOOKING_STATUSES\.has/,
+  'only the explicit eligible Thumbtack booking statuses may create an authorization link');
 assert.match(recovery, /validateCustomerLegalConsent/);
 assert.match(recovery, /tax_amount/);
 assert.match(recovery, /Service subtotal/);
@@ -70,6 +78,6 @@ assert.match(ownerComplete, /booking\.external_platform !== 'thumbtack'/);
 assert.match(finance, /usesExternalStripePayment/);
 assert.match(tax, /thumbtackStripePayment/);
 assert.match(ownerUi, /Create Stripe Authorization Link/);
-assert.match(ownerUi, /No message was sent/);
+assert.match(ownerUi, /A secure email is sent if a customer email is on file; no Thumbtack message is sent/);
 
 console.log('PASS: Thumbtack customer card hold, completion capture, and external Easer payout separation');

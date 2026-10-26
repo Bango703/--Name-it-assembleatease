@@ -5407,7 +5407,7 @@ window.intelQuick = intelQuick;
     }
     if (b.status === 'confirmed') {
       if (b.external_platform === 'thumbtack' && ['pending', 'failed'].includes(b.payment_status)) {
-        notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Card authorization required:</strong> the customer must approve the temporary AAE Stripe hold before the Easer starts work. No customer email or message is sent from here.</div>');
+        notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Card authorization required:</strong> the customer must approve the temporary AAE Stripe hold before the Easer starts work. A secure email is sent if a customer email is on file; no Thumbtack message is sent.</div>');
         btns.push('<button class="btn btn-teal" data-action="create-thumbtack-payment" data-id="' + b.id + '">Create Stripe Authorization Link</button>');
       } else if (b.payment_status === 'card_saved') {
         // A future booking with a saved card is intentionally confirmed but
