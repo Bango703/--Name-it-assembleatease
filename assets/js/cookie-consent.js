@@ -90,7 +90,7 @@
       try { if (sessionStorage.getItem(storageKey)) return false; } catch (e) {}
       var safe = { page_path: safePagePath(), audience_type: audienceType(), measurement_version: '2' };
       // Do not forward addresses, emails, contact data, booking-link tokens or arbitrary parameters.
-      ['booking_type', 'booking_flow', 'outcome_stage', 'service_market', 'service_city'].forEach(function (name) {
+      ['booking_type', 'booking_flow', 'outcome_stage', 'service_market', 'service_city', 'lead_type', 'lead_source'].forEach(function (name) {
         var value = String(params && params[name] || '');
         if (/^[a-zA-Z][a-zA-Z_ -]{0,59}$/.test(value)) safe[name] = value;
       });
