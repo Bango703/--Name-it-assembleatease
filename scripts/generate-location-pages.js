@@ -747,7 +747,7 @@ function generatePage(city, service) {
 <meta charset="UTF-8"/>
 <title>${esc(title)}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-${isIndexedLocationPage(city.slug, service.slug) ? '' : `<meta name="robots" content="noindex, follow"/>
+${isIndexedLocationPage(city.slug) ? '' : `<meta name="robots" content="noindex, follow"/>
 `}<meta name="description" content="${esc(metaDesc)}"/>
 <link rel="canonical" href="${esc(url)}"/>
 <meta property="og:type" content="website"/>
@@ -1105,7 +1105,7 @@ for (const service of SERVICES) {
     const filename = `${pageSlug}.html`;
     const pageUrl = `https://www.assembleatease.com/${pageSlug}`;
     const lastmod = existingLastmods.has(pageUrl) ? existingLastmods.get(pageUrl) : TODAY;
-    if (isIndexedLocationPage(city.slug, service.slug)) {
+    if (isIndexedLocationPage(city.slug)) {
       sitemapEntries.push(`  <url><loc>${pageUrl}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<priority>0.8</priority></url>`);
     }
     if (FLAGSHIP_AUSTIN_PAGES.has(filename)) {

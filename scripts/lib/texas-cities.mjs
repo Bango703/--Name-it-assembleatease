@@ -317,27 +317,21 @@ export const ALL_TEXAS_CITIES = [...CITIES, ...STATEWIDE_MARKETS];
 // and it weighs on the whole domain, Austin pages included. Every page stays
 // live for customers and ads; only these are offered to search engines:
 //   - the Austin metro (where the business is based): every service
-//   - the four largest Texas metros the owner actively markets: the two core
-//     services only
+//   - the four largest Texas metros the owner actively markets (owner,
+//     2026-10-27: every service there too)
 // Everything else is `noindex, follow` and left out of sitemap.xml.
-export const INDEXED_METRO_SERVICES = Object.freeze({
-  dallas: ['furniture-assembly', 'tv-mounting'],
-  houston: ['furniture-assembly', 'tv-mounting'],
-  'san-antonio': ['furniture-assembly', 'tv-mounting'],
-  'fort-worth': ['furniture-assembly', 'tv-mounting'],
-});
+export const INDEXED_MAJOR_METROS = Object.freeze(new Set(['dallas', 'houston', 'san-antonio', 'fort-worth']));
 export const INDEXED_EASER_JOB_CITIES = Object.freeze(new Set([
   ...CITIES.map((city) => city.slug),
-  ...Object.keys(INDEXED_METRO_SERVICES),
+  ...INDEXED_MAJOR_METROS,
 ]));
 
 export function isAustinMetroCity(citySlug) {
   return citySlug !== 'dallas' && CITIES.some((city) => city.slug === citySlug);
 }
 
-export function isIndexedLocationPage(citySlug, serviceSlug) {
-  if (isAustinMetroCity(citySlug)) return true;
-  return (INDEXED_METRO_SERVICES[citySlug] || []).includes(serviceSlug);
+export function isIndexedLocationPage(citySlug) {
+  return isAustinMetroCity(citySlug) || INDEXED_MAJOR_METROS.has(citySlug);
 }
 
 export function isIndexedEaserJobsPage(citySlug) {

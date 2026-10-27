@@ -42,10 +42,13 @@ function withFittedTitle(html, suffix) {
 
 const changed = [];
 const excludedUrls = new Set();
+const indexedUrls = new Map(); // url -> sitemap priority, as the generators write it
 for (const file of readdirSync(ROOT).filter((name) => name.endsWith('.html')).sort()) {
   const policy = searchIndexPolicyFor(file);
   if (!policy) continue;
-  if (!policy.indexed) excludedUrls.add(`${ORIGIN}/${file.replace(/\.html$/, '')}`);
+  const url = `${ORIGIN}/${file.replace(/\.html$/, '')}`;
+  if (policy.indexed) indexedUrls.set(url, policy.kind === 'easer_jobs' ? '0.6' : '0.8');
+  else excludedUrls.add(url);
   const path = join(ROOT, file);
   const before = readFileSync(path, 'utf8');
   const eol = before.includes('\r\n') ? '\r\n' : '\n';
@@ -59,8 +62,14 @@ for (const file of readdirSync(ROOT).filter((name) => name.endsWith('.html')).so
 
 const sitemapPath = join(ROOT, 'sitemap.xml');
 const sitemap = readFileSync(sitemapPath, 'utf8');
-const filtered = sitemap.replace(/[ \t]*<url><loc>([^<]+)<\/loc>[\s\S]*?<\/url>\r?\n?/g,
+let filtered = sitemap.replace(/[ \t]*<url><loc>([^<]+)<\/loc>[\s\S]*?<\/url>\r?\n?/g,
   (entry, loc) => (excludedUrls.has(loc) ? '' : entry));
+// A page brought back into the policy rejoins the sitemap, dated today.
+const listed = new Set([...filtered.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]));
+const today = new Date().toISOString().slice(0, 10);
+const added = [...indexedUrls].filter(([url]) => !listed.has(url))
+  .map(([url, priority]) => `  <url><loc>${url}</loc><lastmod>${today}</lastmod><priority>${priority}</priority></url>`);
+if (added.length) filtered = filtered.replace('</urlset>', `${added.join('\n')}\n</urlset>`);
 if (filtered !== sitemap) {
   changed.push('sitemap.xml');
   if (!CHECK) writeFileSync(sitemapPath, filtered, 'utf8');

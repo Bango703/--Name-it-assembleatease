@@ -15,7 +15,7 @@ export const EASER_SUFFIX = ' | Become an Easer';
 export function searchIndexPolicyFor(page) {
   const location = page.match(LOCATION_RE);
   if (location) {
-    return { kind: 'location', indexed: isIndexedLocationPage(location[2], location[1]), suffix: BRAND_SUFFIX };
+    return { kind: 'location', indexed: isIndexedLocationPage(location[2]), suffix: BRAND_SUFFIX };
   }
   const easer = page.match(EASER_RE);
   if (easer) return { kind: 'easer_jobs', indexed: isIndexedEaserJobsPage(easer[1]), suffix: EASER_SUFFIX };
