@@ -70,6 +70,7 @@ jobs:
         run: |
           npm run seo:audit
           node scripts/test-location-sitemap-lastmod.mjs
+          node scripts/apply-search-index-policy.mjs --check
 
       # ── Article 7: code writing a value the database will reject.
       - name: Status/constraint drift

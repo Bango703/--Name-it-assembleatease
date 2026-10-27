@@ -11,6 +11,7 @@ import { buildPublicFooterBlock } from './lib/public-footer.mjs';
 import { buildPublicNavBlock } from './lib/public-nav.mjs';
 import { governanceConfig } from './lib/site-governance.mjs';
 import { fitTitle } from './lib/seo-title.mjs';
+import { isIndexedLocationPage } from './lib/texas-cities.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -746,7 +747,8 @@ function generatePage(city, service) {
 <meta charset="UTF-8"/>
 <title>${esc(title)}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="description" content="${esc(metaDesc)}"/>
+${isIndexedLocationPage(city.slug, service.slug) ? '' : `<meta name="robots" content="noindex, follow"/>
+`}<meta name="description" content="${esc(metaDesc)}"/>
 <link rel="canonical" href="${esc(url)}"/>
 <meta property="og:type" content="website"/>
 <meta property="og:title" content="${esc(title)}"/>
@@ -1103,7 +1105,9 @@ for (const service of SERVICES) {
     const filename = `${pageSlug}.html`;
     const pageUrl = `https://www.assembleatease.com/${pageSlug}`;
     const lastmod = existingLastmods.has(pageUrl) ? existingLastmods.get(pageUrl) : TODAY;
-    sitemapEntries.push(`  <url><loc>${pageUrl}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<priority>0.8</priority></url>`);
+    if (isIndexedLocationPage(city.slug, service.slug)) {
+      sitemapEntries.push(`  <url><loc>${pageUrl}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<priority>0.8</priority></url>`);
+    }
     if (FLAGSHIP_AUSTIN_PAGES.has(filename)) {
       skippedFlagships++;
       process.stdout.write(`\r  Kept flagship ${skippedFlagships}/${FLAGSHIP_AUSTIN_PAGES.size}: ${filename}                    `);

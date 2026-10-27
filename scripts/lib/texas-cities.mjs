@@ -309,3 +309,37 @@ export const STATEWIDE_MARKETS = [
 ];
 
 export const ALL_TEXAS_CITIES = [...CITIES, ...STATEWIDE_MARKETS];
+
+// ── Which city pages search engines should index ───────────────────────────
+// Owner, 2026-10-26 (Similarweb + live Google audit): 378 of 416 sitemap pages
+// were city x service templates, and two statewide pages compared 95% identical
+// once the city name was swapped. Google treats that pattern as doorway pages,
+// and it weighs on the whole domain, Austin pages included. Every page stays
+// live for customers and ads; only these are offered to search engines:
+//   - the Austin metro (where the business is based): every service
+//   - the four largest Texas metros the owner actively markets: the two core
+//     services only
+// Everything else is `noindex, follow` and left out of sitemap.xml.
+export const INDEXED_METRO_SERVICES = Object.freeze({
+  dallas: ['furniture-assembly', 'tv-mounting'],
+  houston: ['furniture-assembly', 'tv-mounting'],
+  'san-antonio': ['furniture-assembly', 'tv-mounting'],
+  'fort-worth': ['furniture-assembly', 'tv-mounting'],
+});
+export const INDEXED_EASER_JOB_CITIES = Object.freeze(new Set([
+  ...CITIES.map((city) => city.slug),
+  ...Object.keys(INDEXED_METRO_SERVICES),
+]));
+
+export function isAustinMetroCity(citySlug) {
+  return citySlug !== 'dallas' && CITIES.some((city) => city.slug === citySlug);
+}
+
+export function isIndexedLocationPage(citySlug, serviceSlug) {
+  if (isAustinMetroCity(citySlug)) return true;
+  return (INDEXED_METRO_SERVICES[citySlug] || []).includes(serviceSlug);
+}
+
+export function isIndexedEaserJobsPage(citySlug) {
+  return INDEXED_EASER_JOB_CITIES.has(citySlug);
+}
