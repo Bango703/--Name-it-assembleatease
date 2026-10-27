@@ -68,6 +68,11 @@
       "permanent": true
     },
     {
+      "source": "/auth/signup",
+      "destination": "/assembler/apply",
+      "permanent": true
+    },
+    {
       "source": "/assembler/earn",
       "destination": "/assembler/apply",
       "permanent": true
