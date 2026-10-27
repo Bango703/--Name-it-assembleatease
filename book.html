@@ -8206,6 +8206,11 @@ function trackBookingConfirmation(ref, isQuote, isScheduledAuthorization) {
     outcome_stage: 'form_confirmation'
   };
   trackBookingFunnelOnce(isQuote ? 'quote_requested' : 'booking_confirmed', outcome, ref);
+  trackBookingFunnelOnce('generate_lead', Object.assign({
+    lead_source: 'website_booking',
+    lead_type: isQuote ? 'quote_request' : 'service_booking',
+    outcome_stage: 'lead_received'
+  }, outcome), ref);
   // Compatibility only. This historical event never meant finished work or captured revenue.
   // New key-event reporting must select the distinct outcome above, not both aliases.
   trackBookingFunnelOnce('booking_completed', Object.assign({ deprecated_event: true }, outcome), ref);

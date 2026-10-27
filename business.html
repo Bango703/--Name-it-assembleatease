@@ -407,8 +407,13 @@ async function sendB2B() {
     if (!resp.ok) throw new Error('Server error');
     var data = await resp.json();
     try {
+      if (window.AAEAnalytics && data.ref) window.AAEAnalytics.trackOnce('generate_lead', {
+        booking_flow: 'business_inquiry', lead_source: 'website_business_page',
+        lead_type: 'business_inquiry', outcome_stage: 'inquiry_received'
+      }, 'business-inquiry-lead:' + data.ref);
       if (window.AAEAnalytics && data.ref) window.AAEAnalytics.trackOnce('business_inquiry_submitted', {
-        booking_flow: 'business_inquiry', outcome_stage: 'inquiry_received',
+        booking_flow: 'business_inquiry', lead_source: 'website_business_page',
+        lead_type: 'business_inquiry', outcome_stage: 'inquiry_received',
         service_market: 'unknown', service_city: 'unknown'
       }, 'business-inquiry:' + data.ref);
     } catch (analyticsError) { /* Measurement never blocks a received inquiry. */ }
