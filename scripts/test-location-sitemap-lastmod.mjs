@@ -29,6 +29,7 @@ try {
     'scripts/lib/public-nav.mjs',
     'scripts/lib/seo-title.mjs',
     'scripts/lib/site-governance.mjs',
+    'scripts/lib/texas-cities.mjs',
     'business-artifacts/page-governance/site-governance.json',
     'locations.html',
   ];
@@ -45,8 +46,11 @@ try {
     [url('furniture-assembly-houston-tx'), null],
     [url('furniture-assembly-san-antonio-tx'), '2026-02-30'],
   ]);
-  const newUrl = url('furniture-assembly-lubbock-tx');
-  assert.ok(originalEntries.has(newUrl), 'Fixture needs the existing Lubbock service URL');
+  // An indexed city page (scripts/lib/texas-cities.mjs); pages outside the
+  // search index policy are never in the sitemap.
+  const newUrl = url('furniture-assembly-round-rock-tx');
+  assert.ok(originalEntries.has(newUrl), 'Fixture needs the existing Round Rock service URL');
+  assert.ok(!originalEntries.has(url('furniture-assembly-lubbock-tx')), 'Statewide pages outside the index policy stay out of the sitemap');
   const input = original.replace(/<url>[\s\S]*?<\/url>/g, (entry) => {
     const loc = entry.match(/<loc>([^<]+)<\/loc>/)[1];
     if (loc === newUrl) return '';

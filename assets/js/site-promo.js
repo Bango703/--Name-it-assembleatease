@@ -96,10 +96,13 @@
   }
 
   // ---- SEO snippet sync (homepage only) -------------------------------------
-  // When the owner turns the promo ON, lead the homepage title + description
-  // with the offer so Google's snippet shows it. When the promo is OFF, the
-  // original (clean) meta is restored. Source of truth is the owner panel label,
-  // so this auto-syncs with the on/off toggle — no stale "30% off" promises.
+  // When the owner turns the promo ON, lead the homepage description with the
+  // offer so Google's snippet shows it. The title is left alone: it carries the
+  // ranking terms (Austin, furniture assembly, TV mounting), and replacing it
+  // with "10% off..." handed rendered-page crawlers a title with none of them
+  // (Similarweb/Google audit, 2026-10-26). When the promo is OFF, the original
+  // meta is restored. Source of truth is the owner panel label, so this
+  // auto-syncs with the on/off toggle — no stale "30% off" promises.
   var ORIGINAL_SEO = null;
 
   function isHomepage() {
@@ -138,13 +141,10 @@
     captureSeo();
     var hook = promo && promo.label ? String(promo.label).trim() : '';
     if (hook) {
-      var title = hook + ' | AssembleAtEase Home Setup & Assembly';
-      var desc = hook + '. Furniture assembly, TV mounting & smart home setup with upfront pricing, reviewed pros, and secure checkout.';
-      document.title = title;
+      var desc = hook.replace(/[.!]+$/, '') + '. ' + (ORIGINAL_SEO.desc || '');
+      if (desc.length > 160) desc = desc.slice(0, desc.lastIndexOf(' ', 159)).replace(/[,;:]$/, '') + '.';
       setMetaContent('meta[name="description"]', desc);
       setMetaContent('meta[property="og:description"]', desc);
-      setMetaContent('meta[property="og:title"]', title);
-      setMetaContent('meta[name="twitter:title"]', title);
       setMetaContent('meta[name="twitter:description"]', desc);
     } else if (ORIGINAL_SEO) {
       document.title = ORIGINAL_SEO.title;
