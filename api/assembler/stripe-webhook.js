@@ -442,7 +442,9 @@ export default async function handler(req, res) {
           break;
         }
 
-        const liveAuthorization = await stripe.paymentIntents.retrieve(pi.id);
+        // latest_charge is expanded so the hold's capture deadline below is
+        // actually readable; unexpanded it is an id and the deadline saves as null.
+        const liveAuthorization = await stripe.paymentIntents.retrieve(pi.id, { expand: ['latest_charge'] });
         if (liveAuthorization.id !== pi.id || liveAuthorization.metadata?.bookingId !== bookingId) {
           webhookOutcome = 'failed';
           webhookError = 'Stripe authorization no longer matches the event booking';

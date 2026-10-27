@@ -4,6 +4,9 @@ import { logActivity } from '../booking/_activity.js';
 import { chicagoTodayIso, formatAppointmentDate } from '../booking/_appt-date.js';
 import { evaluateAuthorizationWindow, AUTHORIZATION_WINDOW } from '../booking/_authorization-window.js';
 import { sendPushToUser } from '../_push.js';
+import { usesThumbtackStripePayment } from '../_owner-easer.js';
+import Stripe from 'stripe';
+import { inspectUnknownAuthorization, stripeLivemodeForSecret } from '../cron/reauth-payments.js';
 
 // Which bookings can be continued on another day, and on what payment terms.
 //   owner-created, paid offline: as before, no card involved.
@@ -11,9 +14,12 @@ import { sendPushToUser } from '../_push.js';
 //   be good when the return visit ends. The re-hold cron only renews bookings
 //   that have not started, so a job already under way cannot outlive its hold;
 //   the date is refused instead of letting the payment expire unseen.
+//   Thumbtack jobs are owner-created but, once moved to an AAE Stripe hold, are
+//   card bookings on every other path (completion, ledger), so they count here too.
 export function returnVisitPaymentLane(booking = {}) {
   if (booking.source === 'owner_manual' && booking.payment_status === 'offline_recorded') return 'offline';
-  if (booking.source !== 'owner_manual' && booking.payment_status === 'authorized') return 'card_hold';
+  if (booking.payment_status === 'authorized'
+      && (booking.source !== 'owner_manual' || usesThumbtackStripePayment(booking))) return 'card_hold';
   return null;
 }
 
@@ -23,6 +29,30 @@ const holdDeadlineText = ms => new Date(ms).toLocaleString('en-US', {
 
 function cleanLine(value, max) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, max);
+}
+
+// A held card whose deadline was never recorded (the authorization webhook can
+// win the race against the confirmation page, which is the path that reads it)
+// is asked of Stripe once and saved, with the same identity checks the re-hold
+// cron uses. That cron only inspects jobs that have not started, so a job
+// already under way would otherwise never learn its deadline.
+async function learnCaptureDeadline(sb, booking) {
+  const expectedLivemode = stripeLivemodeForSecret(process.env.STRIPE_SECRET_KEY);
+  if (!process.env.STRIPE_SECRET_KEY || expectedLivemode == null || !booking.stripe_payment_intent_id) return null;
+  const inspection = await inspectUnknownAuthorization({
+    stripe: new Stripe(process.env.STRIPE_SECRET_KEY),
+    booking,
+    expectedLivemode,
+  });
+  if (!inspection.ok) return null;
+  const { error } = await sb.from('bookings')
+    .update({ authorization_capture_before: inspection.captureBefore })
+    .eq('id', booking.id)
+    .eq('payment_status', 'authorized')
+    .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id)
+    .is('authorization_capture_before', null);
+  if (error) console.error('Return visit: capture deadline could not be saved:', error.message);
+  return inspection.captureBefore;
 }
 
 export default async function handler(req, res) {
@@ -60,7 +90,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error: fetchError } = await sb
     .from('bookings')
-    .select('id, ref, source, status, payment_status, customer_name, customer_email, service, assembler_id, assembler_name, date, time, authorization_capture_before, return_visit_required, return_visit_date, return_visit_time, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at')
+    .select('id, ref, source, status, payment_status, payment_method, external_platform, stripe_payment_intent_id, stripe_customer_id, total_price, customer_name, customer_email, service, assembler_id, assembler_name, date, time, authorization_capture_before, return_visit_required, return_visit_date, return_visit_time, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at')
     .eq('id', bookingId)
     .single();
   if (fetchError || !booking) return res.status(404).json({ error: 'Booking not found' });
@@ -73,6 +103,9 @@ export default async function handler(req, res) {
     });
   }
   if (lane === 'card_hold') {
+    if (!booking.authorization_capture_before) {
+      booking.authorization_capture_before = await learnCaptureDeadline(sb, booking);
+    }
     const verdict = evaluateAuthorizationWindow({
       ...booking,
       return_visit_required: true,
