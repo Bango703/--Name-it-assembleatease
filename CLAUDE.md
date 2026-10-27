@@ -108,6 +108,8 @@ The backlog is subordinate to the "first 25 jobs" stage gate: capturing an item 
 
 AssembleAtEase is an Austin-first home-services marketplace. Customers book services online. Easers are independent contractors. Owner controls dispatch. Customers pay AssembleAtEase; Easers are paid separately. Launch mode is manual payouts unless `STRIPE_CONNECT_ENABLED=true`. The goal is the **first 25 completed jobs**, not national scale.
 
+**Owner direction, 2026-10-27:** Keep online booking open across Texas. Treat Austin, Houston, San Antonio, and Dallas as the four priority customer-facing city hubs; keep their page hierarchy, metadata, and internal links aligned around those markets. Prioritize improvements to the website and organic search over review-count work. City pages must state address-, service-, and appointment-specific availability honestly; a city hub is not a claim of a staffed local office or guaranteed dispatch.
+
 Services: Furniture assembly, TV mounting, Fitness equipment assembly, Smart home setup, Office furniture assembly, Outdoor/playset/gazebo assembly, Custom quotes.
 
 ### Core business priorities
