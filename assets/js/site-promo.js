@@ -68,11 +68,23 @@
       + '</div>';
   }
 
+  function defaultHomeMarkup() {
+    return ''
+      + '<div class="offer-bar-inner">'
+      +   '<div class="offer-bar-copy">'
+      +     '<strong>Upfront pricing <span aria-hidden="true">·</span> Reviewed local pros <span aria-hidden="true">·</span> Pay after completion</strong>'
+      +   '</div>'
+      + '</div>';
+  }
+
   function renderHomeBar(promo) {
     var container = document.getElementById('new-customer-offer');
     if (!container) return false;
-    container.hidden = !promo;
-    container.innerHTML = promo ? promoMarkup(promo) : '';
+    // Keep the homepage's first viewport the same height while the live offer
+    // API loads. Hiding an empty bar and revealing it after fetch shifts the
+    // navigation and hero, producing a large CLS entry on mobile.
+    container.hidden = false;
+    container.innerHTML = promo ? promoMarkup(promo) : defaultHomeMarkup();
     return true;
   }
 
