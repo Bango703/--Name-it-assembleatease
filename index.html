@@ -1033,9 +1033,9 @@ section#service-area{display:block}
   }
   function money(n){return '$'+Number(n||0).toFixed(0);}
   var bundleImages={
-    'bedroom-ready':'/images/bundle-preview-bedroom.jpg',
-    'living-room-ready':'/images/bundle-preview-living-room.jpg',
-    'home-office-ready':'/images/bundle-preview-home-office.jpg',
+    'bedroom-ready':{webp:'/images/bundle-preview-bedroom.webp',fallback:'/images/bundle-preview-bedroom.jpg'},
+    'living-room-ready':{webp:'/images/bundle-preview-living-room.webp',fallback:'/images/bundle-preview-living-room.jpg'},
+    'home-office-ready':{webp:'/images/bundle-preview-home-office.webp',fallback:'/images/bundle-preview-home-office.jpg'},
     'move-in-ready':'/images/bundle-move-in-setup.png',
     'smart-entry-setup':'/images/real-smarthome-doorbell-vivint.png',
     'nursery-setup':'/images/bundle-nursery-setup.png'
@@ -1051,9 +1051,9 @@ section#service-area{display:block}
     grid.innerHTML=list.slice(0,3).map(function(b){
       var subtotal=(b.included||[]).reduce(function(sum, ref){ return sum + findPrice(src, ref); }, 0);
       var itemCount=(b.included||[]).length;
-      var img=bundleImages[b.slug] || '/images/bundle-move-in-setup.png';
+      var img=bundleImages[b.slug] || {fallback:'/images/bundle-move-in-setup.png'};
       return '<a class="rr-preview-card" data-bundle="'+esc(b.slug)+'">'
-        +'<div class="rr-preview-photo"><img src="'+esc(img)+'" alt="'+esc(b.name)+' bundle preview" loading="lazy" width="1536" height="960"/><span class="rr-preview-badge">'+itemCount+' item'+(itemCount===1?'':'s')+'</span></div>'
+        +'<div class="rr-preview-photo"><picture>'+(img.webp?'<source srcset="'+esc(img.webp)+'" type="image/webp"/>':'')+'<img src="'+esc(img.fallback)+'" alt="'+esc(b.name)+' bundle preview" loading="lazy" decoding="async" width="768" height="480"/></picture><span class="rr-preview-badge">'+itemCount+' item'+(itemCount===1?'':'s')+'</span></div>'
         +'<div class="rr-preview-body">'
           +'<div class="rr-preview-top"><div class="rr-preview-name">'+esc(b.name)+'</div><span class="rr-preview-pill">Bundle</span></div>'
           +'<div class="rr-preview-copy">'+esc(b.outcome||'')+'</div>'
