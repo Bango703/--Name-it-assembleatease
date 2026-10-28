@@ -30,7 +30,7 @@ assert.doesNotMatch(all, /CAPBridgeViewController|WKWebView/, 'no web view is th
 for (const [file, text] of Object.entries(swift)) {
   if (file !== 'EaserSupport.swift') assert.doesNotMatch(text, /SFSafariViewController/, `${file}: web pages go through InAppBrowser only`);
 }
-assert.match(swift['EaserSupport.swift'], /enum InAppBrowser[\s\S]*SFSafariViewController\(url: url\)/, 'one in-app browser');
+assert.match(swift['EaserSupport.swift'], /enum InAppBrowser[\s\S]*SFSafariViewController\(url: tagged\(url\)\)/, 'one in-app browser; our own pages are tagged so the site runs them without optional tracking');
 assert.match(swift['EaserSupport.swift'], /scheme == "https" \|\| scheme == "http" else \{\s*return \.systemAction/, 'calls, email and Settings keep their system behaviour');
 assert.match(swift['EaserViews.swift'], /\.environment\(\\.openURL, InAppBrowser\.action \{[\s\S]{0,160}store\.refresh\(\)/, 'every link in the app opens in the sheet, and closing it refreshes setup status');
 assert.match(swift['EaserAccountViews.swift'], /onChange\(of: store\.browserCloses\)[\s\S]{0,400}loadPayouts\(afterStripe: true\)/, 'payout status reloads when the Easer closes Stripe');

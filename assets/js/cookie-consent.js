@@ -54,7 +54,22 @@
   // not Apple's tracking permission; customer routes must keep Ads/CRM off too.
   function isNativeApp() {
     var cap = window.Capacitor;
-    return !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
+    if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) return true;
+    return isStoreAppBrowser();
+  }
+  // The native iPhone apps open site pages (terms, privacy, apply) in an in-app
+  // Safari sheet tagged ?aae_app=1. App Review, 2026-10-28 (Guideline 5.1.2):
+  // optional tracking there needs App Tracking Transparency, so those pages run
+  // with none. That sheet keeps its own storage, apart from Safari's, so the
+  // remembered flag never reaches ordinary website visits.
+  function isStoreAppBrowser() {
+    var tagged = /[?&]aae_app=1(?:&|$)/.test(window.location.search || '');
+    try {
+      if (tagged) localStorage.setItem('aae-store-app', '1');
+      return localStorage.getItem('aae-store-app') === '1';
+    } catch (e) {
+      return tagged;
+    }
   }
   function measurementExcluded() {
     if (isNativeApp()) return true;
