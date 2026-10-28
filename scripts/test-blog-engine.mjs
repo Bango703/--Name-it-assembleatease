@@ -105,6 +105,8 @@ const article = engine.validateArticleData(draft(), { allowedPrices: facts.price
   assert.match(built.html, /"@type":"FAQPage"/);
   assert.match(built.html, /<h2 id="faq">Frequently asked questions<\/h2>/);
   assert.match(built.html, /"@type":"BlogPosting"/);
+  assert.match(built.html, /href="\/blog"/, 'blog index links use the canonical no-trailing-slash URL');
+  assert.doesNotMatch(built.html, /href="\/blog\/"/, 'blog article generation has no internal redirect link');
   assert.match(built.html, /href="\/book\?service=Mounting\+%26\+Hanging"/);
   const title = built.html.match(/<title>([^<]*)<\/title>/)[1];
   assert.ok(title.length <= 70, `title fits (${title.length})`);
