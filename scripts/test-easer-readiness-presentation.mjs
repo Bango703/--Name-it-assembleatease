@@ -9,6 +9,7 @@ import { CONTRACTOR_AGREEMENT_VERSION } from '../api/_assembler-onboarding.js';
 import { normalizeAssemblerProfile } from '../api/_assembler-state.js';
 import { hasEffectiveEaserMembership } from '../api/_easer-membership.js';
 import { inspectApplicationText } from '../api/booking/_relay-contact-guard.js';
+import { workActivityFor } from '../api/_easer-work-activity.js';
 
 const baseProfile = {
   ...Object.fromEntries(EASER_READINESS_FIELDS.map(field => [field, null])),
@@ -173,6 +174,11 @@ async function callHandler(kind, profiles, options = {}) {
     Stripe: MockStripe,
     isSmsEnabled: () => true,
     smsEligibility: () => ({ ok: true }),
+    // The roster's work activity reads bookings and decisions; this test is
+    // about readiness, so those reads return nothing (scripts/test-easer-acceptance-all-jobs.mjs).
+    loadOpenWork: async () => new Map(),
+    loadAcceptanceTallies: async () => ({ tallies: new Map(), error: null }),
+    workActivityFor,
   });
   const res = {
     status(code) { this.statusCode = code; return this; },

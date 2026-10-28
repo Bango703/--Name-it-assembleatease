@@ -9,7 +9,7 @@ import {
   tallyAcceptance, acceptanceRateFor, isNonOfferAcceptLog, loadAcceptanceTallies,
   ACCEPTANCE_MIN_DECISIONS,
 } from '../api/_easer-acceptance.js';
-import { loadOpenWork, workActivityFor } from '../api/assembler/list.js';
+import { loadOpenWork, workActivityFor } from '../api/_easer-work-activity.js';
 
 const read = rel => readFile(new URL(`../${rel}`, import.meta.url), 'utf8').then(s => s.replace(/\r\n/g, '\n'));
 
