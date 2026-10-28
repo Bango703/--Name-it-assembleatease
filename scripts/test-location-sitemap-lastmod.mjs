@@ -50,7 +50,8 @@ try {
   // search index policy are never in the sitemap.
   const newUrl = url('furniture-assembly-round-rock-tx');
   assert.ok(originalEntries.has(newUrl), 'Fixture needs the existing Round Rock service URL');
-  assert.ok(!originalEntries.has(url('furniture-assembly-lubbock-tx')), 'Statewide pages outside the index policy stay out of the sitemap');
+  assert.ok(!originalEntries.has(url('furniture-assembly-el-paso-tx')), 'Statewide pages outside the index policy stay out of the sitemap');
+  assert.ok(originalEntries.has(url('furniture-assembly-lubbock-tx')), 'Cities an active Easer covers stay in the sitemap');
   const input = original.replace(/<url>[\s\S]*?<\/url>/g, (entry) => {
     const loc = entry.match(/<loc>([^<]+)<\/loc>/)[1];
     if (loc === newUrl) return '';

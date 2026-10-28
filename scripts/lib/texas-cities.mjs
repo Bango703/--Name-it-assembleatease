@@ -319,11 +319,37 @@ export const ALL_TEXAS_CITIES = [...CITIES, ...STATEWIDE_MARKETS];
 //   - the Austin metro (where the business is based): every service
 //   - the four largest Texas metros the owner actively markets (owner,
 //     2026-10-27: every service there too)
+//   - every city an active Easer can reach (owner, 2026-10-28: "all areas we
+//     have Easers already can stay"), listed below with the Easer area that
+//     covers it
 // Everything else is `noindex, follow` and left out of sitemap.xml.
 export const INDEXED_MAJOR_METROS = Object.freeze(new Set(['dallas', 'houston', 'san-antonio', 'fort-worth']));
+
+// Cities covered by an active Easer, from the owner roster on 2026-10-28. Where
+// the Easer is in a dispatch market (api/_source-of-truth.js SERVICE_MARKETS),
+// the market's cities are listed; Dallas-area and Tyler Easers have no market
+// yet, so their own 3-digit ZIP area is used. Laredo is in the san_antonio
+// market's ZIP prefixes but about 150 miles out, so it is not listed. Add a
+// city here when an Easer starts covering it.
+export const EASER_COVERED_CITIES = Object.freeze({
+  // houston market — Easer in 77002
+  pasadena: 'houston', pearland: 'houston', 'sugar-land': 'houston', 'league-city': 'houston',
+  baytown: 'houston', 'the-woodlands': 'houston', conroe: 'houston',
+  // san_antonio market — Easers in 78240, 78245, 78006
+  'new-braunfels': 'san-antonio',
+  // lubbock market — Easer in 79413
+  lubbock: 'lubbock',
+  // Dallas ZIP area (750-753) — Easers in 75227 and 75409
+  plano: 'dallas', frisco: 'dallas', mckinney: 'dallas', allen: 'dallas', richardson: 'dallas',
+  garland: 'dallas', mesquite: 'dallas', irving: 'dallas', 'grand-prairie': 'dallas',
+  // Tyler ZIP area (757) — Easer in 75791
+  tyler: 'tyler',
+});
+
 export const INDEXED_EASER_JOB_CITIES = Object.freeze(new Set([
   ...CITIES.map((city) => city.slug),
   ...INDEXED_MAJOR_METROS,
+  ...Object.keys(EASER_COVERED_CITIES),
 ]));
 
 export function isAustinMetroCity(citySlug) {
@@ -331,7 +357,9 @@ export function isAustinMetroCity(citySlug) {
 }
 
 export function isIndexedLocationPage(citySlug) {
-  return isAustinMetroCity(citySlug) || INDEXED_MAJOR_METROS.has(citySlug);
+  return isAustinMetroCity(citySlug)
+    || INDEXED_MAJOR_METROS.has(citySlug)
+    || Object.hasOwn(EASER_COVERED_CITIES, citySlug);
 }
 
 export function isIndexedEaserJobsPage(citySlug) {
