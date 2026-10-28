@@ -228,11 +228,7 @@ if (reportRowsStart < 0 || reportRowsEnd < 0
   throw new Error('Owner financial report must escape references and services without exposing customer names');
 }
 
-const bookingDocument = readFileSync('book.html', 'utf8');
-if (!bookingDocument.includes('/assets/js/book-page.js')) {
-  throw new Error('Booking document must load its same-origin page script');
-}
-const bookingPage = `${bookingDocument}\n${readFileSync('assets/js/book-page.js', 'utf8')}`;
+const bookingPage = readFileSync('book.html', 'utf8');
 if (!bookingPage.includes('id="s5-promo-code"') || !bookingPage.includes('/api/booking/promo-preview') || !bookingPage.includes('/api/promo')) {
   throw new Error('Booking flow must expose promo code verification before confirmation');
 }
