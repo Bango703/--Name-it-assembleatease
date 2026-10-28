@@ -3,6 +3,7 @@ import {
   TERMINAL_BOOKING_STATUSES,
   isTerminalBookingStatus,
 } from './_source-of-truth.js';
+import { isOpenCustomQuote } from './booking/_quote-state.js';
 
 /**
  * _stranded-bookings-core.js — the ONE answer to "which real bookings is nobody
@@ -69,6 +70,11 @@ export function isStranded(booking, { now = Date.now(), minutes = STRANDED_AFTER
   if (booking.is_test_booking === true) return false;
   // Someone has it.
   if (booking.assembler_id) return false;
+  // A custom quote is not a job until the customer approves it, and its total is
+  // only the preliminary estimate. The owner's unpriced quotes are chased by
+  // ops-alert in their own words (2026-10-28: Tyler Finn's Smart Home request
+  // was reported here as a $353.98 paid booking dispatch had given up on).
+  if (isOpenCustomQuote(booking)) return false;
   // Another cron owns this state and is already chasing it.
   if (WATCHED_ELSEWHERE.includes(status)) return false;
 
@@ -88,8 +94,13 @@ export function strandedReason(booking) {
   if (payment === 'authorization_released') {
     return 'The card authorization was released before the job was dispatched. No Easer was ever offered it.';
   }
-  if (dispatch === 'manual_required' || booking?.needs_manual_dispatch) {
+  if (dispatch === 'manual_required') {
     return 'Automatic dispatch gave up and flagged this for manual assignment. It is still unassigned.';
+  }
+  // Set when the booking is created outside the automatic-dispatch area;
+  // dispatch never ran, so it did not give up.
+  if (booking?.needs_manual_dispatch) {
+    return 'It is outside the automatic dispatch area, so it needs assigning by hand. It is still unassigned.';
   }
   if (booking?.dispatch_paused) {
     return 'Dispatch is paused on this booking and no Easer has been assigned.';
@@ -107,7 +118,7 @@ export async function findStrandedBookings(sb, { now = Date.now(), minutes = STR
   const { data, error } = await sb
     .from('bookings')
     .select('id, ref, status, service, date, time, total_price, customer_name, customer_email, customer_phone, '
-      + 'assembler_id, payment_status, dispatch_status, dispatch_paused, needs_manual_dispatch, source, is_test_booking, created_at')
+      + 'assembler_id, payment_status, payment_method_type, dispatch_status, dispatch_paused, needs_manual_dispatch, source, is_test_booking, created_at')
     .not('status', 'in', `(${TERMINAL_BOOKING_STATUSES.join(',')})`)
     .is('assembler_id', null)
     .order('created_at', { ascending: false })

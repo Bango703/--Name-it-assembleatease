@@ -9,7 +9,10 @@ import { rateLimit } from '../_ratelimit.js';
 import { randomToken, sha256 } from '../_payment-security.js';
 import { validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
 import { logActivity } from '../booking/_activity.js';
-import { isQuoteAwaitingPrice, quoteNeedsCardAtApproval } from '../booking/_quote-state.js';
+import { isQuoteAwaitingPrice, quoteNeedsCardAtApproval, normalizeQuoteSlot, quoteSlotStillOpen } from '../booking/_quote-state.js';
+import { BOOKING_TIME_SLOTS } from '../booking/_booking-slots.js';
+import { validateBookingWindowDate } from '../booking/_booking-window.js';
+import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { normalizePersonName } from '../_person-name.js';
 
 const QUOTE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -27,7 +30,7 @@ export default async function handler(req, res) {
 }
 
 async function prepareQuote(req, res) {
-  const { bookingId, finalPriceCents } = req.body || {};
+  const { bookingId, finalPriceCents, date, time } = req.body || {};
   const priceCents = Number.parseInt(finalPriceCents, 10);
   if (!bookingId) return res.status(400).json({ error: 'bookingId required' });
   if (!Number.isInteger(priceCents) || priceCents < 100 || priceCents > MAX_QUOTE_CENTS) {
@@ -70,6 +73,27 @@ async function prepareQuote(req, res) {
     });
   }
 
+  // The quote carries the appointment the customer approves. The owner may set a
+  // new date and time; the one asked for must still be bookable either way.
+  let nextDate = booking.date;
+  let nextTime = booking.time;
+  if (date != null || time != null) {
+    const slot = normalizeQuoteSlot(time ?? booking.time);
+    const window = validateBookingWindowDate(date ?? booking.date);
+    if (!BOOKING_TIME_SLOTS.includes(slot) || !window.ok) {
+      return res.status(400).json({ error: 'Choose a date inside the booking window and one of the published time windows.', code: 'QUOTE_DATE_INVALID' });
+    }
+    nextDate = window.requestedIso;
+    nextTime = slot;
+  }
+  if (!quoteSlotStillOpen({ date: nextDate, time: nextTime })) {
+    return res.status(409).json({
+      error: 'The appointment time on this quote has passed or is too soon to staff. Choose a new date and time before sending it.',
+      code: 'QUOTE_DATE_PASSED',
+    });
+  }
+  const dateChanged = nextDate !== booking.date || nextTime !== booking.time;
+
   const subtotalCents = Math.round(priceCents / 1.0825);
   const taxCents = priceCents - subtotalCents;
   const token = randomToken(32);
@@ -80,6 +104,8 @@ async function prepareQuote(req, res) {
   let quoteUpdate = sb.from('bookings').update({
     quote_amount_cents: priceCents,
     quote_subtotal_cents: subtotalCents,
+    date: nextDate,
+    time: nextTime,
     quote_tax_cents: taxCents,
     quote_token_hash: tokenHash,
     quote_sent_at: now.toISOString(),
@@ -112,6 +138,19 @@ async function prepareQuote(req, res) {
         ? 'Could not save the quote approval request.'
         : 'Booking state changed before the quote could be saved. Refresh and review it before retrying.',
     });
+  }
+
+  if (dateChanged) {
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'quote_date_set',
+      actorType: 'owner',
+      actorName: 'Owner',
+      description: `Quote sent for ${nextDate} ${nextTime} (customer asked for ${booking.date || 'no date'} ${booking.time || ''})`.trim(),
+      metadata: { fromDate: booking.date, fromTime: booking.time, toDate: nextDate, toTime: nextTime },
+    });
+    booking.date = nextDate;
+    booking.time = nextTime;
   }
 
   const site = process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com';
@@ -159,6 +198,9 @@ async function renderQuoteApproval(req, res) {
   if (!booking.quote_expires_at || Date.parse(booking.quote_expires_at) <= Date.now()) {
     return res.status(410).send(buildSimplePage('This quote has expired.', 'Contact AssembleAtEase and we will issue a fresh quote for your review.'));
   }
+  if (booking.payment_status === 'quote_pending_approval' && !quoteSlotStillOpen(booking)) {
+    return res.status(409).send(buildSimplePage('The time on this quote has passed.', `The appointment you asked for (${esc(formatAppointmentDate(booking.date))}, ${esc(booking.time || '')}) is no longer available. We will send you an updated quote with a new time. Nothing has been booked or held on your card.`));
+  }
 
   const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY || '';
   if (!publishableKey) {
@@ -205,6 +247,14 @@ async function authorizeCustomerApprovedQuote(req, res) {
     return res.status(409).json({ error: 'This quote is missing secure payment details. Contact AssembleAtEase.' });
   }
   const cardAtApproval = quoteNeedsCardAtApproval(booking);
+  // Starting approval needs a time that can still be staffed. Finalizing is not
+  // re-checked: the card hold already went through moments ago.
+  if (action === 'authorize' && !booking.stripe_payment_intent_id && !quoteSlotStillOpen(booking)) {
+    return res.status(409).json({
+      error: 'The appointment time on this quote has passed. We will send you an updated quote with a new time. Nothing has been held on your card.',
+      code: 'QUOTE_DATE_PASSED',
+    });
+  }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -536,11 +586,11 @@ export function buildApprovalPage({ booking, token, publishableKey, needsCard = 
   const cardField = needsCard
     ? '<label for="card" style="display:block;font-size:14px;font-weight:700;margin:18px 0 8px">Card</label><div id="card" style="padding:12px;border:1px solid #d4d4d8;border-radius:8px;background:#fff"></div><p id="card-err" class="msg" style="color:#b91c1c;margin-top:8px"></p>'
     : '';
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Approve quote — AssembleAtEase</title><script src="https://js.stripe.com/v3/"></script><style>body{margin:0;background:#f4f4f5;color:#18181b;font-family:Arial,sans-serif}.card{max-width:560px;margin:40px auto;background:#fff;border:1px solid #e4e4e7;border-radius:14px;padding:28px}.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f4f4f5}.total{font-size:20px;font-weight:800}.terms{margin:20px 0;padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;line-height:1.6}.btn{width:100%;padding:14px;border:0;border-radius:8px;background:#00BFFF;color:#002b3a;font-size:16px;font-weight:800;cursor:pointer}.btn:disabled{opacity:.55}.msg{font-size:14px;line-height:1.6;margin-top:14px}</style></head><body><main class="card"><h1>Review your quote, ${firstName}</h1><p>Booking <strong>${esc(booking.ref)}</strong> for ${esc(booking.service)}</p><div class="row"><span>Service subtotal</span><strong>$${subtotal}</strong></div><div class="row"><span>Texas sales tax</span><strong>$${tax}</strong></div><div class="row total"><span>Total</span><span>$${total}</span></div><div class="terms"><strong>Payment and cancellation:</strong> Approving places a hold of $${total} on your card. You are charged after the work is done. Cancellation is free until 24 hours before the appointment. A 10% fee on the service subtotal applies inside 24 hours, or 15% once a pro is on the way; tax is not included in a cancellation fee.</div>${cardField}<button class="btn" id="approve"${needsCard ? ' disabled' : ''}>Approve quote and hold $${total}</button><p class="msg" id="msg"></p></main><script>const stripe=Stripe(${JSON.stringify(publishableKey)});const token=${JSON.stringify(token)};const needsCard=${needsCard ? 'true' : 'false'};const btn=document.getElementById('approve');const msg=document.getElementById('msg');let card=null;if(needsCard){card=stripe.elements().create('card',{hidePostalCode:false});card.mount('#card');card.on('change',e=>{btn.disabled=!e.complete;document.getElementById('card-err').textContent=e.error?e.error.message:'';});}btn.onclick=async()=>{btn.disabled=true;msg.textContent='Approving…';try{let r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'authorize'})});let d=await r.json();if(!r.ok)throw new Error(d.error||'The approval could not start.');if(d.confirmed){msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';return;}const result=needsCard?await stripe.confirmCardPayment(d.clientSecret,{payment_method:{card}}):await stripe.confirmCardPayment(d.clientSecret);if(result.error)throw new Error(result.error.message);r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'finalize'})});d=await r.json();if(!r.ok)throw new Error(d.error||'The approval could not be saved.');msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';if(card)card.unmount();}catch(e){msg.textContent=e.message;btn.disabled=false;}};</script></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Approve quote — AssembleAtEase</title><script src="https://js.stripe.com/v3/"></script><style>body{margin:0;background:#f4f4f5;color:#18181b;font-family:Arial,sans-serif}.card{max-width:560px;margin:40px auto;background:#fff;border:1px solid #e4e4e7;border-radius:14px;padding:28px}.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f4f4f5}.total{font-size:20px;font-weight:800}.terms{margin:20px 0;padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;line-height:1.6}.btn{width:100%;padding:14px;border:0;border-radius:8px;background:#00BFFF;color:#002b3a;font-size:16px;font-weight:800;cursor:pointer}.btn:disabled{opacity:.55}.msg{font-size:14px;line-height:1.6;margin-top:14px}</style></head><body><main class="card"><h1>Review your quote, ${firstName}</h1><p>Booking <strong>${esc(booking.ref)}</strong> for ${esc(booking.service)}</p><div class="row"><span>Appointment</span><strong>${esc(formatAppointmentDate(booking.date))}, ${esc(booking.time || '')}</strong></div><div class="row"><span>Service subtotal</span><strong>$${subtotal}</strong></div><div class="row"><span>Texas sales tax</span><strong>$${tax}</strong></div><div class="row total"><span>Total</span><span>$${total}</span></div><div class="terms"><strong>Payment and cancellation:</strong> Approving places a hold of $${total} on your card. You are charged after the work is done. Cancellation is free until 24 hours before the appointment. A 10% fee on the service subtotal applies inside 24 hours, or 15% once a pro is on the way; tax is not included in a cancellation fee.</div>${cardField}<button class="btn" id="approve"${needsCard ? ' disabled' : ''}>Approve quote and hold $${total}</button><p class="msg" id="msg"></p></main><script>const stripe=Stripe(${JSON.stringify(publishableKey)});const token=${JSON.stringify(token)};const needsCard=${needsCard ? 'true' : 'false'};const btn=document.getElementById('approve');const msg=document.getElementById('msg');let card=null;if(needsCard){card=stripe.elements().create('card',{hidePostalCode:false});card.mount('#card');card.on('change',e=>{btn.disabled=!e.complete;document.getElementById('card-err').textContent=e.error?e.error.message:'';});}btn.onclick=async()=>{btn.disabled=true;msg.textContent='Approving…';try{let r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'authorize'})});let d=await r.json();if(!r.ok)throw new Error(d.error||'The approval could not start.');if(d.confirmed){msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';return;}const result=needsCard?await stripe.confirmCardPayment(d.clientSecret,{payment_method:{card}}):await stripe.confirmCardPayment(d.clientSecret);if(result.error)throw new Error(result.error.message);r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'finalize'})});d=await r.json();if(!r.ok)throw new Error(d.error||'The approval could not be saved.');msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';if(card)card.unmount();}catch(e){msg.textContent=e.message;btn.disabled=false;}};</script></body></html>`;
 }
 
 function buildQuoteReadyEmail({ booking, subtotalCents, taxCents, priceCents, approvalUrl, expiresAt }) {
-  return `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;padding:24px;color:#18181b"><h2>Your custom quote is ready</h2><p>Hi ${esc(normalizePersonName(String(booking.customer_name || '').trim().split(/\s+/)[0] || 'there'))}, review the price and terms, then approve to book.</p><table width="100%" style="font-size:14px"><tr><td style="padding:8px 0">Service subtotal</td><td style="text-align:right">$${(subtotalCents / 100).toFixed(2)}</td></tr><tr><td style="padding:8px 0">Texas sales tax</td><td style="text-align:right">$${(taxCents / 100).toFixed(2)}</td></tr><tr><td style="padding:10px 0;font-weight:700">Total</td><td style="text-align:right;font-weight:700">$${(priceCents / 100).toFixed(2)}</td></tr></table><p style="text-align:center;margin:24px 0"><a href="${esc(approvalUrl)}" style="display:inline-block;background:#00BFFF;color:#002b3a;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:700">Review and approve quote</a></p><p style="font-size:13px;color:#52525b">This secure link expires ${esc(expiresAt.toLocaleDateString('en-US', { timeZone: 'America/Chicago' }))}. Nothing is booked and nothing is held on a card until you approve.</p></div>`;
+  return `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;padding:24px;color:#18181b"><h2>Your custom quote is ready</h2><p>Hi ${esc(normalizePersonName(String(booking.customer_name || '').trim().split(/\s+/)[0] || 'there'))}, review the price and terms, then approve to book.</p><table width="100%" style="font-size:14px"><tr><td style="padding:8px 0">Appointment</td><td style="text-align:right">${esc(formatAppointmentDate(booking.date))}, ${esc(booking.time || '')}</td></tr><tr><td style="padding:8px 0">Service subtotal</td><td style="text-align:right">$${(subtotalCents / 100).toFixed(2)}</td></tr><tr><td style="padding:8px 0">Texas sales tax</td><td style="text-align:right">$${(taxCents / 100).toFixed(2)}</td></tr><tr><td style="padding:10px 0;font-weight:700">Total</td><td style="text-align:right;font-weight:700">$${(priceCents / 100).toFixed(2)}</td></tr></table><p style="text-align:center;margin:24px 0"><a href="${esc(approvalUrl)}" style="display:inline-block;background:#00BFFF;color:#002b3a;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:700">Review and approve quote</a></p><p style="font-size:13px;color:#52525b">This secure link expires ${esc(expiresAt.toLocaleDateString('en-US', { timeZone: 'America/Chicago' }))}. Nothing is booked and nothing is held on a card until you approve.</p></div>`;
 }
 
 function buildSimplePage(title, body) {
