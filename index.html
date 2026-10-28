@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="description" content="Furniture assembly, TV mounting, and smart home setup in Austin and across Texas. Rated 5.0 on Google, upfront pricing, no charge until the job is done."/>
 <link rel="canonical" href="https://www.assembleatease.com/"/>
-<link rel="preload" as="image" href="/images/hero-pro-mobile.jpg" media="(max-width: 1023px)" fetchpriority="high"/>
+<link rel="preload" as="image" type="image/webp" imagesrcset="/images/hero-pro-mobile-672.webp 672w, /images/hero-pro-mobile-768.webp 768w" imagesizes="(max-width: 899px) calc(100vw - 2rem), 50vw" media="(max-width: 1023px)" fetchpriority="high"/>
 <link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 
 <meta property="og:type" content="website"/>
@@ -32,6 +32,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
 <style>
+:root{--cyan-dark:#006b8b}
 /* -----------------------------------------------------
    NAV
 ----------------------------------------------------- */
@@ -227,7 +228,7 @@ section#service-area{display:block}
 /* -----------------------------------------------------
    CTA SECTION
 ----------------------------------------------------- */
-.cta-section{background:linear-gradient(140deg,#00BFFF,#0099CC);padding:5rem 2rem;text-align:center}
+.cta-section{background:linear-gradient(140deg,#006e8a,#00566e);padding:5rem 2rem;text-align:center}
 .cta-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem}
 .cta-desc{font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2.5rem;line-height:1.7}
 .cta-section .btn-white,.cta-section .btn-ghost-white{padding:1rem 2.75rem;font-size:1rem;min-height:52px}
@@ -275,6 +276,7 @@ section#service-area{display:block}
 .m-proof strong{display:block;color:#0d1117;font-size:0.8rem;line-height:1.1}
 .m-proof span{display:block;color:#667085;font-size:0.66rem;margin-top:3px}
 .m-hero-photo{position:relative;min-height:196px;aspect-ratio:3/2;border-radius:18px;overflow:hidden;background:#dfe8ec;box-shadow:0 18px 42px rgba(1,30,42,0.16)}
+.m-hero-photo picture{display:block;width:100%;height:100%}
 .m-hero-photo img{width:100%;height:100%;min-height:196px;object-fit:cover;object-position:center 28%;display:block}
 .m-hero-photo::after{content:'';position:absolute;inset:52% 0 0;background:linear-gradient(180deg,rgba(0,31,43,0) 0%,rgba(0,31,43,0.54) 100%);pointer-events:none}
 .m-float-card{position:absolute;z-index:2;left:12px;right:12px;bottom:12px;background:rgba(255,255,255,0.96);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.85);border-radius:12px;padding:11px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 8px 22px rgba(0,0,0,0.13);animation:mFloatCard 5.5s ease-in-out infinite}
@@ -290,7 +292,7 @@ section#service-area{display:block}
 .svc-list{padding:0 1.25rem 0.5rem}
 .svc-list-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;padding:6px 0 10px}
 .svc-list-heading h2{font-family:var(--font-display);font-size:1.45rem;font-weight:400;color:var(--ink);line-height:1.05}
-.svc-list-heading a{font-size:0.8rem;font-weight:800;color:var(--cyan);text-decoration:none;white-space:nowrap}
+.svc-list-heading a{font-size:0.8rem;font-weight:800;color:var(--cyan-dark);text-decoration:none;white-space:nowrap}
 .svc-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);text-decoration:none;-webkit-tap-highlight-color:transparent}
 .svc-item:last-child{border-bottom:none}
 .svc-item:active{opacity:0.7}
@@ -298,6 +300,7 @@ section#service-area{display:block}
 
 /* Thumbnails &mdash; unique color per service */
 .svc-item-thumb{width:54px;height:54px;border-radius:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.svc-item-thumb picture{display:block;width:100%;height:100%}
 .svc-item-thumb svg{width:25px;height:25px;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 .svc-item-thumb img{width:100%;height:100%;object-fit:contain;object-position:center center;background:#eef8fb;display:block;border-radius:inherit}
 .svc-t-assembly{background:rgba(0,191,255,0.1)}
@@ -462,7 +465,7 @@ section#service-area{display:block}
 /* -----------------------------------------------------
    FOOTER TWEAKS
 ----------------------------------------------------- */
-.footer-contact a{display:flex;align-items:center;gap:6px}
+.footer-contact a{display:flex;align-items:center;gap:6px;min-height:44px}
 .footer-contact a svg{stroke:rgba(255,255,255,0.5);flex-shrink:0;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 
 
@@ -733,7 +736,10 @@ section#service-area{display:block}
     <div class="m-hero-title" aria-hidden="true">Furniture assembly &amp; TV mounting in Austin.</div>
     <p class="m-hero-copy">Book assembly, mounting, and setup work with upfront pricing, reviewed local pros, and payment after completion.</p>
     <div class="m-hero-photo">
-      <img src="/images/hero-pro-mobile.jpg" alt="AssembleAtEase pro assembling furniture in a home" width="768" height="512" fetchpriority="high" decoding="async">
+      <picture>
+        <source type="image/webp" srcset="/images/hero-pro-mobile-672.webp 672w, /images/hero-pro-mobile-768.webp 768w" sizes="(max-width: 899px) calc(100vw - 2rem), 50vw">
+        <img src="/images/hero-pro-mobile.jpg" alt="AssembleAtEase pro assembling furniture in a home" width="768" height="512" fetchpriority="high" decoding="async">
+      </picture>
     </div>
     <div class="m-hero-proof">
       <span class="m-hero-stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
@@ -797,7 +803,7 @@ section#service-area{display:block}
 
     <a href="/book?service=Furniture+Assembly" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-assembly">
-        <img src="/images/mobile-service-furniture-assembly.jpg" alt="Furniture assembly" loading="lazy" decoding="async" width="160" height="160">
+        <picture><source type="image/webp" srcset="/images/mobile-service-furniture-assembly-128.webp"><img src="/images/mobile-service-furniture-assembly.jpg" alt="Furniture assembly" loading="lazy" decoding="async" width="160" height="160"></picture>
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -812,7 +818,7 @@ section#service-area{display:block}
 
     <a href="/book?service=Mounting+%26+Hanging" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-mounting">
-        <img src="/images/mobile-service-tv-mounting.jpg" alt="TV mounting" loading="lazy" decoding="async" width="160" height="160">
+        <picture><source type="image/webp" srcset="/images/mobile-service-tv-mounting-128.webp"><img src="/images/mobile-service-tv-mounting.jpg" alt="TV mounting" loading="lazy" decoding="async" width="160" height="160"></picture>
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -827,7 +833,7 @@ section#service-area{display:block}
 
     <a href="/book?service=Fitness+Equipment" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-moving">
-        <img src="/images/mobile-service-fitness-equipment.jpg" alt="Fitness equipment assembly" loading="lazy" decoding="async" width="160" height="160">
+        <picture><source type="image/webp" srcset="/images/mobile-service-fitness-equipment-128.webp"><img src="/images/mobile-service-fitness-equipment.jpg" alt="Fitness equipment assembly" loading="lazy" decoding="async" width="160" height="160"></picture>
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -841,7 +847,7 @@ section#service-area{display:block}
 
     <a href="/book?service=Outdoor+%26+Playsets" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-repairs">
-        <img src="/images/mobile-service-outdoor-playsets.jpg" alt="Outdoor and playset assembly" loading="lazy" decoding="async" width="160" height="160">
+        <picture><source type="image/webp" srcset="/images/mobile-service-outdoor-playsets-128.webp"><img src="/images/mobile-service-outdoor-playsets.jpg" alt="Outdoor and playset assembly" loading="lazy" decoding="async" width="160" height="160"></picture>
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -855,7 +861,7 @@ section#service-area{display:block}
 
     <a href="/book?service=Office+Assembly" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-smarthome">
-        <img src="/images/mobile-service-office-assembly.jpg" alt="Office furniture assembly" loading="lazy" decoding="async" width="160" height="160">
+        <picture><source type="image/webp" srcset="/images/mobile-service-office-assembly-128.webp"><img src="/images/mobile-service-office-assembly.jpg" alt="Office furniture assembly" loading="lazy" decoding="async" width="160" height="160"></picture>
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -869,7 +875,7 @@ section#service-area{display:block}
 
     <a href="/book?service=Smart+Home" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-smarthome">
-        <img src="/images/mobile-service-smart-home.jpg" alt="Smart home installation" loading="lazy" decoding="async" width="160" height="160">
+        <picture><source type="image/webp" srcset="/images/mobile-service-smart-home-128.webp"><img src="/images/mobile-service-smart-home.jpg" alt="Smart home installation" loading="lazy" decoding="async" width="160" height="160"></picture>
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -1236,7 +1242,7 @@ section#service-area{display:block}
       +'<div style="display:flex;align-items:center;gap:0.45rem;padding-top:0.55rem;border-top:1px solid #f3f4f6">'
       +'<div style="width:26px;height:26px;border-radius:50%;background:'+clr(r.n)+';display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;color:#fff;flex-shrink:0">'+ini(r.n)+'</div>'
       +'<div><div style="font-size:0.75rem;font-weight:700;color:#111">'+esc(r.n)+'</div>'
-      +'<div style="font-size:0.65rem;color:#9ca3af">'+esc(r.d)+'</div></div></div>'
+      +'<div style="font-size:0.65rem;color:#5b6676">'+esc(r.d)+'</div></div></div>'
       +'</div>';
   }
   var t=document.getElementById("rv-track");
