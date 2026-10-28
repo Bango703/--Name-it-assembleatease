@@ -125,6 +125,7 @@ const read = rel => readFile(new URL(`../${rel}`, import.meta.url), 'utf8').then
   assert.match(owner, /<strong>Acceptance \(' \+ \(acc \? acc\.windowDays : 30\) \+ ' days\):<\/strong>/);
   assert.match(owner, /<strong>Acceptance \(all time\):<\/strong>/);
   assert.doesNotMatch(owner, /Active Jobs Today/, 'the nightly counter is no longer shown as current work');
+  assert.match(owner, /id="asm-table"[\s\S]{0,2500}>Completed jobs<\/th>/, 'the roster column says what it counts');
   console.log('PASS the tier job and the owner dashboard count the same decisions');
 }
 
