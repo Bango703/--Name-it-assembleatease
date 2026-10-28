@@ -1,3 +1,4 @@
+/* global formatUsPhone, Stripe */
 
 
 // ----------------------------------------------------------------------------
@@ -6,6 +7,7 @@
 
 // ----------------------------------------------------------------------------
 
+/* eslint-disable-next-line no-redeclare -- This classic script intentionally reuses the catalog global loaded before it. */
 var AAE_BOOKING_SOURCE = window.AAE_BOOKING_SOURCE || {};
 
 var SUBCATS = AAE_BOOKING_SOURCE.subcategories || {};
@@ -2869,7 +2871,7 @@ async function goToStep5Payment() {
 
   if (!EMAIL_RE.test(email)) { fieldErr('s4-email','s4-email-err',true); ok=false; } else fieldErr('s4-email','s4-email-err',false);
 
-  if (!isValidUsPhone(phone)) { fieldErr('s4-phone','s4-phone-err',true); var pw=document.getElementById('s4-phone-wrap'); if(pw) pw.style.borderColor='#ef4444'; ok=false; } else { fieldErr('s4-phone','s4-phone-err',false); var pw=document.getElementById('s4-phone-wrap'); if(pw) pw.style.borderColor=''; }
+  if (!isValidUsPhone(phone)) { fieldErr('s4-phone','s4-phone-err',true); var pw=document.getElementById('s4-phone-wrap'); if(pw) pw.style.borderColor='#ef4444'; ok=false; } else { fieldErr('s4-phone','s4-phone-err',false); pw=document.getElementById('s4-phone-wrap'); if(pw) pw.style.borderColor=''; }
 
   if (!ok) return;
 
@@ -3255,7 +3257,7 @@ async function saveDtEdit() {
     return;
   }
 
-  var scheduleErr = document.getElementById('s5-err');
+  scheduleErr = document.getElementById('s5-err');
   if (scheduleErr) scheduleErr.classList.remove('show');
 
   var previousDate = BOOK.date;
@@ -3326,7 +3328,7 @@ function saveContactEdit() {
     return;
   }
 
-  var contactErr = document.getElementById('s5-err');
+  contactErr = document.getElementById('s5-err');
   if (contactErr) contactErr.classList.remove('show');
 
   phone = formatUsPhoneForDisplay(phone);
