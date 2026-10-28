@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
-const bookingPage = await readFile(new URL('../book.html', import.meta.url), 'utf8');
+const bookingDocument = await readFile(new URL('../book.html', import.meta.url), 'utf8');
+const bookingScript = await readFile(new URL('../assets/js/book-page.js', import.meta.url), 'utf8');
+assert.match(bookingDocument, /<script src="\/assets\/js\/book-page\.js"><\/script>/);
+const bookingPage = `${bookingDocument}\n${bookingScript}`;
 
 // The extras step must offer the complete catalog without steering customers
 // toward one unrelated service.
