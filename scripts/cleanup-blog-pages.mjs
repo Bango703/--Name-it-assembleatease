@@ -678,7 +678,7 @@ ${group.posts.map(card).join('\n')}
 <script type="application/ld+json">${JSON.stringify(indexJson)}</script>
 </head>
 <body>
-${nav('/blog/')}<main id="main-content">
+${nav('/blog')}<main id="main-content">
   <section class="page-hero">
     <div class="page-hero-inner">
       <a href="/" class="page-back">Back to Home</a>

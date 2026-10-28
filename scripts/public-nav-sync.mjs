@@ -11,7 +11,7 @@ function resolveNavOptions(pagePath) {
 
   if (pagePath === 'index.html') return { variant: 'home', includeSkipNav: false };
   if (pageType === 'blog_index' || pageType === 'blog_article') {
-    return { variant: 'blog', includeSkipNav: true, activeHref: pagePath === 'blog/index.html' ? '/blog/' : '' };
+    return { variant: 'blog', includeSkipNav: true, activeHref: pagePath === 'blog/index.html' ? '/blog' : '' };
   }
   if (pageType === 'flagship_service' || pageType === 'city_service') {
     return { variant: 'service', includeSkipNav: true };
