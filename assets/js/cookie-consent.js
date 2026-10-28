@@ -138,7 +138,7 @@
       '#cookie-banner.hidden{display:none}' +
       '.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}' +
       '.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}' +
-      '.cookie-accept{background:#00BFFF;color:#fff}' +
+      '.cookie-accept{background:#006b8b;color:#fff}' +
       '.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}' +
       '@media(max-width:680px){#cookie-banner{left:0.75rem;right:0.75rem;bottom:0.75rem;border-radius:14px;padding:0.85rem;display:block;font-size:0.78rem;line-height:1.45}.cookie-btns{display:flex;gap:0.5rem;margin-top:0.75rem}.cookie-btn{flex:1;min-height:44px;padding:0.55rem 0.8rem}}';
     document.head.appendChild(style);
