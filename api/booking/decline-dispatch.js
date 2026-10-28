@@ -110,7 +110,14 @@ export default async function handler(req, res) {
     await logActivity(sb, {
       bookingId: assigned.id,
       eventType: 'assignment_declined',
-      actor: 'easer',
+      // The Easer must be the actor: this row is the decline the acceptance
+      // rate counts for owner-assigned jobs (api/_easer-acceptance.js). It was
+      // passed as `actor`, which logActivity ignores, so declines were saved
+      // with no Easer attached.
+      actorType: 'easer',
+      actorId: user.id,
+      actorName: assigned.assembler_name || null,
+      metadata: { decision: 'owner_assignment' },
       description: `${assigned.assembler_name || 'Easer'} declined an owner-assigned job`
         + (reason ? ` — ${declineReasonLabel(reason)}` : ''),
     }).catch(() => {});
