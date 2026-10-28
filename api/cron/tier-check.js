@@ -1,13 +1,15 @@
 import { getSupabase } from '../_supabase.js';
 import { logCron } from './_cron-logger.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { loadAcceptanceTallies, acceptanceWindowStart, acceptanceRateFor } from '../_easer-acceptance.js';
 
 /**
  * GET /api/cron/tier-check — daily 07:00 UTC.
  *
  * The Easer tier program ("The Pro Path") + reliability floor. Full engine:
  *   1. Reset active_jobs_today (dispatch overload penalty).
- *   2. Recalculate acceptance_rate (30-day accepted / decided).
+ *   2. Recalculate acceptance_rate (30-day accepted / decided, every job offered
+ *      to the Easer: dispatch offers and owner assignments alike).
  *   3. Tally no-show flags → completion_rate (the reliability metric).
  *   4. Promote / hold / demote each active Easer against the tier gates, with a
  *      30-day grace window before any demotion, and fire the transition email.
@@ -262,26 +264,23 @@ export default async function handler(req, res) {
   if (resetErr) console.error('active_jobs_today reset error:', resetErr.message);
 
   // ── Phase 0b: recalc acceptance_rate (30-day accepted / decided) ──────────
+  // Every job offered to an Easer counts, dispatched or owner-assigned
+  // (api/_easer-acceptance.js). Every Easer is written, not only those with a
+  // decision this window: a rate left from an older window is cleared to null
+  // instead of standing forever.
   try {
-    const thirtyDaysAgo = new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: offerStats, error: statsErr } = await sb
-      .from('dispatch_offers')
-      .select('easer_id, offer_status')
-      .gte('created_at', thirtyDaysAgo)
-      .in('offer_status', ['accepted', 'declined', 'expired']);
-    if (!statsErr && offerStats?.length) {
-      const rates = {};
-      offerStats.forEach(o => {
-        if (!rates[o.easer_id]) rates[o.easer_id] = { accepted: 0, total: 0 };
-        rates[o.easer_id].total++;
-        if (o.offer_status === 'accepted') rates[o.easer_id].accepted++;
-      });
-      await Promise.allSettled(Object.entries(rates).map(([easerId, s]) => {
-        const rate = s.total >= 3 ? parseFloat((s.accepted / s.total * 100).toFixed(2)) : null;
-        return sb.from('profiles').update({ acceptance_rate: rate }).eq('id', easerId);
+    const { tallies, error: statsErr } = await loadAcceptanceTallies(sb, acceptanceWindowStart(nowMs));
+    const { data: easerIds, error: idsErr } = statsErr ? { data: null, error: null }
+      : await sb.from('profiles').select('id, acceptance_rate').eq('role', 'assembler');
+    if (statsErr || idsErr) {
+      console.error('acceptance_rate stats query error:', (statsErr || idsErr).message);
+    } else {
+      await Promise.allSettled((easerIds || []).map((p) => {
+        const rate = acceptanceRateFor(tallies.get(p.id));
+        const current = p.acceptance_rate == null ? null : Number(p.acceptance_rate);
+        if (current === rate) return null;
+        return sb.from('profiles').update({ acceptance_rate: rate }).eq('id', p.id);
       }));
-    } else if (statsErr) {
-      console.error('acceptance_rate stats query error:', statsErr.message);
     }
   } catch (arErr) {
     console.error('acceptance_rate calculation error:', arErr.message);

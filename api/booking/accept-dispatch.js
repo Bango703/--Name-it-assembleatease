@@ -348,6 +348,8 @@ export default async function handler(req, res) {
       actorName: easer.full_name,
       description: `${easer.full_name} accepted the job via dispatch offer`,
       metadata: {
+        // Counted from dispatch_offers, not this row (api/_easer-acceptance.js).
+        decision: 'dispatch_offer',
         tier: easer.tier,
         score: offer.dispatch_score,
         attempt: offer.attempt_number,
@@ -495,6 +497,9 @@ export default async function handler(req, res) {
     actorName: easer.full_name,
     description: `${easer.full_name} accepted the job (legacy token)`,
     metadata: {
+      // No dispatch_offers row exists for these, so this row is the decision
+      // the acceptance rate counts (api/_easer-acceptance.js).
+      decision: isAssignment ? 'owner_assignment' : 'dispatch_token',
       tier: easer.tier,
       easerFeePctSnapshot: feeSnapshot.feePct,
       easerEstimatedDueSnapshot: feeSnapshot.estimatedDueCents,
