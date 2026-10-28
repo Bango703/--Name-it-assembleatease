@@ -11503,6 +11503,10 @@ window.intelQuick = intelQuick;
         : acc.rate != null ? Math.round(acc.rate) + '% (' + acc.accepted + ' of ' + acc.total + ' accepted)'
         : acc.total === 0 ? 'No jobs offered yet'
         : 'Not enough yet: ' + acc.total + ' of ' + acc.minDecisions + ' needed';
+      var all = wa.acceptanceAllTime;
+      var allTimeText = !all ? 'Unavailable'
+        : all.total === 0 ? 'No jobs offered yet'
+        : all.accepted + ' of ' + all.total + ' accepted';
       dispatchChecklist = '<div style="background:#fafafa;border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:0.5rem">'
         + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px">Work activity</div>'
         + '<div style="font-size:0.78rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:4px 1rem">'
@@ -11511,6 +11515,7 @@ window.intelQuick = intelQuick;
         // last_assigned_at is stamped when the Easer accepts (api/booking/accept-dispatch.js).
         + '<div><strong>Last job accepted:</strong> ' + (a.last_assigned_at ? formatDate(a.last_assigned_at) : 'Never') + '</div>'
         + '<div title="Jobs offered by dispatch or assigned by you in the last ' + (acc ? acc.windowDays : 30) + ' days that were accepted, declined or let expire"><strong>Acceptance (' + (acc ? acc.windowDays : 30) + ' days):</strong> ' + esc(acceptanceText) + '</div>'
+        + '<div title="Every job offered by dispatch or assigned by you since the Easer joined"><strong>Acceptance (all time):</strong> ' + esc(allTimeText) + '</div>'
         + '</div>'
         + (recentDecline ? '<div style="margin-top:6px;padding:4px 8px;background:#fef3c7;border:1px solid #fde68a;border-radius:4px;color:#92400e;font-size:0.75rem;font-weight:600">Warning: declined an offer within the last 2 hours</div>' : '')
         + '</div>';

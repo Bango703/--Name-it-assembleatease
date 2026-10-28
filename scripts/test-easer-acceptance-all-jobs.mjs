@@ -83,6 +83,13 @@ const read = rel => readFile(new URL(`../${rel}`, import.meta.url), 'utf8').then
   const unknown = workActivityFor('phil', null, null);
   assert.equal(unknown.openJobs, null, 'unreadable bookings are unknown, never a confident 0');
   assert.equal(unknown.acceptance, null);
+  assert.equal(unknown.acceptanceAllTime, null);
+  // Phil on 2026-10-28: one decision in the last 30 days, four overall.
+  const phil = workActivityFor('phil', work,
+    new Map([['phil', { accepted: 1, declined: 0, expired: 0, total: 1 }]]),
+    new Map([['phil', { accepted: 4, declined: 0, expired: 0, total: 4 }]]));
+  assert.equal(phil.acceptance.rate, null, 'one recent decision is not yet a 30-day rate');
+  assert.deepEqual(phil.acceptanceAllTime, { accepted: 4, declined: 0, expired: 0, total: 4 }, 'the whole record is shown beside it');
   const failing = { from() { const q = { select() { return q; }, in() { return q; }, not() { return Promise.resolve({ data: null, error: { message: 'down' } }); } }; return q; } };
   const origError = console.error; console.error = () => {};
   assert.equal(await loadOpenWork(failing, '2026-10-28'), null);
@@ -110,11 +117,13 @@ const read = rel => readFile(new URL(`../${rel}`, import.meta.url), 'utf8').then
     'every Easer is written, so a rate from an older window is cleared');
   assert.doesNotMatch(cron, /rates\[o\.easer_id\]/, 'the dispatch-only tally is gone');
   const list = await read('api/assembler/list.js');
-  assert.match(list, /workActivity: workActivityFor\(profile\.id, workByEaser, acceptance\.tallies\)/);
+  assert.match(list, /workActivity: workActivityFor\(profile\.id, workByEaser, acceptance\.tallies, acceptanceAllTime\.tallies\)/);
+  assert.match(list, /loadAcceptanceTallies\(sb, new Date\(0\)\.toISOString\(\)\)/, 'the all-time count reads from the beginning');
   const owner = await read('owner/index.html');
   assert.match(owner, /<strong>Open jobs:<\/strong>/);
   assert.match(owner, /<strong>Jobs today:<\/strong>/);
   assert.match(owner, /<strong>Acceptance \(' \+ \(acc \? acc\.windowDays : 30\) \+ ' days\):<\/strong>/);
+  assert.match(owner, /<strong>Acceptance \(all time\):<\/strong>/);
   assert.doesNotMatch(owner, /Active Jobs Today/, 'the nightly counter is no longer shown as current work');
   console.log('PASS the tier job and the owner dashboard count the same decisions');
 }
