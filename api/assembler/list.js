@@ -8,6 +8,7 @@ import { inspectApplicationText } from '../booking/_relay-contact-guard.js';
 import { loadAcceptanceTallies } from '../_easer-acceptance.js';
 import { loadOpenWork, workActivityFor } from '../_easer-work-activity.js';
 import { serviceNames } from '../_easer-work-preferences.js';
+import { inactivityReasons, inactivityNoticeState, loadJobHistory, loadInactivityNotices } from '../_easer-inactivity.js';
 
 /**
  * GET /api/assembler/list
@@ -53,6 +54,24 @@ export default async function handler(req, res) {
   for (const result of [acceptance, acceptanceAllTime]) {
     if (result.error) console.error('Assembler list acceptance tally error:', result.error.message || result.error);
   }
+  // Inactivity: the reasons a notice would give and where a sent notice stands
+  // (api/_easer-inactivity.js). Approved Easers only; unreadable → null, never
+  // a confident "inactive".
+  const approvedIds = profiles.filter(p => ['active', 'suspended'].includes(p.status)).map(p => p.id);
+  const [jobHistory, inactivityNotices] = await Promise.all([
+    loadJobHistory(sb, approvedIds).catch(error => { console.error('Assembler list job history error:', error.message); return null; }),
+    loadInactivityNotices(sb, approvedIds).catch(error => { console.error('Assembler list inactivity notice error:', error.message); return null; }),
+  ]);
+  const inactivityFor = profile => {
+    if (!approvedIds.includes(profile.id) || !jobHistory || !inactivityNotices) return null;
+    const history = jobHistory.get(profile.id) || { acceptedJobs: 0, lastAcceptedAt: null };
+    return {
+      reasons: inactivityReasons(profile, history),
+      acceptedJobs: history.acceptedJobs,
+      lastAcceptedAt: history.lastAcceptedAt,
+      notice: inactivityNoticeState(inactivityNotices.get(profile.id) || null, profile, history),
+    };
+  };
   // Two DIFFERENT questions, both answered here so the browser never has to
   // reimplement either:
   //   readiness         — can this Easer take a JOB right now?
@@ -72,6 +91,7 @@ export default async function handler(req, res) {
       // Same verdict the approve action enforces (api/assembler/update.js).
       applicationScreen: inspectApplicationText(profile.bio),
       workActivity: workActivityFor(profile.id, workByEaser, acceptance.tallies, acceptanceAllTime.tallies),
+      inactivity: inactivityFor(profile),
     };
   }));
 

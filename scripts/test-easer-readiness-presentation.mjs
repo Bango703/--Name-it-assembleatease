@@ -180,6 +180,11 @@ async function callHandler(kind, profiles, options = {}) {
     loadAcceptanceTallies: async () => ({ tallies: new Map(), error: null }),
     workActivityFor,
     serviceNames: () => ['Furniture Assembly'],
+    // Inactivity is covered by scripts/test-easer-inactivity.mjs.
+    loadJobHistory: async () => new Map(),
+    loadInactivityNotices: async () => new Map(),
+    inactivityReasons: () => [],
+    inactivityNoticeState: () => null,
   });
   const res = {
     status(code) { this.statusCode = code; return this; },
