@@ -436,6 +436,15 @@ export const EASER_RELIABILITY_POLICY = Object.freeze({
   windowDays: 90,            // strikes count for 90 days
   pauseAtStrikes: 3,         // at this many, the Easer is paused from new jobs
   dispatchPenaltyPerStrike: 150, // dispatch score points lost per active strike
+  // Owner-confirmed problems on a job (owner, 2026-10-28 accountability table).
+  // An automatic signal alone never counts; the owner checks, then confirms.
+  lateArrivalStrikes: 1,     // 30+ minutes late, confirmed
+  qualityStrikes: 1,         // workmanship problem, confirmed
+  damageStrikes: 2,          // property damage, confirmed; also pauses new jobs at once
+  // Online but not answering: offers for this many different jobs expire in a
+  // row with no accept or decline, and the Easer is set offline (not a strike).
+  unansweredOffersOffline: 3,
+  unansweredWindowDays: 7,
   timeZone: 'America/Chicago',
 });
 

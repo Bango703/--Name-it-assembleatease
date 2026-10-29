@@ -31,6 +31,19 @@ import { sendPushToUser } from '../_push.js';
 import { normalizePersonName } from '../_person-name.js';
 import { EASER_APPLICATION_FEE_DISPLAY } from '../_easer-application-fee.js';
 import { inspectApplicationText, describeApplicationFindings } from '../booking/_relay-contact-guard.js';
+import { normalizeBlockedServices } from '../_easer-work-preferences.js';
+
+// Why an Easer is suspended, kept on their record (owner, 2026-10-28). The
+// zero-tolerance reasons map to contractor agreement 12.3.
+const SUSPENSION_REASONS = Object.freeze({
+  safety: 'Safety violation',
+  fraud: 'Fraud or false job records',
+  off_platform: 'Taking customers off the platform',
+  false_credentials: 'False credentials or application information',
+  reliability: 'Reliability (cancellations, no-shows, lateness)',
+  quality: 'Workmanship or property damage',
+  other: 'Other',
+});
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -1069,7 +1082,20 @@ export default async function handler(req, res) {
     }
 
     const { suspensionNotes } = req.body;
-    if (suspensionNotes?.trim()) console.log(`[suspend] ${profile.full_name} (${assemblerId}): ${suspensionNotes.trim()}`);
+    const reasonKey = Object.prototype.hasOwnProperty.call(SUSPENSION_REASONS, req.body?.suspensionReason) ? req.body.suspensionReason : 'other';
+    const notes = String(suspensionNotes || '').trim().slice(0, 1000);
+    // Kept on the record: the reason and note used to reach only a server log.
+    if (suspension.result_action === 'suspended') {
+      await logActivity(sb, {
+        bookingId: null,
+        eventType: 'easer_suspended',
+        actorType: 'owner',
+        actorId: assemblerId,
+        actorName: 'Owner',
+        description: `${profile.full_name || assemblerId} suspended — ${SUSPENSION_REASONS[reasonKey]}${notes ? ': ' + notes : ''}`,
+        metadata: { easerId: assemblerId, reason: reasonKey, notes: notes || null },
+      }).catch((e) => console.error('suspend logActivity error:', e?.message || e));
+    }
 
     // Notify the Easer they've been paused — Rule 10 (an Easer must ALWAYS know
     // their status). Previously suspension sent NO email at all, so a suspended
@@ -1297,6 +1323,37 @@ export default async function handler(req, res) {
   }
 
   // ── REQUEST NEW PROFILE PHOTO (clears a poor photo + asks the Easer to re-upload) ──
+  // ── KEEP OFF SERVICES (owner block, migration 124) ──
+  // The Easer is not offered jobs that include these services, whatever they
+  // choose for themselves. [] clears the block.
+  if (action === 'set_blocked_services') {
+    const checked = normalizeBlockedServices(req.body?.services);
+    if (!checked.ok) return res.status(400).json({ error: checked.error });
+    const { error: blockErr } = await sb.from('profiles')
+      .update({ owner_blocked_services: checked.value })
+      .eq('id', assemblerId)
+      .eq('role', 'assembler');
+    if (blockErr) {
+      const missing = /owner_blocked_services/i.test(blockErr.message || '');
+      return res.status(503).json({
+        error: missing ? 'Run migration 124 in Supabase before blocking services.' : 'The service block could not be saved.',
+        code: missing ? 'MIGRATION_124_REQUIRED' : 'BLOCK_SAVE_FAILED',
+      });
+    }
+    await logActivity(sb, {
+      bookingId: null,
+      eventType: 'easer_services_blocked',
+      actorType: 'owner',
+      actorId: assemblerId,
+      actorName: 'Owner',
+      description: checked.value
+        ? `${profile.full_name || assemblerId} kept off: ${checked.value.join(', ')}`
+        : `${profile.full_name || assemblerId}: service block cleared`,
+      metadata: { easerId: assemblerId, services: checked.value || [] },
+    }).catch((e) => console.error('block services logActivity error:', e?.message || e));
+    return res.status(200).json({ ok: true, action: 'services_blocked', blockedServices: checked.value || [] });
+  }
+
   if (action === 'request_photo') {
     const { photoNote } = req.body;
     const note = (photoNote || '').trim();

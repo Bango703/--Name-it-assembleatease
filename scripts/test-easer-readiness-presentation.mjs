@@ -179,6 +179,7 @@ async function callHandler(kind, profiles, options = {}) {
     loadOpenWork: async () => new Map(),
     loadAcceptanceTallies: async () => ({ tallies: new Map(), error: null }),
     workActivityFor,
+    serviceNames: () => ['Furniture Assembly'],
   });
   const res = {
     status(code) { this.statusCode = code; return this; },

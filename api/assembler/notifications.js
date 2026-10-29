@@ -39,6 +39,8 @@ export const NOTIFICATION_COPY = Object.freeze({
   evidence_request: notice('Photos requested', 'AssembleAtEase asked for photos of this job. Open the job to upload them.', 'job', 'Upload photos', JOBS),
   completion: notice('Job completed', 'This job is marked complete. Your earnings for it are in Payouts.', 'payouts', 'Open Payouts', JOBS),
   easer_no_show_recorded: notice('No-show recorded', 'A no-show was recorded on this job. If you were there, message AssembleAtEase from the job.', 'job_team_messages', 'Message AssembleAtEase', JOBS),
+  easer_strike_recorded: notice('Reliability strike recorded', 'A problem was recorded on this job. If you think it is wrong, message AssembleAtEase from the job.', 'job_team_messages', 'Message AssembleAtEase', JOBS),
+  easer_auto_offline: notice('You are offline', 'Several offers in a row expired without an answer, so you were set offline. Go online when you can take jobs.', 'today', 'Open Today', JOBS),
 
   // Messages
   owner_message: notice('Message from AssembleAtEase', 'AssembleAtEase sent you a message about this job.', 'job_team_messages', 'Open messages', JOBS),

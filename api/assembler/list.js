@@ -7,6 +7,7 @@ import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { inspectApplicationText } from '../booking/_relay-contact-guard.js';
 import { loadAcceptanceTallies } from '../_easer-acceptance.js';
 import { loadOpenWork, workActivityFor } from '../_easer-work-activity.js';
+import { serviceNames } from '../_easer-work-preferences.js';
 
 /**
  * GET /api/assembler/list
@@ -87,7 +88,8 @@ export default async function handler(req, res) {
     connectRequired: requireConnect,
   };
 
-  return res.status(200).json({ assemblers, stats });
+  // The catalog's service names, for the owner's keep-off-services control.
+  return res.status(200).json({ assemblers, stats, services: serviceNames() });
 }
 
 function sanitizeAssemblerForOwner(profile = {}) {
