@@ -61,6 +61,7 @@ export const NOTIFICATION_COPY = Object.freeze({
   approval: notice('Account approved', 'You are approved. Finish the remaining setup steps to get jobs.', 'today', 'See setup steps', ACCOUNT),
   easer_welcome: notice('Welcome to AssembleAtEase', 'Your Easer account is set up. Finish the setup steps on Today to get jobs.', 'today', 'See setup steps', ACCOUNT),
   easer_suspended: notice('Account paused', 'You will not get new jobs while your account is paused. Contact AssembleAtEase.', 'account', 'Open Account', ACCOUNT),
+  easer_inactivity_notice: notice('Inactivity notice', 'Your account will be closed in 14 days unless you sign the updated agreement, go online or accept a job. Check your email for details.', 'today', 'Open Today', ACCOUNT),
   easer_reinstated: notice('Account active again', 'Your account is active again. Go online to get offers.', 'today', 'Open Today', ACCOUNT),
   easer_deactivated: notice('Account deactivated', 'Your account is deactivated. You will not get new jobs.', 'account', 'Open Account', ACCOUNT),
   easer_reactivated: notice('Account access restored', 'You can sign in and get jobs again.', 'today', 'Open Today', ACCOUNT),

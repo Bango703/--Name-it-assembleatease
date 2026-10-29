@@ -32,6 +32,10 @@ import { normalizePersonName } from '../_person-name.js';
 import { EASER_APPLICATION_FEE_DISPLAY } from '../_easer-application-fee.js';
 import { inspectApplicationText, describeApplicationFindings } from '../booking/_relay-contact-guard.js';
 import { normalizeBlockedServices } from '../_easer-work-preferences.js';
+import {
+  INACTIVITY_NOTICE_DAYS, inactivityReasons, inactivityNoticeState,
+  loadJobHistory, loadInactivityNotices, buildInactivityNoticeHtml,
+} from '../_easer-inactivity.js';
 
 // Why an Easer is suspended, kept on their record (owner, 2026-10-28). The
 // zero-tolerance reasons map to contractor agreement 12.3.
@@ -1323,6 +1327,63 @@ export default async function handler(req, res) {
   }
 
   // ── REQUEST NEW PROFILE PHOTO (clears a poor photo + asks the Easer to re-upload) ──
+  // ── INACTIVITY NOTICE (contractor agreement 12.4: 14 days' written notice) ──
+  // Emails the Easer the reasons and the closing date, and records it. Closing
+  // the account stays a separate owner click (deactivate), offered by the
+  // dashboard once the date has passed without a response.
+  if (action === 'inactivity_notice') {
+    if (!['active', 'suspended'].includes(profile.status)) {
+      return res.status(400).json({ error: 'Only active or paused Easers can be sent an inactivity notice.' });
+    }
+    if (!profile.email) return res.status(409).json({ error: 'This Easer has no email on file, so the notice cannot be sent.' });
+    let history;
+    let notice;
+    try {
+      history = (await loadJobHistory(sb, [assemblerId])).get(assemblerId);
+      notice = (await loadInactivityNotices(sb, [assemblerId])).get(assemblerId) || null;
+    } catch (e) {
+      console.error('inactivity notice read failed:', e?.message || e);
+      return res.status(503).json({ error: 'Job history could not be read. Nothing was sent.' });
+    }
+    const current = inactivityNoticeState(notice, rawProfile, history);
+    if (current?.status === 'open') {
+      return res.status(409).json({ error: `A notice was already sent on ${new Date(current.sentAt).toLocaleDateString('en-US', { timeZone: 'America/Chicago' })}. It ends ${new Date(current.deadline).toLocaleDateString('en-US', { timeZone: 'America/Chicago' })}.`, code: 'INACTIVITY_NOTICE_OPEN' });
+    }
+    const reasons = inactivityReasons(rawProfile, history);
+    if (!reasons.length) {
+      return res.status(409).json({ error: 'This Easer is not inactive: they have signed the current agreement and accepted a job recently.', code: 'EASER_NOT_INACTIVE' });
+    }
+    const note = String(req.body?.note || '').trim().slice(0, 1000) || null;
+    const deadline = new Date(Date.now() + INACTIVITY_NOTICE_DAYS * 86400000).toISOString();
+    const sent = await sendEmail({
+      to: profile.email,
+      subject: 'Your AssembleAtEase Easer account: inactivity notice',
+      replyTo: 'service@assembleatease.com',
+      html: buildEaserAccountEmail({
+        heading: 'Inactivity notice',
+        firstName: greetingFirstName(profile.full_name),
+        bodyHtml: buildInactivityNoticeHtml({ reasons, deadline, note }),
+        ctaText: 'Open the Easer app',
+        ctaUrl: `${SITE}/assembler/`,
+      }),
+      meta: { notificationType: 'easer_inactivity_notice', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
+    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+    // Written notice is the point: nothing is recorded unless it went out.
+    if (!sent?.ok || sent?.suppressed) {
+      return res.status(502).json({ error: 'The notice email did not send, so no notice was recorded. Try again.', code: 'INACTIVITY_NOTICE_NOT_SENT' });
+    }
+    await logActivity(sb, {
+      bookingId: null,
+      eventType: 'easer_inactivity_notice',
+      actorType: 'owner',
+      actorId: assemblerId,
+      actorName: 'Owner',
+      description: `${profile.full_name || assemblerId} sent a ${INACTIVITY_NOTICE_DAYS}-day inactivity notice: ${reasons.map(r => r.text).join(' ')}`,
+      metadata: { easerId: assemblerId, deadline, reasons: reasons.map(r => r.key), note },
+    }).catch((e) => console.error('inactivity notice logActivity error:', e?.message || e));
+    return res.status(200).json({ ok: true, action: 'inactivity_notice', deadline, reasons });
+  }
+
   // ── KEEP OFF SERVICES (owner block, migration 124) ──
   // The Easer is not offered jobs that include these services, whatever they
   // choose for themselves. [] clears the block.

@@ -11196,7 +11196,7 @@ window.intelQuick = intelQuick;
           + '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(a.email) + '</span>'
           + (!hasValidUsPhone(a.phone) ? ' <span style="font-size:0.68rem;color:#ef4444;font-weight:600">Valid phone required</span>' : '')
           + '</td>'
-        + '<td style="' + rs + '">' + statusBadge(a.status) + (a.status === 'active' ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">' + esc(easerOfferPresentation(a.readiness).label) + '</div>' : '') + '</td>'
+        + '<td style="' + rs + '">' + statusBadge(a.status) + (a.status === 'active' ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">' + esc(easerOfferPresentation(a.readiness).label) + '</div>' : '') + inactivityTag(a) + '</td>'
         + '<td style="' + rs + '">' + tierBadge(a.tier) + (a.tier_grace_started_at ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">Grace since ' + esc(formatDate(a.tier_grace_started_at)) + '</div>' : '') + '</td>'
         + '<td style="' + rs + '">' + idVerificationBadge(a) + '</td>'
         + '<td style="' + rs + '">' + connectBadge(a) + '</td>'
@@ -11602,6 +11602,8 @@ window.intelQuick = intelQuick;
       '<div id="asm-reliability-panel" style="margin-bottom:0.75rem"></div>',
       // Services the owner keeps this Easer off (migration 124)
       '<div id="asm-services-panel" style="margin-bottom:0.75rem"></div>',
+      // Inactivity: reasons, the 14-day notice, then Deactivate (agreement 12.4)
+      '<div id="asm-inactivity-panel" style="margin-bottom:0.75rem"></div>',
       // Tax-document tracking. Raw W-9/TIN data must remain in an approved secure system.
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">W-9 Compliance</div>'
         + '<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">'
@@ -11658,7 +11660,66 @@ window.intelQuick = intelQuick;
     loadEaserOnboardingReadiness(a.id);
     loadEaserReliability(a.id);
     renderEaserServiceBlock(a);
+    renderEaserInactivity(a);
   }
+
+  // ── Inactive Easers (api/_easer-inactivity.js) ───────────────────────────
+  // The server decides who is inactive and where a notice stands; this renders
+  // it. Closing for inactivity needs 14 days' written notice (agreement 12.4),
+  // so Deactivate is offered here only after the notice period ends.
+  function fmtChicagoDate(iso) {
+    return new Date(iso).toLocaleDateString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function inactivityTag(a) {
+    var info = a && a.inactivity;
+    if (!info) return '';
+    var n = info.notice;
+    var label = n && n.status === 'open' ? 'Notice sent · ends ' + fmtChicagoDate(n.deadline)
+      : n && n.status === 'ended' ? 'Notice ended · can close'
+      : info.reasons && info.reasons.length ? 'Inactive' : '';
+    return label ? '<div style="font-size:0.7rem;color:#b45309;font-weight:700;margin-top:4px">' + esc(label) + '</div>' : '';
+  }
+  function renderEaserInactivity(a) {
+    var box = document.getElementById('asm-inactivity-panel');
+    var info = a && a.inactivity;
+    if (!box || !info) return;
+    var n = info.notice;
+    var reasons = info.reasons || [];
+    var html = '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Inactivity</div>';
+    if (n && n.status === 'open') {
+      html += '<div style="font-size:0.8rem;color:#b45309">Notice sent ' + esc(fmtChicagoDate(n.sentAt)) + '. If nothing changes, the account can be closed after ' + esc(fmtChicagoDate(n.deadline)) + '.</div>';
+    } else if (n && n.status === 'ended') {
+      html += '<div style="font-size:0.8rem;color:#b91c1c;margin-bottom:6px">Notice period ended ' + esc(fmtChicagoDate(n.deadline)) + ' with no response.</div>'
+        + '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a;font-size:0.72rem;padding:2px 10px" onclick="deactivateFromDetail(\'' + esc(a.id) + '\',\'' + jsAttr(a.full_name) + '\')">Close account (deactivate)</button>';
+    } else {
+      if (n && n.status === 'responded') html += '<div style="font-size:0.78rem;color:#1d9e75;margin-bottom:4px">Responded ' + esc(fmtChicagoDate(n.respondedAt)) + ' to the notice sent ' + esc(fmtChicagoDate(n.sentAt)) + '.</div>';
+      if (reasons.length) {
+        html += '<ul style="margin:0 0 6px;padding-left:18px;font-size:0.78rem;color:var(--soft)">' + reasons.map(function(r) { return '<li>' + esc(r.text) + '</li>'; }).join('') + '</ul>'
+          + '<button class="btn btn-amber" style="font-size:0.72rem;padding:2px 10px" onclick="sendInactivityNotice(\'' + esc(a.id) + '\',\'' + jsAttr(a.full_name) + '\',this)">Send inactivity notice (14 days)</button>';
+      } else if (!n) {
+        html += '<div style="font-size:0.78rem;color:var(--muted)">Active: current agreement signed and ' + info.acceptedJobs + ' job' + (info.acceptedJobs === 1 ? '' : 's') + ' accepted.</div>';
+      }
+    }
+    box.innerHTML = html;
+  }
+  async function sendInactivityNotice(id, name, button) {
+    var note = prompt('Send ' + name + ' an inactivity notice? They are emailed the reasons above and told the account closes in 14 days unless they sign the agreement, go online or accept a job.\n\nOptional note to include:', '');
+    if (note === null) return;
+    button.disabled = true;
+    button.textContent = 'Sending...';
+    try {
+      var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify({ assemblerId: id, action: 'inactivity_notice', note: note }) });
+      var data = await r.json();
+      if (!r.ok || data.error) throw new Error(data.error || 'The notice could not be sent.');
+      toast('Inactivity notice emailed. The account can be closed after ' + fmtChicagoDate(data.deadline) + '.', 'success');
+      await reloadAssemblersAndMaybeRefreshDetail(id, true);
+    } catch (err) {
+      toast(err.message || 'The notice could not be sent.', 'error');
+      button.disabled = false;
+      button.textContent = 'Send inactivity notice (14 days)';
+    }
+  }
+  window.sendInactivityNotice = sendInactivityNotice;
 
   // ── Keep an Easer off services (owner block, migration 124) ──────────────
   // Dispatch skips jobs with any blocked service, whatever the Easer chose.
