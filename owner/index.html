@@ -461,6 +461,12 @@
                      an action the server would refuse. -->
                 <div id="crew-panel" style="display:none;margin-top:0.9rem;padding-top:0.9rem;border-top:1px dashed var(--border)"></div>
               </div>
+              <!-- Owner-confirmed problems on the job (api/owner/easer-reliability.js
+                   confirm_issue). Shown only where the server would accept one. -->
+              <div id="easer-issue-section" style="display:none;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
+                <div class="detail-section-title">Easer Accountability</div>
+                <div id="easer-issue-body" style="font-size:0.82rem;color:var(--soft)"></div>
+              </div>
               <!-- Tabs -->
               <div class="detail-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
                 <button class="detail-tab active" data-tab="messages" onclick="switchDetailTab('messages',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:600;color:var(--teal);border-bottom:2px solid var(--teal);cursor:pointer;margin-bottom:-1px">Messages</button>
@@ -1826,6 +1832,16 @@ window.intelQuick = intelQuick;
   <div class="modal">
     <h3 id="reason-modal-title">Reason</h3>
     <p id="reason-modal-desc">Optionally provide a reason.</p>
+    <!-- Suspend only: why, kept on the Easer's record (api/assembler/update.js SUSPENSION_REASONS). -->
+    <select id="suspension-reason" class="modal-input" style="display:none;margin-bottom:0.6rem">
+      <option value="reliability">Reliability (cancellations, no-shows, lateness)</option>
+      <option value="quality">Workmanship or property damage</option>
+      <option value="safety">Safety violation</option>
+      <option value="fraud">Fraud or false job records</option>
+      <option value="off_platform">Taking customers off the platform</option>
+      <option value="false_credentials">False credentials or application information</option>
+      <option value="other" selected>Other</option>
+    </select>
     <textarea id="reason-text" placeholder="Reason (optional)"></textarea>
     <div id="damage-review-row" style="display:none;margin-top:0.25rem;margin-bottom:0.75rem">
       <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem;font-size:0.8rem;color:var(--soft);line-height:1.5">
@@ -3811,6 +3827,7 @@ window.intelQuick = intelQuick;
     ].join('');
     renderActions(b);
     renderAssignSection(b);
+    renderEaserIssueSection(b);
     var dispatchTabButton = document.getElementById('detail-dispatch-tab');
     if (dispatchTabButton) {
       dispatchTabButton.style.display = quoteStage || (b.source === 'owner_manual' && b.status === 'completed') ? 'none' : '';
@@ -5644,6 +5661,8 @@ window.intelQuick = intelQuick;
     setReturnVisitFieldsVisible(false);
     setReturnResolutionFieldsVisible(false);
     setDamageReviewFieldsVisible(false);
+    var suspensionReason = document.getElementById('suspension-reason');
+    if (suspensionReason) { suspensionReason.style.display = 'none'; suspensionReason.value = 'other'; }
     var waiveRow = document.getElementById('waive-fee-row');
     var waiveBox = document.getElementById('waive-fee-cb');
     if (waiveRow) waiveRow.style.display = 'none';
@@ -6801,7 +6820,7 @@ window.intelQuick = intelQuick;
       $reasonText.style.display = '';
       pendingAction = null;
       try {
-        var suspBody = { assemblerId: aIdSus, action: 'suspend' };
+        var suspBody = { assemblerId: aIdSus, action: 'suspend', suspensionReason: document.getElementById('suspension-reason').value };
         if (suspNotes) suspBody.suspensionNotes = suspNotes;
         var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify(suspBody) });
         var data = await r.json();
@@ -10989,6 +11008,7 @@ window.intelQuick = intelQuick;
       if (!r.ok) throw new Error('Failed');
       var data = await r.json();
       allAssemblerProfiles = (data.assemblers || []).map(normalizeAssemblerRecord);
+      asmServiceNames = Array.isArray(data.services) ? data.services : [];
       var stats = data.stats || {};
       asmConnectRequired = !!stats.connectRequired;
       document.getElementById('asm-table').classList.toggle('connect-disabled', !asmConnectRequired);
@@ -11580,6 +11600,8 @@ window.intelQuick = intelQuick;
       '<div id="asm-onboarding-readiness-panel" style="margin-bottom:0.75rem"></div>',
       // Cancellation reliability: strikes in the window, each cancellation, excuse
       '<div id="asm-reliability-panel" style="margin-bottom:0.75rem"></div>',
+      // Services the owner keeps this Easer off (migration 124)
+      '<div id="asm-services-panel" style="margin-bottom:0.75rem"></div>',
       // Tax-document tracking. Raw W-9/TIN data must remain in an approved secure system.
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">W-9 Compliance</div>'
         + '<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">'
@@ -11635,12 +11657,48 @@ window.intelQuick = intelQuick;
     document.getElementById('asm-detail-modal').classList.add('open');
     loadEaserOnboardingReadiness(a.id);
     loadEaserReliability(a.id);
+    renderEaserServiceBlock(a);
   }
+
+  // ── Keep an Easer off services (owner block, migration 124) ──────────────
+  // Dispatch skips jobs with any blocked service, whatever the Easer chose.
+  var asmServiceNames = [];
+  function renderEaserServiceBlock(a) {
+    var box = document.getElementById('asm-services-panel');
+    if (!box || !asmServiceNames.length) return;
+    var blocked = Array.isArray(a.owner_blocked_services) ? a.owner_blocked_services : [];
+    var chosen = Array.isArray(a.work_services) && a.work_services.length ? a.work_services.join(', ') : 'every service';
+    box.innerHTML = '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Services</div>'
+      + '<div style="font-size:0.78rem;color:var(--soft);margin-bottom:6px">Takes (their choice): ' + esc(chosen) + '. Check a service to keep them off it; they get no offers that include it.</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-bottom:6px">'
+      + asmServiceNames.map(function(name) {
+        return '<label style="font-size:0.78rem;display:flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" class="asm-block-svc" value="' + esc(name) + '"' + (blocked.indexOf(name) !== -1 ? ' checked' : '') + '> ' + esc(name) + '</label>';
+      }).join('')
+      + '</div>'
+      + '<button class="btn" style="font-size:0.72rem;padding:2px 10px" onclick="saveEaserServiceBlock(\'' + esc(a.id) + '\',this)">Save service block</button>';
+  }
+  async function saveEaserServiceBlock(easerId, button) {
+    var services = Array.prototype.slice.call(document.querySelectorAll('#asm-services-panel .asm-block-svc:checked')).map(function(cb) { return cb.value; });
+    button.disabled = true;
+    try {
+      var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify({ assemblerId: easerId, action: 'set_blocked_services', services: services }) });
+      var data = await r.json();
+      if (!r.ok || data.error) throw new Error(data.error || 'The service block could not be saved.');
+      var profile = allAssemblerProfiles.filter(function(p) { return p.id === easerId; })[0];
+      if (profile) profile.owner_blocked_services = data.blockedServices;
+      toast(data.blockedServices.length ? 'Kept off: ' + data.blockedServices.join(', ') : 'Service block cleared', 'success');
+    } catch (err) {
+      toast(err.message || 'The service block could not be saved.', 'error');
+    } finally {
+      button.disabled = false;
+    }
+  }
+  window.saveEaserServiceBlock = saveEaserServiceBlock;
 
   // ── Easer cancellation reliability (strikes) ─────────────────────────────
   // Server decides and counts (api/_easer-reliability.js); this only renders
   // and sends the owner's excuse. Excusing never reactivates a paused Easer.
-  var RELIABILITY_KIND_LABEL = { grace: 'Within 15 min of accepting', advance: '24+ hours notice', late: 'Under 24 hours notice', same_day: 'Same day', no_show: 'No-show (confirmed)' };
+  var RELIABILITY_KIND_LABEL = { grace: 'Within 15 min of accepting', advance: '24+ hours notice', late: 'Under 24 hours notice', same_day: 'Same day', no_show: 'No-show (confirmed)', late_arrival: 'Late arrival (confirmed)', quality: 'Workmanship problem (confirmed)', damage: 'Property damage (confirmed)' };
   async function loadEaserReliability(easerId) {
     var box = document.getElementById('asm-reliability-panel');
     if (!box) return;
@@ -11665,7 +11723,7 @@ window.intelQuick = intelQuick;
       box.innerHTML = '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Reliability</div>'
         + '<div style="font-weight:700;color:' + (data.strikes >= data.pauseAtStrikes ? '#b91c1c' : data.strikes > 0 ? '#b45309' : 'var(--ink)') + '">'
         + data.strikes + ' strike' + (data.strikes === 1 ? '' : 's') + ' in the last ' + data.windowDays + ' days (pause at ' + data.pauseAtStrikes + ')</div>'
-        + (rows || '<div style="font-size:0.78rem;color:var(--muted)">No cancellations of accepted jobs in this window.</div>');
+        + (rows || '<div style="font-size:0.78rem;color:var(--muted)">No strikes in this window.</div>');
     } catch (err) {
       box.innerHTML = '<div style="font-size:0.78rem;color:#b91c1c">' + esc(err.message || 'Reliability could not be loaded.') + '</div>';
     }
@@ -11709,6 +11767,54 @@ window.intelQuick = intelQuick;
     }
   }
   window.confirmEaserNoShow = confirmEaserNoShow;
+
+  // Owner-confirmed problems on a job: late arrival, workmanship, property damage.
+  // The server checks the job state, counts the strikes and pauses at the limit
+  // (damage pauses at once); this mirrors its statuses so a button is only shown
+  // where it would be accepted. Policy numbers: EASER_RELIABILITY_POLICY.
+  var EASER_ISSUES = [
+    { kind: 'late_arrival', label: 'Late arrival (30+ min)', strikes: 1, statuses: ['confirmed', 'en_route', 'arrived', 'in_progress', 'completed'] },
+    { kind: 'quality', label: 'Workmanship problem', strikes: 1, statuses: ['in_progress', 'completed'] },
+    { kind: 'damage', label: 'Property damage', strikes: 2, statuses: ['arrived', 'in_progress', 'completed'], note: ' and pauses new jobs now' },
+  ];
+  function renderEaserIssueSection(b) {
+    var section = document.getElementById('easer-issue-section');
+    var body = document.getElementById('easer-issue-body');
+    if (!section || !body) return;
+    var today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+    var started = b.status !== 'confirmed' || (b.date && String(b.date).slice(0, 10) <= today);
+    var issues = (b.assembler_id && b.assembler_accepted_at)
+      ? EASER_ISSUES.filter(function(i) { return i.statuses.indexOf(b.status) !== -1 && (i.kind !== 'late_arrival' || started); })
+      : [];
+    if (!issues.length) { section.style.display = 'none'; body.innerHTML = ''; return; }
+    section.style.display = '';
+    body.innerHTML = '<div style="margin-bottom:0.5rem">Checked and confirmed a problem with ' + esc(b.assembler_name || 'the Easer') + ' on this job? Record it. They are told, and strikes count for 90 days (new jobs pause at 3).</div>'
+      + issues.map(function(i) {
+        return '<button class="btn" style="font-size:0.72rem;padding:2px 8px;margin:0 6px 6px 0" onclick="confirmEaserIssue(\'' + b.id + '\',\'' + i.kind + '\',this)">'
+          + esc(i.label) + ' · ' + i.strikes + ' strike' + (i.strikes === 1 ? '' : 's') + '</button>';
+      }).join('');
+  }
+  async function confirmEaserIssue(bookingId, kind, button) {
+    var issue = EASER_ISSUES.filter(function(i) { return i.kind === kind; })[0];
+    if (!issue) return;
+    var note = prompt('Record "' + issue.label + '"? This adds ' + issue.strikes + ' strike' + (issue.strikes === 1 ? '' : 's') + (issue.note || '') + '. The Easer is told.\n\nWhat happened (the Easer sees this):', '');
+    if (note === null) return;
+    button.disabled = true;
+    var label = button.textContent;
+    button.textContent = 'Saving...';
+    try {
+      var r = await fetch('/api/owner/easer-reliability', { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ action: 'confirm_issue', bookingId: bookingId, kind: kind, note: note }) });
+      var data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'It could not be recorded.');
+      toast(data.message || 'Recorded.', 'success');
+      button.textContent = data.alreadyRecorded ? 'Already recorded' : 'Recorded';
+    } catch (err) {
+      toast(err.message || 'It could not be recorded.', 'error');
+      button.disabled = false;
+      button.textContent = label;
+    }
+  }
+  window.confirmEaserIssue = confirmEaserIssue;
 
   function formatUsPhone(value) {
     var digits = String(value || '').replace(/\D/g, '');
@@ -11855,6 +11961,7 @@ window.intelQuick = intelQuick;
     document.getElementById('reason-modal-desc').textContent = name + ' will lose dispatch eligibility immediately. Reassign any active jobs before confirming. If you add a reason, it is shared with the Easer in their suspension email.';
     document.getElementById('reason-confirm').textContent = 'Suspend Easer';
     document.getElementById('reason-confirm').className = 'btn btn-red';
+    document.getElementById('suspension-reason').style.display = '';
     $reasonText.style.display = '';
     $reasonText.placeholder = 'Reason (optional — shared with the Easer)';
     $reasonText.value = '';

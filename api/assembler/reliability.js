@@ -33,6 +33,11 @@ export default async function handler(req, res) {
         lateNoticeHours: EASER_RELIABILITY_POLICY.lateNoticeHours,
         lateStrikes: EASER_RELIABILITY_POLICY.lateStrikes,
         sameDayStrikes: EASER_RELIABILITY_POLICY.sameDayStrikes,
+        noShowStrikes: EASER_RELIABILITY_POLICY.noShowStrikes,
+        lateArrivalStrikes: EASER_RELIABILITY_POLICY.lateArrivalStrikes,
+        qualityStrikes: EASER_RELIABILITY_POLICY.qualityStrikes,
+        damageStrikes: EASER_RELIABILITY_POLICY.damageStrikes,
+        unansweredOffersOffline: EASER_RELIABILITY_POLICY.unansweredOffersOffline,
       },
       events: summary.events.map((e) => ({ kind: e.kind, strikes: e.strikes, excused: e.excused, createdAt: e.createdAt })),
     });
