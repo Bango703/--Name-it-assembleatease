@@ -5,6 +5,7 @@ import { appointmentTimestampMs, chicagoTodayIso } from '../booking/_appt-date.j
 import { logCron } from './_cron-logger.js';
 import { formatUsPhone } from '../_phone.js';
 import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
+import { isOpenCustomQuote, isQuoteAwaitingPrice, quoteSlotStillOpen } from '../booking/_quote-state.js';
 
 /**
  * GET /api/cron/ops-alert  — every 30 min.
@@ -17,11 +18,64 @@ import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
  *   CRITICAL  today's job, no Pro assigned, appointment within 6 hours
  *   HIGH      needs_manual_dispatch — auto-dispatch gave up, owner must assign
  *   MEDIUM    Pro assigned but hasn't accepted 45+ min after assignment
+ *   HIGH      custom quote waiting 1h+ for the owner's price, or sent but its
+ *             requested time has passed (it cannot be approved until re-dated)
+ *
+ * A custom quote is never "no Pro assigned": it is not a job until the customer
+ * approves it (2026-10-28, Tyler Finn's Smart Home request).
  *
  * Routine, non-urgent unassigned jobs are left to the auto-dispatch cron.
  */
 const NO_ACCEPT_MIN   = 45;
 const CRITICAL_WINDOW_HRS = 6;
+const QUOTE_UNPRICED_MIN = 60;
+
+/** The urgent issue on one booking, or null. Pure, for scripts/test-quote-not-a-job.mjs. */
+export function classifyOpsIssue(b, { now = Date.now(), todayStr = chicagoTodayIso(new Date(now)) } = {}) {
+  let issue = null;
+  const effectiveDate = b.return_visit_required ? b.return_visit_date : b.date;
+  const effectiveTime = b.return_visit_required ? b.return_visit_time : b.time;
+
+  if (isOpenCustomQuote(b)) {
+    const asked = `${b.date || 'no date'}${b.time ? ' ' + b.time : ''}`;
+    const waitingMin = (now - Date.parse(b.created_at || '')) / 60000;
+    if (isQuoteAwaitingPrice(b)) {
+      if (waitingMin >= QUOTE_UNPRICED_MIN) {
+        issue = { sev: 'HIGH', label: `Quote request waiting for your price — customer asked for ${asked}` };
+      }
+    } else if (!quoteSlotStillOpen(b, new Date(now))) {
+      issue = { sev: 'HIGH', label: `Quote not approved yet and the requested time (${asked}) has passed — resend it with a new date` };
+    }
+  } else if (b.return_visit_required && effectiveDate && effectiveDate <= todayStr) {
+    issue = {
+      sev: effectiveDate < todayStr ? 'CRITICAL' : 'HIGH',
+      label: effectiveDate < todayStr
+        ? `Return visit overdue since ${effectiveDate} — ${b.return_visit_remaining_scope || 'remaining work is still open'}`
+        : `Return visit today at ${effectiveTime || 'TBD'} — ${b.return_visit_remaining_scope || 'remaining work'}`,
+    };
+  } else if (b.needs_manual_dispatch && !b.assembler_id && b.status === 'confirmed') {
+    issue = {
+      sev: 'HIGH',
+      label: b.dispatch_status === 'manual_required'
+        ? 'Needs manual assignment (auto-dispatch gave up)'
+        : 'Needs manual assignment (outside the automatic dispatch area)',
+    };
+  } else if (isOwnerManualOfflineBooking(b) && !b.assembler_id && b.status === 'confirmed') {
+    issue = { sev: 'HIGH', label: 'Owner-created offline booking needs the configured owner-Easer assignment or owner completion plan' };
+  } else if (effectiveDate === todayStr && !b.assembler_id && ['pending', 'confirmed'].includes(b.status)) {
+    const apptMs = appointmentTimestampMs(effectiveDate, effectiveTime);
+    const hrsAway = apptMs != null ? (apptMs - now) / 3600000 : 99;
+    if (hrsAway <= CRITICAL_WINDOW_HRS) {
+      issue = { sev: 'CRITICAL', label: `Today at ${effectiveTime || 'TBD'} — no Pro assigned, ~${Math.max(0, Math.round(hrsAway))}h away` };
+    }
+  } else if (b.assembler_id && !b.assembler_accepted_at && b.status === 'confirmed' && b.assigned_at) {
+    const mins = (now - new Date(b.assigned_at).getTime()) / 60000;
+    if (mins >= NO_ACCEPT_MIN) {
+      issue = { sev: 'MEDIUM', label: `${b.assembler_name || 'Assigned Pro'} hasn't accepted — ${Math.round(mins)} min since assigned` };
+    }
+  }
+  return issue;
+}
 
 export default async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
@@ -37,7 +91,7 @@ export default async function handler(req, res) {
 
   const { data: bookings, error } = await sb
     .from('bookings')
-    .select('id, ref, service, source, payment_status, customer_name, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_remaining_scope, status, assembler_id, assembler_name, assembler_accepted_at, assigned_at, needs_manual_dispatch')
+    .select('id, ref, service, source, payment_status, customer_name, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_remaining_scope, status, assembler_id, assembler_name, assembler_accepted_at, assigned_at, needs_manual_dispatch, dispatch_status, payment_method_type, created_at')
     .or('status.in.(pending,confirmed,en_route,arrived,in_progress),and(status.eq.completed,return_visit_required.eq.true)')
     .limit(200);
 
@@ -50,34 +104,7 @@ export default async function handler(req, res) {
   // ── Classify each booking into an urgent issue (or none) ──
   const issues = [];
   for (const b of bookings || []) {
-    let issue = null;
-    const effectiveDate = b.return_visit_required ? b.return_visit_date : b.date;
-    const effectiveTime = b.return_visit_required ? b.return_visit_time : b.time;
-
-    if (b.return_visit_required && effectiveDate && effectiveDate <= todayStr) {
-      issue = {
-        sev: effectiveDate < todayStr ? 'CRITICAL' : 'HIGH',
-        label: effectiveDate < todayStr
-          ? `Return visit overdue since ${effectiveDate} — ${b.return_visit_remaining_scope || 'remaining work is still open'}`
-          : `Return visit today at ${effectiveTime || 'TBD'} — ${b.return_visit_remaining_scope || 'remaining work'}`,
-      };
-    } else if (b.needs_manual_dispatch && !b.assembler_id && b.status === 'confirmed') {
-      issue = { sev: 'HIGH', label: 'Needs manual assignment (auto-dispatch gave up)' };
-    } else if (isOwnerManualOfflineBooking(b) && !b.assembler_id && b.status === 'confirmed') {
-      issue = { sev: 'HIGH', label: 'Owner-created offline booking needs the configured owner-Easer assignment or owner completion plan' };
-    } else if (effectiveDate === todayStr && !b.assembler_id && ['pending', 'confirmed'].includes(b.status)) {
-      const apptMs = appointmentTimestampMs(effectiveDate, effectiveTime);
-      const hrsAway = apptMs != null ? (apptMs - now) / 3600000 : 99;
-      if (hrsAway <= CRITICAL_WINDOW_HRS) {
-        issue = { sev: 'CRITICAL', label: `Today at ${effectiveTime || 'TBD'} — no Pro assigned, ~${Math.max(0, Math.round(hrsAway))}h away` };
-      }
-    } else if (b.assembler_id && !b.assembler_accepted_at && b.status === 'confirmed' && b.assigned_at) {
-      const mins = (now - new Date(b.assigned_at).getTime()) / 60000;
-      if (mins >= NO_ACCEPT_MIN) {
-        issue = { sev: 'MEDIUM', label: `${b.assembler_name || 'Assigned Pro'} hasn't accepted — ${Math.round(mins)} min since assigned` };
-      }
-    }
-
+    const issue = classifyOpsIssue(b, { now, todayStr });
     if (!issue) continue;
 
     // Dedup: skip if we've already alerted on this booking.
