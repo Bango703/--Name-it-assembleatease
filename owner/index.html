@@ -3624,6 +3624,7 @@ window.intelQuick = intelQuick;
         + (b.assembler_name ? '<span class="c-flag-easer">Easer: ' + esc(b.assembler_name) + '</span>' : '')
         + (b.has_unread_customer_msg ? '<span class="c-flag-bad">Customer message</span>' : '')
         + (b.has_unread_easer_msg ? '<span class="c-flag-bad">Easer message</span>' : '')
+        + (customerQuoteDecline(b) ? '<span class="c-flag-bad">Declined: ' + esc(customerQuoteDecline(b).reason) + '</span>' : '')
         + (b.needs_manual_dispatch && !b.assembler_id && !isTerminalBooking(b) ? '<span class="c-flag-bad">Needs manual assignment</span>' : '')
         + (msgCount ? '<span class="c-sub" style="margin:0">' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '');
       var whenPrefix = b.return_visit_required ? 'Return: ' : (b.return_visit_completed_at ? 'Return completed: ' : '');
@@ -3823,6 +3824,7 @@ window.intelQuick = intelQuick;
       field('Source', (b.source === 'manual' || b.source === 'owner_manual') ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
       b.rebooked_from_booking_id ? field('Rebooked From', esc(rebookedFrom && rebookedFrom.ref ? rebookedFrom.ref : 'Cancelled booking')) : '',
       field('Customer Agreement', customerAgreement),
+      b.status === 'declined' && b.decline_reason ? field('Decline Reason', esc(b.decline_reason) + (b.declined_at ? '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(formatDateTime(b.declined_at)) + '</span>' : '')) : '',
       field('Created', formatDateTime(b.created_at)),
     ].join('');
     renderActions(b);
@@ -7204,6 +7206,16 @@ window.intelQuick = intelQuick;
     return !!b && b.status === 'pending' && b.payment_status === 'not_required' && b.payment_method_type === 'card';
   }
 
+  // A quote the customer declined from the approval page (api/owner/quote-approve.js
+  // respondToQuote): its reason, and their note if they left one.
+  function customerQuoteDecline(b) {
+    var prefix = 'Customer declined the quote: ';
+    if (!b || b.status !== 'declined' || String(b.decline_reason || '').indexOf(prefix) !== 0) return null;
+    var rest = String(b.decline_reason).slice(prefix.length);
+    var split = rest.indexOf(' — ');
+    return { reason: split === -1 ? rest : rest.slice(0, split), note: split === -1 ? '' : rest.slice(split + 3) };
+  }
+
   function quoteLane(b) {
     if (!b || b.status !== 'pending') return null;
     var pay = String(b.payment_status || '');
@@ -7546,7 +7558,7 @@ window.intelQuick = intelQuick;
     } else if (s === 'cancelled') {
       cls = 'bk-cancelled'; label = 'Cancelled';
     } else if (s === 'declined') {
-      cls = 'bk-declined'; label = 'Declined';
+      cls = 'bk-declined'; label = customerQuoteDecline(b) ? 'Quote declined' : 'Declined';
     } else if (s === 'refunded') {
       cls = 'bk-refunded'; label = 'Refunded';
     } else {
