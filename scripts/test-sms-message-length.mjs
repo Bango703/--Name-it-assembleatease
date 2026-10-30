@@ -25,6 +25,7 @@ import { toGsm7 } from '../api/_sms.js';
 import { formatAppointmentDateShort, formatSlotShort } from '../api/booking/_appt-date.js';
 import { buildDayOfReminderSms } from '../api/cron/reminders.js';
 import { buildArrivalNudgeSms } from '../api/cron/easer-arrival-nudge.js';
+import { buildGoOnlineSms, describeJobForEaser } from '../api/_easer-go-online.js';
 import { buildStartNudgeSms } from '../api/cron/easer-start-nudge.js';
 
 const OPT_OUT = ' Reply STOP to opt out.';
@@ -84,6 +85,9 @@ const MESSAGES = {
   // The Easer's doorbell when the customer replies on the platform (at most one per booking per 30 min).
   customer_message_easer:
     `AssembleAtEase: Your customer replied about job ${ref}. Open your jobs to read it and reply.`,
+  // The real builder, with the longest service, city and slot (api/_easer-go-online.js).
+  easer_go_online_request:
+    buildGoOnlineSms(describeJobForEaser({ service, service_city: 'College Station', date: '2026-09-30', time: longestSlot })),
 };
 
 // The GSM 03.38 basic set plus its extension characters.
@@ -94,7 +98,7 @@ const GSM7 = '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%
 // Texts to an Easer carry no link. A carrier blocked the day-of reminder as spam
 // on 2026-10-17 while the same Easer received every unlinked text. Easers open
 // the app; only customer texts, who have no account, may link to a page.
-const EASER_TEXTS = ['dispatch_offer', 'assignment_confirmation', 'crew_added', 'arrival_nudge', 'start_nudge', 'easer_day_of_reminder', 'customer_message_easer'];
+const EASER_TEXTS = ['dispatch_offer', 'assignment_confirmation', 'crew_added', 'arrival_nudge', 'start_nudge', 'easer_day_of_reminder', 'customer_message_easer', 'easer_go_online_request'];
 for (const name of EASER_TEXTS) {
   assert.ok(MESSAGES[name], `${name} is measured`);
   assert.doesNotMatch(MESSAGES[name], /https?:|\.com|\/assembler/i, `${name}: an Easer text carries no link`);

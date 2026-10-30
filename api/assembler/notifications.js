@@ -24,6 +24,7 @@ export const NOTIFICATION_COPY = Object.freeze({
   assignment_confirmation: notice('New job', 'AssembleAtEase sent you a job. Review it and accept it.', 'job', 'Review job', JOBS),
   dispatch_offer: notice('New job offer', 'Review the offer and accept it before it expires.', 'job', 'Review offer', JOBS),
   easer_work_available: notice('Work available', 'New jobs are available in your area. Go online to get offers.', 'today', 'Open Today', JOBS),
+  easer_go_online_request: notice('A job is waiting for you', 'AssembleAtEase has a job for you. Go online so it can be sent to you.', 'today', 'Open Today', JOBS),
   crew_added: notice('Added to a crew', 'AssembleAtEase added you as a helper on this job.', 'job', 'View job', JOBS),
   easer_job_cancelled: notice('Job cancelled', 'The customer cancelled this job. It is off your schedule.', 'job', 'View job', JOBS),
   reschedule_easer_reconfirmation: notice('Schedule changed', 'The customer moved this job. Review the new time and accept the job.', 'job', 'Review new time', JOBS),
@@ -44,6 +45,7 @@ export const NOTIFICATION_COPY = Object.freeze({
 
   // Messages
   owner_message: notice('Message from AssembleAtEase', 'AssembleAtEase sent you a message about this job.', 'job_team_messages', 'Open messages', JOBS),
+  owner_sms_easer: notice('Text from AssembleAtEase', 'AssembleAtEase texted you. Reply to the text to answer.', 'none', null, JOBS),
   customer_tip: notice('You got a tip', 'A customer tipped you for a job you finished. It goes straight to your account.', 'payouts', 'Open payouts', JOBS),
   change_order_approved: notice('Extra work approved', 'The customer approved the extra work. Go ahead.', 'job', 'Open job', JOBS),
   change_order_declined: notice('Extra work declined', 'The customer declined the extra work. Finish the original job.', 'job', 'Open job', JOBS),

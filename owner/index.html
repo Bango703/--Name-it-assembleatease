@@ -456,6 +456,9 @@
                   </select>
                   <button class="btn btn-teal" id="assign-btn" disabled>Assign</button>
                 </div>
+                <!-- Easers ready in every way but offline: not assignable, but each
+                     can be asked to come online for this job (renderOfflineAsk). -->
+                <div id="assign-offline" style="display:none;margin-top:0.6rem"></div>
                 <!-- Crew: a second Easer on the same job. Hidden entirely unless the
                      booking is in a state that can take one, so it never advertises
                      an action the server would refuse. -->
@@ -7850,6 +7853,7 @@ window.intelQuick = intelQuick;
 
   // ─── Assembler assignment ───
   var eligibleAssemblers = [];
+  var offlineReadyEasers = [];
   var ownerEaserProfile = null;
 
   async function loadAssemblers() {
@@ -7858,6 +7862,7 @@ window.intelQuick = intelQuick;
       if (!r.ok) return;
       var data = await r.json();
       eligibleAssemblers = data.assemblers || [];
+      offlineReadyEasers = data.offlineReady || [];
       ownerEaserProfile = data.ownerEaser || null;
       if (selectedId) {
         var selectedBookingForAssignment = allBookings.find(function(booking) { return booking.id === selectedId; });
@@ -7888,6 +7893,7 @@ window.intelQuick = intelQuick;
     var controls = document.getElementById('assign-controls');
     var select   = document.getElementById('assign-select');
     var assignButton = document.getElementById('assign-btn');
+    renderOfflineAsk(null); // cleared here; only the unassigned branch fills it
     var allowOwnerManualCompleted = b.source === 'owner_manual' && b.status === 'completed';
     var thumbtackLiveAssignment = b.source === 'owner_manual'
       && b.status === 'confirmed'
@@ -7998,8 +8004,49 @@ window.intelQuick = intelQuick;
         assignButton.disabled = true;
         assignButton.textContent = 'Assign';
       }
+      if (!ownerEaserOnly && b.status === 'confirmed' && b.is_test_booking !== true
+          && String(b.date || '').slice(0, 10) >= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })) renderOfflineAsk(b);
     }
   }
+
+  // Offline but otherwise ready, an Easer is not in the list above. Each can be
+  // asked to come online for this job, once (api/_easer-go-online.js); the owner
+  // is emailed when they do.
+  function renderOfflineAsk(b) {
+    var box = document.getElementById('assign-offline');
+    if (!box) return;
+    var list = b ? offlineReadyEasers.filter(function(a) { return a.id !== b.assembler_id; }) : [];
+    if (!list.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.style.display = '';
+    box.innerHTML = '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px">Offline, otherwise ready. They are not in the list until they go online:</div>'
+      + list.map(function(a) {
+        return '<div style="display:flex;align-items:center;gap:0.5rem;font-size:0.8rem;margin:3px 0">'
+          + '<span style="flex:1">' + esc(a.full_name) + (a.city ? ' <span style="color:var(--muted)">&middot; ' + esc(a.city) + '</span>' : '')
+          + (a.job_texts_on ? '' : ' <span style="color:var(--muted)">(job texts off: email and app only)</span>') + '</span>'
+          + '<button class="btn" style="font-size:0.72rem;padding:2px 10px" onclick="askEaserOnline(\'' + esc(a.id) + '\',\'' + jsAttr(a.full_name) + '\',\'' + esc(b.id) + '\',this)">Ask to go online</button>'
+          + '</div>';
+      }).join('');
+  }
+
+  async function askEaserOnline(easerId, name, bookingId, button) {
+    if (!confirm('Ask ' + name + ' to go online for this job?\n\nThey get an app notice and an email, plus a text if job texts are on. It names the service, city, day and time, not the customer. You are emailed when they come online.')) return;
+    button.disabled = true;
+    button.textContent = 'Asking...';
+    try {
+      var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify({ assemblerId: easerId, action: 'go_online_request', bookingId: bookingId }) });
+      var data = await r.json().catch(function() { return {}; });
+      if (!r.ok || data.error) throw new Error(data.error || 'The request could not be sent.');
+      var ch = data.channels || {};
+      var how = [ch.text && 'texted', ch.email && 'emailed', ch.app && 'sent an app notice'].filter(Boolean).join(', ');
+      toast(name + ' was ' + how + '. You will get an email when they come online.', 'success');
+      button.textContent = 'Asked';
+    } catch (err) {
+      toast(err.message || 'The request could not be sent.', 'error');
+      button.disabled = false;
+      button.textContent = 'Ask to go online';
+    }
+  }
+  window.askEaserOnline = askEaserOnline;
 
   // ── Crew: a second Easer on the same job ─────────────────────────────────
   // The money is decided by the server. This renders what the server proposes and
@@ -11600,7 +11647,7 @@ window.intelQuick = intelQuick;
       // Contact section
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Contact</div>'
         + '<strong>Email:</strong> <a href="mailto:' + esc(a.email) + '" style="color:var(--accent)">' + esc(a.email) + '</a><br>'
-        + '<strong>Phone:</strong> ' + (hasValidUsPhone(a.phone) ? phoneWithCall(a.phone, 'easer', a.id) : '<span style="color:var(--red)">Valid phone required — cannot be dispatched</span>') + '<br>'
+        + '<strong>Phone:</strong> ' + (hasValidUsPhone(a.phone) ? phoneWithCall(a.phone, 'easer', a.id) + textEaserControl(a) : '<span style="color:var(--red)">Valid phone required — cannot be dispatched</span>') + '<br>'
         + '<strong>Location:</strong> ' + esc(a.city||'—') + (a.zip ? ', ' + esc(a.zip) : '')
         + '</div>',
       // Dispatch readiness checklist
@@ -11732,6 +11779,37 @@ window.intelQuick = intelQuick;
     }
   }
   window.sendInactivityNotice = sendInactivityNotice;
+
+  // ── Text an Easer from the AssembleAtEase number ─────────────────────────
+  // Starts a thread in Messages (api/owner/sms-messages.js). Only an Easer with
+  // job texts on can be texted, and never after STOP; the server checks too.
+  function textEaserControl(a) {
+    if (a.sms_opted_out_at) return ' <span style="font-size:0.72rem;color:var(--muted)">Replied STOP: cannot be texted</span>';
+    if (!a.sms_consent_at) return ' <span style="font-size:0.72rem;color:var(--muted)">Job texts off: cannot be texted</span>';
+    return ' <button class="btn" style="font-size:0.72rem;padding:2px 10px" onclick="textEaserFromDetail(\'' + esc(a.id) + '\',\'' + jsAttr(a.full_name) + '\',this)">Text</button>';
+  }
+  async function textEaserFromDetail(id, name, button) {
+    var first = String(name || '').trim().split(/\s+/)[0] || '';
+    var body = prompt('Text ' + name + ' from the AssembleAtEase number. Their reply shows in Messages.', first ? 'Hi ' + first + ', ' : '');
+    if (body === null) return;
+    body = body.trim();
+    if (!body) return;
+    button.disabled = true;
+    button.textContent = 'Sending...';
+    try {
+      var r = await fetch('/api/owner/sms-messages', { method: 'POST', headers: headers(), body: JSON.stringify({ easerId: id, body: body }) });
+      var data = await r.json().catch(function() { return {}; });
+      if (!r.ok || data.error) throw new Error(data.error || 'The text could not be sent.');
+      toast('Text sent to ' + name + (data.savedToInbox ? '. Their reply will show in Messages.' : '. It went out, but the copy did not save to Messages.'), 'success');
+      if (window.OwnerInbox && typeof window.OwnerInbox.loadBadge === 'function') window.OwnerInbox.loadBadge();
+    } catch (err) {
+      toast(err.message || 'The text could not be sent.', 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Text';
+    }
+  }
+  window.textEaserFromDetail = textEaserFromDetail;
 
   // ── Keep an Easer off services (owner block, migration 124) ──────────────
   // Dispatch skips jobs with any blocked service, whatever the Easer chose.

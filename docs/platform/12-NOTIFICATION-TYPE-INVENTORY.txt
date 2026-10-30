@@ -75,6 +75,7 @@ easer_waitlist
 easer_waitlist_confirmation
 easer_waitlist_owner_added
 easer_welcome
+easer_go_online_request
 easer_work_available
 evidence_request
 evidence_requested
@@ -92,6 +93,8 @@ no_show_alert
 ops_alert
 owner_booking_confirmation
 owner_booking_created_notice
+owner_easer_online_notice
+owner_sms_easer
 owner_booking_update_customer
 owner_completion
 owner_edit_easer_reconfirmation

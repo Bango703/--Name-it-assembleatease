@@ -36,6 +36,7 @@ import {
   INACTIVITY_NOTICE_DAYS, inactivityReasons, inactivityNoticeState,
   loadJobHistory, loadInactivityNotices, buildInactivityNoticeHtml,
 } from '../_easer-inactivity.js';
+import { requestEaserGoOnline } from '../_easer-go-online.js';
 
 // Why an Easer is suspended, kept on their record (owner, 2026-10-28). The
 // zero-tolerance reasons map to contractor agreement 12.3.
@@ -1382,6 +1383,17 @@ export default async function handler(req, res) {
       metadata: { easerId: assemblerId, deadline, reasons: reasons.map(r => r.key), note },
     }).catch((e) => console.error('inactivity notice logActivity error:', e?.message || e));
     return res.status(200).json({ ok: true, action: 'inactivity_notice', deadline, reasons });
+  }
+
+  // ── ASK TO GO ONLINE FOR A JOB (api/_easer-go-online.js) ──
+  // An Easer ready in every way but offline is left out of the assign list;
+  // this asks them to come online for one job, once.
+  if (action === 'go_online_request') {
+    const bookingId = String(req.body?.bookingId || '').trim();
+    if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
+    const result = await requestEaserGoOnline(sb, { easerId: assemblerId, bookingId });
+    if (!result.ok) return res.status(result.status).json({ error: result.error, code: result.code });
+    return res.status(200).json({ ok: true, action: 'go_online_request', channels: result.channels, smsSkipped: result.smsSkipped });
   }
 
   // ── KEEP OFF SERVICES (owner block, migration 124) ──
