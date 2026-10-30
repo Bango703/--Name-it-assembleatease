@@ -3,6 +3,7 @@ import { verifyOwner } from '../_email.js';
 import { normalizeAssemblerProfile } from '../_assembler-state.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { loadDemoEaserIds } from '../_demo-accounts.js';
+import { onlyOfflineBlocks } from '../_easer-go-online.js';
 
 /**
  * GET /api/booking/assemblers
@@ -17,7 +18,7 @@ export default async function handler(req, res) {
 
   const { data, error } = await sb
     .from('profiles')
-    .select('id, role, full_name, email, phone, city, status, application_status, tier, rating, completed_jobs, is_available, identity_verified, is_owner, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, sms_consent_at, sms_opted_out_at, stripe_connect_account_id, profile_photo_requested_at')
+    .select('id, role, full_name, email, phone, city, zip, status, application_status, tier, rating, completed_jobs, is_available, identity_verified, is_owner, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, sms_consent_at, sms_opted_out_at, stripe_connect_account_id, profile_photo_requested_at')
     .eq('role', 'assembler')
     .order('tier', { ascending: false })
     .order('rating', { ascending: false, nullsFirst: false });
@@ -28,6 +29,7 @@ export default async function handler(req, res) {
   }
 
   const assemblers = [];
+  const offlineReady = [];
   let ownerEaser = null;
   // Demo (App Review) accounts are labelled so the dashboard offers them only on
   // test bookings. Its own query: a failure means no demo accounts are labelled.
@@ -52,7 +54,21 @@ export default async function handler(req, res) {
         missing_items: readiness.missingItems || [],
       };
     }
-    if (!readiness.isReady) continue;
+    if (!readiness.isReady) {
+      // Ready except for being offline: not assignable, but the owner can ask
+      // them to come online for a job (api/_easer-go-online.js).
+      if (onlyOfflineBlocks(readiness) && normalized.is_owner !== true && !demoIds.has(normalized.id)) {
+        offlineReady.push({
+          id: normalized.id,
+          full_name: normalized.full_name,
+          city: normalized.city,
+          zip: profile.zip || null,
+          completed_jobs: normalized.completed_jobs,
+          job_texts_on: Boolean(profile.sms_consent_at && !profile.sms_opted_out_at),
+        });
+      }
+      continue;
+    }
     assemblers.push({
       id: normalized.id,
       full_name: normalized.full_name,
@@ -69,5 +85,5 @@ export default async function handler(req, res) {
     });
   }
 
-  return res.status(200).json({ assemblers, ownerEaser });
+  return res.status(200).json({ assemblers, ownerEaser, offlineReady });
 }
