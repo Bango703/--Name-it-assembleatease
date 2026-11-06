@@ -554,4 +554,15 @@ const app = Object.values(customer).join('\n');
   assert.match(customer['CustomerApp.swift'], /guard phase == \.active else \{ return \}[\s\S]{0,120}CustomerPush\.shared\.refreshStatus\(\)/, 'returning to the app re-reads the setting, signed in or not');
 }
 
+// A custom quote is sent with no card, as on the website (owner, 2026-10-21;
+// 12 of 15 web quote requests had stopped at a card form shown before a price).
+// The app kept the card step until 1.0.1. The card is asked at approval.
+{
+  const booking = customer['CustomerBooking.swift'];
+  assert.match(booking, /if plan\.isQuote \{[\s\S]{0,300}api\.createBooking\(order\(plan: plan, quotePreview: current, setupID: nil\)\)[\s\S]{0,80}return\n\s*\}/, 'a quote is created with no card');
+  assert.doesNotMatch(booking, /quote_booking/, 'the app never opens a card form for a quote');
+  const quoteBranch = booking.slice(booking.indexOf('if plan.isQuote {'), booking.indexOf('let key = try await stripeKey()'));
+  assert.doesNotMatch(quoteBranch, /CardSheet|cardSetup/, 'nothing in the quote branch asks for a card');
+}
+
 console.log('PASS customer native app: separate app with its own bundle ID and workflow, shared code compiled by both, every endpoint and field matches the server, prices and permissions from the server, in-app account deletion.');

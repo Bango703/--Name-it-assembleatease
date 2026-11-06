@@ -424,12 +424,19 @@ final class BookingFlow: ObservableObject {
         let cardName = name.trimmingCharacters(in: .whitespaces)
         let cardPhone = Format.e164(phone) ?? phone
         do {
+            if plan.isQuote {
+                // A quote is sent with no card, as on the website (owner, 2026-10-21).
+                // The card is asked for when the customer approves the price.
+                let created = try await api.createBooking(order(plan: plan, quotePreview: current, setupID: nil))
+                await finish(created, plan: plan)
+                return
+            }
             let key = try await stripeKey()
-            if plan.isQuote || plan.savesCard {
+            if plan.savesCard {
                 var setupID = pendingCard?.fingerprint == orderPrint ? pendingCard?.setupID : nil
                 if setupID == nil {
                     let secret = try await api.cardSetup(name: cardName, email: email,
-                                                         purpose: plan.isQuote ? "quote_booking" : "future_booking", date: dayISO)
+                                                         purpose: "future_booking", date: dayISO)
                     switch await CardSheet.present(.setup(secret), publishableKey: key, name: cardName, email: email, phone: cardPhone) {
                     case .done:
                         setupID = secret.components(separatedBy: "_secret_").first
