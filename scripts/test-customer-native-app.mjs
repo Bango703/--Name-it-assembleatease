@@ -538,4 +538,20 @@ const app = Object.values(customer).join('\n');
   assert.equal((views.match(/"Call AssembleAtEase"/g) || []).length, 2, 'both call buttons read "Call AssembleAtEase"');
 }
 
+// "Turn on" notifications showed to customers who had already allowed them
+// (owner, 2026-11-06): the cards read the default .notDetermined before the
+// phone answered, and the answer was read last, after four network calls.
+{
+  const push = customer['CustomerPush.swift'];
+  assert.match(push, /var canAsk: Bool \{ statusKnown && status == \.notDetermined \}/, 'notifications are offered only once the phone says they were never asked');
+  assert.match(push, /status = await UNUserNotificationCenter\.current\(\)\.notificationSettings\(\)\.authorizationStatus\n\s*statusKnown = true/, 'statusKnown is set from the phone, nowhere else');
+  for (const file of ['CustomerHome.swift', 'CustomerBooking.swift', 'CustomerViews.swift']) {
+    assert.doesNotMatch(customer[file], /push\.status == \.notDetermined/, `${file} decides from push.canAsk, never the default status`);
+  }
+  assert.match(customer['CustomerHome.swift'], /push\.canAsk \{ return \.updates \}/, 'the home card asks push.canAsk');
+  assert.match(customer['CustomerBooking.swift'], /if push\.canAsk \{/, 'the booked screen asks push.canAsk');
+  assert.match(customer['CustomerStore.swift'], /guard phase == \.signedIn else \{ return \}\n(?:\s*\/\/.*\n)*\s*await push\.refreshStatus\(\)\n\s*offer = await api\.currentOffer\(\)/, 'refresh reads the notification setting before any network call');
+  assert.match(customer['CustomerApp.swift'], /guard phase == \.active else \{ return \}[\s\S]{0,120}CustomerPush\.shared\.refreshStatus\(\)/, 'returning to the app re-reads the setting, signed in or not');
+}
+
 console.log('PASS customer native app: separate app with its own bundle ID and workflow, shared code compiled by both, every endpoint and field matches the server, prices and permissions from the server, in-app account deletion.');

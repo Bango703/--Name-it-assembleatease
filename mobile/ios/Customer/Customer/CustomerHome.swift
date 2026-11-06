@@ -166,7 +166,7 @@ private struct SuggestionCard: View {
     }
 
     private var pick: Pick? {
-        if !store.upcoming.isEmpty && push.status == .notDetermined { return .updates }
+        if !store.upcoming.isEmpty && push.canAsk { return .updates }
         if let cash = store.account?.assemblecashCents, cash > 0 { return .cash(cash) }
         if store.bookings.isEmpty, let offer = store.offer, !offer.code.isEmpty { return .offer(offer) }
         return nil

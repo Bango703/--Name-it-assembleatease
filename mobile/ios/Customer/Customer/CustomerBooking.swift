@@ -1150,7 +1150,7 @@ struct BookedView: View {
             }
             Text("A confirmation is on its way to \(flow.email).")
                 .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
-            if push.status == .notDetermined {
+            if push.canAsk {
                 Button {
                     Task { _ = await push.request() }
                 } label: {
