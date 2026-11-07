@@ -565,4 +565,34 @@ const app = Object.values(customer).join('\n');
   assert.doesNotMatch(quoteBranch, /CardSheet|cardSetup/, 'nothing in the quote branch asks for a card');
 }
 
+// App Store screenshots (owner, 2026-11-06): three bare screens became six,
+// each with one headline on the brand colour, made from the real app by the
+// customer-screenshots workflow.
+{
+  const shots = read('mobile/ios/Customer/UITests/StoreScreenshots.swift');
+  const spec = JSON.parse(read('mobile/ios/Customer/UITests/store-captions.json'));
+  const saved = [...shots.matchAll(/save\("([^"]+)"\)/g)].map((m) => m[1]);
+  assert.equal(saved.length, 6, `six screens are taken (${saved})`);
+  assert.deepEqual([...saved].sort(), Object.keys(spec.captions).sort(), 'every screen taken has a headline, and every headline has a screen');
+  assert.deepEqual([...spec.order].sort(), [...saved].sort(), 'the App Store order lists each screen once');
+  assert.ok(!/signIn|sign-in code|typeText\("[^"]*@/.test(shots.replace(/before sign-in/g, '')), 'the screenshots browse as a guest and never sign in');
+  for (const [name, caption] of Object.entries(spec.captions)) {
+    assert.ok(caption.headline && caption.headline.length <= 34, `${name}: a headline of at most 34 characters (two lines)`);
+    assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(caption.headline + (caption.subline || '')), `${name}: no emojis`);
+    assert.ok(!/\b(cheap|cheapest|discount|bargain|budget)\b/i.test(caption.headline + ' ' + (caption.subline || '')), `${name}: premium positioning`);
+  }
+  const frames = read('scripts/app-store-frames.py');
+  const css = read('assets/css/marketing.css');
+  const hex = (t) => `0x${t.slice(1, 3)}, 0x${t.slice(3, 5)}, 0x${t.slice(5, 7)}`.toUpperCase().replace(/0X/g, '0x');
+  for (const [token, constant] of [['--cyan', 'SKY'], ['--cyan-dark', 'SKY_DARK'], ['--ink', 'INK']]) {
+    const value = css.match(new RegExp(`${token}:(#[0-9a-fA-F]{6})`))[1];
+    assert.ok(frames.includes(`${constant} = (${hex(value)})`), `${constant} is the brand token ${token} ${value}`);
+  }
+  assert.match(frames, /WIDTH, HEIGHT = 1320, 2868/, 'the 6.9-inch size Apple asks for');
+  const codemagicYaml = read('codemagic.yaml');
+  const workflow = codemagicYaml.slice(codemagicYaml.indexOf('customer-screenshots:'));
+  assert.match(workflow, /scripts\/app-store-frames\.py --raw "\$CM_BUILD_DIR\/screenshots" --out "\$CM_BUILD_DIR\/app-store"/, 'the workflow adds the headlines');
+  assert.match(workflow, /artifacts:\s*\n\s*- screenshots\/\*\.png\s*\n\s*- app-store\/\*\.png/, 'and keeps the finished set');
+}
+
 console.log('PASS customer native app: separate app with its own bundle ID and workflow, shared code compiled by both, every endpoint and field matches the server, prices and permissions from the server, in-app account deletion.');
