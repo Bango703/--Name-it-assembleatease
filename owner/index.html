@@ -11381,6 +11381,8 @@ window.intelQuick = intelQuick;
       ['Application Fee Satisfied', readinessChip(!!r.applicationFeeSatisfied)],
       ['Valid Phone On File', readinessChip(!!r.phoneAvailable)],
       ['Job Texts Enabled', r.jobTextsEnabled ? readinessChip(true) : '<span style="color:#991b1b;font-weight:700">' + esc((r.jobTexts && r.jobTexts.label) || 'Off') + '</span>'],
+      // Not a dispatch gate: who has the Easer app (api/owner/easer-readiness.js).
+      ['Easer App', esc((r.easerApp && r.easerApp.label) || 'Unknown')],
       ['Profile Photo', r.profilePhotoRequested ? '<span style="color:#991b1b;font-weight:700">New photo requested</span>' : readinessChip(true)],
       ['Tier Eligible', readinessChip(!!r.tierEligible)],
       ['Identity Verified', readinessChip(!!r.identityVerified)],

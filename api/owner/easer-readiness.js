@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { easerAppStatus } from '../_easer-app-policy.js';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
@@ -108,6 +109,7 @@ export default async function handler(req, res) {
       taxReadinessStatus: taxReadiness.label,
       w9Status,
       jobTexts: jobTextStatus(profile),
+      easerApp: await easerAppStatus(sb, profile.id),
       checkedAt: new Date().toISOString(),
     },
   });
