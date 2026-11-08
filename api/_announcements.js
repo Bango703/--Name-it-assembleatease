@@ -7,6 +7,7 @@
 import { isStripeConnectEnabled, refreshConnectPayoutState } from './_stripe-connect.js';
 import { isSmsEnabled } from './_sms.js';
 import { isDemoEaser } from './_demo-accounts.js';
+import { isIPhoneBrowser, easerIdsWithApp } from './_easer-app-policy.js';
 
 // Each rule decides, from a plain profile row, whether an Easer still NEEDS the
 // action (`incomplete`) and how to bulk-select those Easers (`query`). `active`
@@ -75,6 +76,47 @@ export const TARGET_RULES = {
         .is('sms_consent_at', null)
         .is('sms_opted_out_at', null)
         .not('phone', 'is', null);
+    },
+  },
+  // The Easer app (owner, 2026-11-08): Easers who signed their contractor
+  // agreement on an iPhone and have not used the Easer app. "Used the app"
+  // is a push sign-in (native_push_tokens) or the app itself having asked for
+  // its required actions, which marks this delivery complete
+  // (markEaserAppSeen); the second covers anyone who turned notifications off.
+  // Email and push only: the web page already shows its own app banner
+  // (api/_easer-app-policy.js), so this never adds a second one.
+  easer_app_missing: {
+    active: () => true,
+    incomplete(profile = {}) {
+      const approved = String(profile.status || '').toLowerCase() === 'active'
+        && String(profile.application_status || '').toLowerCase() === 'approved';
+      if (!approved) return false;
+      if (profile._easer_app) return profile._easer_app.iphone === true && profile._easer_app.hasApp !== true;
+      return isIPhoneBrowser(profile.contractor_agreement_user_agent);
+    },
+    async query(sb, announcement) {
+      const { data, error } = await sb.from('profiles')
+        .select('id, full_name, email, status, application_status, contractor_agreement_user_agent')
+        .eq('role', 'assembler')
+        .eq('status', 'active')
+        .eq('application_status', 'approved');
+      if (error) return { data: null, error };
+      const iphone = (data || []).filter((p) => isIPhoneBrowser(p.contractor_agreement_user_agent));
+      if (!iphone.length) return { data: [], error: null };
+      const withApp = await easerIdsWithApp(sb, iphone.map((p) => p.id), announcement?.id);
+      if (withApp.error) return { data: null, error: withApp.error };
+      return {
+        data: iphone.filter((p) => !withApp.ids.has(p.id)).map((p) => ({ ...p, _easer_app: { iphone: true, hasApp: false } })),
+        error: null,
+      };
+    },
+    // Re-checked right before each send: never ask someone who has the app.
+    async confirmStillIncomplete(sb, profile = {}) {
+      const ann = await sb.from('easer_announcements').select('id').eq('target_rule', 'easer_app_missing').eq('status', 'active');
+      if (ann.error) return { stillIncomplete: true, verified: false };
+      const withApp = await easerIdsWithApp(sb, [profile.id], (ann.data || []).map((a) => a.id));
+      if (withApp.error) return { stillIncomplete: true, verified: false };
+      return { stillIncomplete: !withApp.ids.has(profile.id), verified: true };
     },
   },
   payout_setup_incomplete: {
@@ -155,6 +197,8 @@ export async function getEaserRequiredActions(sb, profile) {
     : false;
   for (const a of announcements) {
     const rule = ruleFor(a);
+    // An announcement without the in_app channel is email/push only.
+    if (Array.isArray(a.channels) && !a.channels.includes('in_app')) continue;
     if (!rule || !rule.incomplete(profile)) continue;
     if (demo && a.target_rule === 'payout_setup_incomplete') continue;
     if (rule.ackRequired) {
@@ -211,4 +255,18 @@ export function isReminderDue(delivery, reminderDays, now = Date.now()) {
   const lastAt = delivery.last_reminded_at ? new Date(delivery.last_reminded_at).getTime() : 0;
   const nextGapDays = Math.max(0, days[sent] - days[sent - 1] || days[sent] || 0);
   return now - lastAt >= nextGapDays * 24 * 3600 * 1000;
+}
+
+// The Easer app asked for its required actions: this Easer uses the app.
+// Completes their delivery of every active app announcement so no email or
+// push asks them to download it. Bookkeeping only; a failure changes nothing.
+export async function markEaserAppSeen(sb, easerId, nowIso = new Date().toISOString()) {
+  if (!easerId) return { ok: false };
+  const { data: anns, error } = await sb.from('easer_announcements')
+    .select('id').eq('target_rule', 'easer_app_missing').eq('status', 'active');
+  if (error || !anns?.length) return { ok: !error };
+  const rows = anns.map((a) => ({ announcement_id: a.id, easer_id: easerId, completed_at: nowIso, updated_at: nowIso }));
+  const { error: upsertError } = await sb.from('easer_announcement_deliveries')
+    .upsert(rows, { onConflict: 'announcement_id,easer_id' });
+  return { ok: !upsertError };
 }

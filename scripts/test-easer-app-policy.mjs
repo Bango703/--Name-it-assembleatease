@@ -3,7 +3,8 @@
 // website (owner, 2026-11-08). Off until EASER_IPHONE_APP_REQUIRED_FROM is set.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { easerAppPolicy, isIPhoneBrowser, offersBelongInApp, EASER_IOS_APP_URL, easerAppStatus } from '../api/_easer-app-policy.js';
+import { easerAppPolicy, isIPhoneBrowser, isEaserNativeApp, offersBelongInApp, EASER_IOS_APP_URL, easerAppStatus } from '../api/_easer-app-policy.js';
+import { TARGET_RULES, getEaserRequiredActions, markEaserAppSeen } from '../api/_announcements.js';
 
 const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n');
 
@@ -72,15 +73,100 @@ console.log('PASS policy: off until a valid date is set, on from that Austin day
 }
 console.log('PASS wiring: server filters and refuses; the page renders its verdict and never guesses the device');
 
-// The owner sees who has the app, and never a guess.
+// A small in-memory database: each table is a list of rows; filters narrow it.
+function fakeDb(tables, { fail = [] } = {}) {
+  const writes = [];
+  return {
+    writes,
+    from(table) {
+      let rows = (tables[table] || []).slice();
+      const q = {
+        select() { return q; },
+        eq(col, val) { rows = rows.filter((r) => r[col] === val); return q; },
+        in(col, vals) { rows = rows.filter((r) => vals.includes(r[col])); return q; },
+        not(col) { rows = rows.filter((r) => r[col] != null); return q; },
+        lte() { return q; },
+        or() { return q; },
+        maybeSingle: async () => ({ data: rows[0] || null, error: null }),
+        upsert: async (values, opts) => { writes.push({ table, values, opts }); return { error: null }; },
+        then(resolve, reject) {
+          const result = fail.includes(table) ? { data: null, error: { message: table + ' down' } } : { data: rows, error: null };
+          return Promise.resolve(result).then(resolve, reject);
+        },
+      };
+      return q;
+    },
+  };
+}
+const ANN = { id: 'ann-app', key: 'easer_app_download', target_rule: 'easer_app_missing', status: 'active', channels: ['email', 'push'], title: 'Get the Easer app', body: 'b', action_label: 'Get the Easer app', action_url: EASER_IOS_APP_URL, type: 'required_action' };
+const easer = (id, ua, extra = {}) => ({ id, role: 'assembler', status: 'active', application_status: 'approved', email: id + '@example.test', contractor_agreement_user_agent: ua, ...extra });
+
+// The app is recognised from its own requests.
 {
-  const sb = (result) => ({ from: () => ({ select: () => ({ eq: async () => result }) }) });
-  assert.deepEqual(await easerAppStatus(sb({ data: [{ platform: 'ios' }, { platform: 'ios' }], error: null }), 'u1'), { known: true, installed: true, platforms: ['ios'], label: 'Signed in on iPhone' });
-  assert.equal((await easerAppStatus(sb({ data: [], error: null }), 'u1')).label, 'No app sign-in recorded');
-  const unknown = await easerAppStatus(sb({ data: null, error: { message: 'down' } }), 'u1');
-  assert.equal(unknown.known, false); assert.equal(unknown.installed, null, 'unreadable is unknown, never "no app"');
-  assert.match(read('api/owner/easer-readiness.js'), /easerApp: await easerAppStatus\(sb, profile\.id\),/);
+  assert.equal(isEaserNativeApp(NATIVE_APP), true);
+  assert.equal(isEaserNativeApp('App/1 CFNetwork/3826.400.120 Darwin/24.3.0'), true);
+  for (const ua of [SAFARI, CHROME_IOS, IPAD, ANDROID, DESKTOP, '', undefined]) assert.equal(isEaserNativeApp(ua), false, String(ua));
+}
+console.log('PASS app: the Easer app is recognised from iOS networking; no browser is mistaken for it');
+
+// Who is asked to download it: approved, signed on an iPhone, no app use.
+{
+  const rule = TARGET_RULES.easer_app_missing;
+  const db = fakeDb({
+    profiles: [easer('a', SAFARI), easer('b', SAFARI), easer('c', SAFARI), easer('d', DESKTOP), easer('e', SAFARI, { status: 'paused' }), easer('f', null)],
+    native_push_tokens: [{ user_id: 'b', platform: 'ios' }],
+    easer_announcement_deliveries: [{ announcement_id: 'ann-app', easer_id: 'c', completed_at: '2026-11-08T00:00:00Z' }],
+  });
+  const { data, error } = await rule.query(db, ANN);
+  assert.equal(error, null);
+  assert.deepEqual(data.map((p) => p.id), ['a'], 'b has a push sign-in, c opened the app, d signed on a computer, e is not active, f has no device on file');
+  assert.equal(rule.incomplete(data[0]), true);
+  assert.equal(rule.incomplete({ ...easer('x', SAFARI), _easer_app: { iphone: true, hasApp: true } }), false);
+  assert.equal(rule.incomplete(easer('y', ANDROID)), false, 'never Android');
+  assert.equal(rule.incomplete({ ...easer('z', SAFARI), status: 'pending' }), false, 'never before approval');
+  const broken = await rule.query(fakeDb({ profiles: [easer('a', SAFARI)] }, { fail: ['native_push_tokens'] }), ANN);
+  assert.equal(broken.error.message, 'native_push_tokens down', 'an unreadable app record fails the run, it does not email everyone');
+
+  const confirmDb = (tables, opts) => fakeDb({ easer_announcements: [ANN], ...tables }, opts);
+  assert.deepEqual(await rule.confirmStillIncomplete(confirmDb({ native_push_tokens: [] }), easer('a', SAFARI)), { stillIncomplete: true, verified: true });
+  assert.deepEqual(await rule.confirmStillIncomplete(confirmDb({ native_push_tokens: [{ user_id: 'a' }] }), easer('a', SAFARI)), { stillIncomplete: false, verified: true }, 're-checked before each send');
+  assert.deepEqual(await rule.confirmStillIncomplete(confirmDb({}, { fail: ['native_push_tokens'] }), easer('a', SAFARI)), { stillIncomplete: true, verified: false }, 'unknown is never sent');
+}
+console.log('PASS rule: approved iPhone signers without app use are asked; push sign-in or opening the app stops it; every send re-checked');
+
+// No second banner on the web page; the app opening marks the Easer done.
+{
+  const db = fakeDb({ easer_announcements: [ANN], easer_announcement_deliveries: [] });
+  assert.deepEqual(await getEaserRequiredActions(db, easer('a', SAFARI)), [], 'email and push only: the web page shows its own banner');
+  assert.equal((await markEaserAppSeen(db, 'a', '2026-11-08T12:00:00Z')).ok, true);
+  assert.deepEqual(db.writes[0], { table: 'easer_announcement_deliveries', values: [{ announcement_id: 'ann-app', easer_id: 'a', completed_at: '2026-11-08T12:00:00Z', updated_at: '2026-11-08T12:00:00Z' }], opts: { onConflict: 'announcement_id,easer_id' } });
+  const none = fakeDb({ easer_announcements: [] });
+  assert.equal((await markEaserAppSeen(none, 'a')).ok, true);
+  assert.equal(none.writes.length, 0, 'nothing to mark before migration 125');
+  for (const m of ['057_easer_announcements.sql', '093_easer_sms_consent_announcement.sql', '102_easer_cancellation_policy_announcement.sql']) {
+    assert.match(read('api/migrations/' + m), /ARRAY\['email', 'in_app', 'push'\]/, `${m}: existing banners keep in_app, so the channel check changes nothing for them`);
+  }
+  const route = read('api/assembler/required-actions.js');
+  assert.match(route, /contractor_agreement_user_agent'\)/, 'the route selects every column the rule reads');
+  assert.match(route, /if \(isEaserNativeApp\(req\.headers\?\.\['user-agent'\]\)\) \{\s*await markEaserAppSeen\(sb, profile\.id\)\.catch\(\(\) => \{\}\);/);
+  const mig = read('api/migrations/125_easer_app_announcement.sql');
+  assert.match(mig, /'easer_app_download',[\s\S]*'easer_app_missing',\s*false,\s*ARRAY\['email', 'push'\]::TEXT\[\],\s*ARRAY\[0, 4\]::INTEGER\[\],\s*'active'/);
+  assert.match(mig, /VALUES \(125, 'easer_app_announcement'\)/);
+}
+console.log('PASS channels: no duplicate web banner, existing banners unchanged, the app marks its Easer done, migration 125 seeds email+push');
+
+// The owner sees who uses the app and who signed on an iPhone, never a guess.
+{
+  const tables = { easer_announcements: [ANN], native_push_tokens: [{ user_id: 'a' }], easer_announcement_deliveries: [{ announcement_id: 'ann-app', easer_id: 'c', completed_at: 'x' }] };
+  assert.equal((await easerAppStatus(fakeDb(tables), easer('a', SAFARI))).label, 'Uses the Easer app; signed the agreement on an iPhone');
+  assert.equal((await easerAppStatus(fakeDb(tables), easer('c', SAFARI))).label, 'Uses the Easer app; signed the agreement on an iPhone', 'opened the app with notifications off');
+  assert.equal((await easerAppStatus(fakeDb(tables), easer('d', DESKTOP))).label, 'No Easer app use recorded; signed the agreement on another device');
+  assert.equal((await easerAppStatus(fakeDb(tables), easer('f', null))).label, 'No Easer app use recorded; agreement device not recorded');
+  const unknown = await easerAppStatus(fakeDb(tables, { fail: ['native_push_tokens'] }), easer('a', SAFARI));
+  assert.equal(unknown.known, false);
+  assert.equal(unknown.installed, null, 'unreadable is unknown, never "no app"');
+  assert.match(read('api/owner/easer-readiness.js'), /easerApp: await easerAppStatus\(sb, profile\),/);
   assert.match(read('owner/index.html'), /\['Easer App', esc\(\(r\.easerApp && r\.easerApp\.label\) \|\| 'Unknown'\)\],/);
 }
-console.log('PASS owner: the Easer panel shows who is signed in on the app; an unreadable record says unknown');
+console.log('PASS owner: the Easer panel says who uses the app and who signed on an iPhone; unreadable says unknown');
 console.log('\nEaser app policy tests passed.');

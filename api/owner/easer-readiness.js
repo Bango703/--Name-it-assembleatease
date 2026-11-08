@@ -109,7 +109,7 @@ export default async function handler(req, res) {
       taxReadinessStatus: taxReadiness.label,
       w9Status,
       jobTexts: jobTextStatus(profile),
-      easerApp: await easerAppStatus(sb, profile.id),
+      easerApp: await easerAppStatus(sb, profile),
       checkedAt: new Date().toISOString(),
     },
   });
