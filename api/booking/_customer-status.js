@@ -1,4 +1,5 @@
 import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { awaitingReplacementPro } from './_easer-no-show.js';
 
 /**
  * THE words a customer sees for where their booking stands. Read by
@@ -8,7 +9,7 @@ import { BOOKING_STATUS } from '../_source-of-truth.js';
  *
  * Needs: status, payment_status, payment_collected, return_visit_required,
  * return_visit_date, return_visit_time, assembler_id, assembler_accepted_at,
- * assembler_name, date, time.
+ * assembler_name, date, time, easer_no_show_confirmed_at.
  */
 export function customerStatusLabel(b) {
   if (b.status === BOOKING_STATUS.CANCELLED) return { label: 'Booking cancelled', detail: null };
@@ -30,6 +31,9 @@ export function customerStatusLabel(b) {
   if (b.status === BOOKING_STATUS.IN_PROGRESS) return { label: 'Work is underway', detail: null };
   if (b.status === BOOKING_STATUS.ARRIVED)     return { label: 'Your service pro has arrived', detail: null };
   if (b.status === BOOKING_STATUS.EN_ROUTE)    return { label: 'Your service pro is on the way', detail: null };
+  if (awaitingReplacementPro(b)) {
+    return { label: 'We are finding you a new pro', detail: 'We will confirm your pro and new time with you. You will not be charged for the missed visit.' };
+  }
   if (b.assembler_accepted_at && b.assembler_name) {
     const first = (b.assembler_name || '').split(' ')[0];
     return { label: `${first} is confirmed for your job`, detail: `Arriving ${b.date}${b.time ? ' at ' + b.time.split('-')[0].trim() : ''}.` };
@@ -70,6 +74,6 @@ export function customerProgress(b) {
   if (b.status === BOOKING_STATUS.COMPLETED) step = 4;
   else if (b.status === BOOKING_STATUS.ARRIVED || b.status === BOOKING_STATUS.IN_PROGRESS) step = 3;
   else if (b.status === BOOKING_STATUS.EN_ROUTE) step = 2;
-  else if (b.assembler_accepted_at) step = 1;
+  else if (b.assembler_accepted_at && !awaitingReplacementPro(b)) step = 1;
   return { step, steps: CUSTOMER_PROGRESS_STEPS };
 }

@@ -8,11 +8,12 @@ import { randomToken, sha256 } from '../_payment-security.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { appointmentTimestampMs, parseIsoCalendarDate } from './_appt-date.js';
-import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './_booking-window.js';
+import { BOOKING_WINDOW_DAYS, addIsoDays, bookingWindow, needsScheduledAuthorization, validateBookingWindowDate } from './_booking-window.js';
 import { customerBookingAccess, usesCustomerAccount } from './_customer-access.js';
 import { matchingProposal, settleProposalsAfterReschedule } from './_time-proposals.js';
 import { sendPushToUser } from '../_push.js';
 import { heldCardCanWait, SAVED_CARD_FIELDS, releaseSupersededHold } from './_held-card-reschedule.js';
+import { easerMissedVisit } from './_easer-no-show.js';
 
 export const MAX_RESCHEDULES = 2;
 /** The statuses a customer may still move themselves (read by track.js for the button). */
@@ -64,6 +65,23 @@ export function reschedulePaymentConflict(booking, date) {
     };
   }
   return null;
+}
+
+/**
+ * The first and last dates this booking can move to, from the same rules as
+ * reschedulePaymentConflict, so the date picker never offers a day the server
+ * would refuse (track.html used to cap held cards at 6 days and make saved
+ * cards wait 7, neither of which the server enforced).
+ */
+export function rescheduleDateBounds(booking, now = new Date()) {
+  const w = bookingWindow(now);
+  if (booking.payment_status === 'authorized' && !heldCardCanWait(booking)) {
+    return { minDate: w.firstDate, maxDate: w.immediateAuthorizationLastDate };
+  }
+  if (booking.payment_status === 'card_saved') {
+    return { minDate: addIsoDays(w.immediateAuthorizationLastDate, 1), maxDate: w.lastDate };
+  }
+  return { minDate: w.firstDate, maxDate: w.lastDate };
 }
 
 function deliveryFailed(result) {
@@ -146,7 +164,9 @@ export default async function handler(req, res) {
   // pro's move, not the customer's: it does not count toward the reschedule limit
   // and does not forfeit the free-cancellation window (Rule 9).
   const acceptedProposal = await matchingProposal(sb, { proposalId, booking, date, time: normalizedTime });
-  const countsAsReschedule = !acceptedProposal;
+  // After an owner-confirmed Easer no-show the move is ours, not hers: it does
+  // not count toward her limit (api/booking/_easer-no-show.js).
+  const countsAsReschedule = !acceptedProposal && !easerMissedVisit(booking);
   if (countsAsReschedule && priorReschedules >= MAX_RESCHEDULES) {
     return res.status(409).json({
       error: `This booking has already been rescheduled ${MAX_RESCHEDULES} times. Please call (979) 232-5139 for further changes.`,

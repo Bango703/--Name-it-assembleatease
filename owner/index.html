@@ -11836,6 +11836,11 @@ window.intelQuick = intelQuick;
       if (!r.ok) throw new Error(data.error || 'The no-show could not be recorded.');
       toast(data.alreadyRecorded ? 'This no-show was already recorded.' : data.message, 'success');
       button.textContent = 'No-show recorded';
+      // Reassign in the same step: open the Easer picker on this booking.
+      var assignControls = document.getElementById('assign-controls');
+      if (assignControls && assignControls.style.display === 'none' && typeof window.toggleReassign === 'function') window.toggleReassign();
+      var assignSection = document.getElementById('assign-section');
+      if (assignSection && assignSection.scrollIntoView) assignSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (err) {
       toast(err.message || 'The no-show could not be recorded.', 'error');
       button.disabled = false; button.textContent = 'Confirm no-show';
