@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import Stripe from 'stripe';
 import { formatAppointmentDate } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
@@ -11,6 +12,7 @@ import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindow
 import { customerBookingAccess, usesCustomerAccount } from './_customer-access.js';
 import { matchingProposal, settleProposalsAfterReschedule } from './_time-proposals.js';
 import { sendPushToUser } from '../_push.js';
+import { heldCardCanWait, SAVED_CARD_FIELDS, releaseSupersededHold } from './_held-card-reschedule.js';
 
 export const MAX_RESCHEDULES = 2;
 /** The statuses a customer may still move themselves (read by track.js for the button). */
@@ -47,7 +49,9 @@ export function validatePublishedRescheduleSlot(date, time) {
  */
 export function reschedulePaymentConflict(booking, date) {
   const movingToScheduledAuthorization = needsScheduledAuthorization(date);
-  if (booking.payment_status === 'authorized' && movingToScheduledAuthorization) {
+  // A held card that can be re-placed later goes back to a saved card on the
+  // move (api/booking/_held-card-reschedule.js), so nobody is sent to support.
+  if (booking.payment_status === 'authorized' && movingToScheduledAuthorization && !heldCardCanWait(booking)) {
     return {
       error: 'This date is outside the current card-authorization window. Contact support so we can move the appointment without leaving an expired hold.',
       code: 'PAYMENT_RESCHEDULE_ASSISTANCE_REQUIRED',
@@ -165,7 +169,11 @@ export default async function handler(req, res) {
       code: 'RESCHEDULE_UNAVAILABLE',
     });
   }
+  // The hold this move leaves behind, released after the booking is saved.
+  const releaseHold = booking.payment_status === 'authorized' && needsScheduledAuthorization(date) && heldCardCanWait(booking)
+    ? booking.stripe_payment_intent_id : null;
   const update = {
+    ...(releaseHold ? SAVED_CARD_FIELDS : {}),
     date,
     time,
     rescheduled_at: now,
@@ -244,6 +252,24 @@ export default async function handler(req, res) {
       .eq('offer_status', 'sent');
     dispatchOfferCleanupError = offerCleanupError?.message || null;
     if (offerCleanupError) console.error('Reschedule dispatch offer cleanup failed:', offerCleanupError);
+  }
+
+  if (releaseHold) {
+    const released = await releaseSupersededHold({
+      stripe: process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null,
+      bookingId: booking.id,
+      paymentIntentId: releaseHold,
+    });
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: released.ok ? 'payment_hold_released_for_reschedule' : 'payment_hold_release_failed',
+      actorType: 'system',
+      actorName: 'reschedule',
+      description: released.ok
+        ? `Moved past the hold window: card hold released; the card is saved and a new hold is placed two days before ${date}.`
+        : `Moved past the hold window: the booking now uses the saved card, but the old hold could not be released (${released.error}). It is not linked to the booking, will not be captured, and lapses on its own; release it in Stripe to free the customer's funds sooner.`,
+      metadata: { paymentIntentId: releaseHold, newDate: date, error: released.ok ? null : released.error },
+    });
   }
 
   const remaining = MAX_RESCHEDULES - (countsAsReschedule ? priorReschedules + 1 : priorReschedules);
