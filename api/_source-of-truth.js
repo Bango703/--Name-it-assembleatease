@@ -360,7 +360,7 @@ export function computeBookingSplitAtFeePct(totalInclusiveCents, feePct, { taxCe
  * what the customer paid but must NOT reduce the Easer's payout basis.
  *
  * A gift card is different: it is money the customer already paid (migration
- * 120). amountCharged/totalPrice is what the card paid; giftCardAppliedCents
+ * 127). amountCharged/totalPrice is what the card paid; giftCardAppliedCents
  * is added back so tax, the Easer's pay and the platform's share are all
  * figured on the full price, exactly as on a job paid entirely by card.
  * totalCents stays the card amount.
@@ -447,6 +447,15 @@ export const EASER_RELIABILITY_POLICY = Object.freeze({
   windowDays: 90,            // strikes count for 90 days
   pauseAtStrikes: 3,         // at this many, the Easer is paused from new jobs
   dispatchPenaltyPerStrike: 150, // dispatch score points lost per active strike
+  // Owner-confirmed problems on a job (owner, 2026-10-28 accountability table).
+  // An automatic signal alone never counts; the owner checks, then confirms.
+  lateArrivalStrikes: 1,     // 30+ minutes late, confirmed
+  qualityStrikes: 1,         // workmanship problem, confirmed
+  damageStrikes: 2,          // property damage, confirmed; also pauses new jobs at once
+  // Online but not answering: offers for this many different jobs expire in a
+  // row with no accept or decline, and the Easer is set offline (not a strike).
+  unansweredOffersOffline: 3,
+  unansweredWindowDays: 7,
   timeZone: 'America/Chicago',
 });
 
@@ -564,7 +573,7 @@ export function computeBookingFinancialSummary({
   // not Easer earnings: it is a business expense, so it lowers the platform's
   // figures without ever being counted as what the Easer earned.
   easerReimbursementCents = 0,
-  // Paid by gift card (migration 120): money collected when the card was sold,
+  // Paid by gift card (migration 127): money collected when the card was sold,
   // so it counts beside the card charge. Refunds and processing fees apply to
   // the card charge only.
   giftCardAppliedCents = 0,

@@ -649,7 +649,7 @@ ${group.posts.map(card).join('\n')}
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Home Setup Guides: Assembly, Mounting and More | AssembleAtEase</title>
+<title>Home Setup Guides: Assembly, Mounting and More</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="Practical guides for furniture assembly, TV mounting, smart-home setup, move-ins, and custom projects, with pricing and preparation advice."/>
 <meta name="robots" content="index,follow,max-image-preview:large"/>
@@ -678,7 +678,7 @@ ${group.posts.map(card).join('\n')}
 <script type="application/ld+json">${JSON.stringify(indexJson)}</script>
 </head>
 <body>
-${nav('/blog/')}<main id="main-content">
+${nav('/blog')}<main id="main-content">
   <section class="page-hero">
     <div class="page-hero-inner">
       <a href="/" class="page-back">Back to Home</a>

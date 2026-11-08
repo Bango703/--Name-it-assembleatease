@@ -14,9 +14,9 @@ function storage(initial = {}) {
   };
 }
 
-function browser({ native = false, choice = 'accepted', path = '/book', existingGtag = false } = {}) {
+function browser({ native = false, choice = 'accepted', path = '/book', existingGtag = false, inApp = false, storedInApp = false } = {}) {
   const injected = [], forwarded = [], listeners = {};
-  const local = storage(choice ? { 'cookie-consent': choice } : {});
+  const local = storage({ ...(choice ? { 'cookie-consent': choice } : {}), ...(storedInApp ? { 'aae-store-app': '1' } : {}) });
   const session = storage({ aaeBookingAttribution: JSON.stringify({ clickId: 'old-click', clickIdType: 'gclid' }) });
   const classes = new Set();
   const banner = {
@@ -39,7 +39,7 @@ function browser({ native = false, choice = 'accepted', path = '/book', existing
   };
   const context = vm.createContext({
     console, URL, URLSearchParams, document,
-    location: new URL('https://www.assembleatease.com' + path + '?utm_source=google&utm_medium=organic&gclid=new-click'),
+    location: new URL('https://www.assembleatease.com' + path + '?utm_source=google&utm_medium=organic&gclid=new-click' + (inApp ? '&aae_app=1' : '')),
     navigator: {}, localStorage: local, sessionStorage: session,
     Event: class Event { constructor(type) { this.type = type; } },
     addEventListener(name, handler) { (listeners[name] ||= []).push(handler); },
@@ -101,4 +101,36 @@ for (const native of [false, null]) {
   assert.equal(optOut.injected.some(node => node.src), false);
 }
 
-console.log('PASS native privacy: both app roles block optional Ads/GA/CRM and ad attribution; website consent remains unchanged.');
+// App Review, 2026-10-28 (Guideline 5.1.2): the native iPhone apps open site
+// pages in an in-app Safari sheet tagged ?aae_app=1. Those pages, and the pages
+// reached from them in that sheet, load no optional tags even after an earlier
+// acceptance, and attribution stays off.
+for (const path of ['/terms', '/privacy', '/assembler/apply']) {
+  for (const visit of [{ inApp: true }, { storedInApp: true }]) {
+    const sheet = browser({ native: null, path, ...visit });
+    sheet.run(consent); sheet.ready();
+    assert.equal(sheet.context.AAEAnalytics.hasConsent(), false, `${path}: the app sheet never has optional consent`);
+    assert.equal(sheet.injected.some(node => node.src), false, `${path}: no optional tags in the app sheet`);
+    assert.equal(sheet.local.getItem('aae-store-app'), '1', `${path}: the sheet remembers it belongs to the app`);
+    assert.equal(sheet.context.AAEAnalytics.trackOnce('booking_confirmed', {}, 'test'), false);
+  }
+}
+for (const inApp of [true, false]) {
+  const attributionOnly = browser({ native: null, inApp });
+  attributionOnly.run(attribution);
+  const acquisition = attributionOnly.context.AAEAcquisition;
+  const captured = acquisition.capture();
+  const stored = attributionOnly.session.getItem(acquisition.STORAGE_KEY);
+  if (inApp) {
+    assert.deepEqual({ ...captured }, {}, 'attribution captures nothing in the app sheet, even before cookie-consent.js runs');
+    assert.equal(stored, null);
+  } else {
+    assert.match(String(stored), /"clickIdType":"gclid"/, 'a consented website visit still records its ad click');
+  }
+}
+const swift = readFileSync(new URL('../mobile/ios/Shared/AppFoundation.swift', import.meta.url), 'utf8');
+assert.match(swift, /SFSafariViewController\(url: tagged\(url\)\)/, 'both iPhone apps tag their own pages in the in-app sheet');
+assert.match(swift, /URLQueryItem\(name: "aae_app", value: "1"\)/);
+assert.match(swift, /host == "assembleatease\.com" \|\| host\.hasSuffix\("\.assembleatease\.com"\)/, 'other sites (Stripe, maps) are opened untouched');
+
+console.log('PASS native privacy: both app roles and the iPhone apps\' in-app Safari sheet block optional Ads/GA/CRM and ad attribution; website consent remains unchanged.');

@@ -151,7 +151,7 @@ assert.match(bookingConfirmed, /completionUpdate = completionUpdate\.eq\('paymen
 assert.match(bookingConfirmed, /\['pending', 'failed', 'authorized'\]\.includes\(booking\.payment_status\)/);
 assert.match(recoveryTokenMigration, /ADD COLUMN IF NOT EXISTS payment_recovery_token_hash/);
 assert.match(recoveryPage, /validateBookingPaymentIntent\(booking, intent\)/);
-assert.match(recoveryPage, /guestMutationToken:token/);
+assert.match(recoveryPage, /body\[thumbtack\?'paymentRecoveryToken':'guestMutationToken'\]=token/);
 assert.match(recoveryPage, /Cache-Control', 'no-store/);
 assert.match(recoveryPage, /Referrer-Policy', 'no-referrer/);
 assert.ok(

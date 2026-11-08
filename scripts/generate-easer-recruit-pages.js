@@ -21,7 +21,7 @@ import { fileURLToPath } from 'url';
 import { buildPublicCookieConsentBlock } from './lib/public-consent.mjs';
 import { buildPublicFooterBlock } from './lib/public-footer.mjs';
 import { buildPublicNavBlock } from './lib/public-nav.mjs';
-import { ALL_TEXAS_CITIES } from './lib/texas-cities.mjs';
+import { ALL_TEXAS_CITIES, isIndexedEaserJobsPage } from './lib/texas-cities.mjs';
 import { fitTitle } from './lib/seo-title.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -127,7 +127,7 @@ function breadcrumbSchema(city) {
   });
 }
 
-function headBlock({ title, metaDesc, url, jsonLd }) {
+function headBlock({ title, metaDesc, url, jsonLd, indexed = true }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -136,7 +136,7 @@ function headBlock({ title, metaDesc, url, jsonLd }) {
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="${esc(metaDesc)}"/>
 <link rel="canonical" href="${esc(url)}"/>
-<meta name="robots" content="index, follow"/>
+<meta name="robots" content="${indexed ? 'index, follow' : 'noindex, follow'}"/>
 <meta property="og:type" content="website"/>
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(metaDesc)}"/>
@@ -254,7 +254,7 @@ function buildCityPage(city) {
     .filter(Boolean)
     .join('\n      ');
 
-  return `${headBlock({ title, metaDesc, url, jsonLd: [jobPostingSchema(city, served), breadcrumbSchema(city)] })}
+  return `${headBlock({ title, metaDesc, url, jsonLd: [jobPostingSchema(city, served), breadcrumbSchema(city)], indexed: isIndexedEaserJobsPage(city.slug) })}
 
 <section class="rec-hero">
   <div class="rec-hero-inner">
@@ -304,7 +304,7 @@ ${footerBlock()}`;
 // ── HUB PAGE (/become-an-easer) ──
 function buildHubPage() {
   const url = `${ORIGIN}/become-an-easer`;
-  const title = 'Become an Easer — Assembly & Handyman Jobs in Texas | AssembleAtEase';
+  const title = 'Become an Easer: Assembly & Handyman Jobs in Texas';
   const metaDesc = 'Earn as an independent furniture assembly, TV mounting, and home-setup pro across Texas. Set your own schedule, bring your own tools, and keep 70% of every job.';
   const applyHref = '/assembler/apply';
   const genericCity = { name: 'Texas', slug: 'texas' };
@@ -381,7 +381,11 @@ for (const city of ALL_TEXAS_CITIES) {
   const file = `easer-jobs-${city.slug}-tx.html`;
   writeFileSync(join(ROOT, file), buildCityPage(city), 'utf8');
   written.push(file);
-  sitemapEntries.push(`  <url><loc>${ORIGIN}/easer-jobs-${city.slug}-tx</loc><lastmod>${TODAY}</lastmod><priority>0.6</priority></url>`);
+  // Recruitment reach stays statewide; search engines get the cities in the
+  // shared indexing policy (scripts/lib/texas-cities.mjs).
+  if (isIndexedEaserJobsPage(city.slug)) {
+    sitemapEntries.push(`  <url><loc>${ORIGIN}/easer-jobs-${city.slug}-tx</loc><lastmod>${TODAY}</lastmod><priority>0.6</priority></url>`);
+  }
 }
 
 // Sitemap: strip any prior recruitment entries, then insert fresh before </urlset>.

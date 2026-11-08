@@ -54,7 +54,22 @@
   // not Apple's tracking permission; customer routes must keep Ads/CRM off too.
   function isNativeApp() {
     var cap = window.Capacitor;
-    return !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
+    if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) return true;
+    return isStoreAppBrowser();
+  }
+  // The native iPhone apps open site pages (terms, privacy, apply) in an in-app
+  // Safari sheet tagged ?aae_app=1. App Review, 2026-10-28 (Guideline 5.1.2):
+  // optional tracking there needs App Tracking Transparency, so those pages run
+  // with none. That sheet keeps its own storage, apart from Safari's, so the
+  // remembered flag never reaches ordinary website visits.
+  function isStoreAppBrowser() {
+    var tagged = /[?&]aae_app=1(?:&|$)/.test(window.location.search || '');
+    try {
+      if (tagged) localStorage.setItem('aae-store-app', '1');
+      return localStorage.getItem('aae-store-app') === '1';
+    } catch (e) {
+      return tagged;
+    }
   }
   function measurementExcluded() {
     if (isNativeApp()) return true;
@@ -90,7 +105,7 @@
       try { if (sessionStorage.getItem(storageKey)) return false; } catch (e) {}
       var safe = { page_path: safePagePath(), audience_type: audienceType(), measurement_version: '2' };
       // Do not forward addresses, emails, contact data, booking-link tokens or arbitrary parameters.
-      ['booking_type', 'booking_flow', 'outcome_stage', 'service_market', 'service_city'].forEach(function (name) {
+      ['booking_type', 'booking_flow', 'outcome_stage', 'service_market', 'service_city', 'lead_type', 'lead_source'].forEach(function (name) {
         var value = String(params && params[name] || '');
         if (/^[a-zA-Z][a-zA-Z_ -]{0,59}$/.test(value)) safe[name] = value;
       });
@@ -138,7 +153,7 @@
       '#cookie-banner.hidden{display:none}' +
       '.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}' +
       '.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}' +
-      '.cookie-accept{background:#00BFFF;color:#fff}' +
+      '.cookie-accept{background:#006b8b;color:#fff}' +
       '.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}' +
       '@media(max-width:680px){#cookie-banner{left:0.75rem;right:0.75rem;bottom:0.75rem;border-radius:14px;padding:0.85rem;display:block;font-size:0.78rem;line-height:1.45}.cookie-btns{display:flex;gap:0.5rem;margin-top:0.75rem}.cookie-btn{flex:1;min-height:44px;padding:0.55rem 0.8rem}}';
     document.head.appendChild(style);

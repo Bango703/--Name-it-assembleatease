@@ -52,7 +52,7 @@ export function cartAllowsBookingReuse({ hasPromo, hasAssembleCash }) {
  */
 export function isReusableBookingRow(row, { amountCents, giftCardId = null }) {
   if (!row) return false;
-  // A gift card paid part of the row (migration 120): the retry must carry the
+  // A gift card paid part of the row (migration 127): the retry must carry the
   // same card, and the full price (card hold plus gift card) must match.
   const giftCents = Number(row.gift_card_applied_cents || 0);
   if (giftCardId || giftCents > 0) {

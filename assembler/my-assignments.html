@@ -2407,7 +2407,7 @@
         + '<div style="font-size:0.84rem;color:var(--pro-text);line-height:1.55;margin-top:0.2rem"><strong>Remaining:</strong> ' + esc(b.return_visit_remaining_scope || 'Remaining work') + '</div>'
         + '</div>' : '',
 
-      accepted && !isCompleted && b.details ? '<div style="margin-bottom:1rem;border:1px solid var(--pro-border);border-radius:12px;background:#f8fafc;padding:0.85rem 0.9rem"><div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.3rem">Customer notes</div><div style="font-size:0.86rem;color:var(--pro-text);line-height:1.6">' + esc(b.details) + '</div></div>' : '',
+      accepted && !isCompleted && b.details ? '<div style="margin-bottom:1rem;border:1px solid var(--pro-border);border-radius:12px;background:#f8fafc;padding:0.85rem 0.9rem"><div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.3rem">Job details</div><div style="font-size:0.86rem;color:var(--pro-text);line-height:1.6">' + esc(b.details) + '</div></div>' : '',
 
       renderJobLifecycle(b, accepted, isCompleted),
 

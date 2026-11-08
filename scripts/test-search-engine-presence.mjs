@@ -18,8 +18,12 @@ const decode = (s) => s.replace(/&amp;/g, '&').replace(/&(?:mdash|ndash|rsquo|ls
 // ── Title rule ──────────────────────────────────────────────────────────────
 assert.equal(fitTitle('TV Mounting in Austin, TX — From $89'), 'TV Mounting in Austin, TX — From $89 | AssembleAtEase');
 assert.equal(fitTitle('Smart Home Installation in College Station, TX — From $69'), 'Smart Home Installation in College Station, TX — From $69',
-  'the brand suffix is dropped when it would pass 70 characters');
-assert.equal(fitTitle('Furniture Assembly & TV Mounting Jobs in Allen, TX', ' | Become an Easer').endsWith(' | Become an Easer'), true);
+  'the brand suffix is dropped when it would pass 60 characters');
+assert.equal(fitTitle('Assembly Jobs in Allen, TX', ' | Become an Easer').endsWith(' | Become an Easer'), true);
+assert.equal(fitTitle('Furniture Assembly & TV Mounting Jobs in Allen, TX', ' | Become an Easer'), 'Furniture Assembly & TV Mounting Jobs in Allen, TX',
+  'a custom suffix is dropped by the same rule');
+assert.equal(fitTitle('Fitness Equipment Assembly in College Station, TX — From $139'), 'Fitness Equipment Assembly in College Station, TX',
+  'a base still over 60 characters drops its starting price');
 for (const rel of ['scripts/generate-location-pages.js', 'scripts/build-flagship-service-pages.mjs', 'scripts/generate-easer-recruit-pages.js', 'scripts/lib/blog-article-page.mjs']) {
   assert.match(read(rel), /fitTitle\(/, `${rel} builds titles through fitTitle`);
 }
@@ -41,7 +45,7 @@ for (const url of sitemapUrlsFromXml(sitemap)) {
   if (!/application\/ld\+json/.test(html)) problems.push(`${rel}: no structured data`);
 }
 assert.deepEqual(problems, [], `Bing Site Scan issues:\n${problems.join('\n')}`);
-console.log('PASS every sitemap page: title <= 70, description <= 160, structured data present');
+console.log(`PASS every sitemap page: title <= ${TITLE_MAX}, description <= 160, structured data present`);
 
 // ── IndexNow: which URLs a change sends ─────────────────────────────────────
 assert.equal(urlForFile('index.html'), `${ORIGIN}/`);

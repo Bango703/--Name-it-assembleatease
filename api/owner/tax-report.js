@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { allocateCollectedTaxCents } from '../_source-of-truth.js';
+import { usesThumbtackStripePayment } from '../_owner-easer.js';
 
 // Sales Tax Liability report (read-only) + owner-entered remittance tracking.
 // Does NOT change tax calculation, taxability, or the 8.25% rate — it only
@@ -27,7 +28,7 @@ export default async function handler(req, res) {
   try {
     const { data, error } = await sb
       .from('bookings')
-      .select('id, ref, source, status, tax_amount, amount_charged, total_price, payment_status, payment_captured_at, payment_collected, payment_collected_at, completed_at, refunded_at, refund_amount')
+      .select('id, ref, source, external_platform, stripe_payment_intent_id, payment_method, status, tax_amount, amount_charged, total_price, payment_status, payment_captured_at, payment_collected, payment_collected_at, completed_at, refunded_at, refund_amount')
       .limit(5000);
     if (error) throw error;
     bookings = data || [];
@@ -63,8 +64,9 @@ export default async function handler(req, res) {
     return granularity === 'quarter' ? `${y}-Q${Math.floor((m - 1) / 3) + 1}` : `${y}-${String(m).padStart(2, '0')}`;
   };
 
-  const ownerManualBookings = bookings.filter(booking => booking.source === 'owner_manual');
-  const ownerManualIds = ownerManualBookings.map(booking => booking.id).filter(Boolean);
+  const ownerManualOfflineBookings = bookings.filter(booking => booking.source === 'owner_manual'
+    && !usesThumbtackStripePayment(booking));
+  const ownerManualIds = ownerManualOfflineBookings.map(booking => booking.id).filter(Boolean);
   const manualPaymentsByBooking = new Map();
   const manualRefundsByBooking = new Map();
   if (ownerManualIds.length) {
@@ -96,7 +98,8 @@ export default async function handler(req, res) {
   for (const b of bookings) {
     const tax = Math.max(0, Number(b.tax_amount || 0));
     const total = Math.max(0, Number(b.total_price || 0));
-    if (b.source === 'owner_manual') {
+    const thumbtackStripePayment = usesThumbtackStripePayment(b);
+    if (b.source === 'owner_manual' && !thumbtackStripePayment) {
       const paymentEvents = (manualPaymentsByBooking.get(b.id) || [])
         .slice()
         .sort((a, z) => String(a.stripe_created_at || a.created_at || '')

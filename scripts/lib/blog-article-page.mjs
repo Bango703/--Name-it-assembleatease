@@ -109,7 +109,7 @@ export function renderBlogArticle(post, content, { related = [], defaultModified
 ${nav()}<main id="main-content">
   <section class="blog-hero">
     <div class="blog-hero-copy">
-      <a href="/blog/" class="page-back">Back to Blogs</a>
+      <a href="/blog" class="page-back">Back to Blogs</a>
       <span class="guide-meta">${esc(post.tag)}</span>
       <h1 class="page-title">${esc(post.title)}</h1>
       <p class="page-desc">${esc(post.description)}</p>

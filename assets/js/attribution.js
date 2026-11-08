@@ -10,6 +10,13 @@
     // This module can run before cookie-consent.js on application pages.
     var cap = window.Capacitor;
     if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) return false;
+    // The native iPhone apps' in-app Safari sheet (see cookie-consent.js).
+    var tagged = /[?&]aae_app=1(?:&|$)/.test(window.location.search || '');
+    try {
+      if (tagged || localStorage.getItem('aae-store-app') === '1') return false;
+    } catch (e) {
+      if (tagged) return false;
+    }
     if (navigator.globalPrivacyControl === true) return false;
     if (window.AAEAnalytics && window.AAEAnalytics.hasConsent) return window.AAEAnalytics.hasConsent();
     try { return localStorage.getItem('cookie-consent') === 'accepted' && localStorage.getItem('aae-analytics-internal') !== '1'; } catch (e) { return false; }

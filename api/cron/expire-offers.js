@@ -2,6 +2,11 @@
 import { finalizeDispatchRound, holdDispatchForPaymentReconciliation, notifyOwnerManualDispatch } from '../booking/_dispatch-safety.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { logCron } from './_cron-logger.js';
+import { recordUnansweredOffers, setOfflineIfUnanswered } from '../_easer-reliability.js';
+import { EASER_RELIABILITY_POLICY } from '../_source-of-truth.js';
+import { sendEmail, esc } from '../_email.js';
+import { sendPushToUser } from '../_push.js';
+import { sendSms } from '../_sms.js';
 
 const MAX_ATTEMPTS = parseInt(process.env.DISPATCH_MAX_ATTEMPTS || '3', 10);
 
@@ -46,13 +51,32 @@ export default async function handler(req, res) {
     .update({ offer_status: 'expired', timed_out_at: now })
     .eq('offer_status', 'sent')
     .lt('expires_at', now)
-    .select('id, booking_id');
+    .select('id, booking_id, easer_id');
 
   if (expireErr) {
     console.error('expire-offers: expire error', expireErr);
     results.errors.push('expire step: ' + expireErr.message);
   } else {
     results.expired = (expiredOffers || []).length;
+  }
+
+  // ── Step 1b: an Easer online who lets offers expire goes offline ───────────
+  // Owner, 2026-10-28: "lets offers expire repeatedly" and "keeps themselves
+  // available but ignores everything". Not a strike; they come back online
+  // whenever they are ready. Never blocks the dispatch work below.
+  results.setOffline = [];
+  try {
+    const easerIds = await recordUnansweredOffers(sb, expiredOffers || []);
+    for (const easerId of easerIds) {
+      const outcome = await setOfflineIfUnanswered(sb, easerId);
+      if (outcome.offline) {
+        results.setOffline.push(easerId);
+        await notifyEaserSetOffline(sb, easerId, outcome.streak);
+      }
+    }
+  } catch (err) {
+    console.error('expire-offers: unanswered-offer check failed', err?.message || err);
+    results.errors.push('unanswered check: ' + (err?.message || String(err)));
   }
 
   // ── Step 2: Find bookings whose round may now be resolved ──────────────────
@@ -188,4 +212,37 @@ export default async function handler(req, res) {
     error: results.errors.length ? results.errors.join('; ') : null,
   });
   return res.status(200).json({ ok: true, ...results });
+}
+
+// Tell the Easer they are offline, why, and how to come back. Every channel is
+// best effort; the offline change already stands.
+export async function notifyEaserSetOffline(sb, easerId, streak) {
+  const { data: easer } = await sb.from('profiles')
+    .select('id, full_name, email, phone, sms_consent_at, sms_opted_out_at')
+    .eq('id', easerId).maybeSingle();
+  if (!easer?.id) return;
+  const meta = { notificationType: 'easer_auto_offline', recipientType: 'easer', recipientUserId: easer.id, disableDedupe: true };
+  const line = `${streak} job offers in a row expired without an answer, so we set you offline to keep jobs moving.`;
+  await sendPushToUser(easer.id, {
+    title: 'You are offline',
+    body: `${line} Go online again when you can take jobs.`,
+    url: '/assembler/',
+  }, meta).catch(() => null);
+  await sendSms({
+    recipient: easer,
+    body: `AssembleAtEase: ${line} Open the app and go online again when you can take jobs. This is not a strike.`,
+    meta,
+  }).catch(() => null);
+  if (easer.email) {
+    await sendEmail({
+      to: easer.email,
+      subject: 'You are offline on AssembleAtEase',
+      html: `<p>Hi ${esc(String(easer.full_name || 'there').split(' ')[0])},</p>
+<p>${esc(line)}</p>
+<p>Go online again from Today in the Easer app whenever you are ready to take jobs. This is not a strike and does not affect your standing.</p>
+<p>If you cannot take an offer, decline it instead of letting it expire: a decline sends the job to the next Easer right away. After ${EASER_RELIABILITY_POLICY.unansweredOffersOffline} offers in a row expire, you are set offline again.</p>`,
+      replyTo: 'service@assembleatease.com',
+      meta,
+    }).catch(() => null);
+  }
 }

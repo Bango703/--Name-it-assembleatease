@@ -66,7 +66,7 @@ export default async function handler(req, res) {
   }
 
   const bookingsWithOpenOffers = new Set((openOffers || []).map(o => o.booking_id));
-  // Move-In Pass priority (migration 120): those bookings are offered to pros
+  // Move-In Pass priority (migration 127): those bookings are offered to pros
   // first; the rest go soonest appointment first.
   const toDispatch = paymentReadyCandidates
     .filter(b => !bookingsWithOpenOffers.has(b.id))

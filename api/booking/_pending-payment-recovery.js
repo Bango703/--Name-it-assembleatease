@@ -30,6 +30,16 @@ export function isStandardRecoveryBooking(booking = {}) {
   return (initialPayment || confirmedPaymentHold) && !!booking.stripe_payment_intent_id;
 }
 
+export function isThumbtackStripeRecoveryBooking(booking = {}) {
+  return booking?.source === 'owner_manual'
+    && booking?.external_platform === 'thumbtack'
+    && !!booking?.external_agreement_verified_at
+    && booking?.payment_method == null
+    && booking?.status === 'confirmed'
+    && STANDARD_RECOVERY_PAYMENT_STATUSES.includes(String(booking?.payment_status || ''))
+    && !!booking?.stripe_payment_intent_id;
+}
+
 /**
  * A job already under way whose payment still needs fixing.
  *
@@ -64,7 +74,9 @@ export function isActivePaymentRecoveryBooking(booking = {}) {
  * which is the point. Widen HERE, never at a caller.
  */
 export function canRecoverPaymentNow(booking = {}) {
-  return isStandardRecoveryBooking(booking) || isActivePaymentRecoveryBooking(booking);
+  return isStandardRecoveryBooking(booking)
+    || isActivePaymentRecoveryBooking(booking)
+    || isThumbtackStripeRecoveryBooking(booking);
 }
 
 export function hasValidGuestPaymentToken(booking = {}, token) {

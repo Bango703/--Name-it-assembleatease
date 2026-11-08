@@ -437,7 +437,14 @@ function neutralizeNote(noteStrong, city) {
 // every other city swaps the 4th FAQ for its own real neighbors.
 function serviceFaqs(cfg, city) {
   const localGuide = metroServiceGuide(cfg, city);
-  return [...cfg.faqs.slice(0, 3), ...(localGuide ? [localGuide.faq] : []), costFaq(cfg, city), locationFaq(city)];
+  const primaryFaqs = cfg.faqs.slice(0, 3);
+  if (cfg.prefix === 'furniture-assembly' && ['austin', 'houston', 'san-antonio', 'dallas'].includes(city.citySlug)) {
+    primaryFaqs[2] = {
+      q: `Do you assemble IKEA, Wayfair, and Amazon furniture in ${city.name}?`,
+      a: 'Yes. We assemble furniture from IKEA, Wayfair, Amazon, Ashley, Target, Costco, CB2, Pottery Barn, West Elm and more. Common jobs include beds, dressers, desks, bookcases, and TV stands. Share the item model or product link when booking.',
+    };
+  }
+  return [...primaryFaqs, ...(localGuide ? [localGuide.faq] : []), costFaq(cfg, city), locationFaq(city)];
 }
 
 function decodeHtmlText(value) {

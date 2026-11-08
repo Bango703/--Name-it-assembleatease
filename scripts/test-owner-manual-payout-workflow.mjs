@@ -284,9 +284,10 @@ assert.match(
 assert.match(ownerEaserMigrationSource, /assignment_token, status, source, payment_status ON public\.bookings/);
 assert.match(ownerEaserMigrationSource, /v_readiness_guard_required[\s\S]*Assigned Easer is not ready and eligible for jobs/);
 assert.match(assignSource, /ownerEaserManual = isOwnerManualLiveFlow\(booking, assembler\)/);
-// Migration 107 adds the demo (App Review) Easer on an offline TEST booking;
-// the owner-Easer half of the condition is unchanged.
-assert.match(assignSource, /ownerEaserLiveManual = ownerManualConfirmed\s*&& \(ownerEaserManual \|\| await isDemoTestLiveFlow\(sb, booking, assemblerId\)\)/);
+// Thumbtack adds a separately verified external-payment lane; owner and demo
+// exceptions remain unchanged, and the Thumbtack path is independently narrow.
+assert.match(assignSource, /ownerEaserLiveManual = ownerManualConfirmed\s*&& \(ownerEaserManual \|\| thumbtackManual \|\| await isDemoTestLiveFlow\(sb, booking, assemblerId\)\)/);
+assert.match(assignSource, /thumbtackManual = isThumbtackLiveFlow\(booking, assembler\)/);
 assert.match(assignSource, /\.select\('id, role,[^']*is_owner/);
 assert.match(assignSource, /recordOnlyOwnerManualCompleted && !ownerEaserManual/);
 assert.match(assignSource, /code: 'OWNER_EASER_REQUIRED'/);
@@ -298,8 +299,8 @@ assert.match(assignSource, /const paymentBlock = describeStaffingPaymentBlock\(b
 assert.match(acceptSource, /ownerEaserLiveManual = await isOfflineLiveFlow\(sb, booking, actorProfile\)/);
 assert.match(statusSource, /ownerEaserLiveManual = await isOfflineLiveFlow\(sb, booking, profile\)/);
 assert.match(await fs.readFile(new URL('../api/_owner-easer.js', import.meta.url), 'utf8'),
-  /export async function isOfflineLiveFlow\(sb, booking, profile\) \{\s*if \(isOwnerManualLiveFlow\(booking, profile\)\) return true;/,
-  'the shared live-flow rule still starts from the owner-Easer exception');
+  /export async function isOfflineLiveFlow\(sb, booking, profile\) \{\s*if \(isOwnerManualLiveFlow\(booking, profile\) \|\| isThumbtackLiveFlow\(booking, profile\)\) return true;/,
+  'the shared live-flow rule includes only the owner and explicitly verified Thumbtack lanes');
 
 // Completion must never capture Stripe for this lane, must serialize the money
 // write, must pin mutable collection inputs, and must remain a manual payout.

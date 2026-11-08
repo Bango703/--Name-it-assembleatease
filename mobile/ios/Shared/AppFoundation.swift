@@ -66,6 +66,18 @@ enum InAppBrowser {
         }
     }
 
+    /// Our own pages opened in the sheet carry `aae_app=1`, so the website runs
+    /// them with no optional analytics, ads or CRM cookies and no cookie banner
+    /// (App Review, 2026-10-28, Guideline 5.1.2: tracking would need ATT).
+    static func tagged(_ url: URL) -> URL {
+        guard let host = url.host?.lowercased(), host == "assembleatease.com" || host.hasSuffix(".assembleatease.com"),
+              var parts = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        var items = parts.queryItems ?? []
+        if !items.contains(where: { $0.name == "aae_app" }) { items.append(URLQueryItem(name: "aae_app", value: "1")) }
+        parts.queryItems = items
+        return parts.url ?? url
+    }
+
     private static func present(_ url: URL, onClose: @escaping () -> Void, attempt: Int) {
         guard let root = UIApplication.shared.connectedScenes
             .compactMap({ ($0 as? UIWindowScene)?.keyWindow })
@@ -92,7 +104,7 @@ enum InAppBrowser {
             }
             return
         }
-        let browser = SFSafariViewController(url: url)
+        let browser = SFSafariViewController(url: tagged(url))
         browser.preferredControlTintColor = UIColor(Brand.skyDark)
         browser.dismissButtonStyle = .done
         let closer = Closer(onClose: onClose)

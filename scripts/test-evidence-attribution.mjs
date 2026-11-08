@@ -73,8 +73,8 @@ assert.doesNotMatch(notice, /'authorized'/,
 // And it must describe what it tests. The condition detects an unpaid job,
 // not an expired hold; labelling it "expired" sends the owner into Stripe
 // looking for a problem that is not there.
-assert.match(ui, /<strong>Payment not completed:<\/strong>/,
-  'the notice must say the payment is outstanding, not that it expired');
+assert.match(ui, /<strong>Payment not authorized:<\/strong>/,
+  'the notice must say customer authorization is outstanding, not that the hold expired');
 assert.doesNotMatch(ui, /Payment authorization expired/,
   'the old label claimed something the condition never checked');
 

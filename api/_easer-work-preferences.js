@@ -96,6 +96,12 @@ function weekdayOf(isoDate) {
  */
 export function easerTakesBooking(prefs, booking, known = serviceNames()) {
   if (!prefs) return { ok: true };
+  // The owner's block wins over the Easer's own choice (migration 124): a job
+  // with any blocked service is not offered, since they would have to do it.
+  const blocked = Array.isArray(prefs.owner_blocked_services) ? prefs.owner_blocked_services : [];
+  if (blocked.length && bookingServiceNames(booking, known).some(s => blocked.includes(s))) {
+    return { ok: false, reason: 'owner_blocked' };
+  }
   const services = Array.isArray(prefs.work_services) ? prefs.work_services : null;
   if (services && services.length) {
     const wanted = bookingServiceNames(booking, known);
@@ -125,13 +131,45 @@ export function easerTakesBooking(prefs, booking, known = serviceNames()) {
 export async function loadWorkPreferences(sb, easerIds) {
   const ids = [...new Set((easerIds || []).filter(Boolean))];
   if (!ids.length) return new Map();
+  let prefs = new Map();
   try {
     const { data, error } = await sb.from('profiles')
       .select('id, work_services, weekly_availability')
       .in('id', ids);
+    if (!error) prefs = new Map((data || []).map(row => [row.id, row]));
+  } catch { /* no filtering */ }
+  // Owner blocks in their own query, so a database without migration 124 still
+  // filters by the Easer's own choices.
+  const blocks = await loadOwnerBlockedServices(sb, ids);
+  for (const [id, services] of blocks) {
+    prefs.set(id, { ...(prefs.get(id) || { id }), owner_blocked_services: services });
+  }
+  return prefs;
+}
+
+/** Map<easerId, string[]> of services the owner keeps each Easer off (migration 124). */
+export async function loadOwnerBlockedServices(sb, easerIds) {
+  const ids = [...new Set((easerIds || []).filter(Boolean))];
+  if (!ids.length) return new Map();
+  try {
+    const { data, error } = await sb.from('profiles')
+      .select('id, owner_blocked_services')
+      .in('id', ids);
     if (error) return new Map();
-    return new Map((data || []).map(row => [row.id, row]));
+    return new Map((data || [])
+      .filter(row => Array.isArray(row.owner_blocked_services) && row.owner_blocked_services.length)
+      .map(row => [row.id, row.owner_blocked_services]));
   } catch {
     return new Map();
   }
+}
+
+/** Validates the owner's block list against the catalog. [] clears it. */
+export function normalizeBlockedServices(services, known = serviceNames()) {
+  if (!Array.isArray(services)) return { ok: false, error: 'Send the list of services to block.' };
+  const knownSet = new Set(known);
+  const clean = [...new Set(services.map(s => String(s || '').trim()).filter(Boolean))];
+  const unknown = clean.filter(s => !knownSet.has(s));
+  if (unknown.length) return { ok: false, error: `Unknown service: ${unknown[0]}` };
+  return { ok: true, value: clean.length ? clean : null };
 }

@@ -5,6 +5,12 @@ import { rateLimit } from '../_ratelimit.js';
 import { logActivity } from './_activity.js';
 import { sha256 } from '../_payment-security.js';
 import {
+  buildCustomerConsentRecord,
+  CUSTOMER_TERMS_VERSION,
+  PRIVACY_NOTICE_VERSION,
+  validateCustomerLegalConsent,
+} from '../_legal-consent.js';
+import {
   canRecoverPaymentNow,
   hasValidGuestPaymentToken,
   hasValidPaymentRecoveryToken,
@@ -13,7 +19,7 @@ import {
   validateBookingPaymentIntent,
 } from './_pending-payment-recovery.js';
 
-const BOOKING_SELECT = 'id, ref, service, status, payment_status, dispatch_status, customer_name, customer_email, address, total_price, stripe_payment_intent_id, stripe_customer_id, guest_mutation_token_hash, payment_recovery_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at';
+const BOOKING_SELECT = 'id, ref, source, service, status, payment_status, payment_method, external_platform, external_agreement_verified_at, external_payment_authorization_expires_at, dispatch_status, customer_name, customer_email, address, total_price, tax_amount, stripe_payment_intent_id, stripe_customer_id, guest_mutation_token_hash, payment_recovery_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at';
 
 export default async function handler(req, res) {
   setSecurityHeaders(res);
@@ -42,10 +48,14 @@ async function renderRecoveryPage(req, res) {
       : buildSimplePage('This payment link is no longer available.', 'Contact AssembleAtEase if your booking still needs payment.'));
   }
   if (state.alreadyConfirmed) {
-    return res.status(200).send(buildSimplePage('Your booking is already confirmed.', `Booking ${esc(state.booking.ref)} does not need another card authorization.`));
+    if (state.booking.external_platform === 'thumbtack') {
+      const breakdown = formatThumbtackBreakdown(state.booking);
+      return res.status(200).send(buildSimplePage('Card hold confirmed.', `Your card has a temporary hold for ${esc(breakdown.total)}. Nothing has been charged. AssembleAtEase will charge this amount after the job is marked complete.`));
+    }
+    return res.status(200).send(buildSimplePage('Your booking is already confirmed.', `Booking ${esc(state.booking.ref)} does not need another card hold.`));
   }
 
-  return res.status(200).send(buildRecoveryPage({ booking: state.booking, token }));
+  return res.status(200).send(buildRecoveryPage({ booking: state.booking, token, thumbtack: state.booking.external_platform === 'thumbtack' }));
 }
 
 async function startRecovery(req, res) {
@@ -65,6 +75,31 @@ async function startRecovery(req, res) {
   if (state.alreadyConfirmed) return res.status(200).json({ confirmed: true, bookingRef: state.booking.ref });
 
   const { booking, intent, sb } = state;
+  const thumbtackStripeFlow = booking.external_platform === 'thumbtack';
+  if (thumbtackStripeFlow) {
+    const consent = validateCustomerLegalConsent({
+      termsAccepted: req.body?.termsAccepted,
+      termsVersion: req.body?.termsVersion,
+      privacyNoticeVersion: req.body?.privacyNoticeVersion,
+    });
+    if (!consent.ok) return res.status(consent.status).json({ error: consent.error, code: consent.code });
+    const consentRecord = buildCustomerConsentRecord(req, 'online_checkout_checkbox');
+    const { data: consentRows, error: consentError } = await sb.from('bookings').update(consentRecord)
+      .eq('id', booking.id)
+      .eq('status', booking.status)
+      .eq('payment_status', booking.payment_status)
+      .eq('stripe_payment_intent_id', intent.id)
+      .eq('payment_recovery_token_hash', booking.payment_recovery_token_hash)
+      .is('financial_operation_key', null)
+      .is('financial_operation_type', null)
+      .is('financial_operation_started_at', null)
+      .is('financial_reconciliation_required_at', null)
+      .is('cancellation_reconciliation_required_at', null)
+      .select('id');
+    if (consentError || !consentRows?.length) {
+      return res.status(consentError ? 503 : 409).json({ error: 'Your agreement could not be saved safely. No card hold was attempted.' });
+    }
+  }
   // booking-confirmed and the Stripe webhook only promote payment_status=pending.
   // Reset a prior failed row after live Stripe validation, including the case
   // where Stripe already reached requires_capture before the failed state was
@@ -138,6 +173,7 @@ async function startRecovery(req, res) {
 
   return res.status(200).json({
     ready: true,
+    thumbtackStripeFlow,
     activeJob: isActivePaymentRecoveryBooking(booking),
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     clientSecret: intent.client_secret,
@@ -157,6 +193,15 @@ async function loadRecoveryState({ bookingId, token, allowAlreadyConfirmed = fal
     .maybeSingle();
   if (error) return { ok: false, status: 503, publicError: 'Booking payment state could not be verified.' };
   if (!booking) return { ok: false, status: 410 };
+  if (booking.external_platform === 'thumbtack') {
+    const expiry = Date.parse(booking.external_payment_authorization_expires_at || '');
+    if (!Number.isFinite(expiry) || expiry <= Date.now()) {
+      return { ok: false, status: 410, publicError: 'This payment link has expired. Contact AssembleAtEase for a new secure link.' };
+    }
+    if (booking.source !== 'owner_manual' || !booking.external_agreement_verified_at) {
+      return { ok: false, status: 409, publicError: 'This payment request could not be matched to the booking. Contact AssembleAtEase.' };
+    }
+  }
   if (booking.payment_recovery_token_hash) {
     if (!hasValidPaymentRecoveryToken(booking, token)) return { ok: false, status: 410 };
   } else {
@@ -411,11 +456,22 @@ function setSecurityHeaders(res) {
   res.setHeader('Content-Security-Policy', "default-src 'none'; script-src https://js.stripe.com 'unsafe-inline'; style-src 'unsafe-inline'; frame-src https://js.stripe.com https://hooks.stripe.com; connect-src 'self' https://api.stripe.com; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
 }
 
-function buildRecoveryPage({ booking, token }) {
+function buildRecoveryPage({ booking, token, thumbtack = false }) {
   const amount = `$${(Number(booking.total_price || 0) / 100).toFixed(2)}`;
+  const breakdown = thumbtack ? formatThumbtackBreakdown(booking) : null;
+  const summary = thumbtack
+    ? `<div class="row"><span>Service subtotal</span><span>${esc(breakdown.subtotal)}</span></div><div class="row"><span>Sales tax</span><span>${esc(breakdown.tax)}</span></div><div class="row total-row"><span>Total hold</span><strong class="total">${esc(breakdown.total)}</strong></div>`
+    : `<div class="row"><span>Total</span><strong class="total">${esc(amount)}</strong></div>`;
   const bookingIdJson = jsonForScript(booking.id);
   const tokenJson = jsonForScript(token);
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Continue secure payment - AssembleAtEase</title><script src="https://js.stripe.com/v3/"></script><style>body{margin:0;background:#f4f4f5;color:#18181b;font-family:Arial,sans-serif}.card{max-width:560px;margin:40px auto;background:#fff;border:1px solid #e4e4e7;border-radius:14px;padding:28px}.summary{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin:18px 0}.row{display:flex;justify-content:space-between;gap:16px;padding:5px 0}.total{font-size:20px;font-weight:800}.terms{font-size:13px;line-height:1.6;color:#52525b;margin:18px 0}.stripe-box{border:1px solid #d4d4d8;border-radius:8px;padding:14px}.btn{width:100%;margin-top:16px;padding:14px;border:0;border-radius:8px;background:#00BFFF;color:#fff;font-size:16px;font-weight:800;cursor:pointer}.btn:disabled{opacity:.55}.msg{font-size:14px;line-height:1.6;margin-top:14px;color:#52525b}</style></head><body><main class="card"><h1>Continue your secure booking</h1><p>Booking <strong>${esc(booking.ref)}</strong> for ${esc(booking.service)}</p><div class="summary"><div class="row"><span>Total</span><strong class="total">${esc(amount)}</strong></div></div><div id="card" class="stripe-box"></div><button class="btn" id="continue" disabled>Submit payment details</button><p class="msg" id="msg">Loading secure payment...</p></main><script>const bookingId=${bookingIdJson};const token=${tokenJson};const button=document.getElementById('continue');const msg=document.getElementById('msg');let stripe;let card;let startData;async function finishConfirmation(){const response=await fetch('/api/booking-confirmed',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bookingId,guestMutationToken:token})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Your payment went through, but the booking is not updated yet. Contact us before paying again.');msg.textContent='Booking confirmed. You will receive your booking confirmation by email.';button.style.display='none';if(card)document.getElementById('card').style.display='none';}async function start(){try{const response=await fetch('/api/booking/payment-recovery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bookingId,token})});startData=await response.json();if(!response.ok)throw new Error(startData.error||'Secure payment could not be loaded.');if(startData.confirmed){msg.textContent='Your booking is already confirmed. Nothing else is needed.';document.getElementById('card').style.display='none';button.style.display='none';return;}if(startData.alreadyAuthorized){msg.textContent='Your card details are already on file. Finishing up...';await finishConfirmation();return;}stripe=Stripe(startData.publishableKey);card=stripe.elements().create('card');card.mount('#card');button.disabled=false;msg.textContent='Enter your card details.';}catch(error){msg.textContent=error.message;button.disabled=true;}}button.onclick=async()=>{button.disabled=true;msg.textContent='Submitting securely...';try{const result=await stripe.confirmCardPayment(startData.clientSecret,{payment_method:{card}});if(result.error)throw new Error(result.error.message);if(!result.paymentIntent||result.paymentIntent.status!=='requires_capture')throw new Error('Something went wrong finishing this payment. Do not try again — call (979) 232-5139 and we will check it.');msg.textContent='Payment details accepted. Finishing up...';await finishConfirmation();}catch(error){msg.textContent=error.message;button.disabled=false;}};start();</script></body></html>`;
+  const consentHtml = thumbtack
+    ? `<div class="terms"><p>AssembleAtEase will place a temporary hold for <strong>${esc(amount)}</strong> on your card. Nothing is charged today. AssembleAtEase will charge this amount after the job is marked complete. Your bank controls how quickly a released hold disappears.</p><label><input id="consent" type="checkbox"> I authorize this card hold and the later charge for this amount. I have reviewed the <a href="/terms" target="_blank" rel="noreferrer">Terms</a> and <a href="/privacy" target="_blank" rel="noreferrer">Privacy Notice</a>.</label></div>`
+    : '';
+  const buttonLabel = thumbtack ? 'Authorize card hold' : 'Submit payment details';
+  const title = thumbtack ? 'Secure your booking' : 'Continue your secure booking';
+  const lead = thumbtack ? 'Payment is processed by AssembleAtEase. Your Easer does not collect payment.' : '';
+  const script = `<script>const bookingId=${bookingIdJson};const token=${tokenJson};const thumbtack=${thumbtack ? 'true' : 'false'};const button=document.getElementById('continue');const msg=document.getElementById('msg');const consent=document.getElementById('consent');let stripe;let card;let startData;let prepared=false;let preparing=false;const termsVersion='${CUSTOMER_TERMS_VERSION}';const privacyNoticeVersion='${PRIVACY_NOTICE_VERSION}';async function finishConfirmation(){const body={bookingId};body[thumbtack?'paymentRecoveryToken':'guestMutationToken']=token;const response=await fetch('/api/booking-confirmed',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Your card hold was confirmed, but the booking record could not be updated. Contact AssembleAtEase before trying again.');msg.textContent=thumbtack?'Card hold confirmed. Nothing was charged today. This amount will be charged after the job is marked complete.':'Booking confirmed. You will receive your booking confirmation by email.';button.style.display='none';if(card)document.getElementById('card').style.display='none';}async function start(){if(preparing||prepared)return;preparing=true;try{const payload={bookingId,token};if(thumbtack){payload.termsAccepted=true;payload.termsVersion=termsVersion;payload.privacyNoticeVersion=privacyNoticeVersion;}const response=await fetch('/api/booking/payment-recovery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});startData=await response.json();if(!response.ok)throw new Error(startData.error||'Secure payment could not be loaded.');if(startData.alreadyAuthorized){msg.textContent='Your card hold is already in place. Checking the booking record...';await finishConfirmation();return;}if(!startData.clientSecret)throw new Error('Secure payment could not be prepared. Contact AssembleAtEase.');stripe=Stripe(startData.publishableKey);card=stripe.elements().create('card');card.mount('#card');prepared=true;button.disabled=false;msg.textContent='Enter your card details.';}catch(error){msg.textContent=error.message;button.disabled=true;}finally{preparing=false;}}if(thumbtack){button.disabled=true;consent.addEventListener('change',function(){if(consent.checked){if(!prepared&&!preparing){msg.textContent='Preparing secure card entry...';start();}else if(prepared){button.disabled=false;msg.textContent='Enter your card details.';}}else{button.disabled=true;msg.textContent='Review and accept the payment terms to continue.';}});}else{start();}button.onclick=async()=>{if(thumbtack&&!consent.checked){msg.textContent='Review and accept the payment terms to continue.';return;}button.disabled=true;msg.textContent=thumbtack?'Requesting a temporary card hold...':'Submitting securely...';try{const result=await stripe.confirmCardPayment(startData.clientSecret,{payment_method:{card}});if(result.error)throw new Error(result.error.message);if(!result.paymentIntent||result.paymentIntent.status!=='requires_capture')throw new Error('The card hold was not confirmed. Do not try again; contact AssembleAtEase at (979) 232-5139 so we can check the payment.');msg.textContent='Card hold confirmed. Updating the booking...';await finishConfirmation();}catch(error){msg.textContent=error.message;button.disabled=false;}};</script>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} - AssembleAtEase</title><script src="https://js.stripe.com/v3/"></script><style>body{margin:0;background:#f4f4f5;color:#18181b;font-family:Arial,sans-serif}.card{max-width:560px;margin:40px auto;background:#fff;border:1px solid #e4e4e7;border-radius:14px;padding:28px}.summary{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin:18px 0}.row{display:flex;justify-content:space-between;gap:16px;padding:5px 0}.total-row{border-top:1px solid #e2e8f0;margin-top:6px;padding-top:11px}.total{font-size:20px;font-weight:800}.terms{font-size:13px;line-height:1.6;color:#52525b;margin:18px 0}.terms p{margin:0 0 12px}.stripe-box{border:1px solid #d4d4d8;border-radius:8px;padding:14px}.btn{width:100%;margin-top:16px;padding:14px;border:0;border-radius:8px;background:#00BFFF;color:#fff;font-size:16px;font-weight:800;cursor:pointer}.btn:disabled{opacity:.55}.msg{font-size:14px;line-height:1.6;margin-top:14px;color:#52525b}</style></head><body><main class="card"><h1>${title}</h1><p>Booking <strong>${esc(booking.ref)}</strong> for ${esc(booking.service)}</p>${lead ? `<p>${lead}</p>` : ''}<div class="summary">${summary}</div>${consentHtml}<div id="card" class="stripe-box"></div><button class="btn" id="continue" disabled>${buttonLabel}</button><p class="msg" id="msg">${thumbtack ? 'Review the payment details and authorization terms to continue.' : 'Loading secure payment...'}</p></main>${script}</body></html>`;
 }
 
 function buildSimplePage(title, body) {
@@ -424,4 +480,18 @@ function buildSimplePage(title, body) {
 
 function jsonForScript(value) {
   return JSON.stringify(String(value || '')).replace(/</g, '\\u003c');
+}
+
+function formatMoney(cents) {
+  return `$${(Number(cents || 0) / 100).toFixed(2)}`;
+}
+
+function formatThumbtackBreakdown(booking = {}) {
+  const totalCents = Math.max(0, Number(booking.total_price || 0));
+  const taxCents = Math.min(totalCents, Math.max(0, Number(booking.tax_amount || 0)));
+  return {
+    subtotal: formatMoney(totalCents - taxCents),
+    tax: formatMoney(taxCents),
+    total: formatMoney(totalCents),
+  };
 }

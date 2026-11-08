@@ -28,6 +28,7 @@ export const NOTIFICATION_COPY = Object.freeze({
   easer_job_cancelled: notice('Job cancelled', 'The customer cancelled this job. It is off your schedule.', 'job', 'View job', JOBS),
   reschedule_easer_reconfirmation: notice('Schedule changed', 'The customer moved this job. Review the new time and accept the job.', 'job', 'Review new time', JOBS),
   owner_edit_easer_reconfirmation: notice('Job details changed', 'AssembleAtEase updated this job. Review the changes and confirm you can still do it.', 'job', 'Review changes', JOBS),
+  owner_edit_easer_details: notice('Job details updated', 'Review the latest job instructions in your Easer dashboard before starting.', 'job', 'View job', JOBS),
   easer_time_proposal_accepted: notice('New time accepted', 'The customer accepted the time you proposed. The job is on the new time.', 'job', 'View job', JOBS),
   easer_time_proposal_declined: notice('New time declined', 'The customer kept the original time.', 'job', 'View job', JOBS),
   scheduled_payment_easer_hold: notice('Job on hold', 'Do not travel to this job until it is confirmed.', 'job', 'View job', JOBS),
@@ -38,6 +39,8 @@ export const NOTIFICATION_COPY = Object.freeze({
   evidence_request: notice('Photos requested', 'AssembleAtEase asked for photos of this job. Open the job to upload them.', 'job', 'Upload photos', JOBS),
   completion: notice('Job completed', 'This job is marked complete. Your earnings for it are in Payouts.', 'payouts', 'Open Payouts', JOBS),
   easer_no_show_recorded: notice('No-show recorded', 'A no-show was recorded on this job. If you were there, message AssembleAtEase from the job.', 'job_team_messages', 'Message AssembleAtEase', JOBS),
+  easer_strike_recorded: notice('Reliability strike recorded', 'A problem was recorded on this job. If you think it is wrong, message AssembleAtEase from the job.', 'job_team_messages', 'Message AssembleAtEase', JOBS),
+  easer_auto_offline: notice('You are offline', 'Several offers in a row expired without an answer, so you were set offline. Go online when you can take jobs.', 'today', 'Open Today', JOBS),
 
   // Messages
   owner_message: notice('Message from AssembleAtEase', 'AssembleAtEase sent you a message about this job.', 'job_team_messages', 'Open messages', JOBS),
@@ -58,6 +61,7 @@ export const NOTIFICATION_COPY = Object.freeze({
   approval: notice('Account approved', 'You are approved. Finish the remaining setup steps to get jobs.', 'today', 'See setup steps', ACCOUNT),
   easer_welcome: notice('Welcome to AssembleAtEase', 'Your Easer account is set up. Finish the setup steps on Today to get jobs.', 'today', 'See setup steps', ACCOUNT),
   easer_suspended: notice('Account paused', 'You will not get new jobs while your account is paused. Contact AssembleAtEase.', 'account', 'Open Account', ACCOUNT),
+  easer_inactivity_notice: notice('Inactivity notice', 'Your account will be closed in 14 days unless you sign the updated agreement, go online or accept a job. Check your email for details.', 'today', 'Open Today', ACCOUNT),
   easer_reinstated: notice('Account active again', 'Your account is active again. Go online to get offers.', 'today', 'Open Today', ACCOUNT),
   easer_deactivated: notice('Account deactivated', 'Your account is deactivated. You will not get new jobs.', 'account', 'Open Account', ACCOUNT),
   easer_reactivated: notice('Account access restored', 'You can sign in and get jobs again.', 'today', 'Open Today', ACCOUNT),

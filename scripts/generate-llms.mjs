@@ -148,7 +148,7 @@ export function buildLlms() {
   const llms = [
     `# ${org.name}`,
     '',
-    `> ${org.legalName || org.name} is a Texas home-setup service: furniture assembly, TV and wall mounting, smart home installation, fitness equipment, outdoor and playset assembly, and office furniture assembly. Customers book online at a fixed price shown before booking, and a local pro comes to the home with the tools.`,
+    `> ${org.legalName || org.name} (AAE) is an Austin-based Texas home-setup service: furniture assembly, TV and wall mounting, smart home installation, fitness equipment, outdoor and playset assembly, and office furniture assembly. Customers book online at a fixed price shown before booking, and a local pro comes to the home with the tools.`,
     '',
     ...facts,
     '',

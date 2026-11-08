@@ -23,12 +23,18 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const { data: booking, error: bookingError } = await sb.from('bookings')
-    .select('id, ref, service, status, payment_status, dispatch_status, customer_name, customer_email, total_price, stripe_payment_intent_id, stripe_customer_id, guest_mutation_token_hash, payment_recovery_token_hash, created_at, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
+    .select('id, ref, service, source, external_platform, status, payment_status, dispatch_status, customer_name, customer_email, total_price, stripe_payment_intent_id, stripe_customer_id, guest_mutation_token_hash, payment_recovery_token_hash, created_at, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
     .eq('id', bookingId)
     .maybeSingle();
 
   if (bookingError) return res.status(503).json({ error: 'Booking payment state could not be verified.' });
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  if (booking.external_platform === 'thumbtack') {
+    return res.status(409).json({
+      error: 'Thumbtack customer communications stay in Thumbtack. Create a secure AAE authorization link and share it in that conversation.',
+      code: 'THUMBTACK_EMAIL_PAYMENT_DISABLED',
+    });
+  }
   if (!booking.customer_email) return res.status(409).json({ error: 'This booking has no customer email address.' });
   if (hasActiveFinancialOperation(booking)) {
     return res.status(409).json({

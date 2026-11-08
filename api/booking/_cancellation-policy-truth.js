@@ -47,7 +47,7 @@ export function evaluateCancellationPolicy(booking, { nowMs, isNoShow = false, a
   }
 
   // total_price is what the card pays; a gift card paid the rest of the same
-  // price (migration 120), so it is added back to reach the service subtotal.
+  // price (migration 127), so it is added back to reach the service subtotal.
   const serviceSubtotalCents = Math.max(0,
     (booking.total_price || 0) + (booking.gift_card_applied_cents || 0)
     - (booking.tax_amount || 0) - (booking.service_call_fee || 0));

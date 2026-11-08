@@ -119,7 +119,7 @@ assert.equal(lookups, 0, 'real bookings never even look the flag up');
 assert.equal(await isOfflineLiveFlow(demoSb(false), { source: 'owner_manual', payment_status: 'offline_recorded' }, { id: 'o', is_owner: true, role: 'assembler' }), true,
   'the owner-Easer exception is unchanged');
 
-assert.match(assign, /ownerManualConfirmed\s*&& \(ownerEaserManual \|\| await isDemoTestLiveFlow\(sb, booking, assemblerId\)\)/, 'assign: demo on offline test booking skips the card gate only');
+assert.match(assign, /ownerManualConfirmed\s*&& \(ownerEaserManual \|\| thumbtackManual \|\| await isDemoTestLiveFlow\(sb, booking, assemblerId\)\)/, 'assign: owner-manual, verified Thumbtack, and demo-test lanes skip only the customer-card gate');
 assert.match(assign, /if \(recordOnlyOwnerManualCompleted && !ownerEaserManual\)/, 'crediting completed offline work stays owner-only');
 assert.match(accept, /await isOfflineLiveFlow\(sb, booking, actorProfile\)/, 'accept uses the shared rule');
 const status = await read('api/booking/easer-status.js');

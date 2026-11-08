@@ -2,6 +2,8 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classifyPage, PAGE_TYPE_RULES } from './lib/page-governance.mjs';
+import { searchIndexPolicyFor } from './lib/search-index-policy.mjs';
+import { TITLE_MAX } from './lib/seo-title.mjs';
 
 const ROOT = join(fileURLToPath(new URL('..', import.meta.url)));
 const BASE_URL = 'https://www.assembleatease.com';
@@ -197,6 +199,7 @@ const localContextsByService = new Map(SERVICE_PREFIXES.map((prefix) => [prefix,
 const googlebotRules = robotRulesForGooglebot(robots);
 const htmlByRoute = new Map(htmlFiles.map((file) => [routeForFile(file), file]));
 let intentionalExclusions = 0;
+let policyExclusions = 0;
 
 if (sitemapUrls.length !== sitemapSet.size) issues.push('sitemap.xml contains duplicate URLs.');
 if (!sitemap.trimEnd().endsWith('</urlset>')) issues.push('sitemap.xml does not end with </urlset>.');
@@ -228,6 +231,15 @@ for (const file of htmlFiles) {
     intentionalExclusions += 1;
     if (sitemapSet.has(expectedUrl)) issues.push(`${page}: private or utility page must stay out of sitemap.xml.`);
     if (!noindex) issues.push(`${page}: private or utility page is missing its intentional noindex directive.`);
+    continue;
+  }
+  // City pages outside the search index policy stay live for customers but
+  // are kept out of search (scripts/lib/texas-cities.mjs).
+  if (searchIndexPolicyFor(page)?.indexed === false) {
+    policyExclusions += 1;
+    if (sitemapSet.has(expectedUrl)) issues.push(`${page}: city page outside the search index policy must stay out of sitemap.xml.`);
+    if (!/<meta name="robots" content="noindex, follow"\/>/.test(html)) issues.push(`${page}: city page outside the search index policy must declare noindex, follow.`);
+    if (canonicalTags.length !== 1 || canonicalTags[0]?.href !== expectedUrl) issues.push(`${page}: page must have exactly one self-referencing canonical.`);
     continue;
   }
   if (visibility === 'unknown') issues.push(`${page}: classify this page in page governance before choosing search visibility.`);
@@ -316,7 +328,7 @@ for (const file of serviceFiles) {
 
   if (!title) issues.push(`${page}: missing title.`);
   if (!description) issues.push(`${page}: missing meta description.`);
-  if (title.length < 45 || title.length > 85) issues.push(`${page}: title length is ${title.length}; expected 45-85 characters.`);
+  if (title.length < 40 || title.length > TITLE_MAX) issues.push(`${page}: title length is ${title.length}; expected 40-${TITLE_MAX} characters.`);
   if (description.length < 110 || description.length > 165) issues.push(`${page}: meta description length is ${description.length}; expected 110-165 characters.`);
   if (canonical !== expectedUrl) issues.push(`${page}: canonical is not self-referencing (${canonical || 'missing'}).`);
   if (ogUrl !== expectedUrl) issues.push(`${page}: og:url does not match its canonical.`);
@@ -324,11 +336,13 @@ for (const file of serviceFiles) {
   if (twitterCard !== 'summary_large_image') issues.push(`${page}: twitter card must use summary_large_image.`);
   if (h1Matches.length !== 1 || !h1) issues.push(`${page}: expected exactly one non-empty H1.`);
   if (wordCount < 575) issues.push(`${page}: visible content is thin (${wordCount} words).`);
-  if (/name="robots"[^>]+noindex/i.test(html)) issues.push(`${page}: service page is marked noindex.`);
-  if (!sitemapSet.has(expectedUrl)) issues.push(`${page}: missing from sitemap.xml.`);
-  const lastmod = sitemapLastmods.get(expectedUrl) || '';
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(lastmod) || Number.isNaN(Date.parse(`${lastmod}T00:00:00Z`))) {
-    issues.push(`${page}: sitemap entry has a missing or invalid lastmod date.`);
+  if (searchIndexPolicyFor(page)?.indexed !== false) {
+    if (/name="robots"[^>]+noindex/i.test(html)) issues.push(`${page}: service page is marked noindex.`);
+    if (!sitemapSet.has(expectedUrl)) issues.push(`${page}: missing from sitemap.xml.`);
+    const lastmod = sitemapLastmods.get(expectedUrl) || '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(lastmod) || Number.isNaN(Date.parse(`${lastmod}T00:00:00Z`))) {
+      issues.push(`${page}: sitemap entry has a missing or invalid lastmod date.`);
+    }
   }
   if (serviceSchemas.length !== 1) issues.push(`${page}: expected exactly one Service JSON-LD block.`);
   if (breadcrumbSchemas.length !== 1) issues.push(`${page}: expected exactly one BreadcrumbList JSON-LD block.`);
@@ -485,5 +499,5 @@ const inboundCounts = [...inboundLinks.values()].map((sources) => sources.size);
 console.log(`SEO audit passed: ${serviceFiles.length} service pages across ${cityServices.size} cities.`);
 console.log(`Blog SEO passed: ${blogFiles.length - 1} articles plus the guide index.`);
 console.log(`Sitemap URLs: ${sitemapUrls.length}; service URLs: ${serviceRoutes.size}.`);
-console.log(`Local indexability passed for all ${sitemapUrls.length} sitemap URLs; ${intentionalExclusions} private/utility pages intentionally excluded. This does not confirm Google indexing.`);
+console.log(`Local indexability passed for all ${sitemapUrls.length} sitemap URLs; ${intentionalExclusions} private/utility pages intentionally excluded; ${policyExclusions} city pages kept out of search by the index policy. This does not confirm Google indexing.`);
 console.log(`Inbound links per service page: min ${Math.min(...inboundCounts)}, max ${Math.max(...inboundCounts)}.`);

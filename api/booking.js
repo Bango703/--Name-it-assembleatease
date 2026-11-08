@@ -488,7 +488,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // -- Gift card (migration 120) --
+  // -- Gift card (migration 127) --
   // Money the customer already paid, so it comes off the total AFTER tax:
   // tax_amount stays the tax on the full price and the Easer's pay is figured
   // on the full price (computeBookingSplitFromSnapshot adds it back). The card
@@ -582,7 +582,7 @@ export default async function handler(req, res) {
     assemblecash_redeemed_cents: assemblecashRedeemedCents,
     bundle_slug: (typeof bundleSlug === 'string' && bundleSlug) ? bundleSlug.slice(0, 64) : null,
     // Only written when a gift card paid part of this booking, so a booking
-    // without one never depends on migration 120.
+    // without one never depends on migration 127.
     ...(giftCardAppliedCents > 0 ? {
       gift_card_applied_cents: giftCardAppliedCents,
       gift_card_id: giftCardApplied.giftCardId,
@@ -916,7 +916,7 @@ export default async function handler(req, res) {
       ${giftCardAppliedCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Gift card ${esc(giftCardApplied.last4)}</td><td style="padding:10px 0;font-weight:600;color:#0369a1">-${formatGiftCardCents(giftCardAppliedCents)} (after tax)${giftCardApplied.priority ? ' &middot; Priority' : ''}</td></tr>` : ''}
       ${serviceCallFeeCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Service Call</td><td style="padding:10px 0;font-weight:600">$${(serviceCallFeeCents/100).toFixed(2)}</td></tr>` : ''}
       <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Tax</td><td style="padding:10px 0;font-weight:600">$${(taxCents/100).toFixed(2)}</td></tr>
-      <tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">Est. Total</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:700;color:#065f46">$${(amount/100).toFixed(2)}</td></tr>` : ''}
+      <tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">${quoteRequested ? 'Preliminary estimate (not the quote)' : 'Est. Total'}</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:700;color:#065f46">$${(amount/100).toFixed(2)}</td></tr>` : ''}
       ${clientSecret ? '<tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a">Payment</td><td style="padding:10px 0;border-top:1px solid #f0f0f0"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">CARD PENDING AUTHORIZATION</span></td></tr>' : ''}
       ${scheduledAuthorization ? '<tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a">Payment</td><td style="padding:10px 0;border-top:1px solid #f0f0f0"><span style="display:inline-block;background:#e0f2fe;color:#075985;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">CARD SAVED — AUTHORIZATION SCHEDULED</span></td></tr>' : ''}
     </table>

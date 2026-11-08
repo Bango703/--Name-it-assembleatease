@@ -31,6 +31,7 @@
   <script src="/owner/assets/cases.js" defer></script>
   <script src="/owner/assets/voice-calls.js" defer></script>
   <script src="/owner/assets/acquisition.js" defer></script>
+  <script src="/owner/assets/thumbtack.js" defer></script>
   <script src="/owner/assets/partners.js" defer></script>
   <script src="/owner/assets/gift-cards.js" defer></script>
   <script src="/owner/assets/messages.js" defer></script>
@@ -97,6 +98,7 @@
         <li><a data-view="partners"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11 4 7l4-4"/><path d="M4 7h11a5 5 0 0 1 0 10h-3"/><path d="M16 13l4 4-4 4"/><path d="M20 17H9"/></svg></span> Partners <span class="nav-count" id="nav-partners" title="Partner follow-ups due" style="display:none;background:#d97706">0</span></a></li>
         <li><a data-view="giftcards"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M3 12h18"/><path d="M12 8v13"/><path d="M12 8c-1.5-3-5-3.5-5-1s3.5 1 5 1c1.5 0 5 1.5 5-1s-3.5-2-5 1z"/></svg></span> Gift Cards <span class="nav-count" id="nav-giftcards" title="Gift card emails not sent" style="display:none;background:#d97706">0</span></a></li>
         <li><a data-view="market-demand"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z"/></svg></span> Market Demand <span class="nav-count" id="nav-market-demand" style="display:none">0</span></a></li>
+        <li><a data-view="thumbtack"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h10M9 3v5l-4 10a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3L15 8V3"/><path d="M7 14h10"/></svg></span> Thumbtack</a></li>
         <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews</a></li>
         <li><a data-view="website-photos"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-5-5L5 19"/></svg></span>Website Photos</a></li>
         <li><a data-view="marketing"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M9 14h6"/><path d="M12 14v6"/></svg></span> Marketing</a></li>
@@ -459,6 +461,12 @@
                      an action the server would refuse. -->
                 <div id="crew-panel" style="display:none;margin-top:0.9rem;padding-top:0.9rem;border-top:1px dashed var(--border)"></div>
               </div>
+              <!-- Owner-confirmed problems on the job (api/owner/easer-reliability.js
+                   confirm_issue). Shown only where the server would accept one. -->
+              <div id="easer-issue-section" style="display:none;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
+                <div class="detail-section-title">Easer Accountability</div>
+                <div id="easer-issue-body" style="font-size:0.82rem;color:var(--soft)"></div>
+              </div>
               <!-- Tabs -->
               <div class="detail-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
                 <button class="detail-tab active" data-tab="messages" onclick="switchDetailTab('messages',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:600;color:var(--teal);border-bottom:2px solid var(--teal);cursor:pointer;margin-bottom:-1px">Messages</button>
@@ -698,7 +706,7 @@
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Connect Status</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Payouts Enabled</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">SMS Job Offers</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Jobs</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Completed jobs</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Rating</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Applied</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Actions</th>
@@ -783,6 +791,20 @@
       </div>
 
       <!-- ─── REVIEWS VIEW ─── -->
+      <div id="thumbtack-view" style="display:none">
+        <div style="max-width:1200px">
+          <h2 style="margin:0 0 0.35rem">Thumbtack leads and job return</h2>
+          <p style="font-size:0.82rem;color:var(--muted);line-height:1.55;margin:0 0 0.85rem">Track incoming leads, Thumbtack lead charges, refunds or credits, AAE bookings, and completed-job platform gross in one place. Lead activity comes from Thumbtack; job return comes from AAE’s recorded finance data.</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.7rem;flex-wrap:wrap;margin-bottom:0.65rem">
+            <p id="thumbtack-status" role="status" style="font-size:0.78rem;color:var(--muted);margin:0">Thumbtack activity has not been loaded.</p>
+            <button type="button" class="btn" id="thumbtack-refresh">Refresh Thumbtack</button>
+          </div>
+          <div id="thumbtack-summary" style="display:flex;flex-wrap:wrap;gap:0.55rem;margin-bottom:0.8rem"></div>
+          <div id="thumbtack-leads"></div>
+          <p style="font-size:0.74rem;color:var(--muted);line-height:1.5;margin-top:0.9rem">Thumbtack does not send refund or credit events through the lead webhook. Verify those in Thumbtack and record them here. Linking a booking affects reporting only; it does not modify that booking or payment.</p>
+        </div>
+      </div>
+
       <div id="reviews-view" style="display:none">
         <div class="stats-row" id="reviews-stats-row">
           <div class="stat teal"><div class="stat-value" id="rev-total">—</div><div class="stat-label">Total Reviews</div></div>
@@ -1543,6 +1565,9 @@ window.intelQuick = intelQuick;
     </select>
     <label class="modal-label">Address</label>
     <input type="text" class="modal-input" id="eb-address" placeholder="Full address"/>
+    <label class="modal-label" for="eb-details">Job details and instructions</label>
+    <textarea class="modal-input" id="eb-details" maxlength="2000" rows="4" placeholder="Work details and instructions for the Easer" style="resize:vertical"></textarea>
+    <div style="font-size:0.75rem;color:var(--muted);margin-top:0.3rem">Keep this within the agreed work and price. The assigned Easer is notified when these details change.</div>
     <label id="eb-notify-row" style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);margin-top:0.75rem;cursor:pointer">
       <input type="checkbox" id="eb-notify" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
       Notify customer of changes by email
@@ -1568,6 +1593,16 @@ window.intelQuick = intelQuick;
     <label class="modal-label">Quote Amount ($) — total including tax *</label>
     <input type="number" class="modal-input" id="qm-amount" placeholder="e.g. 149.00" min="0.01" step="0.01" oninput="updateQuoteBreakdown()"/>
     <div id="qm-breakdown" style="font-size:0.76rem;color:var(--muted);margin-top:-0.4rem;margin-bottom:0.4rem"></div>
+    <!-- The customer approves this appointment with the price. A time that has
+         passed cannot be approved (api/owner/quote-approve.js), so set a new one. -->
+    <label class="modal-label">Appointment date *</label>
+    <input type="date" class="modal-input" id="qm-date"/>
+    <label class="modal-label">Time window *</label>
+    <select class="modal-input" id="qm-time">
+      <option>8:00 AM – 10:00 AM</option><option>10:00 AM – 12:00 PM</option><option>12:00 PM – 2:00 PM</option>
+      <option>2:00 PM – 4:00 PM</option><option>4:00 PM – 6:00 PM</option><option>6:00 PM – 8:00 PM</option>
+    </select>
+    <div id="qm-asked" style="font-size:0.76rem;color:var(--muted);margin-top:-0.4rem"></div>
     <div id="qm-error" style="font-size:0.82rem;color:var(--red);margin-top:0.75rem;display:none"></div>
     <div class="modal-actions" style="margin-top:1.25rem">
       <button class="btn" id="qm-cancel">Cancel</button>
@@ -1671,6 +1706,7 @@ window.intelQuick = intelQuick;
           <option value="cashapp">Cash App</option>
           <option value="card_on_site">Card on-site</option>
           <option value="invoice">Invoice</option>
+          <option value="thumbtack">Thumbtack (payment pending)</option>
         </select>
         <p class="modal-hint" style="margin:6px 0 0;font-size:0.78rem;color:var(--muted);line-height:1.5">"To be collected" creates the booking now — come back and <strong>mark payment collected</strong> on the booking once the customer pays.</p>
       </div>
@@ -1686,9 +1722,13 @@ window.intelQuick = intelQuick;
       <input type="checkbox" id="ocb-already-completed" style="width:15px;height:15px;accent-color:var(--teal)"/>
       Job already completed - create as completed and send the completion email instead of the booking confirmation
     </label>
-    <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer;margin-top:0.65rem;line-height:1.5">
+    <label id="ocb-customer-terms-row" style="display:flex;align-items:flex-start;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer;margin-top:0.65rem;line-height:1.5">
       <input type="checkbox" id="ocb-customer-terms" style="width:15px;height:15px;accent-color:var(--teal);margin-top:3px;flex:0 0 auto"/>
       <span>I confirmed the customer agreed to the current <a href="/terms" target="_blank" rel="noopener">Terms</a>, including the displayed total and cancellation policy, and received the current <a href="/privacy" target="_blank" rel="noopener">Privacy Notice</a>. This records my owner attestation.</span>
+    </label>
+    <label id="ocb-external-agreement-row" style="display:none;align-items:flex-start;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer;margin-top:0.65rem;line-height:1.5">
+      <input type="checkbox" id="ocb-external-agreement" style="width:15px;height:15px;accent-color:var(--teal);margin-top:3px;flex:0 0 auto"/>
+      <span>I verified in Thumbtack that the customer agreed to the service, total including tax, and scheduled time. Customer communications stay in Thumbtack.</span>
     </label>
     <div class="modal-error" id="ocb-error" style="display:none;margin-top:0.75rem"></div>
     <div class="modal-actions" style="margin-top:1.2rem">
@@ -1792,6 +1832,16 @@ window.intelQuick = intelQuick;
   <div class="modal">
     <h3 id="reason-modal-title">Reason</h3>
     <p id="reason-modal-desc">Optionally provide a reason.</p>
+    <!-- Suspend only: why, kept on the Easer's record (api/assembler/update.js SUSPENSION_REASONS). -->
+    <select id="suspension-reason" class="modal-input" style="display:none;margin-bottom:0.6rem">
+      <option value="reliability">Reliability (cancellations, no-shows, lateness)</option>
+      <option value="quality">Workmanship or property damage</option>
+      <option value="safety">Safety violation</option>
+      <option value="fraud">Fraud or false job records</option>
+      <option value="off_platform">Taking customers off the platform</option>
+      <option value="false_credentials">False credentials or application information</option>
+      <option value="other" selected>Other</option>
+    </select>
     <textarea id="reason-text" placeholder="Reason (optional)"></textarea>
     <div id="damage-review-row" style="display:none;margin-top:0.25rem;margin-bottom:0.75rem">
       <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem;font-size:0.8rem;color:var(--soft);line-height:1.5">
@@ -1833,7 +1883,11 @@ window.intelQuick = intelQuick;
         <option value="zelle">Zelle</option>
         <option value="cashapp">Cash App</option>
         <option value="invoice">Invoice</option>
+        <option value="thumbtack">Thumbtack deposit</option>
       </select>
+      <label id="collection-reference-row" class="modal-label" style="display:none;margin-top:0.5rem">Thumbtack payout / bank reference
+        <input id="collection-reference" class="modal-input" maxlength="120" placeholder="Transfer or deposit reference"/>
+      </label>
       <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;font-size:0.82rem;color:var(--soft);line-height:1.45;margin-top:0.75rem">
         <input type="checkbox" id="collection-confirm-cb" style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
         <span id="collection-confirm-copy">I confirm this exact amount reached the business outside the online checkout.</span>
@@ -2015,6 +2069,8 @@ window.intelQuick = intelQuick;
   const $payoutReference = document.getElementById('payout-reference');
   const $collectionMethodRow = document.getElementById('collection-method-row');
   const $collectionMethod = document.getElementById('collection-method');
+  const $collectionReference = document.getElementById('collection-reference');
+  const $collectionReferenceRow = document.getElementById('collection-reference-row');
   const $collectionConfirm = document.getElementById('collection-confirm-cb');
   const $collectionAmount = document.getElementById('collection-amount');
   const $collectionConfirmCopy = document.getElementById('collection-confirm-copy');
@@ -2065,6 +2121,8 @@ window.intelQuick = intelQuick;
     if ($collectionMethodRow) $collectionMethodRow.style.display = show ? '' : 'none';
     if (!show) {
       if ($collectionMethod) $collectionMethod.value = '';
+      if ($collectionReference) $collectionReference.value = '';
+      if ($collectionReferenceRow) $collectionReferenceRow.style.display = 'none';
       if ($collectionConfirm) $collectionConfirm.checked = false;
       if ($collectionAmount) $collectionAmount.textContent = '$0.00';
       return;
@@ -2076,12 +2134,19 @@ window.intelQuick = intelQuick;
     }
     if ($collectionMethod) {
       var existingMethod = String((booking && booking.payment_method) || '');
-      $collectionMethod.value = ['cash','zelle','cashapp','invoice'].includes(existingMethod)
+      $collectionMethod.value = ['cash','zelle','cashapp','invoice','thumbtack'].includes(existingMethod)
         ? existingMethod
         : '';
+      if ($collectionReferenceRow) $collectionReferenceRow.style.display = $collectionMethod.value === 'thumbtack' ? '' : 'none';
+      if ($collectionReference) $collectionReference.value = '';
     }
     if ($collectionConfirm) $collectionConfirm.checked = false;
   }
+
+  if ($collectionMethod) $collectionMethod.addEventListener('change', function() {
+    if ($collectionReferenceRow) $collectionReferenceRow.style.display = this.value === 'thumbtack' ? '' : 'none';
+    if (this.value !== 'thumbtack' && $collectionReference) $collectionReference.value = '';
+  });
 
   var manualPaymentMatchRequest = 0;
   var manualPaymentCandidates = [];
@@ -3559,6 +3624,7 @@ window.intelQuick = intelQuick;
         + (b.assembler_name ? '<span class="c-flag-easer">Easer: ' + esc(b.assembler_name) + '</span>' : '')
         + (b.has_unread_customer_msg ? '<span class="c-flag-bad">Customer message</span>' : '')
         + (b.has_unread_easer_msg ? '<span class="c-flag-bad">Easer message</span>' : '')
+        + (customerQuoteDecline(b) ? '<span class="c-flag-bad">Declined: ' + esc(customerQuoteDecline(b).reason) + '</span>' : '')
         + (b.needs_manual_dispatch && !b.assembler_id && !isTerminalBooking(b) ? '<span class="c-flag-bad">Needs manual assignment</span>' : '')
         + (msgCount ? '<span class="c-sub" style="margin:0">' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '');
       var whenPrefix = b.return_visit_required ? 'Return: ' : (b.return_visit_completed_at ? 'Return completed: ' : '');
@@ -3607,7 +3673,7 @@ window.intelQuick = intelQuick;
     $detailRef.textContent = b.ref;
     var bookedTotal = Number(b.total_price || 0);
     var bookedTax = Number(b.tax_amount || 0);
-    // A gift card paid part of the price after tax (migration 120); total_price is the card's part.
+    // A gift card paid part of the price after tax (migration 127); total_price is the card's part.
     var giftCardCents = Number(b.gift_card_applied_cents || 0);
     var bookedSubtotal = Math.max(0, bookedTotal + giftCardCents - bookedTax);
     var financial = b.financial_summary || {};
@@ -3641,12 +3707,14 @@ window.intelQuick = intelQuick;
       secure_tracking_confirmation: 'Customer secure confirmation',
       owner_attested_customer_agreement: 'Owner attestation of customer agreement',
     };
-    var customerAgreement = b.customer_terms_accepted_at
-      ? '<span style="color:#065f46;font-weight:600">Recorded</span> &bull; '
-        + esc(consentMethodLabels[b.customer_terms_acceptance_method] || String(b.customer_terms_acceptance_method || 'Recorded acceptance'))
-        + ' &bull; ' + esc(formatDateTime(b.customer_terms_accepted_at))
-        + (b.customer_terms_version ? '<br><span style="font-size:0.72rem;color:var(--muted)">Terms ' + esc(b.customer_terms_version) + (b.customer_privacy_notice_version ? ' &bull; Privacy ' + esc(b.customer_privacy_notice_version) : '') + '</span>' : '')
-      : '<span style="color:var(--amber)">No versioned acceptance record for this historical booking</span>';
+    var customerAgreement = b.external_platform === 'thumbtack' && b.external_agreement_verified_at
+      ? '<span style="color:#065f46;font-weight:600">Verified in Thumbtack</span> &bull; ' + esc(formatDateTime(b.external_agreement_verified_at)) + '<br><span style="font-size:0.72rem;color:var(--muted)">External booking agreement; AAE Terms were not attested</span>'
+      : (b.customer_terms_accepted_at
+        ? '<span style="color:#065f46;font-weight:600">Recorded</span> &bull; '
+          + esc(consentMethodLabels[b.customer_terms_acceptance_method] || String(b.customer_terms_acceptance_method || 'Recorded acceptance'))
+          + ' &bull; ' + esc(formatDateTime(b.customer_terms_accepted_at))
+          + (b.customer_terms_version ? '<br><span style="font-size:0.72rem;color:var(--muted)">Terms ' + esc(b.customer_terms_version) + (b.customer_privacy_notice_version ? ' &bull; Privacy ' + esc(b.customer_privacy_notice_version) : '') + '</span>' : '')
+        : '<span style="color:var(--amber)">No versioned acceptance record for this historical booking</span>');
     var quoteStage = quoteLane(b);
     $detailGrid.innerHTML = quoteStage ? renderQuoteDetailGrid(b, quoteStage, customerAgreement) : [
       field('Customer', esc(b.customer_name || '—')),
@@ -3737,6 +3805,7 @@ window.intelQuick = intelQuick;
       field('Status', bookingBadge(b) + (b.payment_status ? ' ' + paymentBadge(isQuoteAwaitingCard(b) ? 'quote_no_card' : b.payment_status) : '')),
       field('Payment', paymentStatusLabel(b)),
       field('Payment Method', paymentMethodLabel(b)),
+      field('Lead Source', b.external_platform === 'thumbtack' ? 'Thumbtack' : (b.source === 'owner_manual' ? 'Owner-recorded' : 'Website booking')),
       field('Easer Payout', b.payout_status === 'transferred'
         ? 'Transferred to Stripe balance; bank payout not yet verified'
         : b.payout_status === 'paid'
@@ -3759,10 +3828,12 @@ window.intelQuick = intelQuick;
       field('Source', (b.source === 'manual' || b.source === 'owner_manual') ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
       b.rebooked_from_booking_id ? field('Rebooked From', esc(rebookedFrom && rebookedFrom.ref ? rebookedFrom.ref : 'Cancelled booking')) : '',
       field('Customer Agreement', customerAgreement),
+      b.status === 'declined' && b.decline_reason ? field('Decline Reason', esc(b.decline_reason) + (b.declined_at ? '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(formatDateTime(b.declined_at)) + '</span>' : '')) : '',
       field('Created', formatDateTime(b.created_at)),
     ].join('');
     renderActions(b);
     renderAssignSection(b);
+    renderEaserIssueSection(b);
     var dispatchTabButton = document.getElementById('detail-dispatch-tab');
     if (dispatchTabButton) {
       dispatchTabButton.style.display = quoteStage || (b.source === 'owner_manual' && b.status === 'completed') ? 'none' : '';
@@ -3826,7 +3897,12 @@ window.intelQuick = intelQuick;
       && booking.source === 'owner_manual'
       && booking.payment_status === 'offline_recorded';
     if (booking && booking.status === 'confirmed' && !booking.assembler_id && ownerManualOffline) {
-      ctrls = '<div style="font-size:0.78rem;color:#9a3412;line-height:1.5"><strong>Owner-created offline booking.</strong> Automatic marketplace dispatch is intentionally disabled. Use the Assignment section on the booking record to assign the configured owner-Easer, or complete the job through the documented owner path.</div>';
+      var verifiedThumbtackBooking = booking.payment_method === 'thumbtack'
+        && booking.external_platform === 'thumbtack'
+        && !!booking.external_agreement_verified_at;
+      ctrls = verifiedThumbtackBooking
+        ? '<div style="font-size:0.78rem;color:#9a3412;line-height:1.5"><strong>Thumbtack booking.</strong> Automatic marketplace dispatch is disabled. Assign a ready Easer from the Assignment section; record the Thumbtack deposit before paying the Easer.</div>'
+        : '<div style="font-size:0.78rem;color:#9a3412;line-height:1.5"><strong>Owner-created offline booking.</strong> Automatic marketplace dispatch is intentionally disabled. Use the Assignment section on the booking record to assign the configured owner-Easer, or complete the job through the documented owner path.</div>';
     } else if (booking && booking.status === 'confirmed' && !booking.assembler_id) {
       ctrls += '<button class="btn btn-teal" onclick="dispatchWithConfirm(\'' + bookingId + '\')" style="font-size:0.78rem">Dispatch Now</button>';
       ctrls += '<button class="btn" onclick="dispatchControl(\'' + bookingId + '\',\'dry_run\')" style="font-size:0.78rem">Preview Scoring</button>';
@@ -4476,6 +4552,12 @@ window.intelQuick = intelQuick;
       ? (existingCents / 100).toFixed(2)
       : (quoted.totalCents > 0 ? (quoted.totalCents / 100).toFixed(2) : '');
     updateQuoteBreakdown();
+    var askedTime = String(quoteBooking && quoteBooking.time || '').replace(/\s*[-–—]\s*/g, ' – ');
+    document.getElementById('qm-date').value = quoteBooking && quoteBooking.date ? String(quoteBooking.date).slice(0, 10) : '';
+    var timeSelect = document.getElementById('qm-time');
+    timeSelect.value = askedTime;
+    if (timeSelect.value !== askedTime) timeSelect.selectedIndex = -1;
+    document.getElementById('qm-asked').textContent = 'Customer asked for ' + (quoteBooking && quoteBooking.date ? formatDate(quoteBooking.date) : 'no date') + (askedTime ? ', ' + askedTime : '') + '. Change it if that time has passed or you agreed a new one.';
     document.getElementById('qm-error').style.display = 'none';
     document.getElementById('qm-title').textContent = reissuing ? 'Reprice & Resend Quote' : 'Set & Send Quote';
     document.getElementById('qm-note').textContent = reissuing
@@ -4498,10 +4580,17 @@ window.intelQuick = intelQuick;
     var submitLabel = btn.textContent;
     var id     = document.getElementById('qm-id').value;
     var amount = parseFloat(document.getElementById('qm-amount').value);
+    var quoteDate = document.getElementById('qm-date').value;
+    var quoteTime = document.getElementById('qm-time').value;
     var errEl  = document.getElementById('qm-error');
 
     if (!amount || amount <= 0) {
       errEl.textContent = 'Please enter a valid quote amount.';
+      errEl.style.display = '';
+      return;
+    }
+    if (!quoteDate || !quoteTime) {
+      errEl.textContent = 'Choose the appointment date and time window for this quote.';
       errEl.style.display = '';
       return;
     }
@@ -4512,7 +4601,7 @@ window.intelQuick = intelQuick;
       var r = await fetch('/api/owner/quote-approve', {
         method: 'POST',
         headers: headers(),
-        body: JSON.stringify({ bookingId: id, finalPriceCents: Math.round(amount * 100) })
+        body: JSON.stringify({ bookingId: id, finalPriceCents: Math.round(amount * 100), date: quoteDate, time: quoteTime })
       });
       var d = await r.json();
       if (d.error) { errEl.textContent = d.error; errEl.style.display = ''; return; }
@@ -4571,6 +4660,27 @@ window.intelQuick = intelQuick;
     preview.textContent = 'Tax-inclusive split: ' + fmt$(finalCents) + ' = ' + fmt$(subtotal) + ' subtotal + ' + fmt$(tax) + ' tax.';
   }
 
+  function updateOwnerCreateAgreementMode() {
+    var isThumbtack = document.getElementById('ocb-payment-method').value === 'thumbtack';
+    var termsRow = document.getElementById('ocb-customer-terms-row');
+    var externalRow = document.getElementById('ocb-external-agreement-row');
+    var externalCheckbox = document.getElementById('ocb-external-agreement');
+    var confirmation = document.getElementById('ocb-send-confirmation');
+    var confirmationCopy = document.getElementById('ocb-send-confirmation-copy');
+    var completedRow = document.getElementById('ocb-completed-row');
+    if (termsRow) termsRow.style.display = isThumbtack ? 'none' : 'flex';
+    if (externalRow) externalRow.style.display = isThumbtack ? 'flex' : 'none';
+    if (!isThumbtack && externalCheckbox) externalCheckbox.checked = false;
+    if (confirmation) {
+      if (isThumbtack) confirmation.checked = false;
+      confirmation.disabled = isThumbtack || !!document.getElementById('ocb-already-completed').checked;
+    }
+    if (confirmationCopy) confirmationCopy.textContent = isThumbtack
+      ? 'Customer communication stays in Thumbtack'
+      : 'Email confirmation to customer if email is provided';
+    if (completedRow) completedRow.style.display = isThumbtack ? 'none' : 'flex';
+  }
+
   function closeOwnerCreateBookingModal() {
     var modal = document.getElementById('owner-create-booking-modal');
     if (modal) modal.classList.remove('open');
@@ -4604,8 +4714,11 @@ window.intelQuick = intelQuick;
     if (alreadyCompleted) alreadyCompleted.checked = false;
     var customerTerms = document.getElementById('ocb-customer-terms');
     if (customerTerms) customerTerms.checked = false;
+    var externalAgreement = document.getElementById('ocb-external-agreement');
+    if (externalAgreement) externalAgreement.checked = false;
     var paymentMethodLabel = document.getElementById('ocb-payment-method-label');
     if (paymentMethodLabel) paymentMethodLabel.textContent = 'Payment Method';
+    updateOwnerCreateAgreementMode();
     var errEl = document.getElementById('ocb-error');
     if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
 
@@ -4676,6 +4789,7 @@ window.intelQuick = intelQuick;
     if (e.target === this) closeOwnerCreateBookingModal();
   });
   document.getElementById('ocb-final').addEventListener('input', updateOwnerCreateTaxPreview);
+  document.getElementById('ocb-payment-method').addEventListener('change', updateOwnerCreateAgreementMode);
   document.getElementById('ocb-already-completed').addEventListener('change', function() {
     var sendConfirmation = document.getElementById('ocb-send-confirmation');
     var paymentMethodLabel = document.getElementById('ocb-payment-method-label');
@@ -4723,15 +4837,24 @@ window.intelQuick = intelQuick;
         return;
       }
     }
+    var ownerBookingPaymentMethod = (document.getElementById('ocb-payment-method').value || '') || null;
+    var thumbtackBooking = ownerBookingPaymentMethod === 'thumbtack';
     var customerTermsAcceptedByOwner = !!document.getElementById('ocb-customer-terms').checked;
-    if (!customerTermsAcceptedByOwner) {
+    var externalAgreementVerified = !!document.getElementById('ocb-external-agreement').checked;
+    if (thumbtackBooking && !externalAgreementVerified) {
+      if (errEl) {
+        errEl.textContent = 'Confirm you verified the agreed job and total in Thumbtack.';
+        errEl.style.display = '';
+      }
+      return;
+    }
+    if (!thumbtackBooking && !customerTermsAcceptedByOwner) {
       if (errEl) {
         errEl.textContent = 'Confirm the customer agreed to the current total, cancellation policy, Terms, and Privacy Notice.';
         errEl.style.display = '';
       }
       return;
     }
-    var ownerBookingPaymentMethod = (document.getElementById('ocb-payment-method').value || '') || null;
     if (alreadyCompleted && !ownerBookingPaymentMethod) {
       if (errEl) {
         errEl.textContent = 'Select how the customer paid before creating an already-completed booking.';
@@ -4739,17 +4862,19 @@ window.intelQuick = intelQuick;
       }
       return;
     }
-    var legalConfig;
-    try {
-      var legalResponse = await fetch('/api/legal-config', { headers: { 'Accept': 'application/json' } });
-      legalConfig = await legalResponse.json();
-      if (!legalResponse.ok || !legalConfig.customerTermsVersion || !legalConfig.privacyNoticeVersion) throw new Error();
-    } catch (_) {
-      if (errEl) {
-        errEl.textContent = 'Current legal versions could not be verified. Refresh before creating the booking.';
-        errEl.style.display = '';
+    var legalConfig = {};
+    if (!thumbtackBooking) {
+      try {
+        var legalResponse = await fetch('/api/legal-config', { headers: { 'Accept': 'application/json' } });
+        legalConfig = await legalResponse.json();
+        if (!legalResponse.ok || !legalConfig.customerTermsVersion || !legalConfig.privacyNoticeVersion) throw new Error();
+      } catch (_) {
+        if (errEl) {
+          errEl.textContent = 'Current legal versions could not be verified. Refresh before creating the booking.';
+          errEl.style.display = '';
+        }
+        return;
       }
-      return;
     }
     var payload = {
       service: service,
@@ -4766,11 +4891,13 @@ window.intelQuick = intelQuick;
       priceOverrideReason: (document.getElementById('ocb-reason').value || '') || null,
       paymentMethod: ownerBookingPaymentMethod,
       note: (document.getElementById('ocb-note').value || '').trim() || null,
-      sendConfirmation: !!(document.getElementById('ocb-send-confirmation').checked),
+      sendConfirmation: !thumbtackBooking && !!(document.getElementById('ocb-send-confirmation').checked),
+      externalPlatform: thumbtackBooking ? 'thumbtack' : null,
+      externalAgreementVerified: thumbtackBooking && externalAgreementVerified,
       alreadyCompleted: alreadyCompleted,
       customerTermsAcceptedByOwner: customerTermsAcceptedByOwner,
-      termsVersion: legalConfig.customerTermsVersion,
-      privacyNoticeVersion: legalConfig.privacyNoticeVersion,
+      termsVersion: thumbtackBooking ? null : legalConfig.customerTermsVersion,
+      privacyNoticeVersion: thumbtackBooking ? null : legalConfig.privacyNoticeVersion,
       rebookedFromBookingId: rebookedFromBookingId,
     };
 
@@ -5048,7 +5175,7 @@ window.intelQuick = intelQuick;
   function renderActions(b) {
     function renderOwnerActionCollection(notices, btns) {
       var actionPriority = [
-        'manual-refund-recovery', 'refund-recovery', 'stripe-dispute-review',
+        'manual-refund-recovery', 'refund-recovery', 'stripe-dispute-review', 'create-thumbtack-payment',
         'damage-review', 'retry-authorization', 'reconcile-payment', 'send-payment', 'quote',
         'record-manual-payment', 'collect-payment', 'complete-return-visit',
         'complete', 'dispatch', 'payout-review', 'payout',
@@ -5058,6 +5185,7 @@ window.intelQuick = intelQuick;
         'manual-refund-recovery': 'Continue the existing refund recovery. The server will recheck Stripe and the ledger before changing money state.',
         'refund-recovery': 'Continue the existing refund recovery. The server will recheck aggregate Stripe truth before changing money state.',
         'stripe-dispute-review': 'Refresh Stripe dispute truth before any refund, dispatch, or Easer payment decision.',
+        'create-thumbtack-payment': 'Email the customer a secure AAE card-authorization link. Nothing is charged now. Continue only if Thumbtack payment has not started and its checkout is not required for this booking.',
         'damage-review': 'Review the saved evidence and record the outcome before releasing any Easer payment.',
         'retry-authorization': 'Finish the card hold this booking already has on file. Nothing is captured, and the customer is not asked for anything.',
         'reconcile-payment': 'Verify the linked Stripe authorization before confirming or dispatching this booking.',
@@ -5111,7 +5239,8 @@ window.intelQuick = intelQuick;
 
     var btns = [];
     var notices = [];
-    var isOwnerManual = b.source === 'owner_manual' || b.source === 'manual';
+    var thumbtackStripeFlow = b.external_platform === 'thumbtack' && !!b.stripe_payment_intent_id;
+    var isOwnerManual = (b.source === 'owner_manual' || b.source === 'manual') && !thumbtackStripeFlow;
 
     if (isOwnerManual) {
       var manualCollectedCents = Number(b.amount_collected_cents || 0);
@@ -5122,6 +5251,10 @@ window.intelQuick = intelQuick;
         ? b.remaining_balance_cents
         : Math.max(0, Number(b.total_price || 0) - manualCollectedCents));
       notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Owner-created payment workflow:</strong> this booking does not use the website checkout authorization. Customer payments and Easer payout remain separate audited records.</div>');
+      if (b.external_platform === 'thumbtack' && b.payment_status === 'offline_recorded' && !b.stripe_payment_intent_id) {
+        notices[notices.length - 1] = '<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Thumbtack booking:</strong> email the customer a secure AAE authorization link for the agreed total. The card is not charged when authorized; the agreed total is captured after the job is completed. Easer payout remains separate.</div>';
+        btns.push('<button class="btn btn-teal" data-action="create-thumbtack-payment" data-id="' + b.id + '">Email Stripe Authorization Link</button>');
+      }
       if (manualGrossPaidCents > 0 && manualBalanceCents > 0) {
         notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Partial payment:</strong> ' + fmt$(manualGrossPaidCents) + ' paid toward the invoice and ' + fmt$(manualBalanceCents) + ' remaining. The booking is not fully paid and payout stays blocked.</div>');
       }
@@ -5143,7 +5276,7 @@ window.intelQuick = intelQuick;
         renderOwnerActionCollection(notices, btns);
         return;
       }
-      if (!b.payment_collected
+      if (b.external_platform !== 'thumbtack' && !b.stripe_payment_intent_id && !b.payment_collected
           && manualBalanceCents > 0
           && ['confirmed','en_route','arrived','in_progress','completed'].includes(b.status)) {
         btns.push('<button class="btn btn-teal" data-action="record-manual-payment" data-id="' + b.id + '">Record Customer Payment</button>');
@@ -5329,11 +5462,16 @@ window.intelQuick = intelQuick;
       // Says what the condition actually tests. The hold may be perfectly
       // healthy and simply unpaid; calling that "expired" sends the owner
       // hunting a problem in Stripe that is not there.
-      notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payment not completed:</strong> the customer still needs to pay before this job can be marked complete.</div>');
-      btns.push('<button class="btn btn-teal" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
+      notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payment not authorized:</strong> the Easer must not start or complete this job until the customer authorizes the AAE Stripe card hold.</div>');
+      btns.push(b.external_platform === 'thumbtack'
+        ? '<button class="btn btn-teal" data-action="create-thumbtack-payment" data-id="' + b.id + '">Create Stripe Authorization Link</button>'
+        : '<button class="btn btn-teal" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
     }
     if (b.status === 'confirmed') {
-      if (b.payment_status === 'card_saved') {
+      if (b.external_platform === 'thumbtack' && ['pending', 'failed'].includes(b.payment_status)) {
+        notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Card authorization required:</strong> the customer must approve the temporary AAE Stripe hold before the Easer starts work. A secure email is sent if a customer email is on file; no Thumbtack message is sent.</div>');
+        btns.push('<button class="btn btn-teal" data-action="create-thumbtack-payment" data-id="' + b.id + '">Create Stripe Authorization Link</button>');
+      } else if (b.payment_status === 'card_saved') {
         // A future booking with a saved card is intentionally confirmed but
         // remains dispatch-paused until the scheduled authorization succeeds.
       } else if (b.payment_status === 'pending' && b.dispatch_status === 'payment_hold'
@@ -5347,7 +5485,9 @@ window.intelQuick = intelQuick;
         btns.push('<button class="btn" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
       } else if (b.payment_status !== 'authorized') {
         notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Confirmed/payment mismatch:</strong> do not dispatch. Verify the linked Stripe authorization and repair both states together.</div>');
-        if (b.stripe_payment_intent_id && ['pending', 'failed'].includes(b.payment_status) && b.dispatch_status === 'payment_hold') {
+        if (b.external_platform === 'thumbtack' && ['pending', 'failed'].includes(b.payment_status)) {
+          btns.push('<button class="btn btn-teal" data-action="create-thumbtack-payment" data-id="' + b.id + '">Create Stripe Authorization Link</button>');
+        } else if (b.stripe_payment_intent_id && ['pending', 'failed'].includes(b.payment_status) && b.dispatch_status === 'payment_hold') {
           btns.push('<button class="btn btn-teal" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
         } else if (b.stripe_payment_intent_id && b.payment_status === 'authorized') {
           btns.push('<button class="btn btn-amber" data-action="reconcile-payment" data-id="' + b.id + '">Reconcile Stripe Authorization</button>');
@@ -5527,6 +5667,8 @@ window.intelQuick = intelQuick;
     setReturnVisitFieldsVisible(false);
     setReturnResolutionFieldsVisible(false);
     setDamageReviewFieldsVisible(false);
+    var suspensionReason = document.getElementById('suspension-reason');
+    if (suspensionReason) { suspensionReason.style.display = 'none'; suspensionReason.value = 'other'; }
     var waiveRow = document.getElementById('waive-fee-row');
     var waiveBox = document.getElementById('waive-fee-cb');
     if (waiveRow) waiveRow.style.display = 'none';
@@ -5632,6 +5774,7 @@ window.intelQuick = intelQuick;
       fillEditServiceOptions(bEdit.service);
       document.getElementById('eb-service').value = bEdit.service || '';
       document.getElementById('eb-address').value = bEdit.address || '';
+      document.getElementById('eb-details').value = bEdit.details || '';
       document.getElementById('edit-booking-modal').querySelector('h3').textContent = (bEdit.source === 'owner_manual' && bEdit.status === 'completed') ? 'Edit Completed Owner Booking' : 'Edit Booking';
       var editDesc = document.getElementById('edit-booking-modal').querySelector('p');
       if (editDesc) {
@@ -5839,6 +5982,44 @@ window.intelQuick = intelQuick;
       } finally {
         btn.disabled = false;
         btn.textContent = originalRebookPaymentText;
+      }
+    } else if (action === 'create-thumbtack-payment') {
+      var thumbtackBooking = allBookings.find(function(item){ return item.id == id; });
+      if (!thumbtackBooking || thumbtackBooking.external_platform !== 'thumbtack') {
+        toast('This is not a verified Thumbtack booking.', 'error');
+        return;
+      }
+      var thumbtackEmail = String(thumbtackBooking.customer_email || '').trim();
+      var emailDestination = thumbtackEmail ? ' It will be emailed to ' + thumbtackEmail + '.' : ' No customer email is on file, so you will be shown a copyable link instead.';
+      var checkedForThumbtackPayment = confirm('Before continuing, confirm that the customer has NOT started or scheduled payment through Thumbtack, and that Thumbtack does not require checkout through its payment flow.\n\nThis creates an AAE Stripe card authorization request for ' + fmt$(thumbtackBooking.total_price) + '.' + emailDestination + ' The customer is not charged when authorizing; a temporary card hold may appear, and the agreed total is captured after the job is completed. Continue?');
+      if (!checkedForThumbtackPayment) return;
+      btn.disabled = true;
+      var originalThumbtackPaymentText = btn.textContent;
+      btn.textContent = 'Preparing secure link...';
+      try {
+        var thumbtackPaymentResponse = await fetch('/api/owner/create-thumbtack-payment-link', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+          body: JSON.stringify({ bookingId: id }),
+        });
+        var thumbtackPaymentData = await thumbtackPaymentResponse.json().catch(function(){ return {}; });
+        if (!thumbtackPaymentResponse.ok || !thumbtackPaymentData.paymentUrl) {
+          throw new Error(thumbtackPaymentData.error || 'The authorization link could not be created.');
+        }
+        if (thumbtackPaymentData.emailAccepted) {
+          toast('Secure authorization email accepted for ' + thumbtackEmail + '. Nothing was charged.', 'success');
+        } else {
+          window.prompt('The email was not accepted. Copy this secure link and use the customer channel agreed for this booking.', thumbtackPaymentData.paymentUrl);
+          toast('Secure link created, but the email was not accepted. Copy the link to continue.', 'error');
+        }
+        await loadBookings(true);
+        if (selectedId) selectBooking(selectedId);
+        loadTimeline(id);
+      } catch (thumbtackPaymentError) {
+        toast(thumbtackPaymentError.message || 'The authorization link could not be created.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalThumbtackPaymentText;
       }
     } else if (action === 'send-payment') {
       var recoveryBooking = allBookings.find(function(item){ return item.id == id; });
@@ -6393,6 +6574,10 @@ window.intelQuick = intelQuick;
         toast('Select how the customer paid', 'error');
         return;
       }
+      if (collectionMethod === 'thumbtack' && (!$collectionReference || ($collectionReference.value || '').trim().length < 3)) {
+        toast('Enter the Thumbtack payout or bank deposit reference', 'error');
+        return;
+      }
       if (!$collectionConfirm || !$collectionConfirm.checked) {
         toast('Confirm that the exact customer payment reached the business', 'error');
         return;
@@ -6410,6 +6595,7 @@ window.intelQuick = intelQuick;
             bookingId: collectBookingId,
             paymentMethod: collectionMethod,
             confirmedAmountCents: confirmedAmountCents,
+            externalPaymentReference: ($collectionReference && $collectionReference.value || '').trim() || null,
           }),
         });
         var collectData = await collectRes.json().catch(function(){ return {}; });
@@ -6640,7 +6826,7 @@ window.intelQuick = intelQuick;
       $reasonText.style.display = '';
       pendingAction = null;
       try {
-        var suspBody = { assemblerId: aIdSus, action: 'suspend' };
+        var suspBody = { assemblerId: aIdSus, action: 'suspend', suspensionReason: document.getElementById('suspension-reason').value };
         if (suspNotes) suspBody.suspensionNotes = suspNotes;
         var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify(suspBody) });
         var data = await r.json();
@@ -7024,6 +7210,16 @@ window.intelQuick = intelQuick;
     return !!b && b.status === 'pending' && b.payment_status === 'not_required' && b.payment_method_type === 'card';
   }
 
+  // A quote the customer declined from the approval page (api/owner/quote-approve.js
+  // respondToQuote): its reason, and their note if they left one.
+  function customerQuoteDecline(b) {
+    var prefix = 'Customer declined the quote: ';
+    if (!b || b.status !== 'declined' || String(b.decline_reason || '').indexOf(prefix) !== 0) return null;
+    var rest = String(b.decline_reason).slice(prefix.length);
+    var split = rest.indexOf(' — ');
+    return { reason: split === -1 ? rest : rest.slice(0, split), note: split === -1 ? '' : rest.slice(split + 3) };
+  }
+
   function quoteLane(b) {
     if (!b || b.status !== 'pending') return null;
     var pay = String(b.payment_status || '');
@@ -7366,7 +7562,7 @@ window.intelQuick = intelQuick;
     } else if (s === 'cancelled') {
       cls = 'bk-cancelled'; label = 'Cancelled';
     } else if (s === 'declined') {
-      cls = 'bk-declined'; label = 'Declined';
+      cls = 'bk-declined'; label = customerQuoteDecline(b) ? 'Quote declined' : 'Declined';
     } else if (s === 'refunded') {
       cls = 'bk-refunded'; label = 'Refunded';
     } else {
@@ -7697,7 +7893,15 @@ window.intelQuick = intelQuick;
     var select   = document.getElementById('assign-select');
     var assignButton = document.getElementById('assign-btn');
     var allowOwnerManualCompleted = b.source === 'owner_manual' && b.status === 'completed';
-    var allowOwnerManualLive = b.source === 'owner_manual' && b.status === 'confirmed';
+    var thumbtackLiveAssignment = b.source === 'owner_manual'
+      && b.status === 'confirmed'
+      && b.payment_status === 'offline_recorded'
+      && b.payment_method === 'thumbtack'
+      && b.external_platform === 'thumbtack'
+      && !!b.external_agreement_verified_at;
+    var allowOwnerManualLive = b.source === 'owner_manual'
+      && b.status === 'confirmed'
+      && !thumbtackLiveAssignment;
     var ownerEaserOnly = allowOwnerManualLive || allowOwnerManualCompleted;
     var completedAttributionReady = allowOwnerManualCompleted
       && b.return_visit_required !== true
@@ -7762,6 +7966,7 @@ window.intelQuick = intelQuick;
       var assignmentChoices = allowOwnerManualCompleted
         ? (ownerEaserProfile ? [ownerEaserProfile] : [])
         : (allowOwnerManualLive ? readyOwnerChoices : eligibleAssemblers.filter(function(a) {
+            if (thumbtackLiveAssignment) return a.is_owner !== true && a.is_demo_account !== true;
             return a.is_demo_account !== true || b.is_test_booking === true;
           }));
       var ownerMissingItems = ownerEaserProfile && Array.isArray(ownerEaserProfile.missing_items)
@@ -8106,6 +8311,7 @@ window.intelQuick = intelQuick;
   var $casesView      = document.getElementById('cases-view');
   var $voiceCallsView = document.getElementById('voice-calls-view');
   var $marketDemandView = document.getElementById('market-demand-view');
+  var $thumbtackView = document.getElementById('thumbtack-view');
   var $partnersView     = document.getElementById('partners-view');
   var $giftCardsView    = document.getElementById('giftcards-view');
   var $messagesView     = document.getElementById('messages-view');
@@ -8121,7 +8327,7 @@ window.intelQuick = intelQuick;
   var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$partnersView,$giftCardsView,$messagesView,$waitlistView,$assemblersView,$todayView,$reviewsView,$websitePhotosView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
+  var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$thumbtackView,$partnersView,$giftCardsView,$messagesView,$waitlistView,$assemblersView,$todayView,$reviewsView,$websitePhotosView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
   var _bookingsLoadPromise = null;
@@ -8160,6 +8366,7 @@ window.intelQuick = intelQuick;
       else if (view === 'cases')        { $casesView.style.display='';       $topbarTitle.textContent='Cases'; stopLiveOps(); if (window.OwnerCases) window.OwnerCases.load(); }
       else if (view === 'voice-calls')  { $voiceCallsView.style.display='';  $topbarTitle.textContent='Phone Calls'; stopLiveOps(); if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.load(); }
       else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); startMarketDemand(); }
+      else if (view === 'thumbtack') { $thumbtackView.style.display=''; $topbarTitle.textContent='Thumbtack'; stopLiveOps(); if (window.OwnerThumbtack) window.OwnerThumbtack.load(); }
       else if (view === 'partners')     { $partnersView.style.display='';    $topbarTitle.textContent='Partners'; stopLiveOps(); if (window.OwnerPartners) window.OwnerPartners.load(); }
       else if (view === 'giftcards')    { $giftCardsView.style.display='';   $topbarTitle.textContent='Gift Cards'; stopLiveOps(); if (window.OwnerGiftCards) window.OwnerGiftCards.load(); }
       else if (view === 'messages')     { $messagesView.style.display='';    $topbarTitle.textContent='Messages'; stopLiveOps(); if (window.OwnerInbox) window.OwnerInbox.load(); }
@@ -10817,6 +11024,7 @@ window.intelQuick = intelQuick;
       if (!r.ok) throw new Error('Failed');
       var data = await r.json();
       allAssemblerProfiles = (data.assemblers || []).map(normalizeAssemblerRecord);
+      asmServiceNames = Array.isArray(data.services) ? data.services : [];
       var stats = data.stats || {};
       asmConnectRequired = !!stats.connectRequired;
       document.getElementById('asm-table').classList.toggle('connect-disabled', !asmConnectRequired);
@@ -11004,7 +11212,7 @@ window.intelQuick = intelQuick;
           + '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(a.email) + '</span>'
           + (!hasValidUsPhone(a.phone) ? ' <span style="font-size:0.68rem;color:#ef4444;font-weight:600">Valid phone required</span>' : '')
           + '</td>'
-        + '<td style="' + rs + '">' + statusBadge(a.status) + (a.status === 'active' ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">' + esc(easerOfferPresentation(a.readiness).label) + '</div>' : '') + '</td>'
+        + '<td style="' + rs + '">' + statusBadge(a.status) + (a.status === 'active' ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">' + esc(easerOfferPresentation(a.readiness).label) + '</div>' : '') + inactivityTag(a) + '</td>'
         + '<td style="' + rs + '">' + tierBadge(a.tier) + (a.tier_grace_started_at ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:4px">Grace since ' + esc(formatDate(a.tier_grace_started_at)) + '</div>' : '') + '</td>'
         + '<td style="' + rs + '">' + idVerificationBadge(a) + '</td>'
         + '<td style="' + rs + '">' + connectBadge(a) + '</td>'
@@ -11344,12 +11552,29 @@ window.intelQuick = intelQuick;
     var dispatchChecklist = '';
     if (a.status === 'active') {
       var recentDecline = a.last_dispatch_declined_at && (Date.now() - new Date(a.last_dispatch_declined_at).getTime()) < 7200000;
+      // Read live from bookings and decisions by api/assembler/list.js: every job
+      // counts, dispatched or assigned by the owner (api/_easer-acceptance.js).
+      var wa = a.workActivity || {};
+      var acc = wa.acceptance;
+      var openJobsText = wa.openJobs == null ? 'Unavailable'
+        : wa.openJobs + (wa.awaitingAcceptance ? ' (' + wa.awaitingAcceptance + ' awaiting acceptance)' : '');
+      var acceptanceText = !acc ? 'Unavailable'
+        : acc.rate != null ? Math.round(acc.rate) + '% (' + acc.accepted + ' of ' + acc.total + ' accepted)'
+        : acc.total === 0 ? 'No jobs offered yet'
+        : 'Not enough yet: ' + acc.total + ' of ' + acc.minDecisions + ' needed';
+      var all = wa.acceptanceAllTime;
+      var allTimeText = !all ? 'Unavailable'
+        : all.total === 0 ? 'No jobs offered yet'
+        : all.accepted + ' of ' + all.total + ' accepted';
       dispatchChecklist = '<div style="background:#fafafa;border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:0.5rem">'
         + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px">Work activity</div>'
         + '<div style="font-size:0.78rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:4px 1rem">'
-        + '<div><strong>Active Jobs Today:</strong> ' + (a.active_jobs_today || 0) + '</div>'
-        + '<div><strong>Last Assigned:</strong> ' + (a.last_assigned_at ? formatDate(a.last_assigned_at) : 'Never') + '</div>'
-        + '<div><strong>Acceptance Rate:</strong> ' + (a.acceptance_rate != null ? Number(a.acceptance_rate).toFixed(0) + '%' : '—') + '</div>'
+        + '<div><strong>Open jobs:</strong> ' + esc(openJobsText) + '</div>'
+        + '<div><strong>Jobs today:</strong> ' + esc(wa.jobsToday == null ? 'Unavailable' : String(wa.jobsToday)) + '</div>'
+        // last_assigned_at is stamped when the Easer accepts (api/booking/accept-dispatch.js).
+        + '<div><strong>Last job accepted:</strong> ' + (a.last_assigned_at ? formatDate(a.last_assigned_at) : 'Never') + '</div>'
+        + '<div title="Jobs offered by dispatch or assigned by you in the last ' + (acc ? acc.windowDays : 30) + ' days that were accepted, declined or let expire"><strong>Acceptance (' + (acc ? acc.windowDays : 30) + ' days):</strong> ' + esc(acceptanceText) + '</div>'
+        + '<div title="Every job offered by dispatch or assigned by you since the Easer joined"><strong>Acceptance (all time):</strong> ' + esc(allTimeText) + '</div>'
         + '</div>'
         + (recentDecline ? '<div style="margin-top:6px;padding:4px 8px;background:#fef3c7;border:1px solid #fde68a;border-radius:4px;color:#92400e;font-size:0.75rem;font-weight:600">Warning: declined an offer within the last 2 hours</div>' : '')
         + '</div>';
@@ -11391,6 +11616,10 @@ window.intelQuick = intelQuick;
       '<div id="asm-onboarding-readiness-panel" style="margin-bottom:0.75rem"></div>',
       // Cancellation reliability: strikes in the window, each cancellation, excuse
       '<div id="asm-reliability-panel" style="margin-bottom:0.75rem"></div>',
+      // Services the owner keeps this Easer off (migration 124)
+      '<div id="asm-services-panel" style="margin-bottom:0.75rem"></div>',
+      // Inactivity: reasons, the 14-day notice, then Deactivate (agreement 12.4)
+      '<div id="asm-inactivity-panel" style="margin-bottom:0.75rem"></div>',
       // Tax-document tracking. Raw W-9/TIN data must remain in an approved secure system.
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">W-9 Compliance</div>'
         + '<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">'
@@ -11446,12 +11675,107 @@ window.intelQuick = intelQuick;
     document.getElementById('asm-detail-modal').classList.add('open');
     loadEaserOnboardingReadiness(a.id);
     loadEaserReliability(a.id);
+    renderEaserServiceBlock(a);
+    renderEaserInactivity(a);
   }
+
+  // ── Inactive Easers (api/_easer-inactivity.js) ───────────────────────────
+  // The server decides who is inactive and where a notice stands; this renders
+  // it. Closing for inactivity needs 14 days' written notice (agreement 12.4),
+  // so Deactivate is offered here only after the notice period ends.
+  function fmtChicagoDate(iso) {
+    return new Date(iso).toLocaleDateString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function inactivityTag(a) {
+    var info = a && a.inactivity;
+    if (!info) return '';
+    var n = info.notice;
+    var label = n && n.status === 'open' ? 'Notice sent · ends ' + fmtChicagoDate(n.deadline)
+      : n && n.status === 'ended' ? 'Notice ended · can close'
+      : info.reasons && info.reasons.length ? 'Inactive' : '';
+    return label ? '<div style="font-size:0.7rem;color:#b45309;font-weight:700;margin-top:4px">' + esc(label) + '</div>' : '';
+  }
+  function renderEaserInactivity(a) {
+    var box = document.getElementById('asm-inactivity-panel');
+    var info = a && a.inactivity;
+    if (!box || !info) return;
+    var n = info.notice;
+    var reasons = info.reasons || [];
+    var html = '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Inactivity</div>';
+    if (n && n.status === 'open') {
+      html += '<div style="font-size:0.8rem;color:#b45309">Notice sent ' + esc(fmtChicagoDate(n.sentAt)) + '. If nothing changes, the account can be closed after ' + esc(fmtChicagoDate(n.deadline)) + '.</div>';
+    } else if (n && n.status === 'ended') {
+      html += '<div style="font-size:0.8rem;color:#b91c1c;margin-bottom:6px">Notice period ended ' + esc(fmtChicagoDate(n.deadline)) + ' with no response.</div>'
+        + '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a;font-size:0.72rem;padding:2px 10px" onclick="deactivateFromDetail(\'' + esc(a.id) + '\',\'' + jsAttr(a.full_name) + '\')">Close account (deactivate)</button>';
+    } else {
+      if (n && n.status === 'responded') html += '<div style="font-size:0.78rem;color:#1d9e75;margin-bottom:4px">Responded ' + esc(fmtChicagoDate(n.respondedAt)) + ' to the notice sent ' + esc(fmtChicagoDate(n.sentAt)) + '.</div>';
+      if (reasons.length) {
+        html += '<ul style="margin:0 0 6px;padding-left:18px;font-size:0.78rem;color:var(--soft)">' + reasons.map(function(r) { return '<li>' + esc(r.text) + '</li>'; }).join('') + '</ul>'
+          + '<button class="btn btn-amber" style="font-size:0.72rem;padding:2px 10px" onclick="sendInactivityNotice(\'' + esc(a.id) + '\',\'' + jsAttr(a.full_name) + '\',this)">Send inactivity notice (14 days)</button>';
+      } else if (!n) {
+        html += '<div style="font-size:0.78rem;color:var(--muted)">Active: current agreement signed and ' + info.acceptedJobs + ' job' + (info.acceptedJobs === 1 ? '' : 's') + ' accepted.</div>';
+      }
+    }
+    box.innerHTML = html;
+  }
+  async function sendInactivityNotice(id, name, button) {
+    var note = prompt('Send ' + name + ' an inactivity notice? They are emailed the reasons above and told the account closes in 14 days unless they sign the agreement, go online or accept a job.\n\nOptional note to include:', '');
+    if (note === null) return;
+    button.disabled = true;
+    button.textContent = 'Sending...';
+    try {
+      var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify({ assemblerId: id, action: 'inactivity_notice', note: note }) });
+      var data = await r.json();
+      if (!r.ok || data.error) throw new Error(data.error || 'The notice could not be sent.');
+      toast('Inactivity notice emailed. The account can be closed after ' + fmtChicagoDate(data.deadline) + '.', 'success');
+      await reloadAssemblersAndMaybeRefreshDetail(id, true);
+    } catch (err) {
+      toast(err.message || 'The notice could not be sent.', 'error');
+      button.disabled = false;
+      button.textContent = 'Send inactivity notice (14 days)';
+    }
+  }
+  window.sendInactivityNotice = sendInactivityNotice;
+
+  // ── Keep an Easer off services (owner block, migration 124) ──────────────
+  // Dispatch skips jobs with any blocked service, whatever the Easer chose.
+  var asmServiceNames = [];
+  function renderEaserServiceBlock(a) {
+    var box = document.getElementById('asm-services-panel');
+    if (!box || !asmServiceNames.length) return;
+    var blocked = Array.isArray(a.owner_blocked_services) ? a.owner_blocked_services : [];
+    var chosen = Array.isArray(a.work_services) && a.work_services.length ? a.work_services.join(', ') : 'every service';
+    box.innerHTML = '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Services</div>'
+      + '<div style="font-size:0.78rem;color:var(--soft);margin-bottom:6px">Takes (their choice): ' + esc(chosen) + '. Check a service to keep them off it; they get no offers that include it.</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-bottom:6px">'
+      + asmServiceNames.map(function(name) {
+        return '<label style="font-size:0.78rem;display:flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" class="asm-block-svc" value="' + esc(name) + '"' + (blocked.indexOf(name) !== -1 ? ' checked' : '') + '> ' + esc(name) + '</label>';
+      }).join('')
+      + '</div>'
+      + '<button class="btn" style="font-size:0.72rem;padding:2px 10px" onclick="saveEaserServiceBlock(\'' + esc(a.id) + '\',this)">Save service block</button>';
+  }
+  async function saveEaserServiceBlock(easerId, button) {
+    var services = Array.prototype.slice.call(document.querySelectorAll('#asm-services-panel .asm-block-svc:checked')).map(function(cb) { return cb.value; });
+    button.disabled = true;
+    try {
+      var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify({ assemblerId: easerId, action: 'set_blocked_services', services: services }) });
+      var data = await r.json();
+      if (!r.ok || data.error) throw new Error(data.error || 'The service block could not be saved.');
+      var profile = allAssemblerProfiles.filter(function(p) { return p.id === easerId; })[0];
+      if (profile) profile.owner_blocked_services = data.blockedServices;
+      toast(data.blockedServices.length ? 'Kept off: ' + data.blockedServices.join(', ') : 'Service block cleared', 'success');
+    } catch (err) {
+      toast(err.message || 'The service block could not be saved.', 'error');
+    } finally {
+      button.disabled = false;
+    }
+  }
+  window.saveEaserServiceBlock = saveEaserServiceBlock;
 
   // ── Easer cancellation reliability (strikes) ─────────────────────────────
   // Server decides and counts (api/_easer-reliability.js); this only renders
   // and sends the owner's excuse. Excusing never reactivates a paused Easer.
-  var RELIABILITY_KIND_LABEL = { grace: 'Within 15 min of accepting', advance: '24+ hours notice', late: 'Under 24 hours notice', same_day: 'Same day', no_show: 'No-show (confirmed)' };
+  var RELIABILITY_KIND_LABEL = { grace: 'Within 15 min of accepting', advance: '24+ hours notice', late: 'Under 24 hours notice', same_day: 'Same day', no_show: 'No-show (confirmed)', late_arrival: 'Late arrival (confirmed)', quality: 'Workmanship problem (confirmed)', damage: 'Property damage (confirmed)' };
   async function loadEaserReliability(easerId) {
     var box = document.getElementById('asm-reliability-panel');
     if (!box) return;
@@ -11476,7 +11800,7 @@ window.intelQuick = intelQuick;
       box.innerHTML = '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Reliability</div>'
         + '<div style="font-weight:700;color:' + (data.strikes >= data.pauseAtStrikes ? '#b91c1c' : data.strikes > 0 ? '#b45309' : 'var(--ink)') + '">'
         + data.strikes + ' strike' + (data.strikes === 1 ? '' : 's') + ' in the last ' + data.windowDays + ' days (pause at ' + data.pauseAtStrikes + ')</div>'
-        + (rows || '<div style="font-size:0.78rem;color:var(--muted)">No cancellations of accepted jobs in this window.</div>');
+        + (rows || '<div style="font-size:0.78rem;color:var(--muted)">No strikes in this window.</div>');
     } catch (err) {
       box.innerHTML = '<div style="font-size:0.78rem;color:#b91c1c">' + esc(err.message || 'Reliability could not be loaded.') + '</div>';
     }
@@ -11520,6 +11844,54 @@ window.intelQuick = intelQuick;
     }
   }
   window.confirmEaserNoShow = confirmEaserNoShow;
+
+  // Owner-confirmed problems on a job: late arrival, workmanship, property damage.
+  // The server checks the job state, counts the strikes and pauses at the limit
+  // (damage pauses at once); this mirrors its statuses so a button is only shown
+  // where it would be accepted. Policy numbers: EASER_RELIABILITY_POLICY.
+  var EASER_ISSUES = [
+    { kind: 'late_arrival', label: 'Late arrival (30+ min)', strikes: 1, statuses: ['confirmed', 'en_route', 'arrived', 'in_progress', 'completed'] },
+    { kind: 'quality', label: 'Workmanship problem', strikes: 1, statuses: ['in_progress', 'completed'] },
+    { kind: 'damage', label: 'Property damage', strikes: 2, statuses: ['arrived', 'in_progress', 'completed'], note: ' and pauses new jobs now' },
+  ];
+  function renderEaserIssueSection(b) {
+    var section = document.getElementById('easer-issue-section');
+    var body = document.getElementById('easer-issue-body');
+    if (!section || !body) return;
+    var today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+    var started = b.status !== 'confirmed' || (b.date && String(b.date).slice(0, 10) <= today);
+    var issues = (b.assembler_id && b.assembler_accepted_at)
+      ? EASER_ISSUES.filter(function(i) { return i.statuses.indexOf(b.status) !== -1 && (i.kind !== 'late_arrival' || started); })
+      : [];
+    if (!issues.length) { section.style.display = 'none'; body.innerHTML = ''; return; }
+    section.style.display = '';
+    body.innerHTML = '<div style="margin-bottom:0.5rem">Checked and confirmed a problem with ' + esc(b.assembler_name || 'the Easer') + ' on this job? Record it. They are told, and strikes count for 90 days (new jobs pause at 3).</div>'
+      + issues.map(function(i) {
+        return '<button class="btn" style="font-size:0.72rem;padding:2px 8px;margin:0 6px 6px 0" onclick="confirmEaserIssue(\'' + b.id + '\',\'' + i.kind + '\',this)">'
+          + esc(i.label) + ' · ' + i.strikes + ' strike' + (i.strikes === 1 ? '' : 's') + '</button>';
+      }).join('');
+  }
+  async function confirmEaserIssue(bookingId, kind, button) {
+    var issue = EASER_ISSUES.filter(function(i) { return i.kind === kind; })[0];
+    if (!issue) return;
+    var note = prompt('Record "' + issue.label + '"? This adds ' + issue.strikes + ' strike' + (issue.strikes === 1 ? '' : 's') + (issue.note || '') + '. The Easer is told.\n\nWhat happened (the Easer sees this):', '');
+    if (note === null) return;
+    button.disabled = true;
+    var label = button.textContent;
+    button.textContent = 'Saving...';
+    try {
+      var r = await fetch('/api/owner/easer-reliability', { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ action: 'confirm_issue', bookingId: bookingId, kind: kind, note: note }) });
+      var data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'It could not be recorded.');
+      toast(data.message || 'Recorded.', 'success');
+      button.textContent = data.alreadyRecorded ? 'Already recorded' : 'Recorded';
+    } catch (err) {
+      toast(err.message || 'It could not be recorded.', 'error');
+      button.disabled = false;
+      button.textContent = label;
+    }
+  }
+  window.confirmEaserIssue = confirmEaserIssue;
 
   function formatUsPhone(value) {
     var digits = String(value || '').replace(/\D/g, '');
@@ -11666,6 +12038,7 @@ window.intelQuick = intelQuick;
     document.getElementById('reason-modal-desc').textContent = name + ' will lose dispatch eligibility immediately. Reassign any active jobs before confirming. If you add a reason, it is shared with the Easer in their suspension email.';
     document.getElementById('reason-confirm').textContent = 'Suspend Easer';
     document.getElementById('reason-confirm').className = 'btn btn-red';
+    document.getElementById('suspension-reason').style.display = '';
     $reasonText.style.display = '';
     $reasonText.placeholder = 'Reason (optional — shared with the Easer)';
     $reasonText.value = '';
@@ -11782,9 +12155,18 @@ window.intelQuick = intelQuick;
     var time    = document.getElementById('eb-time').value;
     var service = document.getElementById('eb-service').value;
     var address = document.getElementById('eb-address').value.trim();
+    var details = document.getElementById('eb-details').value.trim();
     var notify  = document.getElementById('eb-notify').checked;
     var errEl   = document.getElementById('eb-error');
-    if (!date && !time && !service && !address) { errEl.textContent='Nothing changed.'; errEl.style.display=''; return; }
+    var original = allBookings.find(function(item){ return item.id == id; }) || {};
+    var detailsChangedInForm = details !== String(original.details || '').trim();
+    var customerFieldsChangedInForm = Boolean(
+      (date && date !== original.date)
+      || (time && time !== original.time)
+      || (service && service !== original.service)
+      || (address && address !== original.address)
+    );
+    if (!detailsChangedInForm && !customerFieldsChangedInForm) { errEl.textContent='Nothing changed.'; errEl.style.display=''; return; }
     btn.disabled = true; btn.textContent = 'Saving…';
     try {
       var payload = { bookingId: id, notifyCustomer: notify };
@@ -11792,16 +12174,20 @@ window.intelQuick = intelQuick;
       if (time)    payload.time    = time;
       if (service) payload.service = service;
       if (address) payload.address = address;
+      payload.details = details;
       var r = await fetch('/api/owner/edit-booking', { method:'POST', headers:headers(), body:JSON.stringify(payload) });
       var d = await r.json();
       if (d.error) { errEl.textContent = d.error; errEl.style.display = ''; return; }
       document.getElementById('edit-booking-modal').classList.remove('open');
-      var notificationFailed = Array.isArray(d.notificationFailures) && d.notificationFailures.length > 0;
-      var customerWasNotified = notify && !d.recordOnlyOwnerManual && !notificationFailed;
+      var notificationFailures = Array.isArray(d.notificationFailures) ? d.notificationFailures : [];
+      var customerNotificationFailed = notificationFailures.some(function(item){ return item.recipient === 'customer'; });
+      var easerNotificationFailed = notificationFailures.some(function(item){ return item.recipient === 'easer'; });
+      var customerWasNotified = notify && customerFieldsChangedInForm && !d.recordOnlyOwnerManual && !customerNotificationFailed;
       toast('Booking updated'
         + (customerWasNotified ? ' — customer notified' : '')
-        + (notificationFailed ? ' — customer email needs follow-up' : ''),
-        notificationFailed ? 'error' : 'success');
+        + (customerNotificationFailed ? ' — customer email needs follow-up' : '')
+        + (easerNotificationFailed ? ' — Easer notification needs follow-up' : ''),
+        customerNotificationFailed || easerNotificationFailed ? 'error' : 'success');
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
     } catch { errEl.textContent = 'Failed to save. Try again.'; errEl.style.display = ''; }

@@ -5,6 +5,10 @@ import { normalizeAssemblerProfile } from '../_assembler-state.js';
 import { getEaserReadiness, getEaserApprovalReadiness } from '../_easer-readiness.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { inspectApplicationText } from '../booking/_relay-contact-guard.js';
+import { loadAcceptanceTallies } from '../_easer-acceptance.js';
+import { loadOpenWork, workActivityFor } from '../_easer-work-activity.js';
+import { serviceNames } from '../_easer-work-preferences.js';
+import { inactivityReasons, inactivityNoticeState, loadJobHistory, loadInactivityNotices } from '../_easer-inactivity.js';
 
 /**
  * GET /api/assembler/list
@@ -37,6 +41,37 @@ export default async function handler(req, res) {
 
   const profiles = (data || []).map(sanitizeAssemblerForOwner);
   const requireConnect = isStripeConnectEnabled();
+  // Work activity read from bookings and decisions now, not from profile
+  // counters: jobs reach an Easer by dispatch or by owner assignment, and both
+  // count the same (owner, 2026-10-28).
+  // The 30-day rate is what tiers use; the all-time count sits beside it so an
+  // Easer with few recent offers still shows their whole record.
+  const [workByEaser, acceptance, acceptanceAllTime] = await Promise.all([
+    loadOpenWork(sb),
+    loadAcceptanceTallies(sb).catch(error => ({ tallies: null, error })),
+    loadAcceptanceTallies(sb, new Date(0).toISOString()).catch(error => ({ tallies: null, error })),
+  ]);
+  for (const result of [acceptance, acceptanceAllTime]) {
+    if (result.error) console.error('Assembler list acceptance tally error:', result.error.message || result.error);
+  }
+  // Inactivity: the reasons a notice would give and where a sent notice stands
+  // (api/_easer-inactivity.js). Approved Easers only; unreadable → null, never
+  // a confident "inactive".
+  const approvedIds = profiles.filter(p => ['active', 'suspended'].includes(p.status)).map(p => p.id);
+  const [jobHistory, inactivityNotices] = await Promise.all([
+    loadJobHistory(sb, approvedIds).catch(error => { console.error('Assembler list job history error:', error.message); return null; }),
+    loadInactivityNotices(sb, approvedIds).catch(error => { console.error('Assembler list inactivity notice error:', error.message); return null; }),
+  ]);
+  const inactivityFor = profile => {
+    if (!approvedIds.includes(profile.id) || !jobHistory || !inactivityNotices) return null;
+    const history = jobHistory.get(profile.id) || { acceptedJobs: 0, lastAcceptedAt: null };
+    return {
+      reasons: inactivityReasons(profile, history),
+      acceptedJobs: history.acceptedJobs,
+      lastAcceptedAt: history.lastAcceptedAt,
+      notice: inactivityNoticeState(inactivityNotices.get(profile.id) || null, profile, history),
+    };
+  };
   // Two DIFFERENT questions, both answered here so the browser never has to
   // reimplement either:
   //   readiness         — can this Easer take a JOB right now?
@@ -55,6 +90,8 @@ export default async function handler(req, res) {
       approvalReadiness: getEaserApprovalReadiness(assembler),
       // Same verdict the approve action enforces (api/assembler/update.js).
       applicationScreen: inspectApplicationText(profile.bio),
+      workActivity: workActivityFor(profile.id, workByEaser, acceptance.tallies, acceptanceAllTime.tallies),
+      inactivity: inactivityFor(profile),
     };
   }));
 
@@ -71,7 +108,8 @@ export default async function handler(req, res) {
     connectRequired: requireConnect,
   };
 
-  return res.status(200).json({ assemblers, stats });
+  // The catalog's service names, for the owner's keep-off-services control.
+  return res.status(200).json({ assemblers, stats, services: serviceNames() });
 }
 
 function sanitizeAssemblerForOwner(profile = {}) {

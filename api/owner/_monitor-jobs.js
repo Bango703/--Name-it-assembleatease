@@ -2,6 +2,7 @@ import { computeBookingSplitFromSnapshot, computeBookingFinancialSummary } from 
 import { bookingHasCurrentEaserFeeSnapshot } from '../booking/_easer-fee-snapshot.js';
 import { chicagoTodayIso, parseIsoCalendarDate, appointmentTimeZone, localCalendarDate } from '../booking/_appt-date.js';
 import { normalizeOwnerOfflinePaymentMethod, offlineMethodFeeCents } from './_offline-payment.js';
+import { usesThumbtackStripePayment } from '../_owner-easer.js';
 
 const UPCOMING_LIMIT = 30;
 const FINANCIAL_LIMIT = 15;
@@ -19,9 +20,10 @@ export function bookingFinanceContext(booking, row = null) {
       reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
       giftCardAppliedCents: booking.gift_card_applied_cents || 0,
     });
-    const offlineMethod = booking.source === 'owner_manual'
+    const thumbtackStripePayment = usesThumbtackStripePayment(booking);
+    const offlineMethod = booking.source === 'owner_manual' && !thumbtackStripePayment
       ? normalizeOwnerOfflinePaymentMethod(booking.payment_method) : null;
-    const feeUnknown = booking.source === 'owner_manual' && !offlineMethod;
+    const feeUnknown = booking.source === 'owner_manual' && !thumbtackStripePayment && !offlineMethod;
     const summary = computeBookingFinancialSummary({
       totalPriceCents: split.totalCents,
       giftCardAppliedCents: split.giftCardAppliedCents,

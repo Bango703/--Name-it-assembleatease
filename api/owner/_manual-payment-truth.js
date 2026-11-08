@@ -77,6 +77,8 @@ export async function verifyOwnerManualCustomerFundsForPayout({
         || !booking.payment_collected_at
         || !String(booking.payment_collected_by || '').trim()
         || chargedCents !== Number(booking.total_price || 0)
+        || (method === 'thumbtack'
+          && (booking.external_platform !== 'thumbtack' || !String(booking.external_payment_reference || '').trim()))
         || chargedCents <= 0) {
       return {
         ok: false,

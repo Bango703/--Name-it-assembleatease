@@ -26,6 +26,7 @@ const PAYMENT_METHOD_LABELS = {
   cashapp: 'Cash App on completion',
   card_on_site: 'card on-site on completion',
   invoice: 'invoice',
+  thumbtack: 'Thumbtack (external payment pending)',
 };
 const MAX_PRICE_CENTS = 2_500_000;
 
@@ -58,15 +59,30 @@ export default async function handler(req, res) {
     termsVersion,
     privacyNoticeVersion,
     rebookedFromBookingId,
+    externalPlatform,
+    externalAgreementVerified,
   } = req.body || {};
 
-  const legalConsent = validateCustomerLegalConsent({
-    termsAccepted: customerTermsAcceptedByOwner,
-    termsVersion,
-    privacyNoticeVersion,
-  });
-  if (!legalConsent.ok) {
-    return res.status(legalConsent.status).json({ error: legalConsent.error, code: legalConsent.code });
+  const isThumbtackBooking = String(paymentMethod || '').trim().toLowerCase() === 'thumbtack';
+  if (isThumbtackBooking) {
+    if (String(externalPlatform || '').trim().toLowerCase() !== 'thumbtack' || externalAgreementVerified !== true) {
+      return res.status(400).json({ error: 'Verify the customer agreement in Thumbtack before creating this booking.', code: 'THUMBTACK_AGREEMENT_REQUIRED' });
+    }
+    if (rebookedFromBookingId || alreadyCompleted) {
+      return res.status(409).json({ error: 'A Thumbtack booking must be created as a new, scheduled job.', code: 'THUMBTACK_BOOKING_STATE_INVALID' });
+    }
+    if (sendConfirmation === true) {
+      return res.status(400).json({ error: 'Customer communication for this booking stays in Thumbtack.', code: 'THUMBTACK_CUSTOMER_EMAIL_DISABLED' });
+    }
+  } else {
+    const legalConsent = validateCustomerLegalConsent({
+      termsAccepted: customerTermsAcceptedByOwner,
+      termsVersion,
+      privacyNoticeVersion,
+    });
+    if (!legalConsent.ok) {
+      return res.status(legalConsent.status).json({ error: legalConsent.error, code: legalConsent.code });
+    }
   }
 
   // ── Service (free text so the owner can log the exact job) ──
@@ -264,10 +280,12 @@ export default async function handler(req, res) {
     payment_collected_by: isAlreadyCompleted ? 'owner' : null,
     source: isCardRebook ? 'online' : 'owner_manual',
     payment_method: isCardRebook ? null : method,
+    external_platform: isThumbtackBooking ? 'thumbtack' : null,
+    external_agreement_verified_at: isThumbtackBooking ? now : null,
     price_override_reason: reason,
     standard_price_cents: standardCents,
     owner_booking_note: cleanNote,
-    ...buildCustomerConsentRecord(req, 'owner_attested_customer_agreement'),
+    ...(!isThumbtackBooking ? buildCustomerConsentRecord(req, 'owner_attested_customer_agreement') : {}),
   };
   if (rebookSource) {
     insertPayload.rebooked_from_booking_id = rebookSource.id;
@@ -366,9 +384,10 @@ export default async function handler(req, res) {
       subtotalCents,
       priceOverrideReason: reason,
       paymentMethod: method,
-      customerTermsVersion: termsVersion,
-      privacyNoticeVersion,
-      customerTermsAcceptanceMethod: 'owner_attested_customer_agreement',
+      externalPlatform: isThumbtackBooking ? 'thumbtack' : null,
+      customerTermsVersion: isThumbtackBooking ? null : termsVersion,
+      privacyNoticeVersion: isThumbtackBooking ? null : privacyNoticeVersion,
+      customerTermsAcceptanceMethod: isThumbtackBooking ? null : 'owner_attested_customer_agreement',
     },
   }).catch(e => console.warn('Owner booking activity log skipped:', e?.message || e));
 
@@ -388,18 +407,29 @@ export default async function handler(req, res) {
     }).catch(e => console.warn('Cancelled booking rebook activity log skipped:', e?.message || e));
   }
 
-  await logActivity(sb, {
-    bookingId,
-    eventType: 'customer_terms_attested',
-    actorType: 'owner',
-    actorName: 'Owner',
-    description: `Owner attested that the customer agreed to Terms ${termsVersion}, the displayed total and cancellation policy, and received Privacy Notice ${privacyNoticeVersion}.`,
-    metadata: {
-      termsVersion,
-      privacyNoticeVersion,
-      acceptanceMethod: 'owner_attested_customer_agreement',
-    },
-  }).catch(e => console.warn('Owner customer-consent activity skipped:', e?.message || e));
+  if (isThumbtackBooking) {
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'external_agreement_recorded',
+      actorType: 'owner',
+      actorName: 'Owner',
+      description: 'Owner verified the customer agreed to the job details and total in Thumbtack.',
+      metadata: { platform: 'thumbtack', externalAgreementVerifiedAt: now, totalCents: finalCents },
+    }).catch(e => console.warn('Thumbtack agreement activity skipped:', e?.message || e));
+  } else {
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'customer_terms_attested',
+      actorType: 'owner',
+      actorName: 'Owner',
+      description: `Owner attested that the customer agreed to Terms ${termsVersion}, the displayed total and cancellation policy, and received Privacy Notice ${privacyNoticeVersion}.`,
+      metadata: {
+        termsVersion,
+        privacyNoticeVersion,
+        acceptanceMethod: 'owner_attested_customer_agreement',
+      },
+    }).catch(e => console.warn('Owner customer-consent activity skipped:', e?.message || e));
+  }
 
   if (!rebookSource) {
     await logActivity(sb, {
@@ -482,7 +512,7 @@ export default async function handler(req, res) {
       confirmationEmailError = emailError?.message || String(emailError);
       console.error('Rebooking payment-method email failed after booking save:', confirmationEmailError);
     }
-  } else if (!isAlreadyCompleted && cleanEmail && sendConfirmation !== false) {
+  } else if (!isThumbtackBooking && !isAlreadyCompleted && cleanEmail && sendConfirmation !== false) {
     const paymentLine = method
       ? `Payment will be handled directly with AssembleAtEase — ${esc(PAYMENT_METHOD_LABELS[method])}. You will not be charged online.`
       : 'Payment will be arranged directly with AssembleAtEase after the job is completed.';
@@ -529,7 +559,7 @@ export default async function handler(req, res) {
 
   let completionEmailed = false;
   let completionEmailError = null;
-  if (isAlreadyCompleted && cleanEmail) {
+  if (!isThumbtackBooking && isAlreadyCompleted && cleanEmail) {
     try {
       const completionResult = await sendEmail({
         to: cleanEmail,

@@ -7,7 +7,7 @@ export const CANCELLATION_REWARDS_RECONCILIATION_REASON = 'AssembleCash cancella
 
 export async function reconcileCancellationAssembleCash(sb, booking, eventSource, operationKey) {
   // Gift card credit goes back to the card on every cancellation (migration
-  // 120). A failure alerts the owner and never blocks the cancellation.
+  // 127). A failure alerts the owner and never blocks the cancellation.
   await releaseBookingGiftCard(sb, booking, `returned: booking cancelled (${eventSource})`);
   const reconciliation = await reconcileBookingCredits(sb, {
     bookingId: booking.id,
