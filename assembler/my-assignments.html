@@ -296,7 +296,7 @@
 <div class="easer-page">
   <a href="#" id="sidebar-logout" style="display:none"></a>
   <div id="page-alert" class="alert hidden"></div>
-  <div id="easer-app-banner" role="status" style="display:none;gap:0.85rem;align-items:center;flex-wrap:wrap;margin:0 0 1rem;padding:0.9rem 1rem;border:1px solid rgba(0,191,255,0.35);border-radius:12px;background:#eefaff"></div>
+  <div id="easer-app-banner" role="status" style="display:none;flex-direction:column;gap:0.7rem;align-items:center;text-align:center;margin:0 0 1rem;padding:0.9rem 1rem;border:1px solid rgba(0,191,255,0.35);border-radius:12px;background:#eefaff"></div>
   <div id="required-action-banner" style="display:none;gap:0.85rem;align-items:center;flex-wrap:wrap;margin:0 0 1rem;padding:0.9rem 1rem;border:1px solid rgba(0,191,255,0.35);border-radius:12px;background:#eefaff"></div>
   <div id="agreement-access-banner" style="display:none;margin:0 0 1rem;padding:0.9rem 1rem;border:1px solid rgba(245,158,11,0.3);border-radius:10px;background:rgba(245,158,11,0.08);color:#78350f;font-size:0.82rem;line-height:1.5">
     <strong>An updated version needs your signature.</strong>
@@ -745,7 +745,7 @@
       : (app.iphoneRequiredFrom
         ? 'From ' + formatDate(app.iphoneRequiredFrom) + ', job offers on iPhone are only in the Easer app.'
         : 'Get job offers the moment they are sent in the Easer app.');
-    el.innerHTML = '<div style="flex:1;min-width:0;font-size:0.86rem;font-weight:700;color:#0a1628;line-height:1.45">' + esc(text) + '</div>'
+    el.innerHTML = '<div style="width:100%;min-width:0;font-size:0.86rem;font-weight:700;color:#0a1628;line-height:1.45">' + esc(text) + '</div>'
       + '<a href="' + esc(app.iosAppUrl) + '" style="background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:0.62rem 1.1rem;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;white-space:nowrap">Get the Easer app</a>';
     el.style.display = 'flex';
   }
