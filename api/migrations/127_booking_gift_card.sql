@@ -1,5 +1,5 @@
 -- ============================================================
--- Migration 120: gift card credit on a booking
+-- Migration 127: gift card credit on a booking (was 120; renumbered 2026-11-08, 120 is taken by thumbtack_external_bookings)
 --
 -- Owner, 2026-10-24 (gift cards stage 2). A gift card pays part of a booking.
 -- It is money already collected, not a discount: tax_amount stays the tax on
