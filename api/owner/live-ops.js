@@ -11,7 +11,7 @@ import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch, isBookingPaymentReadyForStaffing } from '../_source-of-truth.js';
 import { chicagoTodayIso, appointmentTimestampMs } from '../booking/_appt-date.js';
-import { arrivalFollowUp } from '../booking/_arrival-follow-up.js';
+import { arrivalFollowUp, appointmentNeedsNewTime } from '../booking/_arrival-follow-up.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
 import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
 import { isBrowserExtensionNoise } from '../_runtime-noise.js';
@@ -722,7 +722,21 @@ export default async function handler(req, res) {
       severity: 'high',
       ref: b.ref,
       bookingId: b.id,
-      message: `${b.ref} — ${b.assembler_name || 'Easer'} accepted, but arrival has not been recorded ${followUp.minutesLate} minutes past the appointment start. Contact the Easer and customer to verify status before reassigning.`,
+      message: `${b.ref} — ${b.assembler_name || 'Easer'} accepted, but arrival has not been recorded ${followUp.minutesLate} minutes past ${followUp.measuredFrom === 'acceptance' ? 'their acceptance' : 'the appointment start'}. Contact the Easer and customer to verify status before reassigning.`,
+      action: 'review_timeline',
+    });
+  });
+
+  // Accepted after the appointment had already started (a reassignment after a
+  // no-show): the job still shows the passed time, so it needs a new one.
+  operationalBookings.forEach(b => {
+    if (!appointmentNeedsNewTime(b, now_ts)) return;
+    alerts.push({
+      type: 'needs_new_time',
+      severity: 'high',
+      ref: b.ref,
+      bookingId: b.id,
+      message: `${b.ref} — ${b.assembler_name || 'Easer'} accepted after the appointment time had passed. Agree a new time with the customer; ${b.assembler_name || 'the Easer'} can send it from the job with Propose a new time.`,
       action: 'review_timeline',
     });
   });

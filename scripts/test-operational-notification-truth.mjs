@@ -153,6 +153,21 @@ function harness(name, booking = fixture(), options = {}) {
   assert.equal(h.calls.email.length, 0, 'cancellation after scan wins');
 }
 {
+  // Owner, 2026-11-08: a job reassigned after a no-show alerted against the new
+  // Easer for the old time, which had passed before they accepted.
+  const late = { ...fixture(), assembler_accepted_at: '2026-09-24T14:20:00Z' };
+  const h = harness('no-show-check', late, { now: '2026-09-24T18:00:00Z' });
+  await h.run();
+  assert.equal(h.calls.email.length, 0, 'an Easer who accepted after the appointment start is never a possible no-show for it');
+  const moving = harness('no-show-check', { ...late, status: 'en_route' }, { now: '2026-09-24T15:25:00Z' });
+  await moving.run();
+  assert.equal(moving.calls.email.length, 1, 'on the way after a late accept: measured from the acceptance, past the grace');
+  assert.match(moving.calls.email[0].html, /past when they accepted it, which was after the appointment start/);
+  const early = harness('no-show-check', { ...late, status: 'en_route' }, { now: '2026-09-24T15:15:00Z' });
+  await early.run();
+  assert.equal(early.calls.email.length, 0, 'inside the grace after acceptance');
+}
+{
   const h = harness('easer-arrival-nudge');
   await h.run();
   assert.equal(h.booking.arrival_nudge_count, 1);

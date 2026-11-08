@@ -128,7 +128,7 @@ export default async function handler(req, res) {
     <p style="margin:0 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#dc2626">Possible No-Show — Action Needed</p>
     <p style="margin:0 0 16px;font-size:20px;font-weight:700">${esc(b.ref)} &bull; ${esc(b.service)}</p>
     <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.7">
-      <strong>${easer}</strong> accepted this job but it is still <strong>${esc(b.status)}</strong> &mdash; not marked arrived or in progress &mdash; about <strong>${minsLate} minutes</strong> past the appointment start. The customer may be waiting.
+      <strong>${easer}</strong> accepted this job but it is still <strong>${esc(b.status)}</strong> &mdash; not marked arrived or in progress &mdash; about <strong>${minsLate} minutes</strong> past ${followUp.measuredFrom === 'acceptance' ? 'when they accepted it, which was after the appointment start' : 'the appointment start'}. The customer may be waiting.
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;font-size:14px;margin-bottom:18px"><tr><td style="padding:14px 18px">
       <table width="100%"><tr><td style="padding:4px 0;color:#71717a;width:90px">Customer</td><td style="padding:4px 0">${esc(b.customer_name || '')}${customerPhone ? ' &bull; <a href="tel:' + esc(b.customer_phone) + '" style="color:#00BFFF">' + esc(customerPhone) + '</a>' : ''}</td></tr>
@@ -162,7 +162,7 @@ export default async function handler(req, res) {
         eventType: 'no_show_flagged',
         actorType: 'system',
         actorName: 'no_show_check',
-        description: `Possible no-show: ${b.assembler_name || 'Easer'} accepted but job still ${b.status} ${minsLate} min past appointment start. Owner email accepted for delivery.`,
+        description: `Possible no-show: ${b.assembler_name || 'Easer'} accepted but job still ${b.status} ${minsLate} min past ${followUp.measuredFrom === 'acceptance' ? 'acceptance' : 'appointment start'}. Owner email accepted for delivery.`,
         metadata: { minsLate, status: b.status, assemblerId: b.assembler_id, notificationKey },
       });
 
