@@ -82,7 +82,7 @@ console.log('PASS dates: the server decides which days a booking can move to; th
 
 // Wiring: the move does not count, every reader selects the column, the owner flow.
 {
-  assert.match(read('api/booking/reschedule.js'), /const countsAsReschedule = !acceptedProposal && !easerMissedVisit\(booking\);/);
+  assert.match(read('api/booking/reschedule.js'), /const countsAsReschedule = !acceptedProposal && !easerMissedVisit\(booking\)( && !byOwner)?;/);
   assert.match(read('api/booking/customer-bookings.js'), /assembler_accepted_at, easer_no_show_confirmed_at, payment_status/);
   assert.match(read('api/_customer-push.js'), /assembler_accepted_at, easer_no_show_confirmed_at, payment_status/);
   for (const f of ['api/booking/track.js', 'api/booking/customer-cancel.js', 'api/booking/guest-cancel.js', 'api/booking/cancel.js', 'api/owner/confirm-no-show.js']) {

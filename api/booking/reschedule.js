@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { formatAppointmentDate } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
-import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { sendEmail, buildStatusEmail, ownerEmail, esc, verifyOwner } from '../_email.js';
 import { randomToken, sha256 } from '../_payment-security.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
@@ -92,7 +92,30 @@ function whereExact(query, column, value) {
   return value == null ? query.is(column, null) : query.eq(column, value);
 }
 
+// The owner moves a booking to a time agreed with the customer (owner,
+// 2026-11-08: after a no-show the only paths to a new time were the
+// customer's own reschedule or the Easer's proposal). Same route, same rules:
+// card hold, offer cleanup, Easer reconfirmation, customer email. GET returns
+// the times and dates the owner can choose, from the rules enforced below.
+async function ownerMoveOptions(req, res) {
+  const ref = String(req.query?.ref || '').trim().toUpperCase();
+  if (!ref) return res.status(400).json({ error: 'ref is required' });
+  const { data: booking, error } = await getSupabase().from('bookings').select('*').eq('ref', ref).maybeSingle();
+  if (error) return res.status(503).json({ error: 'The booking could not be read.' });
+  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  const bounds = rescheduleDateBounds(booking);
+  return res.status(200).json({
+    slots: TIME_SLOTS,
+    minDate: bounds.minDate,
+    maxDate: bounds.maxDate,
+    canMove: RESCHEDULABLE_STATUSES.includes(booking.status),
+    reason: RESCHEDULABLE_STATUSES.includes(booking.status) ? null : `The job is ${String(booking.status).replace('_', ' ')}, so its time cannot be moved here.`,
+  });
+}
+
 export default async function handler(req, res) {
+  const byOwner = verifyOwner(req);
+  if (req.method === 'GET' && byOwner) return ownerMoveOptions(req, res);
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
@@ -100,7 +123,7 @@ export default async function handler(req, res) {
 
   const { email, ref, token, date, time, proposalId } = req.body || {};
   const viaAccount = usesCustomerAccount(req, { token });
-  if (!ref || !date || !time || (!viaAccount && (!email || !token))) {
+  if (!ref || !date || !time || (!byOwner && !viaAccount && (!email || !token))) {
     return res.status(400).json({ error: 'Booking access token, email, reference, new date, and new time are required.' });
   }
 
@@ -132,7 +155,7 @@ export default async function handler(req, res) {
     console.error('Reschedule lookup error:', fetchErr);
     return res.status(500).json({ error: 'Unable to look up booking. Please try again.' });
   }
-  if (!booking || !(await customerBookingAccess(sb, req, booking, { email, token })).ok) {
+  if (!booking || (!byOwner && !(await customerBookingAccess(sb, req, booking, { email, token })).ok)) {
     return res.status(403).json({ error: 'This reschedule link is invalid or expired. Open the latest tracking link and try again.' });
   }
 
@@ -144,7 +167,11 @@ export default async function handler(req, res) {
   }
 
   const paymentConflict = reschedulePaymentConflict(booking, date);
-  if (paymentConflict) return res.status(409).json(paymentConflict);
+  if (paymentConflict) {
+    return res.status(409).json(byOwner
+      ? { ...paymentConflict, error: "This booking's payment cannot be held again automatically for that date. Choose a date the picker allows, or cancel and rebook." }
+      : paymentConflict);
+  }
 
   if (date === booking.date && normalizedTime === normalizeSlot(booking.time)) {
     return res.status(400).json({ error: 'That is already your scheduled date and time.' });
@@ -166,7 +193,7 @@ export default async function handler(req, res) {
   const acceptedProposal = await matchingProposal(sb, { proposalId, booking, date, time: normalizedTime });
   // After an owner-confirmed Easer no-show the move is ours, not hers: it does
   // not count toward her limit (api/booking/_easer-no-show.js).
-  const countsAsReschedule = !acceptedProposal && !easerMissedVisit(booking);
+  const countsAsReschedule = !acceptedProposal && !easerMissedVisit(booking) && !byOwner;
   if (countsAsReschedule && priorReschedules >= MAX_RESCHEDULES) {
     return res.status(409).json({
       error: `This booking has already been rescheduled ${MAX_RESCHEDULES} times. Please call (979) 232-5139 for further changes.`,
@@ -296,11 +323,15 @@ export default async function handler(req, res) {
   await logActivity(sb, {
     bookingId: booking.id,
     eventType: 'rescheduled',
-    actorType: 'guest',
-    actorName: booking.customer_name || 'Guest customer',
-    description: countsAsReschedule
-      ? `Customer rescheduled from ${oldDate} ${oldTime} to ${date} ${time}. Reschedule ${priorReschedules + 1} of ${MAX_RESCHEDULES}.`
-      : `Customer accepted the pro's proposed time: moved from ${oldDate} ${oldTime} to ${date} ${time}. Not counted as a customer reschedule.`,
+    actorType: byOwner ? 'owner' : 'guest',
+    actorName: byOwner ? 'Owner' : (booking.customer_name || 'Guest customer'),
+    description: byOwner
+      ? `Owner moved the appointment from ${oldDate} ${oldTime} to ${date} ${time}. Not counted as a customer reschedule.`
+      : countsAsReschedule
+        ? `Customer rescheduled from ${oldDate} ${oldTime} to ${date} ${time}. Reschedule ${priorReschedules + 1} of ${MAX_RESCHEDULES}.`
+        : acceptedProposal
+          ? `Customer accepted the pro's proposed time: moved from ${oldDate} ${oldTime} to ${date} ${time}. Not counted as a customer reschedule.`
+          : `Customer rescheduled from ${oldDate} ${oldTime} to ${date} ${time} after the assigned Easer did not show. Not counted as a customer reschedule.`,
     metadata: {
       oldDate,
       oldTime,
@@ -360,7 +391,7 @@ export default async function handler(req, res) {
       bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> appointment is now set for <strong>${esc(formatAppointmentDate(date))}</strong> at <strong>${esc(time)}</strong>.</p>
         ${countsAsReschedule
           ? `<p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">Cancelling now carries the reschedule cancellation fee. ${remaining > 0 ? `You can reschedule ${remaining} more time if needed.` : 'This was your final self-service reschedule.'}</p>`
-          : '<p style="margin:0 0 16px;font-size:14px;color:#52525b">This is the time your pro proposed. Your cancellation terms are unchanged.</p>'}
+          : `<p style="margin:0 0 16px;font-size:14px;color:#52525b">${acceptedProposal ? 'This is the time your pro proposed. ' : ''}Your cancellation terms are unchanged.</p>`}
         <p style="margin:0"><a href="${esc(nextTrackUrl)}">Open your updated secure tracking link</a></p>`,
     }),
     meta: { bookingId: booking.id, notificationType: 'reschedule_customer', recipientType: 'customer', disableDedupe: true },
@@ -380,7 +411,8 @@ export default async function handler(req, res) {
     if (!tokenRevertErr && revertedTokenRows?.length) effectiveGuestMutationToken = token;
   }
 
-  const ownerResult = await sendEmail({
+  // The owner made this move, so no email tells them about it.
+  const ownerResult = byOwner ? { ok: true, skipped: 'owner_made_this_change' } : await sendEmail({
     to: ownerEmail(),
     subject: `Rescheduled — ${booking.ref}`,
     replyTo: ownerEmail(),

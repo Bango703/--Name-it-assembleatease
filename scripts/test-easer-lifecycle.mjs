@@ -306,7 +306,7 @@ const commonDeps = (db) => ({
   const rescheduleSource = read('api/booking/reschedule.js');
   // After an owner-confirmed Easer no-show the move is not hers either
   // (scripts/test-easer-no-show-customer-protection.mjs).
-  assert.match(rescheduleSource, /const acceptedProposal = await matchingProposal[\s\S]{0,400}const countsAsReschedule = !acceptedProposal && !easerMissedVisit\(booking\);\s*if \(countsAsReschedule && priorReschedules >= MAX_RESCHEDULES\)/, "the pro's move does not use the customer's reschedules");
+  assert.match(rescheduleSource, /const acceptedProposal = await matchingProposal[\s\S]{0,400}const countsAsReschedule = !acceptedProposal && !easerMissedVisit\(booking\)( && !byOwner)?;\s*if \(countsAsReschedule && priorReschedules >= MAX_RESCHEDULES\)/, "the pro's move does not use the customer's reschedules");
   assert.match(rescheduleSource, /reschedule_count: countsAsReschedule \? priorReschedules \+ 1 : priorReschedules,/, 'nor forfeit the free-cancellation window (Rule 9)');
   assert.match(rescheduleSource, /const reconfirmationRequired = Boolean\(booking\.assembler_id\) && !acceptedProposal;/, 'the Easer keeps the job they proposed');
   assert.match(read('api/booking/track.js'), /easer_time_proposal: easerTimeProposal,/, 'the booking page shows it');
