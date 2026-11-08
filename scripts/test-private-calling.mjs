@@ -1,0 +1,228 @@
+#!/usr/bin/env node
+// Private customer–Easer lines (owner, 2026-11-08). Every call path, driven
+// through the real event handler with Telnyx and the database simulated.
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { privateLineConfig, isPoolNumber, lineNumberFor, privateLineOpen, openLinesForCaller, encodeState, decodeState, NO_LINE_MESSAGE, NO_ANSWER_MESSAGE } from '../api/_private-line.js';
+import { handlePrivateLineEvent } from '../api/webhooks/telnyx-private-line.js';
+import privateCall from '../api/booking/private-call.js';
+
+const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n');
+const POOL_A = '+15125550101';
+const POOL_B = '+15125550102';
+const BUSINESS = '+19792325139';
+const CUSTOMER = '+15125550200';
+const EASER = '+15125550300';
+const LEAD = '+15125550400';
+const env = { TELNYX_API_KEY: 'k', TELNYX_PRIVATE_LINE_APP_ID: 'app', TELNYX_PRIVATE_LINE_NUMBERS: `${POOL_A},${POOL_B}`, TELNYX_FROM_NUMBER: BUSINESS, PRIVATE_CALLING_ENABLED: 'true' };
+const cfg = privateLineConfig(env);
+const recordingCfg = privateLineConfig({ ...env, PRIVATE_CALL_RECORDING_ENABLED: 'true' });
+// Tuesday Nov 10, 10 AM Austin = 16:00Z; 20 hours before is inside the 24-hour window.
+const NOW = Date.parse('2026-11-09T20:00:00Z');
+
+function booking(id, changes = {}) {
+  return { id, ref: 'AAE-' + id.toUpperCase(), service: 'TV Mounting', status: 'confirmed', date: '2026-11-10', time: '10:00 AM - 12:00 PM', customer_phone: CUSTOMER, customer_name: 'Bianca G', assembler_id: 'easer-1', assembler_name: 'Phil H', assembler_accepted_at: '2026-11-08T12:00:00Z', completed_at: null, return_visit_required: false, ...changes };
+}
+
+function db(rows) {
+  return {
+    from(table) {
+      let list = (rows[table] || []).slice();
+      const q = {
+        select() { return q; },
+        eq(c, v) { list = list.filter((r) => r[c] === v); return q; },
+        in(c, vs) { list = list.filter((r) => vs.includes(r[c])); return q; },
+        not(c) { list = list.filter((r) => r[c] != null); return q; },
+        order() { return q; },
+        limit(n) { list = list.slice(0, n); return q; },
+        maybeSingle: async () => ({ data: list[0] || null, error: null }),
+        then(resolve, reject) { return Promise.resolve({ data: list, error: null }).then(resolve, reject); },
+      };
+      return q;
+    },
+  };
+}
+const profiles = [{ id: 'easer-1', role: 'assembler', phone: EASER }, { id: 'lead-1', role: 'assembler', phone: LEAD }];
+
+function harness(rows, { config = cfg } = {}) {
+  const commands = [];
+  const logs = [];
+  const pushes = [];
+  const ctx = {
+    cfg: config, sb: db({ profiles, booking_crew: [], ...rows }), now: NOW,
+    command: async (_cfg, callId, action, body) => { commands.push({ callId, action, body, state: decodeState(body?.client_state) }); return { ok: true }; },
+    rateLimit: async () => true,
+    notifyEaser: async (id, payload) => { pushes.push({ id, payload }); return { ok: true }; },
+    log: async (_sb, entry) => { logs.push(entry); return { ok: true }; },
+  };
+  const send = (type, payload) => handlePrivateLineEvent({ data: { event_type: type, payload } }, ctx);
+  return { commands, logs, pushes, send, ctx };
+}
+const last = (h) => h.commands[h.commands.length - 1];
+
+// Configuration and the window.
+{
+  assert.equal(privateLineConfig({ ...env, PRIVATE_CALLING_ENABLED: '' }).enabled, false, 'off unless switched on');
+  assert.equal(privateLineConfig({ ...env, TELNYX_PRIVATE_LINE_NUMBERS: '' }).enabled, false, 'off without a pool');
+  assert.equal(isPoolNumber(cfg, POOL_A), true);
+  assert.equal(isPoolNumber(cfg, BUSINESS), false, 'the business number is never a private line');
+  assert.equal(isPoolNumber(privateLineConfig({ ...env, TELNYX_PRIVATE_LINE_NUMBERS: `${POOL_A},${BUSINESS}` }), BUSINESS), false, 'even if someone lists it in the pool');
+  assert.equal(lineNumberFor(cfg, 'b1'), lineNumberFor(cfg, 'b1'), 'a booking always shows the same number');
+  assert.equal(privateLineOpen(booking('b1'), NOW), true, '20 hours before: open');
+  assert.equal(privateLineOpen(booking('b1'), Date.parse('2026-11-08T20:00:00Z')), false, '44 hours before: closed');
+  assert.equal(privateLineOpen(booking('b1', { status: 'en_route', date: '2026-11-12' }), NOW), true, 'on the way: open at once');
+  assert.equal(privateLineOpen(booking('b1', { status: 'cancelled' }), NOW), false);
+  assert.equal(privateLineOpen(booking('b1', { assembler_accepted_at: null }), NOW), false, 'not before the Easer accepts');
+  assert.equal(privateLineOpen(booking('b1', { status: 'completed', completed_at: '2026-11-09T10:00:00Z' }), NOW), true, 'completed 10 hours ago: still open');
+  assert.equal(privateLineOpen(booking('b1', { status: 'completed', completed_at: '2026-11-08T10:00:00Z' }), NOW), false, 'completed 34 hours ago: closed');
+}
+console.log('PASS window: off until switched on, pool only, opens with contact release, closes 24 hours after completion or on cancel');
+
+// A customer calls: she reaches the Easer, who must press 1.
+{
+  const h = harness({ bookings: [booking('b1')] });
+  assert.equal((await h.send('call.initiated', { call_control_id: 'in-1', direction: 'incoming', from: CUSTOMER, to: POOL_A })).routed, 'greeting');
+  assert.equal(last(h).action, 'answer');
+  await h.send('call.answered', { call_control_id: 'in-1', client_state: last(h).body.client_state });
+  assert.equal(last(h).action, 'speak');
+  assert.equal(last(h).body.payload, 'Connecting your AssembleAtEase call.', 'no recording sentence while recording is off');
+  await h.send('call.speak.ended', { call_control_id: 'in-1', client_state: last(h).body.client_state });
+  const dial = last(h);
+  assert.equal(dial.action, 'dial');
+  assert.equal(dial.body.to, EASER, 'rings the assigned Easer');
+  assert.equal(dial.body.from, POOL_A, 'shows the private line, never anyone\'s real number');
+  assert.equal(dial.body.bridge_on_answer, false, 'not joined until they press 1');
+  assert.equal(dial.body.link_to, 'in-1');
+  await h.send('call.answered', { call_control_id: 'out-1', client_state: dial.body.client_state });
+  assert.equal(last(h).action, 'gather_using_speak');
+  assert.equal(last(h).body.payload, 'This is a call from your AssembleAtEase customer. Press 1 to connect.');
+  assert.equal(last(h).body.valid_digits, '1');
+  await h.send('call.gather.ended', { call_control_id: 'out-1', digits: '1', client_state: last(h).body.client_state });
+  assert.equal(last(h).action, 'bridge');
+  assert.equal(last(h).body.call_control_id, 'in-1');
+  assert.ok(!h.commands.some((c) => c.action === 'record_start'), 'nothing recorded while recording is off');
+  assert.equal(h.logs[0].eventType, 'private_call_connected');
+  const bridgedState = last(h).body.client_state;
+  await h.send('call.hangup', { call_control_id: 'out-1', client_state: bridgedState });
+  assert.deepEqual([last(h).callId, last(h).action], ['in-1', 'hangup'], 'one side hangs up, the other is ended');
+}
+console.log('PASS customer to Easer: greeting, the Easer is rung from the private line, presses 1, then connected');
+
+// Recording on: both people hear it before connecting; the caller leg records.
+{
+  const h = harness({ bookings: [booking('b1')] }, { config: recordingCfg });
+  await h.send('call.initiated', { call_control_id: 'in-1', direction: 'incoming', from: CUSTOMER, to: POOL_A });
+  await h.send('call.answered', { call_control_id: 'in-1', client_state: last(h).body.client_state });
+  assert.match(last(h).body.payload, /This call is recorded and transcribed for quality and assurance\./, 'the caller hears it');
+  await h.send('call.speak.ended', { call_control_id: 'in-1', client_state: last(h).body.client_state });
+  await h.send('call.answered', { call_control_id: 'out-1', client_state: last(h).body.client_state });
+  assert.match(last(h).body.payload, /This call is recorded and transcribed for quality and assurance\. Press 1 to connect\./, 'the person rung hears it before connecting');
+  await h.send('call.gather.ended', { call_control_id: 'out-1', digits: '1', client_state: last(h).body.client_state });
+  const record = h.commands.find((c) => c.action === 'record_start');
+  assert.ok(record && record.callId === 'in-1' && record.body.channels === 'dual', 'recorded, one person per channel');
+  const bridgeIndex = h.commands.findIndex((c) => c.action === 'bridge');
+  assert.ok(h.commands.indexOf(record) > bridgeIndex, 'recording starts only after both heard the notice and connected');
+}
+console.log('PASS recording: announced to both before connecting; recording starts after');
+
+// No answer, or not pressing 1: the caller is told, the Easer is pushed.
+{
+  const h = harness({ bookings: [booking('b1')] });
+  await h.send('call.initiated', { call_control_id: 'in-1', direction: 'incoming', from: CUSTOMER, to: POOL_A });
+  await h.send('call.answered', { call_control_id: 'in-1', client_state: last(h).body.client_state });
+  await h.send('call.speak.ended', { call_control_id: 'in-1', client_state: last(h).body.client_state });
+  const calleeState = last(h).body.client_state;
+  await h.send('call.hangup', { call_control_id: 'out-1', client_state: calleeState });
+  const told = h.commands.find((c) => c.action === 'speak' && c.callId === 'in-1' && c.body.payload === NO_ANSWER_MESSAGE);
+  assert.ok(told, 'the customer hears that the pro will call back');
+  assert.equal(h.pushes[0].id, 'easer-1');
+  assert.match(h.pushes[0].payload.title, /Missed call/);
+  assert.equal(h.logs.find((l) => l.eventType === 'private_call_missed').bookingId, 'b1');
+  await h.send('call.speak.ended', { call_control_id: 'in-1', client_state: told.body.client_state });
+  assert.deepEqual([last(h).callId, last(h).action], ['in-1', 'hangup']);
+}
+console.log('PASS no answer: never joined to voicemail; the caller is told and the Easer gets a missed-call notice');
+
+// Crews reach the lead; an Easer reaches the customer.
+{
+  const h = harness({ bookings: [booking('b1')], booking_crew: [{ booking_id: 'b1', easer_id: 'lead-1', role: 'lead' }] });
+  await h.send('call.initiated', { call_control_id: 'in-1', direction: 'incoming', from: CUSTOMER, to: POOL_B });
+  await h.send('call.answered', { call_control_id: 'in-1', client_state: last(h).body.client_state });
+  await h.send('call.speak.ended', { call_control_id: 'in-1', client_state: last(h).body.client_state });
+  assert.equal(last(h).body.to, LEAD, 'two Easers: the lead is rung');
+  const lines = await openLinesForCaller(h.ctx.sb, LEAD, NOW);
+  assert.equal(lines[0].destination, CUSTOMER, 'the lead Easer reaches the customer');
+  assert.equal((await openLinesForCaller(h.ctx.sb, EASER, NOW)).length, 0, 'the helper does not get the customer');
+}
+console.log('PASS crews: a customer reaches the lead Easer; the lead reaches the customer, the helper does not');
+
+// Two open jobs: a menu. Nothing open, or off: the business line.
+{
+  const h = harness({ bookings: [booking('b1'), booking('b2', { time: '2:00 PM - 4:00 PM' })] });
+  assert.equal((await h.send('call.initiated', { call_control_id: 'in-1', direction: 'incoming', from: CUSTOMER, to: POOL_A })).routed, 'menu');
+  await h.send('call.answered', { call_control_id: 'in-1', client_state: last(h).body.client_state });
+  assert.equal(last(h).action, 'gather_using_speak');
+  assert.match(last(h).body.payload, /For your job on Tuesday, November 10 at 10:00 AM, press 1\. For your job on Tuesday, November 10 at 2:00 PM, press 2\./);
+  await h.send('call.gather.ended', { call_control_id: 'in-1', digits: '2', client_state: last(h).body.client_state });
+  assert.equal(decodeState(last(h).body.client_state).bookingId, 'b2', 'the chosen job is called');
+
+  for (const [rows, config, why] of [[{ bookings: [] }, cfg, 'no open line'], [{ bookings: [booking('b1')] }, privateLineConfig({ ...env, PRIVATE_CALLING_ENABLED: '' }), 'calling off']]) {
+    const b = harness(rows, { config });
+    assert.equal((await b.send('call.initiated', { call_control_id: 'in-9', direction: 'incoming', from: CUSTOMER, to: POOL_A })).routed, 'business_line', why);
+    await b.send('call.answered', { call_control_id: 'in-9', client_state: last(b).body.client_state });
+    assert.equal(last(b).body.payload, NO_LINE_MESSAGE);
+    await b.send('call.speak.ended', { call_control_id: 'in-9', client_state: last(b).body.client_state });
+    assert.deepEqual([last(b).action, last(b).body.to], ['transfer', BUSINESS], `${why}: goes to the business line`);
+  }
+  const notMine = harness({ bookings: [booking('b1')] });
+  assert.equal((await notMine.send('call.initiated', { call_control_id: 'in-x', direction: 'incoming', from: CUSTOMER, to: BUSINESS })).ignored, 'not_a_private_line', 'a call to the business number is never touched here');
+  assert.equal(notMine.commands.length, 0);
+}
+console.log('PASS routing: two jobs get a menu; nothing open or calling off goes to the business line; the business number is never handled here');
+
+// The buttons: Easer and customer start a call; the right person is rung first.
+{
+  const run = async (req, rows, extra = {}) => {
+    const out = { status: 200, body: null, headers: {} };
+    const res = { status(c) { out.status = c; return this; }, setHeader(k, v) { out.headers[k] = v; }, json(b) { out.body = b; return this; } };
+    const dialed = [];
+    await privateCall(req, res, {
+      cfg, sb: db({ profiles, booking_crew: [], ...rows }), rateLimit: async () => true, now: NOW,
+      easerAccess: async () => ({ ok: true, user: { id: extra.userId || 'easer-1' } }),
+      customerAccess: async () => ({ ok: true }),
+      command: async (_c, _id, action, body) => { dialed.push({ action, body, state: decodeState(body.client_state) }); return { ok: true }; },
+      ...extra.deps,
+    });
+    return { ...out, dialed };
+  };
+  const easer = await run({ method: 'POST', headers: { authorization: 'Bearer t' }, body: { bookingId: 'b1' } }, { bookings: [booking('b1')] });
+  assert.equal(easer.status, 200);
+  assert.equal(easer.dialed[0].body.to, EASER, 'the Easer who pressed Call is rung first');
+  assert.equal(easer.dialed[0].body.from, lineNumberFor(cfg, 'b1'));
+  assert.deepEqual([easer.dialed[0].state.stage, easer.dialed[0].state.destination], ['initiator', CUSTOMER]);
+  const helper = await run({ method: 'POST', headers: { authorization: 'Bearer t' }, body: { bookingId: 'b1' } }, { bookings: [booking('b1')], booking_crew: [{ booking_id: 'b1', easer_id: 'lead-1', role: 'lead' }] });
+  assert.equal(helper.status, 404, 'only the lead calls the customer');
+  const customer = await run({ method: 'POST', headers: {}, body: { ref: 'AAE-B1', email: 'c@example.test', token: 't' } }, { bookings: [booking('b1')] });
+  assert.deepEqual([customer.status, customer.dialed[0].body.to, customer.dialed[0].state.destination], [200, CUSTOMER, EASER]);
+  const closed = await run({ method: 'POST', headers: { authorization: 'Bearer t' }, body: { bookingId: 'b1' } }, { bookings: [booking('b1', { date: '2026-11-20' })] });
+  assert.equal(closed.status, 409);
+  assert.equal(closed.body.code, 'PRIVATE_LINE_CLOSED');
+  const off = await run({ method: 'POST', headers: { authorization: 'Bearer t' }, body: { bookingId: 'b1' } }, { bookings: [booking('b1')] }, { deps: { cfg: privateLineConfig({ ...env, PRIVATE_CALLING_ENABLED: '' }) } });
+  assert.equal(off.body.code, 'PRIVATE_CALLING_OFF');
+  // The pressed-button call then follows the same greeting/press-1 path.
+  const h = harness({ bookings: [booking('b1')] });
+  await h.send('call.answered', { call_control_id: 'init-1', client_state: easer.dialed[0].body.client_state });
+  await h.send('call.speak.ended', { call_control_id: 'init-1', client_state: last(h).body.client_state });
+  assert.deepEqual([last(h).action, last(h).body.to, last(h).body.bridge_on_answer], ['dial', CUSTOMER, false]);
+}
+console.log('PASS buttons: "Call customer" and "Call your pro" ring the presser first; only the lead; closed and off say so');
+
+// Wiring.
+{
+  const hook = read('api/webhooks/telnyx-private-line.js');
+  assert.match(hook, /if \(!\(deps\.verify \|\| verifyVoiceSignature\)\(raw, req\.headers \|\| \{\}, publicKey, Date\.now\(\)\)\)/, 'signed Telnyx events only');
+  assert.match(read('api/webhooks/telnyx-call-control.js'), /routeInboundBookingCall/, 'the owner call webhook is untouched by this branch');
+  assert.ok(encodeState({ stage: 'x' }).length < 600);
+}
+console.log('PASS wiring: signed events only; the owner call webhook is unchanged');
+console.log('\nPrivate calling tests passed.');

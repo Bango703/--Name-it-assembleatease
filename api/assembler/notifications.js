@@ -49,6 +49,7 @@ export const NOTIFICATION_COPY = Object.freeze({
   change_order_declined: notice('Extra work declined', 'The customer declined the extra work. Finish the original job.', 'job', 'Open job', JOBS),
   customer_review: notice('New review', 'A customer rated a job you finished. It is in your Reviews.', 'job', 'Open job', JOBS),
   customer_message: notice('Message from the customer', 'The customer sent you a message about this job.', 'job_customer_messages', 'Open messages', JOBS),
+  private_line_missed_call: notice('Missed call from your customer', 'Your customer called you about this job. Call them back from the job.', 'job', 'Open job', JOBS),
 
   // Money
   easer_bonus_added: notice('Bonus added', 'AssembleAtEase added a bonus to this job. It is paid with the job.', 'job', 'View job', MONEY),
