@@ -7,6 +7,7 @@ import { EASER_RELIABILITY_POLICY } from '../_source-of-truth.js';
 import { sendEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
+import { notifyOwnerOfOnlineEasers } from '../_easer-go-online.js';
 
 const MAX_ATTEMPTS = parseInt(process.env.DISPATCH_MAX_ATTEMPTS || '3', 10);
 
@@ -77,6 +78,16 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('expire-offers: unanswered-offer check failed', err?.message || err);
     results.errors.push('unanswered check: ' + (err?.message || String(err)));
+  }
+
+  // ── Step 1c: an Easer the owner asked to go online came online ─────────────
+  // Going online is the Easer's own profile write, so there is no request to
+  // hook; this check tells the owner once per request (api/_easer-go-online.js).
+  try {
+    results.askedOnline = (await notifyOwnerOfOnlineEasers(sb)).told;
+  } catch (err) {
+    console.error('expire-offers: go-online check failed', err?.message || err);
+    results.errors.push('go-online check: ' + (err?.message || String(err)));
   }
 
   // ── Step 2: Find bookings whose round may now be resolved ──────────────────

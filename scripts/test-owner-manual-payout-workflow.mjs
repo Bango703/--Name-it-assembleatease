@@ -326,7 +326,9 @@ assert.match(completionSource, /OFFLINE_STRIPE_STATE_CONFLICT/);
 // never expose regular Easers as eligible, and never auto-redispatch it.
 assert.match(assemblersSource, /identity_verified, is_owner,/);
 assert.match(assemblersSource, /const readiness = await getEaserReadiness\(normalized\)/);
-assert.match(assemblersSource, /if \(!readiness\.isReady\) continue/);
+// A not-ready Easer is never assignable; one blocked only by being offline is
+// listed separately so the owner can ask them online (api/_easer-go-online.js).
+assert.match(assemblersSource, /if \(!readiness\.isReady\) \{[\s\S]*?offlineReady\.push\([\s\S]*?continue;\n    \}\n    assemblers\.push\(/);
 assert.match(ownerSource, /ownerEaserOnly[\s\S]*eligibleAssemblers\.filter\(function\(a\) \{\s*return a\.is_owner === true \|\| \(b\.is_test_booking === true && a\.is_demo_account === true\);\s*\}\)/);
 assert.match(ownerSource, /Complete from Easer Dashboard/);
 assert.match(ownerSource, /b\.status === 'en_route' \|\| b\.status === 'arrived'/);

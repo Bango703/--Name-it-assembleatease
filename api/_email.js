@@ -125,8 +125,35 @@ export const EMAIL_SENDERS = Object.freeze({
   customer: 'AssembleAtEase <booking@assembleatease.com>',
   customerCare: 'AssembleAtEase Customer Care <service@assembleatease.com>',
   easer: 'AssembleAtEase Easer Support <service@assembleatease.com>',
+  trust: 'AssembleAtEase Trust & Safety <trust@assembleatease.com>',
   owner: 'AssembleAtEase Alerts <booking@assembleatease.com>',
 });
+
+export const SUPPORT_EMAIL = 'service@assembleatease.com';
+
+// Owner, 2026-11-06: email about an Easer's account standing (pause, strike,
+// no-show, inactivity notice, deactivation, reinstatement) comes from and is
+// answered at trust@, never the general support inbox. The type decides it
+// here; callers do not pass a reply address or name a contact for these.
+export const TRUST_EMAIL = 'trust@assembleatease.com';
+export const TRUST_NOTIFICATION_TYPES = new Set([
+  'easer_suspended',
+  'easer_strike_recorded',
+  'easer_no_show_recorded',
+  'easer_inactivity_notice',
+  'easer_deactivated',
+  'easer_reactivated',
+  'easer_reinstated',
+]);
+
+export function isTrustEmail({ recipientType, notificationType } = {}) {
+  return recipientType !== 'owner' && TRUST_NOTIFICATION_TYPES.has(String(notificationType || ''));
+}
+
+/** The address an email tells its reader to write to. */
+export function contactEmailFor(context = {}) {
+  return isTrustEmail(context) ? TRUST_EMAIL : SUPPORT_EMAIL;
+}
 
 // Customer email that is a conversation with a person, not a booking update.
 const CUSTOMER_CARE_TYPES = new Set([
@@ -138,7 +165,7 @@ const CUSTOMER_CARE_TYPES = new Set([
 
 export function senderFor({ recipientType, notificationType } = {}) {
   if (recipientType === 'owner') return EMAIL_SENDERS.owner;
-  if (recipientType === 'easer') return EMAIL_SENDERS.easer;
+  if (recipientType === 'easer') return isTrustEmail({ recipientType, notificationType }) ? EMAIL_SENDERS.trust : EMAIL_SENDERS.easer;
   const type = String(notificationType || '');
   if (CUSTOMER_CARE_TYPES.has(type) || type.startsWith('case_update')) return EMAIL_SENDERS.customerCare;
   return EMAIL_SENDERS.customer;
@@ -193,10 +220,12 @@ export async function sendEmail({ to, subject, html, replyTo, meta = {} }) {
   const bodyHtml = isMarketing && !alreadyHasOptOut
     ? `${html}${broadcastFooter(recipientEmail)}`
     : html;
+  const trust = isTrustEmail({ recipientType, notificationType });
+  const replyAddress = trust ? TRUST_EMAIL : replyTo;
   const from = senderFor({ recipientType, notificationType });
   const body = { from, to: [recipientEmail], subject,
-    html: ensureEmailShell(bodyHtml, recipientType, meta.preheader), text: htmlToText(bodyHtml) };
-  if (replyTo) body.reply_to = replyTo;
+    html: ensureEmailShell(bodyHtml, recipientType, meta.preheader, trust ? TRUST_EMAIL : SUPPORT_EMAIL), text: htmlToText(bodyHtml) };
+  if (replyAddress) body.reply_to = replyAddress;
   const oneClick = typeof meta.listUnsubscribe === 'string' && /^https:\/\//.test(meta.listUnsubscribe)
     ? meta.listUnsubscribe
     : isMarketing ? unsubscribeUrl(recipientEmail) : null;
@@ -206,7 +235,7 @@ export async function sendEmail({ to, subject, html, replyTo, meta = {} }) {
     body.headers = { 'List-Unsubscribe': '<mailto:service@assembleatease.com?subject=unsubscribe>, <https://www.assembleatease.com/contact?subject=Email%20Preferences>' };
   }
   const prepared = await prepareNotification(sb, { channel: 'email', recipient: recipientEmail, subject, meta: context,
-    payload: { kind: 'email', body, original: { to: recipientEmail, from, subject, html, replyTo } } });
+    payload: { kind: 'email', body, original: { to: recipientEmail, from, subject, html, replyTo: replyAddress } } });
   if (!prepared.claim) return prepared;
   const claim = prepared.claim;
   // Always reuse the frozen provider request with its key, even if the caller
@@ -416,7 +445,7 @@ const EMAIL_HEADER = `  <table width="100%" cellpadding="0" cellspacing="0" styl
 /* The opt-out line is for people who could reasonably want out. The owner
  * cannot unsubscribe from his own operational alerts, so telling him he can
  * would be noise. */
-function emailFooter(recipientType) {
+function emailFooter(recipientType, contactEmail = SUPPORT_EMAIL) {
   const optOut = recipientType === 'owner'
     ? ''
     : `\n    <p style="margin:0;font-size:10px;color:#c4c4c4">This is a transactional email related to your booking. To opt out of non-essential emails, <a href="${SITE}/contact?subject=Email+Preferences" style="color:#a1a1aa;text-decoration:underline">contact us here</a>.</p>`;
@@ -424,7 +453,7 @@ function emailFooter(recipientType) {
     <img src="${LOGO}" alt="AssembleAtEase" width="28" height="28" style="border-radius:50%;display:inline-block"/>
     <p style="margin:8px 0 4px;font-size:12px;font-weight:600;color:#71717a">AssembleAtEase</p>
     <p style="margin:0 0 8px;font-size:11px;color:#a1a1aa;line-height:1.5">Professional Assembly &amp; Handyman Services<br/>Serving customers across Texas &bull; (979) 232-5139</p>
-    <p style="margin:0 0 6px;font-size:11px;color:#a1a1aa"><a href="${SITE}" style="color:#71717a;text-decoration:none">assembleatease.com</a> &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>${optOut}
+    <p style="margin:0 0 6px;font-size:11px;color:#a1a1aa"><a href="${SITE}" style="color:#71717a;text-decoration:none">assembleatease.com</a> &bull; <a href="mailto:${contactEmail}" style="color:#71717a;text-decoration:none">${contactEmail}</a></p>${optOut}
   </td></tr></table>`;
 }
 
@@ -483,7 +512,7 @@ export function isFullEmailDocument(html) {
   return /<!DOCTYPE|<html[\s>]/i.test(String(html || ''));
 }
 
-export function ensureEmailShell(html, recipientType, preheader) {
+export function ensureEmailShell(html, recipientType, preheader, contactEmail = SUPPORT_EMAIL) {
   const raw = String(html || '');
   // A hand-rolled full document keeps its own layout, but it may not keep
   // its own idea of a footer. Six of them shipped to customers and Easers
@@ -494,8 +523,8 @@ export function ensureEmailShell(html, recipientType, preheader) {
   if (isFullEmailDocument(raw)) {
     if (recipientType === 'owner' || /assembleatease\.com<\/a>|232-5139/.test(raw)) return raw;
     const close = raw.lastIndexOf('</body>');
-    if (close === -1) return `${raw}${emailFooter(recipientType)}`;
-    return `${raw.slice(0, close)}${emailFooter(recipientType)}${raw.slice(close)}`;
+    if (close === -1) return `${raw}${emailFooter(recipientType, contactEmail)}`;
+    return `${raw.slice(0, close)}${emailFooter(recipientType, contactEmail)}${raw.slice(close)}`;
   }
   const preview = preheader === undefined ? derivePreheader(raw) : preheader;
   return `${EMAIL_DOC_OPEN}${preheaderBlock(preview)}
@@ -504,7 +533,7 @@ ${EMAIL_HEADER}
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px;font-size:15px;line-height:1.7;color:#3f3f46">
 ${raw}
   </td></tr></table>
-${emailFooter(recipientType)}
+${emailFooter(recipientType, contactEmail)}
 </div></body></html>`;
 }
 
