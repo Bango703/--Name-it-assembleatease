@@ -91,6 +91,19 @@ console.log('PASS catalog API: each item ships its search words, and the stop wo
   assert.match(filter, /search\.matches\(q, search\.searchText\(item\.dataset\.itemSvc/, 'the item search uses the shared rule');
 }
 console.log('PASS website: the booking page searches with the shared rule');
+// Owner, 2026-11-09: the furniture screen lists one section at a time, and the
+// search only looked inside it, so "queen bed" (the box's own example) found
+// nothing from Seating & Sofas. A search lists every section of the service.
+{
+  const book = read('book.html');
+  const pane = book.slice(book.indexOf('function renderBrowserPane('), book.indexOf('function renderBrowserPane(') + 4000);
+  assert.match(pane, /var searching = !!\(searchInput && searchInput\.value\.trim\(\)\);\s*var shownGroups = searching \? primaryGroups : \(group \? \[group\] : \[\]\);/, 'searching lists every section');
+  assert.match(pane, /wrap\.dataset\.scope = searching \? 'all' : 'section';/);
+  const filter = book.slice(book.indexOf('function filterItemList('), book.indexOf('function filterItemList(') + 1200);
+  assert.match(filter, /\(wrap\.dataset\.scope === 'all'\) !== \(q\.length > 0\)[\s\S]*renderBrowserPane\(BOOK\.currentSvc, 'items'\);\s*if \(q\.length > 0\) return;/, 'starting or clearing a search re-lists the sections first');
+}
+console.log('PASS website: a search looks through every section of the service, not only the one on screen');
+
 
 // The app compares the shipped words by the same rule.
 {
