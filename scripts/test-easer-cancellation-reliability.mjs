@@ -156,6 +156,34 @@ const noShow = read('api/owner/confirm-no-show.js');
 assert.match(noShow, /verifyOwner\(req\)/, 'only the owner can confirm a no-show');
 assert.match(noShow, /booking\.status !== BOOKING_STATUS\.CONFIRMED/, 'an Easer who is on the way or on site is not a no-show');
 assert.match(noShow, /if \(startMs > nowMs\) return res\.status\(409\)/, 'cannot be confirmed before the appointment starts');
+// Owner, 2026-11-09: the confirmed path follows the same rule as the automatic
+// check. Run the real handler on Phil Hawkins' two flagged bookings.
+{
+  const appt = await import('../api/booking/_appt-date.js');
+  const src = noShow.replace(/^import .*;\r?\n/gm, '').replace('export default async function', 'async function');
+  const run = async (booking, nowIso) => {
+    class Clock extends Date { constructor(...a) { super(...(a.length ? a : [nowIso])); } static now() { return Date.parse(nowIso); } }
+    let wrote = false;
+    const sb = { from() { const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: booking, error: null }),
+      insert: () => { wrote = true; return q; }, update: () => { wrote = true; return q; }, contains: () => q, limit: async () => ({ data: [], error: null }) }; return q; } };
+    const deps = { getSupabase: () => sb, verifyOwner: () => true, sendEmail: async () => ({ ok: true }), esc: String, Date: Clock,
+      BOOKING_STATUS: { CONFIRMED: 'confirmed' }, EASER_RELIABILITY_POLICY: P,
+      notificationAppointmentTimestampMs: appt.notificationAppointmentTimestampMs, notificationAppointmentWindowEndMs: appt.notificationAppointmentWindowEndMs,
+      formatAppointmentDate: appt.formatAppointmentDate, loadEaserStrikes, recordEaserCancellation, pauseEaserIfOverLimit };
+    const handler = new Function(...Object.keys(deps), `${src}\nreturn handler;`)(...Object.values(deps));
+    const res = { status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
+    await handler({ method: 'POST', body: { bookingId: booking.id } }, res);
+    return { ...res, wrote };
+  };
+  const phil = { id: 'b1', status: 'confirmed', assembler_id: 'phil', assembler_name: 'Phil Hawkins', service_zip: '78701' };
+  // AAE-DVSNHXE4OO: 8-10 AM window, accepted days before. 9:00 is inside it.
+  const inWindow = await run({ ...phil, date: '2026-09-24', time: '8:00 AM – 10:00 AM', assembler_accepted_at: '2026-09-16T17:31:31Z' }, '2026-09-24T14:00:16Z');
+  assert.equal(inWindow.code, 409); assert.match(inWindow.body.error, /arrival window has not ended/); assert.equal(inWindow.wrote, false);
+  // AAE-WWWTOI: accepted after the Nov 6 window had passed.
+  const lateAccept = await run({ ...phil, date: '2026-11-06', time: '9:00 AM - 11:00 AM', assembler_accepted_at: '2026-11-07T18:00:00Z' }, '2026-11-08T17:00:17Z');
+  assert.equal(lateAccept.code, 409); assert.match(lateAccept.body.error, /accepted this job after its arrival window had passed/); assert.equal(lateAccept.wrote, false);
+}
+
 assert.match(noShow, /contains\('metadata', \{ easerId, kind: 'no_show' \}\)/, 'one no-show per booking and Easer');
 assert.match(noShow, /strikes: EASER_RELIABILITY_POLICY\.noShowStrikes/);
 assert.doesNotMatch(noShow, /from\('bookings'\)\.update/, 'confirming a no-show does not move the job');
