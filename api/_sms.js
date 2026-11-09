@@ -47,6 +47,39 @@ export function toGsm7(text) {
   return out;
 }
 
+// Which AssembleAtEase number a text comes from (owner, 2026-11-09: three
+// numbers, three jobs). The business number (TELNYX_FROM_NUMBER, on the
+// website) is for people reaching AssembleAtEase. Automatic updates come from
+// the text number (TELNYX_UPDATES_NUMBER, sent through its own Telnyx
+// messaging profile TELNYX_UPDATES_PROFILE_ID) once both are set; until then
+// they keep coming from the business number, so nothing goes unsent while the
+// text number waits for carrier approval. Job calls (512) never text.
+function e164(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length === 10) return '+1' + digits;
+  if (digits.length === 11 && digits.startsWith('1')) return '+' + digits;
+  return '';
+}
+
+export function smsLines(env = process.env) {
+  const business = {
+    name: 'business',
+    number: e164(env.TELNYX_FROM_NUMBER),
+    profileId: String(env.TELNYX_MESSAGING_PROFILE_ID || '').trim(),
+  };
+  const updatesNumber = e164(env.TELNYX_UPDATES_NUMBER);
+  const updatesProfile = String(env.TELNYX_UPDATES_PROFILE_ID || '').trim();
+  const separate = Boolean(updatesNumber && updatesProfile && updatesNumber !== business.number);
+  const updates = separate ? { name: 'updates', number: updatesNumber, profileId: updatesProfile } : business;
+  return { business, updates, separate };
+}
+
+/** The line a number belongs to: the text number, or else the business number. */
+export function smsLineFor(number, env = process.env) {
+  const lines = smsLines(env);
+  return lines.separate && e164(number) === lines.updates.number ? lines.updates : lines.business;
+}
+
 export function isSmsEnabled() {
   return Boolean(
     (process.env.TELNYX_API_KEY || '').trim()
@@ -76,9 +109,10 @@ export function smsEligibility(subject = {}) {
  * @returns {Promise<{ok:boolean, skipped?:string, providerId?:string, error?:string}>}
  *          Never throws. The caller decides what a failure means.
  */
-// `from` / `messagingProfileId` send from another AssembleAtEase number (the
-// private job-text line, api/webhooks/telnyx-private-text.js); every consent,
-// opt-out and logging rule here still applies.
+// Without `from`, a text comes from the text number (smsLines().updates). A
+// reply to someone who texted the business number passes that line instead
+// (api/owner/sms-messages.js). Every consent, opt-out and logging rule here
+// applies whichever number sends it.
 export async function sendSms({ recipient, body, meta = {}, from = null, messagingProfileId = null }) {
   const sb = getSupabase();
 
@@ -120,12 +154,13 @@ export async function sendSms({ recipient, body, meta = {}, from = null, messagi
   // omit it by sending a longer body.
   const withOptOut = /\breply\s+stop\b/i.test(text) ? text : `${text} Reply STOP to opt out.`;
 
+  const line = from ? null : smsLines().updates;
   const payload = {
-    from: String(from || process.env.TELNYX_FROM_NUMBER || '').trim(),
+    from: String(from || line?.number || process.env.TELNYX_FROM_NUMBER || '').trim(),
     to: eligible.phone,
     text: withOptOut,
   };
-  const profileId = String(messagingProfileId || process.env.TELNYX_MESSAGING_PROFILE_ID || '').trim();
+  const profileId = String(messagingProfileId || line?.profileId || process.env.TELNYX_MESSAGING_PROFILE_ID || '').trim();
   if (profileId) payload.messaging_profile_id = profileId;
   const prepared = await prepareNotification(sb, {
     channel: 'sms', recipient: eligible.phone, subject: withOptOut.slice(0, 160), meta,
@@ -168,9 +203,9 @@ export async function sendSms({ recipient, body, meta = {}, from = null, messagi
   if (status !== 'provider_accepted') {
     console.error('[sms] send not confirmed:', meta.notificationType, errorText);
     return { ok: false, uncertain: status === 'uncertain', error: errorText,
-      retryScheduled: logged.ok && retryable && claim.attempt < 4, logged: logged.ok };
+      retryScheduled: logged.ok && retryable && claim.attempt < 4, logged: logged.ok, from: claim.payload.body.from };
   }
-  return { ok: true, providerAccepted: true, deliveryStatus: status, providerId, logged: logged.ok, logError: logged.error };
+  return { ok: true, providerAccepted: true, deliveryStatus: status, providerId, logged: logged.ok, logError: logged.error, from: claim.payload.body.from };
 }
 
 /**
