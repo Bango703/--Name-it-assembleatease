@@ -2376,9 +2376,15 @@
           + '<a href="tel:' + esc(b.customer_phone) + '" style="display:inline-flex;align-items:center;background:var(--pro-teal);color:#fff;font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;text-decoration:none">Call</a>'
           + '<button type="button" class="asgn-contact-relay" data-booking-id="' + esc(b.id) + '" style="display:inline-flex;align-items:center;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;border:1px solid rgba(0,191,255,0.4);cursor:pointer;font-family:inherit">Message</button>'
         + '</div>'
+      : (b._private_call && b._crew_role !== 'helper'
+          // Private calling (api/booking/private-call.js): rings this Easer, then the customer; no number is shown.
+          ? '<div style="display:flex;gap:0.4rem;flex-shrink:0">'
+            + '<button type="button" class="asgn-private-call" data-booking-id="' + esc(b.id) + '" style="display:inline-flex;align-items:center;background:var(--pro-teal);color:#fff;font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;border:0;cursor:pointer;font-family:inherit">Call</button>'
+            + '<button type="button" class="asgn-contact-relay" data-booking-id="' + esc(b.id) + '" style="display:inline-flex;align-items:center;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;border:1px solid rgba(0,191,255,0.4);cursor:pointer;font-family:inherit">Message</button>'
+          + '</div>'
       : (contactHeld
           ? '<button type="button" class="asgn-contact-relay" data-booking-id="' + esc(b.id) + '" style="display:inline-flex;align-items:center;flex-shrink:0;background:#fff;color:var(--pro-teal);font-size:0.8rem;font-weight:700;padding:0.45rem 0.85rem;border-radius:9px;border:1px solid rgba(0,191,255,0.4);cursor:pointer;font-family:inherit">Message</button>'
-          : '');
+          : ''));
     const customerContact = (accepted && !isCompleted && (b.customer_name || b.customer_phone || contactHeld))
       ? '<div style="margin-bottom:1rem;padding:0.7rem 0.85rem;border:1px solid var(--pro-border);border-radius:12px;background:#fff">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem">'
@@ -2778,6 +2784,29 @@
 
     // "Message" on a job whose phone has not unlocked yet. Opens the same
     // composer addressed to the customer instead of to support.
+    var privateCallButton = document.querySelector('#asgn-modal-body .asgn-private-call');
+    if (privateCallButton) {
+      privateCallButton.addEventListener('click', async function() {
+        privateCallButton.disabled = true;
+        privateCallButton.textContent = 'Calling...';
+        try {
+          var callResp = await fetch('/api/booking/private-call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+            body: JSON.stringify({ bookingId: privateCallButton.getAttribute('data-booking-id') }),
+          });
+          var callData = await callResp.json().catch(function() { return {}; });
+          if (!callResp.ok) throw new Error(callData.error || 'The call could not be started. Try again in a moment.');
+          APP.showAlert('page-alert', callData.message || 'Your phone will ring now. Answer it to be connected.', 'success');
+        } catch (callError) {
+          APP.showAlert('page-alert', callError.message, 'error');
+        } finally {
+          privateCallButton.disabled = false;
+          privateCallButton.textContent = 'Call';
+        }
+      });
+    }
+
     var relayButton = document.querySelector('#asgn-modal-body .asgn-contact-relay');
     if (relayButton) {
       relayButton.addEventListener('click', function() {

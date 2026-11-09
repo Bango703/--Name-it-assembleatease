@@ -148,6 +148,9 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     let status: String
     let customerName: String?
     let customerPhone: String?
+    /// Calls to this customer go through the AssembleAtEase private line
+    /// (api/booking/private-call.js); her real number is not sent.
+    let privateCall: Bool
     let acceptedAt: String?
     let offerLocation: String?
     let offerToken: String?
@@ -208,6 +211,7 @@ struct EaserJob: Decodable, Identifiable, Hashable {
         status = c.string("status") ?? ""
         customerName = c.string("customer_name")
         customerPhone = c.string("customer_phone")
+        privateCall = c.bool("_private_call") ?? false
         acceptedAt = c.string("assembler_accepted_at")
         offerLocation = c.string("_offer_location")
         offerToken = c.string("_offer_token")
