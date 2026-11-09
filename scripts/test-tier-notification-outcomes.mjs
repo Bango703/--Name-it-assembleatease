@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { notificationRetryEligibility } from '../api/_notification-retry-eligibility.js';
 import { ASSEMBLECASH } from '../api/_assemblecash.js';
 import { DISPATCH_OFFER_STATUS } from '../api/_source-of-truth.js';
+import { loadConfirmedNoShows, tallyConfirmedNoShows } from '../api/_easer-reliability.js';
 
 // Real handler/eligibility code, isolated persistence and provider doubles.
 // No environment file, network, live database, or outbound message is used.
@@ -49,11 +50,12 @@ const source = (await readFile(new URL('../api/cron/tier-check.js', import.meta.
   .replace(/^import .*;\r?\n/gm, '').replace('export default async function', 'async function');
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 process.env.CRON_SECRET = 'offline-tier-test';
-async function fixture(overrides = {}, noShows = 0) {
-  const sb = database({ profiles: [profile(overrides)], activity_logs: Array.from({ length: noShows }, () => ({ event_type: 'no_show_flagged', metadata: { assemblerId: 'easer-1' } })) });
+const confirmedNoShow = (i, easerId = 'easer-1') => ({ id: `log-${easerId}-${i}`, booking_id: `booking-${i}`, event_type: 'easer_cancelled', metadata: { easerId, kind: 'no_show', strikes: 3 } });
+async function fixture(overrides = {}, noShows = 0, extraLogs = []) {
+  const sb = database({ profiles: [profile(overrides)], activity_logs: [...Array.from({ length: noShows }, (_, i) => confirmedNoShow(i)), ...extraLogs] });
   const messages = [], logs = [];
   let outcome = { ok: false, error: 'provider rejected' }, beforeSend;
-  const deps = { getSupabase: () => sb, Date: Clock, console: { log() {}, error() {} }, esc: value => String(value || ''),
+  const deps = { getSupabase: () => sb, loadConfirmedNoShows, Date: Clock, console: { log() {}, error() {} }, esc: value => String(value || ''),
     ownerEmail: () => 'owner@example.com', logCron: async (_name, result) => logs.push(result),
     sendEmail: async message => { messages.push(message); beforeSend?.(); if (outcome instanceof Error) throw outcome; return outcome; } };
   const { handler, deservedTier } = await new AsyncFunction(...Object.keys(deps), `${source}\nreturn {handler,deservedTier};`)(...Object.values(deps));
@@ -65,7 +67,7 @@ async function fixture(overrides = {}, noShows = 0) {
 for (const test of [
   { label: 'coaching', field: 'coaching_email_at', counter: 'coachingEmails', overrides: {}, noShows: 0, key: 'coaching:easer-1:initial' },
   { label: 'chronic decline', field: 'acceptance_alert_at', counter: 'ownerAlerts', overrides: { acceptance_rate: 40 }, noShows: 0, key: 'reliability:easer-1:chronic_decline:initial' },
-  { label: 'repeat no-show', field: 'reliability_alert_count', counter: 'ownerAlerts', overrides: { acceptance_rate: 90 }, noShows: 2, key: 'reliability:easer-1:no_show:2' },
+  { label: 'repeat no-show', field: 'reliability_alert_count', counter: 'ownerAlerts', overrides: { acceptance_rate: 90 }, noShows: 2, key: 'reliability:easer-1:confirmed_no_show:2' },
 ]) {
   const f = await fixture(test.overrides, test.noShows);
   const before = f.sb.rows.profiles[0][test.field];
@@ -148,6 +150,62 @@ for (const test of [
   assert.equal(f.deservedTier(profile({ completed_jobs: 10, acceptance_rate: 80, rating: 4.5, completion_rate: 90 })), 'professional');
   assert.equal(f.deservedTier(profile({ completed_jobs: 10, acceptance_rate: null })), 'starter');
   assert.equal(f.deservedTier(profile({ completed_jobs: 30, acceptance_rate: 90, identity_verified: false })), 'starter');
+}
+
+// Reliability counts only no-shows the owner confirmed and did not excuse.
+// Phil Hawkins, 2026-11-09: two automatic "possible no-show" emails (one fired
+// on a job assigned after its start time) were counted as no-shows, dropped his
+// completion rate to 60% and sent a "repeat no-shows" review. Owner release and
+// reassign never count either: they write no reliability row at all.
+{
+  const autoFlag = i => ({ id: `flag-${i}`, booking_id: `booking-${i}`, event_type: 'no_show_flagged', metadata: { assemblerId: 'easer-1', minsLate: 40 } });
+  const f = await fixture({ completed_jobs: 3, acceptance_rate: 90, no_show_count: 2, completion_rate: 60, reliability_alert_count: 2 }, 0, [autoFlag(1), autoFlag(2)]);
+  f.setOutcome({ ok: true });
+  await f.run();
+  const p = f.sb.rows.profiles[0];
+  assert.equal(p.no_show_count, 0, 'automatic flags alone are not no-shows');
+  assert.equal(p.completion_rate, 100, 'completion rate recovers once false flags stop counting');
+  assert.equal(p.reliability_alert_count, 0, 'marker drops so a real future no-show still alerts');
+  assert.equal(f.messages.filter(m => /no-show/i.test(m.subject + m.html)).length, 0, 'no review email for automatic flags');
+}
+{
+  // One confirmed, then excused; one confirmed twice on the same booking.
+  const rows = [confirmedNoShow(1), { id: 'excuse-1', event_type: 'easer_cancellation_excused', metadata: { excusedLogId: 'log-easer-1-1' } },
+    confirmedNoShow(2), { ...confirmedNoShow(2), id: 'dup' }, { id: 'late-cancel', booking_id: 'b9', event_type: 'easer_cancelled', metadata: { easerId: 'easer-1', kind: 'late_cancel' } },
+    { id: 'flag', booking_id: 'b8', event_type: 'no_show_flagged', metadata: { assemblerId: 'easer-1' } }, confirmedNoShow(3, 'easer-2')];
+  const tally = tallyConfirmedNoShows(rows);
+  assert.equal(tally.get('easer-1'), 1, 'excused does not count; one booking counts once; late cancels and auto flags are not no-shows');
+  assert.equal(tally.get('easer-2'), 1);
+  const f = await fixture({ completed_jobs: 8, acceptance_rate: 90 }, 0, rows);
+  await f.run();
+  assert.equal(f.sb.rows.profiles[0].no_show_count, 1);
+  assert.equal(f.sb.rows.profiles[0].completion_rate, 88.89);
+}
+{
+  // Two real confirmed no-shows still alert the owner, worded as confirmed.
+  const f = await fixture({ completed_jobs: 3, acceptance_rate: 90 }, 2);
+  f.setOutcome({ ok: true });
+  await f.run();
+  const alert = f.messages.find(m => m.meta.notificationType === 'easer_reliability_no_show');
+  assert.ok(alert, 'two confirmed no-shows alert the owner');
+  assert.match(alert.html, /2 confirmed no-shows/);
+  assert.doesNotMatch(alert.html, /possible no-show|no-show flags/);
+  assert.equal(f.sb.rows.profiles[0].completion_rate, 60);
+}
+{
+  // History unreadable: nothing is rewritten and nothing is alerted.
+  const f = await fixture({ completed_jobs: 3, acceptance_rate: 90, no_show_count: 2, completion_rate: 60, reliability_alert_count: 1 }, 2);
+  f.sb.fail = (table, patch) => table === 'activity_logs' && !patch;
+  f.setOutcome({ ok: true });
+  await f.run();
+  assert.equal(f.sb.rows.profiles[0].no_show_count, 2);
+  assert.equal(f.sb.rows.profiles[0].completion_rate, 60);
+  assert.equal(f.messages.filter(m => m.meta.notificationType === 'easer_reliability_no_show').length, 0);
+  await assert.rejects(loadConfirmedNoShows(f.sb), /could not be read/);
+}
+{
+  const src = (await readFile(new URL('../api/cron/tier-check.js', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
+  assert.doesNotMatch(src, /no_show_flagged/, 'tier-check must never count the automatic possible-no-show flag');
 }
 
 // Queued dispatch offers must still be the exact open, unexpired offer.

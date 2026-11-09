@@ -1,5 +1,16 @@
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { awaitingReplacementPro } from './_easer-no-show.js';
+import { formatAppointmentDateShort } from './_appt-date.js';
+
+// "Arriving Tue, Oct 20, between 10:00 AM and 12:00 PM." The whole window the
+// customer booked, never only its start.
+function arrivingText(b) {
+  const day = formatAppointmentDateShort(b.date);
+  const parts = String(b.time || '').split(/[-–—]/).map((part) => part.trim()).filter(Boolean);
+  if (parts.length >= 2) return `Arriving ${day}, between ${parts[0]} and ${parts[parts.length - 1]}.`;
+  if (parts.length === 1) return `Arriving ${day} at ${parts[0]}.`;
+  return `Arriving ${day}.`;
+}
 
 /**
  * THE words a customer sees for where their booking stands. Read by
@@ -36,7 +47,7 @@ export function customerStatusLabel(b) {
   }
   if (b.assembler_accepted_at && b.assembler_name) {
     const first = (b.assembler_name || '').split(' ')[0];
-    return { label: `${first} is confirmed for your job`, detail: `Arriving ${b.date}${b.time ? ' at ' + b.time.split('-')[0].trim() : ''}.` };
+    return { label: `${first} is confirmed for your job`, detail: arrivingText(b) };
   }
   if (b.status === BOOKING_STATUS.CONFIRMED && b.payment_status === 'card_saved') {
     return {

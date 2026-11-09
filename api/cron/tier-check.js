@@ -2,6 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { logCron } from './_cron-logger.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { loadAcceptanceTallies, acceptanceWindowStart, acceptanceRateFor } from '../_easer-acceptance.js';
+import { loadConfirmedNoShows } from '../_easer-reliability.js';
 
 /**
  * GET /api/cron/tier-check — daily 07:00 UTC.
@@ -10,7 +11,8 @@ import { loadAcceptanceTallies, acceptanceWindowStart, acceptanceRateFor } from 
  *   1. Reset active_jobs_today (dispatch overload penalty).
  *   2. Recalculate acceptance_rate (30-day accepted / decided, every job offered
  *      to the Easer: dispatch offers and owner assignments alike).
- *   3. Tally no-show flags → completion_rate (the reliability metric).
+ *   3. Count owner-confirmed no-shows → completion_rate (the reliability
+ *      metric). The automatic "possible no-show" email never counts.
  *   4. Promote / hold / demote each active Easer against the tier gates, with a
  *      30-day grace window before any demotion, and fire the transition email.
  *   5. Reliability enforcement — owner-in-the-loop: ALERT the owner on repeat
@@ -51,7 +53,7 @@ function deservedTier(p) {
 }
 
 // ── Reliability enforcement thresholds (owner-in-the-loop) ────────────────────
-const NO_SHOW_ALERT_AT   = 2;    // repeat no-show flags → alert owner to review
+const NO_SHOW_ALERT_AT   = 2;    // repeat confirmed no-shows → alert owner to review
 const ACCEPT_FLOOR       = 50;   // acceptance below this → chronic decliner, alert owner
 const COACH_BAND_LOW     = 50;   // coach the Easer when acceptance is in [50,70)
 const COACH_BAND_HIGH    = 70;
@@ -168,9 +170,9 @@ async function sendOwnerReliabilityAlert(p, opts) {
   let eyebrow, headline, detail, action;
   if (opts.kind === 'no_show') {
     eyebrow = 'Reliability review — repeat no-shows';
-    headline = `${name} has ${opts.noShows} no-show flags`;
-    detail = `Their completion rate is now <strong>${opts.completionRate == null ? '—' : opts.completionRate + '%'}</strong>. A stranded customer is the worst outcome for the brand — this pro has been flagged as a possible no-show ${opts.noShows} times.`;
-    action = 'Call the Easer to understand what happened. If it keeps happening, suspend them from their profile in the dashboard.';
+    headline = `${name} has ${opts.noShows} confirmed no-shows`;
+    detail = `You confirmed ${opts.noShows} no-shows for this Easer. Their completion rate is now <strong>${opts.completionRate == null ? '—' : opts.completionRate + '%'}</strong>.`;
+    action = 'Call the Easer. If it keeps happening, suspend them from their profile in the dashboard. To clear one that was not their fault, open their profile and press Excuse under Reliability.';
   } else {
     eyebrow = 'Reliability review — chronic decliner';
     headline = `${name} is declining most offers (${opts.acceptance}% acceptance)`;
@@ -192,7 +194,7 @@ async function sendOwnerReliabilityAlert(p, opts) {
           ${dash}
         </div>`),
       replyTo: ownerEmail(),
-      meta: { notificationType: `easer_reliability_${opts.kind}`, recipientType: 'owner', recipientUserId: p.id, notificationKey: `reliability:${p.id}:${opts.kind}:${opts.kind === 'no_show' ? opts.noShows : p.acceptance_alert_at || 'initial'}` },
+      meta: { notificationType: `easer_reliability_${opts.kind}`, recipientType: 'owner', recipientUserId: p.id, notificationKey: `reliability:${p.id}:${opts.kind === 'no_show' ? 'confirmed_no_show:' + opts.noShows : opts.kind + ':' + (p.acceptance_alert_at || 'initial')}` },
     });
   } catch (e) {
     console.error(`[tier-check] owner reliability alert failed for ${p.id}:`, e.message || e);
@@ -286,24 +288,16 @@ export default async function handler(req, res) {
     console.error('acceptance_rate calculation error:', arErr.message);
   }
 
-  // ── Phase 0c: tally no-show flags per Easer (real reliability signal) ──────
-  // no-show-check logs event_type='no_show_flagged' with metadata.assemblerId.
-  const noShowByEaser = {};
+  // ── Phase 0c: confirmed no-shows per Easer (real reliability signal) ──────
+  // Only no-shows the owner confirmed and did not excuse
+  // (api/_easer-reliability.js). If the history cannot be read, the stored
+  // numbers stay as they are and no no-show alert is sent: "could not read"
+  // is never written down as "none" or as "many".
+  let noShowByEaser = null;
   try {
-    const { data: nsEvents, error: nsErr } = await sb
-      .from('activity_logs')
-      .select('metadata')
-      .eq('event_type', 'no_show_flagged');
-    if (!nsErr && nsEvents?.length) {
-      for (const e of nsEvents) {
-        const aid = e?.metadata?.assemblerId;
-        if (aid) noShowByEaser[aid] = (noShowByEaser[aid] || 0) + 1;
-      }
-    } else if (nsErr) {
-      console.error('no-show tally query error:', nsErr.message);
-    }
+    noShowByEaser = await loadConfirmedNoShows(sb);
   } catch (nsEx) {
-    console.error('no-show tally exception:', nsEx.message);
+    console.error('confirmed no-show count error:', nsEx.message);
   }
 
   // ── Tier engine: promote / hold / demote each active Easer ────────────────
@@ -325,13 +319,18 @@ export default async function handler(req, res) {
   }
 
   for (const p of easers || []) {
-    // Reliability metrics from real signals (no-show flags + completed jobs).
-    const noShows = noShowByEaser[p.id] || 0;
+    // Reliability metrics from real signals (confirmed no-shows + completed jobs).
+    const noShowsKnown = noShowByEaser != null;
+    const noShows = noShowsKnown ? (noShowByEaser.get(p.id) || 0) : Number(p.no_show_count || 0);
     const completed = Number(p.completed_jobs || 0);
     const denom = completed + noShows;
-    const completionRate = denom > 0 ? parseFloat((completed / denom * 100).toFixed(2)) : null;
+    const completionRate = noShowsKnown
+      ? (denom > 0 ? parseFloat((completed / denom * 100).toFixed(2)) : null)
+      : (p.completion_rate == null ? null : Number(p.completion_rate));
     // Persist so the tier gate, the Easer app, and owner alerts all read one truth.
-    await sb.from('profiles').update({ no_show_count: noShows, completion_rate: completionRate }).eq('id', p.id);
+    if (noShowsKnown) {
+      await sb.from('profiles').update({ no_show_count: noShows, completion_rate: completionRate }).eq('id', p.id);
+    }
 
     const current = TIER_ORDER.includes(p.tier) ? p.tier : 'starter';
     const deserved = deservedTier({ ...p, no_show_count: noShows, completion_rate: completionRate });
@@ -369,7 +368,13 @@ export default async function handler(req, res) {
     // ── Reliability enforcement (owner-in-the-loop; never silent auto-suspend) ──
     try {
       const acc = p.acceptance_rate == null ? null : Number(p.acceptance_rate);
-      if (noShows >= NO_SHOW_ALERT_AT && noShows > Number(p.reliability_alert_count || 0)) {
+      // A count that went down (a no-show excused, or old automatic flags no
+      // longer counted) lowers the marker, so the next real one still alerts.
+      if (noShowsKnown && noShows < Number(p.reliability_alert_count || 0)
+        && await saveNotificationMarker(sb, p, 'reliability_alert_count', noShows, results)) {
+        p.reliability_alert_count = noShows;
+      }
+      if (noShowsKnown && noShows >= NO_SHOW_ALERT_AT && noShows > Number(p.reliability_alert_count || 0)) {
         // Repeat no-shows — worst outcome for the brand. Alert once per new no-show.
         const outcome = await sendOwnerReliabilityAlert(p, { kind: 'no_show', noShows, completionRate });
         if (recordNotification(results, p, 'no_show', outcome)

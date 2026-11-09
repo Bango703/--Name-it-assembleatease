@@ -172,6 +172,9 @@ final class CustomerStore: ObservableObject {
 
     func refresh() async {
         guard phase == .signedIn else { return }
+        // Read first: bookings can arrive from the cache before any network call
+        // returns, and the notification card must not judge from a guess.
+        await push.refreshStatus()
         offer = await api.currentOffer()
         do {
             let data = try await api.getData("/api/booking/customer-bookings")
@@ -191,7 +194,6 @@ final class CustomerStore: ObservableObject {
             flow.assemblecashToken = summary.assemblecashToken
         }
         if let latest = try? await api.inbox() { conversations = latest }
-        await push.refreshStatus()
         await pushTokenChanged(push.fcmToken)
         await LiveTracker.sync(bookings: bookings, api: api, fcmToken: push.fcmToken)
     }
