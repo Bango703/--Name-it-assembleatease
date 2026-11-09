@@ -1955,6 +1955,19 @@ window.intelQuick = intelQuick;
         <span id="manual-refund-confirm-copy">I confirm the exact refund amount. This sends money back through Stripe and cannot be undone from this dashboard.</span>
       </label>
     </div>
+    <div id="move-appointment-row" style="display:none;margin-top:0.75rem">
+      <div class="modal-row">
+        <div>
+          <label class="modal-label" for="move-appointment-date">New date</label>
+          <input id="move-appointment-date" class="modal-input" type="date" />
+        </div>
+        <div>
+          <label class="modal-label" for="move-appointment-time">Arrival window</label>
+          <select id="move-appointment-time" class="modal-input"></select>
+        </div>
+      </div>
+      <div id="move-appointment-status" role="status" style="font-size:0.8rem;color:var(--muted);margin-top:0.4rem"></div>
+    </div>
     <div id="return-visit-row" style="display:none;margin-top:0.75rem">
       <div class="modal-row">
         <div>
@@ -2574,6 +2587,21 @@ window.intelQuick = intelQuick;
         : 'I confirm this exact refund amount. Stripe will send it back to the original payment method, and this action cannot be undone from the dashboard.' + payoutWarning;
     }
     if ($manualRefundConfirm) $manualRefundConfirm.checked = false;
+  }
+
+  // Move to a new time (api/booking/reschedule.js, owner path). The times and
+  // dates come from the server's own rules.
+  function setMoveAppointmentFieldsVisible(show) {
+    var row = document.getElementById('move-appointment-row');
+    if (row) row.style.display = show ? '' : 'none';
+    if (!show) {
+      var dateEl = document.getElementById('move-appointment-date');
+      var timeEl = document.getElementById('move-appointment-time');
+      var statusEl = document.getElementById('move-appointment-status');
+      if (dateEl) dateEl.value = '';
+      if (timeEl) timeEl.innerHTML = '';
+      if (statusEl) statusEl.textContent = '';
+    }
   }
 
   function setReturnVisitFieldsVisible(show, booking) {
@@ -5277,6 +5305,9 @@ window.intelQuick = intelQuick;
           && ['confirmed','en_route','arrived','in_progress','completed'].includes(b.status)) {
         btns.push('<button class="btn btn-teal" data-action="record-manual-payment" data-id="' + b.id + '">Record Customer Payment</button>');
       }
+      if (['pending','confirmed'].includes(b.status) && !b.return_visit_required) {
+        btns.push('<button class="btn" data-action="move-appointment" data-id="' + b.id + '">Move to a New Time</button>');
+      }
       if (['confirmed','en_route','arrived','in_progress'].includes(b.status)) {
         btns.push('<button class="btn" data-action="schedule-return-visit" data-id="' + b.id + '">' + (b.return_visit_required ? 'Update Return Visit' : 'Schedule Return Visit') + '</button>');
       }
@@ -5661,6 +5692,7 @@ window.intelQuick = intelQuick;
     setManualPaymentFieldsVisible(false);
     setManualRefundFieldsVisible(false);
     setReturnVisitFieldsVisible(false);
+    setMoveAppointmentFieldsVisible(false);
     setReturnResolutionFieldsVisible(false);
     setDamageReviewFieldsVisible(false);
     var suspensionReason = document.getElementById('suspension-reason');
@@ -5877,6 +5909,32 @@ window.intelQuick = intelQuick;
       setManualPaymentFieldsVisible(true, manualPaymentBooking);
       $reasonModal.classList.add('open');
       loadManualPaymentMatches(manualPaymentBooking);
+    } else if (action === 'move-appointment') {
+      var moveBooking = allBookings.find(function(item){ return item.id == id; });
+      if (!moveBooking) return;
+      pendingAction = { id: id, type: 'move-appointment', ref: moveBooking.ref };
+      document.getElementById('reason-modal-title').textContent = 'Move to a new time';
+      document.getElementById('reason-modal-desc').textContent = 'The customer gets the new time by email. An assigned Easer is asked to accept it.';
+      document.getElementById('reason-confirm').textContent = 'Move appointment';
+      document.getElementById('reason-confirm').className = 'btn btn-teal';
+      $reasonText.style.display = 'none';
+      setMoveAppointmentFieldsVisible(true);
+      $reasonModal.classList.add('open');
+      var moveStatus = document.getElementById('move-appointment-status');
+      moveStatus.textContent = 'Loading times...';
+      try {
+        var optionsResponse = await fetch('/api/booking/reschedule?ref=' + encodeURIComponent(moveBooking.ref), { headers: headers() });
+        var moveOptions = await optionsResponse.json().catch(function(){ return {}; });
+        if (!optionsResponse.ok) throw new Error(moveOptions.error || 'The available times could not be loaded.');
+        if (!moveOptions.canMove) throw new Error(moveOptions.reason || 'This booking cannot be moved here.');
+        var moveDate = document.getElementById('move-appointment-date');
+        moveDate.min = moveOptions.minDate; moveDate.max = moveOptions.maxDate; moveDate.value = moveOptions.minDate;
+        document.getElementById('move-appointment-time').innerHTML = (moveOptions.slots || []).map(function(slot) { return '<option>' + esc(slot) + '</option>'; }).join('');
+        moveStatus.textContent = 'Allowed dates: ' + moveOptions.minDate + ' to ' + moveOptions.maxDate + '.';
+      } catch (moveOptionsError) {
+        moveStatus.textContent = moveOptionsError.message;
+        moveStatus.style.color = '#991b1b';
+      }
     } else if (action === 'schedule-return-visit') {
       var returnVisitBooking = allBookings.find(function(item){ return item.id == id; });
       if (!returnVisitBooking) return;
@@ -6506,6 +6564,32 @@ window.intelQuick = intelQuick;
       } finally {
         resolutionButton.disabled = false;
         resolutionButton.textContent = selectedResolution === 'complete' ? 'Confirm Final Completion' : 'Reopen Job';
+      }
+      return;
+    }
+
+    if (pendingAction.type === 'move-appointment') {
+      var newDate = document.getElementById('move-appointment-date').value;
+      var newTime = document.getElementById('move-appointment-time').value;
+      if (!newDate || !newTime) { toast('Choose a date and an arrival window', 'error'); return; }
+      var moveButton = this;
+      moveButton.disabled = true; moveButton.textContent = 'Moving...';
+      try {
+        var moveResponse = await fetch('/api/booking/reschedule', {
+          method: 'POST', headers: headers(),
+          body: JSON.stringify({ ref: pendingAction.ref, date: newDate, time: newTime }),
+        });
+        var moveData = await moveResponse.json().catch(function(){ return {}; });
+        if (!moveResponse.ok) throw new Error(moveData.error || 'The appointment could not be moved.');
+        closeReasonModal();
+        toast('Moved to ' + newDate + ', ' + newTime + '. The customer was emailed.', 'success');
+        await loadBookings();
+        if (selectedId) selectBooking(selectedId);
+        loadLiveOps();
+      } catch (moveError) {
+        toast(moveError.message || 'The appointment could not be moved.', 'error');
+      } finally {
+        moveButton.disabled = false; moveButton.textContent = 'Move appointment';
       }
       return;
     }
@@ -11381,6 +11465,8 @@ window.intelQuick = intelQuick;
       ['Application Fee Satisfied', readinessChip(!!r.applicationFeeSatisfied)],
       ['Valid Phone On File', readinessChip(!!r.phoneAvailable)],
       ['Job Texts Enabled', r.jobTextsEnabled ? readinessChip(true) : '<span style="color:#991b1b;font-weight:700">' + esc((r.jobTexts && r.jobTexts.label) || 'Off') + '</span>'],
+      // Not a dispatch gate: who has the Easer app (api/owner/easer-readiness.js).
+      ['Easer App', esc((r.easerApp && r.easerApp.label) || 'Unknown')],
       ['Profile Photo', r.profilePhotoRequested ? '<span style="color:#991b1b;font-weight:700">New photo requested</span>' : readinessChip(true)],
       ['Tier Eligible', readinessChip(!!r.tierEligible)],
       ['Identity Verified', readinessChip(!!r.identityVerified)],
@@ -11834,6 +11920,11 @@ window.intelQuick = intelQuick;
       if (!r.ok) throw new Error(data.error || 'The no-show could not be recorded.');
       toast(data.alreadyRecorded ? 'This no-show was already recorded.' : data.message, 'success');
       button.textContent = 'No-show recorded';
+      // Reassign in the same step: open the Easer picker on this booking.
+      var assignControls = document.getElementById('assign-controls');
+      if (assignControls && assignControls.style.display === 'none' && typeof window.toggleReassign === 'function') window.toggleReassign();
+      var assignSection = document.getElementById('assign-section');
+      if (assignSection && assignSection.scrollIntoView) assignSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (err) {
       toast(err.message || 'The no-show could not be recorded.', 'error');
       button.disabled = false; button.textContent = 'Confirm no-show';

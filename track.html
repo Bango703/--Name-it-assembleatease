@@ -516,7 +516,7 @@ function formatUsdCents(value){
   <div class="cancel-modal">
     <div id="rescheduleModalContent">
       <h2 class="cancel-modal-title">Reschedule your appointment</h2>
-      <div class="cancel-modal-fee" style="display:block;background:#f0f9ff;border-color:#bae6fd;color:#0c4a6e">
+      <div class="cancel-modal-fee" id="rescheduleTermsNote" style="display:block;background:#f0f9ff;border-color:#bae6fd;color:#0c4a6e">
         Rescheduling is free (up to 2 times). Note: once you reschedule, this booking is no longer eligible for free cancellation, and a cancellation fee then applies (10% of the service subtotal, or 15% once a pro is on the way). Never the full amount, and never on tax.
       </div>
       <div style="margin-bottom:1rem">
@@ -1243,10 +1243,8 @@ function rsSlotAvailable(isoDate, slot) {
   var parsed = new Date(isoDate + 'T12:00:00Z');
   if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== isoDate) return false;
   var today = rsTodayIso();
-  var savedCardWindow = currentBooking && currentBooking.payment_status === 'card_saved';
-  var earliest = savedCardWindow ? rsAddDays(today, 7) : today;
-  var latest = rsAddDays(today, savedCardWindow ? 30 : 6);
-  if (isoDate < earliest || isoDate > latest) return false;
+  var bounds = rescheduleBounds();
+  if (isoDate < bounds.min || isoDate > bounds.max) return false;
   var slotIndex = RS_TIME_SLOTS.map(rsNormalizeSlot).indexOf(rsNormalizeSlot(slot));
   if (slotIndex < 0) return false;   // 8 AM–8 PM, every day; past same-day slots filtered below
   if (isoDate === today) {
@@ -1274,17 +1272,23 @@ function renderRescheduleTimes(preferredTime) {
   document.getElementById('btnConfirmReschedule').disabled = !firstAvailable;
 }
 
-function firstAvailableRescheduleDate(preferredDate) {
+// The dates this booking can move to, worked out by the server from the rules
+// it enforces (api/booking/reschedule.js rescheduleDateBounds).
+function rescheduleBounds() {
+  var options = currentBooking && currentBooking.reschedule_options;
   var today = rsTodayIso();
+  if (options && options.min_date && options.max_date) return { min: options.min_date, max: options.max_date };
+  return { min: today, max: rsAddDays(today, (options && options.window_days) || 30) };
+}
+
+function firstAvailableRescheduleDate(preferredDate) {
+  var bounds = rescheduleBounds();
   var candidates = [];
-  if (preferredDate) candidates.push(preferredDate);
-  var savedCardWindow = currentBooking && currentBooking.payment_status === 'card_saved';
-  var firstOffset = savedCardWindow ? 7 : 0;
-  var lastOffset = savedCardWindow ? 30 : 6;
-  for (var offset = firstOffset; offset <= lastOffset; offset++) candidates.push(rsAddDays(today, offset));
+  if (preferredDate && preferredDate >= bounds.min && preferredDate <= bounds.max) candidates.push(preferredDate);
+  for (var date = bounds.min, steps = 0; date <= bounds.max && steps < 62; date = rsAddDays(date, 1), steps++) candidates.push(date);
   return candidates.find(function(date, index) {
     return candidates.indexOf(date) === index && RS_TIME_SLOTS.some(function(slot) { return rsSlotAvailable(date, slot); });
-  }) || today;
+  }) || bounds.min;
 }
 
 function openRescheduleModal() {
@@ -1294,10 +1298,11 @@ function openRescheduleModal() {
   var errEl  = document.getElementById('rsError');
 
   // Date bounds and time options use the same Austin calendar rules as the server.
-  var today = rsTodayIso();
-  var savedCardWindow = currentBooking.payment_status === 'card_saved';
-  dateEl.min = savedCardWindow ? rsAddDays(today, 7) : today;
-  dateEl.max = rsAddDays(today, savedCardWindow ? 30 : 6);
+  var bounds = rescheduleBounds();
+  dateEl.min = bounds.min;
+  dateEl.max = bounds.max;
+  var note = document.getElementById('rescheduleTermsNote');
+  if (note && currentBooking.reschedule_note) note.textContent = currentBooking.reschedule_note;
   dateEl.value = firstAvailableRescheduleDate(currentBooking.date);
   dateEl.onchange = function() { renderRescheduleTimes(''); };
   errEl.style.display = 'none';

@@ -1,16 +1,19 @@
 import { randomUUID } from 'crypto';
+import Stripe from 'stripe';
 import { formatAppointmentDate } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
-import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { sendEmail, buildStatusEmail, ownerEmail, esc, verifyOwner } from '../_email.js';
 import { randomToken, sha256 } from '../_payment-security.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { appointmentTimestampMs, parseIsoCalendarDate } from './_appt-date.js';
-import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './_booking-window.js';
+import { BOOKING_WINDOW_DAYS, addIsoDays, bookingWindow, needsScheduledAuthorization, validateBookingWindowDate } from './_booking-window.js';
 import { customerBookingAccess, usesCustomerAccount } from './_customer-access.js';
 import { matchingProposal, settleProposalsAfterReschedule } from './_time-proposals.js';
 import { sendPushToUser } from '../_push.js';
+import { heldCardCanWait, SAVED_CARD_FIELDS, releaseSupersededHold } from './_held-card-reschedule.js';
+import { easerMissedVisit } from './_easer-no-show.js';
 
 export const MAX_RESCHEDULES = 2;
 /** The statuses a customer may still move themselves (read by track.js for the button). */
@@ -47,7 +50,9 @@ export function validatePublishedRescheduleSlot(date, time) {
  */
 export function reschedulePaymentConflict(booking, date) {
   const movingToScheduledAuthorization = needsScheduledAuthorization(date);
-  if (booking.payment_status === 'authorized' && movingToScheduledAuthorization) {
+  // A held card that can be re-placed later goes back to a saved card on the
+  // move (api/booking/_held-card-reschedule.js), so nobody is sent to support.
+  if (booking.payment_status === 'authorized' && movingToScheduledAuthorization && !heldCardCanWait(booking)) {
     return {
       error: 'This date is outside the current card-authorization window. Contact support so we can move the appointment without leaving an expired hold.',
       code: 'PAYMENT_RESCHEDULE_ASSISTANCE_REQUIRED',
@@ -62,6 +67,23 @@ export function reschedulePaymentConflict(booking, date) {
   return null;
 }
 
+/**
+ * The first and last dates this booking can move to, from the same rules as
+ * reschedulePaymentConflict, so the date picker never offers a day the server
+ * would refuse (track.html used to cap held cards at 6 days and make saved
+ * cards wait 7, neither of which the server enforced).
+ */
+export function rescheduleDateBounds(booking, now = new Date()) {
+  const w = bookingWindow(now);
+  if (booking.payment_status === 'authorized' && !heldCardCanWait(booking)) {
+    return { minDate: w.firstDate, maxDate: w.immediateAuthorizationLastDate };
+  }
+  if (booking.payment_status === 'card_saved') {
+    return { minDate: addIsoDays(w.immediateAuthorizationLastDate, 1), maxDate: w.lastDate };
+  }
+  return { minDate: w.firstDate, maxDate: w.lastDate };
+}
+
 function deliveryFailed(result) {
   return !result?.ok;
 }
@@ -70,7 +92,30 @@ function whereExact(query, column, value) {
   return value == null ? query.is(column, null) : query.eq(column, value);
 }
 
+// The owner moves a booking to a time agreed with the customer (owner,
+// 2026-11-08: after a no-show the only paths to a new time were the
+// customer's own reschedule or the Easer's proposal). Same route, same rules:
+// card hold, offer cleanup, Easer reconfirmation, customer email. GET returns
+// the times and dates the owner can choose, from the rules enforced below.
+async function ownerMoveOptions(req, res) {
+  const ref = String(req.query?.ref || '').trim().toUpperCase();
+  if (!ref) return res.status(400).json({ error: 'ref is required' });
+  const { data: booking, error } = await getSupabase().from('bookings').select('*').eq('ref', ref).maybeSingle();
+  if (error) return res.status(503).json({ error: 'The booking could not be read.' });
+  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  const bounds = rescheduleDateBounds(booking);
+  return res.status(200).json({
+    slots: TIME_SLOTS,
+    minDate: bounds.minDate,
+    maxDate: bounds.maxDate,
+    canMove: RESCHEDULABLE_STATUSES.includes(booking.status),
+    reason: RESCHEDULABLE_STATUSES.includes(booking.status) ? null : `The job is ${String(booking.status).replace('_', ' ')}, so its time cannot be moved here.`,
+  });
+}
+
 export default async function handler(req, res) {
+  const byOwner = verifyOwner(req);
+  if (req.method === 'GET' && byOwner) return ownerMoveOptions(req, res);
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
@@ -78,7 +123,7 @@ export default async function handler(req, res) {
 
   const { email, ref, token, date, time, proposalId } = req.body || {};
   const viaAccount = usesCustomerAccount(req, { token });
-  if (!ref || !date || !time || (!viaAccount && (!email || !token))) {
+  if (!ref || !date || !time || (!byOwner && !viaAccount && (!email || !token))) {
     return res.status(400).json({ error: 'Booking access token, email, reference, new date, and new time are required.' });
   }
 
@@ -110,7 +155,7 @@ export default async function handler(req, res) {
     console.error('Reschedule lookup error:', fetchErr);
     return res.status(500).json({ error: 'Unable to look up booking. Please try again.' });
   }
-  if (!booking || !(await customerBookingAccess(sb, req, booking, { email, token })).ok) {
+  if (!booking || (!byOwner && !(await customerBookingAccess(sb, req, booking, { email, token })).ok)) {
     return res.status(403).json({ error: 'This reschedule link is invalid or expired. Open the latest tracking link and try again.' });
   }
 
@@ -122,7 +167,11 @@ export default async function handler(req, res) {
   }
 
   const paymentConflict = reschedulePaymentConflict(booking, date);
-  if (paymentConflict) return res.status(409).json(paymentConflict);
+  if (paymentConflict) {
+    return res.status(409).json(byOwner
+      ? { ...paymentConflict, error: "This booking's payment cannot be held again automatically for that date. Choose a date the picker allows, or cancel and rebook." }
+      : paymentConflict);
+  }
 
   if (date === booking.date && normalizedTime === normalizeSlot(booking.time)) {
     return res.status(400).json({ error: 'That is already your scheduled date and time.' });
@@ -142,7 +191,9 @@ export default async function handler(req, res) {
   // pro's move, not the customer's: it does not count toward the reschedule limit
   // and does not forfeit the free-cancellation window (Rule 9).
   const acceptedProposal = await matchingProposal(sb, { proposalId, booking, date, time: normalizedTime });
-  const countsAsReschedule = !acceptedProposal;
+  // After an owner-confirmed Easer no-show the move is ours, not hers: it does
+  // not count toward her limit (api/booking/_easer-no-show.js).
+  const countsAsReschedule = !acceptedProposal && !easerMissedVisit(booking) && !byOwner;
   if (countsAsReschedule && priorReschedules >= MAX_RESCHEDULES) {
     return res.status(409).json({
       error: `This booking has already been rescheduled ${MAX_RESCHEDULES} times. Please call (979) 232-5139 for further changes.`,
@@ -165,7 +216,11 @@ export default async function handler(req, res) {
       code: 'RESCHEDULE_UNAVAILABLE',
     });
   }
+  // The hold this move leaves behind, released after the booking is saved.
+  const releaseHold = booking.payment_status === 'authorized' && needsScheduledAuthorization(date) && heldCardCanWait(booking)
+    ? booking.stripe_payment_intent_id : null;
   const update = {
+    ...(releaseHold ? SAVED_CARD_FIELDS : {}),
     date,
     time,
     rescheduled_at: now,
@@ -246,15 +301,37 @@ export default async function handler(req, res) {
     if (offerCleanupError) console.error('Reschedule dispatch offer cleanup failed:', offerCleanupError);
   }
 
+  if (releaseHold) {
+    const released = await releaseSupersededHold({
+      stripe: process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null,
+      bookingId: booking.id,
+      paymentIntentId: releaseHold,
+    });
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: released.ok ? 'payment_hold_released_for_reschedule' : 'payment_hold_release_failed',
+      actorType: 'system',
+      actorName: 'reschedule',
+      description: released.ok
+        ? `Moved past the hold window: card hold released; the card is saved and a new hold is placed two days before ${date}.`
+        : `Moved past the hold window: the booking now uses the saved card, but the old hold could not be released (${released.error}). It is not linked to the booking, will not be captured, and lapses on its own; release it in Stripe to free the customer's funds sooner.`,
+      metadata: { paymentIntentId: releaseHold, newDate: date, error: released.ok ? null : released.error },
+    });
+  }
+
   const remaining = MAX_RESCHEDULES - (countsAsReschedule ? priorReschedules + 1 : priorReschedules);
   await logActivity(sb, {
     bookingId: booking.id,
     eventType: 'rescheduled',
-    actorType: 'guest',
-    actorName: booking.customer_name || 'Guest customer',
-    description: countsAsReschedule
-      ? `Customer rescheduled from ${oldDate} ${oldTime} to ${date} ${time}. Reschedule ${priorReschedules + 1} of ${MAX_RESCHEDULES}.`
-      : `Customer accepted the pro's proposed time: moved from ${oldDate} ${oldTime} to ${date} ${time}. Not counted as a customer reschedule.`,
+    actorType: byOwner ? 'owner' : 'guest',
+    actorName: byOwner ? 'Owner' : (booking.customer_name || 'Guest customer'),
+    description: byOwner
+      ? `Owner moved the appointment from ${oldDate} ${oldTime} to ${date} ${time}. Not counted as a customer reschedule.`
+      : countsAsReschedule
+        ? `Customer rescheduled from ${oldDate} ${oldTime} to ${date} ${time}. Reschedule ${priorReschedules + 1} of ${MAX_RESCHEDULES}.`
+        : acceptedProposal
+          ? `Customer accepted the pro's proposed time: moved from ${oldDate} ${oldTime} to ${date} ${time}. Not counted as a customer reschedule.`
+          : `Customer rescheduled from ${oldDate} ${oldTime} to ${date} ${time} after the assigned Easer did not show. Not counted as a customer reschedule.`,
     metadata: {
       oldDate,
       oldTime,
@@ -314,7 +391,7 @@ export default async function handler(req, res) {
       bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> appointment is now set for <strong>${esc(formatAppointmentDate(date))}</strong> at <strong>${esc(time)}</strong>.</p>
         ${countsAsReschedule
           ? `<p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">Cancelling now carries the reschedule cancellation fee. ${remaining > 0 ? `You can reschedule ${remaining} more time if needed.` : 'This was your final self-service reschedule.'}</p>`
-          : '<p style="margin:0 0 16px;font-size:14px;color:#52525b">This is the time your pro proposed. Your cancellation terms are unchanged.</p>'}
+          : `<p style="margin:0 0 16px;font-size:14px;color:#52525b">${acceptedProposal ? 'This is the time your pro proposed. ' : ''}Your cancellation terms are unchanged.</p>`}
         <p style="margin:0"><a href="${esc(nextTrackUrl)}">Open your updated secure tracking link</a></p>`,
     }),
     meta: { bookingId: booking.id, notificationType: 'reschedule_customer', recipientType: 'customer', disableDedupe: true },
@@ -334,7 +411,8 @@ export default async function handler(req, res) {
     if (!tokenRevertErr && revertedTokenRows?.length) effectiveGuestMutationToken = token;
   }
 
-  const ownerResult = await sendEmail({
+  // The owner made this move, so no email tells them about it.
+  const ownerResult = byOwner ? { ok: true, skipped: 'owner_made_this_change' } : await sendEmail({
     to: ownerEmail(),
     subject: `Rescheduled — ${booking.ref}`,
     replyTo: ownerEmail(),

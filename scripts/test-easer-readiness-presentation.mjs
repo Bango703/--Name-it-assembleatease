@@ -167,6 +167,8 @@ async function callHandler(kind, profiles, options = {}) {
   }
   const handler = await loadHandler(kind === 'list' ? '../api/assembler/list.js' : '../api/owner/easer-readiness.js', {
     getSupabase: () => sb,
+    // The app sign-in record is read from its own table (api/_easer-app-policy.js).
+    easerAppStatus: async () => ({ known: true, installed: false, platforms: [], label: 'No app sign-in recorded' }),
     verifyOwner: () => options.authorized !== false,
     isStripeConnectEnabled: () => connectRequired,
     normalizeAssemblerProfile, hasEffectiveEaserMembership, getEaserApprovalReadiness, inspectApplicationText,

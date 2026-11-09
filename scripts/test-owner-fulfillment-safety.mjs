@@ -225,5 +225,35 @@ await test('arrival follow-up respects the appointment timezone and grace bounda
     assert.equal((await h.run()).body.alerts.some(row => row.type === 'arrival_follow_up'), expected);
   }
 });
+await test('accepted after the appointment start: needs a new time, never an arrival follow-up', async () => {
+  const h = harness(liveOpsSource, fixture({ assembler_accepted_at: '2026-10-07T14:30:00Z' }), { now: '2026-10-07T18:00:00Z' });
+  const { body } = await h.run();
+  assert.equal(body.alerts.some(row => row.type === 'arrival_follow_up'), false);
+  const alert = body.alerts.find(row => row.type === 'needs_new_time');
+  assert.ok(alert, 'the passed time is reported as needing a new one');
+  assert.equal(alert.action, 'review_timeline');
+  assert.match(alert.message, /accepted after the appointment time had passed/);
+  assert.match(alert.message, /Propose a new time/);
+  assert.equal(h.calls.writes.length, 0);
+});
+await test('accepted before the start: no needs-new-time alert', async () => {
+  const h = harness(liveOpsSource, fixture({ assembler_accepted_at: '2026-10-06T13:00:00Z' }), { now: '2026-10-07T18:00:00Z' });
+  assert.equal((await h.run()).body.alerts.some(row => row.type === 'needs_new_time'), false);
+});
+for (const change of [{ date: '2026-10-08' }, { status: 'en_route' }, { checked_in_at: '2026-10-07T17:00:00Z' }, { assembler_accepted_at: null }]) {
+  await test(`needs-new-time clears for ${JSON.stringify(change)}`, async () => {
+    const h = harness(liveOpsSource, fixture({ assembler_accepted_at: '2026-10-07T14:30:00Z', ...change }), { now: '2026-10-07T18:00:00Z' });
+    assert.equal((await h.run()).body.alerts.some(row => row.type === 'needs_new_time'), false);
+  });
+}
+await test('on the way after a late accept: arrival follow-up measured from the acceptance', async () => {
+  const booking = fixture({ assembler_accepted_at: '2026-10-07T14:30:00Z', status: 'en_route' });
+  for (const [now, expected] of [['2026-10-07T15:29:00Z', false], ['2026-10-07T15:31:00Z', true]]) {
+    const { body } = await harness(liveOpsSource, booking, { now }).run();
+    const alert = body.alerts.find(row => row.type === 'arrival_follow_up');
+    assert.equal(Boolean(alert), expected, now);
+    if (alert) assert.match(alert.message, /past their acceptance/);
+  }
+});
 console.log(`Owner fulfillment safety: ${passed} passed, ${failed} failed.`);
 if (failed) process.exitCode = 1;
