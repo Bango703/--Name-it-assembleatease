@@ -13,6 +13,7 @@ import { customerProgress, customerStatusLabel } from './_customer-status.js';
 import { customerPaymentSummary } from './_customer-payment-summary.js';
 import { loadBookingItems } from './_booking-items.js';
 import { TIME_SLOTS, MAX_RESCHEDULES, RESCHEDULABLE_STATUSES } from './reschedule.js';
+import { privateLineConfig, privateLineOpen } from '../_private-line.js';
 import { BOOKING_WINDOW_DAYS } from './_booking-window.js';
 
 /**
@@ -219,6 +220,8 @@ export default async function handler(req, res) {
     message_recipient: customerMessageRecipient(booking) === 'assembler' ? 'pro' : 'team',
     // Pro trust signal — first name only (never full name/phone to customer),
     // shown once the Pro has accepted the job.
+    // "Call your pro" through the private line (api/booking/private-call.js).
+    private_call_available: privateLineConfig().enabled && privateLineOpen(booking),
     pro_first_name: (booking.assembler_accepted_at && booking.assembler_name)
       ? booking.assembler_name.split(' ')[0]
       : null,

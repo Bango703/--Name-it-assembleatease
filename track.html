@@ -329,6 +329,8 @@
                 </span>
               </div>
               <div id="bProMeta" style="font-size:0.75rem;color:var(--muted);margin-top:2px;display:none"></div>
+              <button type="button" id="bProCall" class="btn-portal" style="display:none;width:auto;margin-top:0.55rem;padding:0.55rem 0.9rem">Call your pro</button>
+              <div id="bProCallStatus" role="status" style="font-size:0.78rem;color:var(--muted);margin-top:0.35rem"></div>
             </div>
           </div>
         </div>
@@ -979,6 +981,9 @@ function renderBooking(b) {
       if (b.pro_jobs && b.pro_jobs > 0) parts.push(b.pro_jobs + ' job' + (b.pro_jobs === 1 ? '' : 's') + ' completed');
       if (parts.length) { metaEl.textContent = parts.join('  ·  '); metaEl.style.display = ''; }
       else { metaEl.style.display = 'none'; }
+      // Private line: shown only when the server says calling is open for this booking.
+      var proCall = document.getElementById('bProCall');
+      if (proCall) proCall.style.display = b.private_call_available ? '' : 'none';
       proRow.style.display = 'block';
     } else {
       proRow.style.display = 'none';
@@ -1303,6 +1308,31 @@ function openRescheduleModal() {
   renderRescheduleTimes(currentBooking.time);
   document.getElementById('rescheduleModal').classList.add('open');
 }
+
+// "Call your pro" (api/booking/private-call.js): your phone rings first, then
+// your pro; neither of you sees the other's number.
+document.addEventListener('click', async function(event) {
+  var button = event.target && event.target.closest ? event.target.closest('#bProCall') : null;
+  if (!button || !currentRef) return;
+  var status = document.getElementById('bProCallStatus');
+  button.disabled = true;
+  button.textContent = 'Calling...';
+  try {
+    var resp = await fetch('/api/booking/private-call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: currentRef, email: currentEmail, token: currentMutationToken }),
+    });
+    var data = await resp.json().catch(function() { return {}; });
+    if (!resp.ok) throw new Error(data.error || 'The call could not be started. Try again in a moment.');
+    if (status) { status.textContent = data.message || 'Your phone will ring now. Answer it to be connected.'; status.style.color = ''; }
+  } catch (error) {
+    if (status) { status.textContent = error.message; status.style.color = '#991b1b'; }
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Call your pro';
+  }
+});
 
 function closeRescheduleModal() {
   document.getElementById('rescheduleModal').classList.remove('open');

@@ -844,7 +844,22 @@ struct JobDetailView: View {
     @State private var proposingTime = false
     @State private var ratingCustomer = false
     @State private var choosingMapsApp = false
+    @State private var privateCallNote: String?
+    @State private var placingPrivateCall = false
     @AppStorage(NavigationApp.storageKey) private var navigationApp = ""
+
+    /// "Call customer" through the private line (api/booking/private-call.js).
+    private func placePrivateCall(_ job: EaserJob) async {
+        placingPrivateCall = true
+        defer { placingPrivateCall = false }
+        do {
+            let data = try await store.api.call("POST", "/api/booking/private-call", body: ["bookingId": job.id])
+            let reply = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            privateCallNote = (reply?["message"] as? String) ?? "Your phone will ring now. Answer it to be connected."
+        } catch {
+            privateCallNote = error.localizedDescription
+        }
+    }
 
     var body: some View {
         Group {
@@ -1028,6 +1043,14 @@ struct JobDetailView: View {
                         if let name = job.customerName { Label(name, systemImage: "person") }
                         if let phone = job.customerPhone, let url = URL(string: "tel:" + phone.filter { "+0123456789".contains($0) }) {
                             Button { openURL(url) } label: { Label("Call customer", systemImage: "phone") }
+                        } else if job.privateCall {
+                            // The private line rings this phone first, then the customer;
+                            // neither sees the other's number.
+                            Button {
+                                Task { await placePrivateCall(job) }
+                            } label: { Label(placingPrivateCall ? "Calling..." : "Call customer", systemImage: "phone") }
+                            .disabled(placingPrivateCall)
+                            if let privateCallNote { Text(privateCallNote).font(.footnote).foregroundStyle(.secondary) }
                         }
                         NavigationLink {
                             MessagesView(job: job, thread: .customer)

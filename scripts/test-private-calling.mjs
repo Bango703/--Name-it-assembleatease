@@ -8,6 +8,9 @@ import { handlePrivateLineEvent } from '../api/webhooks/telnyx-private-line.js';
 import privateCall from '../api/booking/private-call.js';
 import { privateTextConfig } from '../api/_private-line.js';
 import { handlePrivateTextEvent } from '../api/webhooks/telnyx-private-text.js';
+import { summarizeCall, CALL_SUMMARY_MODEL } from '../api/_call-summary.js';
+import recordingsCron, { deleteRecording, RECORDING_RETENTION_DAYS } from '../api/cron/private-call-recordings.js';
+import { redactAssignmentCustomerData } from '../api/booking/my-assignments.js';
 
 const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n');
 const POOL_A = '+15125550101';
@@ -291,4 +294,107 @@ console.log('PASS wiring: signed events only; the owner call webhook is unchange
   assert.match(read('api/_sms.js'), /from: String\(from \|\| process\.env\.TELNYX_FROM_NUMBER \|\| ''\)\.trim\(\),/, 'the shared sender only gains a from number; its consent and logging stay');
 }
 console.log('PASS job texts: both ways from the toll-free line, labelled AssembleAtEase, contact guard both ways, consent enforced, STOP and HELP handled, business texts untouched');
+
+// The buttons reach the server: the Easer gets a private Call instead of the number.
+{
+  const accepted = { id: 'b1', status: 'confirmed', date: '2026-11-10', time: '10:00 AM - 12:00 PM', customer_name: 'Bianca George', customer_phone: CUSTOMER, assembler_id: 'easer-1', assembler_accepted_at: '2026-11-08T12:00:00Z', address: '1 Main St', details: 'TV' };
+  const [off] = redactAssignmentCustomerData([{ ...accepted }], NOW, { privateCallingOn: false });
+  assert.equal(off.customer_phone, CUSTOMER, 'calling off: today\'s behaviour, the number after release');
+  assert.equal(off._private_call, undefined);
+  const [on] = redactAssignmentCustomerData([{ ...accepted }], NOW, { privateCallingOn: true });
+  assert.deepEqual([on.customer_phone, on._private_call], [null, true], 'calling on: no number, a private Call');
+  const [early] = redactAssignmentCustomerData([{ ...accepted, date: '2026-11-20' }], NOW, { privateCallingOn: true });
+  assert.deepEqual([early.customer_phone, early._private_call], [null, undefined], 'before release: neither');
+
+  const page = read('assembler/my-assignments.html');
+  assert.match(page, /b\._private_call && b\._crew_role !== 'helper'/, 'the web page shows Call only to the lead');
+  assert.match(page, /fetch\('\/api\/booking\/private-call', \{\s*method: 'POST',[\s\S]{0,200}body: JSON\.stringify\(\{ bookingId: privateCallButton\.getAttribute\('data-booking-id'\) \}\)/);
+  const models = read('mobile/ios/App/App/EaserModels.swift');
+  const views = read('mobile/ios/App/App/EaserViews.swift');
+  assert.match(models, /privateCall = c\.bool\("_private_call"\) \?\? false/, 'the Easer app reads the flag');
+  assert.match(views, /\} else if job\.privateCall \{/, 'and shows Call customer through the private line');
+  assert.match(views, /store\.api\.call\("POST", "\/api\/booking\/private-call", body: \["bookingId": job\.id\]\)/);
+
+  assert.match(read('api/booking/track.js'), /private_call_available: privateLineConfig\(\)\.enabled && privateLineOpen\(booking\),/, 'the booking page is told when calling is open');
+  const track = read('track.html');
+  assert.match(track, /proCall\.style\.display = b\.private_call_available \? '' : 'none';/, 'Call your pro shows only when the server says so');
+  assert.match(track, /body: JSON\.stringify\(\{ ref: currentRef, email: currentEmail, token: currentMutationToken \}\)/);
+}
+console.log('PASS buttons: Call (Easer web and app) and Call your pro reach the private line; no number is sent while calling is on');
+
+// Recording: transcribed, summarized for the owner, deleted after 90 days.
+{
+  const h = harness({ bookings: [booking('b1')] }, { config: recordingCfg });
+  await h.send('call.initiated', { call_control_id: 'in-1', direction: 'incoming', from: CUSTOMER, to: POOL_A });
+  await h.send('call.answered', { call_control_id: 'in-1', client_state: last(h).body.client_state });
+  await h.send('call.speak.ended', { call_control_id: 'in-1', client_state: last(h).body.client_state });
+  await h.send('call.answered', { call_control_id: 'out-1', client_state: last(h).body.client_state });
+  await h.send('call.gather.ended', { call_control_id: 'out-1', digits: '1', client_state: last(h).body.client_state });
+  const record = h.commands.find((c) => c.action === 'record_start');
+  assert.deepEqual([record.body.transcription, record.body.transcription_engine], [true, 'deepgram/nova-3'], 'transcribed by Telnyx');
+
+  const summaries = [];
+  h.ctx.summarize = async (args) => { summaries.push(args); return { ok: true, summary: 'Customer moved the time to 2 PM. No off-platform request.', model: CALL_SUMMARY_MODEL }; };
+  await h.send('call.recording.transcription.saved', { call_control_id: 'in-1', recording_id: 'rec-1', transcription_text: 'hello', client_state: record.body.client_state });
+  assert.deepEqual(summaries[0], { transcript: 'hello', callerType: 'customer' });
+  const logged = h.logs.find((l) => l.eventType === 'private_call_summary');
+  assert.match(logged.description, /^Call summary: Customer moved the time to 2 PM\./, 'on the owner timeline');
+  h.ctx.summarize = async () => ({ ok: false, reason: 'refused' });
+  await h.send('call.recording.transcription.saved', { call_control_id: 'in-1', recording_id: 'rec-2', transcription_text: 'x', client_state: record.body.client_state });
+  assert.match(h.logs.find((l) => l.eventType === 'private_call_summary_unavailable').description, /could not be summarized \(refused\)/, 'a missing summary says why');
+
+  // The summary call itself.
+  const fakeClient = (reply) => ({ beta: { messages: { create: async (body) => { fakeClient.last = body; return reply; } } } });
+  const ok = await summarizeCall({ transcript: 'Pro: running late', callerType: 'easer', client: fakeClient({ stop_reason: 'end_turn', model: CALL_SUMMARY_MODEL, content: [{ type: 'text', text: 'The pro said he was running late. No off-platform request.' }] }) });
+  assert.equal(ok.ok, true);
+  assert.equal(fakeClient.last.model, 'claude-opus-5-5');
+  assert.deepEqual([fakeClient.last.fallbacks, fakeClient.last.betas[0], fakeClient.last.output_config.effort], ['default', 'server-side-fallback-2026-07-01', 'low']);
+  assert.equal((await summarizeCall({ transcript: 'x', client: fakeClient({ stop_reason: 'refusal', content: [] }) })).reason, 'refused');
+  assert.equal((await summarizeCall({ transcript: '   ', client: fakeClient({}) })).reason, 'empty_transcript');
+  assert.equal((await summarizeCall({ transcript: 'x', client: { beta: { messages: { create: async () => { throw new Error('offline'); } } } } })).reason, 'network_error', 'never throws');
+
+  // 90-day deletion.
+  assert.equal(RECORDING_RETENTION_DAYS, 90);
+  const rows = {
+    activity_logs: [
+      { id: 'a1', booking_id: 'b1', event_type: 'private_call_recorded', created_at: '2026-07-01T00:00:00Z', metadata: { recordingId: 'old-1' } },
+      { id: 'a2', booking_id: 'b1', event_type: 'private_call_recorded', created_at: '2026-07-02T00:00:00Z', metadata: { recordingId: 'old-done' } },
+      { id: 'a3', booking_id: 'b1', event_type: 'private_call_recording_deleted', created_at: '2026-10-01T00:00:00Z', metadata: { recordingId: 'old-done' } },
+      { id: 'a4', booking_id: 'b2', event_type: 'private_call_recorded', created_at: '2026-11-01T00:00:00Z', metadata: { recordingId: 'recent' } },
+    ],
+  };
+  const cronDb = {
+    from(table) {
+      let list = (rows[table] || []).slice();
+      const q = {
+        select() { return q; },
+        eq(c, v) { list = list.filter((r) => r[c] === v); return q; },
+        lte(c, v) { list = list.filter((r) => r[c] <= v); return q; },
+        in(c, vs) { list = c === 'metadata->>recordingId' ? list.filter((r) => vs.includes(r.metadata?.recordingId)) : list.filter((r) => vs.includes(r[c])); return q; },
+        order() { return q; }, limit() { return q; },
+        insert: async () => ({ error: null }),
+        then(resolve, reject) { return Promise.resolve({ data: list, error: null }).then(resolve, reject); },
+      };
+      return q;
+    },
+  };
+  const removed = [];
+  const deletedLogs = [];
+  const out = { status: 0, body: null };
+  const res = { status(c) { out.status = c; return this; }, json(b) { out.body = b; return this; } };
+  process.env.CRON_SECRET = 'cron-test';
+  await recordingsCron({ headers: { authorization: 'Bearer cron-test' } }, res, {
+    sb: cronDb, now: NOW, remove: async (id) => { removed.push(id); return { ok: true }; }, log: async (_sb, e) => { deletedLogs.push(e); return { ok: true }; },
+  });
+  assert.deepEqual(removed, ['old-1'], 'only recordings past 90 days, and never one already deleted');
+  assert.equal(out.body.deleted, 1);
+  assert.match(deletedLogs[0].description, /deleted after 90 days\. The summary stays on this booking\./);
+  await recordingsCron({ headers: { authorization: 'Bearer wrong' } }, res, { sb: cronDb });
+  assert.equal(out.status, 401, 'cron secret required');
+  assert.deepEqual(await deleteRecording('k', 'gone', async () => ({ ok: false, status: 404 })), { ok: true, alreadyGone: true }, 'already gone counts as deleted');
+  assert.equal((await deleteRecording('k', 'x', async () => { throw new Error('down'); })).ok, false, 'never throws');
+  const vercel = JSON.parse(read('vercel.json'));
+  assert.ok(vercel.crons.some((c) => c.path === '/api/cron/private-call-recordings'), 'scheduled daily');
+}
+console.log('PASS recordings: transcribed, summarized for the owner (never throwing), deleted after 90 days, summary kept');
 console.log('\nPrivate calling tests passed.');

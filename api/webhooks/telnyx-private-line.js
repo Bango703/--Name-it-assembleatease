@@ -4,6 +4,7 @@ import { normalizeUsPhone } from '../_phone.js';
 import { rateLimitKey } from '../_ratelimit.js';
 import { logActivity } from '../booking/_activity.js';
 import { sendPushToUser } from '../_push.js';
+import { summarizeCall } from '../_call-summary.js';
 import {
   privateLineConfig, isPoolNumber, openLinesForCaller, leadEaserId, callerGreeting, calleePrompt,
   menuPrompt, NO_LINE_MESSAGE, NO_ANSWER_MESSAGE, encodeState, decodeState,
@@ -59,6 +60,7 @@ export default async function handler(req, res, deps = {}) {
     rateLimit: deps.rateLimit || ((key) => rateLimitKey(key, 'default')),
     notifyEaser: deps.notifyEaser || ((easerId, payload) => sendPushToUser(easerId, payload, { notificationType: 'private_line_missed_call', recipientType: 'easer' })),
     log: deps.log || logActivity,
+    summarize: deps.summarize || summarizeCall,
   });
   return res.status(200).json({ ok: true, ...result });
 }
@@ -187,7 +189,13 @@ export async function handlePrivateLineEvent(event, ctx) {
           return { action: 'bridge_failed' };
         }
         if (cfg.recording) {
-          await command(cfg, state.peer, 'record_start', { format: 'mp3', channels: 'dual', client_state: encodeState({ ...state, stage: 'bridged', recordedFrom: 'caller' }) });
+          // Dual channel (one person per channel), transcribed by Telnyx; the
+          // transcript is summarized for the owner when it is saved.
+          await command(cfg, state.peer, 'record_start', {
+            format: 'mp3', channels: 'dual',
+            transcription: true, transcription_engine: 'deepgram/nova-3', transcription_language: 'en',
+            client_state: encodeState({ ...state, stage: 'bridged', recordedFrom: 'caller' }),
+          });
         }
         await ctx.log(ctx.sb, {
           bookingId: state.bookingId, eventType: 'private_call_connected', actorType: 'system', actorName: 'private_line',
@@ -224,6 +232,19 @@ export async function handlePrivateLineEvent(event, ctx) {
       metadata: { recordingId: payload.recording_id || null, durationMillis: payload.duration_millis || null, callerType: state.callerType },
     }).catch(() => {});
     return { action: 'recording_logged' };
+  }
+
+  if (type === 'call.recording.transcription.saved') {
+    const transcript = payload.transcription_text || payload.transcription?.text || payload.text || '';
+    const result = await ctx.summarize({ transcript, callerType: state.callerType });
+    await ctx.log(ctx.sb, {
+      bookingId: state.bookingId,
+      eventType: result.ok ? 'private_call_summary' : 'private_call_summary_unavailable',
+      actorType: 'system', actorName: 'private_line',
+      description: result.ok ? `Call summary: ${result.summary}` : `The call was recorded but could not be summarized (${result.reason}).`,
+      metadata: { recordingId: payload.recording_id || null, callerType: state.callerType, model: result.model || null, reason: result.ok ? null : result.reason },
+    }).catch(() => {});
+    return { action: result.ok ? 'summarized' : 'summary_unavailable' };
   }
 
   return { ignored: type || 'unknown_event' };
