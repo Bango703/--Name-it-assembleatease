@@ -3609,6 +3609,7 @@
 <script>document.getElementById('book-year').textContent=new Date().getFullYear();</script>
 
 <script src="/assets/js/booking-source-of-truth.js"></script>
+<script src="/assets/js/catalog-search.js"></script>
 <script>
 /* Single source of truth: the same-day flag comes from the SERVER, not a
    hardcoded browser value, so the customer preview can never drift from what the
@@ -5418,9 +5419,14 @@ function filterItemList(q) {
 
     items.forEach(function(item) {
 
+      // Word by word, with the words customers use (assets/js/catalog-search.js),
+      // the same rule the customer app uses.
+      var search = window.AAE_CATALOG_SEARCH;
+      var groupEl = item.closest('.subcat-group');
       var name = (item.dataset.itemName || '').toLowerCase();
-
-      var show = !q || name.indexOf(q) !== -1;
+      var show = !q || (search
+        ? search.matches(q, search.searchText(item.dataset.itemSvc || '', groupEl ? (groupEl.dataset.group || '') : '', item.dataset.itemName || ''))
+        : name.indexOf(q) !== -1);
 
       item.style.display = show ? '' : 'none';
 

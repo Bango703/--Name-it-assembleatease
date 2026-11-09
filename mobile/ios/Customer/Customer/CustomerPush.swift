@@ -57,11 +57,18 @@ final class CustomerPush: ObservableObject {
     /// Bumps when a notification arrives while the app is open, so screens refresh.
     @Published var received = 0
     @Published var status: UNAuthorizationStatus = .notDetermined
+    /// False until the phone has answered. The default above is not an answer:
+    /// read as one, it showed "Turn on" to customers who had already allowed
+    /// notifications, every time the app opened.
+    @Published private(set) var statusKnown = false
 
     var isOn: Bool { status == .authorized || status == .provisional || status == .ephemeral }
+    /// The phone says notifications have never been asked. The only time to offer them.
+    var canAsk: Bool { statusKnown && status == .notDetermined }
 
     func refreshStatus() async {
         status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        statusKnown = true
         if isOn { UIApplication.shared.registerForRemoteNotifications() }
     }
 

@@ -54,6 +54,7 @@ struct CustomerApp: App {
                 Task { await store.refresh() }
             })
             .tint(Brand.skyDark)
+            .task { await CustomerPush.shared.refreshStatus() }
             .task { await store.start() }
             .task(id: store.banner?.id) {
                 guard store.banner != nil else { return }
@@ -61,7 +62,10 @@ struct CustomerApp: App {
                 store.banner = nil
             }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active && store.phase == .signedIn { Task { await store.refresh() } }
+                guard phase == .active else { return }
+                // Settings may have changed while the app was away.
+                Task { await CustomerPush.shared.refreshStatus() }
+                if store.phase == .signedIn { Task { await store.refresh() } }
             }
         }
     }

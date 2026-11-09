@@ -166,7 +166,7 @@ private struct SuggestionCard: View {
     }
 
     private var pick: Pick? {
-        if !store.upcoming.isEmpty && push.status == .notDetermined { return .updates }
+        if !store.upcoming.isEmpty && push.canAsk { return .updates }
         if let cash = store.account?.assemblecashCents, cash > 0 { return .cash(cash) }
         if store.bookings.isEmpty, let offer = store.offer, !offer.code.isEmpty { return .offer(offer) }
         return nil
@@ -297,19 +297,22 @@ struct SearchSheet: View {
 
     private var trimmed: String { query.trimmingCharacters(in: .whitespaces) }
 
+    /// Word by word, by the catalog's own search words (CatalogSearch): items
+    /// that answer by their own name first, then by the extra words, catalog order within.
     private var matches: [(key: CartKey, item: CatalogItem)] {
         guard let catalog = flow.catalog, !trimmed.isEmpty else { return [] }
-        var out: [(key: CartKey, item: CatalogItem)] = []
+        var ranked: [(rank: Int, order: Int, key: CartKey, item: CatalogItem)] = []
         for service in catalog.services {
             for group in service.groups {
-                for item in group.items where item.name.localizedCaseInsensitiveContains(trimmed)
-                    || group.name.localizedCaseInsensitiveContains(trimmed)
-                    || service.name.localizedCaseInsensitiveContains(trimmed) {
-                    out.append((CartKey(service: service.name, item: item.name), item))
+                for item in group.items {
+                    let text = CatalogSearch.text(for: item, service: service.name, group: group.name)
+                    guard let rank = CatalogSearch.rank(trimmed, text: text, stop: catalog.searchStopWords) else { continue }
+                    ranked.append((rank: rank, order: ranked.count, key: CartKey(service: service.name, item: item.name), item: item))
                 }
             }
         }
-        return Array(out.prefix(60))
+        ranked.sort { ($0.rank, $0.order) < ($1.rank, $1.order) }
+        return ranked.prefix(60).map { (key: $0.key, item: $0.item) }
     }
 
     var body: some View {
