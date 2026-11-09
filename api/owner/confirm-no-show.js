@@ -1,7 +1,8 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, esc } from '../_email.js';
 import { BOOKING_STATUS, EASER_RELIABILITY_POLICY } from '../_source-of-truth.js';
-import { appointmentTimestampMs, formatAppointmentDate } from '../booking/_appt-date.js';
+import { formatAppointmentDate } from '../booking/_appt-date.js';
+import { noShowConfirmable } from '../booking/_arrival-follow-up.js';
 import { loadEaserStrikes, recordEaserCancellation, pauseEaserIfOverLimit } from '../_easer-reliability.js';
 
 /**
@@ -29,21 +30,39 @@ export default async function handler(req, res) {
   if (booking.status !== BOOKING_STATUS.CONFIRMED) {
     return res.status(409).json({ error: `The job is ${String(booking.status).replace('_', ' ')}, so the Easer is not a no-show.` });
   }
-  let startMs = null;
-  try { startMs = appointmentTimestampMs(booking.date, booking.time); } catch (_) { startMs = null; }
-  if (startMs == null) return res.status(409).json({ error: 'The appointment time could not be read, so a no-show cannot be confirmed.' });
   const nowMs = Date.now();
-  if (startMs > nowMs) return res.status(409).json({ error: 'The appointment has not started yet.' });
+  // The lateness rule lives in _arrival-follow-up.js, shared with the
+  // possible-no-show check and Live Ops.
+  const confirmable = noShowConfirmable(booking, nowMs);
+  if (!confirmable.ok) return res.status(409).json({ error: confirmable.error });
+  const { startMs } = confirmable;
 
   const easerId = booking.assembler_id;
   const easerName = booking.assembler_name || 'The Easer';
 
-  // One no-show per booking and Easer.
+  // The customer's protection (api/booking/_easer-no-show.js, migration 126),
+  // saved before any strike. Stamped with when the no-show was confirmed.
+  async function protectCustomer(atIso) {
+    if (booking.easer_no_show_confirmed_at) return true;
+    const { data: stamped, error: stampError } = await sb.from('bookings')
+      .update({ easer_no_show_confirmed_at: atIso })
+      .eq('id', booking.id)
+      .is('easer_no_show_confirmed_at', null)
+      .select('id');
+    return !stampError && stamped?.length > 0;
+  }
+  const PROTECTION_FAILED = "The customer's fee protection could not be saved, so the no-show was not recorded. Try again.";
+
+  // One no-show per booking and Easer. A repeat tap still makes sure the
+  // customer is protected, dated from the original confirmation.
   const { data: existing, error: existingError } = await sb.from('activity_logs')
-    .select('id').eq('booking_id', booking.id).eq('event_type', 'easer_cancelled')
-    .contains('metadata', { easerId, kind: 'no_show' }).limit(1);
+    .select('id, created_at').eq('booking_id', booking.id).eq('event_type', 'easer_cancelled')
+    .contains('metadata', { easerId, kind: 'no_show' }).order('created_at', { ascending: true }).limit(1);
   if (existingError) return res.status(503).json({ error: 'Reliability history could not be read.' });
-  if (existing?.length) return res.status(200).json({ ok: true, alreadyRecorded: true });
+  if (existing?.length) {
+    if (!(await protectCustomer(existing[0].created_at))) return res.status(503).json({ error: "The customer's fee protection could not be saved. Try again." });
+    return res.status(200).json({ ok: true, alreadyRecorded: true });
+  }
 
   const classification = {
     kind: 'no_show',
@@ -51,6 +70,8 @@ export default async function handler(req, res) {
     hoursUntilStart: (startMs - nowMs) / 3600000,
     minutesSinceAccept: (nowMs - new Date(booking.assembler_accepted_at).getTime()) / 60000,
   };
+  if (!(await protectCustomer(new Date(nowMs).toISOString()))) return res.status(503).json({ error: PROTECTION_FAILED });
+
   const record = await recordEaserCancellation(sb, { booking, easerId, easerName, classification, reason: 'No-show confirmed by owner' });
   if (!record.ok) return res.status(503).json({ error: 'The no-show could not be saved. Nothing was changed.' });
 
@@ -79,6 +100,6 @@ export default async function handler(req, res) {
     strikes,
     paused: pause.paused === true,
     easerNotified,
-    message: `No-show recorded: ${classification.strikes} strikes. ${easerName} now has ${strikes} in the last ${EASER_RELIABILITY_POLICY.windowDays} days.${pause.paused ? ' New jobs are paused for this Easer.' : ''} Use Reassign to send someone else.`,
+    message: `No-show recorded: ${classification.strikes} strikes. ${easerName} now has ${strikes} in the last ${EASER_RELIABILITY_POLICY.windowDays} days.${pause.paused ? ' New jobs are paused for this Easer.' : ''} The customer will not be charged to cancel or reschedule this booking. Choose a new Easer below.`,
   });
 }

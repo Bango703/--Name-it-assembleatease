@@ -76,7 +76,10 @@ export function smsEligibility(subject = {}) {
  * @returns {Promise<{ok:boolean, skipped?:string, providerId?:string, error?:string}>}
  *          Never throws. The caller decides what a failure means.
  */
-export async function sendSms({ recipient, body, meta = {} }) {
+// `from` / `messagingProfileId` send from another AssembleAtEase number (the
+// private job-text line, api/webhooks/telnyx-private-text.js); every consent,
+// opt-out and logging rule here still applies.
+export async function sendSms({ recipient, body, meta = {}, from = null, messagingProfileId = null }) {
   const sb = getSupabase();
 
   if (!isSmsEnabled()) {
@@ -118,11 +121,11 @@ export async function sendSms({ recipient, body, meta = {} }) {
   const withOptOut = /\breply\s+stop\b/i.test(text) ? text : `${text} Reply STOP to opt out.`;
 
   const payload = {
-    from: (process.env.TELNYX_FROM_NUMBER || '').trim(),
+    from: String(from || process.env.TELNYX_FROM_NUMBER || '').trim(),
     to: eligible.phone,
     text: withOptOut,
   };
-  const profileId = (process.env.TELNYX_MESSAGING_PROFILE_ID || '').trim();
+  const profileId = String(messagingProfileId || process.env.TELNYX_MESSAGING_PROFILE_ID || '').trim();
   if (profileId) payload.messaging_profile_id = profileId;
   const prepared = await prepareNotification(sb, {
     channel: 'sms', recipient: eligible.phone, subject: withOptOut.slice(0, 160), meta,

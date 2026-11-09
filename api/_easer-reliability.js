@@ -289,3 +289,37 @@ export async function setOfflineIfUnanswered(sb, easerId, { nowMs = Date.now() }
   });
   return { offline: true, streak, easer: data[0] };
 }
+
+// No-shows that count against an Easer: the owner confirmed them
+// (api/owner/confirm-no-show.js writes easer_cancelled, kind no_show) and has
+// not excused them. The automatic "possible no-show" email (no_show_flagged)
+// is a prompt for the owner to check, never a count: it fires on a late
+// check-in, a job reassigned after its start time, or a forgotten tap.
+// One booking counts once per Easer. Lifetime, to match completed_jobs.
+export function tallyConfirmedNoShows(rows = []) {
+  const excused = new Set();
+  for (const row of rows) {
+    if (row.event_type === 'easer_cancellation_excused' && row.metadata?.excusedLogId) excused.add(row.metadata.excusedLogId);
+  }
+  const bookingsByEaser = new Map();
+  for (const row of rows) {
+    if (row.event_type !== 'easer_cancelled' || row.metadata?.kind !== 'no_show' || excused.has(row.id)) continue;
+    const easerId = row.metadata?.easerId;
+    if (!easerId) continue;
+    const set = bookingsByEaser.get(easerId) || new Set();
+    set.add(row.booking_id || row.id);
+    bookingsByEaser.set(easerId, set);
+  }
+  return new Map([...bookingsByEaser].map(([easerId, set]) => [easerId, set.size]));
+}
+
+// Map<easerId, confirmed no-show count>. Throws on a read error, so a caller
+// never mistakes "could not read" for "none".
+export async function loadConfirmedNoShows(sb) {
+  const { data, error } = await sb
+    .from('activity_logs')
+    .select('id, booking_id, event_type, metadata')
+    .in('event_type', ['easer_cancelled', 'easer_cancellation_excused']);
+  if (error) throw new Error(`No-show history could not be read: ${error.message}`);
+  return tallyConfirmedNoShows(data || []);
+}

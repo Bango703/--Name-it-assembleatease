@@ -1,4 +1,6 @@
 import { getSupabase } from '../_supabase.js';
+import { privateLineConfig } from '../_private-line.js';
+import { easerAppPolicy, isIPhoneBrowser, offersBelongInApp } from '../_easer-app-policy.js';
 import { loadBookingItems } from './_booking-items.js';
 import {
   hasCurrentEaserAgreement,
@@ -155,7 +157,7 @@ export function enrichUnacceptedAssignments(bookings = [], offerMap = {}) {
   return bookings;
 }
 
-export function redactAssignmentCustomerData(bookings = [], nowMs = Date.now()) {
+export function redactAssignmentCustomerData(bookings = [], nowMs = Date.now(), { privateCallingOn = privateLineConfig().enabled } = {}) {
   return bookings.map(booking => {
     // One verdict decides both layers, so the phone can never be visible on a
     // job whose scope is hidden, and the two can never drift apart.
@@ -189,6 +191,12 @@ export function redactAssignmentCustomerData(bookings = [], nowMs = Date.now()) 
     // customer's free-cancellation exit. See _customer-contact-release.
     if (!release.released) {
       booking.customer_phone = null;
+    }
+    // Private calling on (api/_private-line.js): the released number is never
+    // sent; "Call customer" rings through the private line instead.
+    if (release.released && privateCallingOn) {
+      booking.customer_phone = null;
+      booking._private_call = true;
     }
 
     // Article 16: a field the pro cannot see must say why and when, never just
@@ -550,8 +558,15 @@ export default async function handler(req, res) {
     INTERNAL_FINANCIAL_FIELDS.forEach(field => { delete booking[field]; });
   });
 
+  // iPhone browsers take new work in the Easer app once the owner has set the
+  // date (api/_easer-app-policy.js). Accepted jobs always stay listed here.
+  const app = easerAppPolicy();
+  const offersInApp = offersBelongInApp(req, app);
+  const listed = offersInApp ? allBookings.filter(booking => Boolean(booking.assembler_accepted_at)) : allBookings;
+
   const response = {
-    bookings: allBookings,
+    bookings: listed,
+    app: { ...app, iphoneBrowser: isIPhoneBrowser(req.headers?.['user-agent']), offersInApp },
     access: {
       agreementCurrent,
       newOffersAllowed: !applicationFeeRefundHold,

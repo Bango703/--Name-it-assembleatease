@@ -299,6 +299,8 @@ struct CatalogItem: Decodable, Hashable, Identifiable {
     let addOn: Bool
     let customQuote: Bool
     let popular: Bool
+    /// The words this item answers to in search, from the server (assets/js/catalog-search.js).
+    let search: String
     var id: String { name }
 
     init(from decoder: Decoder) throws {
@@ -308,6 +310,7 @@ struct CatalogItem: Decodable, Hashable, Identifiable {
         addOn = c.bool("add_on") ?? false
         customQuote = c.bool("custom_quote") ?? false
         popular = c.bool("popular") ?? false
+        search = c.string("search") ?? ""
     }
 }
 
@@ -398,6 +401,8 @@ struct BookingCatalog: Decodable {
     let todayOpenSlots: [String]
     let termsVersion: String
     let privacyNoticeVersion: String
+    /// Filler dropped from what is typed in search, from the server.
+    let searchStopWords: Set<String>
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
@@ -411,6 +416,7 @@ struct BookingCatalog: Decodable {
         todayOpenSlots = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("today_open_slots"))) ?? []
         termsVersion = c.string("terms_version") ?? ""
         privacyNoticeVersion = c.string("privacy_notice_version") ?? ""
+        searchStopWords = Set((try? c.decodeIfPresent([String].self, forKey: DynamicKey("search_stop_words"))) ?? [])
     }
 
     func service(named name: String) -> CatalogService? { services.first { $0.name == name } }
@@ -606,5 +612,46 @@ struct ServerVerdict: Decodable {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         ok = c.bool("ok") ?? false
         message = c.string("message") ?? ""
+    }
+}
+
+/// The catalog search rule (assets/js/catalog-search.js, which also runs the
+/// website's search). The server sends each item's words, own words first, then
+/// " | ", then the extra words, plus the stop words; this only splits what is
+/// typed and compares. scripts/test-catalog-search.mjs keeps the two in step.
+enum CatalogSearch {
+    /// Lower case, apostrophes dropped, split on anything that is not a letter or digit.
+    static func words(_ text: String) -> [String] {
+        text.lowercased()
+            .replacingOccurrences(of: "'", with: "")
+            .replacingOccurrences(of: "\u{2019}", with: "")
+            .split(whereSeparator: { !($0.isASCII && ($0.isLetter || $0.isNumber)) })
+            .map(String.init)
+    }
+
+    /// The words that matter in what was typed; all of them if only filler was typed.
+    static func queryWords(_ query: String, stop: Set<String>) -> [String] {
+        let all = words(query)
+        let kept = all.filter { !stop.contains($0) }
+        return kept.isEmpty ? all : kept
+    }
+
+    /// 0 when the item's own words answer every word typed, 1 when its extra
+    /// words are needed, nil when it does not answer.
+    static func rank(_ query: String, text: String, stop: Set<String>) -> Int? {
+        let wanted = queryWords(query, stop: stop)
+        if wanted.isEmpty { return 0 }
+        let parts = text.components(separatedBy: " | ")
+        let own = parts[0].split(separator: " ").map(String.init)
+        let all = own + (parts.count > 1 ? parts[1].split(separator: " ").map(String.init) : [])
+        func covered(_ list: [String]) -> Bool { wanted.allSatisfy { word in list.contains { $0.hasPrefix(word) } } }
+        if covered(own) { return 0 }
+        if covered(all) { return 1 }
+        return nil
+    }
+
+    /// The item's words, or its own service, group and name when a saved catalog has none.
+    static func text(for item: CatalogItem, service: String, group: String) -> String {
+        item.search.isEmpty ? words(service + " " + group + " " + item.name).joined(separator: " ") : item.search
     }
 }

@@ -2,6 +2,7 @@ import { getBookingCatalog } from '../_pricing.js';
 import { bookingWindow } from './_booking-window.js';
 import { BOOKING_TIME_SLOTS, todayOpenBookingSlots } from './_booking-slots.js';
 import { CUSTOMER_TERMS_VERSION, PRIVACY_NOTICE_VERSION } from '../_legal-consent.js';
+import { catalogSearch } from '../_catalog-search.js';
 
 /**
  * GET /api/booking/catalog — what a native booking screen offers, read from the
@@ -26,6 +27,7 @@ export default function handler(req, res) {
   const catalog = getBookingCatalog();
   const window = bookingWindow();
   const today = todayOpenBookingSlots();
+  const search = catalogSearch();
 
   const services = Object.entries(catalog.subcategories || {}).map(([name, groups]) => ({
     name,
@@ -40,6 +42,8 @@ export default function handler(req, res) {
         add_on: item.addon === true,
         custom_quote: item.customQuote === true,
         popular: item.popular === true,
+        // The words this item answers to in search (assets/js/catalog-search.js).
+        search: search.searchText(name, group.group, item.name),
       })),
     })),
   }));
@@ -68,6 +72,8 @@ export default function handler(req, res) {
     today_open_slots: today.slots,
     terms_version: CUSTOMER_TERMS_VERSION,
     privacy_notice_version: PRIVACY_NOTICE_VERSION,
+    // Filler the app drops from what is typed, unless nothing else is left.
+    search_stop_words: search.STOP_WORDS.slice(),
   });
 }
 

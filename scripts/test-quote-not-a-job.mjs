@@ -68,6 +68,9 @@ const quoteSent = { ...tyler, payment_status: 'quote_pending_approval', quote_am
   // Fixed-price bookings keep their alerts.
   const today = classifyOpsIssue({ ...tyler, payment_status: 'pending', needs_manual_dispatch: false }, { now: at8 });
   assert.match(today.label, /^Today at 2:00 PM – 4:00 PM — no Pro assigned/);
+  // Owner, 2026-11-08: the App Review test job emailed "needs manual assignment" every six hours.
+  assert.equal(classifyOpsIssue({ status: 'confirmed', needs_manual_dispatch: true, dispatch_status: null, date: '2026-11-02', is_test_booking: true }, { now: at8 }), null, 'a test booking never emails the owner');
+  assert.match(await readFile(new URL('../api/cron/ops-alert.js', import.meta.url), 'utf8'), /payment_method_type, is_test_booking, created_at'\)/, 'the scan selects is_test_booking, or the skip could never fire');
   assert.equal(classifyOpsIssue({ status: 'confirmed', needs_manual_dispatch: true, dispatch_status: 'manual_required', date: '2026-11-02' }, { now: at8 }).label,
     'Needs manual assignment (auto-dispatch gave up)');
   assert.equal(classifyOpsIssue({ status: 'confirmed', needs_manual_dispatch: true, dispatch_status: null, date: '2026-11-02' }, { now: at8 }).label,

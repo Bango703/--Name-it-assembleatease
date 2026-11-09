@@ -329,6 +329,8 @@
                 </span>
               </div>
               <div id="bProMeta" style="font-size:0.75rem;color:var(--muted);margin-top:2px;display:none"></div>
+              <button type="button" id="bProCall" class="btn-portal" style="display:none;width:auto;margin-top:0.55rem;padding:0.55rem 0.9rem">Call your pro</button>
+              <div id="bProCallStatus" role="status" style="font-size:0.78rem;color:var(--muted);margin-top:0.35rem"></div>
             </div>
           </div>
         </div>
@@ -514,7 +516,7 @@ function formatUsdCents(value){
   <div class="cancel-modal">
     <div id="rescheduleModalContent">
       <h2 class="cancel-modal-title">Reschedule your appointment</h2>
-      <div class="cancel-modal-fee" style="display:block;background:#f0f9ff;border-color:#bae6fd;color:#0c4a6e">
+      <div class="cancel-modal-fee" id="rescheduleTermsNote" style="display:block;background:#f0f9ff;border-color:#bae6fd;color:#0c4a6e">
         Rescheduling is free (up to 2 times). Note: once you reschedule, this booking is no longer eligible for free cancellation, and a cancellation fee then applies (10% of the service subtotal, or 15% once a pro is on the way). Never the full amount, and never on tax.
       </div>
       <div style="margin-bottom:1rem">
@@ -979,6 +981,9 @@ function renderBooking(b) {
       if (b.pro_jobs && b.pro_jobs > 0) parts.push(b.pro_jobs + ' job' + (b.pro_jobs === 1 ? '' : 's') + ' completed');
       if (parts.length) { metaEl.textContent = parts.join('  ·  '); metaEl.style.display = ''; }
       else { metaEl.style.display = 'none'; }
+      // Private line: shown only when the server says calling is open for this booking.
+      var proCall = document.getElementById('bProCall');
+      if (proCall) proCall.style.display = b.private_call_available ? '' : 'none';
       proRow.style.display = 'block';
     } else {
       proRow.style.display = 'none';
@@ -1238,10 +1243,8 @@ function rsSlotAvailable(isoDate, slot) {
   var parsed = new Date(isoDate + 'T12:00:00Z');
   if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== isoDate) return false;
   var today = rsTodayIso();
-  var savedCardWindow = currentBooking && currentBooking.payment_status === 'card_saved';
-  var earliest = savedCardWindow ? rsAddDays(today, 7) : today;
-  var latest = rsAddDays(today, savedCardWindow ? 30 : 6);
-  if (isoDate < earliest || isoDate > latest) return false;
+  var bounds = rescheduleBounds();
+  if (isoDate < bounds.min || isoDate > bounds.max) return false;
   var slotIndex = RS_TIME_SLOTS.map(rsNormalizeSlot).indexOf(rsNormalizeSlot(slot));
   if (slotIndex < 0) return false;   // 8 AM–8 PM, every day; past same-day slots filtered below
   if (isoDate === today) {
@@ -1269,17 +1272,23 @@ function renderRescheduleTimes(preferredTime) {
   document.getElementById('btnConfirmReschedule').disabled = !firstAvailable;
 }
 
-function firstAvailableRescheduleDate(preferredDate) {
+// The dates this booking can move to, worked out by the server from the rules
+// it enforces (api/booking/reschedule.js rescheduleDateBounds).
+function rescheduleBounds() {
+  var options = currentBooking && currentBooking.reschedule_options;
   var today = rsTodayIso();
+  if (options && options.min_date && options.max_date) return { min: options.min_date, max: options.max_date };
+  return { min: today, max: rsAddDays(today, (options && options.window_days) || 30) };
+}
+
+function firstAvailableRescheduleDate(preferredDate) {
+  var bounds = rescheduleBounds();
   var candidates = [];
-  if (preferredDate) candidates.push(preferredDate);
-  var savedCardWindow = currentBooking && currentBooking.payment_status === 'card_saved';
-  var firstOffset = savedCardWindow ? 7 : 0;
-  var lastOffset = savedCardWindow ? 30 : 6;
-  for (var offset = firstOffset; offset <= lastOffset; offset++) candidates.push(rsAddDays(today, offset));
+  if (preferredDate && preferredDate >= bounds.min && preferredDate <= bounds.max) candidates.push(preferredDate);
+  for (var date = bounds.min, steps = 0; date <= bounds.max && steps < 62; date = rsAddDays(date, 1), steps++) candidates.push(date);
   return candidates.find(function(date, index) {
     return candidates.indexOf(date) === index && RS_TIME_SLOTS.some(function(slot) { return rsSlotAvailable(date, slot); });
-  }) || today;
+  }) || bounds.min;
 }
 
 function openRescheduleModal() {
@@ -1289,10 +1298,11 @@ function openRescheduleModal() {
   var errEl  = document.getElementById('rsError');
 
   // Date bounds and time options use the same Austin calendar rules as the server.
-  var today = rsTodayIso();
-  var savedCardWindow = currentBooking.payment_status === 'card_saved';
-  dateEl.min = savedCardWindow ? rsAddDays(today, 7) : today;
-  dateEl.max = rsAddDays(today, savedCardWindow ? 30 : 6);
+  var bounds = rescheduleBounds();
+  dateEl.min = bounds.min;
+  dateEl.max = bounds.max;
+  var note = document.getElementById('rescheduleTermsNote');
+  if (note && currentBooking.reschedule_note) note.textContent = currentBooking.reschedule_note;
   dateEl.value = firstAvailableRescheduleDate(currentBooking.date);
   dateEl.onchange = function() { renderRescheduleTimes(''); };
   errEl.style.display = 'none';
@@ -1303,6 +1313,31 @@ function openRescheduleModal() {
   renderRescheduleTimes(currentBooking.time);
   document.getElementById('rescheduleModal').classList.add('open');
 }
+
+// "Call your pro" (api/booking/private-call.js): your phone rings first, then
+// your pro; neither of you sees the other's number.
+document.addEventListener('click', async function(event) {
+  var button = event.target && event.target.closest ? event.target.closest('#bProCall') : null;
+  if (!button || !currentRef) return;
+  var status = document.getElementById('bProCallStatus');
+  button.disabled = true;
+  button.textContent = 'Calling...';
+  try {
+    var resp = await fetch('/api/booking/private-call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: currentRef, email: currentEmail, token: currentMutationToken }),
+    });
+    var data = await resp.json().catch(function() { return {}; });
+    if (!resp.ok) throw new Error(data.error || 'The call could not be started. Try again in a moment.');
+    if (status) { status.textContent = data.message || 'Your phone will ring now. Answer it to be connected.'; status.style.color = ''; }
+  } catch (error) {
+    if (status) { status.textContent = error.message; status.style.color = '#991b1b'; }
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Call your pro';
+  }
+});
 
 function closeRescheduleModal() {
   document.getElementById('rescheduleModal').classList.remove('open');

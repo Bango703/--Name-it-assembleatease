@@ -13,6 +13,7 @@
 import { esc } from '../_email.js';
 
 export const CANCELLATION_REASONS = Object.freeze([
+  'easer_no_show',
   'no_easer_accepted',
   'free_window',
   'notice_unknown',
@@ -37,6 +38,7 @@ export function customerCancellationMessage(policy) {
   assertReason(policy);
   const pct = policy.feePct;
   switch (policy.reason) {
+    case 'easer_no_show':
     case 'no_easer_accepted':
     case 'notice_unknown':
       return 'Cancellation is free for this booking.';
@@ -104,6 +106,8 @@ export function cancellationFeeSummary({ policy, feeCaptured = 0, hoursAway = nu
     };
   }
   switch (policy.reason) {
+    case 'easer_no_show':
+      return { text: `No fee charged: the assigned Easer did not show for this job.${noticeSuffix}`, needsAction: false };
     case 'no_easer_accepted':
       return { text: `No fee charged: no Easer had accepted this job.${noticeSuffix}`, needsAction: false };
     case 'free_window':

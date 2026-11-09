@@ -24,7 +24,7 @@ export async function loadEaserJobExtras(sb, bookings, easerId, nowMs = Date.now
     const { data, error } = await sb.from('activity_logs')
       .select('booking_id, event_type, created_at, metadata')
       .in('booking_id', ids)
-      .in('event_type', ['rescheduled', 'customer_unavailable_reported', 'customer_no_show_reported'])
+      .in('event_type', ['rescheduled', 'owner_booking_updated', 'customer_unavailable_reported', 'customer_no_show_reported'])
       .order('created_at', { ascending: false });
     if (!error) {
       const byBooking = new Map();
@@ -35,7 +35,8 @@ export async function loadEaserJobExtras(sb, bookings, easerId, nowMs = Date.now
       for (const [bookingId, rows] of byBooking) {
         const unavailable = customerUnavailableState(rows, nowMs);
         if (unavailable) get(bookingId).customerUnavailable = unavailable;
-        const moved = rows.find(r => r.event_type === 'rescheduled');
+        // A customer reschedule or an owner move, whichever is latest.
+        const moved = rows.find(r => (r.event_type === 'rescheduled' || r.event_type === 'owner_booking_updated') && r.metadata?.oldDate);
         if (moved?.metadata?.oldDate) {
           get(bookingId).previousSlot = { date: moved.metadata.oldDate, time: moved.metadata.oldTime || null, changedAt: moved.created_at };
         }

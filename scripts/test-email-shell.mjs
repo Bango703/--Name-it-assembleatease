@@ -52,7 +52,7 @@ const emailSrc = await read('api/_email.js');
 // Assert the behaviour, not the identifier. Pinning the exact variable name
 // broke this test the moment a CAN-SPAM footer had to be appended before
 // framing, which was a correct change failing on a cosmetic assertion.
-assert.match(emailSrc, /html: ensureEmailShell\(\w+, recipientType, meta\.preheader\)/,
+assert.match(emailSrc, /html: ensureEmailShell\(\w+, recipientType, meta\.preheader(?:, [^)]+)?\)/,
   'sendEmail must frame the html it sends — per-caller discipline is what failed');
 assert.match(emailSrc, /text: htmlToText\(\w+\)/,
   'every email needs a text/plain alternative; HTML-only mail scores worse and reads badly on watches and screen readers');

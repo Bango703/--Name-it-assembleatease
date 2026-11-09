@@ -1,6 +1,7 @@
 import { computeCancellationFee } from '../_source-of-truth.js';
 import { appointmentTimestampMs } from './_appt-date.js';
 import { cancellationPolicyEvaluationTimeMs } from './_cancellation-operation.js';
+import { easerMissedVisit } from './_easer-no-show.js';
 
 export function loadBookingRescheduleTruth(booking) {
   if (!booking?.id) {
@@ -60,6 +61,8 @@ export function evaluateCancellationPolicy(booking, { nowMs, isNoShow = false, a
     // No accepted Easer means no commitment to compensate. The rule lives in
     // computeCancellationFee; this only supplies the fact it needs.
     easerAccepted: Boolean(booking.assembler_id && booking.assembler_accepted_at),
+    // An owner-confirmed Easer no-show on this booking waives the fee.
+    easerNoShow: easerMissedVisit(booking),
   });
   return { policy, hoursAway, wasRescheduled };
 }

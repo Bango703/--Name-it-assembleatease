@@ -229,5 +229,15 @@ workflows:
           ls -la "$HOME/aae-screens"
           mkdir -p "$CM_BUILD_DIR/screenshots" && cp "$HOME"/aae-screens/*.png "$CM_BUILD_DIR/screenshots/"
           sips -g pixelWidth -g pixelHeight "$CM_BUILD_DIR"/screenshots/*.png
+      - name: Add the App Store headlines
+        # One headline per screen from store-captions.json, on the brand colour,
+        # in App Store order. app-store/*.png are the files to upload.
+        script: |
+          set -euo pipefail
+          python3 -m venv /tmp/frames
+          /tmp/frames/bin/pip install --quiet pillow
+          /tmp/frames/bin/python scripts/app-store-frames.py --raw "$CM_BUILD_DIR/screenshots" --out "$CM_BUILD_DIR/app-store"
+          sips -g pixelWidth -g pixelHeight "$CM_BUILD_DIR"/app-store/*.png
     artifacts:
       - screenshots/*.png
+      - app-store/*.png

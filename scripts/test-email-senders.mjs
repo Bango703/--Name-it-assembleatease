@@ -39,4 +39,48 @@ const offenders = [];
 assert.deepEqual(offenders, [], `these pass their own sender: ${offenders.join(', ')}`);
 console.log('PASS callers: no email in api/ names its own sender');
 
+// Trust & Safety (owner, 2026-11-06): email about an Easer's account standing
+// is sent from, answered at, and footed with trust@. The type decides it in
+// api/_email.js; no caller passes service@ or a reply address for these.
+const { TRUST_EMAIL, TRUST_NOTIFICATION_TYPES, contactEmailFor, ensureEmailShell } = await import('../api/_email.js');
+assert.equal(TRUST_EMAIL, 'trust@assembleatease.com');
+assert.equal(EMAIL_SENDERS.trust, 'AssembleAtEase Trust & Safety <trust@assembleatease.com>');
+const trustTypes = ['easer_suspended', 'easer_strike_recorded', 'easer_no_show_recorded', 'easer_inactivity_notice', 'easer_deactivated', 'easer_reactivated', 'easer_reinstated'];
+assert.deepEqual([...TRUST_NOTIFICATION_TYPES].sort(), [...trustTypes].sort(), 'the Trust & Safety list changed; update this test with the owner');
+for (const type of trustTypes) {
+  assert.equal(senderFor({ recipientType: 'easer', notificationType: type }), EMAIL_SENDERS.trust, type);
+  assert.equal(contactEmailFor({ recipientType: 'easer', notificationType: type }), TRUST_EMAIL, type);
+}
+assert.equal(senderFor({ recipientType: 'easer', notificationType: 'easer_welcome' }), EMAIL_SENDERS.easer, 'everyday Easer email stays with Easer Support');
+assert.equal(contactEmailFor({ recipientType: 'owner', notificationType: 'easer_suspended' }), 'service@assembleatease.com', 'owner alerts are not Trust & Safety mail');
+const trustFramed = ensureEmailShell('<p>A no-show was recorded.</p>', 'easer', '', TRUST_EMAIL);
+assert.match(trustFramed, /mailto:trust@assembleatease\.com/, 'the footer names trust@');
+assert.doesNotMatch(trustFramed, /service@assembleatease\.com/, 'the footer does not also name service@');
+assert.match(email, /const replyAddress = trust \? TRUST_EMAIL : replyTo;/, 'sendEmail sets the reply address for Trust & Safety mail');
+
+const misrouted = [];
+const sites = new Set();
+(function walk(dir) {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) { if (name !== 'node_modules' && name !== 'migrations') walk(path); continue; }
+    if (!name.endsWith('.js') || path.endsWith(join('api', '_email.js'))) continue;
+    const text = readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
+    for (const type of trustTypes) {
+      const needle = `notificationType: '${type}'`;
+      for (let at = text.indexOf(needle); at !== -1; at = text.indexOf(needle, at + 1)) {
+        const start = text.lastIndexOf('sendEmail({', at);
+        if (start === -1) continue;
+        sites.add(`${type}`);
+        if (/replyTo:|service@assembleatease\.com/.test(text.slice(start, at))) misrouted.push(`${path} (${type})`);
+      }
+    }
+  }
+})(new URL('../api', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+assert.deepEqual(misrouted, [], `these Trust & Safety emails pass a reply address or name service@: ${misrouted.join(', ')}`);
+for (const type of ['easer_suspended', 'easer_inactivity_notice', 'easer_deactivated', 'easer_reactivated', 'easer_reinstated', 'easer_no_show_recorded']) {
+  assert.ok(sites.has(type), `no sendEmail call found for ${type}`);
+}
+console.log('PASS trust: account-standing email is sent from, answered at and footed with trust@');
+
 console.log('\nEmail sender tests passed.');

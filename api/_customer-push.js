@@ -9,7 +9,7 @@
 import { sendFcmMessage } from './_native-push.js';
 import { customerProgress, customerStatusLabel } from './booking/_customer-status.js';
 
-const BOOKING_FIELDS = 'id, ref, service, status, date, time, customer_id, customer_email, assembler_id, assembler_name, assembler_accepted_at, payment_status, payment_collected, return_visit_required, return_visit_date, return_visit_time';
+const BOOKING_FIELDS = 'id, ref, service, status, date, time, customer_id, customer_email, assembler_id, assembler_name, assembler_accepted_at, easer_no_show_confirmed_at, payment_status, payment_collected, return_visit_required, return_visit_date, return_visit_time';
 
 function missingTable(error) {
   return !!error && (['42P01', 'PGRST205', 'PGRST204'].includes(error.code) || /customer_push_tokens|customer_live_activities|schema cache|does not exist/i.test(String(error.message || '')));

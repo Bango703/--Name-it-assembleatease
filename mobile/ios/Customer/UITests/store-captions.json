@@ -1,0 +1,12 @@
+{
+  "_about": "App Store screenshot headlines for the customer app. StoreScreenshots.swift takes each screen by the name on the left; scripts/app-store-frames.py puts the headline above it. 'order' is the order shown on the App Store; the first three appear in search results. Owner approves the words.",
+  "order": ["01-home", "04-order", "02-search", "05-when", "06-bundles", "03-furniture-list"],
+  "captions": {
+    "01-home": { "headline": "Home setup, booked in minutes", "subline": "Furniture, TV mounting and smart home" },
+    "04-order": { "headline": "See the price before you book", "subline": "You pay when the job is done" },
+    "02-search": { "headline": "Type the job. Add it in one tap", "subline": "Mount a TV, build a dresser, hang a mirror" },
+    "05-when": { "headline": "Pick a day and an arrival window", "subline": "A local pro comes to you" },
+    "06-bundles": { "headline": "Whole rooms in one booking", "subline": "Bedroom, living room, home office, move-in" },
+    "03-furniture-list": { "headline": "Every piece, listed", "subline": "Beds, dressers, desks, sofas and more" }
+  }
+}
