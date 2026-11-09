@@ -58,7 +58,7 @@ workflows:
     max_build_duration: 60
     integrations:
       app_store_connect: AssembleAtEase App Store Connect
-    environment:
+    environment: &easer_ios_environment
       node: 22
       # Pinned: Codemagic support (2026-10-09) reported a queue spike on the default
       # Xcode 26.6 machine pool. 26.5 is the same iOS 26 toolchain (Capacitor 8 needs 26+).
@@ -68,7 +68,7 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.assembleatease.easer
-    scripts:
+    scripts: &easer_ios_scripts
       - name: Check Xcode requirement
         script: |
           set -euo pipefail
@@ -119,7 +119,7 @@ workflows:
     max_build_duration: 60
     integrations:
       app_store_connect: AssembleAtEase App Store Connect
-    environment:
+    environment: &customer_ios_environment
       # Same toolchain as the Easer app (easer-ios).
       xcode: 26.5
       groups:
@@ -129,7 +129,7 @@ workflows:
         # Codemagic matches com.assembleatease.customer.* profiles.
         distribution_type: app_store
         bundle_identifier: com.assembleatease.customer
-    scripts:
+    scripts: &customer_ios_scripts
       - name: Add the Firebase configuration
         # FIREBASE_IOS_CUSTOMER_PLIST (base64 of the customer app's
         # GoogleService-Info.plist, bundle com.assembleatease.customer) is in the
@@ -174,6 +174,32 @@ workflows:
         auth: integration
         # Upload only, like the Easer app: internal testers get every processed build.
         submit_to_testflight: false
+
+  # Build only: the same steps as easer-ios and customer-ios (YAML anchors, so
+  # they cannot drift), signed for the App Store, but nothing is uploaded to
+  # Apple. The .ipa stays in this build's artifacts. Upload and submission run
+  # from easer-ios / customer-ios, only when the owner says so.
+  easer-ios-build:
+    name: AssembleAtEase - iOS (build only, nothing sent to Apple)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: AssembleAtEase App Store Connect
+    environment: *easer_ios_environment
+    scripts: *easer_ios_scripts
+    artifacts:
+      - build/ios/ipa/*.ipa
+
+  customer-ios-build:
+    name: AssembleAtEase Customer - iOS (build only, nothing sent to Apple)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: AssembleAtEase App Store Connect
+    environment: *customer_ios_environment
+    scripts: *customer_ios_scripts
+    artifacts:
+      - build/ios/ipa/*.ipa
 
   # App Store screenshots of the real customer app, on the 6.9-inch simulator
   # (1320 x 2868). Browses as a guest; signs nothing, uploads nothing to Apple.

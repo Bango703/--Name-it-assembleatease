@@ -1,6 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { privateLineConfig } from '../_private-line.js';
-import { easerAppPolicy, isIPhoneBrowser, offersBelongInApp } from '../_easer-app-policy.js';
+import { easerAppPolicy, isIPhoneBrowser, offersBelongInApp, easerClientHandlesPrivateCall } from '../_easer-app-policy.js';
 import { loadBookingItems } from './_booking-items.js';
 import {
   hasCurrentEaserAgreement,
@@ -376,7 +376,10 @@ export default async function handler(req, res) {
   // Customer operational contact data is available only while an accepted job
   // is active. Pending/unaccepted assignments and terminal history are always
   // server-redacted so UI mistakes cannot expose retained customer PII.
-  redactAssignmentCustomerData(assignedBookings || []);
+  // An Easer app too old for the private-line button keeps the number it dials.
+  redactAssignmentCustomerData(assignedBookings || [], Date.now(), {
+    privateCallingOn: privateLineConfig().enabled && easerClientHandlesPrivateCall(req),
+  });
 
   // ── 3. Merge and add pay estimates ──────────────────────────────────────
   const allBookings = [...offerBookings, ...(assignedBookings || [])];

@@ -43,6 +43,19 @@ export function isEaserNativeApp(userAgent) {
   return !/^Mozilla\//.test(ua) && /\bCFNetwork\/[\d.]+ Darwin\//.test(ua);
 }
 
+// The Easer app sends X-AAE-Features naming what it can do. The private-line
+// "Call customer" button (api/booking/private-call.js) arrived in Easer app
+// 1.1; an older app on an Easer's phone can only dial the customer's number,
+// so it keeps receiving it until the Easer updates. The website always has the
+// button, because the page is served fresh with the server.
+export const EASER_FEATURES_HEADER = 'x-aae-features';
+
+export function easerClientHandlesPrivateCall(req) {
+  if (!isEaserNativeApp(req?.headers?.['user-agent'])) return true;
+  const features = String(req?.headers?.[EASER_FEATURES_HEADER] || '').toLowerCase().split(/[\s,]+/);
+  return features.includes('private-call');
+}
+
 /** True when this request must take offers in the app instead. */
 export function offersBelongInApp(req, policy = easerAppPolicy()) {
   return policy.iphoneRequired && isIPhoneBrowser(req?.headers?.['user-agent']);
