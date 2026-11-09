@@ -1,7 +1,7 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { randomUUID } from 'crypto';
-import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import { verifyOwner, sendEmail, ownerEmail, esc, TRUST_EMAIL } from '../_email.js';
 import { buildWaitlistEmail, WAITLIST_EMAIL_VARIANT } from '../_waitlist-email.js';
 import {
   ACTIVE_EASER_TIERS,
@@ -1113,13 +1113,12 @@ export default async function handler(req, res) {
       const suspendEmail = await sendEmail({
         to: profile.email,
         subject: 'An update on your AssembleAtEase Easer account',
-        replyTo: 'service@assembleatease.com',
         html: buildEaserAccountEmail({
           heading: 'Account paused',
           firstName,
           bodyHtml: `<p style="color:#52525b;line-height:1.7;margin:0 0 16px">Your AssembleAtEase Easer account has been <strong>paused</strong>. While it's paused you won't appear in dispatch or receive new job offers.</p>
             ${suspensionNotes && suspensionNotes.trim() ? `<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin:0 0 16px"><p style="margin:0 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#92400e">Reason</p><p style="margin:0;font-size:14px;color:#92400e;line-height:1.6">${esc(suspensionNotes.trim())}</p></div>` : ''}
-            <p style="color:#52525b;line-height:1.7;margin:0 0 8px">If you think this was a mistake, or you'd like to talk about getting back to active, just reply to this email or reach us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>. We're glad to help.</p>`,
+            <p style="color:#52525b;line-height:1.7;margin:0 0 8px">If you think this was a mistake, or you'd like to talk about getting back to active, just reply to this email or reach us at <a href="mailto:${TRUST_EMAIL}" style="color:#00BFFF">${TRUST_EMAIL}</a>. We're glad to help.</p>`,
         }),
         meta: { notificationType: 'easer_suspended', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
       }).catch(e => ({ ok: false, error: e?.message || String(e) }));
@@ -1163,7 +1162,6 @@ export default async function handler(req, res) {
     const reinstateEmail = await sendEmail({
       to: profile.email,
       subject: 'Your AssembleAtEase account has been reinstated',
-      replyTo: 'service@assembleatease.com',
       html: buildEaserAccountEmail({
         heading: 'Welcome back',
         firstName,
@@ -1262,7 +1260,6 @@ export default async function handler(req, res) {
     const deactivateEmail = await sendEmail({
       to: profile.email,
       subject: 'An update on your AssembleAtEase Easer account',
-      replyTo: 'service@assembleatease.com',
       html: buildEaserAccountEmail({
         heading: 'Account deactivated',
         firstName: dFirstName,
@@ -1275,7 +1272,7 @@ export default async function handler(req, res) {
           <tr><td style="padding:4px 0;vertical-align:top;color:#0099CC">&bull;</td><td style="padding:4px 0">Records from any completed work stay on file &mdash; this doesn't affect earnings you've already made.</td></tr>
         </table>
       </div>
-      <p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0 0 16px">If you believe this was made in error, or you'd like to talk it through, we're glad to help. Reply to this email or reach us at <a href="mailto:service@assembleatease.com" style="color:#0099CC;font-weight:600;text-decoration:none">service@assembleatease.com</a>.</p>
+      <p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0 0 16px">If you believe this was made in error, or you'd like to talk it through, we're glad to help. Reply to this email or reach us at <a href="mailto:${TRUST_EMAIL}" style="color:#0099CC;font-weight:600;text-decoration:none">${TRUST_EMAIL}</a>.</p>
       <p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0">Thank you for the time you spent with AssembleAtEase.</p>`,
       }),
       meta: { notificationType: 'easer_deactivated', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
@@ -1315,7 +1312,6 @@ export default async function handler(req, res) {
     const reEmail = await sendEmail({
       to: profile.email,
       subject: 'An update on your AssembleAtEase Easer account',
-      replyTo: 'service@assembleatease.com',
       html: buildEaserAccountEmail({
         heading: 'Account access restored',
         firstName: rFirstName,
@@ -1359,7 +1355,6 @@ export default async function handler(req, res) {
     const sent = await sendEmail({
       to: profile.email,
       subject: 'Your AssembleAtEase Easer account: inactivity notice',
-      replyTo: 'service@assembleatease.com',
       html: buildEaserAccountEmail({
         heading: 'Inactivity notice',
         firstName: greetingFirstName(profile.full_name),
