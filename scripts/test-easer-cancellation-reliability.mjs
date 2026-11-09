@@ -155,11 +155,12 @@ assert.equal(P.noShowStrikes, 3);
 const noShow = read('api/owner/confirm-no-show.js');
 assert.match(noShow, /verifyOwner\(req\)/, 'only the owner can confirm a no-show');
 assert.match(noShow, /booking\.status !== BOOKING_STATUS\.CONFIRMED/, 'an Easer who is on the way or on site is not a no-show');
-assert.match(noShow, /if \(startMs > nowMs\) return res\.status\(409\)/, 'cannot be confirmed before the appointment starts');
+assert.match(noShow, /const confirmable = noShowConfirmable\(booking, nowMs\);\s*if \(!confirmable\.ok\) return res\.status\(409\)/, 'the lateness rule is the shared one, never a copy');
 // Owner, 2026-11-09: the confirmed path follows the same rule as the automatic
 // check. Run the real handler on Phil Hawkins' two flagged bookings.
 {
   const appt = await import('../api/booking/_appt-date.js');
+  const { noShowConfirmable } = await import('../api/booking/_arrival-follow-up.js');
   const src = noShow.replace(/^import .*;\r?\n/gm, '').replace('export default async function', 'async function');
   const run = async (booking, nowIso) => {
     class Clock extends Date { constructor(...a) { super(...(a.length ? a : [nowIso])); } static now() { return Date.parse(nowIso); } }
@@ -168,8 +169,7 @@ assert.match(noShow, /if \(startMs > nowMs\) return res\.status\(409\)/, 'cannot
       insert: () => { wrote = true; return q; }, update: () => { wrote = true; return q; }, contains: () => q, limit: async () => ({ data: [], error: null }) }; return q; } };
     const deps = { getSupabase: () => sb, verifyOwner: () => true, sendEmail: async () => ({ ok: true }), esc: String, Date: Clock,
       BOOKING_STATUS: { CONFIRMED: 'confirmed' }, EASER_RELIABILITY_POLICY: P,
-      notificationAppointmentTimestampMs: appt.notificationAppointmentTimestampMs, notificationAppointmentWindowEndMs: appt.notificationAppointmentWindowEndMs,
-      formatAppointmentDate: appt.formatAppointmentDate, loadEaserStrikes, recordEaserCancellation, pauseEaserIfOverLimit };
+      noShowConfirmable, formatAppointmentDate: appt.formatAppointmentDate, loadEaserStrikes, recordEaserCancellation, pauseEaserIfOverLimit };
     const handler = new Function(...Object.keys(deps), `${src}\nreturn handler;`)(...Object.values(deps));
     const res = { status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
     await handler({ method: 'POST', body: { bookingId: booking.id } }, res);
@@ -182,6 +182,9 @@ assert.match(noShow, /if \(startMs > nowMs\) return res\.status\(409\)/, 'cannot
   // AAE-WWWTOI: accepted after the Nov 6 window had passed.
   const lateAccept = await run({ ...phil, date: '2026-11-06', time: '9:00 AM - 11:00 AM', assembler_accepted_at: '2026-11-07T18:00:00Z' }, '2026-11-08T17:00:17Z');
   assert.equal(lateAccept.code, 409); assert.match(lateAccept.body.error, /accepted this job after its arrival window had passed/); assert.equal(lateAccept.wrote, false);
+  // A single time: same 60-minute grace as the automatic check, not one minute.
+  const single = await run({ ...phil, date: '2026-09-24', time: '9:00 AM', assembler_accepted_at: '2026-09-16T17:31:31Z' }, '2026-09-24T14:30:00Z');
+  assert.equal(single.code, 409); assert.match(single.body.error, /not late yet/); assert.equal(single.wrote, false);
 }
 
 assert.match(noShow, /contains\('metadata', \{ easerId, kind: 'no_show' \}\)/, 'one no-show per booking and Easer');

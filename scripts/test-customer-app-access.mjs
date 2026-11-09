@@ -90,6 +90,8 @@ const req = (jwt) => ({ headers: jwt ? { authorization: 'Bearer ' + jwt } : {} }
   assert.match(read('api/booking/track.js'), /const customerStatus = customerStatusLabel\(booking\);/, 'the booking page and the list share the words');
   assert.equal(customerStatusLabel({ status: 'confirmed', assembler_id: 'e1' }).label, 'Matching you with a service pro');
   assert.equal(customerStatusLabel({ status: 'confirmed', assembler_id: 'e1', assembler_accepted_at: 'x', assembler_name: 'Pat Doe', date: '2026-10-20', time: '10:00 AM - 12:00 PM' }).label, 'Pat is confirmed for your job');
+  assert.equal(customerStatusLabel({ status: 'confirmed', assembler_id: 'e1', assembler_accepted_at: 'x', assembler_name: 'Pat Doe', date: '2026-10-20', time: '10:00 AM - 12:00 PM' }).detail, 'Arriving Tue, Oct 20, between 10:00 AM and 12:00 PM.', 'the whole booked window, never only its start');
+  assert.equal(customerStatusLabel({ status: 'confirmed', assembler_id: 'e1', assembler_accepted_at: 'x', assembler_name: 'Pat Doe', date: '2026-10-20', time: '9:00 AM' }).detail, 'Arriving Tue, Oct 20 at 9:00 AM.');
   const track = read('api/booking/track.js');
   assert.match(track, /reschedule_options: \(\(\) => \{\s*const bounds = rescheduleDateBounds\(booking\);\s*return \{ slots: TIME_SLOTS, window_days: BOOKING_WINDOW_DAYS, min_date: bounds\.minDate, max_date: bounds\.maxDate \};/, 'reschedule times and dates come from the rule reschedule.js enforces');
   assert.match(track, /loadBookingItems\(booking\.id, \{ sb, includePricing: true \}\)/, 'the customer sees what they booked, with their prices');

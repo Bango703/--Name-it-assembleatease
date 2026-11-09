@@ -39,21 +39,44 @@ function appointmentTimes(booking) {
   return { appointmentMs, windowEndMs };
 }
 
-export function arrivalFollowUp(booking, nowMs = Date.now()) {
-  if (!acceptedAndNotThere(booking) || booking.date < arrivalFollowUpLookbackDate(nowMs)) return null;
-
+// THE lateness rule, read by the possible-no-show check, Live Ops and the
+// owner's Confirm no-show. Null when the time cannot be read.
+function lateness(booking) {
   const times = appointmentTimes(booking);
   if (!times) return null;
   const { appointmentMs, windowEndMs } = times;
   const accepted = acceptedMs(booking);
-  // Accepted after the arrival window closed and not on the way: the job needs
-  // a new time, not a chase.
-  if (accepted != null && accepted >= windowEndMs && booking.status === BOOKING_STATUS.CONFIRMED) return null;
+  const acceptedAfterWindow = accepted != null && accepted >= windowEndMs;
   const acceptedAfterStart = accepted != null && accepted > appointmentMs;
   const startMs = acceptedAfterStart ? accepted : appointmentMs;
   const dueMs = Math.max(windowEndMs, startMs + GRACE_MINUTES * 60000);
-  if (nowMs < dueMs) return null;
-  return { appointmentMs, minutesLate: Math.round((nowMs - startMs) / 60000), measuredFrom: acceptedAfterStart ? 'acceptance' : 'appointment' };
+  return { appointmentMs, windowEndMs, acceptedAfterWindow, acceptedAfterStart, startMs, dueMs };
+}
+
+export function arrivalFollowUp(booking, nowMs = Date.now()) {
+  if (!acceptedAndNotThere(booking) || booking.date < arrivalFollowUpLookbackDate(nowMs)) return null;
+  const late = lateness(booking);
+  if (!late) return null;
+  // Accepted after the arrival window closed and not on the way: the job needs
+  // a new time, not a chase.
+  if (late.acceptedAfterWindow && booking.status === BOOKING_STATUS.CONFIRMED) return null;
+  if (nowMs < late.dueMs) return null;
+  return { appointmentMs: late.appointmentMs, minutesLate: Math.round((nowMs - late.startMs) / 60000), measuredFrom: late.acceptedAfterStart ? 'acceptance' : 'appointment' };
+}
+
+// Whether the owner may confirm a no-show now: the same moment the possible
+// no-show check would flag it, and never for a window that had already closed
+// when the Easer accepted. The handler checks who accepted and the status.
+export function noShowConfirmable(booking, nowMs = Date.now()) {
+  const late = lateness(booking);
+  if (!late) return { ok: false, error: 'The appointment time could not be read, so a no-show cannot be confirmed.' };
+  if (late.appointmentMs > nowMs) return { ok: false, error: 'The appointment has not started yet.' };
+  if (late.acceptedAfterWindow) {
+    return { ok: false, error: `${booking.assembler_name || 'The Easer'} accepted this job after its arrival window had passed, so it is not a no-show. Use Move to a New Time.` };
+  }
+  if (late.windowEndMs > nowMs) return { ok: false, error: 'The arrival window has not ended yet, so the Easer is not late.' };
+  if (late.dueMs > nowMs) return { ok: false, error: `The Easer is not late yet. A no-show can be confirmed ${GRACE_MINUTES} minutes after the start.` };
+  return { ok: true, startMs: late.appointmentMs };
 }
 
 // The current Easer accepted after the arrival window closed, the job has not

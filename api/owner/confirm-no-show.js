@@ -1,7 +1,8 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, esc } from '../_email.js';
 import { BOOKING_STATUS, EASER_RELIABILITY_POLICY } from '../_source-of-truth.js';
-import { notificationAppointmentTimestampMs, notificationAppointmentWindowEndMs, formatAppointmentDate } from '../booking/_appt-date.js';
+import { formatAppointmentDate } from '../booking/_appt-date.js';
+import { noShowConfirmable } from '../booking/_arrival-follow-up.js';
 import { loadEaserStrikes, recordEaserCancellation, pauseEaserIfOverLimit } from '../_easer-reliability.js';
 
 /**
@@ -29,20 +30,12 @@ export default async function handler(req, res) {
   if (booking.status !== BOOKING_STATUS.CONFIRMED) {
     return res.status(409).json({ error: `The job is ${String(booking.status).replace('_', ' ')}, so the Easer is not a no-show.` });
   }
-  let startMs = null;
-  try { startMs = notificationAppointmentTimestampMs(booking); } catch (_) { startMs = null; }
-  if (startMs == null) return res.status(409).json({ error: 'The appointment time could not be read, so a no-show cannot be confirmed.' });
   const nowMs = Date.now();
-  if (startMs > nowMs) return res.status(409).json({ error: 'The appointment has not started yet.' });
-  // Same rule as the possible-no-show check (_arrival-follow-up.js): arriving
-  // inside the window is on time, and nobody misses a window that had already
-  // closed when they accepted the job.
-  const windowEndMs = notificationAppointmentWindowEndMs(booking) ?? startMs;
-  if (windowEndMs > nowMs) return res.status(409).json({ error: 'The arrival window has not ended yet, so the Easer is not late.' });
-  const acceptedAtMs = Date.parse(booking.assembler_accepted_at);
-  if (Number.isFinite(acceptedAtMs) && acceptedAtMs >= windowEndMs) {
-    return res.status(409).json({ error: `${booking.assembler_name || 'The Easer'} accepted this job after its arrival window had passed, so it is not a no-show. Use Move to a New Time.` });
-  }
+  // The lateness rule lives in _arrival-follow-up.js, shared with the
+  // possible-no-show check and Live Ops.
+  const confirmable = noShowConfirmable(booking, nowMs);
+  if (!confirmable.ok) return res.status(409).json({ error: confirmable.error });
+  const { startMs } = confirmable;
 
   const easerId = booking.assembler_id;
   const easerName = booking.assembler_name || 'The Easer';
