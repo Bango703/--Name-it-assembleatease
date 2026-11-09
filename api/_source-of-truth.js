@@ -482,9 +482,17 @@ export const CANCELLATION_POLICY = Object.freeze({
  * @param {{ serviceSubtotalCents?:number, hoursUntilAppointment?:(number|null), status?:(string|null), isNoShow?:boolean, forfeitFreeWindow?:boolean }} args
  * @returns {{ tier:('free'|'late'|'imminent'), feePct:number, feeCents:number, proTripCut:boolean }}
  */
-export function computeCancellationFee({ serviceSubtotalCents = 0, hoursUntilAppointment = null, status = null, isNoShow = false, forfeitFreeWindow = false, easerAccepted = false } = {}) {
+export function computeCancellationFee({ serviceSubtotalCents = 0, hoursUntilAppointment = null, status = null, isNoShow = false, forfeitFreeWindow = false, easerAccepted = false, easerNoShow = false } = {}) {
   const sub = Math.max(0, Math.round(Number(serviceSubtotalCents) || 0));
   const h = (typeof hoursUntilAppointment === 'number' && isFinite(hoursUntilAppointment)) ? hoursUntilAppointment : null;
+
+  // ── An Easer did not show for this booking: the customer never pays ─────────
+  // Owner-confirmed (api/owner/confirm-no-show.js, api/booking/_easer-no-show.js).
+  // Only the owner's explicit customer no-show on a later visit (isNoShow)
+  // can bring a fee back.
+  if (easerNoShow === true && isNoShow !== true) {
+    return { tier: 'free', feePct: 0, feeCents: 0, proTripCut: false, waivedReason: 'easer_no_show', reason: 'easer_no_show' };
+  }
 
   // ── HARD INVARIANT: no accepted Easer, no customer cancellation fee ────────
   //

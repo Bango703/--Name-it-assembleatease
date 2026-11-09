@@ -36,6 +36,19 @@ export function notificationAppointmentTimestampMs(booking = {}) {
   return appointmentTimestampMs(booking.date, fullTime, appointmentTimeZone(booking));
 }
 
+// End of the arrival window ("8:00 AM - 10:00 AM" ends at 10:00 AM), or null
+// for a single time or a window that cannot be read.
+export function notificationAppointmentWindowEndMs(booking = {}) {
+  if (!booking.time) return null;
+  const parts = String(booking.time).split(/[-–—]/);
+  if (parts.length < 2) return null;
+  const endTime = parts[parts.length - 1].trim().replace(/(?<![\d:])(\b\d{1,2})\s*(AM|PM)\b/gi, '$1:00 $2');
+  if (!/\d+:\d+\s*(AM|PM)/i.test(endTime)) return null;
+  const startMs = notificationAppointmentTimestampMs(booking);
+  const endMs = appointmentTimestampMs(booking.date, endTime, appointmentTimeZone(booking));
+  return startMs != null && endMs != null && endMs > startMs ? endMs : null;
+}
+
 /**
  * Compute the UTC timestamp (ms) for a booking appointment in America/Chicago time.
  * Handles CDT (UTC-5, mid-Mar → early Nov) and CST (UTC-6, rest of year) automatically

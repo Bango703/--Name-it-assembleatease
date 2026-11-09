@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { authenticateBearerUser, respondWithEaserAccessError } from '../_easer-access.js';
-import { getEaserRequiredActions } from '../_announcements.js';
+import { getEaserRequiredActions, markEaserAppSeen } from '../_announcements.js';
+import { isEaserNativeApp } from '../_easer-app-policy.js';
 
 // Returns the Easer's active required actions (e.g. "Set up your payouts") for
 // the in-app banner. Reusable: whatever announcements target this Easer show up.
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
     .from('profiles')
     // Every column any TARGET_RULES entry reads must be selected here, or that
     // rule silently never fires for the in-app banner.
-    .select('id, role, status, application_status, stripe_connect_payouts_enabled, phone, sms_consent_at, sms_opted_out_at')
+    .select('id, role, status, application_status, stripe_connect_payouts_enabled, phone, sms_consent_at, sms_opted_out_at, contractor_agreement_user_agent')
     .eq('id', authed.user.id)
     .maybeSingle();
 
@@ -26,6 +27,11 @@ export default async function handler(req, res) {
   }
   if (!profile || profile.role !== 'assembler') {
     return res.status(403).json({ error: 'Easer access required' });
+  }
+
+  // The Easer app is asking: record that this Easer uses it (never fails the request).
+  if (isEaserNativeApp(req.headers?.['user-agent'])) {
+    await markEaserAppSeen(sb, profile.id).catch(() => {});
   }
 
   try {

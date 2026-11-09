@@ -14,6 +14,7 @@ import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { isOfflineLiveFlow } from '../_owner-easer.js';
 import { demoBookingBlock, isDemoEaser } from '../_demo-accounts.js';
 import { notifyCustomerApp } from '../_customer-push.js';
+import { easerAppPolicy, offersBelongInApp } from '../_easer-app-policy.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -188,6 +189,13 @@ export default async function handler(req, res) {
   });
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // From the owner's date, an iPhone browser accepts in the Easer app
+  // (api/_easer-app-policy.js). Off while EASER_IPHONE_APP_REQUIRED_FROM is unset.
+  const appPolicy = easerAppPolicy();
+  if (offersBelongInApp(req, appPolicy)) {
+    return res.status(409).json({ error: 'Accept this job in the Easer app.', code: 'EASER_APP_REQUIRED', appUrl: appPolicy.iosAppUrl });
+  }
 
   // Verify JWT — assemblerId MUST come from the token, not the request body
   const auth = req.headers.authorization;

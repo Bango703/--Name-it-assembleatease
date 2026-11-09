@@ -46,7 +46,7 @@ export default async function handler(req, res) {
   const user = access.user;
 
   const { data: booking, error } = await sb.from('bookings')
-    .select('id, ref, service, status, date, time, payment_status, assembler_id, assembler_name, assembler_accepted_at, customer_name, customer_email, customer_phone, sms_consent_at, sms_opted_out_at, guest_mutation_token_hash')
+    .select('id, ref, service, status, date, time, payment_status, payment_method_type, total_price, stripe_payment_intent_id, stripe_customer_id, stripe_payment_method_id, stripe_deposit_intent_id, assembler_id, assembler_name, assembler_accepted_at, customer_name, customer_email, customer_phone, sms_consent_at, sms_opted_out_at, guest_mutation_token_hash')
     .eq('id', bookingId).maybeSingle();
   if (error) return res.status(503).json({ error: 'The job could not be loaded. Try again.' });
   if (!booking || booking.assembler_id !== user.id || !booking.assembler_accepted_at) {

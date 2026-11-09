@@ -140,7 +140,7 @@ function harness(name, booking = fixture(), options = {}) {
 }
 {
   let fail = true;
-  const h = harness('no-show-check', fixture(), { now: '2026-09-24T15:05:00Z', emailResult: () => ({ ok: !fail }) });
+  const h = harness('no-show-check', fixture(), { now: '2026-09-24T16:05:00Z', emailResult: () => ({ ok: !fail }) });
   await h.run();
   assert.equal(h.calls.activity.some(a => a.eventType === 'no_show_flagged'), false);
   fail = false; await h.run(); await h.run();
@@ -148,9 +148,32 @@ function harness(name, booking = fixture(), options = {}) {
   assert.equal(h.calls.activity.filter(a => a.eventType === 'no_show_flagged').length, 1);
 }
 {
-  const h = harness('no-show-check', fixture(), { now: '2026-09-24T15:05:00Z', beforeBookingRead: (n, b) => { if (n === 2) b.status = 'cancelled'; } });
+  const h = harness('no-show-check', fixture(), { now: '2026-09-24T16:05:00Z', beforeBookingRead: (n, b) => { if (n === 2) b.status = 'cancelled'; } });
   await h.run();
   assert.equal(h.calls.email.length, 0, 'cancellation after scan wins');
+}
+{
+  // Owner, 2026-11-09: checked in at 9:12 for an 8-10 AM window, flagged at
+  // 9:00. No possible-no-show email while the arrival window is open.
+  const inWindow = harness('no-show-check', fixture(), { now: '2026-09-24T15:05:00Z' });
+  await inWindow.run();
+  assert.equal(inWindow.calls.email.length, 0, 'inside the 9-11 AM window is on time');
+  assert.equal(inWindow.calls.activity.some(a => a.eventType === 'no_show_flagged'), false);
+}
+{
+  // Owner, 2026-11-08: a job reassigned after a no-show alerted against the new
+  // Easer for the old time, which had passed before they accepted.
+  const late = { ...fixture(), assembler_accepted_at: '2026-09-24T16:20:00Z' };
+  const h = harness('no-show-check', late, { now: '2026-09-24T18:00:00Z' });
+  await h.run();
+  assert.equal(h.calls.email.length, 0, 'an Easer who accepted after the arrival window closed is never a possible no-show for it');
+  const moving = harness('no-show-check', { ...late, status: 'en_route' }, { now: '2026-09-24T17:25:00Z' });
+  await moving.run();
+  assert.equal(moving.calls.email.length, 1, 'on the way after a late accept: measured from the acceptance, past the grace');
+  assert.match(moving.calls.email[0].html, /past when they accepted it, which was after the appointment start/);
+  const early = harness('no-show-check', { ...late, status: 'en_route' }, { now: '2026-09-24T17:15:00Z' });
+  await early.run();
+  assert.equal(early.calls.email.length, 0, 'inside the grace after acceptance');
 }
 {
   const h = harness('easer-arrival-nudge');
