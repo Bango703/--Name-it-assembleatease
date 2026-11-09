@@ -1,4 +1,5 @@
 import { getSupabase } from '../_supabase.js';
+import { easerAppPolicy, isIPhoneBrowser, offersBelongInApp } from '../_easer-app-policy.js';
 import { loadBookingItems } from './_booking-items.js';
 import {
   hasCurrentEaserAgreement,
@@ -548,8 +549,15 @@ export default async function handler(req, res) {
     INTERNAL_FINANCIAL_FIELDS.forEach(field => { delete booking[field]; });
   });
 
+  // iPhone browsers take new work in the Easer app once the owner has set the
+  // date (api/_easer-app-policy.js). Accepted jobs always stay listed here.
+  const app = easerAppPolicy();
+  const offersInApp = offersBelongInApp(req, app);
+  const listed = offersInApp ? allBookings.filter(booking => Boolean(booking.assembler_accepted_at)) : allBookings;
+
   const response = {
-    bookings: allBookings,
+    bookings: listed,
+    app: { ...app, iphoneBrowser: isIPhoneBrowser(req.headers?.['user-agent']), offersInApp },
     access: {
       agreementCurrent,
       newOffersAllowed: !applicationFeeRefundHold,

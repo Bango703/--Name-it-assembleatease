@@ -32,6 +32,10 @@ const QUOTE_UNPRICED_MIN = 60;
 
 /** The urgent issue on one booking, or null. Pure, for scripts/test-quote-not-a-job.mjs. */
 export function classifyOpsIssue(b, { now = Date.now(), todayStr = chicagoTodayIso(new Date(now)) } = {}) {
+  // A test booking (the App Review job) never needs the owner (owner,
+  // 2026-11-08: AAE-KM7FD6S85G emailed "needs manual assignment" every six
+  // hours). Same rule as no-show-check, unassigned-escalation and Live Ops.
+  if (b.is_test_booking === true) return null;
   let issue = null;
   const effectiveDate = b.return_visit_required ? b.return_visit_date : b.date;
   const effectiveTime = b.return_visit_required ? b.return_visit_time : b.time;
@@ -91,7 +95,7 @@ export default async function handler(req, res) {
 
   const { data: bookings, error } = await sb
     .from('bookings')
-    .select('id, ref, service, source, payment_status, customer_name, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_remaining_scope, status, assembler_id, assembler_name, assembler_accepted_at, assigned_at, needs_manual_dispatch, dispatch_status, payment_method_type, created_at')
+    .select('id, ref, service, source, payment_status, customer_name, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_remaining_scope, status, assembler_id, assembler_name, assembler_accepted_at, assigned_at, needs_manual_dispatch, dispatch_status, payment_method_type, is_test_booking, created_at')
     .or('status.in.(pending,confirmed,en_route,arrived,in_progress),and(status.eq.completed,return_visit_required.eq.true)')
     .limit(200);
 

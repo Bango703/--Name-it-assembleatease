@@ -202,8 +202,8 @@ for (const change of [{ stripe_payment_method_id: null }, { financial_operation_
     assert.equal((await h.run()).body.awaitingAcceptance.length, 0);
   });
 }
-await test('accepted booking with no arrival becomes owner follow-up at the existing 60-minute threshold', async () => {
-  const h = harness(liveOpsSource, fixture({ assembler_accepted_at: '2026-10-06T13:00:00Z' }));
+await test('accepted booking with no arrival becomes owner follow-up once the arrival window closes', async () => {
+  const h = harness(liveOpsSource, fixture({ assembler_accepted_at: '2026-10-06T13:00:00Z' }), { now: '2026-10-07T16:00:00Z' });
   const { body } = await h.run();
   const alert = body.alerts.find(row => row.type === 'arrival_follow_up');
   assert.ok(alert);
@@ -214,15 +214,65 @@ await test('accepted booking with no arrival becomes owner follow-up at the exis
 });
 for (const change of [{ status: 'arrived' }, { status: 'in_progress' }, { status: 'completed' }, { status: 'cancelled' }, { checked_in_at: '2026-10-07T14:59:00Z' }, { return_visit_required: true }, { assembler_accepted_at: null }, { assembler_id: null }, { time: 'TBD' }, { date: '2026-10-03' }, { date: '2026-10-08' }]) {
   await test(`arrival follow-up excludes ${JSON.stringify(change)}`, async () => {
-    const h = harness(liveOpsSource, fixture({ assembler_accepted_at: '2026-10-06T13:00:00Z', ...change }));
+    const h = harness(liveOpsSource, fixture({ assembler_accepted_at: '2026-10-06T13:00:00Z', ...change }), { now: '2026-10-07T16:30:00Z' });
     assert.equal((await h.run()).body.alerts.some(row => row.type === 'arrival_follow_up'), false);
   });
 }
 await test('arrival follow-up respects the appointment timezone and grace boundary', async () => {
   const booking = fixture({ assembler_accepted_at: '2026-10-06T13:00:00Z', service_zip: '79901', service_city: 'El Paso', address: '123 Example St' });
-  for (const [now, expected] of [['2026-10-07T15:59:59Z', false], ['2026-10-07T16:00:00Z', true]]) {
+  for (const [now, expected] of [['2026-10-07T16:59:59Z', false], ['2026-10-07T17:00:00Z', true]]) {
     const h = harness(liveOpsSource, booking, { now });
     assert.equal((await h.run()).body.alerts.some(row => row.type === 'arrival_follow_up'), expected);
+  }
+});
+await test('accepted after the appointment start: needs a new time, never an arrival follow-up', async () => {
+  const h = harness(liveOpsSource, fixture({ assembler_accepted_at: '2026-10-07T16:30:00Z' }), { now: '2026-10-07T18:00:00Z' });
+  const { body } = await h.run();
+  assert.equal(body.alerts.some(row => row.type === 'arrival_follow_up'), false);
+  const alert = body.alerts.find(row => row.type === 'needs_new_time');
+  assert.ok(alert, 'the passed time is reported as needing a new one');
+  assert.equal(alert.action, 'review_timeline');
+  assert.match(alert.message, /accepted after the appointment time had passed/);
+  assert.match(alert.message, /Propose a new time/);
+  assert.equal(h.calls.writes.length, 0);
+});
+await test('accepted before the start: no needs-new-time alert', async () => {
+  const h = harness(liveOpsSource, fixture({ assembler_accepted_at: '2026-10-06T13:00:00Z' }), { now: '2026-10-07T18:00:00Z' });
+  assert.equal((await h.run()).body.alerts.some(row => row.type === 'needs_new_time'), false);
+});
+for (const change of [{ date: '2026-10-08' }, { status: 'en_route' }, { checked_in_at: '2026-10-07T17:00:00Z' }, { assembler_accepted_at: null }]) {
+  await test(`needs-new-time clears for ${JSON.stringify(change)}`, async () => {
+    const h = harness(liveOpsSource, fixture({ assembler_accepted_at: '2026-10-07T16:30:00Z', ...change }), { now: '2026-10-07T18:00:00Z' });
+    assert.equal((await h.run()).body.alerts.some(row => row.type === 'needs_new_time'), false);
+  });
+}
+// Owner, 2026-11-09: Phil Hawkins checked in at 9:12 for an 8-10 AM window
+// (AAE-DVSNHXE4OO) and was flagged at 9:00. Inside the window is on time.
+await test('inside the arrival window is never late', async () => {
+  const booking = fixture({ assembler_accepted_at: '2026-10-06T13:00:00Z' });
+  for (const [now, expected] of [['2026-10-07T15:00:00Z', false], ['2026-10-07T15:59:59Z', false], ['2026-10-07T16:00:00Z', true]]) {
+    assert.equal((await harness(liveOpsSource, booking, { now }).run()).body.alerts.some(row => row.type === 'arrival_follow_up'), expected, now);
+  }
+  const single = fixture({ assembler_accepted_at: '2026-10-06T13:00:00Z', time: '9:00 AM' });
+  for (const [now, expected] of [['2026-10-07T14:59:59Z', false], ['2026-10-07T15:00:00Z', true]]) {
+    assert.equal((await harness(liveOpsSource, single, { now }).run()).body.alerts.some(row => row.type === 'arrival_follow_up'), expected, `single time ${now}`);
+  }
+});
+await test('accepted mid-window: still on for this window, never needs a new time, gets the full grace', async () => {
+  const booking = fixture({ assembler_accepted_at: '2026-10-07T15:30:00Z' });
+  for (const [now, expected] of [['2026-10-07T16:29:00Z', false], ['2026-10-07T16:31:00Z', true]]) {
+    const { body } = await harness(liveOpsSource, booking, { now }).run();
+    assert.equal(body.alerts.some(row => row.type === 'arrival_follow_up'), expected, now);
+    assert.equal(body.alerts.some(row => row.type === 'needs_new_time'), false, now);
+  }
+});
+await test('on the way after a late accept: arrival follow-up measured from the acceptance', async () => {
+  const booking = fixture({ assembler_accepted_at: '2026-10-07T16:30:00Z', status: 'en_route' });
+  for (const [now, expected] of [['2026-10-07T17:29:00Z', false], ['2026-10-07T17:31:00Z', true]]) {
+    const { body } = await harness(liveOpsSource, booking, { now }).run();
+    const alert = body.alerts.find(row => row.type === 'arrival_follow_up');
+    assert.equal(Boolean(alert), expected, now);
+    if (alert) assert.match(alert.message, /past their acceptance/);
   }
 });
 console.log(`Owner fulfillment safety: ${passed} passed, ${failed} failed.`);

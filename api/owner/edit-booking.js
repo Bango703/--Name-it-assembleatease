@@ -214,9 +214,14 @@ export default async function handler(req, res) {
     eventType: 'owner_booking_updated',
     actorType: 'owner',
     actorName: 'owner',
-    description: `Owner updated booking ${booking.ref}${detailsChanged ? ' job details' : ''}${scheduleChanged ? ' and reset schedule dispatch state' : ''}`,
+    description: scheduleChanged
+      ? `Owner moved booking ${booking.ref} from ${booking.date || 'no date'} ${booking.time || ''} to ${updates.date || booking.date} ${updates.time || booking.time}${detailsChanged ? ', updated job details' : ''} and reset schedule dispatch state`.replace(/\s+/g, ' ')
+      : `Owner updated booking ${booking.ref}${detailsChanged ? ' job details' : ''}`,
     metadata: {
       updates: Object.keys(updates),
+      // The appointment before and after, so the timeline, the Easer's
+      // "moved from" line and later questions can read what changed.
+      ...(scheduleChanged ? { oldDate: booking.date || null, oldTime: booking.time || null, newDate: updates.date || booking.date, newTime: updates.time || booking.time } : {}),
       detailsChanged,
       easerReconfirmationRequired,
       dispatchOfferCleanupFailed,
