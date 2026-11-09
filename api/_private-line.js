@@ -73,7 +73,7 @@ export function privateLineOpen(booking = {}, nowMs = Date.now()) {
   return evaluateCustomerContactRelease(booking, nowMs).released === true;
 }
 
-const SESSION_FIELDS = 'id, ref, service, status, date, time, customer_phone, customer_name, assembler_id, assembler_name, assembler_accepted_at, completed_at, return_visit_required, return_visit_date, return_visit_time';
+const SESSION_FIELDS = 'id, ref, service, status, date, time, customer_phone, customer_name, sms_consent_at, sms_opted_out_at, assembler_id, assembler_name, assembler_accepted_at, completed_at, return_visit_required, return_visit_date, return_visit_time';
 const LOOKUP_STATUSES = [...ACTIVE_BOOKING_STATUSES, BOOKING_STATUS.COMPLETED];
 
 /** The Easer a customer's call reaches: the crew lead, else the assigned Easer. */
@@ -176,3 +176,20 @@ export function decodeState(encoded) {
     return null;
   }
 }
+
+// ── Private job texts (the toll-free line) ──────────────────────────────────
+// Customer and lead Easer text each other through one AssembleAtEase number;
+// every relayed text says it comes through AssembleAtEase (toll-free rules bar
+// presenting a message as another person's). Off until PRIVATE_TEXTING_ENABLED
+// =true, TELNYX_PRIVATE_TEXT_NUMBER is set, and Telnyx has approved the
+// number's toll-free verification.
+export function privateTextConfig(env = process.env) {
+  const number = normalizeUsPhone(env.TELNYX_PRIVATE_TEXT_NUMBER);
+  const profileId = String(env.TELNYX_PRIVATE_TEXT_PROFILE_ID || '').trim();
+  const businessNumber = normalizeUsPhone(env.TELNYX_FROM_NUMBER);
+  const switchedOn = String(env.PRIVATE_TEXTING_ENABLED || '').trim() === 'true';
+  return { number, profileId, businessNumber, enabled: switchedOn && Boolean(number) && number !== businessNumber };
+}
+
+export const STOP_WORDS = Object.freeze(['stop', 'stopall', 'unsubscribe', 'cancel', 'end', 'quit', 'revoke', 'optout']);
+export const HELP_WORDS = Object.freeze(['help', 'info']);

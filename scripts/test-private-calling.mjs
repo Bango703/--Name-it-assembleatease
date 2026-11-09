@@ -6,6 +6,8 @@ import { readFileSync } from 'node:fs';
 import { privateLineConfig, isPoolNumber, lineNumberFor, privateLineOpen, openLinesForCaller, encodeState, decodeState, NO_LINE_MESSAGE, NO_ANSWER_MESSAGE } from '../api/_private-line.js';
 import { handlePrivateLineEvent } from '../api/webhooks/telnyx-private-line.js';
 import privateCall from '../api/booking/private-call.js';
+import { privateTextConfig } from '../api/_private-line.js';
+import { handlePrivateTextEvent } from '../api/webhooks/telnyx-private-text.js';
 
 const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n');
 const POOL_A = '+15125550101';
@@ -225,4 +227,66 @@ console.log('PASS buttons: "Call customer" and "Call your pro" ring the presser 
   assert.ok(encodeState({ stage: 'x' }).length < 600);
 }
 console.log('PASS wiring: signed events only; the owner call webhook is unchanged');
+
+// Private job texts on the toll-free line.
+{
+  const TEXT = '+18777484603';
+  const tcfg = privateTextConfig({ TELNYX_PRIVATE_TEXT_NUMBER: TEXT, TELNYX_FROM_NUMBER: BUSINESS, PRIVATE_TEXTING_ENABLED: 'true' });
+  assert.equal(privateTextConfig({ TELNYX_PRIVATE_TEXT_NUMBER: TEXT, TELNYX_FROM_NUMBER: BUSINESS }).enabled, false, 'off unless switched on');
+  assert.equal(privateTextConfig({ TELNYX_PRIVATE_TEXT_NUMBER: BUSINESS, TELNYX_FROM_NUMBER: BUSINESS, PRIVATE_TEXTING_ENABLED: 'true' }).enabled, false, 'never the business number');
+  const consented = { sms_consent_at: '2026-11-01T00:00:00Z', sms_opted_out_at: null };
+  const textHarness = (rows, config = tcfg) => {
+    const sent = [];
+    const logs = [];
+    const ctx = {
+      cfg: config, sb: db({ profiles: profiles.map((p) => ({ ...p, full_name: p.id === 'lead-1' ? 'Lena Lead' : 'Phil Hawkins', ...consented })), booking_crew: [], ...rows }), now: NOW,
+      send: async (msg) => { sent.push(msg); return { ok: true }; },
+      log: async (_sb, entry) => { logs.push(entry); return { ok: true }; },
+    };
+    const text = (from, body) => handlePrivateTextEvent({ data: { event_type: 'message.received', payload: { from: { phone_number: from }, to: [{ phone_number: TEXT }], text: body } } }, ctx);
+    return { sent, logs, text };
+  };
+  const b1 = booking('b1', consented);
+
+  const c = textHarness({ bookings: [b1] });
+  assert.equal((await c.text(CUSTOMER, 'Is 10 still good?')).action, 'relayed');
+  assert.equal(c.sent[0].recipient.phone, EASER, 'the customer reaches her pro');
+  assert.equal(c.sent[0].from, TEXT, 'sent from the job-text line, never anyone\'s real number');
+  assert.equal(c.sent[0].body, 'AssembleAtEase job AAE-B1, Bianca: Is 10 still good?', 'labelled as coming through AssembleAtEase');
+  assert.equal(c.logs[0].eventType, 'private_text_relayed', 'on the owner timeline');
+
+  const e = textHarness({ bookings: [b1] });
+  await e.text(EASER, 'On my way, 20 minutes');
+  assert.deepEqual([e.sent[0].recipient.phone, e.sent[0].body], [CUSTOMER, 'AssembleAtEase, Phil (your pro): On my way, 20 minutes']);
+
+  const blocked = textHarness({ bookings: [b1] });
+  assert.equal((await blocked.text(EASER, 'text me at 281.722.0506')).action, 'blocked', 'the contact guard applies');
+  assert.equal(blocked.sent.length, 1, 'only the refusal goes back to the sender');
+  assert.equal(blocked.sent[0].recipient.phone, EASER);
+  assert.equal(blocked.logs[0].eventType, 'private_text_blocked');
+  assert.equal((await textHarness({ bookings: [b1] }).text(CUSTOMER, 'my email is me@example.com')).action, 'blocked', 'both directions');
+
+  const noConsent = textHarness({ bookings: [booking('b1', { sms_consent_at: null })] });
+  await noConsent.text(EASER, 'Running late');
+  assert.equal(noConsent.sent[0].recipient.sms_consent_at, null, 'the customer\'s real consent goes to the shared sender, which refuses without it');
+
+  const two = textHarness({ bookings: [b1, booking('b2', { ...consented, time: '2:00 PM - 4:00 PM' })] });
+  assert.equal((await two.text(CUSTOMER, 'Hello')).action, 'asked_which_job');
+  assert.match(two.sent[0].body, /You have 2 active jobs\. Start your text with 1 for 2026-11-10 10:00 AM, 2 for 2026-11-10 2:00 PM\./);
+  await two.text(CUSTOMER, '2 bring a ladder please');
+  assert.equal(two.sent[1].body, 'AssembleAtEase job AAE-B2, Bianca: bring a ladder please', 'the number picks the job and is dropped');
+
+  const none = textHarness({ bookings: [] });
+  assert.equal((await none.text(CUSTOMER, 'hi')).action, 'no_open_job');
+  assert.match(none.sent[0].body, /This number is for active AssembleAtEase jobs\. For anything else, call or text 979-232-5139\./);
+  const stop = textHarness({ bookings: [b1] });
+  assert.equal((await stop.text(CUSTOMER, 'STOP')).action, 'opt_out_noted');
+  assert.equal(stop.sent.length, 0, 'STOP is never relayed');
+  assert.equal((await textHarness({ bookings: [b1] }).text(CUSTOMER, 'HELP')).action, 'help_sent');
+  const off = textHarness({ bookings: [b1] }, privateTextConfig({ TELNYX_PRIVATE_TEXT_NUMBER: TEXT, TELNYX_FROM_NUMBER: BUSINESS }));
+  assert.equal((await off.text(CUSTOMER, 'hi')).action, 'not_enabled');
+  assert.equal((await handlePrivateTextEvent({ data: { event_type: 'message.received', payload: { from: { phone_number: CUSTOMER }, to: [{ phone_number: BUSINESS }], text: 'hi' } } }, { cfg: tcfg })).ignored, 'not_the_private_text_line', 'texts to the business number are never handled here');
+  assert.match(read('api/_sms.js'), /from: String\(from \|\| process\.env\.TELNYX_FROM_NUMBER \|\| ''\)\.trim\(\),/, 'the shared sender only gains a from number; its consent and logging stay');
+}
+console.log('PASS job texts: both ways from the toll-free line, labelled AssembleAtEase, contact guard both ways, consent enforced, STOP and HELP handled, business texts untouched');
 console.log('\nPrivate calling tests passed.');
