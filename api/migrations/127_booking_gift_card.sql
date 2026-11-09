@@ -31,6 +31,10 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS bookings_gift_card_idx ON public.bookings (gift_card_id) WHERE gift_card_id IS NOT NULL;
 
+INSERT INTO public.platform_schema_state (migration_number, migration_name)
+VALUES (127, 'booking_gift_card')
+ON CONFLICT (migration_number) DO NOTHING;
+
 COMMIT;
 
 NOTIFY pgrst, 'reload schema';
