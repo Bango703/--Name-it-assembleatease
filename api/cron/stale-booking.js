@@ -4,6 +4,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logCron } from './_cron-logger.js';
 import { releasePendingRedemption } from '../_assemblecash.js';
+import { releaseBookingGiftCard } from '../_gift-cards.js';
 import { logActivity } from '../booking/_activity.js';
 import {
   classifyPendingExpiry,
@@ -300,6 +301,7 @@ export default async function handler(req, res) {
         customerEmail: b.customer_email,
         reason: 'reverse:stale_pending_declined',
       });
+      await releaseBookingGiftCard(sb, b, 'returned: unpaid booking expired');
       await logActivity(sb, {
         bookingId: b.id,
         eventType: expiry.kind === 'quote' ? 'quote_expired' : 'pending_payment_expired',

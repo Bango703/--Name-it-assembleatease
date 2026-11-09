@@ -10,6 +10,10 @@ const LOOKBACK_SECONDS = 3 * 24 * 60 * 60;
 const MAX_PAGES = 5;
 const STUCK_DELIVERY_MS = 2 * 60 * 60 * 1000;
 
+function isMissingGiftCardColumn(error) {
+  return error?.code === '42703' || error?.code === 'PGRST204' || /gift_card_/i.test(String(error?.message || '')) && /column|schema/i.test(String(error?.message || ''));
+}
+
 async function listAll(listFn, params) {
   const rows = [];
   let startingAfter;
@@ -150,6 +154,26 @@ export function createGiftCardReconcileHandler({
             }, { key: `${what.dispute ? 'dispute' : 'refund'}:${card.id}` });
             out.flagged += 1;
           } catch (error) { out.errors.push(`refund ${card.id}: ${error?.message || error}`); }
+        }
+
+        // A refund on a booking a gift card helped pay for: the owner decides
+        // whether the credit goes back to the card (Return credit in Gift Cards).
+        const { data: giftBookings, error: giftBookingError } = await sb.from('bookings')
+          .select('id, ref, gift_card_applied_cents, gift_card_last4, customer_email, stripe_payment_intent_id')
+          .in('stripe_payment_intent_id', [...touched.keys()])
+          .gt('gift_card_applied_cents', 0);
+        if (giftBookingError && !isMissingGiftCardColumn(giftBookingError)) throw giftBookingError;
+        for (const booking of giftBookings || []) {
+          const what = touched.get(booking.stripe_payment_intent_id);
+          try {
+            await alert(what.dispute ? 'A booking paid partly by gift card is disputed' : 'A booking paid partly by gift card was refunded', {
+              booking: booking.ref,
+              customer: booking.customer_email,
+              giftCard: `ending ${booking.gift_card_last4 || ''}, ${formatCents(booking.gift_card_applied_cents)}`,
+              action: 'If the gift card credit should go back too, open Gift Cards and use Return credit with this booking reference.',
+            }, { key: `${what.dispute ? 'dispute' : 'refund'}-booking:${booking.ref}` });
+            out.flagged += 1;
+          } catch (error) { out.errors.push(`refund booking ${booking.ref}: ${error?.message || error}`); }
         }
       }
 

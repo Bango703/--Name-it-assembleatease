@@ -40,10 +40,11 @@ const CODE_PREFIX = 'AAEG';
 const DELIVERY_CLAIM_MS = 10 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-// Stage 2 (using a code at checkout) flips this. Until then nothing can be
-// sold, even with GIFT_CARDS_ENABLED=true: a card that cannot be spent must
-// never be bought.
-export const GIFT_CARD_REDEMPTION_READY = false;
+// Codes can be used at checkout (stage 2, api/booking.js). While this is
+// false nothing can be sold, even with GIFT_CARDS_ENABLED=true: a card that
+// cannot be spent must never be bought. Sales are switched on separately with
+// GIFT_CARDS_ENABLED; a card already sold stays usable when sales are off.
+export const GIFT_CARD_REDEMPTION_READY = true;
 
 export function isGiftCardsEnabled(env = process.env) {
   return GIFT_CARD_REDEMPTION_READY && String(env.GIFT_CARDS_ENABLED || '').trim().toLowerCase() === 'true';
@@ -499,4 +500,111 @@ export async function alertOwner(subject, detail = {}, { send = sendEmail, key =
   } catch (error) {
     console.error('[gift-cards] owner alert failed:', error?.message || error);
   }
+}
+
+// ── Using a card on a booking (stage 2) ─────────────────────────────────
+
+const STRIPE_MINIMUM_CHARGE_CENTS = 50;
+
+/**
+ * The most a gift card may pay on one booking. The customer's card always
+ * keeps a hold large enough for the largest cancellation fee and Stripe's
+ * minimum charge, so cancelling, capturing and refunding work exactly as on
+ * a booking paid entirely by card. What is left stays on the gift card.
+ */
+export function maxGiftCardCents({ totalCents, serviceSubtotalCents, maxCancellationFeePct }) {
+  const total = Math.max(0, Math.round(Number(totalCents) || 0));
+  const subtotal = Math.max(0, Math.round(Number(serviceSubtotalCents) || 0));
+  const largestFee = Math.ceil(subtotal * Math.max(0, Number(maxCancellationFeePct) || 0) / 100);
+  return Math.max(0, total - Math.max(STRIPE_MINIMUM_CHARGE_CENTS, largestFee));
+}
+
+async function findActiveCard(sb, rawCode) {
+  const codeHash = hashCode(rawCode);
+  if (!codeHash) return { ok: false, status: 400, code: 'GIFT_CARD_INVALID', error: 'Enter the gift card code exactly as it appears in your email.' };
+  const { data: card, error } = await sb.from('gift_cards').select('*').eq('code_hash', codeHash).maybeSingle();
+  if (error) throw error;
+  if (!card) return { ok: false, status: 404, code: 'GIFT_CARD_NOT_FOUND', error: 'That gift card code was not found. Check it against your email.' };
+  if (card.status !== 'active') return { ok: false, status: 409, code: 'GIFT_CARD_VOID', error: 'This gift card can no longer be used.' };
+  return { ok: true, card, codeHash };
+}
+
+export function priorityFromCard(card, now = new Date()) {
+  return card?.kind === 'move_in_pass' && Boolean(card.priority_until) && new Date(card.priority_until) > now;
+}
+
+/** What a card would pay on this total, without taking anything. */
+export async function previewGiftCard(sb, { code, totalCents, serviceSubtotalCents, maxCancellationFeePct }) {
+  const found = await findActiveCard(sb, code);
+  if (!found.ok) return found;
+  const { data: rows, error } = await sb.rpc('gift_card_balance_v1', { p_gift_card_id: found.card.id });
+  if (error) throw error;
+  const row = Array.isArray(rows) ? rows[0] : rows;
+  const balanceCents = Number(row?.paid_cents || 0) + Number(row?.bonus_cents || 0);
+  if (balanceCents <= 0) return { ok: false, status: 409, code: 'GIFT_CARD_EMPTY', error: 'This gift card has no balance left.' };
+  const appliedCents = Math.min(balanceCents, maxGiftCardCents({ totalCents, serviceSubtotalCents, maxCancellationFeePct }));
+  return {
+    ok: true,
+    appliedCents,
+    balanceCents,
+    remainingCents: balanceCents - appliedCents,
+    last4: found.card.code_last4,
+    priority: priorityFromCard(found.card),
+  };
+}
+
+/** Take the credit for one booking, atomically. Repeating for the same
+ * booking ref returns the same amount instead of taking more. */
+export async function applyGiftCardToBooking(sb, { code, bookingRef, totalCents, serviceSubtotalCents, maxCancellationFeePct }) {
+  const found = await findActiveCard(sb, code);
+  if (!found.ok) return found;
+  const want = maxGiftCardCents({ totalCents, serviceSubtotalCents, maxCancellationFeePct });
+  if (want <= 0) return { ok: true, appliedCents: 0, giftCardId: found.card.id, last4: found.card.code_last4, priority: false };
+  const { data, error } = await sb.rpc('gift_card_redeem_v1', { p_code_hash: found.codeHash, p_amount_cents: want, p_booking_ref: bookingRef });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  const appliedCents = Number(row?.paid_used || 0) + Number(row?.bonus_used || 0);
+  if (appliedCents <= 0) return { ok: false, status: 409, code: 'GIFT_CARD_EMPTY', error: 'This gift card has no balance left.' };
+  return {
+    ok: true,
+    appliedCents,
+    giftCardId: found.card.id,
+    last4: found.card.code_last4,
+    priority: priorityFromCard(found.card),
+  };
+}
+
+/** Return whatever a booking ref took, before the booking row exists or
+ * after it failed to save. */
+export async function releaseGiftCardReservation(sb, bookingRef, reason) {
+  if (!bookingRef) return { ok: true, releasedCents: 0 };
+  try {
+    const { data, error } = await sb.rpc('gift_card_release_v1', { p_booking_ref: bookingRef, p_note: String(reason || 'returned to card').slice(0, 200) });
+    if (error) throw error;
+    return { ok: true, releasedCents: Number(data || 0) };
+  } catch (error) {
+    await alertOwner('Gift card credit was not returned', {
+      booking: bookingRef, reason, error: error?.message || String(error),
+      action: 'Use Return credit in Gift Cards with this booking reference.',
+    }, { key: `release-failed:${bookingRef}` });
+    return { ok: false, error: error?.message || String(error) };
+  }
+}
+
+/** Return a saved booking's credit to its card and clear it from the booking. */
+export async function releaseBookingGiftCard(sb, booking, reason) {
+  const applied = Number(booking?.gift_card_applied_cents || 0);
+  if (!booking?.ref || applied <= 0) return { ok: true, releasedCents: 0 };
+  const released = await releaseGiftCardReservation(sb, booking.ref, reason);
+  if (!released.ok) return released;
+  const { error } = await sb.from('bookings')
+    .update({ gift_card_applied_cents: 0, gift_card_priority: false })
+    .eq('id', booking.id);
+  if (error) {
+    await alertOwner('Gift card credit returned but the booking still shows it', {
+      booking: booking.ref, amount: formatCents(applied), error: error.message,
+    }, { key: `release-booking-update:${booking.ref}` });
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, releasedCents: released.releasedCents };
 }

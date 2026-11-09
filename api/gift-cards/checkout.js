@@ -1,6 +1,8 @@
 import Stripe from 'stripe';
 import { rateLimit } from '../_ratelimit.js';
+import { getSupabase } from '../_supabase.js';
 import {
+  GIFT_CARD_REDEMPTION_READY,
   isGiftCardsEnabled, isGiftCardsConfigured, validatePurchase, checkoutSessionParams,
   GIFT_CARD_MIN_CENTS, GIFT_CARD_MAX_CENTS, GIFT_CARD_PRESET_CENTS, MOVE_IN_PASS,
 } from '../_gift-cards.js';
@@ -16,13 +18,26 @@ export function createGiftCardCheckoutHandler({
   env = process.env,
   limit = rateLimit,
   stripeFactory = (key) => new Stripe(key),
+  getSb = getSupabase,
 } = {}) {
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     const enabled = isGiftCardsEnabled(env) && isGiftCardsConfigured(env);
     if (req.method === 'GET') {
+      // /book shows the gift card field while cards are sold, and afterwards
+      // for as long as any card is still active.
+      let acceptingCodes = GIFT_CARD_REDEMPTION_READY && enabled;
+      if (GIFT_CARD_REDEMPTION_READY && !acceptingCodes) {
+        try {
+          const { data } = await getSb().from('gift_cards').select('id').eq('status', 'active').limit(1);
+          acceptingCodes = Array.isArray(data) && data.length > 0;
+        } catch {
+          acceptingCodes = false;
+        }
+      }
       return res.status(200).json({
         enabled,
+        acceptingCodes,
         minCents: GIFT_CARD_MIN_CENTS,
         maxCents: GIFT_CARD_MAX_CENTS,
         presetCents: GIFT_CARD_PRESET_CENTS,

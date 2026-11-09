@@ -161,7 +161,7 @@ const app = Object.values(customer).join('\n');
   assert.equal(openBookingSlots('2026-10-20', new Date('2026-10-14T05:30:00Z')).length, BOOKING_TIME_SLOTS.length);
 
   // The total and the plan come from the server; the website's call is unchanged without a date.
-  assert.match(preview, /summary: checkoutSummary\(pricingWithPromo, promo, assemblecash\)/);
+  assert.match(preview, /summary: checkoutSummary\(pricingWithPromo, promo, assemblecash, giftCard\)/);
   assert.match(preview, /plan: checkoutPlan\(/);
   assert.match(preview, /appointmentDate \? sameDayFeeForAppointment\(appointmentDate\) : 0/, 'no date, no same-day fee: the website preview behaves as before');
   const { checkoutSummary, checkoutPlan } = await import('../api/booking/_checkout.js');
