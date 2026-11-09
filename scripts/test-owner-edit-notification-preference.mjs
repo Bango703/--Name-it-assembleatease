@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { appointmentTimestampMs, formatAppointmentDate } from '../api/booking/_appt-date.js';
 import { validateBookingWindowDate } from '../api/booking/_booking-window.js';
+import { loadEaserJobExtras } from '../api/booking/_easer-job-extras.js';
 
 // Execute the production handler with isolated persistence and notification
 // boundaries. No environment file, network, live write, or delivery is used.
@@ -69,7 +70,40 @@ async function fixture(overrides = {}, options = {}) {
   } };
 }
 const recipients = f => f.messages.map(message => message.meta.recipientType);
+
 const unassigned = { assembler_id: null, assembler_accepted_at: null, assigned_at: null, assignment_token: null, dispatch_status: null };
+// Owner, 2026-11-09: a move from the dashboard left no record of the old
+// time, so nobody could tell what the appointment had been. The log keeps both.
+{
+  const f = await fixture();
+  const result = await f.run({ date: '2026-10-02', time: '1:00 PM - 3:00 PM', notifyCustomer: false });
+  assert.equal(result.code, 200);
+  const log = f.activities.find(a => a.eventType === 'owner_booking_updated');
+  assert.deepEqual([log.metadata.oldDate, log.metadata.oldTime, log.metadata.newDate, log.metadata.newTime], ['2026-10-01', '10:00 AM', '2026-10-02', '1:00 PM - 3:00 PM']);
+  assert.equal(log.description, 'Owner moved booking AAE-TEST from 2026-10-01 10:00 AM to 2026-10-02 1:00 PM - 3:00 PM and reset schedule dispatch state');
+  const details = await fixture(unassigned);
+  await details.run({ address: '200 Test Street, Austin, TX 78701' });
+  const detailsLog = details.activities.find(a => a.eventType === 'owner_booking_updated');
+  assert.equal(detailsLog.metadata.oldDate, undefined, 'no schedule change, no old time recorded');
+}
+
+// The Easer's job card shows where an owner move came from, as it already did
+// for a customer reschedule; the latest move wins.
+{
+  const logs = [
+    { booking_id: 'booking-1', event_type: 'owner_booking_updated', created_at: '2026-11-08T17:51:00Z', metadata: { oldDate: '2026-11-06', oldTime: '8:00 AM - 10:00 AM', newDate: '2026-11-14', newTime: '9:00 AM - 11:00 AM' } },
+    { booking_id: 'booking-1', event_type: 'owner_booking_updated', created_at: '2026-11-07T10:00:00Z', metadata: { updates: ['details'] } },
+    { booking_id: 'booking-1', event_type: 'rescheduled', created_at: '2026-11-01T10:00:00Z', metadata: { oldDate: '2026-11-03', oldTime: '1:00 PM' } },
+  ];
+  const sb = { from(table) {
+    const q = { select: () => q, in: () => q, eq: () => q, is: () => q, order: () => q, limit: () => q, gte: () => q,
+      then(resolve) { return Promise.resolve({ data: table === 'activity_logs' ? logs : [], error: null }).then(resolve); } };
+    return q;
+  } };
+  const extras = await loadEaserJobExtras(sb, [{ id: 'booking-1' }], 'easer-1', Date.parse('2026-11-09T12:00:00Z'));
+  assert.deepEqual(extras.get('booking-1').previousSlot, { date: '2026-11-06', time: '8:00 AM - 10:00 AM', changedAt: '2026-11-08T17:51:00Z' });
+}
+
 
 // An explicit false blocks every customer notification entry point, including
 // the shared sender's queue, while the Easer must still accept a new schedule.
