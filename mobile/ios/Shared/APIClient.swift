@@ -137,6 +137,9 @@ class APIClient {
             request.httpMethod = method
             request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
             request.setValue("application/json", forHTTPHeaderField: "Accept")
+            // What this app can do, so the server never hides something the app
+            // cannot replace (api/_easer-app-policy.js easerClientHandlesPrivateCall).
+            request.setValue("private-call", forHTTPHeaderField: "X-AAE-Features")
             if let body {
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.httpBody = try JSONSerialization.data(withJSONObject: body)

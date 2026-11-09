@@ -397,4 +397,54 @@ console.log('PASS buttons: Call (Easer web and app) and Call your pro reach the 
   assert.ok(vercel.crons.some((c) => c.path === '/api/cron/private-call-recordings'), 'scheduled daily');
 }
 console.log('PASS recordings: transcribed, summarized for the owner (never throwing), deleted after 90 days, summary kept');
+// Switching private calling on (owner, 2026-11-09) must not strand an Easer on
+// the Easer app already in the App Store: its only "Call customer" button dials
+// the number. The website and Easer app 1.1 (X-AAE-Features: private-call) get
+// the private line; an older app keeps the number until the Easer updates.
+{
+  const { easerClientHandlesPrivateCall } = await import('../api/_easer-app-policy.js');
+  const OLD_APP = { headers: { 'user-agent': 'Easer/1 CFNetwork/1568.200.51 Darwin/24.1.0' } };
+  const NEW_APP = { headers: { 'user-agent': 'Easer/14 CFNetwork/1568.200.51 Darwin/24.1.0', 'x-aae-features': 'private-call' } };
+  const WEB = { headers: { 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 Version/18.1 Mobile/15E148 Safari/604.1' } };
+  assert.equal(easerClientHandlesPrivateCall(OLD_APP), false, 'the App Store app before 1.1 cannot place a private call');
+  assert.equal(easerClientHandlesPrivateCall(NEW_APP), true);
+  assert.equal(easerClientHandlesPrivateCall(WEB), true, 'the website always has the button');
+  assert.equal(easerClientHandlesPrivateCall({ headers: {} }), true);
+  const src = read('api/booking/my-assignments.js');
+  assert.match(src, /privateCallingOn: privateLineConfig\(\)\.enabled && easerClientHandlesPrivateCall\(req\)/, 'the job list asks the client before hiding the number');
+  assert.match(read('mobile/ios/Shared/APIClient.swift'), /request\.setValue\("private-call", forHTTPHeaderField: "X-AAE-Features"\)/, 'the app says it has the button');
+  assert.match(read('mobile/ios/App/App.xcodeproj/project.pbxproj'), /MARKETING_VERSION = 1\.1;/);
+}
+console.log('PASS switch-on: the website and Easer app 1.1 use the private line; the App Store app before 1.1 keeps dialing');
+
+// Recording is switched on only with a Privacy Notice that says so: it used to
+// promise "We do not retain call recordings or call transcripts." for every call.
+{
+  const privacy = read('privacy.html');
+  assert.doesNotMatch(privacy, /We do not retain call recordings or call transcripts\./, 'the blanket no-recording promise is gone');
+  assert.match(privacy, /We do not retain recordings or transcripts of calls to our published number\./);
+  assert.match(privacy, /id="private-calls">Calls and texts between you and your pro</);
+  assert.match(privacy, /both people hear an announcement before anything is recorded/);
+  assert.match(privacy, /we delete the recording 90 days after the call/);
+  assert.equal(RECORDING_RETENTION_DAYS, 90, 'the notice and the deletion job agree');
+  assert.match(read('api/_legal-consent.js'), /PRIVACY_NOTICE_VERSION = '2026-11-09-private-calls-v1'/);
+}
+console.log('PASS privacy: the notice describes recorded private calls, the summary, and 90-day deletion');
+
+// Build-only iPhone workflows send nothing to Apple; they run the exact steps
+// of the uploading ones through YAML anchors.
+{
+  const yaml = read('codemagic.yaml');
+  for (const name of ['easer-ios-build', 'customer-ios-build']) {
+    const start = yaml.indexOf(`\n  ${name}:\n`);
+    assert.ok(start > 0, name);
+    const next = yaml.slice(start + 3).search(/\n  [a-z0-9-]+:\n/);
+    const block = yaml.slice(start, next < 0 ? undefined : start + 3 + next);
+    assert.doesNotMatch(block, /publishing:|submit_to/, `${name} uploads nothing`);
+  }
+  assert.match(yaml, /easer-ios-build:[\s\S]*?scripts: \*easer_ios_scripts/);
+  assert.match(yaml, /customer-ios-build:[\s\S]*?scripts: \*customer_ios_scripts/);
+}
+console.log('PASS Codemagic: build-only iPhone workflows reuse the same steps and upload nothing');
+
 console.log('\nPrivate calling tests passed.');
