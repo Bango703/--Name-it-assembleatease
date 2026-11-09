@@ -12,7 +12,8 @@ import { loadOpenProposal } from './_time-proposals.js';
 import { customerProgress, customerStatusLabel } from './_customer-status.js';
 import { customerPaymentSummary } from './_customer-payment-summary.js';
 import { loadBookingItems } from './_booking-items.js';
-import { TIME_SLOTS, MAX_RESCHEDULES, RESCHEDULABLE_STATUSES } from './reschedule.js';
+import { TIME_SLOTS, MAX_RESCHEDULES, RESCHEDULABLE_STATUSES, rescheduleDateBounds } from './reschedule.js';
+import { easerMissedVisit } from './_easer-no-show.js';
 import { BOOKING_WINDOW_DAYS } from './_booking-window.js';
 
 /**
@@ -231,9 +232,16 @@ export default async function handler(req, res) {
     easer_time_proposal: easerTimeProposal,
     items,
     // The times a reschedule may choose, from the rule reschedule.js enforces.
-    reschedule_options: { slots: TIME_SLOTS, window_days: BOOKING_WINDOW_DAYS },
+    reschedule_options: (() => {
+      const bounds = rescheduleDateBounds(booking);
+      return { slots: TIME_SLOTS, window_days: BOOKING_WINDOW_DAYS, min_date: bounds.minDate, max_date: bounds.maxDate };
+    })(),
     // The same gates api/booking/reschedule.js applies first (status, then the limit).
-    can_reschedule: RESCHEDULABLE_STATUSES.includes(booking.status) && rescheduleCount < MAX_RESCHEDULES,
+    can_reschedule: RESCHEDULABLE_STATUSES.includes(booking.status) && (rescheduleCount < MAX_RESCHEDULES || easerMissedVisit(booking)),
+    // The terms shown in the reschedule box, from the same rules the server applies.
+    reschedule_note: easerMissedVisit(booking)
+      ? 'Rescheduling is free and cancellation stays free for this booking.'
+      : null,
   };
   // The price breakdown, worked out once here for the page and the app.
   safe.payment_summary = customerPaymentSummary(safe);
