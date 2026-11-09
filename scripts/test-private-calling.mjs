@@ -282,7 +282,9 @@ console.log('PASS wiring: signed events only; the owner call webhook is unchange
   const stop = textHarness({ bookings: [b1] });
   assert.equal((await stop.text(CUSTOMER, 'STOP')).action, 'opt_out_noted');
   assert.equal(stop.sent.length, 0, 'STOP is never relayed');
-  assert.equal((await textHarness({ bookings: [b1] }).text(CUSTOMER, 'HELP')).action, 'help_sent');
+  const help = textHarness({ bookings: [b1] });
+  assert.equal((await help.text(CUSTOMER, 'HELP')).action, 'keyword_answered_by_telnyx');
+  assert.equal(help.sent.length, 0, 'Telnyx answers HELP; no duplicate from us');
   const off = textHarness({ bookings: [b1] }, privateTextConfig({ TELNYX_PRIVATE_TEXT_NUMBER: TEXT, TELNYX_FROM_NUMBER: BUSINESS }));
   assert.equal((await off.text(CUSTOMER, 'hi')).action, 'not_enabled');
   assert.equal((await handlePrivateTextEvent({ data: { event_type: 'message.received', payload: { from: { phone_number: CUSTOMER }, to: [{ phone_number: BUSINESS }], text: 'hi' } } }, { cfg: tcfg })).ignored, 'not_the_private_text_line', 'texts to the business number are never handled here');

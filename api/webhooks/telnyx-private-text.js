@@ -66,18 +66,17 @@ export async function handlePrivateTextEvent(event, ctx) {
   const text = String(payload.text || '').trim();
   const word = text.toLowerCase().replace(/[^a-z]/g, '');
 
-  // Carrier keywords are answered or honoured, never relayed.
+  // Carrier keywords are never relayed. Telnyx answers STOP, START and HELP
+  // itself from the 'AssembleAtEase Job Texts' messaging profile, so nothing
+  // here replies to them (a second answer would be a duplicate text).
   if (STOP_WORDS.includes(word)) return { action: 'opt_out_noted' };
+  if (HELP_WORDS.includes(word) || word === 'start' || word === 'unstop') return { action: 'keyword_answered_by_telnyx' };
   const reply = (body, meta = {}) => ctx.send({
     recipient: { phone: from, sms_consent_at: 'reply', sms_opted_out_at: null },
     body, from: cfg.number, messagingProfileId: cfg.profileId,
     meta: { notificationType: 'private_text_reply', recipientType: 'unknown', ...meta },
   });
   const business = formatUsPhone(cfg.businessNumber) || 'AssembleAtEase';
-  if (HELP_WORDS.includes(word)) {
-    await reply(`AssembleAtEase job texts. For help call or text ${business}.`);
-    return { action: 'help_sent' };
-  }
   if (!cfg.enabled) {
     await reply(`This AssembleAtEase number is not taking texts yet. Call or text ${business}.`);
     return { action: 'not_enabled' };
