@@ -185,6 +185,7 @@ async function callHandler(kind, profiles, options = {}) {
     // Inactivity is covered by scripts/test-easer-inactivity.mjs.
     loadJobHistory: async () => new Map(),
     loadInactivityNotices: async () => new Map(),
+    loadDemoEaserIds: async () => new Set(),
     inactivityReasons: () => [],
     inactivityNoticeState: () => null,
   });

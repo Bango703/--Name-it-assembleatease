@@ -73,6 +73,7 @@ function harness(source, booking, options = {}) {
     logActivity: async (_sb, event) => { calls.activity.push(event); },
     notificationOwnerAction: () => null,
     hasEffectiveEaserMembership: () => false,
+    loadDemoEaserIds: async () => new Set(),
     getEaserReadiness: async () => { throw new Error('No Easer profiles expected in fixture'); },
   });
   const executable = source.replace(/^import\s+[\s\S]*?;\r?\n/gm, '').replace('export default async function handler', 'async function handler').replace(/export (async )?function /g, '$1function ');

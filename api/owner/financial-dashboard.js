@@ -4,6 +4,7 @@ import { verifyOwner } from '../_email.js';
 import { MIN_PRETAX_BOOKING_BY_ZONE } from '../_source-of-truth.js';
 import { chicagoTodayIso } from '../booking/_appt-date.js';
 import { loadLedgerFirstFinanceRows } from './_finance-ledger.js';
+import { loadDemoEaserIds } from '../_demo-accounts.js';
 import { loadReviews, summarizeReviews } from '../_reviews-truth.js';
 
 const DEFAULT_ASSUMPTIONS = Object.freeze({
@@ -106,7 +107,10 @@ export default async function handler(req, res) {
       .select('id, status, is_owner')
       .eq('role', 'assembler');
     if (easerProfilesError) throw easerProfilesError;
-    activeEasers = (easerProfiles || []).filter(profile => profile.status === 'active').length;
+    // A demo (App Review) account is not a working Easer: it would count toward
+    // the 10-Easer expansion check and revenue per Easer (api/_demo-accounts.js).
+    const demoEaserIds = await loadDemoEaserIds(sb);
+    activeEasers = (easerProfiles || []).filter(profile => profile.status === 'active' && !demoEaserIds.has(profile.id)).length;
     ownerEaserIds = new Set((easerProfiles || []).filter(profile => profile.is_owner === true).map(profile => profile.id));
     ownerEaserClassificationAvailable = true;
   } catch (error) {
@@ -140,10 +144,13 @@ export default async function handler(req, res) {
   const expansionRows = period === 'all' ? financeRows : await loadExpansionRows(sb);
   const expansionReadiness = await buildExpansionReadiness(sb, expansionRows, activeEasers, expenseSummary.paidAllTimeCents);
 
+  // The page shows the latest 100; the printable report asks for every row
+  // (ledger=all) so its totals are the totals above.
+  const ledgerLimit = String(req.query.ledger || '') === 'all' ? Infinity : 100;
   const ledger = financeRows
     .slice()
     .sort((a, b) => String(b.eventAt || b.date || '').localeCompare(String(a.eventAt || a.date || '')))
-    .slice(0, 100)
+    .slice(0, ledgerLimit)
     .map(row => {
       const processingFee = Number(row.stripeFee || 0); // actual fee (migration 011) or canonical estimate — same source as the aggregate
       const easerPayout = payoutForProfit(row);
@@ -181,6 +188,7 @@ export default async function handler(req, res) {
     period,
     range,
     excludedTestBookings,
+    customerTotals: buildCustomerTotals(financeRows),
     expenses: expenseSummary,
     assumptions: {
       ...DEFAULT_ASSUMPTIONS,
@@ -871,6 +879,27 @@ async function loadOpenClawbacks(sb) {
     console.warn('Clawbacks load skipped:', error?.message || error);
     return { available: false, items: [], totalOwedCents: 0, count: 0 };
   }
+}
+
+// Per customer, from the same rows and the same customer match as the repeat
+// rate above: completed jobs and the money they paid (cancellation fees
+// included). The Customers panel shows these, so its "spent" and "repeat" can
+// never disagree with Financials.
+export function buildCustomerTotals(financeRows) {
+  const byCustomer = new Map();
+  for (const row of financeRows || []) {
+    const key = customerKey(row);
+    if (!key) continue;
+    const entry = byCustomer.get(key) || { key, completedJobs: 0, paidCents: 0 };
+    if (row.status === 'completed') entry.completedJobs += 1;
+    entry.paidCents += Math.max(0, Number(row.netCharged || 0));
+    byCustomer.set(key, entry);
+  }
+  return Array.from(byCustomer.values());
+}
+
+export function customerKeyFor(email, name) {
+  return customerKey({ customerEmail: email, customerName: name });
 }
 
 function getRepeatCustomerStats(rows) {

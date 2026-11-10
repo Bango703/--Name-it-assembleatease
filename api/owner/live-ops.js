@@ -16,6 +16,7 @@ import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booki
 import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
 import { isBrowserExtensionNoise } from '../_runtime-noise.js';
 import { computeLeakageSignals } from '../booking/_leakage-signal.js';
+import { loadDemoEaserIds } from '../_demo-accounts.js';
 import {
   buildActiveJobs,
   isOperationalBooking,
@@ -204,7 +205,7 @@ export default async function handler(req, res) {
   const thirtyMinAgo = new Date(now - 30 * 60 * 1000).toISOString();
   const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
 
-  const bookingProjection = 'id, ref, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, service_zip, service_city, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, authorization_capture_before, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, tax_amount, assemblecash_redeemed_cents, gift_card_applied_cents, review_reward_discount_cents, deposit_amount, stripe_payment_method_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, damage_review_status, damage_claim_opened_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
+  const bookingProjection = 'id, ref, is_test_booking, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, service_zip, service_city, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, authorization_capture_before, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, tax_amount, assemblecash_redeemed_cents, gift_card_applied_cents, review_reward_discount_cents, deposit_amount, stripe_payment_method_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, damage_review_status, damage_claim_opened_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
   const [bookingsRes, financialHoldsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes, damageReportsRes, customerThreadRes] = await Promise.all([
     sb.from('bookings')
       .select(bookingProjection)
@@ -356,8 +357,11 @@ export default async function handler(req, res) {
   const ownerManualNeedsAssignment = operationalBookings
     .filter(b => b.status === 'confirmed' && isOwnerManualOfflineBooking(b) && !b.assembler_id)
     .map(b => ({ ...b, _dispatchState: 'owner_manual_assignment' }));
+  // A completed test booking (the App Review job) took no real money, so it never
+  // needs reconciling: listing it said "needing action" under "Nothing needs you".
   const ownerManualReconciliation = bookings
     .filter(b => b.status === 'completed'
+      && b.is_test_booking !== true
       && isOwnerManualOfflineBooking(b)
       && (
         b.return_visit_required === true
@@ -918,7 +922,10 @@ export default async function handler(req, res) {
       accepted: !!b.assembler_accepted_at || b.dispatch_status === 'accepted',
     };
   });
-  const rosterEasers = easers.filter(e => e.readiness?.ownerApproved && e.readiness?.tierEligible);
+  // A demo (App Review) account works test jobs only: it is not an Easer the
+  // owner can send to a customer, so it is never counted free or offline.
+  const demoEaserIds = await loadDemoEaserIds(sb);
+  const rosterEasers = easers.filter(e => e.readiness?.ownerApproved && e.readiness?.tierEligible && !demoEaserIds.has(e.id));
   const onlineEasers = rosterEasers.filter(e => e.is_available && e.readiness?.isReady);
   const offlineEasers = rosterEasers.filter(e => !e.is_available || !e.readiness?.isReady);
   const busyEasers = onlineEasers.filter(e => assignedIds.has(e.id));
