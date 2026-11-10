@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { recordSmsConversationMessage } from '../_sms-conversations.js';
+import { smsLineFor } from '../_sms.js';
+import { normalizeUsPhone, formatUsPhone } from '../_phone.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { recordOperationalEvents } from '../_observability.js';
 
@@ -108,6 +110,13 @@ export default async function handler(req, res) {
  */
 async function handleInbound(sb, payload, stamp) {
   const from = normalizePhone(payload?.from?.phone_number);
+  // Which AssembleAtEase number was texted: the business number or the text
+  // number that sends updates (api/_sms.js smsLines). The reply goes back
+  // from it, and the alert says which one.
+  const lineNumber = normalizeUsPhone(payload?.to?.[0]?.phone_number || payload?.to?.phone_number || payload?.to);
+  const line = smsLineFor(lineNumber);
+  const lineLabel = line.name === 'updates' ? 'text line' : 'business line';
+  const lineDisplay = formatUsPhone(lineNumber) || 'AssembleAtEase';
   const text = String(payload?.text || '').trim();
   const upper = text.toUpperCase();
   // The keyword set carriers honour automatically.
@@ -184,13 +193,13 @@ async function handleInbound(sb, payload, stamp) {
     try {
       const alertResult = await sendEmail({
         to: ownerEmail(),
-        subject: `New text to (979) 232-5139 from ${from || 'unknown number'}`,
+        subject: `New text to the ${lineLabel} (${lineDisplay}) from ${from || 'unknown number'}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#0a1628">
-  <h2 style="margin:0 0 10px;font-size:18px">New text message to the business line</h2>
+  <h2 style="margin:0 0 10px;font-size:18px">New text message to the ${esc(lineLabel)}</h2>
   <p style="font-size:13px;color:#64748b;margin:0 0 12px">From <strong>${esc(from || 'unknown')}</strong> · ${esc(new Date(stamp).toLocaleString('en-US', { timeZone: 'America/Chicago' }))}</p>
   <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;font-size:15px;line-height:1.6;white-space:pre-wrap">${esc(text)}</div>
   <p style="margin:16px 0"><a href="https://www.assembleatease.com/owner" style="display:inline-block;background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:11px 20px;border-radius:8px">Open Messages</a></p>
-  <p style="font-size:12px;color:#64748b">Received by the AssembleAtEase business number. Replies go out through the owner dashboard Messages view.</p>
+  <p style="font-size:12px;color:#64748b">Received on ${esc(lineDisplay)}. Your reply from the Messages view goes back from the same number.</p>
 </div>`,
         meta: { notificationType: 'owner_sms_inbound_alert', recipientType: 'owner', disableDedupe: true },
       });
@@ -224,6 +233,7 @@ async function handleInbound(sb, payload, stamp) {
       status: 'received',
       providerId: payload.id,
       occurredAt: stamp,
+      lineNumber,
     });
   } catch (inboxError) {
     console.error('[telnyx-webhook] inbox record failed for', payload.id, inboxError?.message || inboxError);

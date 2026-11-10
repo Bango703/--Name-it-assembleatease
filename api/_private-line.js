@@ -176,20 +176,3 @@ export function decodeState(encoded) {
     return null;
   }
 }
-
-// ── Private job texts (the toll-free line) ──────────────────────────────────
-// Customer and lead Easer text each other through one AssembleAtEase number;
-// every relayed text says it comes through AssembleAtEase (toll-free rules bar
-// presenting a message as another person's). Off until PRIVATE_TEXTING_ENABLED
-// =true, TELNYX_PRIVATE_TEXT_NUMBER is set, and Telnyx has approved the
-// number's toll-free verification.
-export function privateTextConfig(env = process.env) {
-  const number = normalizeUsPhone(env.TELNYX_PRIVATE_TEXT_NUMBER);
-  const profileId = String(env.TELNYX_PRIVATE_TEXT_PROFILE_ID || '').trim();
-  const businessNumber = normalizeUsPhone(env.TELNYX_FROM_NUMBER);
-  const switchedOn = String(env.PRIVATE_TEXTING_ENABLED || '').trim() === 'true';
-  return { number, profileId, businessNumber, enabled: switchedOn && Boolean(number) && number !== businessNumber };
-}
-
-export const STOP_WORDS = Object.freeze(['stop', 'stopall', 'unsubscribe', 'cancel', 'end', 'quit', 'revoke', 'optout']);
-export const HELP_WORDS = Object.freeze(['help', 'info']);
