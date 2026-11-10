@@ -130,23 +130,30 @@ export async function recordSmsConversationMessage(sb, input = {}) {
     if (duplicate?.id) return { messageId: duplicate.id, conversationId: duplicate.conversation_id, duplicate: true };
   }
 
-  const { data, error } = await sb.from('sms_messages')
-    .insert({
-      conversation_id: conversation.id,
-      booking_id: booking?.id || null,
-      direction,
-      sender,
-      phone,
-      body: body.slice(0, 2000),
-      provider_id: input.providerId || null,
-      notification_id: input.notificationId || null,
-      status,
-      error_text: clean(input.errorText, 500),
-      read_at: direction === 'inbound' ? null : timestamp(input.occurredAt),
-      occurred_at: timestamp(input.occurredAt),
-    })
-    .select('id, conversation_id')
-    .single();
+  const row = {
+    conversation_id: conversation.id,
+    booking_id: booking?.id || null,
+    direction,
+    sender,
+    phone,
+    body: body.slice(0, 2000),
+    provider_id: input.providerId || null,
+    notification_id: input.notificationId || null,
+    status,
+    error_text: clean(input.errorText, 500),
+    read_at: direction === 'inbound' ? null : timestamp(input.occurredAt),
+    occurred_at: timestamp(input.occurredAt),
+  };
+  // The AssembleAtEase number the text came in on or went out from
+  // (migration 128), so a reply goes back from the same number.
+  const lineNumber = normalizeUsPhone(input.lineNumber);
+  if (lineNumber) row.line_number = lineNumber;
+  let { data, error } = await sb.from('sms_messages').insert(row).select('id, conversation_id').single();
+  if (error && lineNumber && isMissingLineNumberColumn(error)) {
+    // Migration 128 not run yet: keep the message, without the number.
+    delete row.line_number;
+    ({ data, error } = await sb.from('sms_messages').insert(row).select('id, conversation_id').single());
+  }
   if (error) {
     if (error.code === '23505' && input.providerId) {
       const { data: duplicate } = await sb.from('sms_messages')
@@ -158,6 +165,32 @@ export async function recordSmsConversationMessage(sb, input = {}) {
     throw error;
   }
   return { messageId: data.id, conversationId: data.conversation_id, duplicate: false };
+}
+
+export function isMissingLineNumberColumn(error) {
+  const text = `${error?.code || ''} ${error?.message || ''}`;
+  return /line_number/.test(text) && /(42703|PGRST204|column|schema cache)/i.test(text);
+}
+
+/**
+ * The AssembleAtEase number this person last texted, so the owner's reply
+ * comes from it. Null when they never texted, or the number is not recorded
+ * (migration 128 not run): the caller then uses the business number.
+ */
+export async function conversationReplyLineNumber(sb, conversationId) {
+  try {
+    const { data, error } = await sb.from('sms_messages')
+      .select('line_number')
+      .eq('conversation_id', conversationId)
+      .eq('direction', 'inbound')
+      .not('line_number', 'is', null)
+      .order('occurred_at', { ascending: false })
+      .limit(1);
+    if (error) return null;
+    return data?.[0]?.line_number || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function markSmsConversationRead(sb, conversationId, at = new Date().toISOString()) {

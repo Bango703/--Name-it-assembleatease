@@ -2,12 +2,13 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { rateLimit } from '../_ratelimit.js';
 import { normalizeUsPhone } from '../_phone.js';
-import { sendSms, smsEligibility } from '../_sms.js';
+import { sendSms, smsEligibility, smsLineFor } from '../_sms.js';
 import {
   findSmsContact,
   markSmsConversationRead,
   normalizeSmsConversationStatus,
   recordSmsConversationMessage,
+  conversationReplyLineNumber,
 } from '../_sms-conversations.js';
 
 function clean(value, maxLength) {
@@ -84,9 +85,14 @@ async function replyToConversation(req, res, conversationId) {
   const phone = normalizeUsPhone(conversation.phone);
   if (!phone) return res.status(409).json({ error: 'This conversation does not have a valid phone number.' });
   const contact = await findSmsContact(sb, phone);
+  // Back from the number they texted, so the reply lands in the same thread
+  // on their phone. Never texted, or not recorded: the business number.
+  const line = smsLineFor(await conversationReplyLineNumber(sb, conversation.id));
   const result = await sendSms({
     recipient: contact.recipient,
     body,
+    from: line.number || null,
+    messagingProfileId: line.profileId || null,
     meta: {
       bookingId: conversation.booking_id || contact.booking?.id || null,
       notificationType: 'owner_sms_reply',
@@ -142,6 +148,7 @@ async function replyToConversation(req, res, conversationId) {
     providerId: notification?.provider_id || result.providerId || null,
     notificationId: notification?.id || null,
     occurredAt: new Date().toISOString(),
+    lineNumber: result.from || line.number || null,
   });
 
   return res.status(200).json({ sent: true, providerId: notification?.provider_id || result.providerId || null });
@@ -212,6 +219,8 @@ async function startEaserConversation(req, res) {
       status: 'provider_accepted',
       providerId: result.providerId || null,
       occurredAt: new Date().toISOString(),
+      // A text the owner starts comes from the text number (sendSms default).
+      lineNumber: result.from || null,
     });
     conversationId = recorded.conversationId;
   } catch (recordError) {
