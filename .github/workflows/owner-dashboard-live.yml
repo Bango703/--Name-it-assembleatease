@@ -19,7 +19,10 @@ concurrency:
 jobs:
   live:
     name: Live owner dashboard
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04 (2026-11), which Playwright's browser
+    # download does not support yet; an unannounced image change also should not
+    # be able to turn the required check red on its own.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       OWNER_PASSWORD: ${{ secrets.OWNER_PASSWORD }}
