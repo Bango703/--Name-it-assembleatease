@@ -53,3 +53,7 @@ mobile/ios/Customer/Support/GoogleService-Info.plist
 
 # Customer iPhone app: Codemagic generates this from mobile/ios/Customer/project.yml
 mobile/ios/Customer/Customer.xcodeproj/
+
+# Browser test output (npm run test:e2e)
+test-results/
+playwright-report/
