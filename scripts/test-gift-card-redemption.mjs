@@ -198,7 +198,7 @@ assert.equal(splitCalls, 10, 'all ten split call sites were checked');
   assert.match(terms, /part of every booking stays on your card so a cancellation fee can apply/);
   assert.doesNotMatch(terms, /such as Setup Club or a Move-In Pass/);
   assert.match(read('privacy.html'), /<h3>Gift cards<\/h3>/, 'recipient names and emails are disclosed');
-  assert.match(read('api/_legal-consent.js'), /CUSTOMER_TERMS_VERSION = '2026-10-24-gift-cards-v1'/);
+  assert.match(read('api/_legal-consent.js'), /CUSTOMER_TERMS_VERSION = '2026-11-09-private-calls-v1'/);
   const migration = read('api/migrations/127_booking_gift_card.sql');
   assert.match(migration, /ADD COLUMN IF NOT EXISTS gift_card_applied_cents INTEGER NOT NULL DEFAULT 0/);
   assert.match(migration, /bookings_gift_card_applied_nonnegative CHECK \(gift_card_applied_cents >= 0\)/);
