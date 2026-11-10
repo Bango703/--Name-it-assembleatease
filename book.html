@@ -5104,7 +5104,12 @@ function renderBrowserPane(svc, stage) {
     kicker.textContent = 'Pick what you need';
     title.textContent = activeName || 'Choose items';
     copy.textContent = (SUBCAT_NOTES[activeName] || 'Choose the exact items in this section.');
-    var itemsHtml = group ? buildStaticGroupHtml(svc, group, group.items.length) : '';
+    // A search looks through every section of the service, not only the one on
+    // screen ("queen bed" from Seating & Sofas finds the Bedroom items). Each
+    // section keeps its heading; clearing the search returns to this section.
+    var searching = !!(searchInput && searchInput.value.trim());
+    var shownGroups = searching ? primaryGroups : (group ? [group] : []);
+    var itemsHtml = shownGroups.map(function(g) { return buildStaticGroupHtml(svc, g, g.items.length); }).join('');
     // Fold same-visit add-ons in at the bottom of the same list — no separate
     // "extras" stage/transition. Each extra group keeps its own header.
     var foldedExtraGroups = getExtraGroups(svc);
@@ -5112,6 +5117,7 @@ function renderBrowserPane(svc, stage) {
       itemsHtml += foldedExtraGroups.map(function(g) { return buildStaticGroupHtml(svc, g, g.items.length); }).join('');
     }
     wrap.innerHTML = itemsHtml;
+    wrap.dataset.scope = searching ? 'all' : 'section';
     if (searchWrap) searchWrap.style.display = '';
     if (searchInput) searchInput.placeholder = 'Search items... e.g. queen bed';
     if (searchInput && searchInput.value) BOOK.itemSearchOpen = true;
@@ -5130,6 +5136,7 @@ function renderBrowserPane(svc, stage) {
     ? 'Optional same-visit add-ons only.'
     : 'Add-ons unlock after the main item is selected.';
 
+  wrap.dataset.scope = 'extras';
   wrap.innerHTML = extraGroups.length
     ? extraGroups.map(function(group) { return buildStaticGroupHtml(svc, group, group.items.length); }).join('')
     : '<div class="quote-helper" style="margin-top:0">No extra add-ons are listed for this service.</div>';
@@ -5457,6 +5464,16 @@ function filterItemList(q) {
   var wrap = document.getElementById('item-list-wrap');
 
   if (!wrap) return;
+
+  // Starting or clearing a search changes which sections are listed: all of
+  // them while searching, the chosen one otherwise (renderBrowserPane).
+  var searchBox = document.getElementById('item-search');
+  if (BOOK.itemStage === 'items' && BOOK.currentSvc && wrap.dataset.scope
+      && (wrap.dataset.scope === 'all') !== (q.length > 0)
+      && searchBox && searchBox.value.trim().toLowerCase() === q) {
+    renderBrowserPane(BOOK.currentSvc, 'items');
+    if (q.length > 0) return; // renderBrowserPane filtered the full list
+  }
 
   var clearBtn = document.getElementById('item-search-clear');
 
