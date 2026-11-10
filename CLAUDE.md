@@ -336,6 +336,8 @@ Changes here require audit-before-code and explicit intent in the request:
 | `scripts/test-customer-language.mjs` | Seat 15: no status code, payment mechanic, workflow state or column name reaches a customer |
 | `scripts/test-upload-limits.mjs` | No upload path invents its own size limit; every screen shrinks the image before sending |
 | `scripts/test-image-resize-browser.mjs` | The resize actually works, measured in a real browser rather than asserted |
+| `npm run test:e2e` | The owner dashboard in a real browser: badges and views refresh, numbers match their source, unknown is never zero |
+| `scripts/test-server-sentry.mjs` | Every server failure already recorded also reaches Sentry, redacted, without slowing the request |
 | `npm run test:launch` | Article 8: the regression gate |
 
 **Wire every new invariant into a guard.** An article without a script is a wish.
@@ -350,7 +352,9 @@ Changes here require audit-before-code and explicit intent in the request:
   `governance:truth` / `test:launch` so this check actually runs it.
 - **No staging/preview environment.** Production is the first place a change runs.
   (Vercel does build a preview deployment per PR, but nothing is tested against it.)
-- **No E2E tests.** No Playwright; the three-role flow is verified by reading code.
+- **E2E covers the owner dashboard only.** `npm run test:e2e` (Playwright) runs it with fixed
+  data in CI, and a nightly read-only check runs against the live dashboard once the
+  `OWNER_PASSWORD` secret exists. Booking and the Easer flow are still verified by reading code.
 - **No feature-flag system** beyond individual env vars.
 - **Constraints added by hand in Supabase remain invisible** to Article 7's guard
   (`073_AUDIT_constraints_not_in_migrations.sql` finds them; nothing prevents them).

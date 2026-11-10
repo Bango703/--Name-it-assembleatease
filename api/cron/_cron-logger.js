@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
-import { buildRequestId, getDeploymentMetadata, insertOperationalEventFailOpen } from '../_observability.js';
+import { buildRequestId, getDeploymentMetadata, insertOperationalEventFailOpen, redactString } from '../_observability.js';
+import { reportServerError } from '../_sentry.js';
 
 /**
  * Log a cron run to cron_log table.
@@ -14,6 +15,16 @@ import { buildRequestId, getDeploymentMetadata, insertOperationalEventFailOpen }
 export async function logCron(cronName, { status = 'ok', records = 0, error = null, errorText = null, duration = null } = {}) {
   const finalStatus = error ? 'error' : status;
   const finalErrorText = error || errorText || null;
+  // A failed run is reported to Sentry before anything else, so it is heard
+  // about even when the cron_log write below fails too (api/_sentry.js).
+  if (finalStatus === 'error') {
+    await reportServerError({
+      message: `Cron ${cronName} failed`,
+      detail: redactString(finalErrorText),
+      tags: { kind: 'cron', cron: cronName, route: `/api/cron/${String(cronName || '').trim()}` },
+      fingerprint: ['cron', String(cronName || '')],
+    });
+  }
   try {
     const sb = getSupabase();
     await sb.from('cron_log').insert({

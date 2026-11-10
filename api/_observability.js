@@ -1,4 +1,5 @@
 import { createHmac, randomUUID } from 'crypto';
+import { isReportableOperationalEvent, reportServerError } from './_sentry.js';
 
 const OPERATIONAL_EVENTS_TABLE = 'operational_events';
 
@@ -180,18 +181,44 @@ export async function insertOperationalEventFailOpen(sb, event, {
 
   if (!row.request_id) row.request_id = buildRequestId();
 
+  if (isReportableOperationalEvent(row)) await reportOperationalFailure(row);
+
   try {
     // Supabase reports a refused row in { error }; it does not throw.
     const { error } = await sb.from(table).insert(row);
     if (error) {
       logger.warn('Operational event insert refused:', error.message || error);
+      await reportRefusedInsert(error.message || error, row.event_type);
       return false;
     }
     return true;
   } catch (e) {
     logger.warn('Operational event insert skipped:', e?.message || e);
+    await reportRefusedInsert(e?.message || e, row.event_type);
     return false;
   }
+}
+
+// A failure recorded here also goes to Sentry, so someone hears about it the
+// day it starts (api/_sentry.js). Only redacted text and short identifiers.
+async function reportOperationalFailure(row) {
+  await reportServerError({
+    message: `${row.event_type || 'operational_event'}${row.route ? ` at ${row.route}` : ''}`,
+    detail: redactString(row.reason_detail),
+    tags: { kind: 'operational_event', event_type: row.event_type, route: row.route, reason_code: row.reason_code, stage: row.stage, status_code: row.status_code },
+    fingerprint: ['operational_event', String(row.event_type || ''), String(row.route || ''), String(row.reason_code || '')],
+  });
+}
+
+// The record of a failure was itself refused: the one case the table can
+// never show (2026-10-15, 39 repeated emails).
+async function reportRefusedInsert(reason, eventTypes) {
+  await reportServerError({
+    message: 'operational_events insert refused',
+    detail: redactString(String(reason || '')),
+    tags: { kind: 'observability', event_type: String(eventTypes || '') },
+    fingerprint: ['operational_events_insert_refused', String(eventTypes || '')],
+  });
 }
 
 /**
@@ -210,15 +237,21 @@ export async function recordOperationalEvents(sb, rows, { logger = console } = {
   const list = (Array.isArray(rows) ? rows : [rows]).filter(r => r && typeof r === 'object');
   if (!sb || !list.length) return { ok: false, error: 'nothing to record' };
   const filled = list.map(r => ({ ...r, request_id: r.request_id || buildRequestId() }));
+  for (const row of filled) {
+    if (isReportableOperationalEvent(row)) await reportOperationalFailure(row);
+  }
+  const types = [...new Set(filled.map(r => r.event_type))].join(',');
   try {
     const { error } = await sb.from(OPERATIONAL_EVENTS_TABLE).insert(filled);
     if (error) {
-      logger.error('[operational-events] insert refused:', error.message || error, filled.map(r => r.event_type).join(','));
+      logger.error('[operational-events] insert refused:', error.message || error, types);
+      await reportRefusedInsert(error.message || error, types);
       return { ok: false, error: error.message || String(error) };
     }
     return { ok: true, error: null };
   } catch (e) {
     logger.error('[operational-events] insert failed:', e?.message || e);
+    await reportRefusedInsert(e?.message || e, types);
     return { ok: false, error: e?.message || String(e) };
   }
 }

@@ -1,0 +1,54 @@
+# Every morning, sign in to the live owner dashboard and check that numbers
+# shown in two places agree and that nothing failed to load. Read-only: it
+# opens views and compares, it never presses a button that changes anything.
+#
+# Off until the OWNER_PASSWORD repository secret exists
+# (Settings > Secrets and variables > Actions). A failure emails the repo owner,
+# like any failed workflow.
+name: Owner dashboard live check
+
+on:
+  schedule:
+    - cron: '0 12 * * *' # 7:00 Austin (CDT), 6:00 (CST)
+  workflow_dispatch:
+
+concurrency:
+  group: owner-dashboard-live
+  cancel-in-progress: true
+
+jobs:
+  live:
+    name: Live owner dashboard
+    # Pinned: ubuntu-latest moved to 26.04 (2026-11), which Playwright's browser
+    # download does not support yet; an unannounced image change also should not
+    # be able to turn the required check red on its own.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      OWNER_PASSWORD: ${{ secrets.OWNER_PASSWORD }}
+    steps:
+      - name: Skip without the secret
+        if: env.OWNER_PASSWORD == ''
+        run: echo "OWNER_PASSWORD is not set; nothing to check."
+
+      - uses: actions/checkout@v4
+        if: env.OWNER_PASSWORD != ''
+
+      - uses: actions/setup-node@v4
+        if: env.OWNER_PASSWORD != ''
+        with:
+          node-version: '20'
+
+      - name: Install
+        if: env.OWNER_PASSWORD != ''
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Check the live dashboard
+        if: env.OWNER_PASSWORD != ''
+        env:
+          E2E_LIVE: '1'
+        run: npx playwright test
+
+      # No report or trace is uploaded: they would hold real customer data.
