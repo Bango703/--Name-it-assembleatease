@@ -3119,49 +3119,53 @@ window.intelQuick = intelQuick;
     // Surface payable and held Easer earnings immediately. The owner should
     // not have to discover payout work by opening Financials first.
     loadPayoutLedger();
-    // A badge that fails to load must not look like a clear queue. Live Ops
-    // already prints "!" when its check cannot verify state; these four hid
-    // themselves instead, so a failed fetch was indistinguishable from "nothing
-    // needs you" (Article 16 — never assert what has not been verified).
-    function paintNavBadge(id, count) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      if (count > 0) { el.textContent = String(count); el.title = ''; el.style.display = ''; }
-      else el.style.display = 'none';
-    }
-    function navBadgeUnknown(id, label) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      el.textContent = '!';
-      el.title = label + ' could not be loaded — this is not a count of zero.';
-      el.style.display = '';
-    }
-    // Nav badge: pending Easer applications
-    fetch('/api/assembler/list', { headers: headers() })
+    // Every left-menu badge refreshes together, on the bookings schedule, so no
+    // badge shows a count from whenever the dashboard was opened (owner,
+    // 2026-11-10: "other major companies don't have stale data").
+    // Delay one tick so the deferred modules (Cases, Calls, Partners, Messages)
+    // are ready even when an existing owner session opens immediately.
+    setTimeout(refreshNavBadges, 0);
+    if (_badgesTimer) clearInterval(_badgesTimer);
+    _badgesTimer = setInterval(function() { if (!document.hidden) refreshNavBadges(); }, 60000);
+  }
+
+  // A badge that fails to load must not look like a clear queue. Live Ops
+  // prints "!" when its check cannot verify state; a hidden badge would be
+  // indistinguishable from "nothing needs you" (Article 16).
+  function paintNavBadge(id, count) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (count > 0) { el.textContent = String(count); el.title = ''; el.style.display = ''; }
+    else el.style.display = 'none';
+  }
+  function navBadgeUnknown(id, label) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = '!';
+    el.title = label + ' could not be loaded — this is not a count of zero.';
+    el.style.display = '';
+  }
+  function refreshNavBadges() {
+    // Pending Easer applications
+    fetch('/api/assembler/list', { headers: headers(), cache: 'no-store' })
       .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
       .then(function(d) { paintNavBadge('nav-pending-apps', Number((d.stats || {}).pending || 0)); })
       .catch(function(){ navBadgeUnknown('nav-pending-apps', 'Pending Easer applications'); });
-    // Nav badge: pending waitlist entries
-    fetch('/api/owner/waitlist?status=pending', { headers: headers() })
+    // Pending waitlist entries
+    fetch('/api/owner/waitlist?status=pending', { headers: headers(), cache: 'no-store' })
       .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
       .then(function(d) { paintNavBadge('nav-waitlist', Number((d.stats || {}).pending || 0)); })
       .catch(function(){ navBadgeUnknown('nav-waitlist', 'Easer waitlist'); });
-    // Nav badge: demand records that require owner assignment or follow-up.
+    // Demand records that require owner assignment or follow-up.
     var marketBadgeRequest = Number(_marketDemandRequest) || 0;
     fetch('/api/owner/market-demand', { headers: headers(), cache: 'no-store' })
       .then(function(r) { if (!r.ok) throw new Error('unavailable'); return r.json(); })
       .then(function(d) { if (marketBadgeRequest === (Number(_marketDemandRequest) || 0)) paintNavBadge('nav-market-demand', Number((d.summary || {}).ownerActionRequired || 0)); })
       .catch(function(){ if (marketBadgeRequest === (Number(_marketDemandRequest) || 0)) navBadgeUnknown('nav-market-demand', 'Market demand follow-ups'); });
-    // Cases is a separate owner module. Delay one tick so the deferred module
-    // is ready even when an existing owner session opens immediately.
-    setTimeout(function() {
-      if (window.OwnerCases && typeof window.OwnerCases.loadBadge === 'function') {
-        window.OwnerCases.loadBadge();
-      }
-      if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.loadBadge();
-      if (window.OwnerPartners) window.OwnerPartners.loadBadge();
-      if (window.OwnerInbox) window.OwnerInbox.loadBadge();
-    }, 0);
+    if (window.OwnerCases && typeof window.OwnerCases.loadBadge === 'function') window.OwnerCases.loadBadge();
+    if (window.OwnerVoiceCalls) window.OwnerVoiceCalls.loadBadge();
+    if (window.OwnerPartners) window.OwnerPartners.loadBadge();
+    if (window.OwnerInbox) window.OwnerInbox.loadBadge();
   }
 
   // Brute-force lockout: track failed attempts in sessionStorage
@@ -3232,6 +3236,7 @@ window.intelQuick = intelQuick;
   function logout(expired) {
     ownerSessionToken = '';
     if (_bookingsTimer) { clearInterval(_bookingsTimer); _bookingsTimer = null; }
+    if (_badgesTimer) { clearInterval(_badgesTimer); _badgesTimer = null; }
     stopMarketDemand();
     _marketDemandRequest += 1;
     if (expired) toast('Session expired — please log in again', 'error');
@@ -3313,6 +3318,9 @@ window.intelQuick = intelQuick;
         }
         updateStats();
         renderList();
+        paintTodayBadge();
+        if (currentView === 'today') renderTodayView();
+        else if (currentView === 'customers') renderCustomers(false);
       } catch (e) {
         $list.innerHTML = '<div class="empty">Failed to load bookings</div>';
       }
@@ -3329,53 +3337,38 @@ window.intelQuick = intelQuick;
   // ─── Stats ───
   // Pipeline statuses that are logically "confirmed" (job is active / in flight)
   var PIPELINE_STATUSES = ['en_route', 'arrived', 'in_progress'];
-  function actualNetPaymentsCents(booking) {
-    if (!booking) return 0;
-    if (booking.source === 'owner_manual') {
-      return Math.max(0, Number(booking.amount_collected_cents || 0));
-    }
-    var moneyStatuses = ['captured','cancellation_fee_captured','partially_refunded','refunded','deposit_paid'];
-    if (!moneyStatuses.includes(String(booking.payment_status || ''))) return 0;
-    return Math.max(0, Number((booking.financial_summary || {}).netChargedCents || 0));
-  }
-  function completedFinanceReady(booking) {
-    if (!booking || booking.status !== 'completed') return false;
-    var paymentReady = booking.source === 'owner_manual'
-      ? (Number(booking.refund_amount || 0) > 0
-        ? Number(booking.amount_paid_cents || booking.manual_payment_gross_cents || 0) >= Number(booking.total_price || 0)
-          && booking.payout_review_status === 'approved_full'
-        : booking.payment_collected === true && Number(booking.remaining_balance_cents || 0) === 0)
-      : ['captured','partially_refunded','refunded'].includes(String(booking.payment_status || ''));
-    return paymentReady
-      && !!booking.assembler_id
-      && booking.assembler_due != null
-      && !booking.financial_operation_key
-      && !booking.financial_reconciliation_required_at
-      && Number.isFinite(Number((booking.financial_summary || {}).platformGrossCents));
-  }
+  // Money on this page (Bookings platform-gross tile, Customers, the Financial
+  // Report) comes from Financials via loadAllTimeFinance(). The page keeps no
+  // rule of its own for what was paid or what is reconciled.
   // Business metrics exclude the owner's own test bookings, the way the daily
   // and weekly summary emails have since migration 094. The rows stay visible
   // in the list with a TEST pill — excluded from counting, never hidden.
   function isTestBooking(b) { return !!b && b.is_test_booking === true; }
   function realBookings() { return allBookings.filter(function(b){ return !isTestBooking(b); }); }
 
+  // The Bookings platform-gross tile is Financials' all-time platform gross,
+  // the same number, never a second calculation. Unknown says unknown.
+  async function paintPlatformGrossTile() {
+    var revenueEl = document.querySelector('#stat-revenue .stat-value');
+    var revenueLabel = document.querySelector('#stat-revenue .stat-label');
+    if (!revenueEl) return;
+    var d = await loadAllTimeFinance(false);
+    if (revenueLabel) revenueLabel.textContent = 'Platform Gross (All Time)';
+    if (!d || !d.summary) {
+      revenueEl.textContent = '—';
+      revenueEl.title = 'Financials could not be loaded, so this is unknown, not zero.';
+      return;
+    }
+    revenueEl.textContent = fmtSigned$(Number(d.summary.platformGrossProfit) || 0);
+    revenueEl.title = 'Same as Financials, All time: customer payments less sales tax, processing fees, refunds and Easer earnings.';
+  }
+
   function updateStats() {
     const counts = { pending: 0, confirmed: 0, completed: 0 };
-    let profit = 0;
-    let unresolvedCompleted = 0;
     realBookings().forEach(function(b) {
       // Count pipeline statuses as Confirmed — they are active/accepted jobs
       var cat = PIPELINE_STATUSES.includes(b.status) ? 'confirmed' : b.status;
       if (counts[cat] !== undefined) counts[cat]++;
-      if (b.status === 'completed') {
-        if (completedFinanceReady(b)) {
-          // Server-computed financial_summary is the owner source of truth. It
-          // accounts for refunds, tax, processing fees, and Easer cost.
-          profit += Number((b.financial_summary || {}).platformGrossCents) || 0;
-        } else {
-          unresolvedCompleted++;
-        }
-      }
     });
     document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
     document.querySelector('#stat-confirmed .stat-value').textContent = counts.confirmed;
@@ -3387,17 +3380,7 @@ window.intelQuick = intelQuick;
     totalEl.title = testCount > 0
       ? testCount + ' test booking' + (testCount === 1 ? '' : 's') + ' excluded from every figure on this board.'
       : '';
-    var revenueEl = document.querySelector('#stat-revenue .stat-value');
-    var revenueLabel = document.querySelector('#stat-revenue .stat-label');
-    if (revenueEl) {
-      revenueEl.textContent = unresolvedCompleted > 0 ? 'Review ' + unresolvedCompleted : fmtSigned$(profit);
-      revenueEl.title = unresolvedCompleted > 0
-        ? unresolvedCompleted + ' completed booking(s) are excluded until payment and Easer cost are reconciled.'
-        : 'Customer payments less tax, processing fees, refunds, and Easer cost.';
-    }
-    if (revenueLabel) revenueLabel.textContent = unresolvedCompleted > 0
-      ? 'Platform Gross Needs Reconciliation'
-      : 'Recorded Platform Gross';
+    paintPlatformGrossTile();
     var $navP = document.getElementById('nav-pending');
     if (counts.pending > 0) { $navP.textContent = counts.pending; $navP.style.display = ''; }
     else $navP.style.display = 'none';
@@ -3433,7 +3416,16 @@ window.intelQuick = intelQuick;
   });
 
   // ─── PDF Financial Report ───
-  document.getElementById('export-csv-btn').addEventListener('click', function() {
+  // Every figure comes from Financials (api/owner/financial-dashboard.js, All
+  // time, every ledger row), so the printed report always equals that page.
+  document.getElementById('export-csv-btn').addEventListener('click', async function() {
+    var w = window.open('', '_blank');
+    if (w) w.document.write('<p style="font-family:sans-serif;padding:2rem">Preparing the financial report...</p>');
+    var fin = await loadAllTimeFinance(true);
+    if (!fin || !fin.summary) {
+      if (w) w.document.body.innerHTML = '<p style="font-family:sans-serif;padding:2rem">Financials could not be loaded, so no report was made. Close this tab and try again.</p>';
+      return;
+    }
     function fmtDate(d) {
       if (!d) return '—';
       try { return new Date(String(d).includes('T') ? d : d + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
@@ -3441,65 +3433,48 @@ window.intelQuick = intelQuick;
     }
     function dollars(cents) { return fmt$(cents); }
 
-    var completed = allBookings.filter(function(b){return b.status==='completed';});
-    var unresolvedCompleted = completed.filter(function(b){return !completedFinanceReady(b);});
-    var reconciledCompleted = completed.filter(completedFinanceReady);
-    var cancelledCount = allBookings.filter(function(b){return b.status==='cancelled';}).length;
-    var totGross=0, totFee=0, totPayout=0, totTax=0, totProfit=0;
-    var reconciledGross=0, reconciledFee=0, reconciledTax=0;
-    completed.forEach(function(b){
-      var fs=b.financial_summary||{};
-      var received = actualNetPaymentsCents(b);
-      totGross+=received;
-      if (received > 0) {
-        totTax+=Number(fs.taxCollectedCents)||0;
-        totFee+=Number(fs.processingFeeCents)||0;
-      }
-      if (completedFinanceReady(b)) {
-        totPayout+=Number(fs.easerCostCents)||0;
-        totProfit+=Number(fs.platformGrossCents)||0;
-        reconciledGross+=received;
-        reconciledTax+=Number(fs.taxCollectedCents)||0;
-        reconciledFee+=Number(fs.processingFeeCents)||0;
-      }
-    });
+    var sumy = fin.summary;
+    var ledgerRows = (fin.ledger || []).slice().sort(function(a,b){ return String(a.date||'').localeCompare(String(b.date||'')); });
+    var completedRows = ledgerRows.filter(function(r){ return r.eventType !== 'cancellation_earnings'; });
+    var cancellationRows = ledgerRows.filter(function(r){ return r.eventType === 'cancellation_earnings'; });
+    var totGross = Number(sumy.customerRevenue) || 0;
+    var totTax = Number(sumy.salesTaxCollected) || 0;
+    var totFee = Number(sumy.processingFees) || 0;
+    var totPayout = Number(sumy.easerPayouts) || 0;
+    var totProfit = Number(sumy.platformGrossProfit) || 0;
     var totNet = totGross - totTax - totFee;   // net after sales tax + Stripe
-    var activityDates = completed.map(function(b){
-      var raw = String(b.date||'');
+    var activityDates = ledgerRows.map(function(r){
+      var raw = String(r.date||'');
       var parsed = new Date(raw.includes('T') ? raw : raw+'T12:00:00');
       return Number.isFinite(parsed.getTime()) ? { raw:raw, timestamp:parsed.getTime() } : null;
     }).filter(Boolean).sort(function(a,b){return a.timestamp-b.timestamp;});
     var reportPeriod = activityDates.length
       ? fmtDate(activityDates[0].raw)+(activityDates[0].raw===activityDates[activityDates.length-1].raw ? '' : ' - '+fmtDate(activityDates[activityDates.length-1].raw))
       : 'No completed activity';
-    var reconciliationSubject = unresolvedCompleted.length===1
-      ? '1 completed booking is'
-      : unresolvedCompleted.length+' completed bookings are';
-    var unreconciledGross = totGross - reconciledGross;
 
-    var rows = completed.map(function(b) {
-      var fs = b.financial_summary||{};
-      var g = actualNetPaymentsCents(b);
-      var tax = g > 0 ? (Number(fs.taxCollectedCents)||0) : 0;
-      var f = g > 0 ? (Number(fs.processingFeeCents)||0) : 0;
+    var rows = ledgerRows.map(function(r) {
+      var g = Number(r.customerRevenue)||0;
+      var tax = Number(r.salesTax)||0;
+      var f = Number(r.processingFee)||0;
       var n = g - tax - f;
-      var financeReady = completedFinanceReady(b);
-      var p = financeReady ? (Number(fs.easerCostCents)||0) : 0;
-      var profit = financeReady ? (Number(fs.platformGrossCents)||0) : 0;
-      var statusColor = financeReady ? '#0f6b5b' : '#92400e';
-      var statusBg = financeReady ? '#e5f5f0' : '#fff8ed';
-      var serviceLabel = esc(b.service||'Service').replace(/\//g, '/<wbr>');
+      var p = Number(r.easerPayout)||0;
+      var profit = Number(r.platformGrossProfit)||0;
+      var paid = r.payoutStatus === 'paid';
+      var statusColor = paid ? '#0f6b5b' : '#92400e';
+      var statusBg = paid ? '#e5f5f0' : '#fff8ed';
+      var label = r.eventType === 'cancellation_earnings' ? 'Cancellation fee' : (r.service||'Service');
+      var serviceLabel = esc(label).replace(/\//g, '/<wbr>');
       return '<tr style="vertical-align:top">'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:9px;color:#6b7280;white-space:nowrap">'+esc(b.ref)+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:9px;color:#6b7280;white-space:nowrap">'+esc(r.ref||'')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;overflow-wrap:anywhere;word-break:normal"><div style="font-size:10.5px;line-height:1.3;font-weight:600;color:#111;overflow-wrap:anywhere">'+serviceLabel+'</div></td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:10.5px;line-height:1.35;color:#374151;overflow-wrap:anywhere">'+esc(fmtDate(b.date))+(b.time ? '<br><span style="color:#7c8798">'+esc(b.time)+'</span>' : '')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:10.5px;line-height:1.35;color:#374151;overflow-wrap:anywhere">'+esc(fmtDate(r.date))+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:600;color:#111">'+(g ? dollars(g) : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#475569">'+(tax ? '('+dollars(tax)+')' : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#475569">'+(f ? '('+dollars(f)+')' : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#374151">'+(n ? dollars(n) : '—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#475569">'+(financeReady ? (p ? '('+dollars(p)+')' : dollars(0)) : '—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:700;color:#0f6b5b">'+(financeReady ? dollars(profit) : '—')+'</td>'
-        +'<td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:center"><span style="display:inline-block;white-space:nowrap;background:'+statusBg+';color:'+statusColor+';font-size:7.5px;font-weight:700;padding:3px 6px;border-radius:999px;text-transform:uppercase;letter-spacing:0.035em">'+(financeReady ? 'Reconciled' : 'Action required')+'</span></td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#475569">'+(p ? '('+dollars(p)+')' : dollars(0))+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:700;color:#0f6b5b">'+dollars(profit)+'</td>'
+        +'<td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:center"><span style="display:inline-block;white-space:nowrap;background:'+statusBg+';color:'+statusColor+';font-size:7.5px;font-weight:700;padding:3px 6px;border-radius:999px;text-transform:uppercase;letter-spacing:0.035em">'+(paid ? 'Easer paid' : 'Easer payout '+esc(r.payoutStatus||'pending'))+'</span></td>'
         +'</tr>';
     }).join('');
 
@@ -3526,7 +3501,6 @@ window.intelQuick = intelQuick;
         +'</div>'
       +'</div>'
 
-      +(unresolvedCompleted.length ? '<div style="margin:0 0 0.75rem;padding:8px 11px;background:#fff8ed;border:1px solid #f1d2a5;border-radius:6px;color:#92400e;font-size:9.5px"><strong>Data-quality notice:</strong> '+reconciliationSubject+' excluded from contractor-cost and platform-gross totals until financial reconciliation is complete. Excluded recorded payments: <strong>'+dollars(unreconciledGross)+'</strong>.</div>' : '')
 
       // Summary cards
       +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:1rem">'
@@ -3535,8 +3509,8 @@ window.intelQuick = intelQuick;
           ['Sales Tax Liability','('+dollars(totTax)+')','#334155'],
           ['Processing Costs','('+dollars(totFee)+')','#334155'],
           ['After Tax &amp; Processing',dollars(totNet),'#0b2538'],
-          ['Known Contractor Costs','('+dollars(totPayout)+')','#334155'],
-          ['Reconciled Platform Gross',dollars(totProfit),'#0f6b5b'],
+          ['Easer Earnings','('+dollars(totPayout)+')','#334155'],
+          ['Platform Gross',dollars(totProfit),'#0f6b5b'],
         ].map(function(c){
           return '<div style="background:#f5f8fa;border:1px solid #dbe3ea;border-radius:7px;padding:11px 12px;min-height:68px">'
             +'<div style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:6px">'+c[0]+'</div>'
@@ -3547,10 +3521,10 @@ window.intelQuick = intelQuick;
 
       // Table
       +'<div style="margin-bottom:0.9rem;padding:8px 11px;border:1px solid #bdefff;border-left:3px solid #00BFFF;background:#f2fbfe;display:flex;align-items:center;justify-content:space-between;gap:18px">'
-        +'<div><div style="font-size:10px;font-weight:700;color:#0b2538">Reconciled platform gross formula</div><div style="font-size:8.5px;color:#64748b">'+reconciledCompleted.length+' of '+completed.length+' completed bookings have complete financial records</div></div>'
-        +'<div style="font-size:11px;font-weight:700;color:#0f172a;white-space:nowrap">'+dollars(reconciledGross)+' - ('+dollars(reconciledTax)+') - ('+dollars(reconciledFee)+') - ('+dollars(totPayout)+') = '+dollars(totProfit)+'</div>'
+        +'<div><div style="font-size:10px;font-weight:700;color:#0b2538">Platform gross formula</div><div style="font-size:8.5px;color:#64748b">The same figures as the Financials page, All time</div></div>'
+        +'<div style="font-size:11px;font-weight:700;color:#0f172a;white-space:nowrap">'+dollars(totGross)+' - ('+dollars(totTax)+') - ('+dollars(totFee)+') - ('+dollars(totPayout)+') = '+dollars(totProfit)+'</div>'
       +'</div>'
-      +'<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:5px"><div style="font-size:11px;font-weight:700;color:#0b2538">Completed Booking Financial Detail</div><div style="font-size:8.5px;color:#64748b">'+completed.length+' completed &bull; '+cancelledCount+' cancelled excluded</div></div>'
+      +'<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:5px"><div style="font-size:11px;font-weight:700;color:#0b2538">Completed Booking Financial Detail</div><div style="font-size:8.5px;color:#64748b">'+completedRows.length+' completed jobs &bull; '+cancellationRows.length+' cancellation fees</div></div>'
       +'<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px"><colgroup><col style="width:11%"><col style="width:19%"><col style="width:10%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:10%"></colgroup>'
         +'<thead><tr style="background:#0b2538;border-bottom:2px solid #0b2538">'
           +'<th style="padding:8px;text-align:left;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Reference</th>'
@@ -3567,7 +3541,7 @@ window.intelQuick = intelQuick;
         +'<tbody>'+rows+'</tbody>'
         // Totals row
         +'<tfoot><tr style="background:#eef4f6;border-top:2px solid #0b2538">'
-          +'<td colspan="3" style="padding:9px;font-size:10px;font-weight:700;color:#0b2538">RECORDED COMPLETED ACTIVITY ('+completed.length+')</td>'
+          +'<td colspan="3" style="padding:9px;font-size:10px;font-weight:700;color:#0b2538">RECORDED ACTIVITY ('+ledgerRows.length+')</td>'
           +'<td style="padding:9px;text-align:right;font-weight:800;color:#0f172a">'+dollars(totGross)+'</td>'
           +'<td style="padding:9px;text-align:right;font-weight:700;color:#475569">('+dollars(totTax)+')</td>'
           +'<td style="padding:9px;text-align:right;font-weight:700;color:#475569">('+dollars(totFee)+')</td>'
@@ -3581,7 +3555,7 @@ window.intelQuick = intelQuick;
       +'<div style="margin-top:0.8rem;padding-top:0.65rem;border-top:1px solid #dbe3ea;display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;font-size:8.2px;color:#64748b">'
         +'<div><strong style="color:#475569">Platform gross:</strong> customer payments less sales tax liability, payment-processing costs, and recorded contractor costs.</div>'
         +'<div><strong style="color:#475569">Operating profit:</strong> not shown; marketing, insurance, software, overhead, income tax, and other operating expenses are excluded.</div>'
-        +'<div><strong style="color:#475569">Reconciliation:</strong> unresolved completed bookings remain visible but are excluded from contractor-cost and platform-gross totals.</div>'
+        +'<div><strong style="color:#475569">Source:</strong> these are the Financials page figures for All time; test bookings are excluded.</div>'
         +'<div><strong style="color:#475569">Privacy:</strong> customer names are intentionally omitted from this management summary.</div>'
       +'</div>'
       +'<div style="margin-top:0.65rem;padding-top:0.55rem;border-top:1px solid #dbe3ea;display:flex;justify-content:space-between;font-size:8px;color:#94a3b8">'
@@ -3592,7 +3566,8 @@ window.intelQuick = intelQuick;
     +'<script>window.onload=function(){window.print();}<\/script>'
     +'</body></html>';
 
-    var w = window.open('','_blank');
+    if (!w) return;
+    w.document.open();
     w.document.write(html);
     w.document.close();
   });
@@ -8461,6 +8436,7 @@ window.intelQuick = intelQuick;
   var allViews = [$bookingsView,$casesView,$voiceCallsView,$marketDemandView,$thumbtackView,$partnersView,$giftCardsView,$messagesView,$waitlistView,$assemblersView,$todayView,$reviewsView,$websitePhotosView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
+  var _badgesTimer = null;
   var _bookingsLoadPromise = null;
 
   function syncPrimaryOwnerAction(view) {
@@ -8993,19 +8969,38 @@ window.intelQuick = intelQuick;
   }
 
   // ─── TODAY VIEW ───
+  // Today's schedule: real bookings (never test ones) on today's date or with a
+  // return visit today, and not cancelled, declined or refunded. The Today view
+  // and its badge read this one list, so the badge is the view's own count.
+  var TODAY_EXCLUDED_STATUSES = ['cancelled', 'declined', 'refunded'];
+  function todayUsesReturnVisit(b, today) {
+    return b.return_visit_date === today
+      && (b.return_visit_required === true || !!b.return_visit_completed_at);
+  }
+  function todayScheduleJobs(today) {
+    return realBookings().filter(function(b){
+      return (todayUsesReturnVisit(b, today) || b.date === today)
+        && !TODAY_EXCLUDED_STATUSES.includes(b.status);
+    });
+  }
+  function todayActiveCount(jobs) {
+    return jobs.filter(function(b){return b.status==='pending'||b.status==='confirmed'||PIPELINE_STATUSES.includes(b.status);}).length;
+  }
+  function paintTodayBadge() {
+    var navToday = document.getElementById('nav-today');
+    if (!navToday) return;
+    var active = todayActiveCount(todayScheduleJobs(ownerBusinessDate || chicagoBusinessDate(new Date())));
+    if (active > 0) { navToday.textContent = active; navToday.style.display = ''; }
+    else navToday.style.display = 'none';
+  }
   function renderTodayView() {
     var today = ownerBusinessDate || chicagoBusinessDate(new Date());
     // Show the date so the owner knows exactly what date is being shown
     var dateDisplay = businessDateLabel(today, true);
     var dd = document.getElementById('today-date-display');
     if (dd) dd.textContent = dateDisplay;
-    function usesReturnVisitSchedule(b) {
-      return b.return_visit_date === today
-        && (b.return_visit_required === true || !!b.return_visit_completed_at);
-    }
-    var jobs = allBookings.filter(function(b){
-      return usesReturnVisitSchedule(b) || b.date === today;
-    });
+    function usesReturnVisitSchedule(b) { return todayUsesReturnVisit(b, today); }
+    var jobs = todayScheduleJobs(today);
     jobs.sort(function(a,b){
       var aTime = usesReturnVisitSchedule(a) ? a.return_visit_time : a.time;
       var bTime = usesReturnVisitSchedule(b) ? b.return_visit_time : b.time;
@@ -9017,9 +9012,7 @@ window.intelQuick = intelQuick;
     // "Confirmed" = actively managed jobs (confirmed + all pipeline stages)
     document.getElementById('today-confirmed').textContent = jobs.filter(function(b){return b.status==='confirmed'||PIPELINE_STATUSES.includes(b.status);}).length;
     document.getElementById('today-done').textContent = jobs.filter(function(b){return b.status==='completed';}).length;
-    var navToday = document.getElementById('nav-today');
-    var active = jobs.filter(function(b){return b.status==='pending'||b.status==='confirmed'||PIPELINE_STATUSES.includes(b.status);}).length;
-    if(active>0){navToday.textContent=active;navToday.style.display='';}else{navToday.style.display='none';}
+    paintTodayBadge();
     var list = document.getElementById('today-list');
     var empty = document.getElementById('today-empty');
     if(!jobs.length){ list.innerHTML=''; empty.style.display=''; return; }
@@ -9106,27 +9099,79 @@ window.intelQuick = intelQuick;
   };
   // ─── CUSTOMERS VIEW ───
   var allCustomers = [];
+  // Who booked comes from the bookings list; what they completed and paid comes
+  // from Financials (api/owner/financial-dashboard.js buildCustomerTotals), the
+  // same rows and the same customer match behind its repeat rate. So "spent"
+  // and "repeat" here are the numbers Financials reports, never a second count.
+  // Financials' all-time numbers, loaded once and reused for five minutes by
+  // the Bookings platform-gross tile, Customers and the Financial Report, so
+  // none of them works money out for itself (api/owner/financial-dashboard.js).
+  var _allTimeFinance = null, _allTimeFinanceAt = 0, _allTimeFinancePromise = null;
+  function loadAllTimeFinance(force) {
+    if (!force && _allTimeFinance && Date.now() - _allTimeFinanceAt < 300000) return Promise.resolve(_allTimeFinance);
+    if (_allTimeFinancePromise) return _allTimeFinancePromise;
+    _allTimeFinancePromise = (async function() {
+      try {
+        var r = await fetch('/api/owner/financial-dashboard?period=all&ledger=all', { headers: headers(), cache: 'no-store' });
+        var d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Financials could not be loaded');
+        _allTimeFinance = d;
+        _allTimeFinanceAt = Date.now();
+        return d;
+      } catch (e) {
+        return null;
+      } finally {
+        _allTimeFinancePromise = null;
+      }
+    })();
+    return _allTimeFinancePromise;
+  }
+  var customerTotalsByKey = null; // null until loaded, or when it could not be
+  function customerKeyFor(email, name) {
+    // Same match as customerKey() in api/owner/financial-dashboard.js.
+    var e = String(email || '').trim().toLowerCase();
+    if (e) return 'email:' + e;
+    var n = String(name || '').trim().toLowerCase();
+    return n ? 'name:' + n : '';
+  }
+  async function loadCustomerTotals(force) {
+    var d = await loadAllTimeFinance(force !== false);
+    if (!d) { customerTotalsByKey = null; return; }
+    var map = {};
+    (d.customerTotals || []).forEach(function(t) { map[t.key] = t; });
+    customerTotalsByKey = map;
+  }
   function buildCustomers() {
     var map = {};
     realBookings().forEach(function(b){
-      var key = (b.customer_email||'').toLowerCase();
-      if(!key) key = 'booking:' + b.id;
+      var key = customerKeyFor(b.customer_email, b.customer_name) || ('booking:' + b.id);
       if(!map[key]){
-        map[key] = { name:b.customer_name, email:b.customer_email, phone:b.customer_phone, bookings:0, spent:0, lastDate:'', lastService:'', identityUnverified:!b.customer_email };
+        map[key] = { key:key, name:b.customer_name, email:b.customer_email, phone:b.customer_phone, bookings:0, lastDate:'', lastService:'', identityUnverified:!b.customer_email };
       }
       map[key].bookings++;
-      map[key].spent += actualNetPaymentsCents(b);
       if(b.created_at > map[key].lastDate){ map[key].lastDate=b.created_at; map[key].lastService=b.service||'—'; map[key].lastBookingId=b.id; }
+    });
+    Object.values(map).forEach(function(c){
+      var t = customerTotalsByKey ? customerTotalsByKey[c.key] : null;
+      // Unknown stays unknown: never shown as $0 or as not repeat.
+      c.completedJobs = customerTotalsByKey ? (t ? t.completedJobs : 0) : null;
+      c.spent = customerTotalsByKey ? (t ? t.paidCents : 0) : null;
     });
     allCustomers = Object.values(map).sort(function(a,b){return b.bookings-a.bookings;});
   }
-  function renderCustomers() {
+  async function renderCustomers(force) {
+    await loadCustomerTotals(force);
     buildCustomers();
-    var repeat = allCustomers.filter(function(c){return c.bookings>1;}).length;
-    var avgLtv = allCustomers.length ? Math.round(allCustomers.reduce(function(s,c){return s+c.spent;},0)/allCustomers.length) : 0;
+    var known = customerTotalsByKey !== null;
+    var repeat = allCustomers.filter(function(c){return c.completedJobs>1;}).length;
+    var avgLtv = allCustomers.length ? Math.round(allCustomers.reduce(function(s,c){return s+(c.spent||0);},0)/allCustomers.length) : 0;
     document.getElementById('cust-total').textContent = allCustomers.length;
-    document.getElementById('cust-repeat').textContent = repeat;
-    document.getElementById('cust-ltv').textContent = fmt$(avgLtv);
+    var repeatEl = document.getElementById('cust-repeat');
+    var ltvEl = document.getElementById('cust-ltv');
+    repeatEl.textContent = known ? repeat : '—';
+    ltvEl.textContent = known ? fmt$(avgLtv) : '—';
+    repeatEl.title = known ? 'Customers with more than one completed job, as in Financials.' : 'Payments could not be loaded, so this is unknown, not zero.';
+    ltvEl.title = repeatEl.title;
     filterCustomers();
   }
   function filterCustomers() {
@@ -9141,8 +9186,8 @@ window.intelQuick = intelQuick;
       return '<tr style="border-bottom:1px solid var(--border)">'
         +'<td style="padding:0.7rem 1rem"><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(c.name||'—')+'</div><div style="font-size:0.75rem;color:var(--muted)">'+esc(c.email||'')+'</div></td>'
         +'<td style="padding:0.7rem 1rem;font-size:0.85rem;color:var(--soft);white-space:nowrap">'+(hasValidUsPhone(c.phone) ? phoneWithCall(c.phone, 'booking', c.lastBookingId) : '<span style="color:var(--red)">Valid phone required</span>')+'</td>'
-        +'<td style="padding:0.7rem 1rem;font-size:0.875rem;font-weight:600;color:var(--text)">'+c.bookings+(c.bookings>1 ? ' <span style="font-size:0.7rem;color:var(--teal);font-weight:700">REPEAT</span>' : '')+'</td>'
-        +'<td style="padding:0.7rem 1rem;font-size:0.875rem;color:var(--text)">'+fmt$(c.spent)+'</td>'
+        +'<td style="padding:0.7rem 1rem;font-size:0.875rem;font-weight:600;color:var(--text)">'+c.bookings+(c.completedJobs>1 ? ' <span style="font-size:0.7rem;color:var(--teal);font-weight:700" title="More than one completed job">REPEAT</span>' : '')+'</td>'
+        +'<td style="padding:0.7rem 1rem;font-size:0.875rem;color:var(--text)">'+(c.spent==null ? '—' : fmt$(c.spent))+'</td>'
         +'<td style="padding:0.7rem 1rem;font-size:0.8rem;color:var(--soft)">'+esc(c.lastService)+'</td>'
         +'<td style="padding:0.7rem 1rem;font-size:0.8rem;color:var(--muted)">'+date+'</td>'
         +'<td style="padding:0.7rem 1rem;white-space:nowrap">'+(c.email ? '<button class="btn" style="font-size:0.72rem;padding:3px 10px" onclick="rebookCustomer(\''+jsAttr(c.email)+'\',\''+jsAttr(c.name||'')+'\',\''+jsAttr(c.phone||'')+'\')">Email to rebook</button>' : '<span style="color:var(--muted);font-size:0.75rem">No email</span>')+'</td>'
@@ -11340,6 +11385,7 @@ window.intelQuick = intelQuick;
       return '<tr style="cursor:pointer" data-asm-id="' + a.id + '">'
         + '<td style="' + rs + '"><strong>' + esc(a.full_name) + '</strong>'
           + (a.has_membership ? ' <span style="background:#00BFFF;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px">MEMBER</span>' : '')
+          + (a.is_demo_account ? ' <span title="App Review demo account: test jobs only, not counted as an active Easer" style="background:#64748b;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px">DEMO</span>' : '')
           + '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(a.email) + '</span>'
           + (!hasValidUsPhone(a.phone) ? ' <span style="font-size:0.68rem;color:#ef4444;font-weight:600">Valid phone required</span>' : '')
           + '</td>'

@@ -218,13 +218,14 @@ if (!ownerDashboard.includes('/api/owner/site-chat') || !ownerDashboard.includes
 if (!ownerDashboard.includes('/api/owner/promo') || !ownerDashboard.includes('Promo Control')) {
   throw new Error('Owner dashboard must expose live promo controls');
 }
-const reportRowsStart = ownerDashboard.indexOf('var rows = completed.map(function(b)');
+// The report's rows are Financials' ledger rows (owner, 2026-11-10).
+const reportRowsStart = ownerDashboard.indexOf('var rows = ledgerRows.map(function(r)');
 const reportRowsEnd = ownerDashboard.indexOf('var reportDate =', reportRowsStart);
 const reportRows = ownerDashboard.slice(reportRowsStart, reportRowsEnd);
 if (reportRowsStart < 0 || reportRowsEnd < 0
-    || !reportRows.includes('esc(b.ref)')
-    || !reportRows.includes("esc(b.service||'Service')")
-    || reportRows.includes('esc(b.customer_name)')) {
+    || !reportRows.includes("esc(r.ref||'')")
+    || !reportRows.includes('esc(label)')
+    || /customerName|customer_name/.test(reportRows)) {
   throw new Error('Owner financial report must escape references and services without exposing customer names');
 }
 

@@ -9,6 +9,7 @@ import { loadAcceptanceTallies } from '../_easer-acceptance.js';
 import { loadOpenWork, workActivityFor } from '../_easer-work-activity.js';
 import { serviceNames } from '../_easer-work-preferences.js';
 import { inactivityReasons, inactivityNoticeState, loadJobHistory, loadInactivityNotices } from '../_easer-inactivity.js';
+import { loadDemoEaserIds } from '../_demo-accounts.js';
 
 /**
  * GET /api/assembler/list
@@ -95,16 +96,22 @@ export default async function handler(req, res) {
     };
   }));
 
+  // A demo (App Review) account is listed, labelled, and never counted as a
+  // working Easer (api/_demo-accounts.js).
+  const demoIds = await loadDemoEaserIds(sb);
+  for (const a of assemblers) if (demoIds.has(a.id)) a.is_demo_account = true;
+  const working = assemblers.filter(a => !demoIds.has(a.id));
   const stats = {
     total:         assemblers.length,
     pending:       assemblers.filter(a => a.status === 'pending').length,
-    active:        assemblers.filter(a => a.status === 'active').length,
+    active:        working.filter(a => a.status === 'active').length,
     suspended:     assemblers.filter(a => a.status === 'suspended').length,
     rejected:      assemblers.filter(a => a.status === 'rejected').length,
-    starter:       assemblers.filter(a => a.status === 'active' && a.tier === 'starter').length,
-    professional:  assemblers.filter(a => a.status === 'active' && a.tier === 'professional').length,
-    elite:         assemblers.filter(a => a.status === 'active' && a.tier === 'elite').length,
-    dispatchEligible: assemblers.filter(a => a.readiness.isReady).length,
+    starter:       working.filter(a => a.status === 'active' && a.tier === 'starter').length,
+    professional:  working.filter(a => a.status === 'active' && a.tier === 'professional').length,
+    elite:         working.filter(a => a.status === 'active' && a.tier === 'elite').length,
+    dispatchEligible: working.filter(a => a.readiness.isReady).length,
+    demo:          assemblers.length - working.length,
     connectRequired: requireConnect,
   };
 

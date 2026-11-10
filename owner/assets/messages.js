@@ -30,7 +30,12 @@
   }
   function paintBadge() {
     var badge = el('nav-inbox'); if (!badge) return;
-    if (!state.data) { badge.style.display = 'none'; return; }
+    if (!state.data) {
+      // Never loaded: unknown, not "nothing waiting" (Article 16), as the other badges do.
+      if (state.badgeError) { badge.textContent = '!'; badge.title = 'Messages could not be loaded — this is not a count of zero.'; badge.style.display = ''; }
+      else badge.style.display = 'none';
+      return;
+    }
     var n = state.data.needsReply.length;
     badge.textContent = String(n);
     badge.title = n + (n === 1 ? ' conversation is' : ' conversations are') + ' waiting for your reply';
@@ -159,7 +164,7 @@
     } finally { state.loading = false; el('inbox-refresh').disabled = false; paintBadge(); }
   }
   async function loadBadge() {
-    try { state.data = await request(); } catch (e) { /* keep the last known badge */ }
+    try { state.data = await request(); state.badgeError = false; } catch (e) { state.badgeError = true; /* keep the last known badge */ }
     paintBadge();
     if (!state.badgeStarted) {
       state.badgeStarted = true;

@@ -242,7 +242,7 @@ assert.match(ownerSource, /Number\.isInteger\(assemblerDueCents\)/);
 assert.match(ownerSource, /offlineCustomerTotalCents = Number\(b\.amount_charged \?\? b\.total_price \?\? 0\)/);
 assert.doesNotMatch(ownerSource, /currentPayoutTruth\.owed \|\|[\s\S]{0,160}assembler_due/);
 assert.doesNotMatch(ownerSource, /var offlineDamageReady|var offlineDisputeOpen/);
-assert.match(ownerSource, /loadPayoutLedger\(\);[\s\S]*Nav badge: pending Easer applications/);
+assert.match(ownerSource, /loadPayoutLedger\(\);[\s\S]*setTimeout\(refreshNavBadges, 0\);/);
 assert.match(payoutApiSource, /hasVerifiedOfflineOwnerPayment\(booking\)/);
 assert.match(payoutApiSource, /deriveManualPayoutReadiness\(booking/);
 assert.match(collectionApiSource, /normalizeOwnerOfflinePaymentMethod\(paymentMethod\)/);

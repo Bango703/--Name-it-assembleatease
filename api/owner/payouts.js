@@ -119,7 +119,7 @@ export default async function handler(req, res) {
       // Easer is actually paid. Without it the table showed a red
       // "Not selected" beside a live automatic transfer, because
       // payout_method_preference only ever describes a MANUAL payout.
-      .select('id, email, phone, payout_method_preference, account_closure_status, stripe_connect_account_id, stripe_connect_payouts_enabled, stripe_connect_onboarding_complete')
+      .select('id, email, phone, tier, payout_method_preference, account_closure_status, stripe_connect_account_id, stripe_connect_payouts_enabled, stripe_connect_onboarding_complete')
       .in('id', easerIds);
     if (profileError) {
       console.error('Payout contact lookup error:', profileError);
@@ -131,6 +131,9 @@ export default async function handler(req, res) {
     (profiles || []).forEach(profile => {
       const easer = byEaser[profile.id];
       if (!easer) return;
+      // The Easer's level today. A booking keeps the level from when it was
+      // assigned, which showed an Easer as Professional months after a change.
+      if (profile.tier) easer.assembler_tier = profile.tier;
       easer.email = profile.email || null;
       easer.phone = formatUsPhone(profile.phone);
       easer.payout_method_preference = profile.payout_method_preference || null;
