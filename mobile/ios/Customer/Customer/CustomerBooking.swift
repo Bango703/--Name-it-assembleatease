@@ -432,12 +432,16 @@ final class BookingFlow: ObservableObject {
                 return
             }
             let key = try await stripeKey()
+            // Saved cards belong to the account's email; bookings are made with it.
+            var savedCards: CheckoutCustomer? = nil
+            if email == email.lowercased() { savedCards = await api.checkoutCustomer() }
             if plan.savesCard {
                 var setupID = pendingCard?.fingerprint == orderPrint ? pendingCard?.setupID : nil
                 if setupID == nil {
                     let secret = try await api.cardSetup(name: cardName, email: email,
                                                          purpose: "future_booking", date: dayISO)
-                    switch await CardSheet.present(.setup(secret), publishableKey: key, name: cardName, email: email, phone: cardPhone) {
+                    switch await CardSheet.present(.setup(secret), publishableKey: key, name: cardName, email: email, phone: cardPhone,
+                                                   customer: savedCards) {
                     case .done:
                         setupID = secret.components(separatedBy: "_secret_").first
                         if let setupID { pendingCard = (orderPrint, setupID) }
@@ -462,7 +466,8 @@ final class BookingFlow: ObservableObject {
                     await finish(created, plan: plan)
                     return
                 }
-                switch await CardSheet.present(.payment(secret), publishableKey: key, name: cardName, email: email, phone: cardPhone) {
+                switch await CardSheet.present(.payment(secret), publishableKey: key, name: cardName, email: email, phone: cardPhone,
+                                               customer: savedCards) {
                 case .done:
                     await confirm(created)
                     await finish(created, plan: plan)
@@ -870,7 +875,7 @@ private struct StepButton: View {
                         Button("Privacy") { openURL(Site.page("/privacy")) }
                     }
                 }
-                .font(.caption)
+                .font(.caption2)
             }
         }
         .padding(.horizontal, 16)

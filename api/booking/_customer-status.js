@@ -52,7 +52,7 @@ export function customerStatusLabel(b) {
   if (b.status === BOOKING_STATUS.CONFIRMED && b.payment_status === 'card_saved') {
     return {
       label: 'Appointment reserved',
-      detail: 'Your card is saved securely. We will verify it closer to your appointment and contact you only if another confirmation is needed.',
+      detail: 'Nothing has been charged. You pay after the job is done. We contact you only if your bank needs another confirmation.',
     };
   }
   if (b.assembler_id) return { label: 'Matching you with a service pro', detail: 'Your pro will confirm shortly.' };

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import PhotosUI
 import StoreKit
 
@@ -1129,54 +1130,54 @@ struct CustomerAccountView: View {
         NavigationStack {
             List {
                 Section {
-                    HStack(spacing: 14) {
-                        Text(initials)
-                            .font(.title2.bold())
-                            .foregroundStyle(Brand.ink)
-                            .frame(width: 60, height: 60)
-                            .background(Brand.sky, in: Circle())
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(displayName).font(.title3.bold())
-                            Text(store.email ?? "").font(.subheadline).foregroundStyle(.secondary)
+                    NavigationLink { YourDetailsView() } label: {
+                        HStack(spacing: 14) {
+                            Text(initials)
+                                .font(.title2.bold())
+                                .foregroundStyle(Brand.ink)
+                                .frame(width: 60, height: 60)
+                                .background(Brand.sky, in: Circle())
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(displayName).font(.title3.bold()).foregroundStyle(.primary)
+                                Text(store.email ?? "").font(.subheadline).foregroundStyle(.secondary)
+                                Text("Edit profile").font(.footnote.weight(.semibold)).foregroundStyle(Brand.skyDark)
+                            }
                         }
+                        .padding(.vertical, 6)
                     }
-                    .padding(.vertical, 6)
                 }
 
-                Section {
+                Section("Your bookings") {
                     Button { store.tab = .activity } label: {
                         HStack {
-                            accountRow("calendar", "Upcoming bookings")
+                            accountRow("calendar", "Upcoming")
                             Spacer()
                             Text("\(store.upcoming.count)").foregroundStyle(.secondary)
                         }
                     }
                     Button { store.tab = .activity } label: {
                         HStack {
-                            accountRow("checkmark.circle", "Completed jobs")
+                            accountRow("checkmark.circle", "Completed")
                             Spacer()
                             Text("\(store.finishedJobs.count)").foregroundStyle(.secondary)
                         }
                     }
                 }
 
-                Section {
+                Section("Account settings") {
+                    NavigationLink { YourDetailsView() } label: { accountRow("person.text.rectangle", "Your details") }
+                    NavigationLink { PaymentMethodsView() } label: { accountRow("creditcard", "Payment methods") }
+                    Button {
+                        if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                    } label: { accountRow("bell", "Notifications") }
                     HStack {
                         accountRow("star.circle", "AssembleCash")
                         Spacer()
                         Text(wholeDollars(store.account?.assemblecashCents ?? 0)).foregroundStyle(.secondary).monospacedDigit()
                     }
-                } footer: {
-                    Text("Earned on completed jobs. It comes off your next booking at checkout.")
                 }
 
-                Section {
-                    NavigationLink { YourDetailsView() } label: { accountRow("person.text.rectangle", "Your details") }
-                } footer: {
-                    Text("Your name, phone and address fill in each new booking.")
-                }
-
-                Section("Help") {
+                Section("Support") {
                     Button { openURL(Site.page("/contact")) } label: { accountRow("questionmark.circle", "Help and contact") }
                     Button {
                         if let url = URL(string: "tel:" + Site.supportPhone) { openURL(url) }
@@ -1189,9 +1190,15 @@ struct CustomerAccountView: View {
                 Section("About") {
                     Button { openURL(Site.page("/pricing")) } label: { accountRow("tag", "Prices") }
                     Button { openURL(Site.page("/about")) } label: { accountRow("info.circle", "About AssembleAtEase") }
-                    Button { openURL(Site.page("/terms")) } label: { accountRow("doc.text", "Terms of Service") }
-                    Button { openURL(Site.page("/privacy")) } label: { accountRow("hand.raised", "Privacy Policy") }
                 }
+
+                Section {
+                    Button("Terms of Service") { openURL(Site.page("/terms")) }
+                    Button("Privacy Policy") { openURL(Site.page("/privacy")) }
+                } header: {
+                    Text("Legal")
+                }
+                .font(.footnote)
 
                 Section {
                     Button("Sign out") { confirmSignOut = true }
@@ -1275,6 +1282,113 @@ private struct YourDetailsView: View {
                     dismiss()
                 }
             }
+        }
+    }
+}
+
+/// Cards saved on the account (api/customer/payment-methods.js). Checkout
+/// offers the same cards, so a booking needs no card typed in again.
+struct PaymentMethodsView: View {
+    @EnvironmentObject private var store: CustomerStore
+    @EnvironmentObject private var flow: BookingFlow
+    @State private var cards: [SavedCard] = []
+    @State private var loaded = false
+    @State private var problem: String?
+    @State private var working = false
+    @State private var removing: SavedCard?
+
+    var body: some View {
+        List {
+            if !cards.isEmpty {
+                Section {
+                    ForEach(cards) { card in
+                        HStack(spacing: 12) {
+                            Image(systemName: "creditcard.fill").foregroundStyle(Brand.skyDark)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(card.brandName) ending in \(card.last4)")
+                                Text("Expires \(card.expiry)").font(.footnote).foregroundStyle(.secondary)
+                            }
+                        }
+                        .swipeActions {
+                            Button("Remove", role: .destructive) { removing = card }
+                        }
+                    }
+                } footer: {
+                    Text("Your saved cards appear at checkout. Swipe left to remove one.")
+                }
+            } else if loaded && problem == nil {
+                Section {
+                    Text("No saved cards yet.").foregroundStyle(.secondary)
+                } footer: {
+                    Text("Add a card here, or the card you book with is saved here.")
+                }
+            }
+            Section {
+                Button {
+                    Task { await addCard() }
+                } label: {
+                    Label("Add a card", systemImage: "plus.circle.fill")
+                }
+                .disabled(working)
+            }
+            if let problem {
+                Section { Text(problem).font(.footnote).foregroundStyle(.secondary) }
+            }
+        }
+        .navigationTitle("Payment methods")
+        .navigationBarTitleDisplayMode(.inline)
+        .overlay { if !loaded { ProgressView() } }
+        .task { await load() }
+        .refreshable { await load() }
+        .confirmationDialog("Remove this card?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
+                            titleVisibility: .visible, presenting: removing) { card in
+            Button("Remove \(card.brandName) ending in \(card.last4)", role: .destructive) {
+                Task { await remove(card) }
+            }
+        }
+    }
+
+    private func load() async {
+        do {
+            cards = try await store.api.savedCards()
+            problem = nil
+        } catch {
+            problem = error.localizedDescription
+        }
+        loaded = true
+    }
+
+    private func addCard() async {
+        working = true
+        defer { working = false }
+        do {
+            let key = try await store.api.stripeKey()
+            let secret = try await store.api.addCardSecret()
+            let name = flow.name.trimmingCharacters(in: .whitespaces)
+            let phone = Format.e164(flow.phone) ?? flow.phone
+            switch await CardSheet.present(.setup(secret), publishableKey: key, name: name, email: store.email ?? "", phone: phone) {
+            case .done:
+                store.banner = CustomerBanner(text: "Card saved.", kind: .success)
+                await load()
+            case .cancelled:
+                return
+            case .failed(let reason):
+                problem = reason
+            }
+        } catch {
+            problem = error.localizedDescription
+        }
+    }
+
+    private func remove(_ card: SavedCard) async {
+        working = true
+        defer { working = false }
+        do {
+            try await store.api.removeCard(card.id)
+            store.banner = CustomerBanner(text: "Card removed.", kind: .success)
+            await load()
+        } catch {
+            problem = error.localizedDescription
         }
     }
 }

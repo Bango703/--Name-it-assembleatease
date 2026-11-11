@@ -23,6 +23,36 @@ final class CustomerAPI: APIClient {
         try await get("/api/customer/account", as: AccountSummary.self)
     }
 
+    // MARK: Saved cards (api/customer/payment-methods.js)
+
+    func savedCards() async throws -> [SavedCard] {
+        try await get("/api/customer/payment-methods", as: SavedCardsEnvelope.self).cards
+    }
+
+    /// A SetupIntent for adding a card from Account.
+    func addCardSecret() async throws -> String {
+        let data = try await call("POST", "/api/customer/payment-methods", body: ["action": "add"])
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let secret = object["clientSecret"] as? String, !secret.isEmpty else {
+            throw AppError(message: "The card screen could not open. Try again.", status: 0)
+        }
+        return secret
+    }
+
+    func removeCard(_ id: String) async throws {
+        try await call("DELETE", "/api/customer/payment-methods", body: ["paymentMethodId": id])
+    }
+
+    /// The account's saved cards for the payment sheet, or nil. Never stops a
+    /// booking: without it the sheet simply asks for a card.
+    func checkoutCustomer() async -> CheckoutCustomer? {
+        guard session != nil,
+              let data = try? await call("POST", "/api/customer/payment-methods", body: ["action": "checkout"]),
+              let value = try? JSONDecoder().decode(CheckoutCustomer.self, from: data),
+              !value.customerID.isEmpty, value.sessionSecret.hasPrefix("cuss_") else { return nil }
+        return value
+    }
+
     func inbox() async throws -> [InboxConversation] {
         try await get("/api/customer/inbox", as: InboxEnvelope.self).conversations
     }

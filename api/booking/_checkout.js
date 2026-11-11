@@ -13,7 +13,7 @@ export const CHECKOUT_PLAN = Object.freeze({ PAY_NOW: 'pay_now', SAVE_CARD: 'sav
 
 const PLAN_COPY = {
   [CHECKOUT_PLAN.PAY_NOW]: { button: 'Book now', note: 'You pay after the job is done.' },
-  [CHECKOUT_PLAN.SAVE_CARD]: { button: 'Book now', note: 'Your card is saved. You pay after the job is done.' },
+  [CHECKOUT_PLAN.SAVE_CARD]: { button: 'Book now', note: 'Nothing is charged today. You pay after the job is done.' },
   [CHECKOUT_PLAN.QUOTE]: { button: 'Request a quote', note: 'We send you a price to approve. Nothing is booked until you approve it.' },
 };
 
