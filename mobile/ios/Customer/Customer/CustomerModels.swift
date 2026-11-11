@@ -655,3 +655,53 @@ enum CatalogSearch {
         item.search.isEmpty ? words(service + " " + group + " " + item.name).joined(separator: " ") : item.search
     }
 }
+
+/// A card saved on the account (api/customer/payment-methods.js GET). Card
+/// numbers stay in Stripe; this is the brand, last four digits and expiry.
+struct SavedCard: Decodable, Identifiable, Hashable {
+    let id: String
+    let brand: String
+    let last4: String
+    let expMonth: Int
+    let expYear: Int
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id") ?? ""
+        brand = c.string("brand") ?? "card"
+        last4 = c.string("last4") ?? ""
+        expMonth = Int(c.number("exp_month") ?? 0)
+        expYear = Int(c.number("exp_year") ?? 0)
+    }
+
+    var brandName: String {
+        switch brand.lowercased() {
+        case "visa": return "Visa"
+        case "mastercard": return "Mastercard"
+        case "amex": return "American Express"
+        case "discover": return "Discover"
+        case "diners": return "Diners Club"
+        case "jcb": return "JCB"
+        case "unionpay": return "UnionPay"
+        default: return "Card"
+        }
+    }
+
+    var expiry: String { String(format: "%02d/%02d", expMonth, expYear % 100) }
+}
+
+struct SavedCardsEnvelope: Decodable {
+    let cards: [SavedCard]
+}
+
+/// What Stripe's payment sheet needs to offer the account's saved cards at checkout.
+struct CheckoutCustomer: Decodable {
+    let customerID: String
+    let sessionSecret: String
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        customerID = c.string("customerId") ?? ""
+        sessionSecret = c.string("customerSessionClientSecret") ?? ""
+    }
+}

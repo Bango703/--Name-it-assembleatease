@@ -24,8 +24,25 @@ enum CardSheet {
     static let returnURL = "assembleatease-customer://stripe-redirect"
 
     /// `stripeAccount` is set for a tip: the intent lives on the Easer's own account.
+    /// `customer` offers the account's saved cards (api/customer/payment-methods.js);
+    /// never with `stripeAccount`, whose intent is not on our Stripe account.
     static func present(_ intent: CardSheetIntent, publishableKey: String, name: String, email: String, phone: String,
-                        stripeAccount: String? = nil) async -> CardSheetOutcome {
+                        stripeAccount: String? = nil, customer: CheckoutCustomer? = nil) async -> CardSheetOutcome {
+        let saved = (stripeAccount ?? "").isEmpty ? customer : nil
+        let outcome = await presentOnce(intent, publishableKey: publishableKey, name: name, email: email, phone: phone,
+                                        stripeAccount: stripeAccount, customer: saved)
+        // If the sheet could not open with saved cards, open it once more without
+        // them, so a saved-card problem never stops a booking.
+        if case .failed = outcome, saved != nil {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            return await presentOnce(intent, publishableKey: publishableKey, name: name, email: email, phone: phone,
+                                     stripeAccount: stripeAccount, customer: nil)
+        }
+        return outcome
+    }
+
+    private static func presentOnce(_ intent: CardSheetIntent, publishableKey: String, name: String, email: String, phone: String,
+                                    stripeAccount: String?, customer: CheckoutCustomer?) async -> CardSheetOutcome {
         STPAPIClient.shared.publishableKey = publishableKey
         var configuration = PaymentSheet.Configuration()
         if let stripeAccount, !stripeAccount.isEmpty {
@@ -41,6 +58,9 @@ enum CardSheet {
         configuration.defaultBillingDetails.phone = phone
         if let merchantID = applePayMerchantID {
             configuration.applePay = .init(merchantId: merchantID, merchantCountryCode: "US")
+        }
+        if let customer {
+            configuration.customer = .init(id: customer.customerID, customerSessionClientSecret: customer.sessionSecret)
         }
 
         let sheet: PaymentSheet
