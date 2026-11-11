@@ -373,7 +373,7 @@ console.log('PASS switch-on: the website and Easer app 1.1 use the private line;
   assert.match(privacy, /both people hear an announcement before anything is recorded/);
   assert.match(privacy, /we delete the recording 90 days after the call/);
   assert.equal(RECORDING_RETENTION_DAYS, 90, 'the notice and the deletion job agree');
-  assert.match(read('api/_legal-consent.js'), /PRIVACY_NOTICE_VERSION = '2026-11-09-three-numbers-v1'/);
+  assert.match(read('api/_legal-consent.js'), /PRIVACY_NOTICE_VERSION = '2026-11-10-amounts-owed-v1'/);
 }
 console.log('PASS privacy: the notice describes recorded private calls, the summary, and 90-day deletion');
 
