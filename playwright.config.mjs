@@ -9,7 +9,9 @@ export default defineConfig({
   testDir: 'tests',
   testMatch: process.env.E2E_LIVE ? 'e2e-live/**/*.spec.mjs' : 'e2e/**/*.spec.mjs',
   timeout: 30_000,
-  retries: process.env.CI ? 1 : 0,
+  // The live run never retries: a second attempt with a wrong password only
+  // spends another sign-in attempt.
+  retries: process.env.CI && !process.env.E2E_LIVE ? 1 : 0,
   reporter: process.env.CI && !process.env.E2E_LIVE ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: process.env.E2E_LIVE ? (process.env.E2E_BASE_URL || 'https://www.assembleatease.com') : `http://127.0.0.1:${port}`,
