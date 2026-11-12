@@ -111,7 +111,7 @@ function renderAppBadge(app) {
   const target = APP_STORE[app];
   if (!target) return '';
   return `
-      <a class="footer-app" href="${target.url}" target="_blank" rel="noopener" aria-label="Download the ${target.name} app on the App Store" style="display:inline-block;margin-top:16px"><img src="${APP_STORE_BADGE_SVG}" alt="Download on the App Store" width="120" height="40" loading="lazy" style="display:block;width:120px;height:40px"></a>`;
+      <a class="footer-app app-store-promo" href="${target.url}" target="_blank" rel="noopener" aria-label="Download the ${target.name} app on the App Store" style="display:inline-block;margin-top:16px"><img src="${APP_STORE_BADGE_SVG}" alt="Download on the App Store" width="120" height="40" loading="lazy" style="display:block;width:120px;height:40px"></a>`;
 }
 
 function renderFooterInner({ tagline, servicesLinks, companyLinks = COMPANY_LINKS, supportLinks = SUPPORT_LINKS, contactMode = 'full', resourcesTitle = '', resourcesLinks = [], appBadge = 'customer' }) {

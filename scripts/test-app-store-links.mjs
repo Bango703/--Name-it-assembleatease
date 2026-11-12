@@ -40,7 +40,7 @@ console.log('PASS banner: customer pages offer the customer app, Easer pages the
   assert.ok(footer.includes(APP_STORE.customer.url));
   assert.ok(footer.includes(APPLE_TRADEMARK_CREDIT));
   assert.ok(!buildPublicFooter({ variant: 'booking_resources', tagline: 'x', appBadge: null }).includes('apps.apple.com'));
-  assert.match(read('index.html'), /class="footer-app" href="https:\/\/apps\.apple\.com\/us\/app\/assembleatease-assembly-pros\/id6822339934"/);
+  assert.match(read('index.html'), /class="footer-app app-store-promo" href="https:\/\/apps\.apple\.com\/us\/app\/assembleatease-assembly-pros\/id6822339934"/);
   assert.doesNotMatch(read('become-an-easer.html'), /assembleatease-assembly-pros/, 'no customer app on the Easer page');
 }
 console.log('PASS footer: the customer app on every public page, credited; not on Easer pages');
