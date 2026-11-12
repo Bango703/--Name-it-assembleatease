@@ -82,7 +82,10 @@ const publicPages = listHtmlPages().filter((pagePath) => {
 const changedFiles = [];
 
 for (const pagePath of publicPages) {
-  const changed = updateFooter(pagePath, resolveFooterOptions(pagePath));
+  const options = resolveFooterOptions(pagePath);
+  const pageType = classifyPage(pagePath);
+  if (pageType === 'recruit_hub' || pageType === 'recruit_city' || pageType.startsWith('assembler')) options.appBadge = null;
+  const changed = updateFooter(pagePath, options);
   if (changed) changedFiles.push(changed);
 }
 

@@ -71,6 +71,17 @@
       return tagged;
     }
   }
+  // Someone already in the app is never asked to download it.
+  function hideAppStorePromos() {
+    if (!isNativeApp()) return;
+    try {
+      document.documentElement.classList.add('in-aae-app');
+      var style = document.createElement('style');
+      style.textContent = '.in-aae-app .app-store-promo{display:none!important}';
+      (document.head || document.documentElement).appendChild(style);
+    } catch (e) { /* the page still works with the badge showing */ }
+  }
+  hideAppStorePromos();
   function measurementExcluded() {
     if (isNativeApp()) return true;
     if (!/^(?:www\.)?assembleatease\.com$/.test(window.location.hostname || '')) return true;
