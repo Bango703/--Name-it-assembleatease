@@ -30,6 +30,10 @@ test('On a phone, the form starts near the top and the steps are not boxed', asy
   await openApply(page, []);
   await expect(page.locator('.hero-photo')).toBeHidden();
   await expect(page.locator('.easer-value-preview')).toBeVisible();
+  // The last note is not covered by the form (it was cut off on phones).
+  const lastNoteBottom = await page.locator('.easer-value-item').last().evaluate((el) => el.getBoundingClientRect().bottom);
+  const panelTop = await page.locator('#application-panel').evaluate((el) => el.getBoundingClientRect().top);
+  expect(lastNoteBottom).toBeLessThanOrEqual(panelTop);
   const formTop = await page.locator('#application-panel').evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
   expect(formTop).toBeLessThan(844 * 1.1);
   const box = await page.locator('#apply-form > .section').nth(1).evaluate((el) => {
