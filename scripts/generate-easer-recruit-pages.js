@@ -12,21 +12,32 @@
 //    these cities and needs the supply to honor its statewide customer promise.
 //  - Tools-only: pros bring their own TOOLS; we never claim to supply hardware/parts.
 //  - Reuses the ONE city list (scripts/lib/texas-cities.mjs) + governed nav/footer/consent.
+//  - Every number on the page comes from its source: the Easer share from
+//    getPlatformFeePct, the service fee from SERVICE_CALL_ZONES, the pay examples
+//    from the booking catalog (assets/js/booking-source-of-truth.js). Change a
+//    price and the pages change with the next run.
+//  - Layout (owner, 2026-11-12: "smooth, rather than a bunch of block sections"):
+//    open sections that alternate density, one photo on the hub, rows and a
+//    timeline instead of stacked bordered cards, each fact said once.
 //
 // Run: node scripts/generate-easer-recruit-pages.js
+// Then: node scripts/public-footer-sync.mjs && node scripts/app-banner-sync.mjs
 
 import { writeFileSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import vm from 'vm';
 import { buildPublicCookieConsentBlock } from './lib/public-consent.mjs';
 import { buildPublicFooterBlock } from './lib/public-footer.mjs';
 import { buildPublicNavBlock } from './lib/public-nav.mjs';
 import { ALL_TEXAS_CITIES, isIndexedEaserJobsPage } from './lib/texas-cities.mjs';
 import { fitTitle } from './lib/seo-title.mjs';
+import { getPlatformFeePct, SERVICE_CALL_ZONES } from '../api/_source-of-truth.js';
+import { APP_STORE, APP_STORE_BADGE_SVG, APPLE_TRADEMARK_CREDIT } from '../api/_app-store.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const TODAY = '2026-08-06';
+const TODAY = '2026-11-12';
 // No validThrough: the role has no expiration date, and a baked-in date on a static
 // page silently expires every posting (Google drops them). Google: omit it when the
 // posting does not expire.
@@ -39,48 +50,97 @@ const SERVED_SLUGS = new Set([
   'buda', 'lakeway', 'bee-cave', 'manor', 'leander', 'hutto',
 ]);
 
+// The four priority hubs (owner direction 2026-10-27) and their recruiting pages.
+const HUBS = [
+  { name: 'Austin', slug: 'austin' },
+  { name: 'Houston', slug: 'houston' },
+  { name: 'San Antonio', slug: 'san-antonio' },
+  { name: 'Dallas-Fort Worth', slug: 'dallas' },
+];
+
 function esc(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 function safeJson(obj) {
   return JSON.stringify(obj).replace(/<\//g, '<\\/');
 }
+function dollars(cents) {
+  return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
+}
+
+// ── Pay, from the sources of truth ──
+const EASER_SHARE_PCT = 100 - getPlatformFeePct(false);
+const SERVICE_FEE_CENTS = SERVICE_CALL_ZONES.austin_core.fee;
+
+function loadCatalog() {
+  const context = { window: {} };
+  vm.createContext(context);
+  vm.runInContext(readFileSync(join(ROOT, 'assets/js/booking-source-of-truth.js'), 'utf8'), context);
+  const items = [];
+  JSON.stringify(context.window.AAE_BOOKING_SOURCE, (key, value) => {
+    if (value && typeof value === 'object' && typeof value.name === 'string' && typeof value.price === 'number') items.push(value);
+    return value;
+  });
+  return items;
+}
+const CATALOG = loadCatalog();
+const PAY_EXAMPLES = [
+  { label: 'TV mount, 56" to 65"', item: 'TV 56"–65" (standard wall)' },
+  { label: 'Treadmill assembly', item: 'Treadmill assembly' },
+  { label: 'Backyard swing set', item: 'Swing set / backyard playset assembly' },
+].map(({ label, item }) => {
+  const found = CATALOG.find((entry) => entry.name === item);
+  if (!found) throw new Error(`Pay example item not in the catalog: ${item}`);
+  const jobCents = Math.round(found.price * 100) + SERVICE_FEE_CENTS;
+  return { label, jobCents, earnCents: Math.round(jobCents * EASER_SHARE_PCT / 100) };
+});
 
 // ── Shared, LOCATION-NEUTRAL recruitment content (one source, never per-city duplicated) ──
+const ICONS = {
+  calendar: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
+  tag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg>',
+  bank: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-6 9 6M5 10v8M10 10v8M14 10v8M19 10v8M3 21h18"/></svg>',
+};
 const WHY = [
-  { t: 'Set your own schedule', d: 'Accept the jobs that fit your week. There are no shifts, no quotas, and no minimum hours — you decide what you take.' },
-  { t: 'Keep the majority of every job', d: 'You earn 70% of the job price on every completed assignment. Pricing is shown up front, so you always know the pay before you accept.' },
-  { t: 'Jobs come to you', d: 'Approved pros get matched to nearby assignments automatically and are notified to accept — no bidding wars, no chasing leads.' },
-  { t: 'Paid after completed work', d: 'Payment is released after the job is finished and confirmed. Payouts go to your bank once payout setup is complete — clear status the whole way.' },
-];
-const REQUIREMENTS = [
-  { t: 'Your own tools', d: 'You bring the drills, bits, and hand tools to do the work. Customers supply their own furniture, mounts, and hardware.' },
-  { t: 'Reliable transportation', d: 'A dependable way to get to appointments across your area with your tools.' },
-  { t: 'A smartphone', d: 'You accept jobs, message customers, and confirm completion from your phone.' },
-  { t: 'Pass onboarding', d: 'Verify your identity and sign the independent-contractor agreement. Approval is required before you receive jobs.' },
+  { icon: 'calendar', t: 'Choose your jobs', d: 'Offers come to your phone. Take the ones that fit your week. No shifts, quotas or minimum hours.' },
+  { icon: 'tag', t: 'Know the pay first', d: 'Every offer shows what you earn before you accept. Tips are 100% yours.' },
+  { icon: 'bank', t: 'Get paid after each job', d: 'Earnings go to your bank through Stripe once the job is confirmed. Instant payout is available when your bank supports it.' },
 ];
 const STEPS = [
-  { n: '1', t: 'Apply online', d: 'Tell us about your assembly and mounting experience. It takes a few minutes.' },
-  { n: '2', t: 'Verify & agree', d: 'Complete identity verification and sign the independent-contractor agreement.' },
-  { n: '3', t: 'Get approved', d: 'Once reviewed and approved, your account is set to receive job offers.' },
-  { n: '4', t: 'Accept jobs & get paid', d: 'Accept nearby assignments, complete the work, and get paid after each job is confirmed.' },
+  { t: 'Apply', d: 'A few minutes online. Have your own tools, reliable transportation and a smartphone.' },
+  { t: 'Verify and sign', d: 'Confirm your identity and sign the independent-contractor agreement.' },
+  { t: 'Get approved', d: 'We review your application and turn on job offers for your area.' },
+  { t: 'Take jobs, get paid', d: 'Accept offers near you, do careful work, and get paid after each completed job.' },
 ];
+
+function sharedFaqs() {
+  const [first] = PAY_EXAMPLES;
+  return [
+    { q: 'Is this a job or independent contractor work?', a: 'Independent-contractor work. You set your own schedule, use your own tools, and are paid per completed job. You sign an independent-contractor agreement during onboarding.' },
+    { q: 'How much do I earn?', a: `You keep ${EASER_SHARE_PCT}% of each job&rsquo;s price before tax, plus 100% of tips. A ${esc(first.label)} at ${dollars(first.jobCents)} pays you ${dollars(first.earnCents)}. Earnings depend on how many jobs you take; there are no guaranteed hours.` },
+    { q: 'How and when do I get paid?', a: 'After the job is completed and confirmed, your earnings go to your bank through Stripe once your payout setup is done. Instant payout is available when your bank supports it.' },
+    { q: 'Is there an application fee?', a: 'No application fee while your area is still adding Easers. Any fee for your area is shown before you apply.' },
+    { q: 'Do I need insurance?', a: 'You keep any insurance the law requires for your work, and car insurance if you drive to jobs. General liability insurance is strongly recommended. AssembleAtEase does not provide insurance for contractors.' },
+    { q: 'Do I bring parts or mounts?', a: 'No. You bring your own tools. Customers supply their own furniture, mounts and hardware.' },
+    { q: 'Is there an app?', a: 'Yes. On iPhone, work your jobs in the Easer by AssembleAtEase app. On Android or a computer, use the Easer dashboard on the website.' },
+  ];
+}
 
 function heroStatus(city, served) {
   return served
     ? `We&rsquo;re actively booking jobs in ${esc(city.name)} right now.`
-    : `We&rsquo;re expanding in ${esc(city.name)} &mdash; get approved now to be first in line as jobs open up.`;
+    : `We&rsquo;re expanding in ${esc(city.name)}. Get approved now to be first in line as jobs open up.`;
 }
 function volumeFaqAnswer(city, served) {
   return served
-    ? `${city.name} is an active service area, so approved pros are matched to nearby jobs as customers book them. Job volume is demand-driven and varies week to week — there are no guaranteed hours because every assignment is a completed job you choose to accept.`
-    : `We accept customer bookings across ${city.name} and confirm a local pro for each one, so the opportunity is real — but ${city.name} is a newer market and volume is still growing. Getting approved now means you&rsquo;re in position to accept jobs as demand ramps up. Volume is demand-driven with no guaranteed hours.`;
+    ? `${city.name} is an active service area, so approved pros are matched to nearby jobs as customers book them. Job volume is demand-driven and varies week to week. There are no guaranteed hours because every assignment is a completed job you choose to accept.`
+    : `We accept customer bookings across ${city.name} and confirm a local pro for each one, so the opportunity is real, but ${city.name} is a newer market and volume is still growing. Getting approved now puts you in position to accept jobs as demand grows. Volume is demand-driven with no guaranteed hours.`;
 }
 
 function jobPostingSchema(city, served, titleOverride) {
   const desc =
     `<p>AssembleAtEase is looking for skilled, reliable independent assembly and mounting pros ("Easers") in ${esc(city.name)}, Texas.</p>` +
-    `<p>This is independent-contractor work, not employment. You set your own schedule, bring your own tools, and are <strong>paid per completed job</strong> — you keep 70% of each job&rsquo;s price. Job volume is demand-driven and varies; there are no guaranteed hours or salary.</p>` +
+    `<p>This is independent-contractor work, not employment. You set your own schedule, bring your own tools, and are <strong>paid per completed job</strong>: you keep ${EASER_SHARE_PCT}% of each job&rsquo;s price before tax, plus 100% of tips. Job volume is demand-driven and varies; there are no guaranteed hours or salary.</p>` +
     `<p>Typical work: furniture assembly, TV mounting, smart-home device installation, fitness-equipment assembly, and office and outdoor assembly in customers&rsquo; homes and offices.</p>` +
     `<p><strong>Requirements:</strong> your own tools, reliable transportation, a smartphone, identity verification, and a signed independent-contractor agreement. Approval is required before receiving jobs.</p>`;
   const schema = {
@@ -127,7 +187,7 @@ function breadcrumbSchema(city) {
   });
 }
 
-function headBlock({ title, metaDesc, url, jsonLd, indexed = true }) {
+function headBlock({ title, metaDesc, url, jsonLd, indexed = true, preloadImage = '' }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -154,40 +214,72 @@ ${jsonLd.map((s) => `<script type="application/ld+json">${s}</script>`).join('\n
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
-<link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
+${preloadImage ? `<link rel="preload" as="image" href="${preloadImage}"/>\n` : ''}<link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 <style>
-.rec-hero{background:linear-gradient(135deg,#001f2b 0%,#0d3a4a 60%,#0f5c82 100%);padding:3.5rem 1.25rem;text-align:center;color:#fff}
-.rec-hero-inner{max-width:720px;margin:0 auto}
-.rec-eyebrow{display:inline-block;background:rgba(0,191,255,0.14);border:1px solid rgba(0,191,255,0.32);border-radius:999px;padding:0.32rem 1rem;font-size:0.72rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#8fe8ff;margin-bottom:1rem}
-.rec-h1{font-family:var(--font-display);font-size:clamp(2rem,5vw,3rem);line-height:1.05;margin:0 0 0.9rem}
-.rec-status{font-size:1.02rem;color:#8fe8ff;font-weight:600;margin:0 0 0.6rem}
-.rec-lead{font-size:1rem;color:rgba(255,255,255,0.82);line-height:1.7;max-width:560px;margin:0 auto 1.6rem}
-.rec-cta{display:inline-flex;align-items:center;gap:8px;background:#00BFFF;color:#001f2b;padding:0.95rem 2rem;border-radius:8px;font-size:1rem;font-weight:800;text-decoration:none;transition:all .18s}
-.rec-cta:hover{background:#33ccff;transform:translateY(-1px)}
-.rec-cta.dark{background:#001f2b;color:#fff}
-.rec-section{max-width:1040px;margin:0 auto;padding:3rem 1.25rem}
-.rec-section h2{font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2.1rem);color:var(--ink);text-align:center;margin:0 0 0.5rem}
-.rec-section .rec-sub{text-align:center;color:var(--muted);max-width:560px;margin:0 auto 2rem;line-height:1.6}
-.rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1rem}
-.rec-card{background:var(--white);border:1.5px solid var(--border);border-radius:18px;padding:1.5rem}
-.rec-card .rec-num{width:34px;height:34px;border-radius:9px;background:var(--cyan-light);color:var(--cyan-dark);display:flex;align-items:center;justify-content:center;font-weight:800;margin-bottom:0.8rem}
-.rec-card h3{font-size:1rem;color:var(--ink);margin:0 0 0.4rem}
-.rec-card p{font-size:0.9rem;color:var(--muted);line-height:1.65;margin:0}
-.rec-earn{background:linear-gradient(135deg,#f4fbff,#e6f7ff);border:1px solid rgba(0,191,255,0.22);border-radius:22px;padding:2rem;text-align:center}
-.rec-earn strong{font-size:1.15rem;color:var(--ink)}
-.rec-area{background:var(--bg-soft,#f6fafb);border-radius:20px;padding:2rem;text-align:center}
-.rec-chips{display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;margin-top:1rem}
-.rec-chip{background:var(--white);border:1px solid var(--border);border-radius:999px;padding:0.3rem 0.85rem;font-size:0.8rem;font-weight:500;color:var(--ink-soft)}
-.rec-faq{max-width:720px;margin:0 auto}
-.rec-faq-item{background:var(--white);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:0.6rem}
-.rec-faq-item button{width:100%;display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;background:none;border:none;cursor:pointer;font-family:var(--font-body);font-size:0.92rem;font-weight:600;color:var(--ink);text-align:left}
-.rec-faq-item .rec-faq-a{display:none;padding:0 1.25rem 1rem;font-size:0.88rem;color:var(--muted);line-height:1.7}
-.rec-final{background:#001f2b;color:#fff;text-align:center;padding:3.5rem 1.25rem}
-.rec-final h2{font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.3rem);margin:0 0 0.8rem;color:#fff}
-.rec-final p{color:rgba(255,255,255,0.8);max-width:520px;margin:0 auto 1.6rem;line-height:1.7}
-.rec-citylist{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.4rem 1rem;max-width:960px;margin:1.5rem auto 0}
-.rec-citylist a{color:var(--cyan-dark);text-decoration:none;font-size:0.875rem;font-weight:500}
-.rec-citylist a:hover{text-decoration:underline}
+.rec-hero{background:linear-gradient(160deg,#001f2b 0%,#0d3a4a 55%,#0f5c82 100%);color:#fff;padding:3rem 1.25rem 3.25rem}
+.rec-hero-in{max-width:1080px;margin:0 auto;display:grid;gap:2rem;align-items:center}
+.rec-eyebrow{display:inline-block;font-size:0.72rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#8fe8ff;margin-bottom:0.9rem}
+.rec-h1{font-family:var(--font-display);font-size:clamp(2.1rem,6vw,3.3rem);line-height:1.04;margin:0 0 1rem}
+.rec-lead{font-size:1.04rem;color:rgba(255,255,255,0.84);line-height:1.65;margin:0 0 1.4rem;max-width:34rem}
+.rec-facts{display:flex;flex-wrap:wrap;gap:0.5rem 1.25rem;margin:0 0 1.6rem;padding:0;list-style:none;font-size:0.9rem;color:rgba(255,255,255,0.9)}
+.rec-facts li{display:flex;align-items:center;gap:0.45rem}
+.rec-facts li::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.rec-cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--cyan);color:#001f2b;padding:1rem 2rem;border-radius:999px;font-size:1rem;font-weight:800;text-decoration:none;transition:transform .18s,background .18s}
+@media (hover:hover){.rec-cta:hover{background:#33ccff;transform:translateY(-1px)}}
+.rec-hero-links{margin-top:1rem;font-size:0.88rem;color:rgba(255,255,255,0.75)}
+.rec-hero-links a{color:#8fe8ff;text-decoration:none;font-weight:600}
+.rec-hero-photo{margin:0;border-radius:24px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.35)}
+.rec-hero-photo img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover}
+@media (min-width:900px){.rec-hero{padding:4.5rem 2rem}.rec-hero-in.has-photo{grid-template-columns:1.1fr 0.9fr;gap:3.5rem}}
+.rec-band{padding:3.5rem 1.25rem}
+.rec-band.soft{background:linear-gradient(180deg,#f4fbff 0%,#fff 100%)}
+.rec-in{max-width:880px;margin:0 auto}
+.rec-band h2{font-family:var(--font-display);font-size:clamp(1.6rem,4vw,2.25rem);color:var(--ink);margin:0 0 0.5rem;line-height:1.15}
+.rec-kicker{font-size:0.98rem;color:var(--muted);line-height:1.6;margin:0 0 1.75rem;max-width:36rem}
+.rec-pay{list-style:none;margin:0;padding:0;border-top:1px solid var(--border)}
+.rec-pay li{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;padding:1.1rem 0;border-bottom:1px solid var(--border)}
+.rec-pay .job{font-weight:600;color:var(--ink);font-size:1rem}
+.rec-pay .job span{display:block;font-weight:400;font-size:0.84rem;color:var(--muted);margin-top:2px}
+.rec-pay .earn{font-family:var(--font-display);font-size:1.6rem;color:var(--cyan-dark);white-space:nowrap}
+.rec-pay .earn small{display:block;font-family:var(--font-body);font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);text-align:right}
+.rec-note{font-size:0.84rem;color:var(--muted);line-height:1.6;margin:1rem 0 0}
+.rec-why{display:grid;gap:1.75rem;margin:0;padding:0;list-style:none}
+@media (min-width:760px){.rec-why{grid-template-columns:repeat(3,1fr);gap:2rem}}
+.rec-why li{display:flex;gap:1rem;align-items:flex-start}
+@media (min-width:760px){.rec-why li{flex-direction:column}}
+.rec-icon{flex:0 0 auto;width:44px;height:44px;border-radius:14px;background:rgba(0,191,255,0.12);display:flex;align-items:center;justify-content:center}
+.rec-icon svg{width:22px;height:22px;fill:none;stroke:var(--cyan-dark);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.rec-why h3,.rec-steps h3{font-size:1.02rem;color:var(--ink);margin:0 0 0.3rem}
+.rec-why p,.rec-steps p{font-size:0.92rem;color:var(--muted);line-height:1.6;margin:0}
+.rec-steps{list-style:none;margin:0;padding:0;counter-reset:step}
+.rec-steps li{position:relative;padding:0 0 1.75rem 3.25rem;counter-increment:step}
+.rec-steps li::before{content:counter(step);position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50%;background:var(--cyan);color:#001f2b;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:0.95rem}
+.rec-steps li::after{content:'';position:absolute;left:16px;top:38px;bottom:4px;width:2px;background:rgba(0,191,255,0.25)}
+.rec-steps li:last-child{padding-bottom:0}
+.rec-steps li:last-child::after{display:none}
+.rec-hubs{display:flex;flex-wrap:wrap;gap:0.6rem;margin:0 0 1.25rem;padding:0;list-style:none}
+.rec-hubs a{display:inline-flex;align-items:center;gap:6px;padding:0.65rem 1.1rem;border-radius:999px;background:rgba(0,191,255,0.1);color:var(--cyan-dark);font-weight:700;font-size:0.92rem;text-decoration:none}
+@media (hover:hover){.rec-hubs a:hover{background:rgba(0,191,255,0.18)}}
+.rec-more summary{cursor:pointer;color:var(--ink-soft);font-weight:600;font-size:0.92rem;list-style:none}
+.rec-more summary::-webkit-details-marker{display:none}
+.rec-more summary::after{content:' +';color:var(--cyan-dark)}
+.rec-more[open] summary::after{content:' \\2212'}
+.rec-citylist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.45rem 1rem;margin-top:1rem}
+.rec-citylist a{color:var(--cyan-dark);text-decoration:none;font-size:0.88rem}
+.rec-faq details{border-bottom:1px solid var(--border)}
+.rec-faq details:first-child{border-top:1px solid var(--border)}
+.rec-faq summary{cursor:pointer;list-style:none;padding:1.1rem 2rem 1.1rem 0;position:relative;font-weight:600;color:var(--ink);font-size:0.98rem}
+.rec-faq summary::-webkit-details-marker{display:none}
+.rec-faq summary::after{content:'+';position:absolute;right:0.25rem;top:1rem;font-size:1.3rem;color:var(--cyan-dark);font-weight:400}
+.rec-faq details[open] summary::after{content:'\\2212'}
+.rec-faq p{margin:0 0 1.1rem;color:var(--muted);line-height:1.7;font-size:0.93rem}
+.rec-final{background:#001f2b;color:#fff;text-align:center;padding:3.75rem 1.25rem}
+.rec-final h2{font-family:var(--font-display);font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 0.75rem;color:#fff}
+.rec-final p{color:rgba(255,255,255,0.8);max-width:32rem;margin:0 auto 1.6rem;line-height:1.65}
+.rec-app{margin-top:2rem}
+.rec-app p{font-size:0.88rem;margin:0 auto 0.75rem}
+.rec-app img{display:block;margin:0 auto;width:120px;height:40px}
+.rec-app .rec-credit{font-size:0.66rem;opacity:0.65;margin:1rem auto 0;max-width:28rem}
 </style>
 <!-- First page of the visit wins, so the city page that brought someone here
      is what the application records. Loaded on the RECRUITMENT page, not just
@@ -199,21 +291,83 @@ ${jsonLd.map((s) => `<script type="application/ld+json">${s}</script>`).join('\n
 ${buildPublicNavBlock({ variant: 'core', includeSkipNav: true })}<main id="main-content">`;
 }
 
-function faqBlock(items) {
-  return `<section class="rec-section"><h2>Questions from pros</h2>
-  <div class="rec-faq">
-    ${items.map((f) => `<div class="rec-faq-item">
-      <button onclick="var a=this.nextElementSibling;a.style.display=a.style.display==='block'?'none':'block'">${f.q} <span aria-hidden="true">&#8964;</span></button>
-      <div class="rec-faq-a">${f.a}</div>
-    </div>`).join('\n    ')}
+function heroBlock({ eyebrow, h1, lead, applyHref, photo }) {
+  return `<section class="rec-hero">
+  <div class="rec-hero-in${photo ? ' has-photo' : ''}">
+    <div>
+      <div class="rec-eyebrow">${eyebrow}</div>
+      <h1 class="rec-h1">${h1}</h1>
+      <p class="rec-lead">${lead}</p>
+      <ul class="rec-facts">
+        <li>Keep ${EASER_SHARE_PCT}% plus tips</li>
+        <li>Choose your own jobs</li>
+        <li>No application fee while your area is adding Easers</li>
+      </ul>
+      <a href="${applyHref}" class="rec-cta">Apply in a few minutes &rarr;</a>
+      <p class="rec-hero-links">Already an Easer? <a href="/auth/login">Log in</a></p>
+    </div>${photo ? `
+    <figure class="rec-hero-photo"><img src="${photo.src}" alt="${esc(photo.alt)}" width="${photo.width}" height="${photo.height}" fetchpriority="high"/></figure>` : ''}
   </div>
 </section>`;
 }
 
-function cardsSection(title, sub, items, numbered) {
-  return `<section class="rec-section"><h2>${title}</h2>${sub ? `<p class="rec-sub">${sub}</p>` : ''}
-  <div class="rec-grid">
-    ${items.map((it) => `<div class="rec-card">${numbered ? `<div class="rec-num">${it.n}</div>` : ''}<h3>${esc(it.t)}</h3><p>${esc(it.d)}</p></div>`).join('\n    ')}
+function payBlock() {
+  return `<section class="rec-band">
+  <div class="rec-in">
+    <h2>What a job pays you</h2>
+    <p class="rec-kicker">Real prices from our booking menu. You see the pay on every offer before you accept.</p>
+    <ul class="rec-pay">
+      ${PAY_EXAMPLES.map((ex) => `<li><div class="job">${esc(ex.label)}<span>Customer price ${dollars(ex.jobCents)} before tax</span></div><div class="earn"><small>You earn</small>${dollars(ex.earnCents)}</div></li>`).join('\n      ')}
+    </ul>
+    <p class="rec-note">You keep ${EASER_SHARE_PCT}% of the job price before tax, including the ${dollars(SERVICE_FEE_CENTS)} service fee. Tips are 100% yours.</p>
+  </div>
+</section>`;
+}
+
+function whyBlock() {
+  return `<section class="rec-band soft">
+  <div class="rec-in">
+    <h2>Why pros work with us</h2>
+    <p class="rec-kicker">Independent work on your terms, with the job and the pay clear up front.</p>
+    <ul class="rec-why">
+      ${WHY.map((w) => `<li><span class="rec-icon">${ICONS[w.icon]}</span><div><h3>${esc(w.t)}</h3><p>${esc(w.d)}</p></div></li>`).join('\n      ')}
+    </ul>
+  </div>
+</section>`;
+}
+
+function stepsBlock() {
+  return `<section class="rec-band">
+  <div class="rec-in">
+    <h2>How it works</h2>
+    <p class="rec-kicker">From application to your first job.</p>
+    <ol class="rec-steps">
+      ${STEPS.map((s) => `<li><h3>${esc(s.t)}</h3><p>${esc(s.d)}</p></li>`).join('\n      ')}
+    </ol>
+  </div>
+</section>`;
+}
+
+function faqBlock(items, { soft = true } = {}) {
+  return `<section class="rec-band${soft ? ' soft' : ''}">
+  <div class="rec-in">
+    <h2>Questions from pros</h2>
+    <div class="rec-faq">
+      ${items.map((f) => `<details><summary>${f.q}</summary><p>${f.a}</p></details>`).join('\n      ')}
+    </div>
+  </div>
+</section>`;
+}
+
+function finalBlock({ text, applyHref }) {
+  return `<section class="rec-final">
+  <h2>Ready to earn on your schedule?</h2>
+  <p>${text}</p>
+  <a href="${applyHref}" class="rec-cta">Apply to become an Easer &rarr;</a>
+  <div class="rec-app app-store-promo">
+    <p>Already approved? Work your jobs in the Easer app.</p>
+    <a href="${APP_STORE.easer.url}" target="_blank" rel="noopener" aria-label="Download the ${esc(APP_STORE.easer.name)} app on the App Store"><img src="${APP_STORE_BADGE_SVG}" alt="Download on the App Store" width="120" height="40" loading="lazy"/></a>
+    <p class="rec-credit">${APPLE_TRADEMARK_CREDIT}</p>
   </div>
 </section>`;
 }
@@ -234,69 +388,49 @@ function buildCityPage(city) {
   const served = SERVED_SLUGS.has(city.slug);
   const url = `${ORIGIN}/easer-jobs-${city.slug}-tx`;
   const title = fitTitle(`Furniture Assembly & TV Mounting Jobs in ${city.name}, TX`, ' | Become an Easer');
-  const metaDesc = `Earn as an independent assembly and TV-mounting pro in ${city.name}, TX. Set your own schedule, bring your own tools, and keep 70% of every job.`;
+  const metaDesc = `Earn as an independent assembly and TV-mounting pro in ${city.name}, TX. Set your own schedule, bring your own tools, and keep ${EASER_SHARE_PCT}% of every job plus tips.`;
   const applyHref = `/assembler/apply?city=${encodeURIComponent(city.name)}`;
   const nearby = (city.nearby || []).slice(0, 4);
 
   const faqs = [
-    { q: 'Is this a job or independent contractor work?', a: 'It&rsquo;s independent-contractor work. You&rsquo;re not an employee — you set your own schedule, use your own tools, and are paid per completed job. You sign an independent-contractor agreement during onboarding.' },
-    { q: 'How and when do I get paid?', a: 'You earn 70% of each completed job&rsquo;s price. Payment is released after the job is finished and confirmed, and paid to your bank once your payout setup is complete.' },
-    { q: 'Do I need my own tools?', a: 'Yes. Pros bring their own drills, bits, and hand tools. Customers supply their own furniture, mounts, and hardware — we don&rsquo;t provide parts or mounting hardware.' },
-    { q: `How many jobs will I get in ${city.name}?`, a: volumeFaqAnswer(city, served) },
+    ...sharedFaqs(),
+    { q: `How many jobs will I get in ${esc(city.name)}?`, a: volumeFaqAnswer(city, served) },
   ];
 
-  const areaChips = [city.name, ...nearby].map((n) => `<span class="rec-chip">${esc(n)}, TX</span>`).join('\n      ');
   const nearbyLinks = nearby
     .map((n) => {
       const c = ALL_TEXAS_CITIES.find((x) => x.name === n);
-      return c ? `<a href="/easer-jobs-${c.slug}-tx">Easer jobs in ${esc(c.name)}</a>` : '';
+      return c ? `<li><a href="/easer-jobs-${c.slug}-tx">${esc(c.name)}</a></li>` : '';
     })
     .filter(Boolean)
-    .join('\n      ');
+    .join('\n        ');
 
   return `${headBlock({ title, metaDesc, url, jsonLd: [jobPostingSchema(city, served), breadcrumbSchema(city)], indexed: isIndexedEaserJobsPage(city.slug) })}
 
-<section class="rec-hero">
-  <div class="rec-hero-inner">
-    <div class="rec-eyebrow">${esc(city.name)}, TX</div>
-    <h1 class="rec-h1">Get paid to assemble and mount</h1>
-    <p class="rec-status">${heroStatus(city, served)}</p>
-    <p class="rec-lead">Join AssembleAtEase as an independent pro. Take the jobs that fit your schedule, bring your own tools, and keep 70% of every completed job.</p>
-    <a href="${applyHref}" class="rec-cta">Apply to become an Easer &rarr;</a>
+${heroBlock({
+  eyebrow: `${esc(city.name)}, TX`,
+  h1: 'Get paid to assemble and mount',
+  lead: `${heroStatus(city, served)} Join AssembleAtEase as an independent pro and take the jobs that fit your schedule.`,
+  applyHref,
+})}
+
+${payBlock()}
+
+${whyBlock()}
+
+${stepsBlock()}
+
+<section class="rec-band soft">
+  <div class="rec-in">
+    <h2>Working in ${esc(city.name)} and nearby</h2>
+    <p class="rec-kicker">Approved pros are matched to jobs across the ${esc(city.name)} area${nearby.length ? ' and neighboring communities' : ''}.</p>
+    ${nearbyLinks ? `<ul class="rec-hubs">\n        ${nearbyLinks}\n      </ul>` : ''}
   </div>
 </section>
 
-${cardsSection('Why pros work with us', 'Real independent work, on your terms — with the jobs and the pay made clear before you accept.', WHY, false)}
+${faqBlock(faqs, { soft: false })}
 
-<section class="rec-section">
-  <div class="rec-earn">
-    <strong>You keep 70% of every completed job.</strong>
-    <p class="rec-sub" style="margin-top:0.6rem;margin-bottom:0">Pricing is shown up front, so you always know the pay before you accept. Earnings are per completed job and depend on how many you take — there are no guaranteed hours, and no fees to apply.</p>
-  </div>
-</section>
-
-${cardsSection('How it works', null, STEPS, true)}
-
-${cardsSection('What you need', null, REQUIREMENTS, false)}
-
-<section class="rec-section">
-  <div class="rec-area">
-    <h2 style="margin-bottom:0.4rem">Serving ${esc(city.name)} and nearby areas</h2>
-    <p class="rec-sub" style="margin-bottom:0">Approved pros are matched to assignments across the ${esc(city.name)} area${nearby.length ? ' and neighboring communities' : ''}.</p>
-    <div class="rec-chips">
-      ${areaChips}
-    </div>
-    ${nearbyLinks ? `<div class="rec-citylist" style="margin-top:1.5rem">\n      ${nearbyLinks}\n    </div>` : ''}
-  </div>
-</section>
-
-${faqBlock(faqs)}
-
-<section class="rec-final">
-  <h2>Ready to earn on your schedule?</h2>
-  <p>Apply in a few minutes. Get approved, and start accepting nearby jobs in ${esc(city.name)}.</p>
-  <a href="${applyHref}" class="rec-cta">Apply to become an Easer &rarr;</a>
-</section>
+${finalBlock({ text: `Apply in a few minutes. Get approved, and start accepting nearby jobs in ${esc(city.name)}.`, applyHref })}
 
 ${footerBlock()}`;
 }
@@ -305,64 +439,58 @@ ${footerBlock()}`;
 function buildHubPage() {
   const url = `${ORIGIN}/become-an-easer`;
   const title = 'Become an Easer: Assembly & Handyman Jobs in Texas';
-  const metaDesc = 'Earn as an independent furniture assembly, TV mounting, and home-setup pro across Texas. Set your own schedule, bring your own tools, and keep 70% of every job.';
+  const metaDesc = `Earn as an independent furniture assembly, TV mounting and home-setup pro across Texas. Choose your jobs, bring your tools, keep ${EASER_SHARE_PCT}% plus tips.`;
   const applyHref = '/assembler/apply';
-  const genericCity = { name: 'Texas', slug: 'texas' };
+  // A real on-site job photo used on no other page (no-duplicate-photo rule).
+  const photo = { src: '/images/real-outdoor-patio-gray.jpg', width: 680, height: 510, alt: 'Outdoor patio set assembled by an AssembleAtEase pro' };
 
   const faqs = [
-    { q: 'Is this employment or independent contractor work?', a: 'Independent-contractor work. You set your own schedule, use your own tools, and are paid per completed job. There are no shifts or guaranteed hours.' },
-    { q: 'What do I earn?', a: 'You keep 70% of each completed job&rsquo;s price. Pricing is shown before you accept, so you always know the pay. Earnings depend on how many jobs you take.' },
-    { q: 'What do I need to start?', a: 'Your own tools, reliable transportation, a smartphone, identity verification, and a signed independent-contractor agreement. Approval is required before you receive jobs.' },
-    { q: 'Which Texas cities can I work in?', a: 'We&rsquo;re actively booking across the Austin metro and accepting bookings statewide as we expand. Pick your city below to apply — approved pros are matched to nearby jobs as demand grows.' },
+    ...sharedFaqs(),
+    { q: 'Which Texas cities can I work in?', a: 'Customers book across Texas. We are adding Easers first in Austin, Houston, San Antonio and Dallas-Fort Worth, and approve pros statewide. Pick your city below to apply.' },
   ];
 
   const cityLinks = [...ALL_TEXAS_CITIES]
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((c) => `<a href="/easer-jobs-${c.slug}-tx">${esc(c.name)}${SERVED_SLUGS.has(c.slug) ? '' : ''}</a>`)
-    .join('\n      ');
+    .map((c) => `<a href="/easer-jobs-${c.slug}-tx">${esc(c.name)}</a>`)
+    .join('\n        ');
 
   const hubJobPosting = jobPostingSchema({ name: 'Texas', slug: 'texas' }, true, 'Independent Furniture Assembly & TV Mounting Contractor (Easer) - Texas').replace('"addressLocality":"Texas"', '"addressLocality":"Austin"');
 
-  return `${headBlock({ title, metaDesc, url, jsonLd: [hubJobPosting] })}
+  return `${headBlock({ title, metaDesc, url, jsonLd: [hubJobPosting], preloadImage: photo.src })}
 
-<section class="rec-hero">
-  <div class="rec-hero-inner">
-    <div class="rec-eyebrow">Now hiring pros — across Texas</div>
-    <h1 class="rec-h1">Earn money doing what you&rsquo;re good at</h1>
-    <p class="rec-status">Independent assembly &amp; mounting work, on your schedule.</p>
-    <p class="rec-lead">Join AssembleAtEase as an Easer. Accept the jobs that fit your week, bring your own tools, and keep 70% of every completed job. No shifts, no quotas, no fees to apply.</p>
-    <a href="${applyHref}" class="rec-cta">Apply to become an Easer &rarr;</a>
+${heroBlock({
+  eyebrow: 'Now hiring pros across Texas',
+  h1: 'Earn money doing what you&rsquo;re good at',
+  lead: 'Independent assembly and mounting work on your schedule. Bring your own tools, take the jobs you want, and get paid after every one.',
+  applyHref,
+  photo,
+})}
+
+${payBlock()}
+
+${whyBlock()}
+
+${stepsBlock()}
+
+<section class="rec-band soft">
+  <div class="rec-in">
+    <h2>Where you can work</h2>
+    <p class="rec-kicker">Customers book across Texas. These four areas need Easers most.</p>
+    <ul class="rec-hubs">
+      ${HUBS.map((h) => `<li><a href="/easer-jobs-${h.slug}-tx">${esc(h.name)}</a></li>`).join('\n      ')}
+    </ul>
+    <details class="rec-more">
+      <summary>See every Texas city</summary>
+      <div class="rec-citylist">
+        ${cityLinks}
+      </div>
+    </details>
   </div>
 </section>
 
-${cardsSection('Why pros work with us', 'Real independent work, on your terms — with the jobs and the pay made clear before you accept.', WHY, false)}
+${faqBlock(faqs, { soft: false })}
 
-<section class="rec-section">
-  <div class="rec-earn">
-    <strong>You keep 70% of every completed job.</strong>
-    <p class="rec-sub" style="margin-top:0.6rem;margin-bottom:0">Pricing is shown up front, so you always know the pay before you accept. Earnings are per completed job — no guaranteed hours, and no fees to apply.</p>
-  </div>
-</section>
-
-${cardsSection('How it works', null, STEPS, true)}
-
-${cardsSection('What you need', null, REQUIREMENTS, false)}
-
-<section class="rec-section">
-  <h2>Find work in your city</h2>
-  <p class="rec-sub">We&rsquo;re actively booking across the Austin metro and expanding statewide. Pick your city to apply.</p>
-  <div class="rec-citylist">
-      ${cityLinks}
-  </div>
-</section>
-
-${faqBlock(faqs)}
-
-<section class="rec-final">
-  <h2>Ready to earn on your schedule?</h2>
-  <p>Apply in a few minutes. Get approved, and start accepting nearby assembly and mounting jobs.</p>
-  <a href="${applyHref}" class="rec-cta">Apply to become an Easer &rarr;</a>
-</section>
+${finalBlock({ text: 'Apply in a few minutes. Get approved, and start accepting nearby assembly and mounting jobs.', applyHref })}
 
 ${footerBlock()}`;
 }
