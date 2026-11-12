@@ -916,6 +916,45 @@
         animation: none !important;
       }
     }
+    /* ── Flow layout (owner, 2026-11-12: "smooth, rather than a bunch of
+       blocks"). One open form: the steps are separated by a line, not boxed;
+       status pills go; the sidebar reads as plain notes. On phones the form
+       starts right under a short header, with the three notes kept above it. */
+    .form-panel { padding: 0.5rem 1.4rem 1.6rem; }
+    .section {
+      background: transparent;
+      border: 0;
+      border-top: 1px solid var(--apply-border);
+      border-radius: 0;
+      padding: 1.6rem 0 0.2rem;
+      margin: 1.6rem 0 0;
+    }
+    #apply-form > .section:first-child { border-top: 0; margin-top: 0.4rem; padding-top: 0.6rem; }
+    .section-head { border-bottom: 0; padding-bottom: 0; margin-bottom: 1rem; }
+    .section-title { font-size: 1.15rem; }
+    .section-status { display: none; }
+    .agreement-link {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      color: var(--apply-cyan-dark); font-weight: 800; font-size: 0.88rem;
+      text-decoration: none; margin: 0 0 1rem;
+    }
+    .agreement-link:hover { text-decoration: underline; }
+    /* Yes/No answers: circle beside the answer. ".form-group label" (display:block)
+       outranked .radio-option, so the circle sat on its own line above "Yes". */
+    .form-group label.radio-option { display: flex; align-items: center; min-height: 0; font-size: inherit; font-weight: 400; text-transform: none; letter-spacing: 0; }
+    .form-group label.radio-option .choice-mark { flex-shrink: 0; }
+    .apply-aside .aside-card:not(.dark) { background: transparent; border: 0; box-shadow: none; padding: 0.4rem 0.2rem; }
+    @media (max-width: 640px) {
+      .apply-hero { padding: 1rem 1rem 1.75rem; }
+      .apply-nav { margin-bottom: 1.25rem; }
+      .hero-title { font-size: 2rem; }
+      .hero-actions, .hero-copy, .hero-photo { display: none; }
+      .easer-value-preview { margin-top: 0.75rem; }
+      .apply-main { width: 100%; }
+      .form-panel { border: 0; border-radius: 0; box-shadow: none; padding: 0.25rem 1rem 1.4rem; }
+      .form-intro { padding: 1.1rem 0 0.25rem; }
+      .apply-aside { padding: 0 1rem; }
+    }
   </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://www.assembleatease.com/assembler/apply#webpage","url":"https://www.assembleatease.com/assembler/apply","name":"Apply to Become an Easer","description":"Apply to join AssembleAtEase as an Easer in Texas. Approved Easers receive local furniture assembly, mounting, smart home, fitness, outdoor, and office jobs.","inLanguage":"en-US","isPartOf":{"@id":"https://www.assembleatease.com/#website"},"publisher":{"@id":"https://www.assembleatease.com/#organization"}},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.assembleatease.com"},{"@type":"ListItem","position":2,"name":"Become an Easer","item":"https://www.assembleatease.com/become-an-easer"},{"@type":"ListItem","position":3,"name":"Apply","item":"https://www.assembleatease.com/assembler/apply"}]}]}</script>
 </head>
@@ -963,7 +1002,7 @@
       <div class="form-intro">
         <div>
           <h2>Apply to join</h2>
-          <p>This takes a few minutes. Use accurate contact information because your phone number is required for job offers after approval.</p>
+          <p>Takes about 5 minutes. Job offers go to the phone number you enter.</p>
         </div>
         <div class="form-pill" id="fee-status-pill">Checking application fee</div>
       </div>
@@ -1162,21 +1201,10 @@
           </div>
 
           <!-- Contractor Agreement -->
-          <div style="background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:10px;padding:1rem 1.1rem;margin-bottom:1rem">
-            <div style="display:flex;align-items:flex-start;gap:0.75rem;margin-bottom:0.75rem">
-              <div style="width:36px;height:36px;border-radius:8px;background:#00BFFF;display:grid;place-items:center;flex-shrink:0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#001f2b" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-              </div>
-              <div>
-                <div style="font-weight:800;font-size:0.9rem;color:#001f2b;margin-bottom:2px">1099 Independent Contractor Agreement</div>
-                <div style="font-size:0.8rem;color:#0369a1;line-height:1.55">A full contractor agreement governs your relationship with AssembleAtEase. You must read and sign this agreement before applying. This is a legally binding document.</div>
-              </div>
-            </div>
-            <a href="/assembler/contractor-agreement" target="_blank" style="display:inline-flex;align-items:center;gap:0.4rem;background:#fff;border:1.5px solid #0099cc;color:#0099cc;font-weight:800;font-size:0.82rem;padding:0.5rem 0.9rem;border-radius:8px;text-decoration:none">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              Read Full Contractor Agreement
-            </a>
-          </div>
+          <a class="agreement-link" href="/assembler/contractor-agreement" target="_blank" rel="noopener">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Read the Independent Contractor Agreement
+          </a>
 
           <div class="conduct-check" style="margin-bottom:0.5rem">
             <input type="checkbox" id="contractor-agree" />
@@ -1257,12 +1285,6 @@
         </div>
       </div>
 
-      <div class="aside-card">
-        <div class="aside-eyebrow">Good fit</div>
-        <h3>Careful work beats rushed work.</h3>
-        <p>We are looking for people who show up prepared, protect the customer's home, communicate clearly, and finish clean.</p>
-        
-      </div>
 
       <div class="aside-card">
         <div class="aside-eyebrow">Questions</div>
