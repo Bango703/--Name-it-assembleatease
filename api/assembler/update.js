@@ -1,4 +1,5 @@
 ﻿import Stripe from 'stripe';
+import { APPLE_TRADEMARK_CREDIT, appStoreBadgeEmailHtml } from '../_app-store.js';
 import { getSupabase } from '../_supabase.js';
 import { randomUUID } from 'crypto';
 import { verifyOwner, sendEmail, ownerEmail, esc, TRUST_EMAIL } from '../_email.js';
@@ -2064,6 +2065,8 @@ function buildApprovalEmail(firstName, email, resetUrl, readiness = {}) {
 
       <p style="font-size:0.85rem;color:#71717a;margin:0"><strong>Your login:</strong> ${esc(email)}${alreadyOnboarded ? ` &mdash; <a href="${SITE}/auth/forgot-password" style="color:#00BFFF">forgot password?</a>` : ''}</p>
       <p style="font-size:0.82rem;color:#71717a;margin:8px 0 0">Questions? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a></p>
+      ${appStoreBadgeEmailHtml('easer', 'On iPhone, work your jobs in the Easer app.')}
+      <p style="font-size:0.62rem;color:#a1a1aa;margin:8px 0 0;text-align:center">${APPLE_TRADEMARK_CREDIT}</p>
     </div>
   </div>
 </div></body></html>`;

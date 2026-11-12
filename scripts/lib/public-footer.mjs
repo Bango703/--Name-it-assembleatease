@@ -1,4 +1,5 @@
 import { businessIdentity } from './site-governance.mjs';
+import { APP_STORE, APP_STORE_BADGE_SVG, APPLE_TRADEMARK_CREDIT } from '../../api/_app-store.js';
 
 // Consumer services only. Business/commercial + custom quotes live once, in the
 // Company column ("Business Services" -> /business), so there is no duplicate
@@ -105,12 +106,20 @@ ${renderSocial()}`;
 ${renderSocial()}`;
 }
 
-function renderFooterInner({ tagline, servicesLinks, companyLinks = COMPANY_LINKS, supportLinks = SUPPORT_LINKS, contactMode = 'full', resourcesTitle = '', resourcesLinks = [] }) {
+// Apple's badge, unmodified, 40px tall with clear space above it (api/_app-store.js).
+function renderAppBadge(app) {
+  const target = APP_STORE[app];
+  if (!target) return '';
+  return `
+      <a class="footer-app" href="${target.url}" target="_blank" rel="noopener" aria-label="Download the ${target.name} app on the App Store" style="display:inline-block;margin-top:16px"><img src="${APP_STORE_BADGE_SVG}" alt="Download on the App Store" width="120" height="40" loading="lazy" style="display:block;width:120px;height:40px"></a>`;
+}
+
+function renderFooterInner({ tagline, servicesLinks, companyLinks = COMPANY_LINKS, supportLinks = SUPPORT_LINKS, contactMode = 'full', resourcesTitle = '', resourcesLinks = [], appBadge = 'customer' }) {
   const columns = [
     `    <div>
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">${tagline}</p>
-${renderContact(contactMode)}
+${renderContact(contactMode)}${renderAppBadge(appBadge)}
     </div>`,
     renderColumn('Services', servicesLinks),
     renderColumn('Company', companyLinks),
@@ -127,21 +136,27 @@ ${renderContact(contactMode)}
   return columns.join('\n');
 }
 
-export function buildPublicFooter({ variant, tagline, copyrightLabel = 'AssembleAtEase LLC' }) {
+function renderBottom(copyrightLabel, appBadge) {
+  const credit = APP_STORE[appBadge] ? `<span style="display:block;margin-top:4px;font-size:0.66rem;opacity:0.8">${APPLE_TRADEMARK_CREDIT}</span>` : '';
+  return `  <div class="footer-bottom">
+    <div class="footer-copy">&copy; <span id="year"></span> ${copyrightLabel}. All rights reserved.${credit}</div>
+    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
+  </div>`;
+}
+
+export function buildPublicFooter({ variant, tagline, copyrightLabel = 'AssembleAtEase LLC', appBadge = 'customer' }) {
   if (variant === 'booking_resources') {
     return `<footer class="footer">
   <div class="footer-inner">
 ${renderFooterInner({
   tagline,
+  appBadge,
   servicesLinks: BOOKING_SERVICE_LINKS,
   resourcesTitle: 'Resources',
   resourcesLinks: RESOURCES_LINKS,
 })}
   </div>
-  <div class="footer-bottom">
-    <div class="footer-copy">&copy; <span id="year"></span> ${copyrightLabel}. All rights reserved.</div>
-    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
-  </div>
+${renderBottom(copyrightLabel, appBadge)}
 </footer>`;
   }
 
@@ -150,6 +165,7 @@ ${renderFooterInner({
   <div class="footer-inner">
 ${renderFooterInner({
   tagline,
+  appBadge,
   servicesLinks: SERVICE_PAGE_LINKS,
   // Resources was absent here while 68 other pages carried it, so "Compare your
   // options" — the page a hesitating customer most wants — was reachable from
@@ -158,10 +174,7 @@ ${renderFooterInner({
   resourcesLinks: RESOURCES_LINKS,
 })}
   </div>
-  <div class="footer-bottom">
-    <div class="footer-copy">&copy; <span id="year"></span> ${copyrightLabel}. All rights reserved.</div>
-    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
-  </div>
+${renderBottom(copyrightLabel, appBadge)}
 </footer>`;
   }
 
@@ -170,14 +183,12 @@ ${renderFooterInner({
   <div class="footer-inner">
 ${renderFooterInner({
   tagline,
+  appBadge,
   servicesLinks: BOOKING_SERVICE_LINKS,
   contactMode: 'email_only',
 })}
   </div>
-  <div class="footer-bottom">
-    <div class="footer-copy">&copy; <span id="year"></span> ${copyrightLabel}. All rights reserved.</div>
-    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
-  </div>
+${renderBottom(copyrightLabel, appBadge)}
 </footer>`;
   }
 
@@ -186,16 +197,14 @@ ${renderFooterInner({
   <div class="footer-inner">
 ${renderFooterInner({
   tagline,
+  appBadge,
   servicesLinks: SERVICE_PAGE_LINKS,
   resourcesTitle: 'Helpful Guides',
   resourcesLinks: BLOG_RESOURCES_LINKS,
   copyrightLabel,
 })}
   </div>
-  <div class="footer-bottom">
-    <div class="footer-copy">&copy; <span id="year"></span> ${copyrightLabel}. All rights reserved.</div>
-    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
-  </div>
+${renderBottom(copyrightLabel, appBadge)}
 </footer>`;
   }
 

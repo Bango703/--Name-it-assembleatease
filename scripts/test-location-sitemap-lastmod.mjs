@@ -26,6 +26,7 @@ try {
     'scripts/generate-location-pages.js',
     'scripts/lib/public-consent.mjs',
     'scripts/lib/public-footer.mjs',
+    'api/_app-store.js',
     'scripts/lib/public-nav.mjs',
     'scripts/lib/seo-title.mjs',
     'scripts/lib/site-governance.mjs',

@@ -35,6 +35,7 @@ import {
   totalsAfterAssembleCash,
 } from './_assemblecash.js';
 import { buildCustomerConsentRecord, normalizeConsentMethod, validateCustomerLegalConsent } from './_legal-consent.js';
+import { APPLE_TRADEMARK_CREDIT, appStoreBadgeEmailHtml } from './_app-store.js';
 import { reserveReviewReward, releaseReviewReward } from './_review-rewards.js';
 import { GIFT_CARD_REDEMPTION_READY, applyGiftCardToBooking, releaseGiftCardReservation, formatCents as formatGiftCardCents, hashCode as hashGiftCardCode } from './_gift-cards.js';
 import {
@@ -984,6 +985,7 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
       <a href="${esc(guestTrackUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Track or manage this request</a>
     </td></tr></table>
+    ${appStoreBadgeEmailHtml('customer', 'Track your booking and message your pro in the app.')}
   </td></tr></table>
 
   <!-- Footer -->
@@ -993,6 +995,7 @@ export default async function handler(req, res) {
     <p style="margin:0 0 8px;font-size:11px;color:#a1a1aa;line-height:1.5">Professional Assembly &amp; Handyman Services<br/>Serving customers across Texas &bull; Reviewed pros &bull; Clear pricing</p>
     <p style="margin:0;font-size:11px;color:#a1a1aa"><a href="${SITE}" style="color:#71717a;text-decoration:none">assembleatease.com</a> &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>
     <p style="margin:10px 0 0;font-size:10px;color:#d4d4d8">You received this email because a booking was submitted at assembleatease.com. If you did not make this request, please disregard this email.</p>
+    <p style="margin:6px 0 0;font-size:9px;color:#d4d4d8">${APPLE_TRADEMARK_CREDIT}</p>
   </td></tr></table>
 </div></body></html>`;
 
