@@ -30,7 +30,7 @@ assert.equal(cityPages.length, 54);
     const job = Math.round(item.price * 100) + fee;
     const earn = Math.round(job * share / 100);
     for (const [label, page] of [['hub', hub], ['Houston', houston]]) {
-      assert.ok(page.includes(`Customer price ${money(job)} before tax`), `${label}: ${name} customer price`);
+      assert.ok(!page.includes('Customer price'), `${label}: the customer's price is not shown`);
       assert.ok(page.includes(`<small>You earn</small>${money(earn)}`), `${label}: ${name} Easer pay ${money(earn)}`);
     }
   }

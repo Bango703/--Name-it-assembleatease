@@ -117,7 +117,7 @@ function sharedFaqs() {
   const [first] = PAY_EXAMPLES;
   return [
     { q: 'Is this a job or independent contractor work?', a: 'Independent-contractor work. You set your own schedule, use your own tools, and are paid per completed job. You sign an independent-contractor agreement during onboarding.' },
-    { q: 'How much do I earn?', a: `You keep ${EASER_SHARE_PCT}% of each job&rsquo;s price before tax, plus 100% of tips. A ${esc(first.label)} at ${dollars(first.jobCents)} pays you ${dollars(first.earnCents)}. Earnings depend on how many jobs you take; there are no guaranteed hours.` },
+    { q: 'How much do I earn?', a: `You keep ${EASER_SHARE_PCT}% of each job&rsquo;s price before tax, plus 100% of tips. A ${esc(first.label)} pays you ${dollars(first.earnCents)}. Earnings depend on how many jobs you take; there are no guaranteed hours.` },
     { q: 'How and when do I get paid?', a: 'After the job is completed and confirmed, your earnings go to your bank through Stripe once your payout setup is done. Instant payout is available when your bank supports it.' },
     { q: 'Is there an application fee?', a: 'No application fee while your area is still adding Easers. Any fee for your area is shown before you apply.' },
     { q: 'Do I need insurance?', a: 'You keep any insurance the law requires for your work, and car insurance if you drive to jobs. General liability insurance is strongly recommended. AssembleAtEase does not provide insurance for contractors.' },
@@ -317,7 +317,7 @@ function payBlock() {
     <h2>What a job pays you</h2>
     <p class="rec-kicker">Real prices from our booking menu. You see the pay on every offer before you accept.</p>
     <ul class="rec-pay">
-      ${PAY_EXAMPLES.map((ex) => `<li><div class="job">${esc(ex.label)}<span>Customer price ${dollars(ex.jobCents)} before tax</span></div><div class="earn"><small>You earn</small>${dollars(ex.earnCents)}</div></li>`).join('\n      ')}
+      ${PAY_EXAMPLES.map((ex) => `<li><div class="job">${esc(ex.label)}</div><div class="earn"><small>You earn</small>${dollars(ex.earnCents)}</div></li>`).join('\n      ')}
     </ul>
     <p class="rec-note">You keep ${EASER_SHARE_PCT}% of the job price before tax, including the ${dollars(SERVICE_FEE_CENTS)} service fee. Tips are 100% yours.</p>
   </div>
