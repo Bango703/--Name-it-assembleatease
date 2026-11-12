@@ -217,7 +217,7 @@
       box-shadow: 0 24px 80px rgba(0,0,0,0.28);
       isolation: isolate;
     }
-    .hero-photo img {
+    .hero-photo > img {
       width: 100%;
       height: 100%;
       min-height: 500px;
@@ -336,12 +336,11 @@
       gap: 0.65rem;
       margin-top: 1rem;
     }
+    /* One open list, not three boxes (owner, 2026-11-12): a thin accent line per item. */
     .easer-value-item {
       min-width: 0;
-      padding: 0.75rem 0.8rem;
-      border: 1px solid rgba(255,255,255,0.22);
-      border-radius: 10px;
-      background: rgba(255,255,255,0.08);
+      padding: 0.15rem 0 0.15rem 0.85rem;
+      border-left: 2px solid rgba(0,191,255,0.55);
     }
     .easer-value-item span { display: block; color: #9bebff; font-size: 0.66rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.25rem; }
     .easer-value-item strong { display: block; color: #fff; font-size: 0.8rem; line-height: 1.4; }
@@ -824,10 +823,11 @@
       }
       .hero-title { max-width: 520px; }
       .hero-photo { min-height: 360px; }
-      .hero-photo img { min-height: 360px; }
+      .hero-photo > img { min-height: 360px; }
       .apply-layout { grid-template-columns: 1fr; }
       .apply-aside { position: static; }
       .easer-value-preview { grid-template-columns: 1fr; }
+      .easer-value-preview { row-gap: 0.9rem; }
     }
 
     @media (max-width: 640px) {
@@ -855,7 +855,7 @@
       .hero-title, .hero-copy { margin-left: auto; margin-right: auto; }
       .easer-value-preview .easer-value-item { text-align: left; }
       .hero-photo { min-height: 285px; border-radius: 14px; }
-      .hero-photo img { min-height: 285px; object-position: center; }
+      .hero-photo > img { min-height: 285px; object-position: center; }
       .photo-note {
         left: 10px;
         right: 10px;
@@ -944,8 +944,8 @@
       </div>
     </div>
 
-    <figure class="hero-photo" aria-label="Two home-service professionals preparing for local jobs">
-      <img src="../images/easer-apply-crew.jpg" alt="Two home service professionals preparing tools beside a service vehicle before local appointments" width="1536" height="768" fetchpriority="high" />
+    <figure class="hero-photo" aria-label="A completed AssembleAtEase outdoor job">
+      <img src="/images/real-outdoor-sectional.webp" alt="Outdoor sectional assembled by an AssembleAtEase pro" width="362" height="510" fetchpriority="high" />
       <figcaption class="photo-note">
         <div class="photo-note-icon"><img src="../images/logo.jpg" alt="" /></div>
         <div>
@@ -1013,7 +1013,7 @@
           <div class="form-row">
             <div class="form-group">
               <label for="phone">Phone number *</label>
-              <input type="tel" id="phone" class="form-control" placeholder="(979) 232-5139" autocomplete="tel" required />
+              <input type="tel" id="phone" class="form-control" placeholder="(512) 555-0123" autocomplete="tel" required />
               <span class="field-hint">Required for job updates and urgent coordination.</span>
               <span class="field-error" id="phone-error"></span>
             </div>
@@ -1251,7 +1251,7 @@
         <h3>Approval first. Jobs after.</h3>
         <p>Submitting this application does not guarantee work. Approved Easers are matched to jobs based on service fit, availability, and operational readiness.</p>
         <div class="step-list">
-          <div class="mini-step"><div class="mini-num">1</div><div><strong>Submit application</strong><span>We receive your profile, service categories, and launch-program status.</span></div></div>
+          <div class="mini-step"><div class="mini-num">1</div><div><strong>Submit application</strong><span>We receive your profile and the services you handle.</span></div></div>
           <div class="mini-step"><div class="mini-num">2</div><div><strong>Verify identity</strong><span>Use the time-limited secure AssembleAtEase link sent after submission. If another attempt is required, use the newest link emailed to you.</span></div></div>
           <div class="mini-step"><div class="mini-num">3</div><div><strong>Application status</strong><span>We will email you when your application status changes.</span></div></div>
         </div>
@@ -2040,7 +2040,7 @@
     <a href="../privacy">Privacy Policy</a>
     <a href="../terms">Terms of Service</a>
   </div>
-  <div>&copy; 2026 AssembleAtEase &mdash; Austin, TX</div>
+  <div>&copy; 2026 AssembleAtEase LLC</div>
 </footer>
 <div id="cookie-banner" class="hidden" data-cookie-banner>
   <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
