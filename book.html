@@ -3194,6 +3194,7 @@
             </div>
 
             <div class="svc-area-ok" id="svc-area-ok">&#10003; Online booking is available in this Texas ZIP</div>
+            <div id="svc-area-limited" style="display:none;margin-top:0.4rem;font-size:0.8rem;color:var(--muted);line-height:1.45"></div>
 
             <div class="svc-area-lead" id="svc-area-lead">We are not actively booking this ZIP yet. You can still submit a service request; no payment is collected and no appointment is guaranteed until coverage is available.</div>
 
@@ -4412,6 +4413,25 @@ async function applyPromoCode() {
 }
 
 
+// Says so when no active Easer covers the ZIP (api/booking/area-coverage.js).
+// Booking stays open; an unknown answer shows nothing.
+var _areaCoverageZip = '';
+function checkAreaCoverage(zip) {
+  var el = document.getElementById('svc-area-limited');
+  if (!el) return;
+  if (!zip) { _areaCoverageZip = ''; el.style.display = 'none'; return; }
+  if (zip === _areaCoverageZip) return;
+  _areaCoverageZip = zip;
+  el.style.display = 'none';
+  fetch('/api/booking/area-coverage?zip=' + encodeURIComponent(zip))
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (_areaCoverageZip !== zip || !d) return;
+      if (d.covered === false && d.note) { el.textContent = d.note; el.style.display = 'block'; }
+    })
+    .catch(function () {});
+}
+
 function checkServiceZip(val) {
 
   var okEl   = document.getElementById('svc-area-ok');
@@ -4429,6 +4449,7 @@ function checkServiceZip(val) {
   var active = isActiveServiceZip(zip);
 
   if (okEl) okEl.style.display = valid && active ? 'block' : 'none';
+  checkAreaCoverage(valid && active ? zip : '');
 
   if (leadEl) leadEl.style.display = valid && !active ? 'block' : 'none';
 

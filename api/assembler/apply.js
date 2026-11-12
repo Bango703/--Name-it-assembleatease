@@ -343,7 +343,7 @@ export default async function handler(req, res) {
 
   let foundingApplication;
   try {
-    foundingApplication = await claimFoundingEaserApplicationStatus(sb, userId);
+    foundingApplication = await claimFoundingEaserApplicationStatus(sb, userId, { zip: cleanZip });
   } catch (claimError) {
     console.error('Founding Easer waiver claim failed:', claimError?.message || claimError);
     await cleanupFreshApplicant(sb, userId, { deleteAuth: authUserCreated });
@@ -436,7 +436,7 @@ async function resumeApplicationDraft({
 
   let currentProfile = profile;
   if (!currentProfile.stripe_payment_intent_id) {
-    const foundingApplication = await claimFoundingEaserApplicationStatus(sb, profile.id);
+    const foundingApplication = await claimFoundingEaserApplicationStatus(sb, profile.id, { zip: profile.zip });
     if (foundingApplication.feeWaived) {
       const finalized = await finalizeEaserApplicationSubmission({ sb, userId: profile.id });
       return { status: 200, body: finalized };
@@ -992,7 +992,7 @@ function buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, state, zip, 
 
 function buildApplicantEmail(firstName, { feeWaived, verificationResumeUrl }) {
   const paymentCopy = feeWaived
-    ? 'Your Founding Easer application was submitted with no application fee collected.'
+    ? 'Your application was submitted with no application fee.'
     : `Your ${EASER_APPLICATION_FEE_DISPLAY} application fee has been received.`;
   const statusCopy = verificationResumeUrl
     ? '&#10003; Application submitted &bull; Identity verification required'

@@ -9,6 +9,7 @@ const AREA_LABELS = Object.freeze({
   san_antonio: { city: 'San Antonio', label: 'San Antonio area' },
   lubbock: { city: 'Lubbock', label: 'Lubbock area' },
   permian_basin: { city: 'Permian Basin', label: 'Permian Basin' },
+  dallas_fort_worth: { city: 'Dallas', label: 'Dallas-Fort Worth area' },
 });
 
 export function knownMarketAreas() {

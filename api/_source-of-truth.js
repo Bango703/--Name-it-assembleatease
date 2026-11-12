@@ -764,6 +764,10 @@ export const SERVICE_MARKETS = Object.freeze({
   san_antonio:   Object.freeze(['780', '781', '782']),
   lubbock:       Object.freeze(['793', '794']),
   permian_basin: Object.freeze(['797', '798']),
+  // Owner, 2026-11-11: Dallas-Fort Worth is a priority hub with active Easers
+  // (75227, 75409) and no market until now, so its Easers were offered jobs in
+  // every other market and could not be counted as a hub.
+  dallas_fort_worth: Object.freeze(['750', '751', '752', '753', '754', '760', '761', '762']),
 });
 
 /** Which market does this ZIP belong to, or null if we do not serve/know it. */

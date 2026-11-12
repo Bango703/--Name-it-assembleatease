@@ -1424,14 +1424,14 @@
       // One row states it; the row about approval comes out because the
       // applicant already ticks a box that says the same thing, and the refund
       // line comes out because there is nothing to refund.
-      pill.textContent = 'Founding Easer: fee waived';
-      programCopy.innerHTML = '<strong>Founding Easer Program.</strong> No application fee for this launch spot — nothing is charged now or later for applying.';
+      pill.textContent = 'No application fee';
+      programCopy.innerHTML = '<strong>No application fee.</strong> Nothing is charged now or later for applying.';
       chargeRow.style.display = 'none';
       refundCopy.style.display = 'none';
       consentSection.style.display = 'none';
       document.getElementById('fee-consent').checked = false;
       cardSection.style.display = 'none';
-      button.textContent = 'Submit Founding Easer Application';
+      button.textContent = 'Submit Application';
     }
     button.disabled = false;
     updateApplicationProgress();
@@ -1450,6 +1450,23 @@
     renderFeeState(data.applicationFee);
     return data;
   }
+
+  // The fee depends on the applicant's area, so it is checked again as soon as
+  // a full ZIP is entered, not only at submission.
+  (function () {
+    var zipInput = document.getElementById('zip');
+    if (!zipInput) return;
+    var lastZip = '';
+    function recheck() {
+      var zip = String(zipInput.value || '').trim();
+      if (!/^\d{5}$/.test(zip) || zip === lastZip) return;
+      lastZip = zip;
+      var stateInput = document.getElementById('state');
+      fetchApplicationPreflight(stateInput && stateInput.value ? stateInput.value : 'TX', zip).catch(function () {});
+    }
+    zipInput.addEventListener('change', recheck);
+    zipInput.addEventListener('blur', recheck);
+  })();
 
   fetchApplicationPreflight('', '').catch(function(error) {
     showAlert('error', error.message || 'Application fee status is unavailable. Refresh before submitting.');
@@ -1719,7 +1736,7 @@
     var display = feeState && (feeState.standardAmountDisplay || feeState.amountDisplay);
     button.textContent = isPaidFeeRequired()
       ? 'Pay ' + display + ' and Submit Application'
-      : 'Submit Founding Easer Application';
+      : 'Submit Application';
   }
 
   function showMarketWaitlist(data) {
@@ -1931,7 +1948,7 @@
     var successEl = document.getElementById('success-state');
     successEl.style.display = 'block';
     var message = result.feeWaived
-      ? 'Thank you for applying. Your Founding Easer application was submitted with no application fee collected.'
+      ? 'Thank you for applying. Your application was submitted with no application fee.'
       : 'Thank you for applying. Stripe confirmed the exact ' + (result.applicationFee?.amountDisplay || '$30.00') + ' application fee.';
     message += ' Check your email for the time-limited secure identity-verification link and next steps.';
     if (result.warning) message += ' ' + result.warning;
@@ -1998,7 +2015,7 @@
       // The server creates no charge automatically. Require a fresh visible
       // authorization/card step when that race occurs.
       if (!document.getElementById('fee-consent').checked || !cardComplete) {
-        showAlert('error', 'The founding waiver filled before submission. No charge was made. Review and authorize the exact application fee below to continue this same application.');
+        showAlert('error', 'Your area now has an application fee. No charge was made. Review and authorize the exact application fee below to continue this same application.');
         setSubmitReady();
         return;
       }

@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import { marketForZip } from './_source-of-truth.js';
+import { activeEaserZips } from './_easer-coverage.js';
 
 export const EASER_APPLICATION_FEE_CENTS = 3000;
 export const EASER_APPLICATION_FEE_CURRENCY = 'usd';
@@ -164,44 +166,77 @@ export function verifyApplicationFeeContinuationToken(token, {
   };
 }
 
-export function getFoundingEaserFreeApplicationLimit() {
-  const configured = Number.parseInt(process.env.FOUNDING_EASER_FREE_APPLICATION_LIMIT || '20', 10);
-  return Number.isFinite(configured) ? Math.min(10000, Math.max(0, configured)) : 20;
+// Owner, 2026-11-11: no application fee in a hub until it has six active
+// Easers; from then on the fee applies to new applicants in that hub. Outside
+// the four hubs there is no fee, because those are the areas where bookings
+// have gone unstaffed. Hub membership is marketForZip, the same ZIP map
+// dispatch uses.
+export const EASER_FEE_HUBS = Object.freeze(['central_texas', 'houston', 'san_antonio', 'dallas_fort_worth']);
+export const FREE_UNTIL_ACTIVE_EASERS_PER_HUB = 6;
+
+export function easerFeeHubForZip(zip) {
+  const market = marketForZip(String(zip || '').trim().slice(0, 5));
+  return EASER_FEE_HUBS.includes(market) ? market : null;
 }
 
-export async function getEaserApplicationFeeStatus(sb) {
-  const foundingLimit = getFoundingEaserFreeApplicationLimit();
-  const { count, error } = await sb
-    .from('profiles')
-    .select('id', { count: 'exact', head: true })
-    .eq('role', 'assembler')
-    .eq('application_fee_waived', true);
-  if (error) throw new Error(`Application fee status lookup failed: ${error.message || error}`);
+/** Active, approved, non-demo Easers in each hub, by the Easer's own ZIP. */
+export async function countActiveEasersByHub(sb) {
+  const counts = Object.fromEntries(EASER_FEE_HUBS.map(hub => [hub, 0]));
+  for (const zip of await activeEaserZips(sb)) {
+    const hub = easerFeeHubForZip(zip);
+    if (hub) counts[hub] += 1;
+  }
+  return counts;
+}
 
-  const foundingWaiversClaimed = Math.max(0, Number(count || 0));
-  const waiverAvailable = foundingWaiversClaimed < foundingLimit;
+/**
+ * Is there an application fee for an applicant at this ZIP? Without a ZIP the
+ * answer is "no fee" only when every hub is still free, so the page never shows
+ * no fee and then asks for one once the ZIP is known.
+ */
+export function applicationFeeDecision({ zip, activeByHub }) {
+  const needs = hub => Number(activeByHub?.[hub] || 0) < FREE_UNTIL_ACTIVE_EASERS_PER_HUB;
+  if (!/^\d{5}/.test(String(zip || '').trim())) {
+    return { hub: null, waived: EASER_FEE_HUBS.every(needs), reason: 'no_zip', activeEasers: null };
+  }
+  const hub = easerFeeHubForZip(zip);
+  if (!hub) return { hub: null, waived: true, reason: 'outside_hubs', activeEasers: null };
+  const waived = needs(hub);
+  return { hub, waived, reason: waived ? 'hub_building' : 'hub_staffed', activeEasers: Number(activeByHub?.[hub] || 0) };
+}
+
+export async function getEaserApplicationFeeStatus(sb, { zip } = {}) {
+  const activeByHub = await countActiveEasersByHub(sb);
+  const decision = applicationFeeDecision({ zip, activeByHub });
   return {
-    amountCents: waiverAvailable ? 0 : EASER_APPLICATION_FEE_CENTS,
+    amountCents: decision.waived ? 0 : EASER_APPLICATION_FEE_CENTS,
     standardAmountCents: EASER_APPLICATION_FEE_CENTS,
     currency: EASER_APPLICATION_FEE_CURRENCY,
-    waiverAvailable,
-    foundingLimit,
-    foundingWaiversClaimed,
-    foundingWaiversRemaining: Math.max(0, foundingLimit - foundingWaiversClaimed),
+    waiverAvailable: decision.waived,
+    hub: decision.hub,
+    hubActiveEasers: decision.activeEasers,
+    hubTarget: FREE_UNTIL_ACTIVE_EASERS_PER_HUB,
+    reason: decision.reason,
     finalDecisionAtSubmission: true,
   };
 }
 
-export async function claimFoundingEaserApplicationStatus(sb, profileId) {
+/**
+ * Record the fee decision on the applicant's profile at submission. The
+ * database function makes it atomic; its allowance is opened (10000) when this
+ * applicant's area has no fee and closed (0) when it does.
+ */
+export async function claimFoundingEaserApplicationStatus(sb, profileId, { zip } = {}) {
+  const status = await getEaserApplicationFeeStatus(sb, { zip });
   const { data, error } = await sb.rpc('claim_founding_easer_waiver', {
     p_profile_id: profileId,
-    p_limit: getFoundingEaserFreeApplicationLimit(),
+    p_limit: status.waiverAvailable ? 10000 : 0,
   });
   if (error) throw error;
 
   const result = Array.isArray(data) ? data[0] : data;
   if (!result || typeof result.fee_waived !== 'boolean') {
-    throw new Error('Founding waiver claim returned no authoritative result');
+    throw new Error('Application fee claim returned no authoritative result');
   }
   return {
     feeWaived: result.fee_waived,

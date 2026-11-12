@@ -203,7 +203,7 @@ assert.match(feeStatusApi, /isActiveInstantBookingZip/);
 assert.match(feeStatusApi, /standardAmountDisplay/);
 assert.match(feeStatusApi, /Cache-Control', 'no-store/);
 assert.ok(
-  feeStatusApi.indexOf('if (marketRequested && !marketActive)') < feeStatusApi.indexOf('getEaserApplicationFeeStatus(getSupabase())'),
+  feeStatusApi.indexOf('if (marketRequested && !marketActive)') < feeStatusApi.indexOf('getEaserApplicationFeeStatus(getSupabase()'),
   'inactive-market waitlist preflight must not depend on fee-inventory database state',
 );
 

@@ -102,10 +102,12 @@ try {
   assert.equal(resolveMarketArea({ city: 'Austin', state: 'Texas', zip: '78660-1234' }).marketKey, 'central_texas');
   assert.equal(resolveMarketArea({ city: 'Pflugerville', state: '', zip: '78759' }).marketKey, 'central_texas');
   assert.equal(resolveMarketArea({ city: 'San Antonio', state: 'TX', zip: '78006' }).marketKey, 'san_antonio');
-  const unknown = resolveMarketArea({ city: 'Caddo Mills', state: 'TX', zip: '75135' });
+  // Caddo Mills (75135) is in the Dallas-Fort Worth market since 2026-11-11; Tyler is still unconfigured.
+  assert.equal(resolveMarketArea({ city: 'Caddo Mills', state: 'TX', zip: '75135' }).marketKey, 'dallas_fort_worth');
+  const unknown = resolveMarketArea({ city: 'Tyler', state: 'TX', zip: '75701' });
   assert.equal(unknown.coverageKnown, false);
   assert.equal(unknown.locationIssue, null);
-  assert.match(unknown.marketLabel, /Caddo Mills, TX 75135/);
+  assert.match(unknown.marketLabel, /Tyler, TX 75701/);
   assert.notEqual(unknown.marketKey, 'central_texas');
   for (const patch of [
     { city: null }, { zip: null }, { zip: 'bad 78201' }, { state: 'ZZ' },
@@ -124,7 +126,7 @@ try {
       fixture('sa-normalized', { status: null, tier: 'verified', state: 'Texas' }),
       fixture('offline', { city: 'Houston', zip: '77002', is_available: false }),
       fixture('blocked', { city: 'Lubbock', zip: '79401', sms_consent_at: null }),
-      fixture('pending', { city: 'Caddo Mills', zip: '75135', status: 'pending', application_status: 'applied', tier: 'pending' }),
+      fixture('pending', { city: 'Tyler', zip: '75701', status: 'pending', application_status: 'applied', tier: 'pending' }),
       fixture('suspended', { status: null, tier: 'suspended', application_status: 'applied' }),
       fixture('rejected', { status: null, tier: 'rejected', application_status: 'applied' }),
       fixture('review', { city: null }),

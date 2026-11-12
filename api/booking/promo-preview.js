@@ -9,6 +9,7 @@ import {
 import { sameDayFeeForAppointment } from '../_source-of-truth.js';
 import { parseIsoCalendarDate } from './_appt-date.js';
 import { checkoutPlan, checkoutSummary } from './_checkout.js';
+import { activeEaserZips, easersCovering, UNCOVERED_AREA_NOTE } from '../_easer-coverage.js';
 import { getAvailableBalanceCents, maxRedeemableCents, totalsAfterAssembleCash, verifyRedemptionToken } from '../_assemblecash.js';
 import { getMinimumPretaxBookingCents, CANCELLATION_POLICY } from '../_source-of-truth.js';
 import { GIFT_CARD_REDEMPTION_READY, previewGiftCard } from '../_gift-cards.js';
@@ -37,6 +38,12 @@ export default async function handler(req, res) {
   }
 
   const sb = getSupabase();
+  // Whether an active Easer covers this ZIP (api/_easer-coverage.js). Unknown
+  // stays unknown (null): no note is added on a guess.
+  let areaCovered = null;
+  if (/^\d{5}$/.test(String(zip || '').trim())) {
+    try { areaCovered = easersCovering(await activeEaserZips(sb), zip) > 0; } catch { areaCovered = null; }
+  }
   const promo = await resolveBookingPromotion({
     promoCode,
     email,
@@ -113,6 +120,12 @@ export default async function handler(req, res) {
       priority: giftCard.priority,
     } : null,
     gift_card_error: giftCardError,
-    plan: checkoutPlan({ totalCents: totalBeforeGiftCents - giftCents, hasCustomQuote: pricingWithPromo.hasCustomQuote, date: appointmentDate }),
+    plan: withAreaNote(checkoutPlan({ totalCents: totalBeforeGiftCents - giftCents, hasCustomQuote: pricingWithPromo.hasCustomQuote, date: appointmentDate }), areaCovered),
+    area: { covered: areaCovered },
   });
+}
+
+function withAreaNote(plan, areaCovered) {
+  if (areaCovered !== false || !plan) return plan;
+  return { ...plan, note: [plan.note, UNCOVERED_AREA_NOTE].filter(Boolean).join(' ') };
 }
