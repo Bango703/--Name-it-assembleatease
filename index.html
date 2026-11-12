@@ -9,7 +9,7 @@
 <meta name="apple-itunes-app" content="app-id=6822339934">
 <meta name="description" content="Furniture assembly, TV mounting, and smart home setup in Austin and across Texas. Rated 5.0 on Google, upfront pricing, no charge until the job is done."/>
 <link rel="canonical" href="https://www.assembleatease.com/"/>
-<link rel="preload" as="image" type="image/webp" imagesrcset="/images/hero-pro-mobile-672.webp 672w, /images/hero-pro-mobile-768.webp 768w" imagesizes="(max-width: 899px) calc(100vw - 2rem), 50vw" media="(max-width: 1023px)" fetchpriority="high"/>
+<link rel="preload" as="image" type="image/webp" imagesrcset="/images/hero-real-tv-console-m672.webp 672w, /images/hero-real-tv-console-m768.webp 768w" imagesizes="(max-width: 899px) calc(100vw - 2rem), 50vw" media="(max-width: 1023px)" fetchpriority="high"/>
 <link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 
 <meta property="og:type" content="website"/>
@@ -18,11 +18,11 @@
 <meta property="og:url" content="https://www.assembleatease.com/"/>
 <meta property="og:site_name" content="AssembleAtEase"/>
 <meta property="og:locale" content="en_US"/>
-<meta property="og:image" content="https://www.assembleatease.com/images/hero-pro-optimized.jpg"/>
+<meta property="og:image" content="https://www.assembleatease.com/images/og-real-tv-console.jpg"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta property="og:image:alt" content="Professional furniture assembly and TV mounting — AssembleAtEase"/>
-<meta name="twitter:image" content="https://www.assembleatease.com/images/hero-pro-optimized.jpg"/>
+<meta name="twitter:image" content="https://www.assembleatease.com/images/og-real-tv-console.jpg"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="Austin Furniture Assembly &amp; TV Mounting | AssembleAtEase"/>
 <meta name="twitter:description" content="Upfront pricing, reviewed local pros, room-ready bundles, booking tracking, and no charge until completion."/>
@@ -74,7 +74,7 @@
 .hero-v2::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.32),rgba(255,255,255,0));pointer-events:none;z-index:0}
 .hero-v2-shell{display:grid;grid-template-columns:minmax(540px,1.05fr) minmax(500px,0.95fr);gap:1.35rem;max-width:min(1500px,calc(100vw - 96px));margin:0 auto;position:relative;z-index:1;align-items:stretch}
 .hv2-left{position:relative;min-height:clamp(560px,68vh,690px);border-radius:30px;overflow:hidden;background:#d8e4e8;box-shadow:0 24px 54px rgba(15,23,42,0.14)}
-.hv2-left img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 32%;display:block;filter:saturate(1.04) contrast(1.02)}
+.hv2-left img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;display:block;filter:saturate(1.04) contrast(1.02)}
 .hv2-left::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,22,31,0.06) 0%,rgba(2,22,31,0.02) 32%,rgba(2,22,31,0.56) 100%);z-index:1}
 .hv2-photo-badge{position:absolute;top:1.1rem;left:1.1rem;z-index:2;display:inline-flex;align-items:center;gap:0.48rem;padding:0.58rem 0.82rem;border-radius:999px;background:rgba(8,20,28,0.74);border:1px solid rgba(255,255,255,0.18);backdrop-filter:blur(10px);font-size:0.71rem;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#f8fafc}
 .hv2-photo-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:#8fe8ff;box-shadow:0 0 0 5px rgba(143,232,255,0.18)}
@@ -601,6 +601,15 @@ section#service-area{display:block}
   .reviews-marquee-track{animation:none}
   .svc-card,.svc-item,.faq-item,.m-large-project-btn{transition:none}
 }
+/* Homepage review 2026-11-12: labels in sentence case, no dot-joined strings,
+   and on phones the chat bubble appears once the hero buttons are scrolled past. */
+.section-label,.hv2-eyebrow,.hv2-photo-badge,.rr-label,.how-label,.people-benefit-kicker,.m-hero-kicker,.svc-other-title,.benefit-label,.trust-bar-title,.trust-bar-sub{text-transform:none;letter-spacing:0.01em}
+.section-label,.rr-label,.how-label{font-size:0.86rem}
+#rr-section .rr-label{text-transform:none;letter-spacing:0.01em;font-size:0.86rem}
+.hv2-eyebrow{font-size:0.8rem}
+.hv2-proof{display:flex;flex-wrap:wrap;justify-content:center;gap:0.35rem 1.1rem}
+.hv2-proof>.hv2-proof-item{color:#475467}
+@media (max-width:1023px){#aae-chat-btn.aae-chat-wait{display:none}}
 </style>
 <!-- DESKTOP-ONLY styles &mdash; cannot affect mobile (loaded via media attribute) -->
 <style media="(min-width:1024px)">
@@ -702,27 +711,28 @@ section#service-area{display:block}
   <div class="hero-v2-shell">
     <div class="hv2-left">
       <picture>
-        <source media="(min-width:1024px)" srcset="/images/hero-pro-optimized.jpg">
-        <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="AssembleAtEase pro assembling furniture in a home" width="1536" height="1024" decoding="async"/>
+        <source media="(min-width:1024px)" type="image/webp" srcset="/images/hero-real-tv-console.webp">
+        <source media="(min-width:1024px)" srcset="/images/hero-real-tv-console.jpg">
+        <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="A wall-mounted TV with soundbar above an assembled media console, from an AssembleAtEase job" width="1448" height="1086" decoding="async"/>
       </picture>
-      <div class="hv2-photo-badge">Real jobs in real spaces</div>
+      <div class="hv2-photo-badge">From a real AssembleAtEase job</div>
       <div class="hv2-review-card" aria-label="Customer review">
         <div class="hv2-review-copy">
           <span class="hv2-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
           <strong>&ldquo;Mounted a 75-inch TV and assembled a bed. Great job.&rdquo;</strong>
-          <p>Erin B. &middot; Google review</p>
+          <p>Erin B., Google review</p>
         </div>
       </div>
     </div>
     <div class="hv2-right" id="hv2Right">
-      <div class="hv2-eyebrow">Austin &middot; Round Rock &middot; Cedar Park &middot; Georgetown</div>
-      <div class="hv2-h1" aria-hidden="true">Furniture assembly &amp; TV mounting in Austin.</div>
-      <p class="hv2-desc">AssembleAtEase gives customers one clean place to book assembly, mounting, and setup work with upfront pricing, reviewed local pros, booking tracking, and payment after completion.</p>
+      <div class="hv2-eyebrow">Booking open in Austin, Houston, San Antonio and Dallas</div>
+      <div class="hv2-h1" aria-hidden="true">Furniture assembly &amp; TV mounting.</div>
+      <p class="hv2-desc">Pick what needs doing, see your total, and choose a time. Your card is charged after the work is done.</p>
       <div class="hv2-actions">
-        <a href="/book" class="hv2-btn-book">Book your setup &rarr;</a>
+        <a href="/book" class="hv2-btn-book">Book your setup</a>
         <a href="#rr-section" class="hv2-btn-secondary">See room-ready bundles</a>
       </div>
-      <p class="hv2-proof"><span aria-hidden="true">&#9733;</span> <strong>5.0 on Google</strong> &middot; From $69 &middot; <a href="tel:+19792325139">(979) 232-5139</a></p>
+      <p class="hv2-proof"><span class="hv2-proof-item"><span aria-hidden="true">&#9733;</span> <strong>5.0 on Google</strong></span><span class="hv2-proof-item">From $69</span><a class="hv2-proof-item" href="tel:+19792325139">(979) 232-5139</a></p>
     </div>
   </div>
 </section>
@@ -734,12 +744,12 @@ section#service-area{display:block}
 
   <!-- Heading - mobile app-style hero -->
   <div class="m-hero m-hero-refresh">
-    <div class="m-hero-title" aria-hidden="true">Furniture assembly &amp; TV mounting in Austin.</div>
-    <p class="m-hero-copy">Book assembly, mounting, and setup work with upfront pricing, reviewed local pros, and payment after completion.</p>
+    <div class="m-hero-title" aria-hidden="true">Furniture assembly &amp; TV mounting.</div>
+    <p class="m-hero-copy">Pick what needs doing, see your total, and choose a time. Your card is charged after the work is done.</p>
     <div class="m-hero-photo">
       <picture>
-        <source type="image/webp" srcset="/images/hero-pro-mobile-672.webp 672w, /images/hero-pro-mobile-768.webp 768w" sizes="(max-width: 899px) calc(100vw - 2rem), 50vw">
-        <img src="/images/hero-pro-mobile.jpg" alt="AssembleAtEase pro assembling furniture in a home" width="768" height="512" fetchpriority="high" decoding="async">
+        <source type="image/webp" srcset="/images/hero-real-tv-console-m672.webp 672w, /images/hero-real-tv-console-m768.webp 768w" sizes="(max-width: 899px) calc(100vw - 2rem), 50vw">
+        <img src="/images/hero-real-tv-console-m768.jpg" alt="A wall-mounted TV with soundbar above an assembled media console, from an AssembleAtEase job" width="768" height="512" fetchpriority="high" decoding="async">
       </picture>
     </div>
     <div class="m-hero-proof">
@@ -757,8 +767,8 @@ section#service-area{display:block}
   <div class="people-band-inner">
     <div class="people-copy">
       <div class="section-label">Why choose AssembleAtEase</div>
-      <h2 class="people-title" id="people-band-title">Cash back, clear pricing, and a cleaner way to handle the job.</h2>
-      <p class="people-desc">AssembleAtEase is built for customers who want more than a name and a phone number. You get rewards after completed bookings, upfront totals, reviewed pros, booking updates, and room-ready options when several things need to get done together.</p>
+      <h2 class="people-title" id="people-band-title">Know the price, follow the job, earn credit back.</h2>
+      <p class="people-desc">You see the total before you book, follow the booking until the work is done, and earn credit toward the next one.</p>
       <div class="people-actions">
         <a class="people-action-primary" id="homepage-assemblecash-link" href="/assemblecash">See AssembleCash</a>
         <a class="people-action-secondary" href="/pricing">See pricing</a>
@@ -774,19 +784,19 @@ section#service-area{display:block}
       <div class="people-benefit-grid">
         <div class="people-benefit-card">
           <strong>Upfront pricing</strong>
-          <span>See the job total before you confirm instead of guessing what the visit may cost.</span>
+          <span>Your total is shown before you confirm.</span>
         </div>
         <div class="people-benefit-card">
           <strong>Pay after completion</strong>
-          <span>Your card is verified first, then charged after the work is marked complete.</span>
+          <span>Your card is charged after the work is done.</span>
         </div>
         <div class="people-benefit-card">
           <strong>Booking tracking</strong>
-          <span>Follow the booking status without chasing updates through scattered text messages.</span>
+          <span>Check where your booking stands at any time.</span>
         </div>
         <div class="people-benefit-card">
-          <strong>Bundles when it makes sense</strong>
-          <span>Start with a room-ready setup when multiple items should be handled in one visit.</span>
+          <strong>Whole-room bundles</strong>
+          <span>Book everything a room needs in one visit.</span>
         </div>
       </div>
     </div>
@@ -924,43 +934,43 @@ section#service-area{display:block}
       <div class="svc5-photo"><img src="/images/service-furniture-assembly.jpg?v=service-photos-1" alt="Professional assembling furniture in a living room" loading="lazy" decoding="async" width="1536" height="1024"><span class="svc5-tag">Most booked</span></div>
       <div class="svc5-name">Furniture Assembly</div>
       <div class="svc5-desc">IKEA, Wayfair, Amazon &amp; more</div>
-      <div class="svc5-cardfoot"><div class="svc5-price">From $69</div><span class="svc5-link">See options &rarr;</span></div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $69</div><span class="svc5-link">See options</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Mounting+%26+Hanging">
       <div class="svc5-photo"><img src="/images/service-tv-mounting.jpg?v=service-photos-1" alt="Professional measuring a TV wall bracket in a living room" loading="lazy" decoding="async" width="1536" height="1024"><span class="svc5-tag">Same-week</span></div>
       <div class="svc5-name">Mounting &amp; Hanging</div>
       <div class="svc5-desc">TVs, mirrors, shelves &amp; more</div>
-      <div class="svc5-cardfoot"><div class="svc5-price">From $79</div><span class="svc5-link">See options &rarr;</span></div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $79</div><span class="svc5-link">See options</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Fitness+Equipment">
       <div class="svc5-photo"><img src="/images/service-fitness-equipment.jpg?v=service-photos-1" alt="Professional assembling fitness equipment in a home garage" loading="lazy" decoding="async" width="1536" height="1024"></div>
       <div class="svc5-name">Fitness Equipment</div>
       <div class="svc5-desc">Treadmills, bikes, racks &amp; more</div>
-      <div class="svc5-cardfoot"><div class="svc5-price">From $139</div><span class="svc5-link">See options &rarr;</span></div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $139</div><span class="svc5-link">See options</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Outdoor+%26+Playsets">
       <div class="svc5-photo"><img src="/images/service-outdoor-playsets.jpg?v=service-photos-1" alt="Professional assembling an outdoor playset in a backyard" loading="lazy" decoding="async" width="1536" height="1024"></div>
       <div class="svc5-name">Outdoor Assembly &amp; Playsets</div>
       <div class="svc5-desc">Playsets, patios &amp; outdoor builds</div>
-      <div class="svc5-cardfoot"><div class="svc5-price">From $109</div><span class="svc5-link">See options &rarr;</span></div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $109</div><span class="svc5-link">See options</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Office+Assembly">
       <div class="svc5-photo"><img src="/images/service-office-assembly.jpg?v=service-photos-1" alt="Professional assembling office furniture in a home office" loading="lazy" decoding="async" width="1536" height="1024"></div>
       <div class="svc5-name">Office Assembly</div>
       <div class="svc5-desc">Desks, chairs &amp; full workspaces</div>
-      <div class="svc5-cardfoot"><div class="svc5-price">From $89</div><span class="svc5-link">See options &rarr;</span></div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $89</div><span class="svc5-link">See options</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Smart+Home">
       <div class="svc5-photo"><img src="/images/service-smart-home.jpg?v=service-photos-1" alt="Professional installing a smart home device near an entryway" loading="lazy" decoding="async" width="1536" height="1024"><span class="svc5-tag">Popular</span></div>
       <div class="svc5-name">Smart Home Setup</div>
       <div class="svc5-desc">Cameras, locks &amp; thermostats</div>
-      <div class="svc5-cardfoot"><div class="svc5-price">From $69</div><span class="svc5-link">See options &rarr;</span></div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $69</div><span class="svc5-link">See options</span></div>
     </a>
   </div>
   <div class="svc5-foot">
     <div class="svc5-foot-text"><strong>Bigger or unusual project?</strong> Whole-home, multi-room, and custom-scope jobs can be reviewed before you book.</div>
     <div class="svc5-foot-actions">
-      <a href="/book?service=Other" class="svc5-foot-primary">Request custom quote &rarr;</a>
+      <a href="/book?service=Other" class="svc5-foot-primary">Request custom quote</a>
       <a href="/pricing" class="svc5-foot-secondary">See pricing</a>
     </div>
   </div>
@@ -1003,18 +1013,18 @@ section#service-area{display:block}
 <section id="rr-section" aria-labelledby="rr-title" style="display:none">
   <div class="rr-inner">
     <div class="rr-head">
-      <div class="rr-label">Room-Ready Bundles</div>
+      <div class="rr-label">Room-ready bundles</div>
       <h2 class="rr-title" id="rr-title">Want the whole room handled in one visit?</h2>
-      <p class="rr-sub">Room-ready bundles are the fastest path when a space needs multiple things done together. Start with the finished outcome, keep live pricing, and adjust the included items before checkout.</p>
+      <p class="rr-sub">Pick a room and the usual items are already in your cart.</p>
     </div>
     <div class="rr-benefits">
-      <div class="rr-benefit">One visit for the whole room instead of piecing together separate bookings.</div>
-      <div class="rr-benefit">Live item pricing from the real booking catalog, not a made-up package number.</div>
-      <div class="rr-benefit">Edit the included items before you confirm, so it still fits your exact setup.</div>
+      <div class="rr-benefit">One visit for the whole room.</div>
+      <div class="rr-benefit">Each item costs the same as booking it on its own.</div>
+      <div class="rr-benefit">Add or remove items before you book.</div>
     </div>
     <div class="rr-note">
-      <div class="rr-note-copy"><strong>Good fit for:</strong> move-ins, bedrooms, living rooms, offices, nurseries, and any setup where you want fewer decisions and a cleaner booking path.</div>
-      <a class="rr-note-link" href="/bundles">Browse all bundles &rarr;</a>
+      <div class="rr-note-copy"><strong>Good for:</strong> move-ins, bedrooms, living rooms, home offices and nurseries.</div>
+      <a class="rr-note-link" href="/bundles">Browse all bundles</a>
     </div>
     <div class="rr-preview-grid" id="rr-bundle-grid"></div>
   </div>
@@ -1058,7 +1068,7 @@ section#service-area{display:block}
         +'<div class="rr-preview-body">'
           +'<div class="rr-preview-top"><div class="rr-preview-name">'+esc(b.name)+'</div><span class="rr-preview-pill">Bundle</span></div>'
           +'<div class="rr-preview-copy">'+esc(b.outcome||'')+'</div>'
-          +'<div class="rr-preview-meta"><div class="rr-preview-price">Starts at<strong>'+money(subtotal)+'</strong></div><div class="rr-preview-link">Start this bundle &rarr;</div></div>'
+          +'<div class="rr-preview-meta"><div class="rr-preview-price">Starts at<strong>'+money(subtotal)+'</strong></div><div class="rr-preview-link">Start this bundle</div></div>'
         +'</div>'
         +'</a>';
     }).join('');
@@ -1091,7 +1101,7 @@ section#service-area{display:block}
         <h2 class="guides-heading">What to know before the job.</h2>
         <p class="guides-intro">Practical reads on cost, mistakes, smart-home setup, and what is worth hiring out.</p>
       </div>
-      <a href="/blog" class="guides-head-link">View all blogs &rarr;</a>
+      <a href="/blog" class="guides-head-link">View all blogs</a>
     </div>
     <div class="guides-scroll-dots" aria-hidden="true"><span></span><span></span><span></span></div>
     <div class="guides-grid">
@@ -1101,7 +1111,7 @@ section#service-area{display:block}
           <span class="guide-meta">Smart home</span>
           <span class="guide-title">Smart Locks, Cameras &amp; Doorbells: What to Know First</span>
           <span class="guide-copy">A straight answer on setup, placement, Wi-Fi, and what to install before you need it.</span>
-          <span class="guide-link">Read blog &rarr;</span>
+          <span class="guide-link">Read blog</span>
         </span>
       </a>
       <a href="/blog/new-home-setup-checklist-austin" class="guide-card">
@@ -1110,7 +1120,7 @@ section#service-area{display:block}
           <span class="guide-meta">Move-in setup</span>
           <span class="guide-title">New Home Setup Checklist</span>
           <span class="guide-copy">What to handle first when furniture, TVs, and smart devices all arrive at once.</span>
-          <span class="guide-link">Read blog &rarr;</span>
+          <span class="guide-link">Read blog</span>
         </span>
       </a>
       <a href="/blog/tv-mounting-costs-austin" class="guide-card">
@@ -1119,7 +1129,7 @@ section#service-area{display:block}
           <span class="guide-meta">TV mounting</span>
           <span class="guide-title">TV Mounting Costs</span>
           <span class="guide-copy">Screen size, wall type, cord concealment, and what changes the total.</span>
-          <span class="guide-link">Read blog &rarr;</span>
+          <span class="guide-link">Read blog</span>
         </span>
       </a>
       <a href="/blog/tv-mounting-tips-austin" class="guide-card">
@@ -1128,7 +1138,7 @@ section#service-area{display:block}
           <span class="guide-meta">Mistakes</span>
           <span class="guide-title">Before You Mount a TV, Check These First</span>
           <span class="guide-copy">Studs, wall type, glare, height, cords, and the choices that make a clean install.</span>
-          <span class="guide-link">Read blog &rarr;</span>
+          <span class="guide-link">Read blog</span>
         </span>
       </a>
       <a href="/blog/ikea-assembly-cost-austin" class="guide-card">
@@ -1137,7 +1147,7 @@ section#service-area{display:block}
           <span class="guide-meta">Furniture</span>
           <span class="guide-title">IKEA Assembly Cost</span>
           <span class="guide-copy">A practical look at time, complexity, and when to bundle multiple items.</span>
-          <span class="guide-link">Read blog &rarr;</span>
+          <span class="guide-link">Read blog</span>
         </span>
       </a>
       <a href="/blog/best-furniture-assembly-austin" class="guide-card">
@@ -1146,7 +1156,7 @@ section#service-area{display:block}
           <span class="guide-meta">Decision help</span>
           <span class="guide-title">Best Furniture Assembly Service</span>
           <span class="guide-copy">What to check before hiring help, from service details to clean, careful setup.</span>
-          <span class="guide-link">Read blog &rarr;</span>
+          <span class="guide-link">Read blog</span>
         </span>
       </a>
     </div>
@@ -1346,7 +1356,7 @@ section#service-area{display:block}
       var city=servedCity(zip);
       if(city){
         if(window.AAELocation){window.AAELocation.set(zip);}
-        result.innerHTML='Good news — we serve '+city+'. <a class="zc-cta btn btn-cyan" href="/book?zip='+zip+'">Book now →</a>';
+        result.innerHTML='Good news — we serve '+city+'. <a class="zc-cta btn btn-cyan" href="/book?zip='+zip+'">Book now</a>';
         result.classList.add('show','ok');
         wlForm.classList.remove('show');
       }else{
@@ -1410,7 +1420,7 @@ section#service-area{display:block}
     <h2 class="cta-title">Ready when you are?</h2>
     <p class="cta-desc">Pick your items, see the full total, and choose a time. Your card is verified when you book and charged after the job is complete.</p>
     <div class="cta-actions">
-      <a href="/book" class="btn btn-white btn-lg">Book your setup &rarr;</a>
+      <a href="/book" class="btn btn-white btn-lg">Book your setup</a>
       <a href="/pricing" class="btn btn-ghost-white btn-lg">See pricing</a>
     </div>
   </div>
@@ -1429,8 +1439,8 @@ section#service-area{display:block}
         <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8fe8ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Get paid to your bank</div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:0.85rem;align-items:center;justify-content:center">
-        <a href="/assembler/apply" style="display:inline-flex;align-items:center;gap:8px;background:#00BFFF;color:#001f2b;padding:0.9rem 2rem;border-radius:6px;font-size:0.95rem;font-weight:700;text-decoration:none;transition:all 0.18s">Become an Easer &rarr;</a>
-        <a href="/become-an-easer" style="display:inline-flex;align-items:center;gap:8px;color:#8fe8ff;padding:0.9rem 1.25rem;font-size:0.95rem;font-weight:700;text-decoration:none">See openings in your city &rarr;</a>
+        <a href="/assembler/apply" style="display:inline-flex;align-items:center;gap:8px;background:#00BFFF;color:#001f2b;padding:0.9rem 2rem;border-radius:6px;font-size:0.95rem;font-weight:700;text-decoration:none;transition:all 0.18s">Become an Easer</a>
+        <a href="/become-an-easer" style="display:inline-flex;align-items:center;gap:8px;color:#8fe8ff;padding:0.9rem 1.25rem;font-size:0.95rem;font-weight:700;text-decoration:none">See openings in your city</a>
       </div>
     </div>
   </div>
@@ -1708,7 +1718,7 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
   #aae-chat-btn.aae-chat-pulse{animation:none}
 }
 </style>
-<button id="aae-chat-btn" aria-label="Chat with Sora" onclick="aaeChatToggle()">
+<button id="aae-chat-btn" class="aae-chat-wait" aria-label="Chat with Sora" onclick="aaeChatToggle()">
   <img class="aae-chat-avatar" src="/images/sora-avatar-128.jpg" alt="Sora, AssembleAtEase AI booking assistant" aria-hidden="true" width="128" height="128" decoding="async"/>
   <span class="aae-chat-badge" aria-hidden="true">
     <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
@@ -1939,6 +1949,10 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
 </script>
 <!-- /AAE Help Chat -->
 <script src="/assets/js/cookie-consent.js" defer></script>
+<script>
+// Phones: the chat bubble appears once the hero buttons have scrolled out of view, so it never covers them.
+(function(){var b=document.getElementById('aae-chat-btn');if(!b)return;var a=document.querySelector('.m-hero-actions');function check(){if(!a||a.offsetParent===null||a.getBoundingClientRect().bottom<0){b.classList.remove('aae-chat-wait');window.removeEventListener('scroll',check);}}window.addEventListener('scroll',check,{passive:true});check();})();
+</script>
 </body>
 </html>
 
