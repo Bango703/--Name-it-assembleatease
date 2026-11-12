@@ -47,7 +47,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const applicationFee = await getEaserApplicationFeeStatus(getSupabase());
+    const applicationFee = await getEaserApplicationFeeStatus(getSupabase(), { zip: requestedZip });
     return res.status(200).json({
       applicationFee: {
         amountCents: applicationFee.amountCents,

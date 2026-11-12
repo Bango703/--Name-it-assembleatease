@@ -4,6 +4,7 @@ import { logActivity } from '../booking/_activity.js';
 import { notificationAppointmentTimestampMs, formatAppointmentDate, formatAppointmentDateShort } from '../booking/_appt-date.js';
 import { logCron } from './_cron-logger.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { activeEaserZips, easersCovering } from '../_easer-coverage.js';
 
 /**
  * GET /api/cron/unassigned-escalation — every 15 minutes.
@@ -31,6 +32,11 @@ import { BOOKING_STATUS } from '../_source-of-truth.js';
  * would compound the failure, and the customer may still want the work done.
  */
 
+// Stage 0 (owner, 2026-11-11): a booking nobody has accepted three hours after
+// it was made (or moved) goes to the owner then, not six hours before the
+// appointment. Six of the seven real cancellations in the last 90 days never
+// had an Easer accept, and four ended on the appointment day.
+const EARLY_OWNER_ALERT_AFTER_HOURS = 3;
 const SOURCING_ESCALATION_HOURS = 6;
 const CUSTOMER_CUTOFF_HOURS = 2;
 const LOOKBACK_HOURS = 12;   // past appointments beyond this are the owner's problem
@@ -55,6 +61,29 @@ async function verifiedNoticeAt(sb, booking, type, recipientType, stamp) {
   return data?.[0]?.sent_at || null;
 }
 
+/** Hours since the booking was made or last moved, when the early alert is due; otherwise null. */
+export function earlyAlertDue(booking, now, hoursUntil) {
+  if (!(hoursUntil > SOURCING_ESCALATION_HOURS)) return null;
+  const madeAt = Date.parse(booking?.rescheduled_at || booking?.created_at || '');
+  if (!Number.isFinite(madeAt)) return null;
+  const hoursWaiting = (now - madeAt) / 3600000;
+  return hoursWaiting >= EARLY_OWNER_ALERT_AFTER_HOURS ? hoursWaiting : null;
+}
+
+// One early alert per booking and appointment time: a successful provider
+// record since the booking was made or last moved counts as sent.
+async function earlyAlertSent(sb, booking) {
+  const since = booking.rescheduled_at || booking.created_at;
+  let query = sb.from('notification_log').select('sent_at')
+    .eq('booking_id', booking.id).eq('channel', 'email')
+    .eq('notification_type', 'unassigned_early_owner').eq('recipient_type', 'owner')
+    .in('status', ['provider_accepted', 'sent', 'delivered', 'delivery_delayed']);
+  if (since) query = query.gte('sent_at', since);
+  const { data, error } = await query.limit(1);
+  if (error) throw error;
+  return Boolean(data?.length);
+}
+
 export default async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret || req.headers.authorization !== 'Bearer ' + cronSecret) {
@@ -68,11 +97,13 @@ export default async function handler(req, res) {
   let customersNotified = 0;
   let failed = 0;
   let deferred = 0;
+  let earlyAlerts = 0;
+  let easerZips = null; // read once, only when an early alert is due
 
   try {
     const { data: candidates, error } = await sb
       .from('bookings')
-      .select('id, ref, service, date, time, address, service_zip, service_city, customer_name, customer_email, total_price, status, assembler_id, assembler_name, assembler_accepted_at, dispatch_status, needs_manual_dispatch, unassigned_escalated_at, unassigned_customer_notified_at, rescheduled_at, return_visit_required, is_test_booking')
+      .select('id, ref, created_at, service, date, time, address, service_zip, service_city, customer_name, customer_email, total_price, status, assembler_id, assembler_name, assembler_accepted_at, dispatch_status, needs_manual_dispatch, unassigned_escalated_at, unassigned_customer_notified_at, rescheduled_at, return_visit_required, is_test_booking')
       .eq('status', BOOKING_STATUS.CONFIRMED)
       // Assignment is not commitment. This booking was assigned three times and
       // accepted by nobody — acceptance is the only thing that means a pro is
@@ -89,7 +120,46 @@ export default async function handler(req, res) {
       const apptMs = notificationAppointmentTimestampMs(b);
       if (!apptMs) continue;
       const hoursUntil = (apptMs - now) / 3600000;
-      if (hoursUntil < -LOOKBACK_HOURS || hoursUntil > SOURCING_ESCALATION_HOURS) continue;
+      if (hoursUntil < -LOOKBACK_HOURS) continue;
+
+      // ── Stage 0: early. Owner only, once, three hours after booking. ──────
+      if (hoursUntil > SOURCING_ESCALATION_HOURS) {
+        const hoursWaiting = earlyAlertDue(b, now, hoursUntil);
+        if (hoursWaiting === null) continue;
+        const { data: stillOpen, error: openError } = await currentUnaccepted(sb.from('bookings').select('id'), b).maybeSingle();
+        if (openError) throw openError;
+        if (!stillOpen || await earlyAlertSent(sb, b)) continue;
+        if (!easerZips) easerZips = await activeEaserZips(sb);
+        const covering = easersCovering(easerZips, b.service_zip);
+        const area = [b.service_city, b.service_zip].filter(Boolean).join(' ') || 'Area not recorded';
+        const earlyKey = ['unstaffed-early', b.id, b.date, b.time, b.rescheduled_at || 'original'].join(':');
+        const earlyResult = await sendEmail({
+          to: ownerEmail(),
+          subject: `${esc(b.ref)} has no pro yet, booked ${Math.round(hoursWaiting)}h ago`,
+          html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
+            <h2 style="color:#0099CC">No Easer has accepted this booking</h2>
+            <p><strong>${esc(b.ref)}</strong>: ${esc(b.service || '')} on ${esc(formatAppointmentDate(b.date))}${b.time ? ' at ' + esc(b.time) : ''}, booked about ${Math.round(hoursWaiting)} hours ago.</p>
+            <p>${esc(b.assembler_name ? 'Offered to ' + b.assembler_name + ', not accepted.' : 'Nobody is assigned.')}</p>
+            <p><strong>${esc(area)}</strong>: ${covering === 0 ? 'no active Easer covers this area.' : `${covering} active Easer${covering === 1 ? '' : 's'} cover${covering === 1 ? 's' : ''} this area.`}</p>
+            <p style="font-size:14px;color:#52525b">If it is still unaccepted ${SOURCING_ESCALATION_HOURS} hours before the appointment you get the urgent alert, and at ${CUSTOMER_CUTOFF_HOURS} hours the customer is offered a free reschedule or cancellation.</p>
+            <p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">Open the dashboard</a></p>
+          </div>`,
+          meta: { bookingId: b.id, notificationType: 'unassigned_early_owner', recipientType: 'owner', notificationKey: earlyKey, routine: false },
+        }).catch(err => ({ ok: false, error: err?.message || String(err) }));
+        if (earlyResult?.ok && !earlyResult?.suppressed) {
+          earlyAlerts += 1;
+          await logActivity(sb, {
+            bookingId: b.id, eventType: 'unassigned_early_owner_alert', actorType: 'system', actorName: 'escalation',
+            description: `No accepted Easer ${Math.round(hoursWaiting)}h after booking; owner alerted (${covering} active Easer(s) cover the area)`,
+            metadata: { hoursWaiting: Number(hoursWaiting.toFixed(2)), easersCovering: covering, notificationKey: earlyKey },
+          }).catch(() => {});
+        } else if (earlyResult?.deferred) deferred++;
+        else if (!earlyResult?.ok) {
+          failed++;
+          await logActivity(sb, { bookingId: b.id, eventType: 'unassigned_owner_notice_failed', actorType: 'system', actorName: 'escalation', description: 'Early staffing email delivery was not confirmed. Review the delivery log.', metadata: { error: earlyResult?.error || earlyResult?.reason || 'send_failed' } }).catch(() => {});
+        }
+        continue;
+      }
 
       const { data: current, error: currentError } = await currentUnaccepted(sb.from('bookings').select('id'), b).maybeSingle();
       if (currentError) throw currentError;
@@ -228,8 +298,8 @@ export default async function handler(req, res) {
       }
     }
 
-    await logCron('unassigned-escalation', { status: failed ? 'error' : 'ok', records: escalated + customersNotified, errorText: failed ? `${failed} staffing notice(s) failed; retry required` : null, duration: Date.now() - startedAt });
-    return res.status(200).json({ ok: failed === 0, escalated, customersNotified, failed, deferred });
+    await logCron('unassigned-escalation', { status: failed ? 'error' : 'ok', records: earlyAlerts + escalated + customersNotified, errorText: failed ? `${failed} staffing notice(s) failed; retry required` : null, duration: Date.now() - startedAt });
+    return res.status(200).json({ ok: failed === 0, earlyAlerts, escalated, customersNotified, failed, deferred });
   } catch (err) {
     console.error('[unassigned-escalation] failed:', err?.message || err);
     await logCron('unassigned-escalation', { status: 'error', records: escalated + customersNotified, errorText: err?.message || String(err), duration: Date.now() - startedAt });
