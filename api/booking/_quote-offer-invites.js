@@ -94,22 +94,67 @@ export async function loadQuoteOffersForOwner(sb, bookingId) {
  * Highest rated and most experienced first, at most QUOTE_OFFER_MAX_INVITES in
  * all. Returns {invited, message} where message says why nobody was asked.
  */
-export async function inviteEasersForQuote(sb, booking) {
+/**
+ * The Easers the owner can still ask on this quote: eligible for the job
+ * (findEligibleEasers, the dispatch rule) and not asked yet, best rated and
+ * most experienced first. The owner's dashboard lists exactly these.
+ * @returns {Promise<{easers: object[], asked: number, room: number, message: string|null}>}
+ */
+export async function listAskableEasers(sb, booking) {
   const found = await findEligibleEasers(sb, booking);
-  if (!found.easers.length) return { invited: 0, message: found.message || 'No Easer can be offered this job.' };
-
   const { data: existing, error: existingError } = await sb.from('quote_price_offers')
     .select('easer_id').eq('booking_id', booking.id);
   if (existingError) throw existingError;
   const asked = new Set((existing || []).map(row => row.easer_id));
-  const room = QUOTE_OFFER_MAX_INVITES - asked.size;
-  if (room <= 0) return { invited: 0, message: `${QUOTE_OFFER_MAX_INVITES} Easers have already been asked on this quote.` };
-
-  const fresh = found.easers
+  const room = Math.max(0, QUOTE_OFFER_MAX_INVITES - asked.size);
+  const easers = (found.easers || [])
     .filter(easer => !asked.has(easer.id))
-    .sort((a, b) => (Number(b.rating || 0) - Number(a.rating || 0)) || (Number(b.completed_jobs || 0) - Number(a.completed_jobs || 0)))
-    .slice(0, room);
-  if (!fresh.length) return { invited: 0, message: 'Every Easer who covers this area has already been asked.' };
+    .sort((a, b) => (Number(b.rating || 0) - Number(a.rating || 0)) || (Number(b.completed_jobs || 0) - Number(a.completed_jobs || 0)));
+  let message = null;
+  if (!found.easers.length) message = found.message || 'No Easer can be offered this job.';
+  else if (room <= 0) message = `${QUOTE_OFFER_MAX_INVITES} Easers have already been asked on this quote.`;
+  else if (!easers.length) message = 'Every Easer who covers this area has already been asked.';
+  return { easers, asked: asked.size, room, message };
+}
+
+/** What the owner's list shows for one askable Easer. Never contact details. */
+export function askableEaserView(easer = {}) {
+  return {
+    id: easer.id,
+    name: easer.full_name || 'Easer',
+    rating: easer.rating != null ? Number(easer.rating) : null,
+    completedJobs: Number(easer.completed_jobs || 0),
+    tier: easer.tier || null,
+    city: easer.city || null,
+  };
+}
+
+/**
+ * Which Easers to ask, from the owner's ticks. Every tick must still be
+ * askable: the server re-checks, so a stale list or a hand-made request can
+ * never reach an Easer who is not eligible. No ticks (null) asks everyone
+ * askable, up to the room left on the quote.
+ * @returns {{chosen: object[], message: string|null}}
+ */
+export function chooseEasersToAsk(askableEasers = [], easerIds = null, room = QUOTE_OFFER_MAX_INVITES) {
+  let chosen = askableEasers;
+  if (Array.isArray(easerIds)) {
+    const wanted = new Set(easerIds.map(String));
+    chosen = askableEasers.filter(easer => wanted.has(String(easer.id)));
+    if (!chosen.length) return { chosen: [], message: 'None of the chosen Easers can be asked on this quote. Refresh the list.' };
+    if (chosen.length < wanted.size) return { chosen: [], message: 'One of the chosen Easers can no longer be asked on this quote. Refresh the list and choose again.' };
+    if (chosen.length > room) return { chosen: [], message: `Only ${room} more Easer${room === 1 ? '' : 's'} can be asked on this quote. Untick some and try again.` };
+  }
+  return { chosen: chosen.slice(0, room), message: null };
+}
+
+/** Ask Easers for their price: the owner's ticks, or everyone askable. */
+export async function inviteEasersForQuote(sb, booking, { easerIds = null } = {}) {
+  const askable = await listAskableEasers(sb, booking);
+  if (askable.message) return { invited: 0, message: askable.message };
+  const picked = chooseEasersToAsk(askable.easers, easerIds, askable.room);
+  if (picked.message) return { invited: 0, message: picked.message };
+  const fresh = picked.chosen;
 
   const now = new Date();
   const respondBy = new Date(now.getTime() + QUOTE_OFFER_RESPONSE_HOURS * 3600000).toISOString();

@@ -167,3 +167,18 @@ export function quoteRequestForEaser(offer, booking = {}, groups = []) {
     } : null,
   };
 }
+
+/**
+ * Where the Easer prices on one quote stand, for the owner's bookings list
+ * and booking view. Counted from the offers themselves, never stored.
+ */
+export function summarizeQuoteOffers(rows = [], now = Date.now()) {
+  const out = { asked: 0, priced: 0, waiting: 0, selected: false };
+  rows.forEach(row => {
+    out.asked += 1;
+    if (row.status === QUOTE_OFFER_STATUS.SELECTED) { out.selected = true; out.priced += 1; }
+    else if (row.status === QUOTE_OFFER_STATUS.SUBMITTED) out.priced += 1;
+    else if (row.status === QUOTE_OFFER_STATUS.INVITED && Date.parse(row.respond_by) > now) out.waiting += 1;
+  });
+  return out;
+}

@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { loadBookingItems, countAddOns } from './_booking-items.js';
+import { summarizeQuoteOffers } from './_quote-offers.js';
 import { loadChangeOrders, summarizeChangeOrders, changeOrderEligibility } from './_change-orders.js';
 import { loadCrew, summarizeCrew } from './_crew.js';
 import { describeArrival } from '../_geocode.js';
@@ -274,6 +275,45 @@ export default async function handler(req, res) {
       }
     } catch (feedbackLoadError) {
       console.error('[list] customer feedback load failed:', feedbackLoadError?.message || feedbackLoadError);
+    }
+
+    // Easer prices on custom quotes and partner-account bookings (migration
+    // 129). Optional: before the migration, or on a failed read, the booking
+    // shows nothing extra rather than a wrong count.
+    const askedIds = data.filter(b => b.quote_offers_requested_at).map(b => b.id);
+    if (askedIds.length) {
+      try {
+        const { data: offerRows, error: offerError } = await sb.from('quote_price_offers')
+          .select('booking_id, status, respond_by').in('booking_id', askedIds);
+        if (!offerError) {
+          const byBooking = new Map();
+          (offerRows || []).forEach(row => {
+            if (!byBooking.has(row.booking_id)) byBooking.set(row.booking_id, []);
+            byBooking.get(row.booking_id).push(row);
+          });
+          data.forEach(booking => {
+            if (byBooking.has(booking.id)) booking._quote_offers = summarizeQuoteOffers(byBooking.get(booking.id));
+          });
+        }
+      } catch (offerLoadError) {
+        console.error('[list] quote offers load failed:', offerLoadError?.message || offerLoadError);
+      }
+    }
+    const partnerIds = [...new Set(data.filter(b => b.commercial_partner_id).map(b => b.commercial_partner_id))];
+    if (partnerIds.length) {
+      try {
+        const { data: partnerRows, error: partnerError } = await sb.from('partner_leads')
+          .select('id, name, account_code').in('id', partnerIds);
+        if (!partnerError) {
+          const byId = new Map((partnerRows || []).map(row => [row.id, row]));
+          data.forEach(booking => {
+            const partner = byId.get(booking.commercial_partner_id);
+            if (partner) booking._partner_account = { id: partner.id, name: partner.name, code: partner.account_code };
+          });
+        }
+      } catch (partnerLoadError) {
+        console.error('[list] partner account load failed:', partnerLoadError?.message || partnerLoadError);
+      }
     }
 
     if (unreadMsgs && unreadMsgs.length) {
