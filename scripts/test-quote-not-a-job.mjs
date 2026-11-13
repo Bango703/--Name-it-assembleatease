@@ -96,7 +96,7 @@ const quoteSent = { ...tyler, payment_status: 'quote_pending_approval', quote_am
   assert.equal(quoteSlotStillOpen({ ...quoteSent, time: 'Flexible' }, new Date('2026-10-27T15:00:00Z')), false, 'an unpublished window must be set');
 
   const approve = await read('api/owner/quote-approve.js');
-  assert.match(approve, /const \{ bookingId, finalPriceCents, date, time \} = req\.body \|\| \{\};/);
+  assert.match(approve, /const \{ bookingId, finalPriceCents, date, time, quoteOfferId, offerUpdatedAt \} = req\.body \|\| \{\};/);
   assert.match(approve, /if \(!quoteSlotStillOpen\(\{ date: nextDate, time: nextTime \}\)\) \{\n\s+return res\.status\(409\)/, 'a quote is not sent for a past time');
   assert.match(approve, /date: nextDate,\n\s+time: nextTime,/, 'the date sent is the date approved');
   assert.match(approve, /if \(action === 'authorize' && !booking\.stripe_payment_intent_id && !quoteSlotStillOpen\(booking\)\)/, 'approval does not start for a past time');

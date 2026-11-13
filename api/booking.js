@@ -582,6 +582,13 @@ export default async function handler(req, res) {
     review_reward_discount_cents: promo.reviewRewardId ? promoDiscountCents : 0,
     assemblecash_redeemed_cents: assemblecashRedeemedCents,
     bundle_slug: (typeof bundleSlug === 'string' && bundleSlug) ? bundleSlug.slice(0, 64) : null,
+    // A partner account's booking (api/_promotions.js): tagged with the account
+    // and offered to its preferred Easers first. Only written for an account
+    // code, which only resolves once migration 129 is in place.
+    ...(promo.applied && promo.commercialAccountId ? {
+      commercial_partner_id: promo.commercialAccountId,
+      preferred_easer_ids: promo.preferredEaserIds?.length ? promo.preferredEaserIds : null,
+    } : {}),
     // Only written when a gift card paid part of this booking, so a booking
     // without one never depends on migration 127.
     ...(giftCardAppliedCents > 0 ? {

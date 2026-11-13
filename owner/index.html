@@ -1585,7 +1585,7 @@ window.intelQuick = intelQuick;
 
 <!-- ─── Set Quote Modal ─── -->
 <div class="modal-overlay" id="quote-modal">
-  <div class="modal" style="max-width:400px">
+  <div class="modal" style="max-width:460px">
     <h3 id="qm-title">Set &amp; Send Quote</h3>
     <p id="qm-note" style="font-size:0.82rem;color:var(--soft);margin-bottom:1.25rem">Enter the total quote, including tax. The customer must review the itemized amount, accept the cancellation terms, and authorize their card before the booking is confirmed.</p>
     <input type="hidden" id="qm-id"/>
@@ -1593,6 +1593,11 @@ window.intelQuick = intelQuick;
          hand: the amount below is PRE-FILLED from the customer's actual line
          items and add-ons, and this strip says what that number is made of. -->
     <div id="qm-scope" style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.75rem;margin-bottom:0.9rem"></div>
+    <!-- Easer prices (api/owner/quote-offers.js). Shown only when
+         PRIVATE_EASER_OFFERS_ENABLED is on. Sending at an Easer's price prices
+         the quote on the server from that offer; the amount box below is for
+         pricing it yourself. -->
+    <div id="qm-offer-scope-wrap" hidden><label for="qm-offer-scope" style="display:block;font-size:0.8rem;margin-top:0.5rem">Work description for Easers (no customer names, contact details, street addresses or access codes)</label><textarea id="qm-offer-scope" maxlength="2000" rows="3" style="width:100%"></textarea></div><div id="qm-offers" style="display:none;border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.75rem;margin-bottom:0.9rem"></div>
     <label class="modal-label">Quote Amount ($) — total including tax *</label>
     <input type="number" class="modal-input" id="qm-amount" placeholder="e.g. 149.00" min="0.01" step="0.01" oninput="updateQuoteBreakdown()"/>
     <div id="qm-breakdown" style="font-size:0.76rem;color:var(--muted);margin-top:-0.4rem;margin-bottom:0.4rem"></div>
@@ -4000,6 +4005,7 @@ window.intelQuick = intelQuick;
         'Dispatch paused by owner': 'Dispatch is paused on this booking. Use Resume Auto-Dispatch on the booking, or assign an Easer directly. (A pause is also set automatically while a job is assigned or awaiting card authorization.)',
         'Already assigned': 'This booking already has an Easer. Use Reassign instead.',
         'Booking assigned while dispatching — offers cancelled': 'An Easer accepted while this was dispatching, so the remaining offers were withdrawn. The booking is assigned — no action needed.',
+        'Selected quote requires a crew. Assign and confirm each crew member before dispatch.': 'This quote needs multiple people. Use Easer Assignment and Crew to staff it before work starts.',
         'No eligible Easers in system': 'No Easer currently passes every readiness gate. Open the Easers tab and check Job Readiness — the panel lists the exact missing items.',
         'No available Easers in service area': 'Every Easer failed a readiness gate. Open the Easers tab and check Job Readiness for the exact missing items.',
         'No Easer in the area takes this service at this time': 'Every ready Easer nearby has set work preferences that leave out this service or this time. Assign someone directly via Easer Assignment, or ask an Easer to widen their services or hours.',
@@ -4571,7 +4577,122 @@ window.intelQuick = intelQuick;
       : 'Enter the total quote, including tax. The customer must review the itemized amount, accept the cancellation terms, and authorize their card before the booking is confirmed.';
     document.getElementById('qm-submit').textContent = reissuing ? 'Resend for Customer Approval' : 'Send for Customer Approval';
     document.getElementById('quote-modal').classList.add('open');
+    loadQuoteOffers(bookingId);
     setTimeout(function(){ document.getElementById('qm-amount').focus(); }, 50);
+  };
+
+  // ─── Easer prices on a custom quote ───
+  // The server decides everything shown here: who was asked, each price, and
+  // the customer quote each price makes (fee on top, tax added). This panel
+  // renders that verdict and never computes a price of its own.
+  var quoteOffersFor = null;
+  async function loadQuoteOffers(bookingId) {
+    var box = document.getElementById('qm-offers');
+    quoteOffersFor = bookingId;
+    document.getElementById('qm-offer-scope-wrap').hidden = true;
+    document.getElementById('qm-offer-scope').value = '';
+    box.style.display = 'none';
+    try {
+      var r = await fetch('/api/owner/quote-offers?bookingId=' + encodeURIComponent(bookingId), { headers: headers() });
+      var d = await r.json();
+      if (quoteOffersFor !== bookingId) return;
+      if (!r.ok) { box.style.display = ''; box.innerHTML = '<div style="font-size:0.78rem;color:var(--red)">' + esc(d.error || 'Easer prices could not be loaded.') + '</div>'; return; }
+      if (!d.enabled && !(d.offers || []).length) return;
+      box.style.display = '';
+      box.innerHTML = quoteOffersHtml(d);
+      document.getElementById('qm-offer-scope-wrap').hidden = !d.enabled || d.migrationNeeded || (d.offers || []).length > 0;
+      if (!document.getElementById('qm-offer-scope').value && d.suggestedScope) document.getElementById('qm-offer-scope').value = d.suggestedScope;
+    } catch (e) {
+      if (quoteOffersFor !== bookingId) return;
+      box.style.display = '';
+      box.innerHTML = '<div style="font-size:0.78rem;color:var(--red)">Easer prices could not be loaded. Close and reopen to try again.</div>';
+    }
+  }
+
+  function quoteOffersHtml(d) {
+    var offers = d.offers || [];
+    var head = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.45rem"><strong style="font-size:0.85rem">Easer prices</strong>'
+      + (d.enabled ? '' : '<span style="font-size:0.72rem;color:var(--muted)">Switched off</span>') + '</div>';
+    if (d.migrationNeeded) return head + '<div style="font-size:0.78rem;color:var(--muted)">Run migration 129 to ask Easers for prices.</div>';
+    if (!offers.length) {
+      return head + '<div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.55rem">Ask the Easers who cover this area what they want to earn. They answer privately within 24 hours.</div>'
+        + '<button class="btn btn-sm" type="button" onclick="inviteQuoteOffers()">Ask Easers for prices</button>'
+        + '<div id="qm-offers-error" style="font-size:0.78rem;color:var(--red);margin-top:0.4rem;display:none"></div>';
+    }
+    var labels = { invited: 'Waiting', submitted: 'Price in', withdrawn: 'Withdrew', selected: 'Sent to customer', not_selected: 'Not chosen', closed: 'Closed' };
+    var rows = offers.map(function(o) {
+      var who = '<strong>' + esc(o.easer.name) + '</strong>'
+        + '<span style="color:var(--muted)">' + (o.easer.rating ? ' &#9733; ' + Number(o.easer.rating).toFixed(1) : '') + ' &middot; ' + o.easer.completedJobs + ' job' + (o.easer.completedJobs === 1 ? '' : 's') + '</span>';
+      var detail;
+      if (o.customerQuote) {
+        detail = '<div style="margin-top:2px">Total crew earnings <strong>' + fmt$(o.earningsCents) + '</strong> &middot; ' + o.hours + ' h &middot; crew of ' + o.crewSize + '</div>'
+          + '<div style="color:var(--muted)">Customer total ' + fmt$(o.customerQuote.totalCents) + ' (' + fmt$(o.customerQuote.subtotalCents) + ' + ' + fmt$(o.customerQuote.taxCents) + ' tax). Platform fee before processing ' + fmt$(o.customerQuote.platformFeeCents) + '.</div>'
+          + (o.note ? '<div style="margin-top:2px;font-style:italic">&ldquo;' + esc(o.note) + '&rdquo;</div>' : '');
+      } else {
+        detail = '<div style="color:var(--muted);margin-top:2px">' + (o.status === 'invited' && o.open ? 'No price yet. Open until ' + esc(new Date(o.respondBy).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })) + '.' : esc(labels[o.status] || o.status)) + '</div>';
+      }
+      var action = (o.customerQuote && d.enabled && (o.status === 'submitted' || o.status === 'selected'))
+        ? '<button class="btn btn-sm btn-teal" type="button" style="margin-top:0.4rem" onclick="sendQuoteFromOffer(\'' + jsAttr(o.id) + '\', ' + '\'' + jsAttr(o.updatedAt) + '\'' + ')">' + (o.status === 'selected' ? 'Resend at ' : 'Send quote at ') + fmt$(o.customerQuote.totalCents) + '</button>'
+        : '';
+      return '<div style="font-size:0.78rem;padding:0.5rem 0;border-top:1px solid var(--border)">'
+        + '<div style="display:flex;justify-content:space-between;gap:0.5rem"><span>' + who + '</span><span style="color:var(--muted);white-space:nowrap">' + esc(labels[o.status] || o.status) + '</span></div>'
+        + detail + action + '</div>';
+    }).join('');
+    var anyOpen = offers.some(function(o) { return o.open; });
+    var foot = d.enabled ? '<div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap">'
+      + '<button class="btn btn-sm" type="button" onclick="inviteQuoteOffers()">Ask more Easers</button>'
+      + (anyOpen ? '<button class="btn btn-sm" type="button" onclick="closeQuoteOffers()">Stop taking prices</button>' : '')
+      + '</div><div id="qm-offers-error" style="font-size:0.78rem;color:var(--red);margin-top:0.4rem;display:none"></div>' : '';
+    return head + rows + foot;
+  }
+
+  function showQuoteOffersError(msg) {
+    var el = document.getElementById('qm-offers-error');
+    if (el) { el.textContent = msg; el.style.display = ''; }
+  }
+
+  window.inviteQuoteOffers = async function() {
+    var id = document.getElementById('qm-id').value;
+    try {
+      var r = await fetch('/api/owner/quote-offers', { method: 'POST', headers: headers(), body: JSON.stringify({ action: 'invite', bookingId: id, scope: (document.getElementById('qm-offer-scope') || {}).value || '' }) });
+      var d = await r.json();
+      if (!r.ok) { showQuoteOffersError(d.error || 'Easers could not be asked.'); return; }
+      toast('Asked ' + d.invited + ' Easer' + (d.invited === 1 ? '' : 's') + ' for a price (' + d.notified + ' reached).', d.notified ? 'success' : 'error');
+      loadQuoteOffers(id);
+    } catch (e) { showQuoteOffersError('Easers could not be asked. Try again.'); }
+  };
+
+  window.closeQuoteOffers = async function() {
+    var id = document.getElementById('qm-id').value;
+    try {
+      var r = await fetch('/api/owner/quote-offers', { method: 'POST', headers: headers(), body: JSON.stringify({ action: 'close', bookingId: id }) });
+      var d = await r.json();
+      if (!r.ok) { showQuoteOffersError(d.error || 'Offers could not be closed.'); return; }
+      loadQuoteOffers(id);
+    } catch (e) { showQuoteOffersError('Offers could not be closed. Try again.'); }
+  };
+
+  window.sendQuoteFromOffer = async function(offerId, offerUpdatedAt) {
+    var id = document.getElementById('qm-id').value;
+    var quoteDate = document.getElementById('qm-date').value;
+    var quoteTime = document.getElementById('qm-time').value;
+    var errEl = document.getElementById('qm-error');
+    if (!quoteDate || !quoteTime) { errEl.textContent = 'Choose the appointment date and time window for this quote.'; errEl.style.display = ''; return; }
+    errEl.style.display = 'none';
+    try {
+      var r = await fetch('/api/owner/quote-approve', {
+        method: 'POST', headers: headers(),
+        // The server prices the quote from the offer; no amount is sent.
+        body: JSON.stringify({ bookingId: id, quoteOfferId: offerId, offerUpdatedAt: offerUpdatedAt, date: quoteDate, time: quoteTime })
+      });
+      var d = await r.json();
+      if (!r.ok || d.error) { errEl.textContent = d.error || 'The quote was not sent.'; errEl.style.display = ''; return; }
+      var warn = (d.warnings || []).length ? ' The quote was saved, but the email failed. Check the booking notifications before retrying.' : '';
+      toast('Quote sent at ' + fmt$(d.amount) + '. The Easer earns ' + fmt$(d.easerEarningsCents) + '.' + warn, warn ? 'error' : 'success');
+      document.getElementById('quote-modal').classList.remove('open');
+      await loadBookings();
+      if (selectedId) selectBooking(selectedId);
+    } catch (e) { errEl.textContent = 'The quote was not sent. Try again.'; errEl.style.display = ''; }
   };
 
   document.getElementById('qm-cancel').addEventListener('click', function() {

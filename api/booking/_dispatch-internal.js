@@ -106,6 +106,10 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     return { dispatched: 0, message: 'Booking locked by a financial operation or reconciliation review' };
   }
   if (booking.assembler_id) return { dispatched: 0, message: 'Already assigned' };
+  if (booking.selected_quote_offer_id && booking.quote_offer_crew_size > 1) {
+    if (!dryRun) await sb.from('bookings').update({ needs_manual_dispatch: true }).eq('id', booking.id).is('assembler_id', null);
+    return { dispatched: 0, message: 'Selected quote requires a crew. Assign and confirm each crew member before dispatch.', code: 'QUOTE_CREW_ASSIGNMENT_REQUIRED' };
+  }
   if (booking.dispatch_paused) return { dispatched: 0, message: 'Dispatch paused by owner' };
   if (booking.needs_manual_dispatch) return { dispatched: 0, message: 'Flagged for manual dispatch' };
   if ((booking.dispatch_attempt || 0) >= MAX_ATTEMPTS) {
@@ -135,65 +139,9 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   const bookingZip  = extractZip(booking.address || '');
   const nowMs       = Date.now();
 
-  // ── Easer eligibility query ───────────────────────────────────────────────
-  const { data: easers } = await sb
-    .from('profiles')
-    .select('id, full_name, email, phone, sms_consent_at, sms_opted_out_at, city, zip, status, application_status, tier, rating, completed_jobs, has_membership, is_available, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled, profile_photo_requested_at')
-    .eq('role', 'assembler')
-    .eq('status', 'active')
-    .eq('identity_verified', true)
-    .in('tier', ['starter', 'professional', 'elite'])
-    .or('account_closure_status.is.null,account_closure_status.eq.cancelled')
-    .not('phone', 'is', null);
-
-  if (!easers || !easers.length) return { dispatched: 0, message: 'No eligible Easers in system' };
-
-  // ── Filter by canonical readiness and service area ────────────────────────
-  // Payout setup (Stripe Connect) does NOT gate dispatch — offers still flow to
-  // approved Easers who haven't finished payout setup; their earnings are held
-  // at release (release-payouts) until Stripe payouts are ready.
-  // Note: MAX_DAILY_JOBS cap is applied below with authoritative booking counts.
-  // Do NOT filter on active_jobs_today here — the profile counter can be stale.
-  const readinessPairs = await Promise.all(easers.map(async (easer) => ({
-    easer,
-    readiness: await getEaserReadiness(easer),
-  })));
-  // Demo (App Review) accounts get test bookings only. Read with its own query,
-  // so this is a no-op until migration 106 adds the column.
-  const demoEaserIds = await loadDemoEaserIds(sb);
-  let eligible = readinessPairs.filter(({ easer, readiness }) => {
-    if (!readiness.isReady) return false;
-    // When re-dispatching a job a Pro just dropped, don't bounce it straight back
-    // to them — it should go to OTHER online Pros (per the drop-and-rematch flow).
-    if (excludeEaserId && easer.id === excludeEaserId) return false;
-    // Never match on city NAME. It drifts (an "Austin" Pro on a Pflugerville job,
-    // or a mistyped city) and silently chokes dispatch. Match on service market
-    // instead — see SERVICE_MARKETS in _source-of-truth.js, which spans 786+787
-    // so Central Texas keeps working exactly as it does today.
-    //
-    // This gate used to be absent: proximity was only a scoring bonus (+75), and
-    // the safety came entirely from auto-dispatch being Austin-only. That premise
-    // died when Easers registered in Lubbock, Houston and San Antonio. Without
-    // this, widening auto-dispatch by one prefix would offer a Lubbock job to an
-    // Austin Pro. It fails OPEN on an unknown ZIP, so nothing that dispatches
-    // today stops dispatching.
-    if (!isSameServiceMarket(bookingZip, easer.zip)) return false;
-    return true;
-  }).map(({ easer }) => easer);
-  eligible = withoutDemoEasers(eligible, demoEaserIds, booking);
-
-  if (!eligible.length) return { dispatched: 0, message: 'No available Easers in service area' };
-
-  // Work preferences (migration 110): the services an Easer takes and the hours
-  // they work. Read with its own query and failing open, so an Easer with none
-  // set, or a database without the columns, dispatches exactly as before.
-  const workPreferences = await loadWorkPreferences(sb, eligible.map(e => e.id));
-  if (workPreferences.size) {
-    eligible = eligible.filter(e => easerTakesBooking(workPreferences.get(e.id), booking).ok);
-    if (!eligible.length) {
-      return { dispatched: 0, message: 'No Easer in the area takes this service at this time' };
-    }
-  }
+  const found = await findEligibleEasers(sb, booking, { excludeEaserId });
+  if (!found.easers.length) return { dispatched: 0, message: found.message };
+  let eligible = found.easers;
 
   // ── Authoritative same-day workload from bookings table ───────────────────
   // Query real active job counts for the booking's scheduled date.
@@ -301,7 +249,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     return { ...e, _score: Math.max(0, score), _strikes: strikes };
   }).sort((a, b) => b._score - a._score);
 
-  const top = scored.slice(0, BATCH_SIZE);
+  const top = selectOfferRecipients(scored, booking.preferred_easer_ids);
 
   if (dryRun) {
     return {
@@ -592,6 +540,94 @@ function extractCity(address) {
 function extractZip(address) {
   const m = address.match(/\b(\d{5})\b/);
   return m ? m[1] : null;
+}
+
+/**
+ * The Easers who may be offered this booking: active, verified, ready, in the
+ * booking's service market, not a demo account (unless it is a test booking),
+ * and, where they set work preferences, taking this service at this time.
+ * ONE rule for job offers (dispatchBooking) and price requests on custom quotes
+ * (api/booking/_quote-offers.js). The daily job cap and offer history stay in
+ * dispatchBooking: they depend on the appointment and on prior offers.
+ * @returns {Promise<{easers: object[], message: string|null}>}
+ */
+/**
+ * Who gets this round of offers. A booking with preferred Easers (migration
+ * 129: the Easer whose price the customer approved, or a partner account's
+ * Easers) goes to those of them still eligible and not yet offered it. Once
+ * each has had it, or none is eligible, normal matching takes over.
+ */
+export function selectOfferRecipients(scored, preferredIds) {
+  const preferred = Array.isArray(preferredIds) ? preferredIds.filter(Boolean).map(String) : [];
+  if (preferred.length) {
+    const chosen = scored.filter(e => preferred.includes(String(e.id)));
+    if (chosen.length) return chosen.slice(0, BATCH_SIZE);
+  }
+  return scored.slice(0, BATCH_SIZE);
+}
+
+export async function findEligibleEasers(sb, booking, { excludeEaserId = null } = {}) {
+  const bookingZip = extractZip(booking.address || '');
+  // ── Easer eligibility query ───────────────────────────────────────────────
+  const { data: easers } = await sb
+    .from('profiles')
+    .select('id, full_name, email, phone, sms_consent_at, sms_opted_out_at, city, zip, status, application_status, tier, rating, completed_jobs, has_membership, is_available, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, application_decision_key, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled, profile_photo_requested_at')
+    .eq('role', 'assembler')
+    .eq('status', 'active')
+    .eq('identity_verified', true)
+    .in('tier', ['starter', 'professional', 'elite'])
+    .or('account_closure_status.is.null,account_closure_status.eq.cancelled')
+    .not('phone', 'is', null);
+
+  if (!easers || !easers.length) return { easers: [], message: 'No eligible Easers in system' };
+
+  // ── Filter by canonical readiness and service area ────────────────────────
+  // Payout setup (Stripe Connect) does NOT gate dispatch — offers still flow to
+  // approved Easers who haven't finished payout setup; their earnings are held
+  // at release (release-payouts) until Stripe payouts are ready.
+  // Note: MAX_DAILY_JOBS cap is applied below with authoritative booking counts.
+  // Do NOT filter on active_jobs_today here — the profile counter can be stale.
+  const readinessPairs = await Promise.all(easers.map(async (easer) => ({
+    easer,
+    readiness: await getEaserReadiness(easer),
+  })));
+  // Demo (App Review) accounts get test bookings only. Read with its own query,
+  // so this is a no-op until migration 106 adds the column.
+  const demoEaserIds = await loadDemoEaserIds(sb);
+  let eligible = readinessPairs.filter(({ easer, readiness }) => {
+    if (!readiness.isReady) return false;
+    // When re-dispatching a job a Pro just dropped, don't bounce it straight back
+    // to them — it should go to OTHER online Pros (per the drop-and-rematch flow).
+    if (excludeEaserId && easer.id === excludeEaserId) return false;
+    // Never match on city NAME. It drifts (an "Austin" Pro on a Pflugerville job,
+    // or a mistyped city) and silently chokes dispatch. Match on service market
+    // instead — see SERVICE_MARKETS in _source-of-truth.js, which spans 786+787
+    // so Central Texas keeps working exactly as it does today.
+    //
+    // This gate used to be absent: proximity was only a scoring bonus (+75), and
+    // the safety came entirely from auto-dispatch being Austin-only. That premise
+    // died when Easers registered in Lubbock, Houston and San Antonio. Without
+    // this, widening auto-dispatch by one prefix would offer a Lubbock job to an
+    // Austin Pro. It fails OPEN on an unknown ZIP, so nothing that dispatches
+    // today stops dispatching.
+    if (!isSameServiceMarket(bookingZip, easer.zip)) return false;
+    return true;
+  }).map(({ easer }) => easer);
+  eligible = withoutDemoEasers(eligible, demoEaserIds, booking);
+
+  if (!eligible.length) return { easers: [], message: 'No available Easers in service area' };
+
+  // Work preferences (migration 110): the services an Easer takes and the hours
+  // they work. Read with its own query and failing open, so an Easer with none
+  // set, or a database without the columns, dispatches exactly as before.
+  const workPreferences = await loadWorkPreferences(sb, eligible.map(e => e.id));
+  if (workPreferences.size) {
+    eligible = eligible.filter(e => easerTakesBooking(workPreferences.get(e.id), booking).ok);
+    if (!eligible.length) {
+      return { easers: [], message: 'No Easer in the area takes this service at this time' };
+    }
+  }
+  return { easers: eligible, message: null };
 }
 
 // ── Offer email ───────────────────────────────────────────────────────────────
