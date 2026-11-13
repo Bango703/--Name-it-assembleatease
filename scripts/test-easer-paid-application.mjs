@@ -230,8 +230,11 @@ assert.match(applyPage, /\/api\/config\/public-key/);
 assert.match(applyPage, /https:\/\/js\.stripe\.com\/v3\//);
 assert.match(applyPage, /fee-consent/);
 assert.match(applyPage, /applicationFeeConsent/);
-assert.match(applyPage, /full application fee is returned to the original payment method/);
-assert.match(applyPage, /Applicant-withdrawal, duplicate-charge, and payment-error requests are reviewed/);
+// Owner, 2026-11-12: the fee is non-refundable. The page shows the server's
+// terms and promises no refund (scripts/test-receipt-and-fee-terms.mjs).
+assert.match(applyPage, /applicationFee\.terms/);
+assert.match(applyPage, /non-refundable, including if my application is not approved/);
+assert.doesNotMatch(applyPage, /full application fee is returned to the original payment method/);
 assert.match(applyPage, /one-time.*application fee/i);
 assert.match(applyPage, /confirmCardPayment/);
 assert.match(applyPage, /application-fee-finalize/);

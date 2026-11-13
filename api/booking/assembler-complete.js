@@ -1,4 +1,5 @@
 ﻿import Stripe from 'stripe';
+import { buildReceiptHtml } from './_receipt.js';
 import { getSupabase } from '../_supabase.js';
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc, buildReviewCta } from '../_email.js';
@@ -445,7 +446,6 @@ export default async function handler(req, res) {
 
   // ── Email customer receipt ───────────────────────────────────────────────
   try {
-    const amountDisplay = finalAmount > 0 ? `$${(finalAmount / 100).toFixed(2)}` : null;
 
     // Completion photo — visual proof of the finished work (signed URL, 30-day expiry).
     // The completion GATE above still requires a photo — that is unchanged.
@@ -466,16 +466,8 @@ export default async function handler(req, res) {
         }
       }
     } catch (photoErr) { console.error('Completion photo signed-url error:', photoErr.message); }
-    const receiptBlock = amountDisplay ? `
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px">
-        <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#166534">Payment Receipt</p>
-        <p style="margin:0 0 12px;font-size:28px;font-weight:700;color:#065f46">${amountDisplay}</p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#166534">
-          <tr><td style="padding:3px 0;width:130px">Service</td><td style="padding:3px 0;font-weight:600">${esc(booking.service)}</td></tr>
-          <tr><td style="padding:3px 0">Reference</td><td style="padding:3px 0;font-weight:600">${esc(booking.ref)}</td></tr>
-          <tr><td style="padding:3px 0">Status</td><td style="padding:3px 0;font-weight:700">Charged</td></tr>
-        </table>
-      </td></tr></table>` : '';
+    // One receipt for every completion path (api/booking/_receipt.js).
+    const receiptBlock = await buildReceiptHtml(sb, booking, { amountChargedCents: finalAmount });
 
     await sendEmail({
       to: booking.customer_email,

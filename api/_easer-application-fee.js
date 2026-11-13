@@ -6,7 +6,29 @@ export const EASER_APPLICATION_FEE_CENTS = 3000;
 export const EASER_APPLICATION_FEE_CURRENCY = 'usd';
 export const EASER_APPLICATION_FEE_DISPLAY = `$${(EASER_APPLICATION_FEE_CENTS / 100).toFixed(2)}`;
 export const EASER_APPLICATION_FEE_CONTINUATION_TTL_MS = 30 * 60 * 1000;
-export const EASER_APPLICATION_FEE_CONSENT_VERSION = `easer-application-fee-${EASER_APPLICATION_FEE_CENTS}-${EASER_APPLICATION_FEE_CURRENCY}-2026-07-13-v1`;
+// Owner, 2026-11-12: the application fee is non-refundable. Each payment
+// carries the terms its applicant accepted, so the policy is decided per
+// payment, never by date or by today's setting:
+//   current  non-refundable, including when the application is not approved;
+//   legacy   refunded in full if AssembleAtEase rejects the application.
+// An applicant who paid under the legacy terms keeps that promise.
+export const EASER_APPLICATION_FEE_CONSENT_VERSION = `easer-application-fee-${EASER_APPLICATION_FEE_CENTS}-${EASER_APPLICATION_FEE_CURRENCY}-2026-11-12-nonrefundable-v2`;
+export const EASER_APPLICATION_FEE_LEGACY_CONSENT_VERSION = `easer-application-fee-${EASER_APPLICATION_FEE_CENTS}-${EASER_APPLICATION_FEE_CURRENCY}-2026-07-13-v1`;
+const ACCEPTED_FEE_CONSENT_VERSIONS = new Set([EASER_APPLICATION_FEE_CONSENT_VERSION, EASER_APPLICATION_FEE_LEGACY_CONSENT_VERSION]);
+
+/** The words the applicant agrees to. The apply page shows exactly this. */
+export const EASER_APPLICATION_FEE_TERMS = `The ${EASER_APPLICATION_FEE_DISPLAY} application fee is non-refundable, including if your application is not approved.`;
+
+/** True only for a payment made under the non-refundable terms. */
+export function isNonRefundableApplicationFee(paymentIntent) {
+  return paymentIntent?.metadata?.applicationFeeConsentVersion === EASER_APPLICATION_FEE_CONSENT_VERSION;
+}
+
+/** An unpaid payment still carrying the legacy terms: re-stamp it before it is paid. */
+export function needsCurrentFeeConsent(paymentIntent) {
+  return paymentIntent?.status !== 'succeeded'
+    && paymentIntent?.metadata?.applicationFeeConsentVersion !== EASER_APPLICATION_FEE_CONSENT_VERSION;
+}
 
 const APPLICATION_ATTEMPT_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 
@@ -66,7 +88,7 @@ export function easerApplicationFeeConsentMetadata(now = new Date()) {
 export function hasEaserApplicationFeeConsent(paymentIntent) {
   const consentAt = Date.parse(String(paymentIntent?.metadata?.applicationFeeConsentAt || ''));
   return paymentIntent?.metadata?.applicationFeeConsent === 'true'
-    && paymentIntent?.metadata?.applicationFeeConsentVersion === EASER_APPLICATION_FEE_CONSENT_VERSION
+    && ACCEPTED_FEE_CONSENT_VERSIONS.has(paymentIntent?.metadata?.applicationFeeConsentVersion)
     && Number.isFinite(consentAt);
 }
 

@@ -16,6 +16,7 @@ import {
   getEaserReadiness,
 } from '../_easer-readiness.js';
 import {
+  isNonRefundableApplicationFee,
   EASER_APPLICATION_FEE_CENTS,
   validateEaserApplicationPaymentIntent,
 } from '../_easer-application-fee.js';
@@ -155,6 +156,7 @@ async function finalizeApplicationDecision(sb, {
   refundId = null,
   refundedAt = null,
   rejectionReason = null,
+  feeRetained = false,
 }) {
   const decidedAt = new Date().toISOString();
   const rpcName = decision === 'approve'
@@ -177,6 +179,9 @@ async function finalizeApplicationDecision(sb, {
         p_refunded_at: refundedAt,
         p_rejection_reason: rejectionReason,
         p_decided_at: decidedAt,
+        // A non-refundable fee kept on rejection (migration 130). Only sent
+        // when true, so the call is unchanged for every other rejection.
+        ...(feeRetained ? { p_fee_retained: true } : {}),
       };
   const { data, error } = await sb.rpc(rpcName, rpcArgs);
   if (error) throw error;
@@ -737,6 +742,11 @@ export default async function handler(req, res) {
     let pendingRefundCents = Number(profile.application_fee_refund_pending_cents || 0);
     let refundedAt = profile.application_fee_refunded_at || null;
     let refundConfirmed = false;
+    // Owner, 2026-11-12: a fee paid under the non-refundable terms is kept on
+    // rejection. Decided from the terms stamped on that Stripe payment, and only
+    // when Stripe shows no refund activity at all; a refund already started is
+    // finished as before. Legacy-terms payments are refunded as promised.
+    let feeRetained = false;
 
     if ((profile.application_fee_refunded === true) !== (refundedCents > 0)
         || (refundedCents > 0) !== Boolean(refundId)
@@ -795,6 +805,9 @@ export default async function handler(req, res) {
           pendingRefundCents = refundTruth.pendingRefundCents;
           refundId = refundTruth.latestSucceededRefundId;
           refundedAt = refundTruth.latestSucceededRefundedAt;
+          feeRetained = isNonRefundableApplicationFee(paymentIntent)
+            && refundedCents === 0 && pendingRefundCents === 0 && !refundId
+            && !(refundTruth.refunds || []).length;
 
           if (pendingRefundCents > 0) {
             return res.status(409).json({
@@ -806,7 +819,7 @@ export default async function handler(req, res) {
             });
           }
 
-          if (refundedCents < EASER_APPLICATION_FEE_CENTS) {
+          if (!feeRetained && refundedCents < EASER_APPLICATION_FEE_CENTS) {
             const remainingCents = EASER_APPLICATION_FEE_CENTS - refundedCents;
             const failedOrCanceledCount = refundTruth.refunds.filter(refund => (
               ['failed', 'canceled'].includes(String(refund.status || '').toLowerCase())
@@ -855,10 +868,10 @@ export default async function handler(req, res) {
               pendingRefundCents,
             });
           }
-          if (refundedCents !== EASER_APPLICATION_FEE_CENTS || !refundId || !refundedAt) {
+          if (!feeRetained && (refundedCents !== EASER_APPLICATION_FEE_CENTS || !refundId || !refundedAt)) {
             throw new Error(`Stripe aggregate refund is ${refundedCents} of ${EASER_APPLICATION_FEE_CENTS} cents`);
           }
-          refundConfirmed = true;
+          refundConfirmed = !feeRetained;
         } else if (paymentIntent.status === 'canceled') {
           if (databaseClaimsPaid || refundedCents > 0 || pendingRefundCents > 0 || refundId
               || profile.application_fee_refund_review_required_at) {
@@ -900,7 +913,7 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!feeWaived && databaseClaimsPaid && !refundConfirmed) {
+    if (!feeWaived && databaseClaimsPaid && !refundConfirmed && !feeRetained) {
       // This should be unreachable after the Stripe checks above. Keep a final
       // fail-closed guard so a future edit cannot reject a known paid applicant.
       return res.status(409).json({
@@ -922,6 +935,7 @@ export default async function handler(req, res) {
           ? (finalRejectionProfile.application_fee_refunded_at || new Date().toISOString())
           : null,
         rejectionReason: rejectionReason?.trim() || null,
+        feeRetained,
       });
       if (finalized.result_action === 'already_finalized') {
         return res.status(200).json({
@@ -956,11 +970,11 @@ export default async function handler(req, res) {
       to: profile.email,
       subject: 'Your AssembleAtEase Application',
       replyTo: 'service@assembleatease.com',
-      html: buildRejectionEmail(firstName, rejectionReason?.trim() || null, refundConfirmed, feeWaived),
+      html: buildRejectionEmail(firstName, rejectionReason?.trim() || null, refundConfirmed, feeWaived, feeRetained),
       meta: { notificationType: 'easer_application_rejected', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
     }).catch(e => ({ ok: false, error: e?.message || String(e) }));
 
-    return res.status(200).json({ ok: true, action: 'rejected', status: 'rejected', refundId, emailDelivered: rejectionEmail?.ok === true && !rejectionEmail?.suppressed });
+    return res.status(200).json({ ok: true, action: 'rejected', status: 'rejected', refundId, feeRetained, emailDelivered: rejectionEmail?.ok === true && !rejectionEmail?.suppressed });
   }
 
   // ── SUSPEND ──────────────────────────────────────────────────────────────
@@ -2151,7 +2165,7 @@ function buildPromotionEmail(firstName, tierLabel, tier) {
 </body></html>`;
 }
 
-export function buildRejectionEmail(firstName, reason, refunded, feeWaived) {
+export function buildRejectionEmail(firstName, reason, refunded, feeWaived, feeRetained = false) {
   // A reason typed by the owner is shown as written, ending as a sentence.
   const reasonText = reason ? (/[.!?]$/.test(reason) ? reason : `${reason}.`) : '';
   const reasonBlock = reasonText
@@ -2159,7 +2173,9 @@ export function buildRejectionEmail(firstName, reason, refunded, feeWaived) {
     : '';
   // A waived fee needs no mention. A refund is stated; a kept fee follows the
   // policy shown at submission.
-  const feeBlock = feeWaived
+  // A non-refundable fee kept on rejection is not mentioned: the applicant
+  // agreed to those terms when paying.
+  const feeBlock = feeWaived || feeRetained
     ? ''
     : (refunded
       ? `<p style="color:#52525b;line-height:1.7;margin:0 0 16px">Your ${EASER_APPLICATION_FEE_DISPLAY} application fee has been refunded to your original payment method. It can take 5 to 10 business days to appear.</p>`

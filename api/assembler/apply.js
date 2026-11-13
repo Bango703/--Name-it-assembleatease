@@ -27,6 +27,7 @@ import {
   EASER_APPLICATION_FEE_DISPLAY,
   hasEaserApplicationFeeRefundHold,
   hasEaserApplicationFeeConsent,
+  needsCurrentFeeConsent,
   hashApplicationAttemptId,
   isValidApplicationAttemptId,
   validateEaserApplicationPaymentIntent,
@@ -507,9 +508,9 @@ async function preparePaidApplication({
     throw new Error('The application PaymentIntent was canceled and requires owner review');
   }
 
-  if (applicationFeeConsent
-      && !hasEaserApplicationFeeConsent(paymentIntent)
-      && paymentIntent.status !== 'succeeded') {
+  // Stamp the current (non-refundable) terms on any unpaid payment, including
+  // one started under the legacy terms, so the terms charged are the terms shown.
+  if (applicationFeeConsent && needsCurrentFeeConsent(paymentIntent)) {
     paymentIntent = await stripe.paymentIntents.update(paymentIntent.id, {
       metadata: {
         ...paymentIntent.metadata,

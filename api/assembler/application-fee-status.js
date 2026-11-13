@@ -5,6 +5,7 @@ import {
   EASER_APPLICATION_FEE_CENTS,
   EASER_APPLICATION_FEE_CURRENCY,
   EASER_APPLICATION_FEE_DISPLAY,
+  EASER_APPLICATION_FEE_TERMS,
   getEaserApplicationFeeStatus,
 } from '../_easer-application-fee.js';
 import { isActiveInstantBookingZip } from '../_source-of-truth.js';
@@ -37,6 +38,8 @@ export default async function handler(req, res) {
         standardAmountDisplay: EASER_APPLICATION_FEE_DISPLAY,
         waiverAvailable: false,
         finalDecisionAtSubmission: true,
+        // The fee terms the applicant accepts (api/_easer-application-fee.js).
+        terms: EASER_APPLICATION_FEE_TERMS,
       },
       market: {
         active: false,
@@ -57,6 +60,8 @@ export default async function handler(req, res) {
         standardAmountDisplay: EASER_APPLICATION_FEE_DISPLAY,
         waiverAvailable: applicationFee.waiverAvailable,
         finalDecisionAtSubmission: true,
+        // The fee terms the applicant accepts (api/_easer-application-fee.js).
+        terms: EASER_APPLICATION_FEE_TERMS,
       },
       market: marketRequested ? {
         active: marketActive,

@@ -1235,13 +1235,13 @@
               <span class="fee-dot">!</span>
               <div id="fee-charge-copy"><strong>Do not submit yet.</strong> The current fee must load before you can review and authorize the application.</div>
             </div>
-            <div class="fee-note" id="fee-refund-copy" style="margin-top:0.75rem">Refund terms will appear here before any payment can be authorized.</div>
+            <div class="fee-note" id="fee-refund-copy" style="margin-top:0.75rem">Fee terms will appear here before any payment can be authorized.</div>
           </div>
 
           <div class="conduct-check" id="fee-consent-section" style="display:none;margin-bottom:0.75rem">
             <input type="checkbox" id="fee-consent" />
             <div class="conduct-check-text" id="fee-consent-copy">
-              I authorize AssembleAtEase to charge a one-time $30.00 Easer application fee to submit this application, and I acknowledge the refund terms shown above. Identity verification and application approval are separate, and work is not guaranteed.
+              I authorize AssembleAtEase to charge a one-time $30.00 Easer application fee to submit this application. I understand the fee is non-refundable, including if my application is not approved. Identity verification and application approval are separate, and work is not guaranteed.
             </div>
           </div>
           <span class="field-error" id="fee-consent-error"></span>
@@ -1413,6 +1413,10 @@
       && typeof (applicationFee.standardAmountDisplay || applicationFee.amountDisplay) === 'string';
   }
 
+  function escapeFeeText(value) {
+    return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
   function renderFeeState(applicationFee) {
     if (!validateFeePayload(applicationFee)) throw new Error('Application fee response was invalid');
     feeState = applicationFee;
@@ -1435,8 +1439,10 @@
       pill.textContent = 'Application fee: ' + amountDisplay;
       programCopy.innerHTML = '<strong>One-time Easer application fee: ' + amountDisplay + '.</strong> This exact amount is set and verified by the AssembleAtEase server.';
       chargeCopy.innerHTML = '<strong>Payment is collected only after your authorization.</strong> Identity verification and application approval remain required, and submitting does not guarantee work.';
-      refundCopy.textContent = 'Refund terms: if AssembleAtEase rejects your application, the full application fee is returned to the original payment method. Applicant-withdrawal, duplicate-charge, and payment-error requests are reviewed by service@assembleatease.com; no other refund is guaranteed.';
-      document.getElementById('fee-consent-copy').textContent = 'I authorize AssembleAtEase to charge a one-time ' + amountDisplay + ' Easer application fee to submit this application, and I acknowledge the refund terms shown above. Identity verification and application approval are separate, and work is not guaranteed.';
+      // The terms come from the server: the same words are stamped on the
+      // Stripe payment the applicant authorizes (api/_easer-application-fee.js).
+      refundCopy.innerHTML = '<strong>' + escapeFeeText(applicationFee.terms || ('The ' + amountDisplay + ' application fee is non-refundable, including if your application is not approved.')) + '</strong>';
+      document.getElementById('fee-consent-copy').textContent = 'I authorize AssembleAtEase to charge a one-time ' + amountDisplay + ' Easer application fee to submit this application. I understand the fee is non-refundable, including if my application is not approved. Identity verification and application approval are separate, and work is not guaranteed.';
       document.getElementById('card-label').textContent = 'Card details for the ' + amountDisplay + ' application fee *';
       consentSection.style.display = '';
       button.textContent = 'Continue to ' + amountDisplay + ' Secure Payment';

@@ -6990,10 +6990,13 @@ window.intelQuick = intelQuick;
         var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
         var data = await r.json();
         if (data.error) { toast(data.error, 'error'); return; }
+        // The server says what happened to the fee; nothing is assumed here.
+        var feeNote = data.feeRetained ? ' The non-refundable application fee was kept.'
+          : (data.refundId ? ' The application fee was refunded.' : '');
         toast(
-          data.emailDelivered === false
-            ? 'Easer rejected; notification email needs manual follow-up'
-            : 'Easer rejected and notified',
+          (data.emailDelivered === false
+            ? 'Easer rejected; notification email needs manual follow-up.'
+            : 'Easer rejected and notified.') + feeNote,
           data.emailDelivered === false ? 'error' : 'success'
         );
         await reloadAssemblersAndMaybeRefreshDetail(aIdRej, reopenRejectDetail);
