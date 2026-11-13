@@ -195,4 +195,14 @@ check('Laredo still shares a market with San Antonio (known, tracked)', () => {
   });
 }
 
+{
+  const editSrc = (await readFile(new URL('../api/owner/edit-booking.js', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
+  check('editing an address moves the stored ZIP and city with it, and needs a ZIP', () => {
+    assert.match(editSrc, /nextLocation = parseServiceLocation\(\{ address \}\);/);
+    assert.match(editSrc, /if \(!nextLocation\.zip\) \{\n\s+return res\.status\(400\)/);
+    assert.match(editSrc, /updates\.service_zip = nextLocation\.zip;/);
+    assert.match(editSrc, /updates\.service_city = nextLocation\.city \|\| null;/);
+  });
+}
+
 console.log('all dispatch market gate checks passed');

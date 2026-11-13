@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { appointmentTimestampMs, formatAppointmentDate } from '../api/booking/_appt-date.js';
 import { validateBookingWindowDate } from '../api/booking/_booking-window.js';
 import { loadEaserJobExtras } from '../api/booking/_easer-job-extras.js';
+import { parseServiceLocation } from '../api/_booking-location.js';
 
 // Execute the production handler with isolated persistence and notification
 // boundaries. No environment file, network, live write, or delivery is used.
@@ -59,7 +60,7 @@ async function fixture(overrides = {}, options = {}) {
     },
     buildStatusEmail: input => `<h1>${input.headline}</h1>${input.bodyHtml}`,
     ownerEmail: () => 'owner@example.test', esc: value => String(value ?? ''), formatAddress: value => value,
-    logActivity: async (_sb, input) => activities.push(input), appointmentTimestampMs, formatAppointmentDate, validateBookingWindowDate,
+    logActivity: async (_sb, input) => activities.push(input), appointmentTimestampMs, formatAppointmentDate, validateBookingWindowDate, parseServiceLocation,
     console: { log() {}, error() {} },
   };
   const handler = await new AsyncFunction(...Object.keys(dependencies), `${source}\nreturn handler;`)(...Object.values(dependencies));
@@ -70,6 +71,21 @@ async function fixture(overrides = {}, options = {}) {
   } };
 }
 const recipients = f => f.messages.map(message => message.meta.recipientType);
+
+// Found in the live test of AAE-DMA4UGNPV2 (2026-11-13): an edited address
+// left the stored ZIP behind, and dispatch places a job by the stored ZIP.
+{
+  const moved = await fixture({ assembler_id: null, assembler_accepted_at: null, assigned_at: null, assignment_token: null, dispatch_status: null,
+    address: '7906 Headwaters Trail, 4101', service_zip: '78254', service_city: 'San Antonio', service_state: 'TX' });
+  const ok = await moved.run({ address: '4101 Headwaters Trail, Austin, TX 78746' });
+  assert.equal(ok.code, 200);
+  const write = moved.writes.find(w => w.table === 'bookings');
+  assert.deepEqual([write.patch.service_zip, write.patch.service_city, write.patch.service_state], ['78746', 'Austin', 'TX']);
+  const refused = await (await fixture({ assembler_id: null, assembler_accepted_at: null, assigned_at: null, assignment_token: null, dispatch_status: null, service_zip: '78701' }))
+    .run({ address: '12 Somewhere Lane' });
+  assert.equal(refused.code, 400);
+  assert.equal(refused.body.code, 'ADDRESS_ZIP_REQUIRED');
+}
 
 const unassigned = { assembler_id: null, assembler_accepted_at: null, assigned_at: null, assignment_token: null, dispatch_status: null };
 // Owner, 2026-11-09: a move from the dashboard left no record of the old
