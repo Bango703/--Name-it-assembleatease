@@ -1,4 +1,5 @@
 ﻿import Stripe from 'stripe';
+import { buildReceiptHtml } from './_receipt.js';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc, buildReviewCta } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
@@ -416,7 +417,6 @@ export default async function handler(req, res) {
     adjustActiveJobs(sb, booking.assembler_id, -1).catch(() => {});
   }
   if (booking.external_platform !== 'thumbtack') try {
-    const amountDisplay = finalAmountCharged > 0 ? `$${(finalAmountCharged / 100).toFixed(2)}` : null;
     // The completion gate above still requires a photo. This is the separate
     // question of whether the CUSTOMER may see one — only a photo deliberately
     // promoted to customer-facing qualifies. No approved photo simply means the
@@ -436,18 +436,8 @@ export default async function handler(req, res) {
     } catch (photoError) {
       console.error('Owner completion photo signed-url error:', photoError?.message || photoError);
     }
-    const receiptBlock = amountDisplay ? `
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px">
-        <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#166534">Payment Receipt</p>
-        <p style="margin:0 0 12px;font-size:28px;font-weight:700;color:#065f46">${amountDisplay}</p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#166534">
-          <tr><td style="padding:3px 0;width:130px">Service</td><td style="padding:3px 0;font-weight:600">${esc(booking.service)}</td></tr>
-          <tr><td style="padding:3px 0">Reference</td><td style="padding:3px 0;font-weight:600">${esc(booking.ref)}</td></tr>
-          <tr><td style="padding:3px 0">Payment method</td><td style="padding:3px 0">Card on file</td></tr>
-          <tr><td style="padding:3px 0">Status</td><td style="padding:3px 0;font-weight:700">Charged</td></tr>
-        </table>
-        <p style="margin:10px 0 0;font-size:12px;color:#166534;line-height:1.5">A Stripe receipt has been sent separately to <strong>${esc(booking.customer_email)}</strong>.</p>
-      </td></tr></table>` : '';
+    // One receipt for every completion path (api/booking/_receipt.js).
+    const receiptBlock = await buildReceiptHtml(sb, booking, { amountChargedCents: finalAmountCharged });
 
     const html = buildStatusEmail({
       customerName: booking.customer_name,
