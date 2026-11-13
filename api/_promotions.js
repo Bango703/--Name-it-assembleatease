@@ -1,6 +1,7 @@
 import { NEW_CUSTOMER_OFFER } from './_source-of-truth.js';
 import { TX_TAX_RATE } from './_pricing.js';
 import { isReviewRewardCode, REVIEW_REWARD_DISCOUNT_CENTS, REVIEW_REWARD_MINIMUM_CENTS } from './_review-rewards.js';
+import { ACCOUNT_CODE, ACCOUNT_MAX_DISCOUNT_PCT, commercialAccountsEnabled } from './_partners.js';
 
 function buildLegacyPromoSettings() {
   return {
@@ -156,6 +157,38 @@ export async function resolveBookingPromotion({
     if (!available) return { ...rewardBase, reason: 'invalid_or_used_code' };
     const discountCents = Math.min(REVIEW_REWARD_DISCOUNT_CENTS, Number(pricing.discountedItemSubtotalCents || 0));
     return { ...rewardBase, applied: true, appliedCode: enteredCode, discountCents, reason: 'applied', reviewRewardId: reward.id };
+  }
+  // A partner account's code (api/_partners.js, migration 129): the account's
+  // discount on the catalog items, and the booking is tagged with the account
+  // so dispatch offers it to the account's preferred Easers first.
+  if (ACCOUNT_CODE.test(enteredCode) && commercialAccountsEnabled()) {
+    const accountBase = { ...base, title: 'Account pricing', label: 'Account pricing' };
+    if (isQuoteRequest) return { ...accountBase, reason: 'quote_request_not_eligible' };
+    if (!sb) throw new Error('Missing Supabase client for account pricing');
+    const { data: account, error } = await sb.from('partner_leads')
+      .select('id, name, account_status, account_discount_pct, account_preferred_easer_ids')
+      .eq('account_code', enteredCode)
+      .maybeSingle();
+    if (error) {
+      if (isMissingTableError(error) || isMissingColumnError(error) || /account_/i.test(String(error.message || ''))) return { ...accountBase, reason: 'invalid_code' };
+      throw error;
+    }
+    if (!account || account.account_status !== 'active') return { ...accountBase, reason: 'invalid_code' };
+    if (!pricing?.hasPricedBaseItem || pricing?.discountedItemSubtotalCents <= 0) return { ...accountBase, reason: 'no_eligible_items' };
+    const pct = Math.max(0, Math.min(ACCOUNT_MAX_DISCOUNT_PCT, Number(account.account_discount_pct) || 0));
+    const eligible = Math.max(0, Number(pricing.discountedItemSubtotalCents || 0));
+    const discountCents = Math.min(Math.round(eligible * pct / 100), eligible);
+    return {
+      ...accountBase,
+      title: `${account.name} account pricing`,
+      label: pct > 0 ? `${account.name}: ${pct}% off` : `${account.name} account`,
+      applied: true,
+      appliedCode: enteredCode,
+      discountCents,
+      reason: 'applied',
+      commercialAccountId: account.id,
+      preferredEaserIds: Array.isArray(account.account_preferred_easer_ids) ? account.account_preferred_easer_ids : [],
+    };
   }
   if (!activePromo || enteredCode !== activePromo.code) return { ...base, reason: 'invalid_code' };
   if (isQuoteRequest) return { ...base, reason: 'quote_request_not_eligible' };

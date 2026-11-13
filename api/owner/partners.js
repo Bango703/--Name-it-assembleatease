@@ -3,6 +3,7 @@ import { verifyOwner } from '../_email.js';
 import {
   PARTNER_STAGES, PARTNER_KINDS, newRefCode, validateNewPartner, applyPartnerUpdate,
   countPartnerBookings, summarizePartners, projectPartner, seedRow, isMissingPartnerTable, PARTNER_UTM_SOURCE,
+  validateAccountUpdate, summarizeAccountBookings, newAccountCode, commercialAccountsEnabled, ACCOUNT_MAX_DISCOUNT_PCT,
 } from '../_partners.js';
 import { PARTNER_SEED_LEADS } from './_partner-leads-seed.js';
 
@@ -24,6 +25,32 @@ async function readPartnerBookings(sb) {
     .ilike('booking_attribution->>utmSource', PARTNER_UTM_SOURCE).limit(5000);
   if (error) return null;
   return countPartnerBookings(data || []);
+}
+
+// Jobs booked under each partner account (bookings.commercial_partner_id).
+// Unknown is not zero: a failed read reports the accounts as unavailable.
+async function readAccountReports(sb, accountIds, month) {
+  if (!accountIds.length) return new Map();
+  const data = [];
+  for (let offset = 0; ; offset += 500) {
+    const page = await sb.from('bookings')
+      .select('id, ref, commercial_partner_id, status, payment_status, source, payment_collected, payment_collected_at, payment_collected_by, is_test_booking, created_at, total_price, amount_charged, tax_amount, refund_amount, stripe_fee, cancellation_easer_due_cents, assembler_due, payout_amount, easer_bonus_cents, easer_reimbursement_cents, easer_fee_pct_snapshot, assemblecash_redeemed_cents, review_reward_discount_cents, gift_card_applied_cents')
+      .in('commercial_partner_id', accountIds).order('id').range(offset, offset + 499);
+    if (page.error) return null;
+    data.push(...(page.data || []));
+    if ((page.data || []).length < 500) break;
+  }
+  const byAccount = new Map(accountIds.map(id => [id, []]));
+  (data || []).forEach(row => byAccount.get(row.commercial_partner_id)?.push(row));
+  return new Map([...byAccount].map(([id, rows]) => [id, summarizeAccountBookings(rows, { month })]));
+}
+
+// Easers an account can prefer: active and approved.
+async function readEaserRoster(sb) {
+  const { data, error } = await sb.from('profiles').select('id, full_name, city, rating')
+    .eq('role', 'assembler').eq('status', 'active').order('full_name', { ascending: true }).limit(200);
+  if (error) return [];
+  return (data || []).map(e => ({ id: e.id, name: e.full_name || 'Easer', city: e.city || null, rating: e.rating == null ? null : Number(e.rating) }));
 }
 
 async function insertWithFreshCodes(sb, rows, { ignoreDuplicates = false } = {}) {
@@ -62,9 +89,21 @@ export function createPartnersHandler({ supabase = getSupabase, authorize = veri
         return p;
       });
       const seeded = rows.filter(r => r.source === 'google_maps').length;
+      const accountIds = rows.filter(r => r.account_status != null).map(r => r.id);
+      const month = req.query?.month || null;
+      if (month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return res.status(400).json({ error: 'Choose a valid report month.' });
+      const reports = await readAccountReports(sb, accountIds, month);
+      partners.forEach(p => { if (p.account) p.account.report = reports ? (reports.get(p.id) || null) : null; });
       return res.status(200).json({
         ...base, tableMissing: false, partners, summary: summarizePartners(rows, now()),
         bookingCountsAvailable: Boolean(counts), seedImported: seeded,
+        accounts: {
+          enabled: commercialAccountsEnabled(),
+          columnsReady: rows.length === 0 || Object.prototype.hasOwnProperty.call(rows[0], 'account_status'),
+          reportsAvailable: Boolean(reports),
+          maxDiscountPct: ACCOUNT_MAX_DISCOUNT_PCT,
+          easers: accountIds.length || commercialAccountsEnabled() ? await readEaserRoster(sb) : [],
+        },
       });
     }
 
@@ -95,6 +134,42 @@ export function createPartnersHandler({ supabase = getSupabase, authorize = veri
       if (writeError) return res.status(503).json({ error: 'The change was not saved. Try again.' });
       if (!data?.length) return res.status(409).json({ error: 'This partner changed in another window. Refresh, then make your change again.' });
       return res.status(200).json({ partner: projectPartner(data[0], new Map()), summary: null });
+    }
+
+    if (body.action === 'account' || body.action === 'account_code') {
+      if (!UUID.test(String(body.id || ''))) return res.status(400).json({ error: 'Choose a partner.' });
+      const { data: current, error: readError } = await sb.from('partner_leads').select('*').eq('id', body.id).maybeSingle();
+      if (readError) return res.status(503).json({ error: 'The partner could not be read. Try again.' });
+      if (!current) return res.status(404).json({ error: 'That partner no longer exists. Refresh the list.' });
+      if (!Object.prototype.hasOwnProperty.call(current, 'account_status')) return res.status(409).json({ error: 'Run migration 129 before opening partner accounts.' });
+      let patch;
+      if (body.action === 'account_code') {
+        if (current.account_status == null) return res.status(409).json({ error: 'Open the account first.' });
+        patch = { account_code: newAccountCode(), updated_at: now().toISOString(),
+          history: [...(Array.isArray(current.history) ? current.history : []), { at: now().toISOString(), event: 'account_code_replaced' }].slice(-50) };
+      } else {
+        const checked = validateAccountUpdate(current, body, now());
+        if (checked.error) return res.status(400).json({ error: checked.error });
+        patch = checked.patch;
+        if (patch.account_preferred_easer_ids.length) {
+          const { data: roster, error: rosterError } = await sb.from('profiles').select('id')
+            .in('id', patch.account_preferred_easer_ids).eq('role', 'assembler');
+          if (rosterError) return res.status(503).json({ error: 'Preferred Easers could not be verified. Try again.' });
+          if (roster.length !== patch.account_preferred_easer_ids.length) return res.status(400).json({ error: 'Choose only existing Easer accounts.' });
+        }
+      }
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data, error: writeError } = await sb.from('partner_leads').update(patch)
+          .eq('id', body.id).eq('updated_at', current.updated_at).select('*');
+        if (writeError && writeError.code === '23505' && /account_code/i.test(String(writeError.message || writeError.details || ''))) {
+          patch = { ...patch, account_code: newAccountCode() };
+          continue;
+        }
+        if (writeError) return res.status(503).json({ error: 'The account was not saved. Try again.' });
+        if (!data?.length) return res.status(409).json({ error: 'This partner changed in another window. Refresh, then make your change again.' });
+        return res.status(200).json({ partner: projectPartner(data[0], new Map()) });
+      }
+      return res.status(503).json({ error: 'A unique account code could not be made. Try again.' });
     }
 
     if (body.action === 'import_seed') {

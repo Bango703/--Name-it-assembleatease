@@ -21,6 +21,7 @@ function notice(title, detail, action, actionLabel, category) {
 
 export const NOTIFICATION_COPY = Object.freeze({
   // Jobs
+  quote_price_request: notice('Price requested', 'A custom job is available to price. Open Price requests to respond.', 'price_requests', 'Open price requests', JOBS),
   assignment_confirmation: notice('New job', 'AssembleAtEase sent you a job. Review it and accept it.', 'job', 'Review job', JOBS),
   dispatch_offer: notice('New job offer', 'Review the offer and accept it before it expires.', 'job', 'Review offer', JOBS),
   easer_work_available: notice('Work available', 'New jobs are available in your area. Go online to get offers.', 'today', 'Open Today', JOBS),
@@ -139,6 +140,7 @@ export function actionFor(row, announcements) {
 }
 
 function hrefFor(row, action) {
+  if (action === 'price_requests') return '/assembler/price-requests';
   if (action.startsWith('job')) return `/assembler/my-assignments?job=${encodeURIComponent(row.booking_id)}`;
   if (action === 'payouts') return '/assembler/payouts';
   if (action === 'account' || action === 'personal_info') return '/assembler/profile';

@@ -144,3 +144,6 @@ unassigned_customer_notice
 unassigned_sourcing_escalation
 waitlist_invite
 weekly_summary
+
+quote_price_request
+quote_price_offer_owner

@@ -2800,6 +2800,8 @@ private struct NoticeDetailView: View {
             } else { goneJob }
         case "payouts":
             NavigationLink(label) { PayoutsView() }
+        case "price_requests":
+            Link(label, destination: Site.page("/assembler/price-requests"))
         case "personal_info":
             NavigationLink(label) { PersonalInfoView() }
         case "account":

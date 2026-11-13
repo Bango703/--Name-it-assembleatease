@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="/assets/js/sentry-init.js"></script>
+  <script src="https://js.sentry-cdn.com/d5e773248c17d9f13dcf8b0a5f5dd73f.min.js" crossorigin="anonymous"></script>
+  <title>Price requests — Easer</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-itunes-app" content="app-id=6820654960">
+  <meta name="description" content="Price custom jobs in the AssembleAtEase Easer portal." />
+  <link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Easer App" />
+  <meta name="theme-color" content="#00BFFF" />
+  <style>body.easer-booting>*{visibility:hidden}</style>
+  <link rel="stylesheet" href="../assets/css/easer.css" />
+  <link rel="stylesheet" href="../assets/status.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
+  <script src="../config.js?v=20260818a" defer></script>
+  <script src="../assets/js/app.js?v=20260818a" defer></script>
+  <script src="../assets/js/native-app.js?v=20261008c" defer></script>
+  <style>
+    .pr-intro{font-size:0.88rem;color:var(--e-muted);margin:0 0 1rem}
+    .pr-card{background:#fff;border:1px solid var(--e-border);border-radius:14px;padding:1rem 1.05rem;margin-bottom:0.9rem}
+    .pr-top{display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem}
+    .pr-service{font-size:1rem;font-weight:700;color:var(--e-text)}
+    .pr-where{font-size:0.84rem;color:var(--e-muted);margin-top:0.2rem;line-height:1.45}
+    .pr-ref{font-size:0.72rem;color:var(--e-muted);white-space:nowrap}
+    .pr-items{margin:0.75rem 0 0;padding-left:1.1rem;font-size:0.86rem;color:var(--e-text);line-height:1.5}
+    .pr-details{margin:0.6rem 0 0;font-size:0.85rem;color:#374151;background:#f8fafc;border-radius:10px;padding:0.6rem 0.75rem;white-space:pre-wrap}
+    .pr-state{margin-top:0.85rem;font-size:0.85rem;font-weight:600;color:var(--e-text)}
+    .pr-state.ok{color:var(--e-text)}
+    .pr-state.muted{color:var(--e-muted);font-weight:500}
+    .pr-form{margin-top:0.85rem;padding-top:0.85rem;border-top:1px solid var(--e-border)}
+    .pr-row{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem}
+    .pr-form .e-label{margin-top:0.55rem}
+    .pr-actions{display:flex;gap:0.6rem;margin-top:0.85rem;flex-wrap:wrap}
+    .pr-error{color:var(--e-red,#dc2626);font-size:0.82rem;margin-top:0.5rem}
+    .pr-earn-input{position:relative}
+    .pr-earn-input span{position:absolute;left:0.8rem;top:50%;transform:translateY(-50%);color:var(--e-muted);font-weight:600}
+    .pr-earn-input .e-input{padding-left:1.6rem}
+  </style>
+</head>
+<body class="theme-pro easer-booting">
+
+<div class="e-offline" id="e-offline">No connection — updates paused</div>
+
+<header class="easer-header">
+  <a href="/assembler/" class="easer-wordmark" aria-label="Easer home">
+    <span class="easer-wordmark-text">Easer</span>
+  </a>
+</header>
+
+<div class="easer-page">
+  <h1 class="e-section-title" style="text-transform:none;letter-spacing:0;color:var(--e-text);font-size:1.25rem;margin-bottom:0.35rem">Price requests</h1>
+  <p class="pr-intro">Custom jobs near you. Enter the total earnings needed for the job, including any helpers. Your price stays private.</p>
+  <div id="page-alert" class="alert hidden"></div>
+  <div id="pr-list">
+    <div class="e-skeleton-card"><div class="e-skeleton" style="height:120px"></div></div>
+  </div>
+</div>
+
+<nav class="easer-nav">
+  <a href="/assembler/" class="easer-nav-item">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Home</span>
+  </a>
+  <a href="/assembler/my-assignments" class="easer-nav-item active">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span>Jobs</span>
+  </a>
+  <a href="/assembler/payouts" class="easer-nav-item">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    <span>Earnings</span>
+  </a>
+  <a href="/assembler/profile" class="easer-nav-item">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Profile</span>
+  </a>
+</nav>
+
+<script>
+(function () {
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function money(cents) { return '$' + (Number(cents || 0) / 100).toFixed(2).replace(/\.00$/, ''); }
+  function when(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+  function apptDate(d) {
+    if (!d) return 'Date to be agreed';
+    var parts = String(d).slice(0, 10).split('-');
+    return new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2], 12)).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  var getToken = null;
+  var requests = [];
+
+  function stateLine(r) {
+    var o = r.yourOffer;
+    if (r.status === 'chosen') return '<div class="pr-state ok">Price selected. We will notify you when the job is ready.</div>';
+    if (r.status === 'sent') return '<div class="pr-state ok">Price sent: total job earnings ' + money(o && o.earningsCents) + '. ' + (r.canRespond ? 'You can change it until ' + esc(when(r.respondBy)) + '.' : 'We will notify you when there is an update.') + '</div>';
+    if (r.status === 'withdrawn') return '<div class="pr-state muted">You withdrew your price.</div>';
+    if (r.status === 'missed') return '<div class="pr-state muted">Closed. No price was sent.</div>';
+    if (r.status === 'closed') return '<div class="pr-state muted">Closed.</div>';
+    return '<div class="pr-state">Enter your price by ' + esc(when(r.respondBy)) + '.</div>';
+  }
+
+  function formHtml(r) {
+    var o = r.yourOffer || {};
+    var crew = o.crewSize || 1;
+    var opts = [1, 2, 3, 4].map(function (n) { return '<option value="' + n + '"' + (n === crew ? ' selected' : '') + '>' + n + (n === 1 ? ' person' : ' people') + '</option>'; }).join('');
+    return '<form class="pr-form" data-offer="' + esc(r.offerId) + '">'
+      + '<label class="e-label" for="earn-' + esc(r.offerId) + '">Total job earnings, including helpers</label>'
+      + '<div class="pr-earn-input"><span>$</span><input class="e-input" id="earn-' + esc(r.offerId) + '" name="earnings" type="number" inputmode="decimal" min="20" max="15000" step="0.01" required value="' + (o.earningsCents ? (o.earningsCents / 100) : '') + '"/></div>'
+      + '<div class="pr-row">'
+      + '<div><label class="e-label" for="hours-' + esc(r.offerId) + '">Hours on site</label><input class="e-input" id="hours-' + esc(r.offerId) + '" name="hours" type="number" inputmode="decimal" min="0.5" max="24" step="0.5" required value="' + (o.hours || '') + '"/></div>'
+      + '<div><label class="e-label" for="crew-' + esc(r.offerId) + '">Crew</label><select class="e-input" id="crew-' + esc(r.offerId) + '" name="crew">' + opts + '</select></div>'
+      + '</div>'
+      + '<label class="e-label" for="note-' + esc(r.offerId) + '">Note for AssembleAtEase <span class="e-label-hint">(optional)</span></label>'
+      + '<textarea class="e-input" id="note-' + esc(r.offerId) + '" name="note" rows="2" maxlength="500" placeholder="Tools, parts or access you need">' + esc(o.note || '') + '</textarea>'
+      + '<div class="pr-error" role="alert" hidden></div>'
+      + '<div class="pr-actions">'
+      + '<button class="e-btn e-btn-primary e-btn-sm" type="submit">' + (r.yourOffer ? 'Update price' : 'Send price') + '</button>'
+      + (r.yourOffer ? '<button class="e-btn e-btn-secondary e-btn-sm" type="button" data-withdraw="' + esc(r.offerId) + '">Withdraw</button>' : '')
+      + '</div></form>';
+  }
+
+  function render() {
+    var list = document.getElementById('pr-list');
+    if (!requests.length) {
+      list.innerHTML = '<div class="e-empty"><div class="e-empty-title">No price requests right now.</div></div>';
+      return;
+    }
+    list.innerHTML = requests.map(function (r) {
+      var open = r.canRespond === true;
+      var where = [r.city, r.zip].filter(Boolean).join(' ');
+      var items = r.items && r.items.length
+        ? '<ul class="pr-items">' + r.items.map(function (i) { return '<li>' + esc(i.name) + (i.quantity > 1 ? ' x' + i.quantity : '') + '</li>'; }).join('') + '</ul>'
+        : '';
+      return '<article class="pr-card">'
+        + '<div class="pr-top"><div><div class="pr-service">' + esc(r.service) + '</div>'
+        + '<div class="pr-where">' + esc(where || 'Texas') + '<br>' + esc(apptDate(r.date)) + (r.time ? ', ' + esc(r.time) : '') + '</div></div>'
+        + '<div class="pr-ref">' + esc(r.ref || '') + '</div></div>'
+        + items
+        + (r.details ? '<div class="pr-details">' + esc(r.details) + '</div>' : '')
+        + stateLine(r)
+        + (open ? formHtml(r) : '')
+        + '</article>';
+    }).join('');
+  }
+
+  async function load() {
+    try {
+      var token = await getToken();
+      var resp = await fetch('/api/assembler/price-requests', { headers: { Authorization: 'Bearer ' + token } });
+      var data = await resp.json().catch(function () { return {}; });
+      if (!resp.ok) { APP.showAlert('page-alert', data.error || 'Price requests could not be loaded.', 'error'); return; }
+      requests = data.requests || [];
+      render();
+    } catch (e) {
+      APP.showAlert('page-alert', 'Price requests could not be loaded. Check your connection.', 'error');
+    }
+  }
+
+  async function post(body, errEl, btn) {
+    btn.disabled = true;
+    errEl.hidden = true;
+    try {
+      var token = await getToken();
+      var resp = await fetch('/api/assembler/price-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify(body)
+      });
+      var data = await resp.json().catch(function () { return {}; });
+      if (!resp.ok) { errEl.textContent = data.error || 'Your price was not saved. Try again.'; errEl.hidden = false; return; }
+      await load();
+      APP.showAlert('page-alert', body.action === 'withdraw' ? 'Price withdrawn.' : 'Price sent.', 'success');
+    } catch (e) {
+      errEl.textContent = 'Your price was not saved. Check your connection and try again.';
+      errEl.hidden = false;
+    } finally { btn.disabled = false; }
+  }
+
+  document.addEventListener('submit', function (e) {
+    var form = e.target.closest && e.target.closest('.pr-form');
+    if (!form) return;
+    e.preventDefault();
+    post({
+      action: 'submit',
+      offerId: form.getAttribute('data-offer'),
+      earningsDollars: form.elements.earnings.value,
+      hours: form.elements.hours.value,
+      crewSize: form.elements.crew.value,
+      note: form.elements.note.value
+    }, form.querySelector('.pr-error'), form.querySelector('button[type=submit]'));
+  });
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-withdraw]');
+    if (!btn) return;
+    var form = btn.closest('.pr-form');
+    post({ action: 'withdraw', offerId: btn.getAttribute('data-withdraw') }, form.querySelector('.pr-error'), btn);
+  });
+
+  document.addEventListener('DOMContentLoaded', async function () {
+    var auth = await APP.requireAuth(['assembler']);
+    if (!auth) return;
+    if (!await APP.bindPrivateSession(auth.user.id)) return;
+    APP.revealPrivatePage();
+    var session = auth.session;
+    getToken = async function () {
+      try {
+        var res = await supabaseClient.auth.getSession();
+        var s = res && res.data && res.data.session;
+        if (s && s.access_token) {
+          var now = Math.floor(Date.now() / 1000);
+          if (!s.expires_at || s.expires_at > now + 60) return s.access_token;
+        }
+        var refreshed = await supabaseClient.auth.refreshSession();
+        if (refreshed && refreshed.data && refreshed.data.session) return refreshed.data.session.access_token;
+      } catch (e) {}
+      return session.access_token;
+    };
+    load();
+  });
+})();
+</script>
+</body>
+</html>
