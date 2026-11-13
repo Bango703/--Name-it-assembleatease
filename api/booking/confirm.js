@@ -7,6 +7,7 @@ import { dispatchBooking } from './_dispatch-internal.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
+import { isQuoteAwaitingPrice } from './_quote-state.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -33,7 +34,11 @@ export default async function handler(req, res) {
     });
   }
 
+  // An unpriced custom quote (payment_status 'not_required' since 2026-10-21)
+  // is refused too: it has no price and no card, so confirming it would make a
+  // job nobody has agreed to pay for.
   if (['quote_pending_approval', 'quote_authorization_pending', 'card_saved'].includes(booking.payment_status)
+      || isQuoteAwaitingPrice(booking)
       || (booking.quote_amount_cents && !booking.quote_approved_at)) {
     return res.status(409).json({
       error: 'Custom quotes must be approved by the customer through the secure quote link before confirmation.',
