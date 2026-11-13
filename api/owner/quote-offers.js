@@ -8,7 +8,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { privateEaserOffersEnabled, QUOTE_OFFER_STATUS, scrubContactDetails } from '../booking/_quote-offers.js';
-import { loadQuoteOffersForOwner, inviteEasersForQuote, quoteAcceptsOffers } from '../booking/_quote-offer-invites.js';
+import { loadQuoteOffersForOwner, inviteEasersForQuote, quoteAcceptsOffers, listAskableEasers, askableEaserView } from '../booking/_quote-offer-invites.js';
 import { logActivity } from '../booking/_activity.js';
 
 export default async function handler(req, res) {
@@ -24,9 +24,24 @@ export default async function handler(req, res) {
       const result = await loadQuoteOffersForOwner(sb, bookingId);
       // A starting point for the work description Easers see: the customer's
       // request with contact details removed. The owner edits it before asking.
-      const { data: asked } = await sb.from('bookings').select('details').eq('id', bookingId).maybeSingle();
+      const { data: asked } = await sb.from('bookings').select('*').eq('id', bookingId).maybeSingle();
       const suggestedScope = scrubContactDetails(typeof asked?.details === 'string' ? asked.details : '').slice(0, 2000);
-      return res.status(200).json({ enabled, ...result, suggestedScope });
+      // Who the owner can ask, decided here (the dispatch eligibility rule),
+      // so the list the owner ticks is the list the server will accept.
+      let askable = { easers: [], room: 0, message: null };
+      if (enabled && asked && quoteAcceptsOffers(asked) && !result.migrationNeeded) {
+        askable = await listAskableEasers(sb, asked).catch(err => {
+          console.error('askable Easers lookup failed:', err?.message || err);
+          return { easers: [], room: 0, message: 'The Easers who cover this area could not be loaded. Refresh to try again.' };
+        });
+      }
+      return res.status(200).json({
+        enabled, ...result, suggestedScope,
+        workDescription: asked?.quote_offer_scope || null,
+        askableEasers: askable.easers.map(askableEaserView),
+        askRoom: askable.room,
+        askMessage: askable.message,
+      });
     } catch (error) {
       console.error('quote offers load failed:', error?.message || error);
       return res.status(503).json({ error: 'Easer offers could not be loaded. Refresh to try again.' });
@@ -59,7 +74,12 @@ export default async function handler(req, res) {
         if (scopeError || !scoped?.length) return res.status(409).json({ error: 'The quote changed. Refresh before asking for prices.' });
         booking.quote_offer_scope = scope;
       }
-      const result = await inviteEasersForQuote(sb, booking);
+      const rawIds = req.body?.easerIds;
+      if (rawIds != null && (!Array.isArray(rawIds) || !rawIds.length || rawIds.length > 8
+          || rawIds.some(id => !/^[0-9a-f-]{36}$/i.test(String(id))))) {
+        return res.status(400).json({ error: 'Choose at least one Easer to ask.' });
+      }
+      const result = await inviteEasersForQuote(sb, booking, { easerIds: rawIds ?? null });
       if (!result.invited) return res.status(409).json({ error: result.message, code: 'NO_EASERS_TO_ASK' });
       return res.status(200).json({ ok: true, invited: result.invited, notified: result.notified, respondBy: result.respondBy });
     } catch (inviteError) {

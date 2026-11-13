@@ -79,3 +79,32 @@
   .partners-list { max-height: 50vh; }
 }
 @media (max-width: 480px) { .partners-facts { grid-template-columns: 1fr; gap: 2px; } .partners-facts dt { margin-top: 8px; } }
+
+/* Partner account (owner, 2026-11-13: aligned with the owner dashboard). */
+.partners-account-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.partners-account-head h4 { margin: 0; }
+.partners-account-pill { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 4px 10px; border: 1px solid var(--border-md, rgba(0,0,0,.14)); background: var(--elevated, #eef0f5); color: var(--text, #111827); }
+.partners-account-pill.is-active { background: var(--teal-glow, rgba(0,191,255,.08)); border-color: var(--teal, #00BFFF); }
+.partners-account-warn { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 8px; padding: 8px 12px; font-size: 13px; line-height: 1.5; margin: 8px 0; }
+.partners-account-facts { margin-bottom: 4px; }
+.partners-account-link { word-break: break-all; font-size: 12.5px; }
+.partners-account-report, .partners-account-settings { border-top: 1px solid var(--border, rgba(0,0,0,.08)); padding-top: 14px; margin-top: 14px; }
+.partners-account-report-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.partners-account h5 { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: var(--text, #111827); }
+.partners-account-report-head h5 { margin: 0; }
+.partners-account-report-head select { font: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--border-md, rgba(0,0,0,.14)); border-radius: 7px; background: var(--surface, #fff); color: var(--text, #111827); }
+.partners-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+.partners-stat { background: var(--elevated, #eef0f5); border-radius: 8px; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.partners-stat span { font-size: 11.5px; color: var(--muted, #6b7280); }
+.partners-stat strong { font-size: 15px; color: var(--text, #111827); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.partners-stat.is-strong { background: var(--teal-glow, rgba(0,191,255,.08)); }
+.partners-account-jobs summary { cursor: pointer; font-size: 13px; color: var(--teal-dark, #0099CC); font-weight: 600; }
+.partners-account-jobs ul { list-style: none; padding: 0; margin: 8px 0 0; }
+.partners-account-jobs li { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 5px 0; border-top: 1px solid var(--border, rgba(0,0,0,.06)); }
+.partners-account-jobs li span { color: var(--muted, #6b7280); }
+.partners-account-easers { border: 0; padding: 0; margin: 12px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.partners-account-easers legend { font-size: 13px; font-weight: 600; margin-bottom: 6px; padding: 0; }
+.partners-easer-option { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-md, rgba(0,0,0,.14)); border-radius: 8px; padding: 7px 10px; font-size: 13px; cursor: pointer; background: var(--surface, #fff); }
+.partners-easer-option:has(input:checked) { border-color: var(--teal, #00BFFF); background: var(--teal-glow, rgba(0,191,255,.08)); }
+.partners-easer-option small { margin-left: auto; color: var(--muted, #6b7280); font-size: 12px; white-space: nowrap; }
+@media (max-width: 700px) { .partners-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .partners-account-easers { grid-template-columns: 1fr; } }

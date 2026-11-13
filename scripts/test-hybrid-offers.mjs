@@ -218,6 +218,45 @@ ok('migration 129 matches the code', () => {
   assert.match(sql, new RegExp(`crew_size BETWEEN 1 AND ${offers.QUOTE_OFFER_MAX_CREW}`));
 });
 
+// ── 7. The owner chooses who to ask; the server re-checks ───────────────────
+const invites = await import('../api/booking/_quote-offer-invites.js');
+ok('only askable Easers the owner ticked are asked, and never more than the room left', () => {
+  const askable = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+  assert.deepEqual(invites.chooseEasersToAsk(askable, ['b']).chosen.map(e => e.id), ['b']);
+  assert.deepEqual(invites.chooseEasersToAsk(askable, null, 2).chosen.map(e => e.id), ['a', 'b'], 'no ticks asks everyone up to the room');
+  assert.ok(invites.chooseEasersToAsk(askable, ['z']).message, 'a tick for someone not askable is refused');
+  assert.ok(invites.chooseEasersToAsk(askable, ['a', 'z']).message, 'one bad tick refuses the whole request');
+  assert.ok(invites.chooseEasersToAsk(askable, ['a', 'b', 'c'], 2).message, 'more ticks than room is refused, not silently cut');
+  assert.deepEqual(invites.chooseEasersToAsk(askable, []).chosen, []);
+});
+
+ok('the owner sees an Easer by name, rating and area, never contact details', () => {
+  const view = invites.askableEaserView({ id: 'e1', full_name: 'Alex Example', rating: '4.9', completed_jobs: 12, tier: 'pro', city: 'Austin', email: 'alex@x.test', phone: '5125550100', zip: '78701' });
+  assert.deepEqual(Object.keys(view).sort(), ['city', 'completedJobs', 'id', 'name', 'rating', 'tier']);
+  assert.equal(view.rating, 4.9);
+});
+
+ok('the owner endpoint validates the ticked Easers before asking', () => {
+  const src = read('api/owner/quote-offers.js');
+  assert.match(src, /rawIds\.length > 8/);
+  assert.match(src, /inviteEasersForQuote\(sb, booking, \{ easerIds: rawIds \?\? null \}\)/);
+  assert.match(src, /askableEasers: askable\.easers\.map\(askableEaserView\)/);
+});
+
+ok('the bookings list summary counts prices in and requests still waiting', () => {
+  const now = Date.parse('2026-11-13T15:00:00Z');
+  const later = '2026-11-14T15:00:00Z', earlier = '2026-11-12T15:00:00Z';
+  const sum = offers.summarizeQuoteOffers([
+    { status: 'submitted', respond_by: later }, { status: 'invited', respond_by: later },
+    { status: 'invited', respond_by: earlier }, { status: 'withdrawn', respond_by: later },
+  ], now);
+  assert.deepEqual(sum, { asked: 4, priced: 1, waiting: 1, selected: false });
+  assert.equal(offers.summarizeQuoteOffers([{ status: 'selected', respond_by: earlier }], now).selected, true);
+  const list = read('api/booking/list.js');
+  assert.match(list, /booking\._quote_offers = summarizeQuoteOffers/);
+  assert.match(list, /booking\._partner_account = \{ id: partner\.id, name: partner\.name, code: partner\.account_code \}/);
+});
+
 ok('both features are off unless switched on', () => {
   assert.equal(offers.privateEaserOffersEnabled({}), false);
   assert.equal(partners.commercialAccountsEnabled({}), false);

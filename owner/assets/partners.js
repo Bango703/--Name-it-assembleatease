@@ -174,36 +174,77 @@
     box.innerHTML = html;
   }
   function money(cents) { return '$' + (Number(cents || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  // Last twelve months for the account report, newest first ("2026-11").
+  function reportMonths() {
+    var out = []; var d = new Date(); d.setDate(1);
+    for (var i = 0; i < 12; i++) {
+      out.push({ id: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), label: d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) });
+      d.setMonth(d.getMonth() - 1);
+    }
+    return out;
+  }
+  function statTile(label, value, tone) {
+    return '<div class="partners-stat' + (tone ? ' is-' + tone : '') + '"><span>' + esc(label) + '</span><strong>' + value + '</strong></div>';
+  }
   // Partner account (api/_partners.js). The server decides the code, the
-  // pricing it applies at checkout and the job report; this renders them.
+  // pricing it applies at checkout and every figure in the report; this
+  // renders them and never adds anything up itself.
   function accountSectionHtml(p) {
     var cfg = state.data.accounts || {};
     if (!cfg.columnsReady) return cfg.enabled ? '<section class="partners-section"><h4>Account</h4><p class="partners-muted">Run migration 129 to open partner accounts.</p></section>' : '';
     if (!cfg.enabled && !p.account) return '';
     var a = p.account;
-    var html = '<section class="partners-section"><h4>Account</h4>';
-    if (!cfg.enabled) html += '<p class="partners-muted">Account pricing is switched off (COMMERCIAL_ACCOUNTS_ENABLED). The code does not apply at checkout until it is on.</p>';
+    var html = '<section class="partners-section partners-account">';
+    html += '<div class="partners-account-head"><h4>Account</h4>'
+      + (a ? '<span class="partners-account-pill is-' + esc(a.status) + '">' + (a.status === 'active' ? 'Active' : 'Paused') + (Number(a.discountPct) > 0 ? ', ' + esc(a.discountPct) + '% off' : '') + '</span>' : '')
+      + '</div>';
+    if (!cfg.enabled) html += '<p class="partners-account-warn">Account pricing is switched off (COMMERCIAL_ACCOUNTS_ENABLED). The code does not apply at checkout until it is on.</p>';
     if (a) {
-      html += '<p class="partners-link">Code <strong>' + esc(a.code) + '</strong>' + copyButton(a.code, 'Account code') + ' <button type="button" class="partners-copy" data-partner-account-code>Replace code</button></p>'
-        + '<p class="partners-link">' + esc(a.link) + copyButton(a.link, 'Account link') + '</p>';
+      html += '<dl class="partners-facts partners-account-facts">'
+        + fact('Booking code', '<strong>' + esc(a.code) + '</strong>' + copyButton(a.code, 'Account code') + ' <button type="button" class="partners-copy" data-partner-account-code>Replace</button>')
+        + fact('Booking link', '<span class="partners-account-link">' + esc(a.link) + '</span>' + copyButton(a.link, 'Account link'))
+        + '</dl>';
       var r = a.report;
-      html += '<label class="partners-field">Bookings created in month<input type="month" id="partners-report-month" value="' + esc(state.reportMonth || '') + '"></label>';
-      html += '<p class="partners-muted">' + (r === null || r === undefined ? 'Account jobs could not be read. Refresh to try again.'
-        : r.jobs ? r.jobs + (r.jobs === 1 ? ' job' : ' jobs') + ': ' + r.completed + ' completed, ' + r.open + ' open, ' + r.cancelled + ' cancelled. Verified charges ' + money(r.chargedCents) + ' (' + money(r.taxCents) + ' tax): your fee ' + money(r.platformFeeCents) + ', Easer earnings ' + money(r.easerPayCents) + '. Refunds ' + money(r.refundedCents) + '. Processing fees ' + money(r.processingFeeCents) + (r.estimatedFeeJobs ? ' (estimated for ' + r.estimatedFeeJobs + (r.estimatedFeeJobs === 1 ? ' job)' : ' jobs)') : '') + '. Net estimate ' + money(r.netEstimateCents) + '.' + (r.unpaidCompleted ? ' Action needed: ' + r.unpaidCompleted + (r.unpaidCompleted === 1 ? ' completed job has' : ' completed jobs have') + ' no verified payment.' : '')
-        : 'No jobs booked with this code yet.') + '</p>';
-      if (r && r.bookings && r.bookings.length) html += '<details><summary>View the ' + r.jobs + ' counted jobs</summary>' + r.bookings.map(function(b) { return '<p><a href="/owner/?booking=' + encodeURIComponent(b.id) + '">' + esc(b.ref || b.id) + '</a> &middot; ' + esc(b.status) + ' &middot; ' + esc(b.paymentStatus) + '</p>'; }).join('') + '</details>';
+      var months = reportMonths();
+      html += '<div class="partners-account-report"><div class="partners-account-report-head"><h5>Account jobs</h5>'
+        + '<select id="partners-report-month" aria-label="Report period"><option value="">All time</option>'
+        + months.map(function(m) { return '<option value="' + m.id + '"' + (state.reportMonth === m.id ? ' selected' : '') + '>' + esc(m.label) + '</option>'; }).join('')
+        + '</select></div>';
+      if (r === null || r === undefined) {
+        html += '<p class="partners-account-warn">Account jobs could not be read. Refresh to try again.</p>';
+      } else if (!r.jobs) {
+        html += '<p class="partners-muted">No jobs booked with this code' + (state.reportMonth ? ' in this month' : ' yet') + '.</p>';
+      } else {
+        html += '<div class="partners-stats">'
+          + statTile('Jobs', esc(r.jobs))
+          + statTile('Completed', esc(r.completed))
+          + statTile('Open', esc(r.open))
+          + statTile('Cancelled', esc(r.cancelled))
+          + statTile('Charged', money(r.chargedCents))
+          + statTile('Your fee', money(r.platformFeeCents))
+          + statTile('Easer pay', money(r.easerPayCents))
+          + statTile('Net estimate', money(r.netEstimateCents), 'strong')
+          + '</div>'
+          + '<p class="partners-muted">Money is from completed jobs. Charged includes ' + money(r.taxCents) + ' sales tax. Refunds ' + money(r.refundedCents) + ', processing fees ' + money(r.processingFeeCents)
+          + (r.estimatedFeeJobs ? ' (estimated for ' + r.estimatedFeeJobs + (r.estimatedFeeJobs === 1 ? ' job)' : ' jobs)') : '') + '.</p>';
+        if (r.unpaidCompleted) html += '<p class="partners-account-warn">' + r.unpaidCompleted + (r.unpaidCompleted === 1 ? ' completed job has' : ' completed jobs have') + ' no verified payment. Open ' + (r.unpaidCompleted === 1 ? 'it' : 'them') + ' below.</p>';
+        if (r.bookings && r.bookings.length) html += '<details class="partners-account-jobs"><summary>View the ' + r.jobs + (r.jobs === 1 ? ' job' : ' jobs') + '</summary><ul>' + r.bookings.map(function(b) { return '<li><a href="/owner/?booking=' + encodeURIComponent(b.id) + '">' + esc(b.ref || b.id) + '</a><span>' + esc(b.status) + (b.paymentStatus ? ', ' + esc(b.paymentStatus) : '') + '</span></li>'; }).join('') + '</ul></details>';
+      }
+      html += '</div>';
     } else {
-      html += '<p class="partners-muted">Give this partner its own booking code with account pricing. Its jobs go to the Easers you choose first, and it pays by card per job.</p>';
+      html += '<p class="partners-muted">Give this partner its own booking code with account pricing. Its jobs are offered to the Easers you choose first, and it pays by card per job.</p>';
     }
     var chosen = (a && a.preferredEaserIds) || [];
     var easers = cfg.easers || [];
-    html += '<div class="partners-row2"><label class="partners-field">Pricing (% off the catalog)<input type="number" id="partners-acct-pct" min="0" max="' + esc(cfg.maxDiscountPct || 20) + '" step="0.5" value="' + esc(a ? a.discountPct : 0) + '"></label>'
-      + '<label class="partners-field">Status<select id="partners-acct-status"><option value="active"' + (!a || a.status === 'active' ? ' selected' : '') + '>Active</option><option value="paused"' + (a && a.status === 'paused' ? ' selected' : '') + '>Paused</option></select></label></div>';
-    html += '<fieldset class="partners-field" style="border:0;padding:0;margin:0.5rem 0"><legend>Preferred Easers (up to 5)</legend>'
+    html += '<div class="partners-account-settings"><h5>' + (a ? 'Account settings' : 'Open an account') + '</h5>'
+      + '<div class="partners-row2"><label class="partners-field">Pricing (% off the catalog)<input type="number" id="partners-acct-pct" min="0" max="' + esc(cfg.maxDiscountPct || 20) + '" step="0.5" value="' + esc(a ? a.discountPct : 0) + '"></label>'
+      + '<label class="partners-field">Status<select id="partners-acct-status"><option value="active"' + (!a || a.status === 'active' ? ' selected' : '') + '>Active</option><option value="paused"' + (a && a.status === 'paused' ? ' selected' : '') + '>Paused</option></select></label></div>'
+      + '<fieldset class="partners-account-easers"><legend>Preferred Easers <span class="partners-muted">up to 5, offered this account&rsquo;s jobs first</span></legend>'
       + (easers.length ? easers.map(function(e) {
-        return '<label style="display:flex;gap:0.4rem;align-items:center;font-weight:400"><input type="checkbox" data-partner-acct-easer value="' + esc(e.id) + '"' + (chosen.indexOf(e.id) !== -1 ? ' checked' : '') + '> ' + esc(e.name) + (e.city ? ' <span class="partners-muted">' + esc(e.city) + '</span>' : '') + '</label>';
-      }).join('') : '<span class="partners-muted">No active Easers to choose.</span>') + '</fieldset>';
-    html += '<div class="partners-row2"><button type="button" class="partners-button partners-primary" data-partner-account-save>' + (a ? 'Save account' : 'Open account') + '</button><span id="partners-acct-status-text" class="partners-muted" role="status"></span></div>';
+        return '<label class="partners-easer-option"><input type="checkbox" data-partner-acct-easer value="' + esc(e.id) + '"' + (chosen.indexOf(e.id) !== -1 ? ' checked' : '') + '><span>' + esc(e.name) + '</span>' + (e.city ? '<small>' + esc(e.city) + (e.rating ? ', &#9733; ' + Number(e.rating).toFixed(1) : '') + '</small>' : '') + '</label>';
+      }).join('') : '<span class="partners-muted">No active Easers to choose.</span>') + '</fieldset>'
+      + '<div class="partners-row2"><button type="button" class="partners-button partners-primary" data-partner-account-save>' + (a ? 'Save account' : 'Open account') + '</button><span id="partners-acct-status-text" class="partners-muted" role="status"></span></div>'
+      + '</div>';
     return html + '</section>';
   }
   async function saveAccount(body, okText) {
