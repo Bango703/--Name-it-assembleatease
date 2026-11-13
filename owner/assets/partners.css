@@ -108,3 +108,7 @@
 .partners-easer-option:has(input:checked) { border-color: var(--teal, #00BFFF); background: var(--teal-glow, rgba(0,191,255,.08)); }
 .partners-easer-option small { margin-left: auto; color: var(--muted, #6b7280); font-size: 12px; white-space: nowrap; }
 @media (max-width: 700px) { .partners-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .partners-account-easers { grid-template-columns: 1fr; } }
+.partners-easer-none, .partners-easer-other { grid-column: 1 / -1; }
+.partners-easer-other summary { cursor: pointer; font-size: 12.5px; color: var(--muted, #6b7280); padding: 4px 0; }
+.partners-easer-other-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+@media (max-width: 700px) { .partners-easer-other-grid { grid-template-columns: 1fr; } }
