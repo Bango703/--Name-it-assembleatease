@@ -126,4 +126,14 @@ const quoteSent = { ...tyler, payment_status: 'quote_pending_approval', quote_am
   console.log('PASS the preliminary estimate is labeled; dispatch sees a quote only after approval and hold');
 }
 
+// Found in the live test of AAE-DMA4UGNPV2 (2026-11-13): the unpriced-quote
+// state ('not_required', card at approval) was missing from two readers.
+{
+  // read() already normalises line endings.
+  const confirmSrc = await read('api/booking/confirm.js');
+  assert.match(confirmSrc, /\|\| isQuoteAwaitingPrice\(booking\)\n/, 'an unpriced quote cannot be confirmed into a job');
+  const editSrc = await read('api/owner/edit-booking.js');
+  assert.match(editSrc, /if \(isQuoteAwaitingPrice\(booking\) && !booking\.stripe_payment_intent_id/, 'an unpriced quote can be corrected before pricing');
+}
+
 console.log('\nCustom quote lifecycle tests passed.');

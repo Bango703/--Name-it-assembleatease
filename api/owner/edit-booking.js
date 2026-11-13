@@ -5,6 +5,7 @@ import { logActivity } from '../booking/_activity.js';
 import { appointmentTimestampMs, formatAppointmentDate } from '../booking/_appt-date.js';
 import { validateBookingWindowDate } from '../booking/_booking-window.js';
 import { parseServiceLocation } from '../_booking-location.js';
+import { isQuoteAwaitingPrice } from '../booking/_quote-state.js';
 
 const SITE = process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com';
 
@@ -13,6 +14,10 @@ function whereExact(query, column, value) {
 }
 
 function hasBookingPaymentState(booking) {
+  // A custom quote waiting for a price holds and charges nothing (since
+  // 2026-10-21 it is saved as payment_status 'not_required'). Its address and
+  // service can still be corrected before it is priced.
+  if (isQuoteAwaitingPrice(booking) && !booking.stripe_payment_intent_id && !(Number(booking.amount_charged || 0) > 0)) return false;
   return Boolean(
     booking.stripe_payment_intent_id
     || booking.stripe_deposit_intent_id

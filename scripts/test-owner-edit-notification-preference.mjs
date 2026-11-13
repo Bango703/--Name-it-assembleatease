@@ -4,6 +4,7 @@ import { appointmentTimestampMs, formatAppointmentDate } from '../api/booking/_a
 import { validateBookingWindowDate } from '../api/booking/_booking-window.js';
 import { loadEaserJobExtras } from '../api/booking/_easer-job-extras.js';
 import { parseServiceLocation } from '../api/_booking-location.js';
+import { isQuoteAwaitingPrice } from '../api/booking/_quote-state.js';
 
 // Execute the production handler with isolated persistence and notification
 // boundaries. No environment file, network, live write, or delivery is used.
@@ -60,7 +61,7 @@ async function fixture(overrides = {}, options = {}) {
     },
     buildStatusEmail: input => `<h1>${input.headline}</h1>${input.bodyHtml}`,
     ownerEmail: () => 'owner@example.test', esc: value => String(value ?? ''), formatAddress: value => value,
-    logActivity: async (_sb, input) => activities.push(input), appointmentTimestampMs, formatAppointmentDate, validateBookingWindowDate, parseServiceLocation,
+    logActivity: async (_sb, input) => activities.push(input), appointmentTimestampMs, formatAppointmentDate, validateBookingWindowDate, parseServiceLocation, isQuoteAwaitingPrice,
     console: { log() {}, error() {} },
   };
   const handler = await new AsyncFunction(...Object.keys(dependencies), `${source}\nreturn handler;`)(...Object.values(dependencies));
@@ -71,6 +72,21 @@ async function fixture(overrides = {}, options = {}) {
   } };
 }
 const recipients = f => f.messages.map(message => message.meta.recipientType);
+
+// Found in the live test of AAE-DMA4UGNPV2 (2026-11-13): a custom quote
+// waiting for a price (payment_status 'not_required', card at approval) was
+// locked as if paid, so its address could not be corrected before pricing.
+{
+  const quote = await fixture({ status: 'pending', payment_status: 'not_required', payment_method_type: 'card', total_price: 0,
+    assembler_id: null, assembler_accepted_at: null, assigned_at: null, assignment_token: null, dispatch_status: null,
+    address: '7906 Headwaters Trail, 4101', service_zip: '78254', service_city: 'San Antonio', service_state: 'TX' });
+  const edited = await quote.run({ address: '100 Congress Ave, Austin, TX 78701', notifyCustomer: false });
+  assert.equal(edited.code, 200, JSON.stringify(edited.body));
+  assert.equal(quote.writes.find(w => w.table === 'bookings').patch.service_zip, '78701');
+  const sent = await (await fixture({ status: 'pending', payment_status: 'quote_authorization_pending', payment_method_type: 'card', stripe_payment_intent_id: 'pi_1',
+    assembler_id: null, assembler_accepted_at: null, assigned_at: null, assignment_token: null, dispatch_status: null })).run({ address: '100 Congress Ave, Austin, TX 78701' });
+  assert.equal(sent.code, 409, 'a quote mid-approval stays locked');
+}
 
 // Found in the live test of AAE-DMA4UGNPV2 (2026-11-13): an edited address
 // left the stored ZIP behind, and dispatch places a job by the stored ZIP.
