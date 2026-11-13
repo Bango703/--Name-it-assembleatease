@@ -1,7 +1,7 @@
 # Duplicate Path and Equivalence Register
 
 Status: Phase 3 inventory
-As of: 2026-09-24
+As of: 2026-11-13 (geography added)
 
 No path is removed until the replacement has equivalent tests and production-safe rollback.
 
@@ -44,6 +44,16 @@ No path is removed until the replacement has equivalent tests and production-saf
 - Owner entry: `api/owner/dispatch-all.js`.
 - Cron entry: `api/cron/auto-dispatch.js`.
 - Status: currently centralized by delegation; protect this boundary.
+
+## Geography (added 2026-11-13, not yet consolidated)
+
+- Who may book: `isTexasZip` in `api/_source-of-truth.js` and again in `api/_booking-location.js`.
+- Which bookings auto-dispatch: `AUTOMATIC_DISPATCH_ZIP_PREFIXES` and `AUTOMATIC_DISPATCH_ZIPS` in `api/_source-of-truth.js`; mirrored in `assets/js/booking-source-of-truth.js` (`scripts/test-dispatch-area-parity.mjs`) and re-implemented in `book.html` `isAutomaticDispatchZip`.
+- Which Easers may get a job: `SERVICE_MARKETS` and `isSameServiceMarket` in `api/_source-of-truth.js` (fails open on an unknown ZIP).
+- Coverage message: `sameCoverageArea` in `api/_easer-coverage.js` (market, else 3-digit prefix).
+- Brand city: `SERVED_ZIPS` in `assets/js/aae-location.js` (Austin only).
+- Job location: `bookingLocation` in `api/booking/_dispatch-internal.js` over `parseServiceLocation` in `api/_booking-location.js`.
+- Required equivalence before consolidation: the same answer for booking, dispatch, quote price requests, partner accounts and the coverage message. Plan: `docs/decisions/2026-11-13-dispatch-contract-audit.md`, Phase 1.
 
 ## Consolidation Rule
 

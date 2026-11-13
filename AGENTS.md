@@ -6,6 +6,8 @@ AssembleAtEase is preparing to launch real customers in Austin, Texas. Treat thi
 
 ## How this file relates to CLAUDE.md — read this first
 
+Start every task at `docs/knowledge-index.md` and follow `docs/process/deep-execution-protocol.md` (owner, 2026-11-13): trace the whole chain, verify independently, and update the repository's knowledge in the same change.
+
 **`CLAUDE.md` is the constitution and it governs.** Where the two disagree, CLAUDE.md
 wins. It carries the Board, the Panel, the 17 Articles, the critical-modules list and
 the enforcement commands, and it is the file that gets updated.
