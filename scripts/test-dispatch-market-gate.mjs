@@ -170,4 +170,29 @@ check('Laredo still shares a market with San Antonio (known, tracked)', () => {
   assert.equal(isSameServiceMarket('78040', '78209'), true);
 });
 
+// Found in the live test of AAE-DMA4UGNPV2 (2026-11-13): customer-app bookings
+// keep the street address without city or ZIP. Dispatch read only the address,
+// found no ZIP, and the gate failed open: a San Antonio job could go to any
+// Easer in Texas. The stored service ZIP now decides.
+{
+  const { bookingLocation } = await import('../api/booking/_dispatch-internal.js');
+  const appBooking = { address: '7906 Headwaters Trail, 4101', service_zip: '78254', service_city: 'San Antonio' };
+  const where = bookingLocation(appBooking);
+  check('an app booking is placed by its stored ZIP, not its address text', () => {
+    assert.equal(where.zip, '78254');
+    assert.equal(where.city, 'San Antonio');
+    assert.equal(isSameServiceMarket(where.zip, '78701'), false, 'an Austin Easer is not offered a San Antonio job');
+    assert.equal(isSameServiceMarket(where.zip, '78209'), true);
+  });
+  check('a website booking with the ZIP in the address still works', () => {
+    assert.equal(bookingLocation({ address: '100 Congress Ave, Austin, TX 78701' }).zip, '78701');
+  });
+  const dispatchSrc = (await readFile(new URL('../api/booking/_dispatch-internal.js', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
+  check('every dispatch read of the job ZIP goes through bookingLocation', () => {
+    assert.doesNotMatch(dispatchSrc, /bookingZip\s*=\s*extractZip\(/);
+    assert.match(dispatchSrc, /const \{ city: bookingCity, zip: bookingZip \} = bookingLocation\(booking\);/);
+    assert.match(dispatchSrc, /const bookingZip = bookingLocation\(booking\)\.zip;/);
+  });
+}
+
 console.log('all dispatch market gate checks passed');
