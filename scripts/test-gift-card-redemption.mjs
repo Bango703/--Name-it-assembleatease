@@ -156,7 +156,8 @@ for (const file of apiFiles) {
     assert.ok(match[1].includes('gift_card_applied_cents'), `api/${rel}: a booking column list with AssembleCash also selects gift_card_applied_cents`);
   }
 }
-assert.equal(splitCalls, 10, 'all ten split call sites were checked');
+// 11th: the partner account report (api/_partners.js summarizeAccountBookings).
+assert.equal(splitCalls, 11, 'all eleven split call sites were checked');
 
 // ── Every way a booking fails, ends or expires returns the credit ────────
 {

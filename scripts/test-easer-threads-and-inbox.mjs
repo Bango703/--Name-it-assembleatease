@@ -218,7 +218,8 @@ async function call(handler, { method = 'GET', body = {}, query = {} } = {}) {
   const missing = [...sentTypes].filter(t => !notEaserInbox.has(t) && !NOTIFICATION_COPY[canonicalNoticeType(t)] && !requiredActionKey(t));
   assert.deepEqual(missing, [], 'every notification an Easer can get has its own wording and destination');
 
-  const ACTIONS = new Set(['job', 'job_customer_messages', 'job_team_messages', 'payouts', 'account', 'personal_info', 'today', 'none']);
+  assert.match(read('mobile/ios/App/App/EaserViews.swift'), /case "price_requests":[\s\S]*?Site.page\("\/assembler\/price-requests"\)/);
+  const ACTIONS = new Set(['job', 'job_customer_messages', 'job_team_messages', 'payouts', 'account', 'personal_info', 'price_requests', 'today', 'none']);
   for (const [type, item] of Object.entries(NOTIFICATION_COPY)) {
     assert.ok(ACTIONS.has(item.action), `${type} goes somewhere the app knows`);
     assert.ok(['jobs', 'money', 'account'].includes(item.category), `${type} has an inbox group`);

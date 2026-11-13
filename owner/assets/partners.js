@@ -31,7 +31,7 @@
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function headers(json) { var h = typeof window._ownerHeaders === 'function' ? window._ownerHeaders() : {}; return json ? Object.assign({}, h, { 'Content-Type': 'application/json' }) : h; }
   async function request(options) {
-    var response = await fetch('/api/owner/partners', Object.assign({ cache: 'no-store', headers: headers(options && options.method === 'POST') }, options || {}));
+    var response = await fetch('/api/owner/partners' + (!options && state.reportMonth ? '?month=' + encodeURIComponent(state.reportMonth) : ''), Object.assign({ cache: 'no-store', headers: headers(options && options.method === 'POST') }, options || {}));
     var data = {};
     try { data = await response.json(); } catch (e) { data = {}; }
     if (!response.ok) { var err = new Error(data.error || 'The partner list is unavailable. Refresh to try again.'); err.status = response.status; throw err; }
@@ -153,6 +153,7 @@
     if (p.social.length) html += fact('Social', p.social.map(function(u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + (u.indexOf('facebook') !== -1 ? 'Facebook' : u.indexOf('instagram') !== -1 ? 'Instagram' : u.indexOf('linkedin') !== -1 ? 'LinkedIn' : 'Profile') + '</a>'; }).join(' '));
     html += '</dl>';
     html += '<section class="partners-section"><h4>Their booking link</h4><p class="partners-link">' + esc(p.bookingLink) + copyButton(p.bookingLink, 'Booking link') + '</p><p class="partners-muted">Bookings made through this link are counted here automatically. ' + esc(bookingsText) + '.</p></section>';
+    html += accountSectionHtml(p);
     html += '<section class="partners-section"><h4>Stage</h4><div class="partners-stagebtns">' + (state.data.stages || []).map(function(s) {
       return '<button type="button" data-partner-set-stage="' + esc(s.id) + '" aria-pressed="' + (p.stage === s.id) + '"><span class="partners-dot" data-stage="' + esc(s.id) + '"></span>' + esc(s.label) + '</button>';
     }).join('') + '</div>';
@@ -171,6 +172,48 @@
       }).join('') + '</ol></section>';
     }
     box.innerHTML = html;
+  }
+  function money(cents) { return '$' + (Number(cents || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  // Partner account (api/_partners.js). The server decides the code, the
+  // pricing it applies at checkout and the job report; this renders them.
+  function accountSectionHtml(p) {
+    var cfg = state.data.accounts || {};
+    if (!cfg.columnsReady) return cfg.enabled ? '<section class="partners-section"><h4>Account</h4><p class="partners-muted">Run migration 129 to open partner accounts.</p></section>' : '';
+    if (!cfg.enabled && !p.account) return '';
+    var a = p.account;
+    var html = '<section class="partners-section"><h4>Account</h4>';
+    if (!cfg.enabled) html += '<p class="partners-muted">Account pricing is switched off (COMMERCIAL_ACCOUNTS_ENABLED). The code does not apply at checkout until it is on.</p>';
+    if (a) {
+      html += '<p class="partners-link">Code <strong>' + esc(a.code) + '</strong>' + copyButton(a.code, 'Account code') + ' <button type="button" class="partners-copy" data-partner-account-code>Replace code</button></p>'
+        + '<p class="partners-link">' + esc(a.link) + copyButton(a.link, 'Account link') + '</p>';
+      var r = a.report;
+      html += '<label class="partners-field">Bookings created in month<input type="month" id="partners-report-month" value="' + esc(state.reportMonth || '') + '"></label>';
+      html += '<p class="partners-muted">' + (r === null || r === undefined ? 'Account jobs could not be read. Refresh to try again.'
+        : r.jobs ? r.jobs + (r.jobs === 1 ? ' job' : ' jobs') + ': ' + r.completed + ' completed, ' + r.open + ' open, ' + r.cancelled + ' cancelled. Verified charges ' + money(r.chargedCents) + ' (' + money(r.taxCents) + ' tax): your fee ' + money(r.platformFeeCents) + ', Easer earnings ' + money(r.easerPayCents) + '. Refunds ' + money(r.refundedCents) + '. Processing fees ' + money(r.processingFeeCents) + (r.estimatedFeeJobs ? ' (estimated for ' + r.estimatedFeeJobs + (r.estimatedFeeJobs === 1 ? ' job)' : ' jobs)') : '') + '. Net estimate ' + money(r.netEstimateCents) + '.' + (r.unpaidCompleted ? ' Action needed: ' + r.unpaidCompleted + (r.unpaidCompleted === 1 ? ' completed job has' : ' completed jobs have') + ' no verified payment.' : '')
+        : 'No jobs booked with this code yet.') + '</p>';
+      if (r && r.bookings && r.bookings.length) html += '<details><summary>View the ' + r.jobs + ' counted jobs</summary>' + r.bookings.map(function(b) { return '<p><a href="/owner/?booking=' + encodeURIComponent(b.id) + '">' + esc(b.ref || b.id) + '</a> &middot; ' + esc(b.status) + ' &middot; ' + esc(b.paymentStatus) + '</p>'; }).join('') + '</details>';
+    } else {
+      html += '<p class="partners-muted">Give this partner its own booking code with account pricing. Its jobs go to the Easers you choose first, and it pays by card per job.</p>';
+    }
+    var chosen = (a && a.preferredEaserIds) || [];
+    var easers = cfg.easers || [];
+    html += '<div class="partners-row2"><label class="partners-field">Pricing (% off the catalog)<input type="number" id="partners-acct-pct" min="0" max="' + esc(cfg.maxDiscountPct || 20) + '" step="0.5" value="' + esc(a ? a.discountPct : 0) + '"></label>'
+      + '<label class="partners-field">Status<select id="partners-acct-status"><option value="active"' + (!a || a.status === 'active' ? ' selected' : '') + '>Active</option><option value="paused"' + (a && a.status === 'paused' ? ' selected' : '') + '>Paused</option></select></label></div>';
+    html += '<fieldset class="partners-field" style="border:0;padding:0;margin:0.5rem 0"><legend>Preferred Easers (up to 5)</legend>'
+      + (easers.length ? easers.map(function(e) {
+        return '<label style="display:flex;gap:0.4rem;align-items:center;font-weight:400"><input type="checkbox" data-partner-acct-easer value="' + esc(e.id) + '"' + (chosen.indexOf(e.id) !== -1 ? ' checked' : '') + '> ' + esc(e.name) + (e.city ? ' <span class="partners-muted">' + esc(e.city) + '</span>' : '') + '</label>';
+      }).join('') : '<span class="partners-muted">No active Easers to choose.</span>') + '</fieldset>';
+    html += '<div class="partners-row2"><button type="button" class="partners-button partners-primary" data-partner-account-save>' + (a ? 'Save account' : 'Open account') + '</button><span id="partners-acct-status-text" class="partners-muted" role="status"></span></div>';
+    return html + '</section>';
+  }
+  async function saveAccount(body, okText) {
+    var status = el('partners-acct-status-text');
+    if (status) status.textContent = 'Saving...';
+    try {
+      await post(Object.assign({ id: state.selected }, body));
+      await load();
+      toast(okText);
+    } catch (error) { if (el('partners-acct-status-text')) el('partners-acct-status-text').textContent = error.message; }
   }
   function renderSetup() {
     var data = state.data; var box = el('partners-setup');
@@ -260,6 +303,13 @@
     if ((t = event.target.closest('[data-partner-pitch]'))) { state.pitch = t.dataset.partnerPitch; renderDetail(); return; }
     if ((t = event.target.closest('[data-partner-set-stage]'))) { t.disabled = true; await save({ stage: t.dataset.partnerSetStage }, 'Saved'); return; }
     if ((t = event.target.closest('[data-partner-log-contact]'))) { t.disabled = true; await save({ loggedContact: true }, 'Contact logged'); return; }
+    if ((t = event.target.closest('[data-partner-account-save]'))) {
+      t.disabled = true;
+      var ids = Array.prototype.slice.call(document.querySelectorAll('[data-partner-acct-easer]:checked')).map(function(x) { return x.value; });
+      await saveAccount({ action: 'account', status: el('partners-acct-status').value, discountPct: el('partners-acct-pct').value, preferredEaserIds: ids }, 'Account saved');
+      return;
+    }
+    if ((t = event.target.closest('[data-partner-account-code]'))) { t.disabled = true; await saveAccount({ action: 'account_code' }, 'New account code made. The old one no longer works.'); return; }
     if ((t = event.target.closest('[data-partner-save-notes]'))) {
       t.disabled = true; el('partners-save-status').textContent = 'Saving...';
       await save({ notes: el('partners-notes').value }, 'Notes saved');
@@ -278,6 +328,7 @@
     if (!event.target.closest('#partners-view')) return;
     if (event.target.id === 'partners-kind') { state.kind = event.target.value; state.limit = 80; renderFilters(); renderList(); }
     else if (event.target.id === 'partners-city') { state.city = event.target.value; state.limit = 80; renderFilters(); renderList(); }
+    else if (event.target.id === 'partners-report-month') { state.reportMonth = event.target.value; load(); }
     else if (event.target.id === 'partners-followup') { save({ followUpOn: event.target.value || null }, 'Follow-up saved'); }
   });
   var searchTimer;

@@ -36,7 +36,12 @@ export function buildEaserFeeSnapshot(booking, easer, {
     throw error;
   }
 
-  const feePct = getPlatformFeePct(hasEffectiveEaserMembership(easer));
+  // A selected quote fixes the fee used to promise this Easer's earnings.
+  // A later membership change must not reprice an accepted customer quote.
+  const quotedFee = booking.selected_quote_offer_id
+    && booking.preferred_easer_ids?.includes(easer.id)
+    ? validEaserFeePct(booking.quote_offer_fee_pct) : null;
+  const feePct = quotedFee ?? getPlatformFeePct(hasEffectiveEaserMembership(easer));
   const estimate = computeBookingSplitFromSnapshot({
     totalPriceCents: booking.total_price,
     taxCents: booking.tax_amount || 0,

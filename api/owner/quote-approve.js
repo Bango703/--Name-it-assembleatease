@@ -14,6 +14,8 @@ import { BOOKING_TIME_SLOTS } from '../booking/_booking-slots.js';
 import { validateBookingWindowDate } from '../booking/_booking-window.js';
 import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { normalizePersonName } from '../_person-name.js';
+import { customerQuoteForEarnings, privateEaserOffersEnabled, QUOTE_OFFER_STATUS } from '../booking/_quote-offers.js';
+import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 
 const QUOTE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const QUOTE_TERMS_VERSION = '2026-07-cancellation-v1';
@@ -145,10 +147,12 @@ async function respondToQuote(req, res) {
 }
 
 async function prepareQuote(req, res) {
-  const { bookingId, finalPriceCents, date, time } = req.body || {};
-  const priceCents = Number.parseInt(finalPriceCents, 10);
+  const { bookingId, finalPriceCents, date, time, quoteOfferId, offerUpdatedAt } = req.body || {};
+  let priceCents = Number.parseInt(finalPriceCents, 10);
   if (!bookingId) return res.status(400).json({ error: 'bookingId required' });
-  if (!Number.isInteger(priceCents) || priceCents < 100 || priceCents > MAX_QUOTE_CENTS) {
+  // Priced from an Easer's offer (api/booking/_quote-offers.js), the total is
+  // computed on the server from that offer and any browser amount is ignored.
+  if (!quoteOfferId && (!Number.isInteger(priceCents) || priceCents < 100 || priceCents > MAX_QUOTE_CENTS)) {
     return res.status(400).json({ error: 'Quote total must be between $1.00 and $25,000.00.' });
   }
 
@@ -209,14 +213,45 @@ async function prepareQuote(req, res) {
   }
   const dateChanged = nextDate !== booking.date || nextTime !== booking.time;
 
-  const subtotalCents = Math.round(priceCents / 1.0825);
-  const taxCents = priceCents - subtotalCents;
+  // ── Priced from an Easer's offer ──────────────────────────────────────────
+  // The platform fee sits on top of the Easer's number; the customer still
+  // gets one AssembleAtEase quote, and the job goes to that Easer first.
+  let chosenOffer = null;
+  let offerQuote = null;
+  if (quoteOfferId) {
+    if (!privateEaserOffersEnabled()) {
+      return res.status(409).json({ error: 'Easer price offers are switched off. Price this quote yourself, or turn them on.', code: 'QUOTE_OFFERS_DISABLED' });
+    }
+    const { data: offer, error: offerError } = await sb.from('quote_price_offers')
+      .select('id, booking_id, easer_id, status, earnings_cents, hours, crew_size, updated_at')
+      .eq('id', String(quoteOfferId)).eq('booking_id', booking.id).maybeSingle();
+    if (offerError) {
+      console.error('quote offer lookup failed:', offerError);
+      return res.status(503).json({ error: 'The Easer offer could not be read. Try again.', code: 'QUOTE_OFFER_LOOKUP_FAILED' });
+    }
+    if (!offer || !offerUpdatedAt || offer.updated_at !== offerUpdatedAt || ![QUOTE_OFFER_STATUS.SUBMITTED, QUOTE_OFFER_STATUS.SELECTED].includes(offer.status) || !(offer.earnings_cents > 0)) {
+      return res.status(409).json({ error: 'That Easer offer is no longer available. Refresh the offers and choose again.', code: 'QUOTE_OFFER_UNAVAILABLE' });
+    }
+    const { data: offerEaser, error: profileError } = await sb.from('profiles').select('id, has_membership').eq('id', offer.easer_id).maybeSingle();
+    if (profileError || !offerEaser) return res.status(503).json({ error: 'The Easer could not be verified. Refresh before sending the quote.' });
+    offerQuote = customerQuoteForEarnings(offer.earnings_cents, { isMember: hasEffectiveEaserMembership(offerEaser) });
+    if (offerQuote.totalCents > MAX_QUOTE_CENTS) {
+      return res.status(400).json({ error: 'That offer prices the quote above $25,000.00. Price this one yourself.' });
+    }
+    priceCents = offerQuote.totalCents;
+    chosenOffer = offer;
+  }
+
+  const subtotalCents = offerQuote ? offerQuote.subtotalCents : Math.round(priceCents / 1.0825);
+  const taxCents = offerQuote ? offerQuote.taxCents : priceCents - subtotalCents;
+  // Columns from migration 129 are written only when the booking row has them.
+  const hasOfferColumns = Object.prototype.hasOwnProperty.call(booking, 'selected_quote_offer_id');
   const token = randomToken(32);
   const tokenHash = sha256(token);
   const now = new Date();
   const expiresAt = new Date(now.getTime() + QUOTE_TTL_MS);
 
-  let quoteUpdate = sb.from('bookings').update({
+  const quotePatch = {
     quote_amount_cents: priceCents,
     quote_subtotal_cents: subtotalCents,
     date: nextDate,
@@ -230,7 +265,20 @@ async function prepareQuote(req, res) {
     quote_terms_version: QUOTE_TERMS_VERSION,
     stripe_payment_intent_id: null,
     payment_status: 'quote_pending_approval',
-  })
+    ...(chosenOffer ? { selected_quote_offer_id: chosenOffer.id, preferred_easer_ids: [chosenOffer.easer_id], quote_offer_fee_pct: offerQuote.feePct, quote_offer_earnings_cents: chosenOffer.earnings_cents }
+      : (hasOfferColumns && booking.selected_quote_offer_id ? { selected_quote_offer_id: null, preferred_easer_ids: null } : {})),
+  };
+  let quoteRows, updateErr;
+  if (hasOfferColumns) {
+    const result = await sb.rpc('prepare_hybrid_quote', {
+      p_booking_id: booking.id, p_expected_payment_status: booking.payment_status,
+      p_expected_token: booking.quote_token_hash || null, p_offer_id: chosenOffer?.id || null,
+      p_expected_offer_updated_at: chosenOffer?.updated_at || null, p_quote: quotePatch,
+    });
+    updateErr = result.error;
+    quoteRows = result.data ? [{ id: result.data }] : [];
+  } else {
+  let quoteUpdate = sb.from('bookings').update(quotePatch)
     .eq('id', booking.id)
     .eq('status', BOOKING_STATUS.PENDING)
     .eq('payment_status', booking.payment_status)
@@ -244,12 +292,13 @@ async function prepareQuote(req, res) {
   quoteUpdate = booking.quote_token_hash
     ? quoteUpdate.eq('quote_token_hash', booking.quote_token_hash)
     : quoteUpdate.is('quote_token_hash', null);
-  const { data: quoteRows, error: updateErr } = await quoteUpdate.select('id');
+  ({ data: quoteRows, error: updateErr } = await quoteUpdate.select('id'));
+  }
 
   if (updateErr || !quoteRows?.length) {
     console.error('quote prepare update failed:', updateErr);
-    return res.status(updateErr ? 500 : 409).json({
-      error: updateErr
+    return res.status(updateErr && updateErr.code !== '40001' ? 500 : 409).json({
+      error: updateErr && updateErr.code !== '40001'
         ? 'Could not save the quote approval request.'
         : 'Booking state changed before the quote could be saved. Refresh and review it before retrying.',
     });
@@ -268,6 +317,8 @@ async function prepareQuote(req, res) {
     booking.time = nextTime;
   }
 
+  if (chosenOffer) await logActivity(sb, { bookingId: booking.id, eventType: 'quote_priced_from_easer_offer', actorType: 'owner', actorName: 'Owner', description: 'Quote priced from the selected Easer offer', metadata: { quoteOfferId: chosenOffer.id, earningsCents: chosenOffer.earnings_cents, crewSize: chosenOffer.crew_size } });
+
   const site = process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com';
   const approvalUrl = `${site}/api/owner/quote-approve?token=${encodeURIComponent(token)}`;
   const emailResult = await sendEmail({
@@ -285,6 +336,7 @@ async function prepareQuote(req, res) {
     subtotalCents,
     taxCents,
     expiresAt: expiresAt.toISOString(),
+    ...(chosenOffer ? { quoteOfferId: chosenOffer.id, easerEarningsCents: offerQuote.easerEarningsCents, platformFeeCents: offerQuote.platformFeeCents } : {}),
     warnings: emailResult.ok ? [] : ['quote_approval_email_failed'],
   });
 }
@@ -610,8 +662,8 @@ async function finalizeQuote({ req, res, sb, booking, pi, tokenHash }) {
         && !hasActiveFinancialOperation(current)) {
       return res.status(200).json({ ok: true, confirmed: true, alreadyConfirmed: true, paymentIntentId: pi.id, amount: booking.quote_amount_cents });
     }
-    return res.status(updateErr ? 500 : 409).json({
-      error: updateErr
+    return res.status(updateErr && updateErr.code !== '40001' ? 500 : 409).json({
+      error: updateErr && updateErr.code !== '40001'
         ? 'Your card was authorized, but confirmation could not be saved. Please retry this page; you will not be authorized twice.'
         : 'Your card was authorized, but the quote state changed before confirmation. Contact AssembleAtEase and do not authorize again.',
       code: updateErr ? 'QUOTE_CONFIRMATION_PERSIST_FAILED' : 'QUOTE_CONFIRMATION_STATE_CONFLICT',
@@ -701,7 +753,7 @@ export function buildApprovalPage({ booking, token, publishableKey, needsCard = 
   const cardField = needsCard
     ? '<label for="card" style="display:block;font-size:14px;font-weight:700;margin:18px 0 8px">Card</label><div id="card" style="padding:12px;border:1px solid #d4d4d8;border-radius:8px;background:#fff"></div><p id="card-err" class="msg" style="color:#b91c1c;margin-top:8px"></p>'
     : '';
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Approve quote — AssembleAtEase</title><script src="https://js.stripe.com/v3/"></script><style>body{margin:0;background:#f4f4f5;color:#18181b;font-family:Arial,sans-serif}.card{max-width:560px;margin:40px auto;background:#fff;border:1px solid #e4e4e7;border-radius:14px;padding:28px}.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f4f4f5}.total{font-size:20px;font-weight:800}.terms{margin:20px 0;padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;line-height:1.6}.btn{width:100%;padding:14px;border:0;border-radius:8px;background:#00BFFF;color:#002b3a;font-size:16px;font-weight:800;cursor:pointer}.btn:disabled{opacity:.55}.msg{font-size:14px;line-height:1.6;margin-top:14px}.alt{margin-top:18px;text-align:center;font-size:14px;color:#52525b}.link{background:none;border:0;color:#0369a1;font-size:14px;cursor:pointer;text-decoration:underline;padding:4px}.box{margin-top:14px;padding:14px;border:1px solid #e4e4e7;border-radius:8px}.box textarea{width:100%;box-sizing:border-box;min-height:80px;margin:8px 0;padding:10px;border:1px solid #d4d4d8;border-radius:8px;font:inherit}.box label{display:block;font-size:14px;margin:6px 0}.btn2{width:100%;padding:12px;border:1px solid #d4d4d8;border-radius:8px;background:#fff;font-size:15px;font-weight:700;cursor:pointer}.btn2.danger{color:#b91c1c;border-color:#fecaca}</style></head><body><main class="card"><h1>Review your quote, ${firstName}</h1><p>Booking <strong>${esc(booking.ref)}</strong> for ${esc(booking.service)}</p><div class="row"><span>Appointment</span><strong>${esc(formatAppointmentDate(booking.date))}, ${esc(booking.time || '')}</strong></div><div class="row"><span>Service subtotal</span><strong>$${subtotal}</strong></div><div class="row"><span>Texas sales tax</span><strong>$${tax}</strong></div><div class="row total"><span>Total</span><span>$${total}</span></div><div class="terms"><strong>Payment and cancellation:</strong> Approving places a hold of $${total} on your card. You are charged after the work is done. Cancellation is free until 24 hours before the appointment. A 10% fee on the service subtotal applies inside 24 hours, or 15% once a pro is on the way; tax is not included in a cancellation fee.</div>${cardField}<button class="btn" id="approve"${needsCard ? ' disabled' : ''}>Approve quote and hold $${total}</button><p class="msg" id="msg"></p><div id="answers"><div class="alt"><button type="button" class="link" id="show-change">Request a change</button> &middot; <button type="button" class="link" id="show-decline">Decline this quote</button></div><div class="box" id="change-box" hidden><label for="change-note">What would you like changed? The time, the work, or a question.</label><textarea id="change-note" maxlength="1000"></textarea><button type="button" class="btn2" id="send-change">Send to AssembleAtEase</button></div><div class="box" id="decline-box" hidden><p style="margin:0 0 6px;font-size:14px">Why are you declining?</p>${Object.entries(QUOTE_DECLINE_REASONS).map(([key, label]) => `<label><input type="radio" name="reason" value="${esc(key)}"> ${esc(label)}</label>`).join('')}<textarea id="decline-note" maxlength="1000" placeholder="Anything else you want us to know (optional)"></textarea><button type="button" class="btn2 danger" id="send-decline">Decline quote</button></div><p class="msg" id="alt-msg"></p></div></main><script>const stripe=Stripe(${JSON.stringify(publishableKey)});const token=${JSON.stringify(token)};const needsCard=${needsCard ? 'true' : 'false'};const btn=document.getElementById('approve');const msg=document.getElementById('msg');let card=null;if(needsCard){card=stripe.elements().create('card',{hidePostalCode:false});card.mount('#card');card.on('change',e=>{btn.disabled=!e.complete;document.getElementById('card-err').textContent=e.error?e.error.message:'';});}btn.onclick=async()=>{btn.disabled=true;msg.textContent='Approving…';try{let r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'authorize'})});let d=await r.json();if(!r.ok)throw new Error(d.error||'The approval could not start.');if(d.confirmed){msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';return;}const result=needsCard?await stripe.confirmCardPayment(d.clientSecret,{payment_method:{card}}):await stripe.confirmCardPayment(d.clientSecret);if(result.error)throw new Error(result.error.message);r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'finalize'})});d=await r.json();if(!r.ok)throw new Error(d.error||'The approval could not be saved.');msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';if(card)card.unmount();document.getElementById('answers').hidden=true;}catch(e){msg.textContent=e.message;btn.disabled=false;}};(function(){const $=id=>document.getElementById(id);const altMsg=$('alt-msg');const toggle=(show,hide)=>{$(show).hidden=!$(show).hidden;$(hide).hidden=true;altMsg.textContent='';};$('show-change').onclick=()=>toggle('change-box','decline-box');$('show-decline').onclick=()=>toggle('decline-box','change-box');async function send(body,button){button.disabled=true;altMsg.textContent='Sending…';try{const r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({token},body))});const d=await r.json();if(!r.ok)throw new Error(d.error||'That could not be sent. Please try again.');return d;}catch(e){altMsg.textContent=e.message;button.disabled=false;return null;}}$('send-change').onclick=async function(){const note=$('change-note').value.trim();if(note.length<3){altMsg.textContent='Tell us what you would like changed.';return;}const d=await send({action:'request_change',note},this);if(!d)return;$('change-box').hidden=true;$('change-note').value='';this.disabled=false;altMsg.textContent='Sent. We will reply with an answer or an updated quote. This quote stays open until then.';};$('send-decline').onclick=async function(){const picked=document.querySelector('input[name=reason]:checked');if(!picked){altMsg.textContent='Choose a reason.';return;}const d=await send({action:'decline',reason:picked.value,note:$('decline-note').value.trim()},this);if(!d)return;document.querySelector('.terms').hidden=true;const approve=$('approve');if(approve)approve.style.display='none';const cardBox=$('card');if(cardBox)cardBox.hidden=true;$('answers').innerHTML='<p class="msg">Quote declined. Thank you for letting us know. Nothing was charged.</p>';};})();</script></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Approve quote — AssembleAtEase</title><script src="https://js.stripe.com/v3/"></script><style>body{margin:0;background:#f4f4f5;color:#18181b;font-family:Arial,sans-serif}.card{max-width:560px;margin:40px auto;background:#fff;border:1px solid #e4e4e7;border-radius:14px;padding:28px}.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #f4f4f5}.row strong{text-align:right}.total{font-size:20px;font-weight:800}.terms{margin:20px 0;padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;line-height:1.6}.btn{width:100%;padding:14px;border:0;border-radius:8px;background:#00BFFF;color:#002b3a;font-size:16px;font-weight:800;cursor:pointer}.btn:disabled{opacity:.55}.msg{font-size:14px;line-height:1.6;margin-top:14px}.alt{margin-top:18px;text-align:center;font-size:14px;color:#52525b}.link{background:none;border:0;color:#0369a1;font-size:14px;cursor:pointer;text-decoration:underline;padding:4px}.box{margin-top:14px;padding:14px;border:1px solid #e4e4e7;border-radius:8px}.box textarea{width:100%;box-sizing:border-box;min-height:80px;margin:8px 0;padding:10px;border:1px solid #d4d4d8;border-radius:8px;font:inherit}.box label{display:block;font-size:14px;margin:6px 0}.btn2{width:100%;padding:12px;border:1px solid #d4d4d8;border-radius:8px;background:#fff;font-size:15px;font-weight:700;cursor:pointer}.btn2.danger{color:#b91c1c;border-color:#fecaca}</style></head><body><main class="card"><h1>Review your quote, ${firstName}</h1><p>Booking <strong>${esc(booking.ref)}</strong> for ${esc(booking.service)}</p><div class="row"><span>Appointment</span><strong>${esc(formatAppointmentDate(booking.date))}, ${esc(booking.time || '')}</strong></div><div class="row"><span>Service subtotal</span><strong>$${subtotal}</strong></div><div class="row"><span>Texas sales tax</span><strong>$${tax}</strong></div><div class="row total"><span>Total</span><span>$${total}</span></div><div class="terms"><strong>Payment and cancellation:</strong> Approving places a hold of $${total} on your card. You are charged after the work is done. Cancellation is free until 24 hours before the appointment. A 10% fee on the service subtotal applies inside 24 hours, or 15% once a pro is on the way; tax is not included in a cancellation fee.</div>${cardField}<button class="btn" id="approve"${needsCard ? ' disabled' : ''}>Approve quote and hold $${total}</button><p class="msg" id="msg"></p><div id="answers"><div class="alt"><button type="button" class="link" id="show-change">Request a change</button> &middot; <button type="button" class="link" id="show-decline">Decline this quote</button></div><div class="box" id="change-box" hidden><label for="change-note">What would you like changed? The time, the work, or a question.</label><textarea id="change-note" maxlength="1000"></textarea><button type="button" class="btn2" id="send-change">Send to AssembleAtEase</button></div><div class="box" id="decline-box" hidden><p style="margin:0 0 6px;font-size:14px">Why are you declining?</p>${Object.entries(QUOTE_DECLINE_REASONS).map(([key, label]) => `<label><input type="radio" name="reason" value="${esc(key)}"> ${esc(label)}</label>`).join('')}<textarea id="decline-note" maxlength="1000" placeholder="Anything else you want us to know (optional)"></textarea><button type="button" class="btn2 danger" id="send-decline">Decline quote</button></div><p class="msg" id="alt-msg"></p></div></main><script>const stripe=Stripe(${JSON.stringify(publishableKey)});const token=${JSON.stringify(token)};const needsCard=${needsCard ? 'true' : 'false'};const btn=document.getElementById('approve');const msg=document.getElementById('msg');let card=null;if(needsCard){card=stripe.elements().create('card',{hidePostalCode:false});card.mount('#card');card.on('change',e=>{btn.disabled=!e.complete;document.getElementById('card-err').textContent=e.error?e.error.message:'';});}btn.onclick=async()=>{btn.disabled=true;msg.textContent='Approving…';try{let r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'authorize'})});let d=await r.json();if(!r.ok)throw new Error(d.error||'The approval could not start.');if(d.confirmed){msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';return;}const result=needsCard?await stripe.confirmCardPayment(d.clientSecret,{payment_method:{card}}):await stripe.confirmCardPayment(d.clientSecret);if(result.error)throw new Error(result.error.message);r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'finalize'})});d=await r.json();if(!r.ok)throw new Error(d.error||'The approval could not be saved.');msg.textContent='Quote approved. Your booking is confirmed.';btn.style.display='none';if(card)card.unmount();document.getElementById('answers').hidden=true;}catch(e){msg.textContent=e.message;btn.disabled=false;}};(function(){const $=id=>document.getElementById(id);const altMsg=$('alt-msg');const toggle=(show,hide)=>{$(show).hidden=!$(show).hidden;$(hide).hidden=true;altMsg.textContent='';};$('show-change').onclick=()=>toggle('change-box','decline-box');$('show-decline').onclick=()=>toggle('decline-box','change-box');async function send(body,button){button.disabled=true;altMsg.textContent='Sending…';try{const r=await fetch('/api/owner/quote-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({token},body))});const d=await r.json();if(!r.ok)throw new Error(d.error||'That could not be sent. Please try again.');return d;}catch(e){altMsg.textContent=e.message;button.disabled=false;return null;}}$('send-change').onclick=async function(){const note=$('change-note').value.trim();if(note.length<3){altMsg.textContent='Tell us what you would like changed.';return;}const d=await send({action:'request_change',note},this);if(!d)return;$('change-box').hidden=true;$('change-note').value='';this.disabled=false;altMsg.textContent='Sent. We will reply with an answer or an updated quote. This quote stays open until then.';};$('send-decline').onclick=async function(){const picked=document.querySelector('input[name=reason]:checked');if(!picked){altMsg.textContent='Choose a reason.';return;}const d=await send({action:'decline',reason:picked.value,note:$('decline-note').value.trim()},this);if(!d)return;document.querySelector('.terms').hidden=true;const approve=$('approve');if(approve)approve.style.display='none';const cardBox=$('card');if(cardBox)cardBox.hidden=true;$('answers').innerHTML='<p class="msg">Quote declined. Thank you for letting us know. Nothing was charged.</p>';};})();</script></body></html>`;
 }
 
 function buildQuoteReadyEmail({ booking, subtotalCents, taxCents, priceCents, approvalUrl, expiresAt }) {
