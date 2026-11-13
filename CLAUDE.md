@@ -386,6 +386,18 @@ Apply this to pricing, service design, dashboards, marketing copy, business plan
 
 ---
 
+## Deep Execution & Project Knowledge (owner, 2026-11-13)
+
+Full text: `docs/process/deep-execution-protocol.md`. Start every task at `docs/knowledge-index.md`, then read only what the task touches.
+
+- Trace the whole chain (customer, booking, pricing, payment, coverage, eligibility, dispatch, assignment, notifications, completion, payout, reporting) and mark each part affected, verified unaffected, or to investigate.
+- Done means implemented, migrated, tested, consistent across dashboards and APIs, and documented, never "the code was written".
+- Keep repository knowledge current in the same change: `docs/current-state.md`, `docs/work-in-progress.md`, `docs/decisions/`, `docs/incidents/`, `docs/business-rules/`, and `docs/platform/` when architecture changes. Facts only, verified, dated; no guesses or personal data.
+- A defect found means: root cause, fix, regression test, an incident note, and a search for the same weakness elsewhere.
+- Report ALL GREEN only when every required check passed; say plainly what is unverified.
+
+`scripts/test-knowledge-index.mjs` keeps the index, dates and pointers honest.
+
 ## Development & Deployment
 
 There is no build step, no bundler, and no test suite. Changes go live on `git push origin main`.
