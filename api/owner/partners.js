@@ -3,9 +3,10 @@ import { verifyOwner } from '../_email.js';
 import {
   PARTNER_STAGES, PARTNER_KINDS, newRefCode, validateNewPartner, applyPartnerUpdate,
   countPartnerBookings, summarizePartners, projectPartner, seedRow, isMissingPartnerTable, PARTNER_UTM_SOURCE,
-  validateAccountUpdate, summarizeAccountBookings, newAccountCode, commercialAccountsEnabled, ACCOUNT_MAX_DISCOUNT_PCT,
+  validateAccountUpdate, summarizeAccountBookings, newAccountCode, commercialAccountsEnabled, ACCOUNT_MAX_DISCOUNT_PCT, easerRosterView,
 } from '../_partners.js';
 import { PARTNER_SEED_LEADS } from './_partner-leads-seed.js';
+import { loadDemoEaserIds } from '../_demo-accounts.js';
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const ROW_LIMIT = 2000;
@@ -47,10 +48,13 @@ async function readAccountReports(sb, accountIds, month) {
 
 // Easers an account can prefer: active and approved.
 async function readEaserRoster(sb) {
-  const { data, error } = await sb.from('profiles').select('id, full_name, city, rating')
+  const { data, error } = await sb.from('profiles').select('id, full_name, city, zip, rating')
     .eq('role', 'assembler').eq('status', 'active').order('full_name', { ascending: true }).limit(200);
   if (error) return [];
-  return (data || []).map(e => ({ id: e.id, name: e.full_name || 'Easer', city: e.city || null, rating: e.rating == null ? null : Number(e.rating) }));
+  // Demo (App Review) accounts only ever take test bookings: never a choice
+  // for a real partner account.
+  const demoIds = await loadDemoEaserIds(sb);
+  return easerRosterView((data || []).filter(e => !demoIds.has(e.id)));
 }
 
 async function insertWithFreshCodes(sb, rows, { ignoreDuplicates = false } = {}) {

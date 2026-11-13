@@ -257,6 +257,16 @@ ok('the bookings list summary counts prices in and requests still waiting', () =
   assert.match(list, /booking\._partner_account = \{ id: partner\.id, name: partner\.name, code: partner\.account_code \}/);
 });
 
+ok('a partner account offers local Easers first and never a demo account', () => {
+  assert.equal(partners.partnerMarket({ address: '901 S MoPac Expy Suite 300, Austin, TX 78746' }), 'central_texas');
+  assert.equal(partners.partnerMarket({ address: 'Austin' }), null);
+  const view = partners.easerRosterView([{ id: '1', full_name: 'Thomas', city: 'WHITEHOUSE', zip: '78701', rating: '4.8', email: 'x@y.test', phone: '5125550100' }]);
+  assert.deepEqual(view, [{ id: '1', name: 'Thomas', city: 'Whitehouse', rating: 4.8, market: 'central_texas' }]);
+  const src = read('api/owner/partners.js');
+  assert.match(src, /const demoIds = await loadDemoEaserIds\(sb\);\n\s+return easerRosterView\(\(data \|\| \[\]\)\.filter\(e => !demoIds\.has\(e\.id\)\)\);/);
+  assert.match(read('owner/assets/partners.js'), /Other areas \(/);
+});
+
 ok('both features are off unless switched on', () => {
   assert.equal(offers.privateEaserOffersEnabled({}), false);
   assert.equal(partners.commercialAccountsEnabled({}), false);
