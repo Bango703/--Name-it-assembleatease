@@ -191,7 +191,7 @@
     ['We send the customer one quote', ''],
     ['The customer approves', ''],
     ['The job is offered to you first', 'Accept it in Jobs'],
-    ['You do the job and get paid', 'Your price is paid to your bank after the job is complete']
+    ['You do the job and get paid', 'You are paid your price after the job is complete']
   ];
 
   var getToken = null;
@@ -290,7 +290,7 @@
             ? '<div class="pr-confirm"><p>Withdraw your price for this job?</p><div class="pr-error" role="alert" hidden></div><div class="pr-actions"><button class="e-btn e-btn-secondary e-btn-sm" type="button" data-keep="' + id + '">Keep it</button><button class="e-btn e-btn-danger e-btn-sm" type="button" data-withdraw="' + id + '">Withdraw price</button></div></div>'
             : (r.canRespond ? '<div class="pr-actions"><button class="e-btn e-btn-secondary e-btn-sm" type="button" data-withdraw-ask="' + id + '">Withdraw</button><button class="e-btn e-btn-primary e-btn-sm" type="button" data-edit="' + id + '">Change price</button></div><div class="pr-error" role="alert" hidden></div>' : ''));
       case 'in_review':
-        return f + minePriceHtml(r) + '<div class="pr-msg muted" style="margin-top:0.65rem">Prices are closed. We will let you know if your price is chosen.</div>';
+        return f + minePriceHtml(r) + '<div class="pr-msg muted" style="margin-top:0.65rem">Prices are closed. Your price is with AssembleAtEase.</div>';
       case 'with_customer':
         return minePriceHtml(r) + '<div class="pr-msg" style="margin-top:0.65rem">Your price was chosen. The customer has the quote now.</div>';
       case 'customer_approved':

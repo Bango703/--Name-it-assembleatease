@@ -19,5 +19,8 @@ During the live hybrid test the owner, signed in as an Easer, priced booking AAE
 - `scripts/test-hybrid-offers.mjs`: every stage, the job link only when the job is the Easer's, the placeholder filtered, the page switching on `r.stage` and never on `r.status`, no `confirm()`, the dispatch read scoped to the Easer.
 - `tests/e2e/easer-price-requests.spec.mjs` (iPhone viewport): send, collapse, change, cancel, withdraw with confirm, a request closing mid-entry, and every later stage with its job link.
 
+## Caught in review before merge
+- Two lines on the rebuilt page asserted things nothing verifies (Article 16): "We will let you know if your price is chosen" (no notification is sent when a price is chosen) and "paid to your bank" (payout preference can be Zelle, PayPal or check). Both reworded to what is true.
+
 ## Same weakness elsewhere
 - The native Easer app links to this web page (`EaserViews.swift`), so it gets the fix. A native price screen is still not built (backlog).
