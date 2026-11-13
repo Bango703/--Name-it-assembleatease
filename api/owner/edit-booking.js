@@ -132,6 +132,25 @@ export default async function handler(req, res) {
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to update' });
 
+  // A material change to a custom quote's scope (service, address or job
+  // details) invalidates what was priced for the old scope (contract
+  // invariants 6 and 8): Easer prices asked for it are closed and must be asked
+  // again, and a quote already with the customer stops working so the old
+  // price cannot be approved for a different job. The owner resends it.
+  const scopeChanged = serviceChanged || addressChanged || detailsChanged;
+  const has = column => Object.prototype.hasOwnProperty.call(booking, column);
+  const easerPricesAsked = scopeChanged && has('quote_offers_requested_at') && Boolean(booking.quote_offers_requested_at || booking.selected_quote_offer_id);
+  if (easerPricesAsked) {
+    updates.quote_offers_requested_at = null;
+    if (has('quote_offer_scope')) updates.quote_offer_scope = null;
+    if (booking.selected_quote_offer_id) {
+      Object.assign(updates, { selected_quote_offer_id: null, preferred_easer_ids: null });
+      for (const column of ['quote_offer_fee_pct', 'quote_offer_earnings_cents', 'quote_offer_crew_size']) if (has(column)) updates[column] = null;
+    }
+  }
+  const sentQuoteInvalidated = scopeChanged && booking.payment_status === 'quote_pending_approval' && Boolean(booking.quote_token_hash);
+  if (sentQuoteInvalidated) updates.quote_token_hash = null;
+
   const scheduleChanged = Boolean(
     (date && date !== booking.date)
     || (time && time !== booking.time),
@@ -220,6 +239,30 @@ export default async function handler(req, res) {
   if (updateErr || !updatedRows?.length) {
     console.error('Edit booking error:', updateErr);
     return res.status(409).json({ error: 'Booking state changed before this edit could be saved. Refresh and try again.' });
+  }
+
+  let quoteOffersClosed = 0;
+  if (easerPricesAsked) {
+    const closedAt = new Date().toISOString();
+    const { data: closedOffers, error: closeOffersError } = await sb.from('quote_price_offers')
+      .update({ status: 'closed', decided_at: closedAt, updated_at: closedAt })
+      .eq('booking_id', booking.id)
+      .in('status', ['invited', 'submitted', 'selected'])
+      .select('id');
+    if (closeOffersError) console.error('Edit booking quote offer close error:', closeOffersError);
+    quoteOffersClosed = closedOffers?.length || 0;
+    await logActivity(sb, {
+      bookingId: booking.id, eventType: 'quote_offers_closed_scope_changed', actorType: 'owner', actorName: 'owner',
+      description: `The job changed, so ${quoteOffersClosed} Easer price request${quoteOffersClosed === 1 ? '' : 's'} for the old scope ${quoteOffersClosed === 1 ? 'was' : 'were'} closed. Ask Easers again for the new scope.`,
+      metadata: { quoteOffersClosed, serviceChanged, addressChanged, detailsChanged },
+    });
+  }
+  if (sentQuoteInvalidated) {
+    await logActivity(sb, {
+      bookingId: booking.id, eventType: 'quote_link_invalidated_scope_changed', actorType: 'owner', actorName: 'owner',
+      description: 'The job changed after the quote was sent, so the customer\'s approval link stopped working. Resend the quote for the new scope.',
+      metadata: { serviceChanged, addressChanged, detailsChanged },
+    });
   }
 
   let dispatchOfferCleanupFailed = false;
@@ -397,5 +440,7 @@ export default async function handler(req, res) {
     dispatchOfferCleanupFailed,
     notificationFailures,
     recordOnlyOwnerManual,
+    quoteOffersClosed,
+    quoteResendRequired: sentQuoteInvalidated,
   });
 }

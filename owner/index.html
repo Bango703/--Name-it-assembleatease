@@ -12652,8 +12652,11 @@ window.intelQuick = intelQuick;
       toast('Booking updated'
         + (customerWasNotified ? ' — customer notified' : '')
         + (customerNotificationFailed ? ' — customer email needs follow-up' : '')
-        + (easerNotificationFailed ? ' — Easer notification needs follow-up' : ''),
-        customerNotificationFailed || easerNotificationFailed ? 'error' : 'success');
+        + (easerNotificationFailed ? ' — Easer notification needs follow-up' : '')
+        // The server says what the scope change undid; nothing is assumed here.
+        + (d.quoteOffersClosed ? ' — ' + d.quoteOffersClosed + ' Easer price request' + (d.quoteOffersClosed === 1 ? '' : 's') + ' closed; ask again for the new scope' : '')
+        + (d.quoteResendRequired ? ' — the quote link stopped working; resend the quote' : ''),
+        customerNotificationFailed || easerNotificationFailed || d.quoteResendRequired ? 'error' : 'success');
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
     } catch { errEl.textContent = 'Failed to save. Try again.'; errEl.style.display = ''; }
