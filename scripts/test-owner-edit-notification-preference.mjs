@@ -25,7 +25,7 @@ const initialBooking = overrides => ({
 
 async function fixture(overrides = {}, options = {}) {
   const rows = { bookings: [initialBooking(overrides)], profiles: [{ id: 'easer-1', email: 'easer@example.test', full_name: 'Easer Test' }],
-    dispatch_offers: [{ booking_id: 'booking-1', offer_status: 'sent' }] };
+    dispatch_offers: [{ booking_id: 'booking-1', offer_status: 'sent' }], quote_price_offers: options.quoteOffers || [] };
   const messages = [], queued = [], activities = [], writes = [];
   const sb = { from(table) {
     const predicates = [];
@@ -34,6 +34,7 @@ async function fixture(overrides = {}, options = {}) {
       select() { return query; },
       eq(column, value) { predicates.push(row => row[column] === value); return query; },
       is(column, value) { predicates.push(row => row[column] == value); return query; },
+      in(column, values) { predicates.push(row => values.includes(row[column])); return query; },
       update(value) { patch = value; return query; },
       single() { single = true; return query; },
       maybeSingle() { single = true; return query; },
@@ -72,6 +73,41 @@ async function fixture(overrides = {}, options = {}) {
   } };
 }
 const recipients = f => f.messages.map(message => message.meta.recipientType);
+
+// Contract invariants 6 and 8 (owner, 2026-11-13): a quote's scope changes,
+// so Easer prices for the old scope close and a sent quote link stops working.
+{
+  const quoteBase = { status: 'pending', payment_status: 'not_required', payment_method_type: 'card', total_price: 0,
+    assembler_id: null, assembler_accepted_at: null, assigned_at: null, assignment_token: null, dispatch_status: null,
+    address: '100 Congress Ave, Austin, TX 78701', service_zip: '78701', service_city: 'Austin', service_state: 'TX',
+    quote_offers_requested_at: '2026-11-13T10:00:00Z', quote_offer_scope: 'Build a gazebo', selected_quote_offer_id: null, preferred_easer_ids: null };
+  const offers = [
+    { id: 'o1', booking_id: 'booking-1', status: 'submitted' }, { id: 'o2', booking_id: 'booking-1', status: 'invited' },
+    { id: 'o3', booking_id: 'booking-1', status: 'withdrawn' },
+  ];
+  const f = await fixture(quoteBase, { quoteOffers: offers });
+  const result = await f.run({ address: '200 Lavaca St, Austin, TX 78701', notifyCustomer: false });
+  assert.equal(result.code, 200, JSON.stringify(result.body));
+  assert.equal(result.body.quoteOffersClosed, 2);
+  const patch = f.writes.find(w => w.table === 'bookings').patch;
+  assert.equal(patch.quote_offers_requested_at, null);
+  assert.equal(patch.quote_offer_scope, null);
+  assert.deepEqual(f.rows.quote_price_offers.map(o => o.status), ['closed', 'closed', 'withdrawn']);
+  assert.ok(f.activities.some(a => a.eventType === 'quote_offers_closed_scope_changed'));
+
+  // A date-only move is not a scope change: prices stay open.
+  const moved = await fixture(quoteBase, { quoteOffers: [{ id: 'o1', booking_id: 'booking-1', status: 'submitted' }] });
+  const moveResult = await moved.run({ date: '2026-11-21', notifyCustomer: false });
+  assert.equal(moveResult.body.quoteOffersClosed, 0);
+  assert.equal(moved.rows.quote_price_offers[0].status, 'submitted');
+
+  // A quote already sent: its link stops working until the owner resends it.
+  const sent = await fixture({ ...quoteBase, payment_status: 'quote_pending_approval', quote_token_hash: 'old-hash', quote_amount_cents: 46394 });
+  const sentResult = await sent.run({ details: 'Build a larger gazebo', notifyCustomer: false });
+  assert.equal(sentResult.code, 200, JSON.stringify(sentResult.body));
+  assert.equal(sentResult.body.quoteResendRequired, true);
+  assert.equal(sent.writes.find(w => w.table === 'bookings').patch.quote_token_hash, null);
+}
 
 // Found in the live test of AAE-DMA4UGNPV2 (2026-11-13): a custom quote
 // waiting for a price (payment_status 'not_required', card at approval) was
