@@ -20,7 +20,7 @@ import {
 } from '../booking/_quote-offers.js';
 import { quoteAcceptsOffers } from '../booking/_quote-offer-invites.js';
 
-const BOOKING_FIELDS = 'id, ref, service, service_city, service_zip, date, time, quote_offer_scope, selected_quote_offer_id, payment_method_type, status, payment_status, quote_approved_at, stripe_payment_intent_id, stripe_payment_method_id';
+const BOOKING_FIELDS = 'id, ref, service, service_city, service_zip, date, time, quote_offer_scope, selected_quote_offer_id, payment_method_type, status, payment_status, quote_approved_at, stripe_payment_intent_id, stripe_payment_method_id, assembler_id, quote_expires_at';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store');
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     if (!privateEaserOffersEnabled()) return res.status(200).json({ enabled: false, requests: [] });
     const since = new Date(Date.now() - 30 * 86400000).toISOString();
     const { data: offers, error } = await sb.from('quote_price_offers')
-      .select('id, booking_id, status, earnings_cents, hours, crew_size, note, respond_by, submitted_at')
+      .select('id, booking_id, easer_id, status, earnings_cents, hours, crew_size, note, respond_by, submitted_at, invited_at')
       .eq('easer_id', easerId)
       .gte('invited_at', since)
       .order('invited_at', { ascending: false });
@@ -45,15 +45,32 @@ export default async function handler(req, res) {
     const bookingIds = [...new Set((offers || []).map(o => o.booking_id))];
     const bookings = new Map();
     let items = new Map();
+    const jobOffers = new Map();
     if (bookingIds.length) {
       const { data: rows, error: bookingError } = await sb.from('bookings').select(BOOKING_FIELDS).in('id', bookingIds);
       if (bookingError) return res.status(503).json({ error: 'Price requests could not be loaded. Pull down to try again.' });
       (rows || []).forEach(row => bookings.set(row.id, row));
       items = await loadBookingItems(bookingIds, { sb }).catch(() => new Map());
+      // Where the customer approved this Easer's price, this Easer's own job
+      // offer says whether the job can be accepted now.
+      const approvedIds = (offers || [])
+        .filter(o => o.status === QUOTE_OFFER_STATUS.SELECTED)
+        .map(o => bookings.get(o.booking_id))
+        .filter(b => b && b.quote_approved_at && !b.assembler_id)
+        .map(b => b.id);
+      if (approvedIds.length) {
+        const { data: dispatchRows, error: dispatchError } = await sb.from('dispatch_offers')
+          .select('booking_id, offer_status, expires_at, created_at')
+          .eq('easer_id', easerId)
+          .in('booking_id', approvedIds)
+          .order('created_at', { ascending: false });
+        if (dispatchError) return res.status(503).json({ error: 'Price requests could not be loaded. Pull down to try again.' });
+        (dispatchRows || []).forEach(row => { if (!jobOffers.has(row.booking_id)) jobOffers.set(row.booking_id, row); });
+      }
     }
     const requests = (offers || [])
       .filter(offer => bookings.has(offer.booking_id))
-      .map(offer => quoteRequestForEaser(offer, bookings.get(offer.booking_id), items.get(offer.booking_id) || []));
+      .map(offer => quoteRequestForEaser(offer, bookings.get(offer.booking_id), items.get(offer.booking_id) || [], jobOffers.get(offer.booking_id) || null));
     return res.status(200).json({ enabled: true, requests });
   }
 
