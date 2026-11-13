@@ -1,6 +1,7 @@
 ﻿import { randomUUID } from 'crypto';
 import { formatAppointmentDate, formatAppointmentDateShort, formatSlotShort } from './_appt-date.js';
 import { getSupabase } from '../_supabase.js';
+import { parseServiceLocation } from '../_booking-location.js';
 import { sendEmail, esc, ownerEmail } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
@@ -135,8 +136,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     }
   }
 
-  const bookingCity = extractCity(booking.address || '');
-  const bookingZip  = extractZip(booking.address || '');
+  const { city: bookingCity, zip: bookingZip } = bookingLocation(booking);
   const nowMs       = Date.now();
 
   const found = await findEligibleEasers(sb, booking, { excludeEaserId });
@@ -525,6 +525,22 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 }
 
 // ── Address helpers ───────────────────────────────────────────────────────────
+/**
+ * The job's ZIP and city, for the market gate, proximity scoring and the offer
+ * text. The stored service location comes first: bookings from the customer
+ * app keep the street address without the city or ZIP (e.g. "7906 Headwaters
+ * Trail, 4101" with service_zip 78254), and reading the address alone found no
+ * ZIP, so the market gate failed open and a San Antonio job could be offered to
+ * any Easer in Texas. The address text is still read when nothing is stored.
+ */
+export function bookingLocation(booking = {}) {
+  const parsed = parseServiceLocation({ zip: booking.service_zip, city: booking.service_city, address: booking.address });
+  return {
+    zip: parsed.zip || extractZip(booking.address || ''),
+    city: parsed.city || extractCity(booking.address || ''),
+  };
+}
+
 function extractCity(address) {
   if (!address) return '';
   // Format A: "Street, City ST ZIP" — city embedded in last segment before state+zip
@@ -567,7 +583,7 @@ export function selectOfferRecipients(scored, preferredIds) {
 }
 
 export async function findEligibleEasers(sb, booking, { excludeEaserId = null } = {}) {
-  const bookingZip = extractZip(booking.address || '');
+  const bookingZip = bookingLocation(booking).zip;
   // ── Easer eligibility query ───────────────────────────────────────────────
   const { data: easers } = await sb
     .from('profiles')
