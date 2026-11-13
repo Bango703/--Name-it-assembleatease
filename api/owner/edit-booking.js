@@ -4,6 +4,7 @@ import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc, formatAddres
 import { logActivity } from '../booking/_activity.js';
 import { appointmentTimestampMs, formatAppointmentDate } from '../booking/_appt-date.js';
 import { validateBookingWindowDate } from '../booking/_booking-window.js';
+import { parseServiceLocation } from '../_booking-location.js';
 
 const SITE = process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com';
 
@@ -99,10 +100,27 @@ export default async function handler(req, res) {
     });
   }
 
+  // The stored service location follows the address: dispatch places a job
+  // by it first (api/booking/_dispatch-internal.js bookingLocation). A new
+  // address must carry its ZIP, or the job could be offered anywhere in Texas.
+  let nextLocation = null;
+  if (addressChanged) {
+    nextLocation = parseServiceLocation({ address });
+    if (!nextLocation.zip) {
+      return res.status(400).json({ error: 'Include the ZIP code at the end of the new address, for example "123 Main St, Austin, TX 78701".', code: 'ADDRESS_ZIP_REQUIRED' });
+    }
+  }
+
   const updates = {};
   if (date)    updates.date    = date;
   if (time)    updates.time    = time;
   if (address) updates.address = address;
+  if (nextLocation) {
+    // Written only where the booking row carries these columns.
+    if (Object.prototype.hasOwnProperty.call(booking, 'service_zip')) updates.service_zip = nextLocation.zip;
+    if (Object.prototype.hasOwnProperty.call(booking, 'service_city')) updates.service_city = nextLocation.city || null;
+    if (Object.prototype.hasOwnProperty.call(booking, 'service_state')) updates.service_state = nextLocation.state || null;
+  }
   if (service) updates.service = service;
   const detailsChanged = detailsProvided && nextDetails !== (booking.details || null);
   if (detailsChanged) updates.details = nextDetails;
