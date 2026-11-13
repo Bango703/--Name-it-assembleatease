@@ -127,6 +127,9 @@ ok('the Easer page gets one stage per request, decided on the server', () => {
   assert.match(page, /switch \(r\.stage\)/);
   assert.doesNotMatch(page, /r\.status ===/);
   assert.doesNotMatch(page, /window\.confirm|[^.]\bconfirm\(/);
+  // Only promises the platform keeps: no notice is sent when a price is chosen,
+  // and payout can be Zelle, PayPal or check, not only a bank.
+  assert.doesNotMatch(page, /let you know if your price|paid to your bank/i);
   // The Easer's dispatch offer is read for this Easer only.
   assert.match(read('api/assembler/price-requests.js'), /from\('dispatch_offers'\)[\s\S]*?\.eq\('easer_id', easerId\)/);
 });
