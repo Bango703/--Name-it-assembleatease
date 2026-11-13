@@ -112,7 +112,7 @@ function hybridServer() {
 function partnersPayload(state, body, method) {
   const base = {
     id: 'p0000000-0000-4000-8000-000000000001', refCode: 'demo12', source: 'manual', name: 'Lakeline Property Group', kind: 'property_manager',
-    city: 'Austin', social: [], history: [], stage: 'interested', bookingLink: 'https://www.assembleatease.com/book?utm_campaign=demo12',
+    city: 'Austin', market: 'central_texas', social: [], history: [], stage: 'interested', bookingLink: 'https://www.assembleatease.com/book?utm_campaign=demo12',
     bookings: 0, completedJobs: 0, bookingRefs: [], updatedAt: '2026-11-13T15:00:00Z',
   };
   if (method === 'POST' && body.action === 'account') {
@@ -128,7 +128,7 @@ function partnersPayload(state, body, method) {
     kinds: [{ id: 'property_manager', label: 'Property manager', template: 'A' }],
     partners: [{ ...base, stage: state.partner ? 'partner' : 'interested', account }],
     summary: { contactedThisWeek: [], followUpDue: [], weeklyTarget: 10 }, bookingCountsAvailable: true, seedImported: 0, seedAvailable: 0, tableMissing: false,
-    accounts: { enabled: true, columnsReady: true, reportsAvailable: true, maxDiscountPct: 20, easers: [{ id: 'e1', name: 'Alex Example', city: 'Austin', rating: 4.9 }, { id: 'e2', name: 'Sam Example', city: 'Round Rock', rating: 4.7 }] },
+    accounts: { enabled: true, columnsReady: true, reportsAvailable: true, maxDiscountPct: 20, easers: [{ id: 'e1', name: 'Alex Example', city: 'Austin', rating: 4.9, market: 'central_texas' }, { id: 'e2', name: 'Sam Example', city: 'Round Rock', rating: 4.7, market: 'central_texas' }, { id: 'e3', name: 'Dana Example', city: 'Houston', rating: 4.8, market: 'houston' }] },
   };
 }
 
@@ -205,6 +205,9 @@ test('partner account: open with pricing and preferred Easer, then see the repor
   const section = page.locator('#partners-detail');
   await expect(section.getByRole('heading', { name: 'Account', exact: true })).toBeVisible();
   await section.locator('#partners-acct-pct').fill('10');
+  // Local Easers first; an Easer in another market is folded away.
+  await expect(section.getByLabel(/Dana Example/)).toBeHidden();
+  await expect(section.locator('.partners-easer-other summary')).toHaveText('Other areas (1)');
   await section.getByLabel(/Alex Example/).check();
   await shot(page, '4-partner-before');
   await section.getByRole('button', { name: 'Open account' }).click();

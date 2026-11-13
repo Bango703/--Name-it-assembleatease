@@ -11,7 +11,7 @@
  * and utm_campaign=<ref_code>. One fact, one place.
  */
 import crypto from 'node:crypto';
-import { chicagoDateIso, BOOKING_STATUS, computeBookingSplitFromSnapshot, computeBookingFinancialSummary } from './_source-of-truth.js';
+import { chicagoDateIso, BOOKING_STATUS, computeBookingSplitFromSnapshot, computeBookingFinancialSummary, marketForZip } from './_source-of-truth.js';
 
 export const PARTNER_STAGES = Object.freeze([
   { id: 'to_contact', label: 'To contact' },
@@ -209,6 +209,7 @@ export function projectPartner(row, counts) {
     bookingLink: partnerBookingLink(row),
     bookings: c.bookings, completedJobs: c.completed, bookingRefs: c.refs,
     account: projectAccount(row),
+    market: partnerMarket(row),
     updatedAt: row.updated_at,
   };
 }
@@ -354,4 +355,29 @@ export function seedRow(lead, refCode) {
 
 export function isMissingPartnerTable(error) {
   return error?.code === 'PGRST205' || error?.code === '42P01' || /partner_leads/i.test(String(error?.message || '')) && /does not exist|could not find the table/i.test(String(error?.message || ''));
+}
+
+/** The service market a partner sits in, from the ZIP in its address. */
+export function partnerMarket(row = {}) {
+  const zips = String(row.address || '').match(/\b\d{5}\b/g);
+  return zips ? marketForZip(zips[zips.length - 1]) : null;
+}
+
+function cityCase(value) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+  return text === text.toUpperCase() || text === text.toLowerCase()
+    ? text.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+    : text;
+}
+
+/** Active Easers as the partner panel lists them: name, area, rating, market. */
+export function easerRosterView(rows = []) {
+  return rows.map(e => ({
+    id: e.id,
+    name: e.full_name || 'Easer',
+    city: cityCase(e.city),
+    rating: e.rating == null ? null : Number(e.rating),
+    market: marketForZip(e.zip),
+  }));
 }

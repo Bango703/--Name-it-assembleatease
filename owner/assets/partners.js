@@ -183,6 +183,24 @@
     }
     return out;
   }
+  function easerOptionHtml(e, chosen) {
+    return '<label class="partners-easer-option"><input type="checkbox" data-partner-acct-easer value="' + esc(e.id) + '"' + (chosen.indexOf(e.id) !== -1 ? ' checked' : '') + '><span>' + esc(e.name) + '</span>'
+      + (e.city || e.rating ? '<small>' + esc(e.city || '') + (e.rating ? (e.city ? ', ' : '') + '&#9733; ' + Number(e.rating).toFixed(1) : '') + '</small>' : '') + '</label>';
+  }
+  // Easers in the partner's own service market first (the server decides each
+  // market from ZIPs). Others are folded away: dispatch does not offer them
+  // this partner's jobs. A chosen Easer always stays in view.
+  function easerChoicesHtml(easers, chosen, market) {
+    if (!easers.length) return '<span class="partners-muted">No active Easers to choose.</span>';
+    if (!market) return easers.map(function(e) { return easerOptionHtml(e, chosen); }).join('');
+    var local = easers.filter(function(e) { return e.market === market || chosen.indexOf(e.id) !== -1; });
+    var other = easers.filter(function(e) { return local.indexOf(e) === -1; });
+    var html = local.length ? local.map(function(e) { return easerOptionHtml(e, chosen); }).join('')
+      : '<span class="partners-muted partners-easer-none">No active Easers in this partner&rsquo;s area yet.</span>';
+    if (other.length) html += '<details class="partners-easer-other"><summary>Other areas (' + other.length + ')</summary><div class="partners-easer-other-grid">'
+      + other.map(function(e) { return easerOptionHtml(e, chosen); }).join('') + '</div></details>';
+    return html;
+  }
   function statTile(label, value, tone) {
     return '<div class="partners-stat' + (tone ? ' is-' + tone : '') + '"><span>' + esc(label) + '</span><strong>' + value + '</strong></div>';
   }
@@ -240,9 +258,7 @@
       + '<div class="partners-row2"><label class="partners-field">Pricing (% off the catalog)<input type="number" id="partners-acct-pct" min="0" max="' + esc(cfg.maxDiscountPct || 20) + '" step="0.5" value="' + esc(a ? a.discountPct : 0) + '"></label>'
       + '<label class="partners-field">Status<select id="partners-acct-status"><option value="active"' + (!a || a.status === 'active' ? ' selected' : '') + '>Active</option><option value="paused"' + (a && a.status === 'paused' ? ' selected' : '') + '>Paused</option></select></label></div>'
       + '<fieldset class="partners-account-easers"><legend>Preferred Easers <span class="partners-muted">up to 5, offered this account&rsquo;s jobs first</span></legend>'
-      + (easers.length ? easers.map(function(e) {
-        return '<label class="partners-easer-option"><input type="checkbox" data-partner-acct-easer value="' + esc(e.id) + '"' + (chosen.indexOf(e.id) !== -1 ? ' checked' : '') + '><span>' + esc(e.name) + '</span>' + (e.city ? '<small>' + esc(e.city) + (e.rating ? ', &#9733; ' + Number(e.rating).toFixed(1) : '') + '</small>' : '') + '</label>';
-      }).join('') : '<span class="partners-muted">No active Easers to choose.</span>') + '</fieldset>'
+      + easerChoicesHtml(easers, chosen, p.market) + '</fieldset>'
       + '<div class="partners-row2"><button type="button" class="partners-button partners-primary" data-partner-account-save>' + (a ? 'Save account' : 'Open account') + '</button><span id="partners-acct-status-text" class="partners-muted" role="status"></span></div>'
       + '</div>';
     return html + '</section>';
