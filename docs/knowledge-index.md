@@ -14,10 +14,12 @@ Start every task here (`docs/process/deep-execution-protocol.md`, section 4). Re
 
 ## Business rules
 - `docs/business-rules/dispatch-contract-v1.md`: geography, eligibility and dispatch target contract (proposed, owner, 2026-11-13).
+- `docs/business-rules/pricing-model-v1.md`: pricing foundation: lowest final price among trusted options, catalog rules, stepped fee on custom quotes, how Easers price, what agents may adjust (proposed, 2026-11-13; numbers await owner approval).
 - `docs/platform/00-PLATFORM-CONSTITUTION.md`, `docs/platform/10-SOURCE-OF-TRUTH.md`: who owns each fact.
 
 ## Decisions
 - `docs/decisions/2026-11-13-dispatch-contract-audit.md`: current system measured against the dispatch contract; Phase 1 to 3 plan; open owner decisions.
+- `docs/decisions/2026-11-13-custom-quote-take-rate-research.md`: competitor fees, take rates, cost per job, price sensitivity, Austin prices; evidence for the pricing model.
 
 ## Incidents
 - `docs/incidents/2026-11-13-live-e2e-dispatch-and-quote-defects.md`: five defects found by the live hybrid test (#449 to #453), causes and prevention.

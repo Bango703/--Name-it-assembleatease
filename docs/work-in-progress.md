@@ -19,6 +19,11 @@ Last verified: 2026-11-13. Active work only; the full prioritized backlog is `bu
 - Found on the way, not fixed yet: Live Ops "Bookings needing action" labels the unpriced quote "Unknown Payment State" (another reader of the `not_required` quote state); the owner's ask list shows the Easer city in capitals (`askableEaserView`).
 - Next action: send the quote from the Easer's price, owner approves with a card, verify the hold and records and that the job is offered to that Easer first, owner cancels.
 
+## 3a. Pricing model v1
+- Objective: owner, 2026-11-13: high demand, affordable, out-do every competitor. Foundation in `docs/business-rules/pricing-model-v1.md`, evidence in `docs/decisions/2026-11-13-custom-quote-take-rate-research.md`.
+- State: proposed. Nothing in code changed.
+- Next action: owner approves the fee numbers (section 4); then build the stepped quote fee in the split code (critical module), the price-per-person-hour flag, the "Price is too high" re-quote, and the AI quote advisor, in that order.
+
 ## 4. Waiting on the owner
 - Policy decisions 1 to 4 in the audit record.
 - Checkr account, package choice, API key and webhook secret, before the background-check integration is built.
