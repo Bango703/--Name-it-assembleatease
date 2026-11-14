@@ -175,7 +175,7 @@
     open:              { badge: 'Needs your price', tone: 'b-action', step: 0, group: 'action' },
     sent:              { badge: 'Price sent', tone: 'b-wait', step: 1, group: 'progress' },
     in_review:         { badge: 'Price sent', tone: 'b-wait', step: 1, group: 'progress' },
-    with_customer:     { badge: 'Your price was chosen', tone: 'b-good', step: 2, group: 'progress' },
+    with_customer:     { badge: 'Price approved', tone: 'b-good', step: 2, group: 'progress' },
     customer_approved: { badge: 'Customer approved', tone: 'b-good', step: 3, group: 'progress' },
     job_offered:       { badge: 'Job offered to you', tone: 'b-action', step: 3, group: 'action' },
     job_yours:         { badge: 'Your job', tone: 'b-good', step: 4, group: 'progress' },
@@ -292,7 +292,7 @@
       case 'in_review':
         return f + minePriceHtml(r) + '<div class="pr-msg muted" style="margin-top:0.65rem">Prices are closed. Your price is with AssembleAtEase.</div>';
       case 'with_customer':
-        return minePriceHtml(r) + '<div class="pr-msg" style="margin-top:0.65rem">Your price was chosen. The customer has the quote now.</div>';
+        return minePriceHtml(r) + '<div class="pr-msg" style="margin-top:0.65rem">Your price was approved. The customer has the quote now.</div>';
       case 'customer_approved':
         return minePriceHtml(r) + '<div class="pr-msg" style="margin-top:0.65rem">The customer approved. We will notify you when the job is offered to you.</div>';
       case 'job_offered':

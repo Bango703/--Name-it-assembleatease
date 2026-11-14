@@ -162,7 +162,7 @@ test('every later stage reads plainly and the job opens from the request', async
   await expect(byRef('AAE-OFFERED')).toContainText('Accept by');
   await expect(byRef('AAE-OFFERED').getByRole('link', { name: 'Open the job' })).toHaveAttribute('href', '/assembler/my-assignments?offer=b2');
 
-  await expect(byRef('AAE-CHOSEN')).toContainText('Your price was chosen. The customer has the quote now.');
+  await expect(byRef('AAE-CHOSEN')).toContainText('Your price was approved. The customer has the quote now.');
   await expect(byRef('AAE-CHOSEN')).toContainText('The customer has until');
   await expect(byRef('AAE-CHOSEN').locator('.pr-step.done')).toHaveCount(2);
   await expect(byRef('AAE-MINE')).toContainText('The job is yours.');

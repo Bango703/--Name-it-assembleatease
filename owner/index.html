@@ -4795,8 +4795,11 @@ window.intelQuick = intelQuick;
       });
       var d = await r.json();
       if (!r.ok || d.error) { errEl.textContent = d.error || 'The quote was not sent.'; errEl.style.display = ''; return; }
-      var warn = (d.warnings || []).length ? ' The quote was saved, but the email failed. Check the booking notifications before retrying.' : '';
-      toast('Quote sent at ' + fmt$(d.amount) + '. The Easer earns ' + fmt$(d.easerEarningsCents) + '.' + warn, warn ? 'error' : 'success');
+      var warn = (d.warnings || []).indexOf('quote_approval_email_failed') !== -1 ? ' The quote was saved, but the email failed. Check the booking notifications before retrying.' : '';
+      var told = d.easerNotice
+        ? (d.easerNotice.reached ? ' The Easer was told by ' + d.easerNotice.channels.join(', ') + '.' : ' The Easer could not be told (no text, push or email went through).')
+        : '';
+      toast('Quote sent at ' + fmt$(d.amount) + '. The Easer earns ' + fmt$(d.easerEarningsCents) + '.' + told + warn, (warn || (d.easerNotice && !d.easerNotice.reached)) ? 'error' : 'success');
       document.getElementById('quote-modal').classList.remove('open');
       await loadBookings();
       if (selectedId) selectBooking(selectedId);

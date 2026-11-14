@@ -22,5 +22,8 @@ During the live hybrid test the owner, signed in as an Easer, priced booking AAE
 ## Caught in review before merge
 - Two lines on the rebuilt page asserted things nothing verifies (Article 16): "We will let you know if your price is chosen" (no notification is sent when a price is chosen) and "paid to your bank" (payout preference can be Zelle, PayPal or check). Both reworded to what is true.
 
+## Follow-up the owner asked for
+- 2026-11-13: "they need to get a text once their bid amount is approved". When the owner sends a quote priced from an Easer's offer, that Easer gets a text, push and email (`notifyEaserPriceApproved` in `api/booking/_quote-offer-invites.js`), once per offer, after the quote is saved. The amount is the Easer's own price, never the customer total. The owner's toast says whether the Easer was reached. The screen now says "approved" too, so text and screen use one word.
+
 ## Same weakness elsewhere
 - The native Easer app links to this web page (`EaserViews.swift`), so it gets the fix. A native price screen is still not built (backlog).

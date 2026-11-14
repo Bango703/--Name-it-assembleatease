@@ -16,6 +16,7 @@ import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { normalizePersonName } from '../_person-name.js';
 import { customerQuoteForEarnings, privateEaserOffersEnabled, QUOTE_OFFER_STATUS } from '../booking/_quote-offers.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
+import { notifyEaserPriceApproved } from '../booking/_quote-offer-invites.js';
 
 const QUOTE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const QUOTE_TERMS_VERSION = '2026-07-cancellation-v1';
@@ -329,6 +330,12 @@ async function prepareQuote(req, res) {
     meta: { bookingId: booking.id, notificationType: 'quote_ready_for_approval', recipientType: 'customer' },
   });
 
+  // The Easer hears their price was approved. A re-send with the same offer
+  // does not tell them again.
+  const easerNotice = chosenOffer && chosenOffer.status !== QUOTE_OFFER_STATUS.SELECTED
+    ? await notifyEaserPriceApproved(sb, booking, chosenOffer)
+    : null;
+
   return res.status(200).json({
     ok: true,
     approvalPending: true,
@@ -337,6 +344,7 @@ async function prepareQuote(req, res) {
     taxCents,
     expiresAt: expiresAt.toISOString(),
     ...(chosenOffer ? { quoteOfferId: chosenOffer.id, easerEarningsCents: offerQuote.easerEarningsCents, platformFeeCents: offerQuote.platformFeeCents } : {}),
+    ...(easerNotice ? { easerNotice: { reached: easerNotice.reached, channels: easerNotice.channels } } : {}),
     warnings: emailResult.ok ? [] : ['quote_approval_email_failed'],
   });
 }

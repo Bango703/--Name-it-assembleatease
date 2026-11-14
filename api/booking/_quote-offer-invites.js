@@ -187,6 +187,77 @@ export async function inviteEasersForQuote(sb, booking, { easerIds = null } = {}
   return { invited: fresh.length, notified, respondBy, message: null };
 }
 
+/**
+ * The words of the price-approved notice. The amount is what the Easer asked
+ * to be paid (offer.earnings_cents), never the customer's quote (Rule 3).
+ */
+export function priceApprovedNotice(booking = {}, offer = {}, fullName = '') {
+  const dollars = Number(offer.earnings_cents || 0) / 100;
+  const amount = '$' + dollars.toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(dollars) ? 0 : 2, maximumFractionDigits: 2 });
+  const service = booking.service || 'Custom job';
+  const day = booking.date ? formatAppointmentDateShort(booking.date) : '';
+  const firstName = String(fullName || 'there').split(' ')[0] || 'there';
+  return {
+    sms: `AssembleAtEase: your ${amount} price for ${service}${day ? ' on ' + day : ''} was approved and sent to the customer. When they approve, the job is offered to you first. Ref ${booking.ref}: ${PRICE_REQUESTS_URL}`,
+    pushTitle: 'Price approved',
+    pushBody: `Your ${amount} price for ${service} was sent to the customer.`,
+    subject: `Your price was approved: ${service} (${booking.ref})`,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:1.5rem">
+        <p>Hi ${esc(firstName)},</p>
+        <p>Your price of <strong>${esc(amount)}</strong> for ${esc(service)}${day ? ' on ' + esc(day) : ''} was approved. We sent the customer the quote.</p>
+        <p>When the customer approves, the job is offered to you first. Accept it in the app.</p>
+        <p><a href="${PRICE_REQUESTS_URL}" style="display:inline-block;background:#00BFFF;color:#001f2b;padding:0.7rem 1.2rem;border-radius:8px;font-weight:700;text-decoration:none">View the request</a></p>
+        <p style="font-size:13px;color:#71717a">Ref ${esc(booking.ref)}<br>The AssembleAtEase Team</p>
+      </div>`,
+  };
+}
+
+/**
+ * The Easer whose price the owner approved is told at once (owner, 2026-11-13:
+ * "they need to get a text once their bid amount is approved"). Text, push and
+ * email, like the price request, so an Easer without text consent still hears.
+ * Called after the quote is saved; it never throws and never changes the quote.
+ * When the customer approves, dispatch offers the job to this Easer first and
+ * sends its own job-offer text, so that moment needs no second message here.
+ */
+export async function notifyEaserPriceApproved(sb, booking, offer) {
+  try {
+    const { data: easer, error } = await sb.from('profiles')
+      .select('id, full_name, email, phone, sms_consent_at, sms_opted_out_at')
+      .eq('id', offer.easer_id).maybeSingle();
+    if (error || !easer) return { reached: false, channels: [], reason: 'easer_not_found' };
+    const msg = priceApprovedNotice(booking, offer, easer.full_name);
+    // One notice per offer, however many times the quote is re-sent with it.
+    const meta = { bookingId: booking.id, notificationType: 'quote_price_approved', recipientType: 'easer', recipientUserId: easer.id, notificationKey: `quote-price-approved:${offer.id}` };
+    const [sms, push, email] = await Promise.all([
+      sendSms({ recipient: easer, body: msg.sms, meta })
+        .catch(err => ({ ok: false, error: err?.message || String(err) })),
+      sendPushToUser(easer.id, { title: msg.pushTitle, body: msg.pushBody, url: PRICE_REQUESTS_URL }, meta)
+        .catch(err => ({ ok: false, error: err?.message || String(err) })),
+      sendEmail({ to: easer.email, subject: msg.subject, html: msg.html, replyTo: 'service@assembleatease.com', meta })
+        .catch(err => ({ ok: false, error: err?.message || String(err) })),
+    ]);
+    const channels = [];
+    if (sms?.ok) channels.push('text');
+    if (push?.ok) channels.push('push');
+    if (email?.ok && !email?.suppressed) channels.push('email');
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'quote_price_approved_notice',
+      actorType: 'system',
+      actorName: 'System',
+      description: channels.length
+        ? `Easer told their price was approved (${channels.join(', ')})`
+        : 'Easer could not be told their price was approved',
+      metadata: { quoteOfferId: offer.id, easerId: easer.id, channels, smsSkipped: sms?.skipped || null },
+    }).catch(() => {});
+    return { reached: channels.length > 0, channels, smsSkipped: sms?.skipped || null };
+  } catch (err) {
+    console.error('price approved notice failed:', err?.message || err);
+    return { reached: false, channels: [], reason: 'notice_failed' };
+  }
+}
+
 async function notifyEaserOfPriceRequest(easer, booking, offer, groups) {
   const request = quoteRequestForEaser(offer, booking, groups);
   const firstName = String(easer.full_name || 'there').split(' ')[0];

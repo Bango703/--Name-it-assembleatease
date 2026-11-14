@@ -22,6 +22,7 @@ function notice(title, detail, action, actionLabel, category) {
 export const NOTIFICATION_COPY = Object.freeze({
   // Jobs
   quote_price_request: notice('Price requested', 'A custom job is available to price. Open Price requests to respond.', 'price_requests', 'Open price requests', JOBS),
+  quote_price_approved: notice('Price approved', 'Your price was sent to the customer. When they approve, the job is offered to you first.', 'price_requests', 'Open price requests', JOBS),
   assignment_confirmation: notice('New job', 'AssembleAtEase sent you a job. Review it and accept it.', 'job', 'Review job', JOBS),
   dispatch_offer: notice('New job offer', 'Review the offer and accept it before it expires.', 'job', 'Review offer', JOBS),
   easer_work_available: notice('Work available', 'New jobs are available in your area. Go online to get offers.', 'today', 'Open Today', JOBS),

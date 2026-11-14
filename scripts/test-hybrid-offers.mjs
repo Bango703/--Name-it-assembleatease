@@ -20,6 +20,8 @@ const partners = await import('../api/_partners.js');
 const { selectOfferRecipients } = await import('../api/booking/_dispatch-internal.js');
 const { resolveBookingPromotion, applyPromotionToPricing } = await import('../api/_promotions.js');
 const { computeBookingSplit, SALES_TAX_RATE } = await import('../api/_source-of-truth.js');
+const { priceApprovedNotice } = await import('../api/booking/_quote-offer-invites.js');
+const { NOTIFICATION_COPY } = await import('../api/assembler/notifications.js');
 
 let passed = 0;
 const ok = (name, fn) => { fn(); passed++; };
@@ -132,6 +134,33 @@ ok('the Easer page gets one stage per request, decided on the server', () => {
   assert.doesNotMatch(page, /let you know if your price|paid to your bank/i);
   // The Easer's dispatch offer is read for this Easer only.
   assert.match(read('api/assembler/price-requests.js'), /from\('dispatch_offers'\)[\s\S]*?\.eq\('easer_id', easerId\)/);
+});
+
+ok('the Easer is texted when their price is approved, once, after the quote is saved', () => {
+  // Owner, 2026-11-13: "they need to get a text once their bid amount is approved".
+  const msg = priceApprovedNotice({ ref: 'AAE-X1', service: 'Office Furniture Assembly', date: '2026-11-20', quote_amount_cents: 231965 }, { id: 'o1', earnings_cents: 150000 }, 'Travis Gibson');
+  assert.match(msg.sms, /^AssembleAtEase: your \$1,500 price for Office Furniture Assembly on .+ was approved and sent to the customer\. When they approve, the job is offered to you first\. Ref AAE-X1: https?:\/\/\S+\/assembler\/price-requests$/);
+  for (const text of [msg.sms, msg.pushBody, msg.subject, msg.html]) assert.doesNotMatch(text, /2,?319|231965/, 'the customer total never reaches the Easer');
+  assert.match(msg.html, /Hi Travis,/);
+
+  const invites = read('api/booking/_quote-offer-invites.js');
+  assert.match(invites, /notificationType: 'quote_price_approved'[^\n]*notificationKey: `quote-price-approved:\$\{offer\.id\}`/);
+  assert.match(invites, /sendSms\(\{ recipient: easer, body: msg\.sms, meta \}\)/);
+  assert.match(invites, /sendPushToUser\(easer\.id/);
+  assert.match(invites, /sendEmail\(\{ to: easer\.email, subject: msg\.subject/);
+
+  const qa = read('api/owner/quote-approve.js');
+  const savedAt = qa.indexOf("console.error('quote prepare update failed:'");
+  const noticeAt = qa.indexOf('await notifyEaserPriceApproved(sb, booking, chosenOffer)');
+  assert.ok(savedAt > 0 && noticeAt > savedAt, 'the Easer is told only after the quote is saved');
+  assert.match(qa, /chosenOffer && chosenOffer\.status !== QUOTE_OFFER_STATUS\.SELECTED\s*\? await notifyEaserPriceApproved/);
+  assert.match(qa, /easerNotice: \{ reached: easerNotice\.reached, channels: easerNotice\.channels \}/);
+
+  // The owner sees whether the Easer was reached, apart from the customer email.
+  const panel = read('owner/index.html');
+  assert.match(panel, /\(d\.warnings \|\| \[\]\)\.indexOf\('quote_approval_email_failed'\) !== -1/);
+  assert.match(panel, /The Easer was told by ' \+ d\.easerNotice\.channels\.join/);
+  assert.equal(NOTIFICATION_COPY.quote_price_approved.action, 'price_requests');
 });
 
 // ── 3. Endpoints: scoping and server pricing ─────────────────────────────────

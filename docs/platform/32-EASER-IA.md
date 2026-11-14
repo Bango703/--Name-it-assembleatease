@@ -20,4 +20,5 @@ Custom quotes the owner asked this Easer to price. Each request carries one serv
 
 - Shows: service, date and time window, city and ZIP with a ZIP-level map link, "Exact address after you accept the job", the work items and the owner's reviewed scope. Never the customer's name, contact details, street address or price.
 - Steps: You send your price; We send the customer one quote; The customer approves; The job is offered to you first; You do the job and get paid.
+- Notices: a text, push and email when the owner sends a quote priced from this Easer's offer (`quote_price_approved`, once per offer); the job offer after the customer approves comes from dispatch.
 - Actions by stage: `open` the price form with its deadline; `sent` a "Your price" summary with Change price and Withdraw; `job_offered` and `job_yours` an "Open the job" link to `/assembler/my-assignments`. Every other stage is a plain status line; closed requests fold under "Earlier requests".

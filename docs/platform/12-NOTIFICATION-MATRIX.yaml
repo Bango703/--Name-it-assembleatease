@@ -11,6 +11,11 @@ notifications:
     audience: easer
     channels: [email, push, sms]
     consent: SMS requires recorded consent and no opt-out
+  quote_price_approved:
+    audience: easer
+    channels: [email, push, sms]
+    consent: SMS requires recorded consent and no opt-out
+    when: the owner sends the customer a quote priced from this Easer's offer (once per offer; api/booking/_quote-offer-invites.js notifyEaserPriceApproved)
   dispatch_offer:
     audience: easer
     channels: [email, push, sms]

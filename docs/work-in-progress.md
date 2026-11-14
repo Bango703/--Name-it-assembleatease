@@ -10,7 +10,7 @@ Last verified: 2026-11-13. Active work only; the full prioritized backlog is `bu
 
 ## 2. Easer price-request page rebuild
 - Objective: the owner, as an Easer, found the page basic and unclear, and a sent price stayed on screen as a form (`docs/incidents/2026-11-13-easer-price-request-page.md`).
-- State: built on branch `feat/easer-price-request-experience`; `test-hybrid-offers` and the phone Playwright spec pass locally.
+- State: built on branch `feat/easer-price-request-experience`; `test-hybrid-offers` and the phone Playwright spec pass locally. Owner then asked (2026-11-13) for a text when an Easer's price is approved: built on the same branch (text, push, email once per offer; the owner's toast reports whether the Easer was reached).
 - Next action: owner approval to push and merge, then check the page live with the owner's Easer account on AAE-DMA4UGNPV2.
 
 ## 3. Live end-to-end test of the hybrid marketplace
