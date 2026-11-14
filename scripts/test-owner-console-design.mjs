@@ -45,9 +45,14 @@ assert.match(html, /<div class="bk-list-head" aria-hidden="true"><span>Customer 
 // Booking record: notices are one Notes box, not a stack of colored boxes.
 assert.match(html, /var blocks = notices\.length \? \['<div class="c-notes">'/, 'notices render as one Notes box');
 
-// Financials: tiles in labeled groups on a cell grid; empty warnings not drawn.
+// Financials (owner console v2, 2026-11-13): an Overview of number cards,
+// chart, breakdown, health, metrics and tables; the detailed figures sit in
+// labeled groups under More. Each figure appears once. Empty warnings not drawn.
 const groups = [...html.matchAll(/<div class="c-group-title">([^<]+)<\/div>/g)].map(m => m[1]);
-assert.deepEqual(groups, ['Where the money went', 'Per job', 'Operating estimate', 'Customers and add-ons']);
+assert.deepEqual(groups, ['Labor', 'Operating estimate', 'Customers and add-ons']);
+for (const id of ['fin-total-platform-gross', 'an-gross', 'an-easer-payouts', 'an-processing-fees', 'an-sales-tax', 'an-net-profit', 'an-completed-jobs', 'an-gross-margin', 'reserve-total']) {
+  assert.equal(html.split(`id="${id}"`).length - 1, 1, `${id} is shown once`);
+}
 assert.match(css, /#an-finance-warning:empty, #an-empty-period:empty \{ display: none !important; \}/);
 
 console.log('PASS owner console design: console.css last, fixed-column tables, Live Ops through cTable, counts are list lengths, grouped sidebar');

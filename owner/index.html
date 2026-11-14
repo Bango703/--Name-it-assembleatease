@@ -1036,11 +1036,24 @@
 
       <!-- ─── ANALYTICS VIEW ─── -->
       <div id="analytics-view" style="display:none">
-        <div class="fin-subtabs tabs" id="fin-subtabs">
-          <button class="tab active" data-fin-tab="money" type="button">Money</button>
-          <button class="tab" data-fin-tab="expenses" type="button">Expenses</button>
-          <button class="tab" data-fin-tab="tax" type="button">Tax &amp; Compliance</button>
-          <button class="tab" data-fin-tab="more" type="button">More</button>
+        <div class="fin-head" id="fin-subtabs">
+          <div class="tabs fin-tabbar" role="tablist" aria-label="Financials sections">
+            <button class="tab active" data-fin-tab="overview" type="button">Overview</button>
+            <button class="tab" data-fin-tab="ledger" type="button">Ledger &amp; Payouts</button>
+            <button class="tab" data-fin-tab="expenses" type="button">Expenses</button>
+            <button class="tab" data-fin-tab="tax" type="button">Tax &amp; Compliance</button>
+            <button class="tab" data-fin-tab="more" type="button">More</button>
+          </div>
+          <div class="fin-period">
+            <span class="fin-period-note" id="an-period-note">Year &middot; Central time</span>
+            <div class="tabs" role="group" aria-label="Period">
+              <button class="tab active" data-fin-period="year" type="button">Year</button>
+              <button class="tab" data-fin-period="month" type="button">Month</button>
+              <button class="tab" data-fin-period="week" type="button">Week</button>
+              <button class="tab" data-fin-period="today" type="button">Today</button>
+              <button class="tab" data-fin-period="all" type="button">All</button>
+            </div>
+          </div>
         </div>
         <div class="detail-panel open" id="owner-expenses-panel" style="display:none;margin-bottom:1rem">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:0.8rem">
@@ -1071,91 +1084,87 @@
           </form>
           <div id="expense-list" class="finance-scroll"><div style="padding:1rem;text-align:center;color:var(--muted)">Loading expenses...</div></div>
         </div>
-        <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1rem;margin-bottom:1rem" class="content-grid">
-          <div class="detail-panel open c-hero">
-            <div class="detail-section-title">Platform gross</div>
-            <div class="c-hero-value" id="fin-total-platform-gross">—</div>
-            <div class="c-hero-label">Total platform gross</div>
-            <div class="c-hero-facts">
-              <span><strong id="fin-gross-per-job">—</strong> average per completed job</span>
-              <span><strong id="fin-gross-margin">—</strong> recorded gross margin</span>
-              <span><strong id="fin-costed-gross-per-job">—</strong> average on labor-costed jobs</span>
-            </div>
-            <div class="c-hero-note">Customer payments retained minus sales tax, processing fees, and all recorded Easer earnings. Owner-Easer labor remains compensation for work, not scalable platform profit.</div>
+        <!-- Overview (owner console, 2026-11-13). Every figure is the server's
+             (api/owner/financial-dashboard.js); each card opens the rows behind it. -->
+        <section class="fin-overview" id="fin-overview">
+          <div class="kpi-row fin-kpis">
+            <button type="button" class="kpi fin-kpi" data-fin-tab="ledger" aria-label="Platform Gross: open the rows"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="kpi-body"><span class="kpi-label">Platform Gross</span><span class="kpi-value" id="fin-total-platform-gross">&mdash;</span><span class="kpi-sub" id="fin-kpi-margin">Margin after Easers, fees and tax</span></span></button>
+            <button type="button" class="kpi fin-kpi" data-fin-tab="ledger" aria-label="Customer Payments: open the rows"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg></span><span class="kpi-body"><span class="kpi-label">Customer Payments</span><span class="kpi-value" id="an-gross">&mdash;</span><span class="kpi-sub" id="fin-kpi-revenue-sub">After refunds</span></span></button>
+            <button type="button" class="kpi fin-kpi" data-fin-tab="ledger" aria-label="Easer Earnings: open the rows"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M16 13h2"/><path d="M2 10h20"/></svg></span><span class="kpi-body"><span class="kpi-label">Easer Earnings</span><span class="kpi-value" id="an-easer-payouts">&mdash;</span><span class="kpi-sub" id="fin-kpi-easer-share">Share of payments</span></span></button>
+            <button type="button" class="kpi fin-kpi" data-fin-tab="ledger" aria-label="Processing Fees: open the rows"><span class="kpi-icon kpi-info"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span><span class="kpi-body"><span class="kpi-label">Processing Fees</span><span class="kpi-value" id="an-processing-fees">&mdash;</span><span class="kpi-sub" id="fin-kpi-fee-share">Share of payments</span></span></button>
+            <button type="button" class="kpi fin-kpi" data-fin-tab="tax" aria-label="Sales Tax Collected, owed to Texas and not revenue: open the rows" title="Owed to Texas. Not revenue."><span class="kpi-icon kpi-warn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></span><span class="kpi-body"><span class="kpi-label">Sales Tax Collected</span><span class="kpi-value" id="an-sales-tax">&mdash;</span><span class="kpi-sub" id="fin-kpi-tax-share">Owed to Texas, not revenue</span></span></button>
+            <button type="button" class="kpi fin-kpi" data-fin-tab="more" aria-label="Estimated Net: open the rows"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span><span class="kpi-body"><span class="kpi-label">Estimated Net</span><span class="kpi-value" id="an-net-profit">&mdash;</span><span class="kpi-sub" id="fin-kpi-net-sub">After reserve, expenses</span></span></button>
           </div>
-          <div class="detail-panel open">
-            <div class="detail-section-title" style="margin-bottom:0.75rem">Assumptions</div>
-            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.6rem;font-size:0.78rem;color:var(--soft)">
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Reserve</strong><br><span id="fin-assumption-reserve">Loading...</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Processing</strong><br><span id="fin-assumption-processing">Loading...</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Expenses paid</strong><br><span id="fin-assumption-expenses">Loading...</span></div>
+          <div class="fin-row3">
+            <div class="fin-card">
+              <div class="fin-card-head"><h3>Financial Performance</h3>
+                <div class="tabs fin-toggle" role="group" aria-label="Chart"><button class="tab active" type="button" data-fin-chart="revenue">Revenue</button><button class="tab" type="button" data-fin-chart="jobs">Jobs</button></div></div>
+              <div id="fin-chart" class="fin-chart"></div>
             </div>
-            <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.9rem">
-              <div class="tabs" style="margin:0">
-              <button class="tab active" data-fin-period="year" type="button">Year</button>
-              <button class="tab" data-fin-period="month" type="button">Month</button>
-              <button class="tab" data-fin-period="week" type="button">Week</button>
-              <button class="tab" data-fin-period="today" type="button">Today</button>
-              <button class="tab" data-fin-period="all" type="button">All</button>
-              </div>
+            <div class="fin-card">
+              <div class="fin-card-head"><h3>Where Payments Went</h3></div>
+              <div id="fin-breakdown" class="fin-breakdown"></div>
+            </div>
+            <div class="fin-card">
+              <div class="fin-card-head"><h3>Financial Health</h3><span class="fin-health-pill" id="fin-health-pill"></span></div>
+              <div id="fin-health" class="fin-health"></div>
             </div>
           </div>
-        </div>
+          <div class="fin-metrics">
+            <div class="fin-metric"><span class="fin-metric-label">Completed Jobs</span><span class="fin-metric-value" id="an-completed-jobs">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Avg. Job Value</span><span class="fin-metric-value" id="an-ajv">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Gross / Job</span><span class="fin-metric-value" id="an-gross-per-job">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Gross Margin</span><span class="fin-metric-value" id="an-gross-margin">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Active Easers</span><span class="fin-metric-value" id="an-active-easers">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Add-On Rate <span id="an-addon-source" class="fin-est">(Est.)</span></span><span class="fin-metric-value" id="an-addon-rate">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Repeat Customers</span><span class="fin-metric-value" id="an-repeat-rate">&mdash;</span></div>
+          </div>
+          <div class="fin-row2">
+            <div class="fin-card">
+              <div class="fin-card-head"><h3>Easer Earnings</h3><button type="button" class="btn c-sm" data-fin-tab="ledger">View payout ledger</button></div>
+              <div id="fin-easers" class="fin-table-wrap"></div>
+            </div>
+            <div class="fin-card">
+              <div class="fin-card-head"><h3>Recent Transactions</h3><button type="button" class="btn c-sm" data-fin-tab="ledger">View ledger</button></div>
+              <div id="fin-recent" class="fin-table-wrap"></div>
+            </div>
+          </div>
+          <div class="fin-card fin-reserves-card">
+            <div class="fin-card-head"><h3>Outstanding &amp; Reserves</h3><span class="fin-card-note">All time, apart from the period above</span></div>
+            <div class="fin-reserves">
+              <div class="fin-reserve fin-reserve-warn"><span class="fin-reserve-label">Set aside (do not spend)</span><span class="fin-reserve-value" id="reserve-total">&mdash;</span></div>
+              <div class="fin-reserve fin-reserve-info"><span class="fin-reserve-label">Sales tax owed</span><span class="fin-reserve-value" id="reserve-tax">&mdash;</span></div>
+              <div class="fin-reserve fin-reserve-info"><span class="fin-reserve-label">Pending Easer payouts</span><span class="fin-reserve-value" id="reserve-payouts">&mdash;</span></div>
+              <div class="fin-reserve fin-reserve-info"><span class="fin-reserve-label">AssembleCash liability</span><span class="fin-reserve-value" id="reserve-rewards">&mdash;</span></div>
+              <div class="fin-reserve fin-reserve-bad"><span class="fin-reserve-label">Clawbacks to recover</span><span class="fin-reserve-value" id="reserve-clawbacks">&mdash;</span></div>
+            </div>
+          </div>
+        </section>
 
-        <!-- Money that isn't yours — reserve rollup -->
-        <div class="detail-panel open" style="margin-bottom:1rem;border-color:#f3d28a;background:#fffdf7">
-          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem">
-            <div>
-              <div class="detail-section-title" style="margin:0">Money that isn&rsquo;t yours &mdash; set it aside</div>
-              <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">All-time outstanding obligations, separate from the selected profit period below.</div>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:1.4rem;align-items:flex-end">
-              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Sales tax owed</div><div id="reserve-tax" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
-              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Pending Easer payouts</div><div id="reserve-payouts" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
-              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">AssembleCash liability</div><div id="reserve-rewards" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
-              <div style="border-left:1px solid var(--border);padding-left:1.4rem"><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:#b45309;font-weight:800">Set aside (don&rsquo;t spend)</div><div id="reserve-total" style="font-size:1.3rem;font-weight:800;color:#b45309">&mdash;</div></div>
-              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Clawbacks to recover</div><div id="reserve-clawbacks" style="font-size:1.05rem;font-weight:800;color:#dc2626">&mdash;</div><div style="font-size:0.6rem;color:var(--muted)">owed back to you</div></div>
-            </div>
+        <!-- Detailed metrics (More): the figures that need their own context. -->
+        <div class="detail-panel open" id="fin-details">
+          <div class="detail-section-title">Detailed metrics</div>
+          <div class="c-group-title">Labor</div>
+          <div class="fin-metrics fin-metrics-detail">
+            <div class="fin-metric"><span class="fin-metric-label">Owner-Easer Labor</span><span class="fin-metric-value" id="an-owner-easer-earnings">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">External Easer Labor</span><span class="fin-metric-value" id="an-external-easer-earnings">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Gross / Labor-Costed Job</span><span class="fin-metric-value" id="an-costed-gross-per-job">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Jobs Missing Labor Cost</span><span class="fin-metric-value" id="an-uncosted-jobs">&mdash;</span></div>
           </div>
-        </div>
-
-        <!-- Executive Overview -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;margin:0 0 0.75rem">
-          <div class="detail-section-title" style="margin:0">Selected-Period Money Summary</div>
-          <div id="an-period-note" style="font-size:0.74rem;color:var(--muted);font-weight:700">Year &middot; Central time</div>
-        </div>
-        <div class="c-group-title">Where the money went</div>
-        <div class="stats-row c-metrics c-cols-6" id="analytics-stats-row">
-          <div class="stat teal"><div class="stat-value" id="an-gross">—</div><div class="stat-label">Customer Payments Retained</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-sales-tax">—</div><div class="stat-label">Sales Tax Collected</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-processing-fees">—</div><div class="stat-label">Stripe Processing Fees</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-easer-payouts">—</div><div class="stat-label">Total Easer Earnings</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-owner-easer-earnings">—</div><div class="stat-label">Owner-Easer Labor</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-external-easer-earnings">—</div><div class="stat-label">External Easer Labor</div></div>
-        </div>
-        <div class="c-group-title">Per job</div>
-        <div class="stats-row c-metrics c-cols-6">
-          <div class="stat neutral"><div class="stat-value" id="an-completed-jobs">—</div><div class="stat-label">Completed Jobs</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-ajv">—</div><div class="stat-label">Average Job Value</div></div>
-          <div class="stat teal"><div class="stat-value" id="an-gross-per-job">—</div><div class="stat-label">Platform Gross / Job</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-gross-margin">—</div><div class="stat-label">Recorded Gross Margin</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-costed-gross-per-job">—</div><div class="stat-label">Gross / Labor-Costed Job</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-uncosted-jobs">—</div><div class="stat-label">Jobs Missing Labor Cost</div></div>
-        </div>
-        <div class="c-group-title">Operating estimate</div>
-        <div class="stats-row c-metrics c-cols-2">
-          <div class="stat neutral"><div class="stat-value" id="an-opex-allocated">—</div><div class="stat-label">Business Expenses Paid</div></div>
-            <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Estimated After Reserve &amp; Paid Expenses</div></div>
-        </div>
-        <div class="c-group-title">Customers and add-ons</div>
-        <div class="stats-row c-metrics c-cols-7">
-          <div class="stat amber"><div class="stat-value" id="an-addon-rate">—</div><div class="stat-label">Add-On Attachment Rate <span id="an-addon-source" style="color:#d97706">(Est.)</span></div></div>
-          <div class="stat amber"><div class="stat-value" id="an-addon-value">—</div><div class="stat-label">Average Add-On Value</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-bundle-rate">—</div><div class="stat-label">Bundle Attach Rate</div></div>
-          <div class="stat amber"><div class="stat-value" id="an-ac-liability">—</div><div class="stat-label">AssembleCash Liability</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-repeat-rate">—</div><div class="stat-label">Repeat Customer Rate</div></div>
-          <div class="stat orange"><div class="stat-value" id="an-refund-rework-rate">—</div><div class="stat-label">Refund/Rework Rate</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-active-easers">—</div><div class="stat-label">Active Easers</div></div>
+          <div class="c-group-title">Operating estimate</div>
+          <div class="fin-metrics fin-metrics-detail">
+            <div class="fin-metric"><span class="fin-metric-label">Business Expenses Paid</span><span class="fin-metric-value" id="an-opex-allocated">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Reserve</span><span class="fin-metric-text" id="fin-assumption-reserve">Loading...</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Processing</span><span class="fin-metric-text" id="fin-assumption-processing">Loading...</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Expenses paid</span><span class="fin-metric-text" id="fin-assumption-expenses">Loading...</span></div>
+          </div>
+          <div class="c-group-title">Customers and add-ons</div>
+          <div class="fin-metrics fin-metrics-detail">
+            <div class="fin-metric"><span class="fin-metric-label">Average Add-On Value</span><span class="fin-metric-value" id="an-addon-value">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Bundle Attach Rate</span><span class="fin-metric-value" id="an-bundle-rate">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">AssembleCash Liability</span><span class="fin-metric-value" id="an-ac-liability">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Refund/Rework Rate</span><span class="fin-metric-value" id="an-refund-rework-rate">&mdash;</span></div>
+          </div>
         </div>
         <div id="an-finance-warning" style="display:none;background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:0.8rem 0.9rem;margin-top:0.85rem;color:#9a3412;font-size:0.8rem;line-height:1.55"></div>
         <div id="an-empty-period" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:0.8rem 0.9rem;margin-top:0.85rem;color:#1e3a8a;font-size:0.8rem;line-height:1.5"></div>
@@ -10141,17 +10150,18 @@ window.intelQuick = intelQuick;
   // card in #analytics-view is classified by a marker element inside it and shown only
   // under its tab, so the view stops being one endless scroll and Expansion/Tax get
   // their own space. Classification, not DOM surgery — safe and reversible.
-  var _finTab = 'money';
+  var _finTab = 'overview';
   function finGroupOf(el) {
-    if (!el) return 'money';
+    if (!el) return 'overview';
     // "has" matches the card itself OR any descendant (some cards ARE their marker,
     // e.g. #clawback-panel; others carry a marker child, e.g. #an-expansion-summary).
     var has = function (sel) { return (el.matches && el.matches(sel)) || (el.querySelector && el.querySelector(sel)); };
     if (has('#owner-expenses-panel')) return 'expenses';
-    if (has('#an-expansion-summary')) return 'more';
+    if (has('#an-expansion-summary, #fin-details, #fin-formula')) return 'more';
     if (has('#ct-year, #clawback-panel, [id^="tax-"]')) return 'tax';
     if (has('#an-services, #an-monthly, #an-status, #an-rev-service, #an-job-duration')) return 'more';
-    return 'money';
+    if (has('#an-ledger, #an-payout-table')) return 'ledger';
+    return 'overview';
   }
   function applyFinTab() {
     var view = document.getElementById('analytics-view');
@@ -10177,9 +10187,9 @@ window.intelQuick = intelQuick;
     });
   }
   function setFinTab(tab) {
-    _finTab = tab || 'money';
+    _finTab = tab || 'overview';
     var bar = document.getElementById('fin-subtabs');
-    if (bar) Array.prototype.forEach.call(bar.querySelectorAll('.tab'), function(b) {
+    if (bar) Array.prototype.forEach.call(bar.querySelectorAll('.tab[data-fin-tab]'), function(b) {
       b.classList.toggle('active', b.getAttribute('data-fin-tab') === _finTab);
     });
     applyFinTab();
@@ -10187,6 +10197,144 @@ window.intelQuick = intelQuick;
   document.addEventListener('click', function(e) {
     var t = e.target && e.target.closest ? e.target.closest('[data-fin-tab]') : null;
     if (t) setFinTab(t.getAttribute('data-fin-tab'));
+  });
+
+
+  // ── Financials overview (owner console, 2026-11-13) ───────────────────────
+  // Draws the server's figures: d.monthly, d.breakdown, d.easerEarnings and the
+  // newest ledger rows. Sizes and positions are computed here; money is not.
+  var finChartMode = 'revenue';
+  function finPct(share) { return (Number(share || 0) * 100).toFixed(1) + '%'; }
+  function finMonthLabel(month) {
+    if (!month) return 'Undated';
+    var parts = String(month).split('-');
+    return new Date(Date.UTC(+parts[0], +parts[1] - 1, 15)).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+  }
+  function renderFinanceChart(d) {
+    var el = document.getElementById('fin-chart');
+    if (!el) return;
+    var months = (d.monthly || []).filter(function(m) { return m.month; }).slice(-8);
+    var undated = (d.monthly || []).filter(function(m) { return !m.month; })[0];
+    if (!months.length) { el.innerHTML = '<div class="fin-empty">No payments in this period.</div>'; return; }
+    var W = 520, H = 210, padL = 52, padB = 26, padT = 10, plotW = W - padL - 10, plotH = H - padB - padT;
+    var jobs = finChartMode === 'jobs';
+    var series = months.map(function(m) {
+      return jobs ? { a: m.completedJobs, b: 0, line: null } : { a: m.customerRevenue, b: m.easerEarnings, line: m.platformGross };
+    });
+    var values = [0];
+    series.forEach(function(v) { values.push(v.a, v.b, v.line == null ? 0 : v.line); });
+    var max = Math.max.apply(null, values);
+    var min = Math.min.apply(null, values.concat([0]));
+    if (max <= min) max = min + 1;
+    var y = function(v) { return padT + plotH - ((v - min) / (max - min)) * plotH; };
+    var step = plotW / months.length, barW = Math.min(26, step * 0.32);
+    var ticks = '';
+    for (var t = 0; t <= 4; t++) {
+      var val = min + (max - min) * t / 4, ty = y(val);
+      ticks += '<line x1="' + padL + '" x2="' + (W - 10) + '" y1="' + ty + '" y2="' + ty + '" class="fin-grid"/>'
+        + '<text x="' + (padL - 6) + '" y="' + (ty + 4) + '" text-anchor="end" class="fin-axis">' + (jobs ? Math.round(val) : fmt$(Math.round(val)).replace(/\.\d\d$/, '')) + '</text>';
+    }
+    var bars = '', points = [];
+    series.forEach(function(v, i) {
+      var cx = padL + step * i + step / 2;
+      var title = finMonthLabel(months[i].month) + ': ' + (jobs ? v.a + ' completed' : 'payments ' + fmt$(v.a) + ', Easer earnings ' + fmt$(v.b) + ', platform gross ' + fmtSigned$(v.line));
+      if (jobs) {
+        bars += '<rect class="fin-bar-a" x="' + (cx - barW / 2) + '" y="' + y(v.a) + '" width="' + barW + '" height="' + Math.max(0, y(0) - y(v.a)) + '"><title>' + esc(title) + '</title></rect>';
+      } else {
+        bars += '<rect class="fin-bar-a" x="' + (cx - barW - 1) + '" y="' + y(v.a) + '" width="' + barW + '" height="' + Math.max(0, y(0) - y(v.a)) + '"><title>' + esc(title) + '</title></rect>'
+          + '<rect class="fin-bar-b" x="' + (cx + 1) + '" y="' + y(v.b) + '" width="' + barW + '" height="' + Math.max(0, y(0) - y(v.b)) + '"><title>' + esc(title) + '</title></rect>';
+        points.push(cx + ',' + y(v.line));
+      }
+      bars += '<text x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle" class="fin-axis">' + esc(finMonthLabel(months[i].month)) + '</text>';
+    });
+    var line = points.length ? '<polyline class="fin-line" points="' + points.join(' ') + '"/>' + points.map(function(pt) { var xy = pt.split(','); return '<circle class="fin-dot" cx="' + xy[0] + '" cy="' + xy[1] + '" r="3.5"/>'; }).join('') : '';
+    el.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + (jobs ? 'Completed jobs by month' : 'Payments, Easer earnings and platform gross by month') + '">' + ticks + bars + line + '</svg>'
+      + '<div class="fin-legend">' + (jobs ? '<span><i class="fin-key-a"></i>Completed jobs</span>'
+        : '<span><i class="fin-key-a"></i>Customer payments</span><span><i class="fin-key-b"></i>Easer earnings</span><span><i class="fin-key-line"></i>Platform gross</span>') + '</div>'
+      + (undated && !jobs ? '<div class="fin-card-note">Undated rows: ' + fmt$(undated.customerRevenue) + ' in payments, not on the chart.</div>' : '');
+  }
+  function renderFinanceBreakdown(d) {
+    var el = document.getElementById('fin-breakdown');
+    if (!el) return;
+    var bd = d.breakdown || { totalCents: 0, parts: [] };
+    if (!(bd.totalCents > 0)) { el.innerHTML = '<div class="fin-empty">No payments in this period.</div>'; return; }
+    var colors = { easerEarnings: 'var(--c-brand)', platformGross: 'var(--c-ok)', salesTax: 'var(--c-warn)', processingFees: 'var(--c-info)' };
+    var negative = bd.parts.some(function(pt) { return pt.cents < 0; });
+    var donut = '';
+    if (!negative) {
+      var R = 52, C = 2 * Math.PI * R, offset = 0;
+      donut = '<svg viewBox="0 0 140 140" class="fin-donut" aria-hidden="true"><circle cx="70" cy="70" r="' + R + '" class="fin-donut-bg"/>'
+        + bd.parts.map(function(pt) {
+            var len = C * pt.share, seg = '<circle cx="70" cy="70" r="' + R + '" stroke="' + colors[pt.key] + '" stroke-dasharray="' + len + ' ' + (C - len) + '" stroke-dashoffset="' + (-offset) + '" class="fin-donut-seg"/>';
+            offset += len; return seg;
+          }).join('')
+        + '<text x="70" y="68" text-anchor="middle" class="fin-donut-total">' + fmt$(bd.totalCents).replace(/\.\d\d$/, '') + '</text><text x="70" y="86" text-anchor="middle" class="fin-axis">Payments</text></svg>';
+    }
+    el.innerHTML = donut + '<ul class="fin-parts">' + bd.parts.map(function(pt) {
+      return '<li><i style="background:' + colors[pt.key] + '"></i><span>' + esc(pt.label) + '</span><strong>' + fmtSigned$(pt.cents) + '</strong><em>' + finPct(pt.share) + '</em></li>';
+    }).join('') + '</ul>' + (negative ? '<div class="fin-card-note">Platform gross is below zero for this period.</div>' : '');
+  }
+  // Health: each line is a figure the owner can open, with its state.
+  function renderFinanceHealth() {
+    var el = document.getElementById('fin-health');
+    if (!el) return;
+    var d = latestFinancialDashboard || {};
+    var rec = d.reconciliation || null;
+    var payouts = Number(reserveParts.payouts || 0), tax = Number(reserveParts.tax || 0), clawbacks = Number(reserveParts.clawbacks || 0);
+    var rows = [
+      { label: 'Easer payouts', tab: 'ledger', tone: !payoutTruthAvailable ? 'warn' : (payouts > 0 ? 'warn' : 'ok'), text: !payoutTruthAvailable ? 'Unknown' : (payouts > 0 ? fmt$(payouts) + ' owed' : 'Up to date') },
+      { label: 'Sales tax', tab: 'tax', tone: tax > 0 ? 'info' : 'ok', text: tax > 0 ? fmt$(tax) + ' to remit' : 'Nothing owed' },
+      { label: 'Reconciliation', tab: 'ledger', tone: !rec ? 'warn' : ((Number(rec.mismatchedCount || 0) + Number(rec.duplicateLedgerBookingCount || 0)) > 0 ? 'bad' : 'ok'),
+        text: !rec ? 'Unknown' : ((Number(rec.mismatchedCount || 0) + Number(rec.duplicateLedgerBookingCount || 0)) > 0 ? (Number(rec.mismatchedCount || 0) + Number(rec.duplicateLedgerBookingCount || 0)) + ' to review' : 'In balance') },
+      { label: 'Set aside', tab: 'overview', tone: 'info', text: payoutTruthAvailable ? fmt$(tax + payouts + Number(reserveParts.rewards || 0)) : 'Unknown' },
+      { label: 'Clawbacks', tab: 'tax', tone: clawbacks > 0 ? 'warn' : 'ok', text: clawbacks > 0 ? fmt$(clawbacks) + ' to recover' : 'None' },
+    ];
+    el.innerHTML = rows.map(function(r) {
+      return '<button type="button" class="fin-health-row fin-tone-' + r.tone + '" data-fin-tab="' + r.tab + '"><span class="fin-health-dot" aria-hidden="true"></span><span>' + esc(r.label) + '</span><strong>' + esc(r.text) + '</strong></button>';
+    }).join('');
+    var pill = document.getElementById('fin-health-pill');
+    if (pill) {
+      var attention = rows.some(function(r) { return r.tone === 'warn' || r.tone === 'bad'; });
+      pill.textContent = attention ? 'Needs attention' : 'All clear';
+      pill.className = 'fin-health-pill ' + (attention ? 'fin-tone-warn' : 'fin-tone-ok');
+    }
+  }
+  function renderFinanceOverview(d) {
+    var parts = {};
+    ((d.breakdown && d.breakdown.parts) || []).forEach(function(pt) { parts[pt.key] = pt; });
+    if (parts.platformGross) setText('fin-kpi-margin', finPct(parts.platformGross.share) + ' margin');
+    if (parts.easerEarnings) setText('fin-kpi-easer-share', finPct(parts.easerEarnings.share) + ' of payments');
+    if (parts.processingFees) setText('fin-kpi-fee-share', finPct(parts.processingFees.share) + ' of payments');
+    if (parts.salesTax) setText('fin-kpi-tax-share', finPct(parts.salesTax.share) + ' of payments');
+    renderFinanceChart(d);
+    renderFinanceBreakdown(d);
+    renderFinanceHealth();
+    var easers = d.easerEarnings || [];
+    var easerEl = document.getElementById('fin-easers');
+    if (easerEl) easerEl.innerHTML = easers.length
+      ? '<table class="fin-table"><thead><tr><th>Easer</th><th>Jobs</th><th>Earned</th><th>Paid</th><th>Owed</th><th>Status</th></tr></thead><tbody>'
+        + easers.map(function(e) {
+            var initials = String(e.name || '').trim().split(/\s+/).slice(0, 2).map(function(w) { return w.charAt(0).toUpperCase(); }).join('');
+            return '<tr><td><span class="bk-avatar fin-avatar">' + esc(initials) + '</span>' + esc(e.name) + '</td><td>' + esc(e.jobs) + '</td><td>' + fmt$(e.earnedCents) + '</td><td>' + fmt$(e.paidCents) + '</td><td>' + fmt$(e.owedCents) + '</td>'
+              + '<td><span class="fin-chip ' + (e.owedCents > 0 ? 'fin-tone-warn' : 'fin-tone-ok') + '">' + (e.owedCents > 0 ? 'Owed' : 'Paid') + '</span></td></tr>';
+          }).join('') + '</tbody></table>'
+      : '<div class="fin-empty">No Easer earnings in this period.</div>';
+    var recent = (d.ledger || []).slice(0, 5);
+    var recentEl = document.getElementById('fin-recent');
+    if (recentEl) recentEl.innerHTML = recent.length
+      ? '<table class="fin-table"><tbody>' + recent.map(function(row) {
+          return '<tr><td>' + esc(formatDate(row.eventAt || row.date)) + '</td><td><strong>' + esc(row.customerName || 'Customer') + '</strong> &mdash; ' + esc(row.service || '') + '</td><td class="fin-num">' + fmt$(row.customerRevenue) + '</td>'
+            + '<td><span class="fin-chip fin-tone-info">' + (row.eventType === 'cancellation_earnings' ? 'Cancellation fee' : 'Booking') + '</span></td></tr>';
+        }).join('') + '</tbody></table>'
+      : '<div class="fin-empty">No transactions in this period.</div>';
+  }
+  // end renderFinanceOverview
+  document.addEventListener('click', function(e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-fin-chart]') : null;
+    if (!t) return;
+    finChartMode = t.getAttribute('data-fin-chart');
+    document.querySelectorAll('[data-fin-chart]').forEach(function(b) { b.classList.toggle('active', b === t); });
+    if (latestFinancialDashboard) renderFinanceChart(latestFinancialDashboard);
   });
 
   async function renderAnalytics() {
@@ -10200,6 +10348,7 @@ window.intelQuick = intelQuick;
       if (!r.ok) throw new Error(d.error || 'Failed to load financial dashboard');
       latestFinancialDashboard = d;
       renderFinancialSummary(d);
+      renderFinanceOverview(d);
       renderServiceProfitability(d.serviceProfitability || []);
       renderExpansionReadiness(d.expansionReadiness || {});
       renderFinancialLedger(d.ledger || []);
@@ -10347,6 +10496,7 @@ window.intelQuick = intelQuick;
     setText('reserve-rewards', fmt$(rewards));
     setText('reserve-total', payoutTruthAvailable ? fmt$(tax + payouts + rewards) : 'UNKNOWN');
     setText('reserve-clawbacks', fmt$(Number(reserveParts.clawbacks || 0)));
+    renderFinanceHealth();
   }
 
   function renderClawbacks(cb) {

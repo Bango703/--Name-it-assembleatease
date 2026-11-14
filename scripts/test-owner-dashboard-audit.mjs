@@ -63,11 +63,13 @@ assert.match(ownerUi, /replace\(\/"\/g, '&quot;'\)/);
 assert.match(ownerUi, /replace\(\/'\/g, '&#39;'\)/);
 assert.match(ownerCss, /\.modal-row\{grid-template-columns:minmax\(0,1fr\)\}/);
 assert.match(ownerCss, /max-height:calc\(100dvh - 1rem\)/);
-assert.match(ownerUi, /Selected-Period Money Summary/);
+// Owner console v2 (2026-11-13): the selected period is named in the Financials
+// header, beside the one period control; Platform Gross is the first card.
+assert.match(ownerUi, /<span class="fin-period-note" id="an-period-note">/);
 assert.match(ownerUi, /an-sales-tax/);
 assert.match(ownerUi, /an-processing-fees/);
 assert.match(ownerUi, /an-easer-payouts/);
-assert.match(ownerUi, /Total platform gross/i);
+assert.match(ownerUi, /<span class="kpi-label">Platform Gross<\/span><span class="kpi-value" id="fin-total-platform-gross">/);
 assert.match(ownerUi, /Owner-Easer Labor/);
 assert.match(ownerUi, /External Easer Labor/);
 assert.match(ownerUi, /Jobs Missing Labor Cost/);

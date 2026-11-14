@@ -27,7 +27,8 @@ Last verified: 2026-11-13. Active work only; the full prioritized backlog is `bu
 ## 3b. Owner console revamp
 - Objective: owner, 2026-11-13: the owner dashboard like the four reference images, fully working, nothing broken.
 - State: Phase 1 (frame and Bookings) built on branch `feat/owner-dashboard-revamp`, stacked on `docs/pricing-model`; launch suite, 26 browser tests and governance:truth pass locally.
-- Next action: Financials (charts and tables from `api/owner/financial-dashboard.js`, only server figures), then Cases, Market Demand and the remaining screens.
+- Phase 2 (Financials) built: Overview from server figures (`monthly`, `breakdown`, `easerEarnings`); launch suite, 28 browser tests and governance:truth pass locally.
+- Next action: Cases, then Market Demand, then the remaining screens.
 
 ## 4. Waiting on the owner
 - Policy decisions 1 to 4 in the audit record.
