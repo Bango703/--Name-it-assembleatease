@@ -130,6 +130,9 @@ export function createMarketDemandHandler(dependencies = {}) {
   const manualDispatchDemand = manualAssignmentRows.length;
   const newRequestCount = requestSignals.filter(signal => !['converted', 'closed'].includes(signal.status)).length;
   const topAcquisitionSources = topSources(bookingSignals);
+  // Owner console (2026-11-13): demand and bookings per month, from the same
+  // signals as the totals, so the months add up to Demand Signals and Bookings.
+  const trend = buildDemandTrend(demandSignals);
 
   return res.status(200).json({
     generatedAt: now().toISOString(),
@@ -141,6 +144,7 @@ export function createMarketDemandHandler(dependencies = {}) {
       bookings: 'available',
       requests: requestsResult.warning ? 'unavailable' : 'available',
     },
+    trend,
     summary: {
       activeMarkets: marketRows.filter(market => market.isActiveMarket).length,
       bookingOpenMarkets: marketRows.filter(market => market.isActiveMarket).length,
@@ -259,6 +263,20 @@ async function loadBookingDemand(sb) {
     result = await sb.from('bookings').select(LEGACY_BOOKING_SELECT_WITHOUT_ATTRIBUTION, { count: 'exact' }).order('created_at', { ascending: false }).limit(2000);
   }
   return { data: result.data || [], error: result.error || null, totalCount: result.count ?? null, locationColumnsMissing: !result.error };
+}
+
+/** Demand signals and bookings per Central-time month; undated rows last. */
+export function buildDemandTrend(signals = []) {
+  const months = new Map();
+  for (const signal of signals) {
+    const at = new Date(signal.createdAt || '');
+    const key = Number.isNaN(at.getTime()) ? 'undated' : at.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }).slice(0, 7);
+    const m = months.get(key) || { month: key === 'undated' ? null : key, demandSignals: 0, bookings: 0 };
+    m.demandSignals += 1;
+    if (signal.recordType === 'booking') m.bookings += 1;
+    months.set(key, m);
+  }
+  return [...months.values()].sort((a, b) => (a.month === null) - (b.month === null) || String(a.month).localeCompare(String(b.month)));
 }
 
 function formatBookingSignal(booking) {

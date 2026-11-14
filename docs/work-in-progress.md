@@ -29,7 +29,8 @@ Last verified: 2026-11-13. Active work only; the full prioritized backlog is `bu
 - State: Phase 1 (frame and Bookings) built on branch `feat/owner-dashboard-revamp`, stacked on `docs/pricing-model`; launch suite, 26 browser tests and governance:truth pass locally.
 - Phase 2 (Financials) built: Overview from server figures (`monthly`, `breakdown`, `easerEarnings`); launch suite, 28 browser tests and governance:truth pass locally.
 - Phase 3 (Cases) built; launch suite, 30 browser tests and governance:truth pass locally.
-- Next action: Market Demand, then the remaining screens.
+- Phase 4 (Market Demand) built; launch suite, 31 browser tests and governance:truth pass locally.
+- Next action: the remaining screens (Live Ops, Today, Messages, Easers, Customers, Partners and the rest) onto the same frame.
 
 ## 4. Waiting on the owner
 - Policy decisions 1 to 4 in the audit record.

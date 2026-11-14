@@ -10,7 +10,8 @@ function fn(name) {
   const end = dashboard.indexOf('\n  }', match.index) + '\n  }'.length;
   return dashboard.slice(match.index, end);
 }
-const rendererNames = ['renderMarketDemand','mdCountRows','mdSupplyCount','mdDemandCount','renderMarketSummaryLinks','renderMarketRows','renderMarketRequests','mdMiniMetric','mdStatusPill'];
+// Owner console (2026-11-13): the demand trend and coverage list render from the same snapshot.
+const rendererNames = ['renderMarketDemand','mdCountRows','mdSupplyCount','mdDemandCount','renderMarketSummaryLinks','renderMarketRows','renderMarketRequests','mdMiniMetric','mdStatusPill','renderDemandTrend','renderMarketCoverage','finMonthLabel'];
 const lifecycle = dashboard.slice(dashboard.indexOf('  var _marketDemandTimer ='), dashboard.indexOf('  function mdSetLoading()'));
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const profile = { id:'00000000-0000-4000-8000-000000000001', recordType:'easer', name:'Fixture Easer', status:'active',
