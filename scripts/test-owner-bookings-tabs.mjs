@@ -2,15 +2,19 @@
 // Owner Bookings tabs (owner, 2026-10-18): the list opened on All, which was
 // mostly test and cancelled bookings. It now opens on Active, test bookings
 // sit only under Test, and each tab's count is the length of the list it opens.
+// Owner console (2026-11-13): All Bookings is listed first, as in the owner's
+// design; Active is still the tab that opens. Filters narrow every tab alike.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
 const html = (await readFile(new URL('../owner/index.html', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
 
-const tabs = [...html.slice(html.indexOf('<div class="tabs" id="tabs">'), html.indexOf('</div>', html.indexOf('<div class="tabs" id="tabs">')))
+const tabsAt = html.indexOf('<div class="tabs bk-tabs" id="tabs">');
+assert.ok(tabsAt > 0, 'one tab bar');
+const tabs = [...html.slice(tabsAt, html.indexOf('</div>', tabsAt))
   .matchAll(/<button class="tab( active)?" data-status="([a-z]+)">/g)].map(m => ({ status: m[2], active: !!m[1] }));
-assert.deepEqual(tabs.map(t => t.status), ['active', 'pending', 'confirmed', 'completed', 'cancelled', 'declined', 'all', 'test']);
+assert.deepEqual(tabs.map(t => t.status), ['all', 'active', 'pending', 'confirmed', 'completed', 'cancelled', 'declined', 'test']);
 assert.deepEqual(tabs.filter(t => t.active).map(t => t.status), ['active'], 'Active is the tab that opens first');
 assert.match(html, /let currentStatus = 'active';/, 'the list starts on Active');
 
@@ -21,6 +25,7 @@ assert.ok(start > 0 && end > start, 'the tab filter is one block');
 const ctx = vm.createContext({
   PIPELINE_STATUSES: ['en_route', 'arrived', 'in_progress'],
   isTestBooking: b => !!b && b.is_test_booking === true,
+  bookingFilters: { time: 'all', service: '', area: '' },
   allBookings: [
     { id: 1, status: 'pending' },
     { id: 2, status: 'confirmed' },

@@ -101,7 +101,8 @@ test('The open Today view updates on the next bookings refresh', async ({ page }
 test('Bookings platform-gross tile is Financials\' all-time platform gross', async ({ page }) => {
   await openDashboard(page, base);
   await expect(page.locator('#stat-revenue .stat-value')).toHaveText('$313.00');
-  await expect(page.locator('#stat-revenue .stat-label')).toHaveText('Platform Gross (All Time)');
+  await expect(page.locator('#stat-revenue .stat-label')).toHaveText('Platform Gross');
+  await expect(page.locator('#stat-revenue .kpi-sub')).toHaveText('All time');
 });
 
 test('Customers: repeat and spent come from Financials, not the bookings list', async ({ page }) => {

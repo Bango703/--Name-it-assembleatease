@@ -101,7 +101,7 @@
 <div class="layout hidden" id="layout">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <a href=".">AssembleAtEase</a>
+      <a href="." class="sidebar-brand-link"><img src="/images/favicon.svg" alt="" width="26" height="26" class="sidebar-logo" />AssembleAtEase</a>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Run the day</div>
@@ -163,7 +163,7 @@
         <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open navigation">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
-        <div class="topbar-title">Live Operations</div>
+        <div class="topbar-heading"><div class="topbar-title">Live Operations</div><div class="topbar-sub" id="topbar-sub"></div></div>
       </div>
       <div class="topbar-right">
         <button class="btn" id="export-csv-btn" style="font-size:0.78rem">Financial Report</button>
@@ -449,44 +449,71 @@
       </div>
 
       <div id="bookings-view" style="display:none">
-        <div class="stats-row" id="stats-row">
-          <div class="stat amber" id="stat-pending"><div class="stat-value">—</div><div class="stat-label">Pending</div></div>
-          <div class="stat teal" id="stat-confirmed"><div class="stat-value">—</div><div class="stat-label">Confirmed</div></div>
-          <div class="stat orange" id="stat-completed"><div class="stat-value">—</div><div class="stat-label">Completed</div></div>
-          <div class="stat neutral" id="stat-total"><div class="stat-value">—</div><div class="stat-label">Total</div></div>
-          <div class="stat teal" id="stat-revenue"><div class="stat-value">—</div><div class="stat-label">Recorded Platform Gross</div></div>
+        <div class="kpi-row" id="stats-row">
+          <button type="button" class="kpi stat" id="stat-pending" data-tab="pending" aria-label="Pending: open the list"><span class="kpi-icon kpi-warn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Pending</span><span class="kpi-sub">Awaiting action</span></span></button>
+          <button type="button" class="kpi stat" id="stat-confirmed" data-tab="confirmed" aria-label="Confirmed: open the list"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Confirmed</span><span class="kpi-sub">On schedule</span></span></button>
+          <button type="button" class="kpi stat" id="stat-completed" data-tab="completed" aria-label="Completed: open the list"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="8 12 11 15 16 9"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Completed</span><span class="kpi-sub">Work done</span></span></button>
+          <button type="button" class="kpi stat" id="stat-cancelled" data-tab="cancelled" aria-label="Cancelled: open the list"><span class="kpi-icon kpi-bad"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Cancelled</span><span class="kpi-sub">Called off</span></span></button>
+          <button type="button" class="kpi stat" id="stat-declined" data-tab="declined" aria-label="Declined: open the list"><span class="kpi-icon kpi-info"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Declined</span><span class="kpi-sub">Not accepted</span></span></button>
+          <button type="button" class="kpi stat" id="stat-total" data-tab="all" aria-label="Total Bookings: open the list"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Total Bookings</span><span class="kpi-sub">Tests excluded</span></span></button>
+          <button type="button" class="kpi stat" id="stat-revenue" data-open-view="analytics" aria-label="Platform gross: open Financials"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Platform Gross</span><span class="kpi-sub">All time</span></span></button>
         </div>
 
-        <!-- Search -->
-        <div class="search-bar">
-          <span class="search-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="text" class="search-input" id="booking-search" placeholder="Search by ref, name, email, service, or address..." />
-          <button class="search-clear" id="search-clear" onclick="clearSearch()">&#10005;</button>
+        <div class="bk-toolbar">
+          <div class="tabs bk-tabs" id="tabs">
+            <button class="tab" data-status="all">All Bookings</button>
+            <button class="tab active" data-status="active">Active</button>
+            <button class="tab" data-status="pending">Pending</button>
+            <button class="tab" data-status="confirmed">Confirmed</button>
+            <button class="tab" data-status="completed">Completed</button>
+            <button class="tab" data-status="cancelled">Cancelled</button>
+            <button class="tab" data-status="declined">Declined</button>
+            <button class="tab" data-status="test">Test</button>
+          </div>
+          <div class="bk-filters">
+            <label class="bk-filter"><span class="sr-only">Date</span>
+              <select id="bk-filter-time" aria-label="Date">
+                <option value="all">All time</option>
+                <option value="today">Today</option>
+                <option value="next7">Next 7 days</option>
+                <option value="last30">Last 30 days</option>
+                <option value="month">This month</option>
+              </select></label>
+            <label class="bk-filter"><span class="sr-only">Service</span><select id="bk-filter-service" aria-label="Service"><option value="">All services</option></select></label>
+            <label class="bk-filter"><span class="sr-only">Area</span><select id="bk-filter-area" aria-label="Area"><option value="">All areas</option></select></label>
+            <div class="search-bar bk-search">
+              <span class="search-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+              <input type="text" class="search-input" id="booking-search" placeholder="Search ref, name, email, service or address" />
+              <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Clear search">&#10005;</button>
+            </div>
+          </div>
         </div>
 
-        <div class="tabs" id="tabs">
-          <button class="tab active" data-status="active">Active</button>
-          <button class="tab" data-status="pending">Pending</button>
-          <button class="tab" data-status="confirmed">Confirmed</button>
-          <button class="tab" data-status="completed">Completed</button>
-          <button class="tab" data-status="cancelled">Cancelled</button>
-          <button class="tab" data-status="declined">Declined</button>
-          <button class="tab" data-status="all">All</button>
-          <button class="tab" data-status="test">Test</button>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem" class="content-grid">
-          <div>
-            <div id="bookings-list"></div>
+        <div class="content-grid bk-split">
+          <div class="bk-list-card">
+            <div class="bk-list-head" aria-hidden="true"><span>Customer / Service</span><span>Date &amp; Time</span><span>Status</span><span>Amount</span></div>
+            <div id="bookings-list" class="bk-list"></div>
+            <div class="bk-pager" id="bookings-pager"></div>
           </div>
           <div>
             <div class="detail-panel" id="detail-panel">
               <div class="detail-header">
-                <h2 id="detail-ref">—</h2>
+                <div class="dp-head-left"><h2 id="detail-ref">—</h2><div class="dp-head-meta" id="dp-head-meta"></div></div>
                 <button class="detail-close" id="detail-close">&times;</button>
               </div>
+              <!-- Tabs -->
+              <div class="detail-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
+                <button class="detail-tab active" data-tab="overview" onclick="switchDetailTab('overview',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:600;color:var(--teal);border-bottom:2px solid var(--teal);cursor:pointer;margin-bottom:-1px">Overview</button>
+                <button class="detail-tab" data-tab="messages" onclick="switchDetailTab('messages',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:600;color:var(--teal);border-bottom:2px solid var(--teal);cursor:pointer;margin-bottom:-1px">Messages</button>
+                <button class="detail-tab" id="detail-dispatch-tab" data-tab="dispatch" onclick="switchDetailTab('dispatch',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Dispatch</button>
+                <button class="detail-tab" data-tab="timeline" onclick="switchDetailTab('timeline',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Timeline</button>
+                <button class="detail-tab" data-tab="notes" onclick="switchDetailTab('notes',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Notes</button>
+                <button class="detail-tab" data-tab="evidence" onclick="switchDetailTab('evidence',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Evidence<span id="evidence-tab-count" style="margin-left:3px;font-size:0.72rem;opacity:0.9"></span></button>
+              </div>
+
+              <div id="tab-overview">
+                <div class="dp-stepper" id="dp-stepper"></div>
               <div class="detail-grid" id="detail-grid"></div>
-              <div class="detail-actions" id="detail-actions"></div>
               <div id="evidence-warning-bar" style="display:none;margin-bottom:1rem;padding:0.65rem 0.875rem;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;font-size:0.8rem;color:#92400e"></div>
               <div id="assign-section" style="display:none;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
                 <div class="detail-section-title">Easer Assignment</div>
@@ -511,14 +538,9 @@
                 <div class="detail-section-title">Easer Accountability</div>
                 <div id="easer-issue-body" style="font-size:0.82rem;color:var(--soft)"></div>
               </div>
-              <!-- Tabs -->
-              <div class="detail-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
-                <button class="detail-tab active" data-tab="messages" onclick="switchDetailTab('messages',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:600;color:var(--teal);border-bottom:2px solid var(--teal);cursor:pointer;margin-bottom:-1px">Messages</button>
-                <button class="detail-tab" id="detail-dispatch-tab" data-tab="dispatch" onclick="switchDetailTab('dispatch',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Dispatch</button>
-                <button class="detail-tab" data-tab="timeline" onclick="switchDetailTab('timeline',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Timeline</button>
-                <button class="detail-tab" data-tab="notes" onclick="switchDetailTab('notes',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Notes</button>
-                <button class="detail-tab" data-tab="evidence" onclick="switchDetailTab('evidence',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Evidence<span id="evidence-tab-count" style="margin-left:3px;font-size:0.72rem;opacity:0.9"></span></button>
+              <div class="detail-actions" id="detail-actions"></div>
               </div>
+
 
               <!-- Messages tab -->
               <div id="tab-messages">
@@ -2076,6 +2098,13 @@ window.intelQuick = intelQuick;
   let _currentMessages = [];
   let currentStatus = 'active';
   let searchQuery = '';
+  // Bookings filters and page (owner console, 2026-11-13). Counts, cards and
+  // the list all read bookingsForTab, so a number is always the length of the
+  // list it opens, with the same filters applied.
+  var bookingFilters = { time: 'all', service: '', area: '' };
+  var bookingPage = 1;
+  var BOOKING_PAGE_SIZE = 10;
+  var bookingFocusSelected = false;
   let siteChatConversations = [];
   let selectedSiteChatId = null;
   var _evidenceCache = {}; // { [bookingId]: { evidence, total, loading, error } }
@@ -3331,6 +3360,7 @@ window.intelQuick = intelQuick;
   // ─── Search ───
   document.getElementById('booking-search').addEventListener('input', function() {
     searchQuery = this.value.trim().toLowerCase();
+    bookingPage = 1;
     var clearBtn = document.getElementById('search-clear');
     clearBtn.classList.toggle('show', searchQuery.length > 0);
     renderList();
@@ -3400,7 +3430,7 @@ window.intelQuick = intelQuick;
     var revenueLabel = document.querySelector('#stat-revenue .stat-label');
     if (!revenueEl) return;
     var d = await loadAllTimeFinance(false);
-    if (revenueLabel) revenueLabel.textContent = 'Platform Gross (All Time)';
+    if (revenueLabel) revenueLabel.textContent = 'Platform Gross';
     if (!d || !d.summary) {
       revenueEl.textContent = '—';
       revenueEl.title = 'Financials could not be loaded, so this is unknown, not zero.';
@@ -3411,25 +3441,26 @@ window.intelQuick = intelQuick;
   }
 
   function updateStats() {
-    const counts = { pending: 0, confirmed: 0, completed: 0 };
-    realBookings().forEach(function(b) {
-      // Count pipeline statuses as Confirmed — they are active/accepted jobs
-      var cat = PIPELINE_STATUSES.includes(b.status) ? 'confirmed' : b.status;
-      if (counts[cat] !== undefined) counts[cat]++;
-    });
+    // Each card is the length of the list its tab opens (bookingsForTab).
+    var counts = {};
+    ['pending', 'confirmed', 'completed', 'cancelled', 'declined', 'all'].forEach(function(tab) { counts[tab] = bookingsForTab(tab).length; });
     document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
     document.querySelector('#stat-confirmed .stat-value').textContent = counts.confirmed;
     document.querySelector('#stat-completed .stat-value').textContent = counts.completed;
-    var realCount = realBookings().length;
-    var testCount = allBookings.length - realCount;
+    document.querySelector('#stat-cancelled .stat-value').textContent = counts.cancelled;
+    document.querySelector('#stat-declined .stat-value').textContent = counts.declined;
+    var realCount = counts.all;
+    var testCount = bookingsForTab('test').length;
     var totalEl = document.querySelector('#stat-total .stat-value');
     totalEl.textContent = realCount;
+    paintBookingFilterOptions();
     totalEl.title = testCount > 0
       ? testCount + ' test booking' + (testCount === 1 ? '' : 's') + ' excluded from every figure on this board.'
       : '';
     paintPlatformGrossTile();
     var $navP = document.getElementById('nav-pending');
-    if (counts.pending > 0) { $navP.textContent = counts.pending; $navP.style.display = ''; }
+    var pendingAll = realBookings().filter(function(b){ return b.status === 'pending'; }).length;
+    if (pendingAll > 0) { $navP.textContent = pendingAll; $navP.style.display = ''; }
     else $navP.style.display = 'none';
     var unreadMessages = allBookings.reduce(function(total, booking) {
       return total + Number(booking.unread_message_count || 0);
@@ -3453,13 +3484,51 @@ window.intelQuick = intelQuick;
     });
   }
 
+  function openBookingTab(status) {
+    document.querySelectorAll('#tabs .tab').forEach(function(t){ t.classList.toggle('active', t.dataset.status === status); });
+    currentStatus = status;
+    bookingPage = 1;
+    renderList();
+  }
   document.getElementById('tabs').addEventListener('click', function(e) {
     var tab = e.target.closest('.tab');
     if (!tab) return;
-    document.querySelectorAll('#tabs .tab').forEach(function(t){t.classList.remove('active')});
-    tab.classList.add('active');
-    currentStatus = tab.dataset.status;
-    renderList();
+    openBookingTab(tab.dataset.status);
+  });
+  document.getElementById('stats-row').addEventListener('click', function(e) {
+    var card = e.target.closest('.kpi');
+    if (!card) return;
+    if (card.dataset.openView) {
+      var link = document.querySelector('.sidebar-nav a[data-view="' + card.dataset.openView + '"]');
+      if (link) link.click();
+      return;
+    }
+    if (card.dataset.tab) openBookingTab(card.dataset.tab);
+  });
+
+  // Filter choices come from the bookings themselves, so none is ever empty.
+  function paintBookingFilterOptions() {
+    var fill = function(id, values, first) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var current = el.value;
+      var html = '<option value="">' + first + '</option>' + values.map(function(v) { return '<option value="' + esc(v) + '"' + (v === current ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('');
+      if (el.innerHTML !== html) el.innerHTML = html;
+    };
+    var real = allBookings.filter(function(b){ return !isTestBooking(b); });
+    var uniq = function(list) { return list.filter(function(v, i) { return v && list.indexOf(v) === i; }).sort(); };
+    fill('bk-filter-service', uniq(real.map(function(b){ return String(b.service || ''); })), 'All services');
+    fill('bk-filter-area', uniq(real.map(bookingArea)), 'All areas');
+  }
+  [['bk-filter-time', 'time'], ['bk-filter-service', 'service'], ['bk-filter-area', 'area']].forEach(function(pair) {
+    var el = document.getElementById(pair[0]);
+    if (!el) return;
+    el.addEventListener('change', function() {
+      bookingFilters[pair[1]] = this.value || (pair[1] === 'time' ? 'all' : '');
+      bookingPage = 1;
+      updateStats();
+      renderList();
+    });
   });
 
   // ─── PDF Financial Report ───
@@ -3625,9 +3694,27 @@ window.intelQuick = intelQuick;
   // live only under Test, so no other tab, All included, mixes them in.
   var ACTIVE_BOOKING_TAB_STATUSES = ['pending', 'confirmed'].concat(PIPELINE_STATUSES);
   var BOOKING_TAB_LABELS = { active: 'active', pending: 'pending', confirmed: 'confirmed', completed: 'completed', cancelled: 'cancelled', declined: 'declined', all: '', test: 'test' };
+  function bookingArea(b) {
+    return String(b.service_city || '').trim() || 'Unknown area';
+  }
+  function bookingMatchesFilters(b) {
+    if (bookingFilters.service && String(b.service || '') !== bookingFilters.service) return false;
+    if (bookingFilters.area && bookingArea(b) !== bookingFilters.area) return false;
+    if (bookingFilters.time !== 'all') {
+      var d = String(b.date || '').slice(0, 10);
+      if (!d) return false;
+      var today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+      var shift = function(days) { var t = new Date(today + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + days); return t.toISOString().slice(0, 10); };
+      if (bookingFilters.time === 'today' && d !== today) return false;
+      if (bookingFilters.time === 'next7' && (d < today || d > shift(7))) return false;
+      if (bookingFilters.time === 'last30' && (d < shift(-30) || d > today)) return false;
+      if (bookingFilters.time === 'month' && d.slice(0, 7) !== today.slice(0, 7)) return false;
+    }
+    return true;
+  }
   function bookingsForTab(tab) {
-    if (tab === 'test') return allBookings.filter(isTestBooking);
-    var real = allBookings.filter(function(b){ return !isTestBooking(b); });
+    if (tab === 'test') return allBookings.filter(function(b){ return isTestBooking(b) && bookingMatchesFilters(b); });
+    var real = allBookings.filter(function(b){ return !isTestBooking(b) && bookingMatchesFilters(b); });
     if (tab === 'all') return real;
     if (tab === 'active') {
       return real.filter(function(b){
@@ -3652,12 +3739,31 @@ window.intelQuick = intelQuick;
           || (b.customer_phone && b.customer_phone.toLowerCase().includes(q));
       });
     }
+    var $pager = document.getElementById('bookings-pager');
     if (!filtered.length) {
+      if ($pager) $pager.innerHTML = '';
       $list.innerHTML = searchQuery
         ?
          '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="empty-state-title">No results</div><div class="empty-state-desc">No bookings match &ldquo;' + esc(searchQuery) + '&rdquo;</div></div>'
         : '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-state-title">No ' + (BOOKING_TAB_LABELS[currentStatus] ? BOOKING_TAB_LABELS[currentStatus] + ' ' : '') + 'bookings</div><div class="empty-state-desc">New bookings will appear here as customers submit requests.</div></div>';
       return;
+    }
+    var totalRows = filtered.length;
+    var pages = Math.max(1, Math.ceil(totalRows / BOOKING_PAGE_SIZE));
+    // An opened booking is shown on the page that holds it.
+    var selectedIndex = selectedId ? filtered.findIndex(function(b){ return b.id === selectedId; }) : -1;
+    if (bookingFocusSelected && selectedIndex >= 0) bookingPage = Math.floor(selectedIndex / BOOKING_PAGE_SIZE) + 1;
+    bookingFocusSelected = false;
+    bookingPage = Math.min(Math.max(1, bookingPage), pages);
+    var firstRow = (bookingPage - 1) * BOOKING_PAGE_SIZE;
+    filtered = filtered.slice(firstRow, firstRow + BOOKING_PAGE_SIZE);
+    if ($pager) {
+      var pageButtons = '';
+      var lo = Math.max(1, Math.min(bookingPage - 2, pages - 4)), hi = Math.min(pages, lo + 4);
+      for (var pg = lo; pg <= hi; pg++) pageButtons += '<button type="button" class="bk-page' + (pg === bookingPage ? ' active' : '') + '" data-page="' + pg + '"' + (pg === bookingPage ? ' aria-current="page"' : '') + '>' + pg + '</button>';
+      $pager.innerHTML = '<span class="bk-pager-count">Showing ' + (firstRow + 1) + '&ndash;' + (firstRow + filtered.length) + ' of ' + totalRows + ' booking' + (totalRows === 1 ? '' : 's') + '</span>'
+        + (pages > 1 ? '<span class="bk-pages"><button type="button" class="bk-page" data-page="' + (bookingPage - 1) + '"' + (bookingPage === 1 ? ' disabled' : '') + ' aria-label="Previous page">&lsaquo;</button>' + pageButtons
+          + '<button type="button" class="bk-page" data-page="' + (bookingPage + 1) + '"' + (bookingPage === pages ? ' disabled' : '') + ' aria-label="Next page">&rsaquo;</button></span>' : '');
     }
     $list.innerHTML = filtered.map(function(b) {
       var msgCount = 0;
@@ -3683,21 +3789,29 @@ window.intelQuick = intelQuick;
         + (b.needs_manual_dispatch && !b.assembler_id && !isTerminalBooking(b) ? '<span class="c-flag-bad">Needs manual assignment</span>' : '')
         + (msgCount ? '<span class="c-sub" style="margin:0">' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '');
       var whenPrefix = b.return_visit_required ? 'Return: ' : (b.return_visit_completed_at ? 'Return completed: ' : '');
-      return '<div class="booking-card c-brow' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '">'
-        + '<div class="c-brow-main">'
+      var initials = String(b.customer_name || 'Customer').trim().split(/\s+/).slice(0, 2).map(function(w){ return w.charAt(0).toUpperCase(); }).join('');
+      return '<div class="booking-card c-brow bk-row' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '">'
+        + '<div class="c-brow-main bk-who"><span class="bk-avatar" aria-hidden="true">' + esc(initials) + '</span><div class="bk-who-text">'
           + '<div class="c-brow-name">' + esc(b.customer_name || 'Customer') + '</div>'
           + '<span class="c-sub">' + esc(cardQuoteStage ? quoteServiceLabel(b) : (b.service || '—')) + '</span>'
           + (flags ? '<div class="c-brow-flags">' + flags + '</div>' : '')
-        + '</div>'
+        + '</div></div>'
         + '<div class="c-brow-when">' + whenPrefix + formatDate(cardDate)
           + (cardTime ? '<span class="c-sub">' + esc(cardTime) + '</span>' : '')
           + '<span class="c-sub c-mono">' + esc(b.ref) + '</span>'
         + '</div>'
-        + '<div class="c-brow-status">' + bookingBadge(b) + (cardMoney ? '<span class="c-sub" style="margin:0">' + cardMoney + '</span>' : '') + '</div>'
+        + '<div class="c-brow-status">' + bookingBadge(b) + '</div>'
+        + '<div class="bk-amount">' + (cardMoney || '&mdash;') + '</div>'
         + '</div>';
     }).join('');
   }
 
+  document.getElementById('bookings-pager').addEventListener('click', function(e) {
+    var btn = e.target.closest('.bk-page');
+    if (!btn || btn.disabled) return;
+    bookingPage = Number(btn.dataset.page) || 1;
+    renderList();
+  });
   $list.addEventListener('click', function(e) {
     var card = e.target.closest('.booking-card');
     if (!card) return;
@@ -3771,6 +3885,7 @@ window.intelQuick = intelQuick;
           + (b.customer_terms_version ? '<br><span style="font-size:0.72rem;color:var(--muted)">Terms ' + esc(b.customer_terms_version) + (b.customer_privacy_notice_version ? ' &bull; Privacy ' + esc(b.customer_privacy_notice_version) : '') + '</span>' : '')
         : '<span style="color:var(--amber)">No versioned acceptance record for this historical booking</span>');
     var quoteStage = quoteLane(b);
+    $detailGrid.classList.remove('dg-grouped');
     $detailGrid.innerHTML = quoteStage ? renderQuoteDetailGrid(b, quoteStage, customerAgreement) : [
       field('Customer', esc(b.customer_name || '—')),
       field('Email', b.customer_email ? '<a href="mailto:'+esc(b.customer_email)+'" style="color:var(--teal);text-decoration:none">'+esc(b.customer_email)+'</a>' : '—'),
@@ -3886,6 +4001,9 @@ window.intelQuick = intelQuick;
       b.status === 'declined' && b.decline_reason ? field('Decline Reason', esc(b.decline_reason) + (b.declined_at ? '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(formatDateTime(b.declined_at)) + '</span>' : '')) : '',
       field('Created', formatDateTime(b.created_at)),
     ].join('');
+    renderRecordHead(b, quoteStage);
+    renderStatusStepper(b);
+    if (!quoteStage) groupDetailFields();
     renderActions(b);
     renderAssignSection(b);
     renderEaserIssueSection(b);
@@ -3905,8 +4023,8 @@ window.intelQuick = intelQuick;
     applyMsgTarget('customer');
     // Notes handled by Notes tab (api/booking/notes.js)
     loadMessages(b.id);
-    // Reset to messages tab on new booking select
-    switchDetailTab('messages', document.querySelector('[data-tab="messages"]'));
+    // A newly opened booking starts on its overview.
+    switchDetailTab('overview', document.querySelector('.detail-tab[data-tab="overview"]'));
     // Pre-load timeline and notes in background
     loadTimeline(b.id);
     loadNotes(b.id);
@@ -3918,12 +4036,96 @@ window.intelQuick = intelQuick;
     if (b.status === 'completed') loadEvidence(b.id);
   }
 
+
+  // ── Record layout (owner console, 2026-11-13) ─────────────────────────────
+  // The fields above keep every rule they had; these only arrange them. Each
+  // field goes to one card by its label, so nothing is shown twice, and a
+  // field no card claims still shows under "More".
+  var RECORD_CARDS = [
+    { key: 'customer', title: 'Customer', labels: ['Customer', 'Email', 'Phone', 'Address', 'Customer Agreement', 'Lead Source', 'Source', 'Rebooked From', 'Created'] },
+    { key: 'money', title: 'Financial Summary', labels: ['Service Subtotal', 'Sales Tax', 'Original Customer Total', 'Documented Discount', 'Adjusted Customer Total', 'Customer Total', 'Paid by Gift Card', 'Card Total', 'Gross Customer Payments', 'Net Payments Retained', 'Total Charged', 'Remaining Balance', 'Refunds', 'Processing Fee', 'Platform Fee', 'Easer Earnings', 'Bonus Pay', 'Reimbursement', 'Platform Gross', 'Payment', 'Payment Method', 'Easer Payout', 'Total With Approved Extras'] },
+    { key: 'easer', title: 'Assigned Easer', labels: ['Easer'] },
+    { key: 'job', title: 'Job Details', labels: ['Service', 'Date', 'Open Return Visit', 'Return Visit Completed', 'First-Visit Work', 'Work Remaining', 'Items & Add-ons', 'Additional Work (Change Orders)', 'Details', 'Decline Reason'] },
+  ];
+  function groupDetailFields() {
+    var grid = $detailGrid;
+    var byLabel = {};
+    RECORD_CARDS.forEach(function(card) { card.labels.forEach(function(l) { byLabel[l] = card.key; }); });
+    var bodies = {};
+    var order = RECORD_CARDS.map(function(c) { return c.key; }).concat(['more']);
+    order.forEach(function(k) { bodies[k] = []; });
+    var last = 'customer';
+    Array.prototype.slice.call(grid.children).forEach(function(el) {
+      var labelEl = el.querySelector(':scope > label');
+      var label = labelEl ? labelEl.textContent.trim() : '';
+      // Shown once, in the record header.
+      if (label === 'Status' || label === 'Customer' || label === 'Service' || label === 'Date') return;
+      var key = label ? (byLabel[label] || 'more') : last;
+      if (label) last = key;
+      bodies[key].push(el);
+    });
+    grid.innerHTML = '';
+    grid.classList.add('dg-grouped');
+    order.forEach(function(key) {
+      if (!bodies[key].length) return;
+      var meta = RECORD_CARDS.filter(function(c) { return c.key === key; })[0];
+      var card = document.createElement('section');
+      card.className = 'dg-card dg-' + key;
+      card.innerHTML = '<h3 class="dg-card-title">' + (meta ? meta.title : 'More') + '</h3>';
+      var body = document.createElement('div');
+      body.className = 'dg-card-body';
+      bodies[key].forEach(function(el) { body.appendChild(el); });
+      card.appendChild(body);
+      grid.appendChild(card);
+    });
+  }
+
+  // Header: who and what, the status and payment chips, the appointment.
+  function renderRecordHead(b, quoteStage) {
+    var el = document.getElementById('dp-head-meta');
+    if (!el) return;
+    var when = b.date ? formatDate(b.date) + (b.time ? ', ' + esc(b.time) : '') : '';
+    el.innerHTML = '<div class="dp-who"><strong>' + esc(b.customer_name || 'Customer') + '</strong>'
+      + '<span>' + esc(quoteStage ? quoteServiceLabel(b) : (b.service || '')) + '</span></div>'
+      + '<div class="dp-chips">' + (isTestBooking(b) ? '<span class="c-tag">Test booking</span>' : '')
+      + bookingBadge(b) + (b.payment_status ? ' ' + paymentBadge(isQuoteAwaitingCard(b) ? 'quote_no_card' : b.payment_status) : '')
+      + (when ? '<span class="dp-when">' + when + '</span>' : '') + '</div>';
+  }
+
+  // Status line from the dates the booking records. A step with no recorded
+  // date but reached by status says so; nothing is assumed.
+  function renderStatusStepper(b) {
+    var el = document.getElementById('dp-stepper');
+    if (!el) return;
+    var reached = function(statuses) { return statuses.indexOf(b.status) !== -1; };
+    var steps = [
+      { label: 'Created', at: b.created_at, done: true },
+      { label: 'Confirmed', at: b.confirmed_at || b.payment_authorized_at, done: !!(b.confirmed_at || b.payment_authorized_at) || reached(['confirmed', 'en_route', 'arrived', 'in_progress', 'completed']) },
+      { label: 'Completed', at: b.completed_at, done: !!b.completed_at || b.status === 'completed' },
+      { label: 'Charged', at: b.payment_captured_at, done: !!b.payment_captured_at || b.payment_status === 'captured' },
+    ];
+    var stop = b.status === 'cancelled' ? { label: 'Cancelled', at: b.cancelled_at }
+      : b.status === 'declined' ? { label: 'Declined', at: b.declined_at } : null;
+    if (stop) {
+      var firstOpen = steps.findIndex(function(st) { return !st.done; });
+      if (firstOpen === -1) firstOpen = steps.length;
+      steps = steps.slice(0, firstOpen).concat([{ label: stop.label, at: stop.at, done: true, stop: true }]).concat(steps.slice(firstOpen).map(function(st) { return Object.assign({}, st, { skipped: true }); }));
+    }
+    el.innerHTML = '<ol class="dp-steps" aria-label="Booking progress">' + steps.map(function(st) {
+      var cls = st.stop ? 'stop' : (st.done ? 'done' : (st.skipped ? 'skipped' : 'todo'));
+      var date = st.at ? formatDateTime(st.at) : (st.done && !st.stop ? 'Date not recorded' : '');
+      return '<li class="dp-step ' + cls + '"><span class="dp-dot" aria-hidden="true">' + (st.stop ? '&times;' : (st.done ? '&#10003;' : '')) + '</span>'
+        + '<span class="dp-step-label">' + esc(st.label) + '</span><span class="dp-step-date">' + esc(date) + '</span></li>';
+    }).join('') + '</ol>';
+  }
+
   function switchDetailTab(tab, el) {
     document.querySelectorAll('.detail-tab').forEach(function(t) {
       t.style.color = 'var(--muted)';
       t.style.borderBottom = 'none';
     });
     if (el) { el.style.color = 'var(--teal)'; el.style.borderBottom = '2px solid var(--teal)'; }
+    document.getElementById('tab-overview').style.display = tab === 'overview' ? '' : 'none';
     document.getElementById('tab-messages').style.display = tab === 'messages' ? '' : 'none';
     document.getElementById('tab-dispatch').style.display = tab === 'dispatch' ? '' : 'none';
     document.getElementById('tab-timeline').style.display = tab === 'timeline' ? '' : 'none';
@@ -8738,7 +8940,33 @@ window.intelQuick = intelQuick;
   var _badgesTimer = null;
   var _bookingsLoadPromise = null;
 
+  var VIEW_SUBTITLES = {
+    liveops: 'What needs you now, the jobs in motion and the Easers on shift.',
+    today: 'Every job on today\'s schedule.',
+    bookings: 'Manage bookings, dispatch and service across AssembleAtEase.',
+    messages: 'Customer and Easer conversations, newest first.',
+    cases: 'Support, quality, safety, payment and damage follow-up with a permanent timeline.',
+    'voice-calls': 'Calls to the business line and what happened on each.',
+    assemblers: 'Applications, readiness and the Easer roster.',
+    waitlist: 'People waiting for an Easer spot in their area.',
+    analytics: 'Revenue, payouts, fees and profitability for AssembleAtEase.',
+    customers: 'Everyone who has booked, with their history.',
+    partners: 'Partner leads, accounts and the bookings they bring.',
+    giftcards: 'Gift cards and the Move-In Pass.',
+    'market-demand': 'Where demand comes from, how each channel performs, and coverage by market.',
+    thumbtack: 'Thumbtack leads and where each one stands.',
+    reviews: 'What customers said about finished jobs.',
+    'website-photos': 'Photos shown on the public website.',
+    marketing: 'Campaigns, tracking and content.',
+    intelligence: 'Website chat conversations and AI alerts.'
+  };
+  function setTopbarSub(view) {
+    var el = document.getElementById('topbar-sub');
+    if (el) el.textContent = VIEW_SUBTITLES[view] || '';
+  }
+  setTopbarSub('liveops');
   function syncPrimaryOwnerAction(view) {
+    setTopbarSub(view);
     if (!$newBookingBtn) return;
     var show = view === 'bookings' || view === 'customers';
     $newBookingBtn.style.display = show ? '' : 'none';
@@ -9164,6 +9392,7 @@ window.intelQuick = intelQuick;
       hideAllViews();
       $bookingsView.style.display = '';
       $topbarTitle.textContent = 'Bookings';
+      setTopbarSub('bookings');
       stopLiveOps();
       var bookingOpened = await window.openPayoutBooking(bookingId, 'booking');
       if (bookingOpened && action === 'review_damage_evidence') {
@@ -10904,8 +11133,11 @@ window.intelQuick = intelQuick;
         if (existingIndex >= 0) allBookings[existingIndex] = booking;
         else allBookings.unshift(booking);
       }
-      // Open the tab that actually holds this booking.
+      // Open the tab that actually holds this booking, unfiltered, on its page.
       currentStatus = isTestBooking(booking) ? 'test' : 'all';
+      bookingFilters = { time: 'all', service: '', area: '' };
+      ['bk-filter-time', 'bk-filter-service', 'bk-filter-area'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = id === 'bk-filter-time' ? 'all' : ''; });
+      bookingFocusSelected = true;
       searchQuery = '';
       var search = document.getElementById('booking-search');
       if (search) search.value = '';
@@ -11197,6 +11429,7 @@ window.intelQuick = intelQuick;
     hideAllViews();
     $bookingsView.style.display = '';
     $topbarTitle.textContent = 'Bookings';
+    setTopbarSub('bookings');
     stopLiveOps();
     var opened = await window.openPayoutBooking(bookingId, 'booking');
     if (opened && tabName === 'evidence') {

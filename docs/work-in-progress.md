@@ -24,6 +24,11 @@ Last verified: 2026-11-13. Active work only; the full prioritized backlog is `bu
 - State: owner approved section 4 on 2026-11-13. Stepped fee, card processing in the price, owner fee control, profit floor and quote record built on branch `docs/pricing-model` behind `QUOTE_FEE_SCHEDULE=stepped`; migration 131 written and tested locally, not applied.
 - Next action: owner approves running migration 131 (after comparing the two functions with the production definitions), merge, set `QUOTE_FEE_SCHEDULE=stepped` in Vercel, send one real quote. Then the price-per-person-hour flag, the "Price is too high" re-quote and the AI quote advisor.
 
+## 3b. Owner console revamp
+- Objective: owner, 2026-11-13: the owner dashboard like the four reference images, fully working, nothing broken.
+- State: Phase 1 (frame and Bookings) built on branch `feat/owner-dashboard-revamp`, stacked on `docs/pricing-model`; launch suite, 26 browser tests and governance:truth pass locally.
+- Next action: Financials (charts and tables from `api/owner/financial-dashboard.js`, only server figures), then Cases, Market Demand and the remaining screens.
+
 ## 4. Waiting on the owner
 - Policy decisions 1 to 4 in the audit record.
 - Checkr account, package choice, API key and webhook secret, before the background-check integration is built.

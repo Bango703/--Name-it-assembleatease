@@ -36,9 +36,11 @@ for (const id of ['nav-liveops-alerts', 'nav-inbox', 'nav-cases']) {
 const labels = [...html.matchAll(/<div class="sidebar-label">([^<]+)<\/div>/g)].map(m => m[1]);
 assert.deepEqual(labels, ['Run the day', 'Inbox', 'Easers', 'Money', 'Growth', 'Tools']);
 
-// Bookings: every row on one fixed three-column grid.
-assert.match(css, /\.booking-card\.c-brow \{[^}]*grid-template-columns: minmax\(0, 1fr\) 132px 124px/, 'booking rows share fixed columns');
-assert.match(html, /'<div class="booking-card c-brow'/, 'the list renders console rows');
+// Bookings (owner console v2, 2026-11-13): the column header and every row
+// share one fixed four-column rule, so each column sits at the same x.
+assert.match(css, /\.bk-list-head, \.bk-row\.c-brow \{[^}]*grid-template-columns: minmax\(0, 1fr\) 128px 118px 96px/, 'header and booking rows share fixed columns');
+assert.match(html, /'<div class="booking-card c-brow bk-row'/, 'the list renders console rows');
+assert.match(html, /<div class="bk-list-head" aria-hidden="true"><span>Customer \/ Service<\/span><span>Date &amp; Time<\/span><span>Status<\/span><span>Amount<\/span><\/div>/, 'one header row names the four columns');
 
 // Booking record: notices are one Notes box, not a stack of colored boxes.
 assert.match(html, /var blocks = notices\.length \? \['<div class="c-notes">'/, 'notices render as one Notes box');
