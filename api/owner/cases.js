@@ -14,6 +14,40 @@ import {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACTIVE_STATUSES = new Set(['open', 'acknowledged', 'in_progress', 'waiting_customer', 'waiting_easer']);
+
+// Owner console (2026-11-13): the case tabs. One rule per view decides both
+// its count and its list, so a tab's number is the length of the list it opens.
+export const CASE_VIEWS = Object.freeze({
+  all: () => true,
+  active: (row) => ACTIVE_STATUSES.has(row.status),
+  new: (row) => row.status === 'open',
+  high_priority: (row) => ACTIVE_STATUSES.has(row.status) && (row.severity === 'high' || row.severity === 'critical'),
+  waiting: (row) => row.status === 'waiting_customer' || row.status === 'waiting_easer',
+  resolved: (row) => row.status === 'resolved' || row.status === 'closed',
+});
+
+export function countCaseViews(rows = []) {
+  const out = {};
+  for (const [key, test] of Object.entries(CASE_VIEWS)) out[key] = rows.filter(test).length;
+  return out;
+}
+
+/** Cases finished in the last 30 days and the average hours from opening to finish. */
+export function caseResolutionStats(rows = [], now = Date.now()) {
+  const since = now - 30 * 86400000;
+  const finished = rows.filter((row) => {
+    const at = Date.parse(row.resolved_at || row.closed_at || '');
+    return CASE_VIEWS.resolved(row) && Number.isFinite(at) && at >= since && at <= now;
+  });
+  const hours = finished
+    .map((row) => (Date.parse(row.resolved_at || row.closed_at) - Date.parse(row.created_at)) / 3600000)
+    .filter((h) => Number.isFinite(h) && h >= 0);
+  const total = hours.reduce((sum, h) => sum + h, 0);
+  return {
+    resolvedLast30Days: finished.length,
+    avgHoursToResolve: hours.length ? Math.round((total / hours.length) * 10) / 10 : null,
+  };
+}
 const CASE_SELECT = [
   'id', 'case_ref', 'case_type', 'source', 'source_ref', 'status', 'severity',
   'subject', 'description', 'booking_id', 'customer_name', 'customer_email',
@@ -36,12 +70,16 @@ export default async function handler(req, res) {
 
 async function loadCaseList({ sb, res, query }) {
   const statusFilter = normalize(query.status);
+  const viewFilter = normalize(query.view);
   const typeFilter = normalize(query.caseType);
   const severityFilter = normalize(query.severity);
   const includeTest = ['1', 'true', 'yes'].includes(normalize(query.includeTest));
 
   if (statusFilter && statusFilter !== 'active' && statusFilter !== 'all' && !isOperationCaseStatus(statusFilter)) {
     return res.status(400).json({ error: 'Invalid case status filter' });
+  }
+  if (viewFilter && !Object.prototype.hasOwnProperty.call(CASE_VIEWS, viewFilter)) {
+    return res.status(400).json({ error: 'Invalid case view' });
   }
   if (typeFilter && typeFilter !== 'all' && !isOperationCaseType(typeFilter)) {
     return res.status(400).json({ error: 'Invalid case type filter' });
@@ -67,7 +105,14 @@ async function loadCaseList({ sb, res, query }) {
   // Hidden from the list AND the summary: the nav badge and stat tiles read
   // the summary, so hiding only the list would print "3 open" above a list of one.
   const { visible: visibleCases, hiddenTestCases } = visibleOperationCases(allCases, bookingMap, { includeTest });
+  // Type and priority narrow every tab alike; the tab counts follow them.
+  const narrowed = visibleCases.filter((row) => {
+    if (typeFilter && typeFilter !== 'all' && row.case_type !== typeFilter) return false;
+    if (severityFilter && severityFilter !== 'all' && row.severity !== severityFilter) return false;
+    return true;
+  });
   const filtered = visibleCases.filter((row) => {
+    if (viewFilter && !CASE_VIEWS[viewFilter](row)) return false;
     if (statusFilter === 'active' && !ACTIVE_STATUSES.has(row.status)) return false;
     if (statusFilter && statusFilter !== 'active' && statusFilter !== 'all' && row.status !== statusFilter) return false;
     if (typeFilter && typeFilter !== 'all' && row.case_type !== typeFilter) return false;
@@ -77,8 +122,10 @@ async function loadCaseList({ sb, res, query }) {
 
   return res.status(200).json({
     summary: summarizeOperationCases(visibleCases),
+    views: countCaseViews(narrowed),
+    resolution: caseResolutionStats(visibleCases),
     hiddenTestCases,
-    filters: { status: statusFilter || 'active', caseType: typeFilter || 'all', severity: severityFilter || 'all', includeTest },
+    filters: { view: viewFilter || null, status: statusFilter || 'active', caseType: typeFilter || 'all', severity: severityFilter || 'all', includeTest },
     cases: filtered.map((row) => formatOperationCase(row, {
       booking: bookingMap.get(row.booking_id) || null,
       easer: easerMap.get(row.easer_id) || null,

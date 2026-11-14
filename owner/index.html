@@ -370,15 +370,28 @@
         <div id="giftcards-body"></div>
       </div>
       <div id="cases-view" class="cases-view-shell" style="display:none">
+        <div class="kpi-row cases-kpis" id="cases-stats-row">
+          <button type="button" class="kpi" data-case-view="active"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-active">&mdash;</span><span class="kpi-label">Active</span><span class="kpi-sub">Needs follow-up</span></span></button>
+          <button type="button" class="kpi" data-case-view="new"><span class="kpi-icon kpi-info"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-new">&mdash;</span><span class="kpi-label">New</span><span class="kpi-sub">Not yet acknowledged</span></span></button>
+          <button type="button" class="kpi" data-case-view="high_priority"><span class="kpi-icon kpi-bad"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-priority">&mdash;</span><span class="kpi-label">High Priority</span><span class="kpi-sub">Active, high or critical</span></span></button>
+          <button type="button" class="kpi" data-case-view="waiting"><span class="kpi-icon kpi-warn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-waiting">&mdash;</span><span class="kpi-label">Waiting on Reply</span><span class="kpi-sub">Customer or Easer</span></span></button>
+          <button type="button" class="kpi" data-case-view="resolved"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-resolved">&mdash;</span><span class="kpi-label">Resolved</span><span class="kpi-sub" id="cases-stat-resolved-sub">Resolved or closed</span></span></button>
+          <div class="kpi"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="6"/><line x1="18" y1="20" x2="18" y2="14"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-avg">&mdash;</span><span class="kpi-label">Avg. to Resolve</span><span class="kpi-sub">Last 30 days</span></span></div>
+        </div>
+
         <div class="cases-toolbar">
-          <div class="cases-toolbar-copy">
-            <h2>Cases</h2>
-            <p>Support, quality, safety, payment, and damage follow-up with a permanent timeline.</p>
+          <div class="tabs bk-tabs" id="cases-tabs" role="tablist" aria-label="Case views">
+            <button class="tab" type="button" data-case-view="all">All Cases <span class="tab-count" id="cases-view-all">0</span></button>
+            <button class="tab active" type="button" data-case-view="active">Active <span class="tab-count" id="cases-view-active">0</span></button>
+            <button class="tab" type="button" data-case-view="new">New <span class="tab-count" id="cases-view-new">0</span></button>
+            <button class="tab" type="button" data-case-view="high_priority">High Priority <span class="tab-count" id="cases-view-high_priority">0</span></button>
+            <button class="tab" type="button" data-case-view="waiting">Waiting on Reply <span class="tab-count" id="cases-view-waiting">0</span></button>
+            <button class="tab" type="button" data-case-view="resolved">Resolved <span class="tab-count" id="cases-view-resolved">0</span></button>
           </div>
           <div class="cases-filters" aria-label="Case filters">
-            <label class="cases-filter">Status
-              <select id="cases-status-filter">
-                <option value="active">Active</option>
+            <label class="cases-filter"><span class="sr-only">Status</span>
+              <select id="cases-status-filter" aria-label="Status">
+                <option value="all">All statuses</option>
                 <option value="open">New</option>
                 <option value="acknowledged">Acknowledged</option>
                 <option value="in_progress">In Progress</option>
@@ -386,11 +399,10 @@
                 <option value="waiting_easer">Waiting for Easer</option>
                 <option value="resolved">Resolved</option>
                 <option value="closed">Closed</option>
-                <option value="all">All</option>
               </select>
             </label>
-            <label class="cases-filter">Type
-              <select id="cases-type-filter">
+            <label class="cases-filter"><span class="sr-only">Type</span>
+              <select id="cases-type-filter" aria-label="Type">
                 <option value="all">All types</option>
                 <option value="support">Support</option>
                 <option value="damage">Damage</option>
@@ -404,8 +416,8 @@
                 <option value="account">Account</option>
               </select>
             </label>
-            <label class="cases-filter">Priority
-              <select id="cases-severity-filter">
+            <label class="cases-filter"><span class="sr-only">Priority</span>
+              <select id="cases-severity-filter" aria-label="Priority">
                 <option value="all">All priorities</option>
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
@@ -413,23 +425,15 @@
                 <option value="low">Low</option>
               </select>
             </label>
+            <button type="button" class="btn c-sm" onclick="window.OwnerCases&amp;&amp;window.OwnerCases.findTestCases()">Find test cases</button>
           </div>
-        </div>
-
-        <div class="stats-row" id="cases-stats-row">
-          <div class="stat amber"><div class="stat-value" id="cases-stat-active">&mdash;</div><div class="stat-label">Active</div></div>
-          <div class="stat teal"><div class="stat-value" id="cases-stat-new">&mdash;</div><div class="stat-label">New</div></div>
-          <div class="stat red"><div class="stat-value" id="cases-stat-priority">&mdash;</div><div class="stat-label">High Priority</div></div>
-          <div class="stat neutral"><div class="stat-value" id="cases-stat-waiting">&mdash;</div><div class="stat-label">Waiting on Reply</div></div>
         </div>
 
         <!-- Cases on a test booking already hide with it. The ones with no
              booking — a support request or voice callback fired during testing
              — have nothing to inherit from, so they need finding by hand. -->
-        <div style="margin:0 0 0.75rem">
-          <button type="button" class="btn" style="font-size:0.78rem;padding:4px 14px"
-            onclick="window.OwnerCases&amp;&amp;window.OwnerCases.findTestCases()">Find test cases</button>
-          <div id="cases-test-sweep" style="margin-top:0.6rem"></div>
+        <div class="cases-sweep-row">
+          <div id="cases-test-sweep"></div>
         </div>
 
         <div class="cases-grid">

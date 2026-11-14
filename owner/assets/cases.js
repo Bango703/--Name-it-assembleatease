@@ -9,6 +9,7 @@
     includeTest: false,
     hiddenTestCases: 0,
     findingTestCases: false,
+    view: 'active',
   };
 
   var TYPE_LABELS = {
@@ -72,14 +73,15 @@
 
     try {
       var params = new URLSearchParams();
-      params.set('status', valueOf('cases-status-filter') || 'active');
+      params.set('view', state.view || 'all');
+      params.set('status', valueOf('cases-status-filter') || 'all');
       params.set('caseType', valueOf('cases-type-filter') || 'all');
       params.set('severity', valueOf('cases-severity-filter') || 'all');
       if (state.includeTest) params.set('includeTest', '1');
       var data = await request('/api/owner/cases?' + params.toString());
       state.cases = data.cases || [];
       state.hiddenTestCases = Number(data.hiddenTestCases || 0);
-      renderSummary(data.summary || {});
+      renderSummary(data.summary || {}, data.views || null, data.resolution || null);
       renderList();
       updateBadge(data.summary || {});
 
@@ -113,11 +115,30 @@
     }
   }
 
-  function renderSummary(summary) {
+  // Cards count every visible case; each opens its view with no other filter,
+  // so the list it opens is exactly its number. Tab counts follow the type and
+  // priority filters, as their lists do (api/owner/cases.js CASE_VIEWS).
+  function renderSummary(summary, views, resolution) {
     setText('cases-stat-active', summary.active || 0);
     setText('cases-stat-new', summary.new || 0);
     setText('cases-stat-priority', summary.highPriority || 0);
     setText('cases-stat-waiting', (summary.waitingCustomer || 0) + (summary.waitingEaser || 0));
+    setText('cases-stat-resolved', summary.resolved || 0);
+    if (resolution) {
+      setText('cases-stat-resolved-sub', resolution.resolvedLast30Days + ' in the last 30 days');
+      setText('cases-stat-avg', resolution.avgHoursToResolve == null ? 'None yet' : resolution.avgHoursToResolve + ' hrs');
+    }
+    if (views) Object.keys(views).forEach(function(key) { setText('cases-view-' + key, views[key]); });
+    Array.prototype.forEach.call(document.querySelectorAll('#cases-tabs [data-case-view]'), function(tab) {
+      tab.classList.toggle('active', tab.getAttribute('data-case-view') === state.view);
+    });
+  }
+  function openCaseView(view, resetFilters) {
+    state.view = view;
+    var status = document.getElementById('cases-status-filter');
+    if (status) status.value = 'all';
+    if (resetFilters) ['cases-type-filter', 'cases-severity-filter'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = 'all'; });
+    load();
   }
 
   function updateBadge(summary) {
@@ -232,14 +253,17 @@
     }
     list.innerHTML = state.cases.map(function(item) {
       var contact = item.customer && (item.customer.name || item.customer.email) || 'No customer linked';
-      return '<button type="button" class="cases-list-item' + (item.id === state.selectedId ? ' active' : '') + '" data-case-id="' + attr(item.id) + '">' +
-        '<div class="cases-list-top">' +
-          '<span class="cases-list-ref">' + esc(item.ref) + '</span>' +
-          '<span class="cases-badge status-' + attr(item.status) + '">' + esc(item.statusLabel) + '</span>' +
-          (item.booking && item.booking.isTest ? '<span class="cases-badge cases-badge-test">Test</span>' : '') +
+      return '<button type="button" class="cases-list-item cases-row severity-bar-' + attr(item.severity) + (item.id === state.selectedId ? ' active' : '') + '" data-case-id="' + attr(item.id) + '">' +
+        '<div class="cases-row-main">' +
+          '<div class="cases-list-ref">' + esc(item.ref) + (item.booking && item.booking.isTest ? '<span class="cases-badge cases-badge-test">Test</span>' : '') + '</div>' +
+          '<div class="cases-list-subject">' + esc(item.subject) + '</div>' +
+          '<div class="cases-list-meta">' + esc(item.typeLabel) + ' &middot; ' + esc(contact) + '</div>' +
         '</div>' +
-        '<div class="cases-list-subject">' + esc(item.subject) + '</div>' +
-        '<div class="cases-list-meta">' + esc(item.typeLabel) + ' &middot; ' + esc(contact) + '<br>' + esc(relativeTime(item.updatedAt)) + '</div>' +
+        '<div class="cases-row-side">' +
+          '<span class="cases-badge status-' + attr(item.status) + '">' + esc(item.statusLabel) + '</span>' +
+          '<span class="cases-badge severity-' + attr(item.severity) + '">' + esc(item.severity) + '</span>' +
+          '<span class="cases-row-age">' + esc(relativeTime(item.updatedAt)) + '</span>' +
+        '</div>' +
       '</button>';
     }).join('') + testNote;
   }
@@ -306,14 +330,20 @@
     detail.innerHTML =
       '<div class="cases-detail-title-row">' +
         '<div>' +
-          '<div class="cases-list-ref">' + esc(item.ref) + '</div>' +
+          '<div class="cases-head-line"><span class="cases-list-ref">' + esc(item.ref) + '</span>' +
+            '<span class="cases-badge status-' + attr(item.status) + '">' + esc(item.statusLabel) + '</span>' +
+            '<span class="cases-badge severity-' + attr(item.severity) + '">' + esc(item.severity) + '</span></div>' +
           '<h3>' + esc(item.subject) + '</h3>' +
-        '</div>' +
-        '<div class="cases-detail-actions">' +
-          '<span class="cases-badge severity-' + attr(item.severity) + '">' + esc(item.severity) + '</span>' +
-          '<span class="cases-badge status-' + attr(item.status) + '">' + esc(item.statusLabel) + '</span>' +
+          '<div class="cases-head-sub">' + esc(item.typeLabel || TYPE_LABELS[item.type] || 'Operational Case') + ' &middot; Updated ' + esc(formatDate(item.updatedAt)) + '</div>' +
         '</div>' +
       '</div>' +
+      '<div class="cases-tabs" role="tablist">' +
+        '<button type="button" class="cases-tab active" data-case-tab="overview">Overview</button>' +
+        '<button type="button" class="cases-tab" data-case-tab="communication">Communication</button>' +
+        '<button type="button" class="cases-tab" data-case-tab="timeline">Timeline</button>' +
+      '</div>' +
+      '<div data-case-pane="overview" class="cases-pane cases-overview">' +
+      '<div class="cases-col">' +
       '<div class="cases-detail-section">' +
         '<div class="cases-section-label">Request</div>' +
         '<div class="cases-description">' + renderRequestDescription(item.description) + '</div>' +
@@ -332,9 +362,10 @@
           metaItem('Source', sourceLabel(item.source)) +
         '</div>' +
       '</div>' +
-      bookingWorkflow +
-      communicationHtml +
       (item.resolutionSummary ? '<div class="cases-detail-section"><div class="cases-section-label">Resolution</div><div class="cases-resolution">' + esc(item.resolutionSummary) + '</div></div>' : '') +
+      '</div>' +
+      '<div class="cases-col">' +
+      bookingWorkflow +
       '<div class="cases-detail-section">' +
         '<div class="cases-section-label">Update case</div>' +
         '<form id="cases-update-form" class="cases-update-form" data-case-id="' + attr(item.id) + '" data-status="' + attr(item.status) + '">' +
@@ -354,9 +385,14 @@
           '</div>' +
         '</form>' +
       '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div data-case-pane="communication" class="cases-pane" hidden>' + communicationHtml + '</div>' +
+      '<div data-case-pane="timeline" class="cases-pane" hidden>' +
       '<div class="cases-detail-section">' +
         '<div class="cases-section-label">Timeline</div>' +
         '<div class="cases-timeline">' + renderEvents(events) + '</div>' +
+      '</div>' +
       '</div>';
 
     updateConfirmationVisibility();
@@ -655,6 +691,19 @@
       }
       return;
     }
+    var caseTab = event.target.closest('[data-case-tab]');
+    if (caseTab) {
+      var pane = caseTab.getAttribute('data-case-tab');
+      Array.prototype.forEach.call(document.querySelectorAll('[data-case-tab]'), function(t) { t.classList.toggle('active', t === caseTab); });
+      Array.prototype.forEach.call(document.querySelectorAll('[data-case-pane]'), function(p) { p.hidden = p.getAttribute('data-case-pane') !== pane; });
+      return;
+    }
+    var viewButton = event.target.closest('[data-case-view]');
+    if (viewButton) {
+      // A card opens its view unfiltered; a tab keeps the type and priority filters.
+      openCaseView(viewButton.getAttribute('data-case-view'), viewButton.classList.contains('kpi'));
+      return;
+    }
     var testToggle = event.target.closest('[data-cases-test-toggle]');
     if (testToggle) {
       state.includeTest = testToggle.dataset.casesTestToggle === 'show';
@@ -667,6 +716,7 @@
 
   document.addEventListener('change', function(event) {
     if (event.target.id === 'cases-action-select') updateConfirmationVisibility();
+    if (event.target.id === 'cases-status-filter' && event.target.value !== 'all') state.view = 'all';
     if (['cases-status-filter', 'cases-type-filter', 'cases-severity-filter'].includes(event.target.id)) load();
   });
 
