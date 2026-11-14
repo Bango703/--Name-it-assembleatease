@@ -1,6 +1,6 @@
 # Pricing model v1
 
-Status: **proposed, 2026-11-13; revised the same day after reviewing an outside proposal (schedule A, profitability floor, tax table, quote records, release gates adopted from it).** The numbers in section 4 take effect only after the owner approves them (dispatch contract 11.4: fee changes need explicit owner approval). Evidence: `docs/decisions/2026-11-13-custom-quote-take-rate-research.md`.
+Status: **section 4 approved by the owner 2026-11-13 and built behind a switch** (dispatch contract 11.4: fee changes need explicit owner approval). The rest is the board's operating policy; items marked "Next" are not built. Evidence: `docs/decisions/2026-11-13-custom-quote-take-rate-research.md`.
 
 Owner goal (2026-11-13): high demand, affordable, out-do every competitor.
 
@@ -14,7 +14,7 @@ Owner goal (2026-11-13): high demand, affordable, out-do every competitor.
 
 1. **Win on the final number.** Every catalog price sits at or below TaskRabbit's Austin all-in and below Best Buy and franchise rates. Checked monthly (section 8).
 2. **One flat price, upfront.** Service subtotal, tax on its own line, total. No hourly meter, no fee line, no surprise charges (Rule 9; research section 5).
-3. **The platform's cut shrinks as the job grows,** with a dollar minimum on small jobs (section 4).
+3. **The platform's cut shrinks as the job grows,** with no dollar cap and a profit floor on every quote (section 4).
 4. **Easers are paid fairly and exactly.** On a custom quote the Easer's price is their pay. Catalog Easer pay stays at or above what Austin Taskers keep for the same work.
 5. **Win on speed and certainty when prices are close.** Quotes out in minutes, a booked and confirmed pro, the work guaranteed.
 
@@ -24,49 +24,45 @@ Owner goal (2026-11-13): high demand, affordable, out-do every competitor.
 - Keep the 30% split (`computeBookingSplit`, `getPlatformFeePct`) and the minimum pre-tax booking ($129 Austin, $149 elsewhere, `MIN_PRETAX_BOOKING_BY_ZONE`). At $129 the platform keeps $34.35 after card fees, above the cost floor.
 - Watch two prices against real bookings: TV plus in-wall concealment (about $48 above Best Buy's package) and treadmill assembly (above the Thumbtack average).
 
-## 4. Custom quotes from Easer prices (proposed numbers)
+## 4. Custom quotes from Easer prices (approved 2026-11-13)
 
-Today (verified in code, live since #445): `customerQuoteForEarnings` in `api/booking/_quote-offers.js` sets the subtotal to the Easer's price divided by 0.7, so the platform keeps 30% of the subtotal and adds 42.9% on top of the Easer's price at every size.
+Owner approval, 2026-11-13 ("okay good"), after rejecting a capped fee ("I don't want Easer making 15k and business cap at 450") and asking that card processing not come out of the business share. Code: `api/booking/_quote-offers.js` (`quoteNetTakeCents`, `steppedQuoteFeePct`, `customerQuoteForEarnings`, `quoteFeeOptions`). Before this, the subtotal was the Easer's price divided by 0.7 (a flat 30%, live since #445).
 
-The fee works like tax brackets on the Easer's price: each rate applies only to its slice, so a bigger price never costs the customer less. Two schedules are on the table; the owner picks one.
+**What the business keeps after card fees**, added on top of the Easer's price in slices like tax brackets, so a bigger price never costs the customer less:
 
-**Schedule A (board default since 2026-11-13 review): affordable at every size.** Rates are added on top of the Easer's price.
-
-| Slice of the Easer's price | Platform adds |
+| Slice of the Easer's price | Business keeps (after card fees) |
 |---|---|
-| First $200 | 28% |
-| $200 to $800 | 20% |
-| $800 to $2,000 | 12% |
-| Above $2,000 | 8% |
+| First $500 | 30% |
+| $500 to $2,000 | 20% |
+| Above $2,000 | 15% |
 
-**Schedule B (first draft): catalog-equal on small quotes, stepped down above $500.** First $500 adds 43% (30% of that slice of the subtotal, the catalog split); $500 to $1,500 adds 25%; above $1,500 adds 15%.
+- **Card processing is in the customer's price,** never taken from the Easer (Easers keep their price; the Angi Services settlement is the warning). No fee line is shown.
+- **No dollar cap.** The business share keeps growing with the job.
+- **One whole percent per quote.** The schedule's result is expressed as a whole percent of the subtotal from 10 to 30, rounded up, so the existing percentage-based pay pipeline (split, earnings snapshot, dispatch acceptance, crew pay) pays the Easer at least their price and the business never keeps less than the schedule. The database allows 10 to 30 (migration 131).
+- **Owner control:** on one quote the owner may set any whole percent from 15 to 30 that clears the profit floor, with a reason. The server prices each choice; the owner's screen shows them and does no money math.
+- **Profit floor (section 4a):** $25 after card fees by default (`QUOTE_MIN_CONTRIBUTION_CENTS`). A quote below it is held, never sent.
+- **Switch:** `QUOTE_FEE_SCHEDULE=stepped` turns it on, after migration 131 is applied. Unset, quotes use the flat 30% exactly as before. Setting it back is the rollback.
+- **Record:** every quote sent from an Easer's price logs the schedule version, fee, schedule fee, subtotal, tax, total, card-fee estimate, what the business keeps and any fee-change reason.
 
-Rules for either schedule:
-- **Minimum platform fee:** $45. The subtotal is never below the zone's catalog minimum.
-- **No dollar cap.** Card fees grow with the job; a capped fee does not. With a $450 cap, card fees pass the fee at about a $14,300 subtotal, and at the $25,000 quote maximum (`MAX_QUOTE_CENTS`) the platform would lose about $275 on card fees alone.
-- **Profitability floor (section 4a) overrides the schedule.** A quote that does not clear it is held, never sent.
-- **Owner adjustment:** the owner may lower one quote's fee down to the profitability floor, never below it. Every cut records a reason; the owner sees how often cuts happen.
-- **Money is whole cents** (integer arithmetic, as the code does today). Tax is calculated exactly; the subtotal is never rounded in a way that changes Easer pay.
-- **Easer pay:** exactly the Easer's price.
+Worked examples (card fee 2.9% + $0.30 on the tax-inclusive total, as Stripe charges; computed by the code):
 
-Worked examples (estimates; card fee 2.9% + $0.30 on the tax-inclusive total, which is how Stripe charges):
-
-| Easer price | Total today | Total, A | Total, B | Platform after card fees: today / A / B |
+| Easer price | Fee | Customer pays | Business keeps after card fees | Before (flat 30%): customer / business |
 |---|---|---|---|---|
-| $150 | $231.97 | $211.09 | $231.66 | $57.26 / $38.58 / $56.98 |
-| $400 | $618.57 | $536.92 | $618.11 | $153.19 / $80.13 / $152.77 |
-| $1,200 | $1,855.72 | $1,541.48 | $1,720.09 | $460.17 / $179.00 / $338.82 |
-| $3,000 | $4,639.28 | $3,680.50 | $3,993.34 | $1,150.87 / $292.97 / $572.89 |
+| $150 | 26% | $219.43 | $46.04 | $231.97 / $57.26 |
+| $400 | 26% | $585.15 | $123.27 | $618.57 / $153.19 |
+| $1,200 | 23% | $1,687.02 | $309.22 | $1,855.72 / $460.17 |
+| $3,000 | 20% | $4,059.38 | $631.98 | $4,639.28 / $1,150.87 |
+| $15,000 | 17% | $19,563.25 | $2,504.66 | $23,196.43 / $5,755.58 |
 
-Against Austin anchors (research, pre-tax): A puts a $1,200 gazebo-kit price inside the $600-$1,500 labor range ($1,424); B and today do not. Both A and B sit mid-range on $3,000 office and shed work. A earns less per quote: it matches today's profit only if it wins about 2.6 times as many $1,200 quotes and about 3.9 times as many $3,000 quotes. Watch item for A: between about $105 and $500 an Easer-priced quote comes out cheaper than the same work at the catalog's 30% split.
+Against Austin anchors (research, pre-tax): a $1,200 gazebo-kit price lands at $1,558 subtotal, near the top of the $600-$1,500 labor range (the flat 30% gave $1,714); $3,000 office and shed work sits mid-range. Before tax the customer pays about 1.35 times the Easer's price on small quotes, 1.30 at $1,200, 1.25 at $3,000 and 1.20 at $15,000; TaskRabbit's fees on top of a Tasker's rate are reported (unverified) at about 1.15 to 1.23 times, so small quotes run a little above it and large quotes near it, with no hourly meter.
 
-What flips the choice: after the first 10 custom quotes, more than half accepted at A means A leaves money on the table (move toward B); quotes still declined for price at A mean the Easer prices are the problem, not the fee.
+Alternatives considered: a 28/20/12/8% schedule with a $450 cap from an outside proposal (cheaper, but the cap loses money above about a $14,300 subtotal and keeps too little on large jobs) and a 43/25/15% draft (catalog-equal on small quotes, above market on large outdoor jobs).
 
-Building it: `normalizePlatformFeePct` in `api/_source-of-truth.js` accepts only 30% or 25%. The stepped fee is stored on each quote as a dollar fee with Easer pay fixed at the price. That file is a critical module (Article 10): audit before code, and tests at $0, $200, $800, $2,000, the minimum, and odd cents proving the Easer is paid exactly the price, the fee never falls below the floor, and tax is exact.
+What moves it: after the first 10 custom quotes, more than half accepted means the schedule leaves money on the table (raise the middle step); quotes declined for price mean the Easer prices are the problem, not the fee (section 5).
 
 ## 4a. Profitability floor
 
-Before any quote is sent, the server computes the expected contribution: platform fee minus card fees on the actual charge, payout fees, and owner-set reserves (support, rework and dispute, acquisition) per service category. The owner sets the minimum in dollars and as a share of the subtotal. A quote below either is held for the owner: change the scope, the Easer's price, or the fee within limits. Reserves start as owner-entered estimates, marked as estimates, and are replaced by measured rates once jobs exist. Never lower an accepted Easer price or exceed an approved customer quote.
+Built: before a quote from an Easer's price is sent, the server computes what the business keeps after the estimated card fee (`estimateStripeFeeCents`, 2.9% + $0.30 on the total) and holds the quote when it is below the owner-set minimum (default $25). Next: owner-set reserves per service category (support, rework and disputes, acquisition), entered as estimates and replaced by measured rates once jobs exist. Never lower an accepted Easer price or exceed an approved customer quote.
 
 ## 5. How Easers price
 
@@ -119,5 +115,5 @@ Keep collecting 8.25% until a written answer arrives; under-collecting a taxable
 
 ## 10. State
 
-- Built: catalog pricing; custom quotes from Easer prices at a flat 30% (`customerQuoteForEarnings`); hours and crew on every Easer price; one all-in quote display.
-- Not built: stepped fee and owner floor (section 4), price per person-hour flag (section 5), "Price is too high" re-quote (section 6), AI advisor, automatic sending, weekly review agent (section 7). Tracked in `business-artifacts/backlog.md` under PRICING-*.
+- Built: catalog pricing; the stepped custom-quote fee with card processing in the price, owner fee control (15% to 30%, with a reason), the profit floor and the quote record (section 4, behind `QUOTE_FEE_SCHEDULE=stepped`, needs migration 131); hours and crew on every Easer price; one all-in quote display.
+- Not built: price per person-hour flag (section 5), "Price is too high" re-quote (section 6), category reserves in the floor (section 4a), AI advisor, automatic sending, weekly review agent (section 7), the taxability table (section 9). Tracked in `business-artifacts/backlog.md` under PRICING-* and SALES-TAX-TAXABILITY.

@@ -14,7 +14,7 @@ import { BOOKING_TIME_SLOTS } from '../booking/_booking-slots.js';
 import { validateBookingWindowDate } from '../booking/_booking-window.js';
 import { formatAppointmentDate } from '../booking/_appt-date.js';
 import { normalizePersonName } from '../_person-name.js';
-import { customerQuoteForEarnings, privateEaserOffersEnabled, QUOTE_OFFER_STATUS } from '../booking/_quote-offers.js';
+import { customerQuoteForEarnings, quoteFeeOptions, privateEaserOffersEnabled, QUOTE_OFFER_STATUS } from '../booking/_quote-offers.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { notifyEaserPriceApproved } from '../booking/_quote-offer-invites.js';
 
@@ -148,7 +148,7 @@ async function respondToQuote(req, res) {
 }
 
 async function prepareQuote(req, res) {
-  const { bookingId, finalPriceCents, date, time, quoteOfferId, offerUpdatedAt } = req.body || {};
+  const { bookingId, finalPriceCents, date, time, quoteOfferId, offerUpdatedAt, feePct: requestedFeePct, feeReason } = req.body || {};
   let priceCents = Number.parseInt(finalPriceCents, 10);
   if (!bookingId) return res.status(400).json({ error: 'bookingId required' });
   // Priced from an Easer's offer (api/booking/_quote-offers.js), the total is
@@ -235,7 +235,28 @@ async function prepareQuote(req, res) {
     }
     const { data: offerEaser, error: profileError } = await sb.from('profiles').select('id, has_membership').eq('id', offer.easer_id).maybeSingle();
     if (profileError || !offerEaser) return res.status(503).json({ error: 'The Easer could not be verified. Refresh before sending the quote.' });
-    offerQuote = customerQuoteForEarnings(offer.earnings_cents, { isMember: hasEffectiveEaserMembership(offerEaser) });
+    const isMember = hasEffectiveEaserMembership(offerEaser);
+    const schedule = customerQuoteForEarnings(offer.earnings_cents, { isMember });
+    // The owner may change the fee on this one quote, within the choices the
+    // server offered (15% to 30%, clearing the profit floor), with a reason.
+    let ownerFeePct = null;
+    if (requestedFeePct != null && Number(requestedFeePct) !== schedule.feePct) {
+      const allowed = quoteFeeOptions(offer.earnings_cents, { isMember }).map(option => option.feePct);
+      if (!allowed.includes(Number(requestedFeePct))) {
+        return res.status(400).json({ error: 'That fee is not one this quote allows. Choose a fee from the list.', code: 'QUOTE_FEE_NOT_ALLOWED' });
+      }
+      if (String(feeReason || '').trim().length < 3) {
+        return res.status(400).json({ error: 'Add a short reason for changing the fee.', code: 'QUOTE_FEE_REASON_REQUIRED' });
+      }
+      ownerFeePct = Number(requestedFeePct);
+    }
+    offerQuote = ownerFeePct != null ? customerQuoteForEarnings(offer.earnings_cents, { isMember, feePct: ownerFeePct }) : schedule;
+    if (!offerQuote.meetsProfitFloor) {
+      return res.status(409).json({
+        error: `This price leaves $${(offerQuote.contributionCents / 100).toFixed(2)} after card fees, below the $${(offerQuote.minContributionCents / 100).toFixed(2)} minimum. Choose a higher fee or ask the Easer for a different price.`,
+        code: 'QUOTE_BELOW_PROFIT_FLOOR',
+      });
+    }
     if (offerQuote.totalCents > MAX_QUOTE_CENTS) {
       return res.status(400).json({ error: 'That offer prices the quote above $25,000.00. Price this one yourself.' });
     }
@@ -318,7 +339,20 @@ async function prepareQuote(req, res) {
     booking.time = nextTime;
   }
 
-  if (chosenOffer) await logActivity(sb, { bookingId: booking.id, eventType: 'quote_priced_from_easer_offer', actorType: 'owner', actorName: 'Owner', description: 'Quote priced from the selected Easer offer', metadata: { quoteOfferId: chosenOffer.id, earningsCents: chosenOffer.earnings_cents, crewSize: chosenOffer.crew_size } });
+  if (chosenOffer) await logActivity(sb, {
+    bookingId: booking.id, eventType: 'quote_priced_from_easer_offer', actorType: 'owner', actorName: 'Owner',
+    description: offerQuote.feePct === offerQuote.schedulePct
+      ? `Quote priced from the selected Easer offer at the ${offerQuote.feePct}% schedule fee`
+      : `Quote priced from the selected Easer offer at ${offerQuote.feePct}% (schedule ${offerQuote.schedulePct}%): ${String(feeReason || '').trim().slice(0, 300)}`,
+    // The quote's provenance: schedule version, fee, card-fee estimate and what the business keeps.
+    metadata: {
+      quoteOfferId: chosenOffer.id, earningsCents: chosenOffer.earnings_cents, crewSize: chosenOffer.crew_size,
+      feePct: offerQuote.feePct, schedulePct: offerQuote.schedulePct, scheduleVersion: offerQuote.scheduleVersion,
+      subtotalCents: offerQuote.subtotalCents, taxCents: offerQuote.taxCents, totalCents: offerQuote.totalCents,
+      platformFeeCents: offerQuote.platformFeeCents, estimatedCardFeeCents: offerQuote.estimatedCardFeeCents,
+      contributionCents: offerQuote.contributionCents, feeReason: offerQuote.feePct === offerQuote.schedulePct ? null : String(feeReason || '').trim().slice(0, 300),
+    },
+  });
 
   const site = process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com';
   const approvalUrl = `${site}/api/owner/quote-approve?token=${encodeURIComponent(token)}`;
@@ -343,7 +377,7 @@ async function prepareQuote(req, res) {
     subtotalCents,
     taxCents,
     expiresAt: expiresAt.toISOString(),
-    ...(chosenOffer ? { quoteOfferId: chosenOffer.id, easerEarningsCents: offerQuote.easerEarningsCents, platformFeeCents: offerQuote.platformFeeCents } : {}),
+    ...(chosenOffer ? { quoteOfferId: chosenOffer.id, easerEarningsCents: offerQuote.easerEarningsCents, platformFeeCents: offerQuote.platformFeeCents, feePct: offerQuote.feePct, schedulePct: offerQuote.schedulePct, contributionCents: offerQuote.contributionCents } : {}),
     ...(easerNotice ? { easerNotice: { reached: easerNotice.reached, channels: easerNotice.channels } } : {}),
     warnings: emailResult.ok ? [] : ['quote_approval_email_failed'],
   });

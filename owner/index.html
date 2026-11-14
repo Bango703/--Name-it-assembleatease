@@ -66,6 +66,10 @@
 .qo-line { margin-top: 0.15rem; line-height: 1.5; }
 .qo-note { margin-top: 0.3rem; font-style: italic; color: var(--soft, #374151); }
 .qo-send { margin-top: 0.5rem; }
+.qo-fee-row { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.45rem; }
+.qo-fee-row label { font-size: 0.72rem; font-weight: 700; color: var(--muted); }
+.qo-fee-row select, .qo-fee-row input { font-size: 0.8rem; padding: 0.4rem 0.5rem; }
+.qo-held { margin-top: 0.4rem; font-size: 0.78rem; color: var(--red); line-height: 1.45; }
 .qo-chip { font-size: 0.7rem; font-weight: 700; border-radius: 999px; padding: 0.15rem 0.55rem; background: var(--elevated); color: var(--muted); white-space: nowrap; }
 .qo-chip-submitted, .qo-chip-selected { background: var(--teal-glow, rgba(0,191,255,0.12)); color: var(--teal-dark, #0099CC); }
 .qo-not_selected, .qo-closed, .qo-withdrawn { opacity: 0.6; }
@@ -4627,6 +4631,19 @@ window.intelQuick = intelQuick;
   // and the customer quote each price makes (fee on top, tax added). This
   // panel renders that verdict and never computes a price of its own.
   var quoteOffersFor = null;
+  var quoteOfferRows = {};
+  // Changing the fee shows the server-priced total for it; a change needs a reason.
+  window.quoteFeeChanged = function(offerId) {
+    var o = quoteOfferRows[offerId];
+    var select = document.getElementById('qo-fee-' + offerId);
+    if (!o || !select) return;
+    var pct = Number(select.value);
+    var option = (o.feeOptions || []).filter(function(x) { return x.feePct === pct; })[0];
+    var reason = document.getElementById('qo-fee-reason-' + offerId);
+    if (reason) reason.hidden = pct === o.customerQuote.schedulePct;
+    var btn = document.getElementById('qo-send-' + offerId);
+    if (btn && option) btn.textContent = btn.getAttribute('data-label') + fmt$(option.totalCents);
+  };
   var quoteOffersData = null;
   var quoteOffersAskingMore = false;
 
@@ -4711,11 +4728,35 @@ window.intelQuick = intelQuick;
         + '<span class="qo-chip qo-chip-' + esc(o.status) + '">' + esc(labels[o.status] || o.status) + '</span></div>';
       if (o.customerQuote) {
         row += '<div class="qo-line">' + esc(o.easer.name.split(' ')[0]) + ' earns <strong>' + fmt$(o.earningsCents) + '</strong>, ' + esc(o.hours) + ' h, crew of ' + esc(o.crewSize) + '</div>'
-          + '<div class="qo-line qo-muted">Customer pays ' + fmt$(o.customerQuote.totalCents) + ' (' + fmt$(o.customerQuote.subtotalCents) + ' + ' + fmt$(o.customerQuote.taxCents) + ' tax). You keep ' + fmt$(o.customerQuote.platformFeeCents) + ' before card fees.</div>'
+          + '<div class="qo-line qo-muted">Customer pays ' + fmt$(o.customerQuote.totalCents) + ' (' + fmt$(o.customerQuote.subtotalCents) + ' + ' + fmt$(o.customerQuote.taxCents) + ' tax). '
+          + 'Fee ' + esc(o.customerQuote.feePct) + '%. You keep ' + fmt$(o.customerQuote.contributionCents) + ' after card fees.</div>'
           + (o.note ? '<div class="qo-note">&ldquo;' + esc(o.note) + '&rdquo;</div>' : '');
         if (d.enabled && (o.status === 'submitted' || o.status === 'selected')) {
-          row += '<button class="btn btn-teal btn-sm qo-send" type="button" onclick="sendQuoteFromOffer(\'' + jsAttr(o.id) + '\', \'' + jsAttr(o.updatedAt) + '\')">'
-            + (o.status === 'selected' ? 'Resend at ' : 'Send quote at ') + fmt$(o.customerQuote.totalCents) + '</button>';
+          quoteOfferRows[o.id] = o;
+          var options = o.feeOptions;
+          if (!options) {
+            row += '<button class="btn btn-teal btn-sm qo-send" type="button" onclick="sendQuoteFromOffer(\'' + jsAttr(o.id) + '\', \'' + jsAttr(o.updatedAt) + '\')">'
+              + (o.status === 'selected' ? 'Resend at ' : 'Send quote at ') + fmt$(o.customerQuote.totalCents) + '</button>';
+          } else if (!options.length) {
+            // The server found no fee that clears the profit floor (section 4a).
+            row += '<div class="qo-held">Held: this price leaves ' + fmt$(o.customerQuote.contributionCents) + ' after card fees, below the '
+              + fmt$(o.customerQuote.minContributionCents) + ' minimum. Ask the Easer for a different price.</div>';
+          } else {
+            var chosenPct = options.some(function(x) { return x.feePct === o.customerQuote.feePct; }) ? o.customerQuote.feePct : options[0].feePct;
+            row += '<div class="qo-fee-row"><label for="qo-fee-' + esc(o.id) + '">Fee for this quote</label>'
+              + '<select class="modal-input" id="qo-fee-' + esc(o.id) + '" onchange="quoteFeeChanged(\'' + jsAttr(o.id) + '\')">'
+              + options.map(function(x) {
+                  return '<option value="' + esc(x.feePct) + '"' + (x.feePct === chosenPct ? ' selected' : '') + '>' + esc(x.feePct) + '%'
+                    + (x.feePct === o.customerQuote.schedulePct ? ' (schedule)' : '') + ' &middot; customer pays ' + fmt$(x.totalCents)
+                    + ' &middot; you keep ' + fmt$(x.contributionCents) + '</option>';
+                }).join('')
+              + '</select>'
+              + '<input class="modal-input" id="qo-fee-reason-' + esc(o.id) + '" maxlength="300" placeholder="Reason for changing the fee" hidden />'
+              + '</div>';
+            var chosen = options.filter(function(x) { return x.feePct === chosenPct; })[0];
+            row += '<button class="btn btn-teal btn-sm qo-send" id="qo-send-' + esc(o.id) + '" data-label="' + (o.status === 'selected' ? 'Resend at ' : 'Send quote at ') + '" type="button" onclick="sendQuoteFromOffer(\'' + jsAttr(o.id) + '\', \'' + jsAttr(o.updatedAt) + '\')">'
+              + (o.status === 'selected' ? 'Resend at ' : 'Send quote at ') + fmt$(chosen.totalCents) + '</button>';
+          }
         }
       } else if (o.status === 'invited' && o.open) {
         row += '<div class="qo-line qo-muted">No price yet. Open until ' + esc(new Date(o.respondBy).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })) + '.</div>';
@@ -4786,12 +4827,16 @@ window.intelQuick = intelQuick;
     var quoteTime = document.getElementById('qm-time').value;
     var errEl = document.getElementById('qm-error');
     if (!quoteDate || !quoteTime) { errEl.textContent = 'Choose the appointment date and time window for this quote.'; errEl.style.display = ''; return; }
+    var feeSelect = document.getElementById('qo-fee-' + offerId);
+    var feePct = feeSelect ? Number(feeSelect.value) : null;
+    var feeReasonEl = document.getElementById('qo-fee-reason-' + offerId);
+    var feeReason = feeReasonEl && !feeReasonEl.hidden ? feeReasonEl.value.trim() : '';
     errEl.style.display = 'none';
     try {
       var r = await fetch('/api/owner/quote-approve', {
         method: 'POST', headers: headers(),
-        // The server prices the quote from the offer; no amount is sent.
-        body: JSON.stringify({ bookingId: id, quoteOfferId: offerId, offerUpdatedAt: offerUpdatedAt, date: quoteDate, time: quoteTime })
+        // The server prices the quote from the offer and the chosen fee; no amount is sent.
+        body: JSON.stringify({ bookingId: id, quoteOfferId: offerId, offerUpdatedAt: offerUpdatedAt, date: quoteDate, time: quoteTime, feePct: feePct, feeReason: feeReason })
       });
       var d = await r.json();
       if (!r.ok || d.error) { errEl.textContent = d.error || 'The quote was not sent.'; errEl.style.display = ''; return; }

@@ -35,7 +35,7 @@
     "governance:truth": "node scripts/ci-check-inline-scripts.mjs && node scripts/audit-source-of-truth.mjs && node scripts/check-service-from-prices.mjs && node scripts/check-status-constraint-drift.mjs && node scripts/check-supabase-thenable-catch.mjs && node scripts/check-analytics-single-loader.mjs",
     "seo:audit": "node scripts/seo-site-audit.mjs",
     "indexnow": "node scripts/indexnow-submit.mjs",
-    "test:hybrid": "node scripts/test-hybrid-offers.mjs && node scripts/test-hybrid-offers-sql.mjs",
+    "test:hybrid": "node scripts/test-hybrid-offers.mjs && node scripts/test-hybrid-offers-sql.mjs && node scripts/test-quote-fee-range-sql.mjs",
     "test:receipt-fee": "node scripts/test-receipt-and-fee-terms.mjs && node scripts/test-fee-retained-sql.mjs",
     "preview:hybrid": "node scripts/preview-hybrid.mjs"
   },

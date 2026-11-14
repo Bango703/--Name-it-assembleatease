@@ -237,11 +237,21 @@ export function getPlatformFeePct(isMember) {
   return isMember ? MEMBERSHIP_PLATFORM_FEE_PCT.MEMBER : MEMBERSHIP_PLATFORM_FEE_PCT.NON_MEMBER;
 }
 
+// A stored platform fee is a whole percent from 10 to 30. Catalog bookings use
+// 30 (25 for a verified member when membership is on); a custom quote priced
+// from an Easer's offer may use any whole percent in the range
+// (api/booking/_quote-offers.js, pricing model v1 section 4). The database
+// holds the same range (migration 131).
+export const PLATFORM_FEE_PCT_RANGE = Object.freeze({ MIN: 10, MAX: 30 });
+
+export function isAllowedPlatformFeePct(value) {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= PLATFORM_FEE_PCT_RANGE.MIN && n <= PLATFORM_FEE_PCT_RANGE.MAX;
+}
+
 export function normalizePlatformFeePct(feePct, isMember = false) {
   const parsed = Number(feePct);
-  return parsed === MEMBERSHIP_PLATFORM_FEE_PCT.MEMBER || parsed === MEMBERSHIP_PLATFORM_FEE_PCT.NON_MEMBER
-    ? parsed
-    : getPlatformFeePct(isMember);
+  return isAllowedPlatformFeePct(parsed) ? parsed : getPlatformFeePct(isMember);
 }
 
 // ── Sales tax ────────────────────────────────────────────────────────────────

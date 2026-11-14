@@ -21,8 +21,8 @@ Last verified: 2026-11-13. Active work only; the full prioritized backlog is `bu
 
 ## 3a. Pricing model v1
 - Objective: owner, 2026-11-13: high demand, affordable, out-do every competitor. Foundation in `docs/business-rules/pricing-model-v1.md`, evidence in `docs/decisions/2026-11-13-custom-quote-take-rate-research.md`.
-- State: proposed. Nothing in code changed.
-- Next action: owner approves the fee numbers (section 4); then build the stepped quote fee in the split code (critical module), the price-per-person-hour flag, the "Price is too high" re-quote, and the AI quote advisor, in that order.
+- State: owner approved section 4 on 2026-11-13. Stepped fee, card processing in the price, owner fee control, profit floor and quote record built on branch `docs/pricing-model` behind `QUOTE_FEE_SCHEDULE=stepped`; migration 131 written and tested locally, not applied.
+- Next action: owner approves running migration 131 (after comparing the two functions with the production definitions), merge, set `QUOTE_FEE_SCHEDULE=stepped` in Vercel, send one real quote. Then the price-per-person-hour flag, the "Price is too high" re-quote and the AI quote advisor.
 
 ## 4. Waiting on the owner
 - Policy decisions 1 to 4 in the audit record.

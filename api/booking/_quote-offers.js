@@ -18,7 +18,7 @@
 //
 // Off unless PRIVATE_EASER_OFFERS_ENABLED=true. Off, nothing changes anywhere.
 
-import { getPlatformFeePct, computeBookingSplit, SALES_TAX_RATE, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { getPlatformFeePct, computeBookingSplitAtFeePct, estimateStripeFeeCents, isAllowedPlatformFeePct, PLATFORM_FEE_PCT_RANGE, SALES_TAX_RATE, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 
 export const QUOTE_OFFER_STATUS = Object.freeze({
   INVITED: 'invited',
@@ -52,10 +52,59 @@ export function privateEaserOffersEnabled(env = process.env) {
  * The Easer is paid from the same split at completion, so the number they
  * entered is the number they earn.
  */
-export function customerQuoteForEarnings(earningsCents, { isMember = false } = {}) {
-  const earnings = Number(earningsCents);
-  if (!Number.isInteger(earnings) || earnings <= 0) throw new Error('earnings must be a positive whole number of cents');
-  const feePct = getPlatformFeePct(isMember);
+// ── Platform fee on a quote priced from an Easer's offer ─────────────────────
+// Pricing model v1 section 4 (owner, 2026-11-13). What the business keeps
+// AFTER card processing, as a share added on top of the Easer's price, in
+// slices like tax brackets: 30% of the first $500, 20% from $500 to $2,000,
+// 15% above. Card processing is built into the customer's price, never taken
+// from the Easer. The result is one whole percent of the subtotal (10 to 30),
+// rounded up so the business never keeps less than the schedule, and the
+// existing percentage-based pay pipeline pays the Easer at least their price.
+// QUOTE_FEE_SCHEDULE=stepped turns it on (after migration 131); anything else
+// keeps the flat catalog percentage.
+export const QUOTE_FEE_SCHEDULE_VERSION = 'stepped-net-2026-11-13';
+export const QUOTE_NET_TAKE_TIERS = Object.freeze([
+  Object.freeze({ upToCents: 50000, pct: 30 }),
+  Object.freeze({ upToCents: 200000, pct: 20 }),
+  Object.freeze({ upToCents: Infinity, pct: 15 }),
+]);
+// A quote whose business share after card fees is below this is held for the
+// owner, never sent (pricing model v1 section 4a). Owner-set in the environment.
+export const QUOTE_MIN_CONTRIBUTION_CENTS_DEFAULT = 2500;
+// The lowest fee the owner may set on one quote (pricing model v1 section 4).
+export const QUOTE_OWNER_FLOOR_PCT = 15;
+
+export function quoteFeeScheduleMode(env = process.env) {
+  return String(env.QUOTE_FEE_SCHEDULE || '').trim().toLowerCase() === 'stepped' ? 'stepped' : 'flat';
+}
+
+export function quoteMinContributionCents(env = process.env) {
+  const n = Number(env.QUOTE_MIN_CONTRIBUTION_CENTS);
+  return Number.isInteger(n) && n >= 0 ? n : QUOTE_MIN_CONTRIBUTION_CENTS_DEFAULT;
+}
+
+/** What the schedule says the business keeps after card fees, in cents. */
+export function quoteNetTakeCents(earningsCents) {
+  let take = 0, floor = 0;
+  for (const tier of QUOTE_NET_TAKE_TIERS) {
+    const slice = Math.min(earningsCents, tier.upToCents) - floor;
+    if (slice > 0) take += slice * tier.pct / 100;
+    if (earningsCents <= tier.upToCents) break;
+    floor = tier.upToCents;
+  }
+  return Math.round(take);
+}
+
+/** The whole percent of the subtotal the schedule gives this Easer price. */
+export function steppedQuoteFeePct(earningsCents) {
+  const want = quoteNetTakeCents(earningsCents);
+  // Subtotal that leaves `want` after 2.9% + $0.30 on the tax-inclusive total.
+  const subtotal = (earningsCents + want + 30) / (1 - 0.029 * (1 + SALES_TAX_RATE));
+  const pct = Math.ceil(((subtotal - earningsCents) / subtotal) * 100 - 1e-9);
+  return Math.min(PLATFORM_FEE_PCT_RANGE.MAX, Math.max(PLATFORM_FEE_PCT_RANGE.MIN, pct));
+}
+
+function priceAtFeePct(earnings, feePct) {
   let subtotalCents = Math.ceil(earnings * 100 / (100 - feePct));
   for (let guard = 0; guard < 5; guard++) {
     const fee = Math.round(subtotalCents * feePct / 100);
@@ -64,8 +113,9 @@ export function customerQuoteForEarnings(earningsCents, { isMember = false } = {
   }
   const taxCents = Math.round(subtotalCents * SALES_TAX_RATE);
   const totalCents = subtotalCents + taxCents;
-  const split = computeBookingSplit(totalCents, isMember, { taxCents });
+  const split = computeBookingSplitAtFeePct(totalCents, feePct, { taxCents });
   if (split.assemblerDueCents < earnings) throw new Error('quote does not cover the Easer price');
+  const estimatedCardFeeCents = estimateStripeFeeCents(totalCents);
   return {
     feePct,
     subtotalCents,
@@ -73,7 +123,53 @@ export function customerQuoteForEarnings(earningsCents, { isMember = false } = {
     totalCents,
     platformFeeCents: split.platformFeeCents,
     easerEarningsCents: split.assemblerDueCents,
+    estimatedCardFeeCents,
+    contributionCents: split.platformFeeCents - estimatedCardFeeCents,
   };
+}
+
+/**
+ * The customer quote for an Easer's price. `feePct` is the owner's choice for
+ * this one quote; without it the schedule decides. The server is the only
+ * place this is calculated (Rule 4).
+ */
+export function customerQuoteForEarnings(earningsCents, { isMember = false, feePct = null, env = process.env } = {}) {
+  const earnings = Number(earningsCents);
+  if (!Number.isInteger(earnings) || earnings <= 0) throw new Error('earnings must be a positive whole number of cents');
+  const memberCap = getPlatformFeePct(isMember);
+  const mode = quoteFeeScheduleMode(env);
+  const schedulePct = mode === 'stepped' ? Math.min(steppedQuoteFeePct(earnings), memberCap) : memberCap;
+  if (feePct != null && !isAllowedPlatformFeePct(feePct)) throw new Error('fee must be a whole percent from 10 to 30');
+  const chosen = feePct != null ? Number(feePct) : schedulePct;
+  const minContributionCents = quoteMinContributionCents(env);
+  const priced = priceAtFeePct(earnings, chosen);
+  return {
+    ...priced,
+    schedulePct,
+    scheduleMode: mode,
+    scheduleVersion: mode === 'stepped' ? QUOTE_FEE_SCHEDULE_VERSION : 'flat',
+    minContributionCents,
+    meetsProfitFloor: priced.contributionCents >= minContributionCents,
+  };
+}
+
+/**
+ * Every fee the owner may choose for this Easer price: each whole percent from
+ * 15 (or the lowest that clears the profit floor, if higher) up to 30, priced on the server so
+ * the owner's screen never does money math. Empty when no fee clears the floor.
+ */
+export function quoteFeeOptions(earningsCents, { isMember = false, env = process.env } = {}) {
+  const earnings = Number(earningsCents);
+  if (!Number.isInteger(earnings) || earnings <= 0) return [];
+  const minContributionCents = quoteMinContributionCents(env);
+  const options = [];
+  for (let pct = Math.max(PLATFORM_FEE_PCT_RANGE.MIN, QUOTE_OWNER_FLOOR_PCT); pct <= PLATFORM_FEE_PCT_RANGE.MAX; pct++) {
+    const priced = priceAtFeePct(earnings, pct);
+    if (priced.contributionCents >= minContributionCents) {
+      options.push({ feePct: pct, totalCents: priced.totalCents, subtotalCents: priced.subtotalCents, taxCents: priced.taxCents, contributionCents: priced.contributionCents });
+    }
+  }
+  return options;
 }
 
 /** Validate what an Easer submits. Returns {ok, value} or {ok:false, error}. */
