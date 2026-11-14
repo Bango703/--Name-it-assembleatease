@@ -1,6 +1,6 @@
 # Pricing model v1
 
-Status: **proposed, 2026-11-13.** The structure is the board's recommendation; the numbers in section 4 take effect only after the owner approves them (dispatch contract 11.4: fee changes need explicit owner approval). Evidence: `docs/decisions/2026-11-13-custom-quote-take-rate-research.md`.
+Status: **proposed, 2026-11-13; revised the same day after reviewing an outside proposal (schedule A, profitability floor, tax table, quote records, release gates adopted from it).** The numbers in section 4 take effect only after the owner approves them (dispatch contract 11.4: fee changes need explicit owner approval). Evidence: `docs/decisions/2026-11-13-custom-quote-take-rate-research.md`.
 
 Owner goal (2026-11-13): high demand, affordable, out-do every competitor.
 
@@ -26,31 +26,47 @@ Owner goal (2026-11-13): high demand, affordable, out-do every competitor.
 
 ## 4. Custom quotes from Easer prices (proposed numbers)
 
-The platform's fee works like tax brackets on the Easer's price. Each rate applies only to its slice, so a bigger price never costs the customer less.
+Today (verified in code, live since #445): `customerQuoteForEarnings` in `api/booking/_quote-offers.js` sets the subtotal to the Easer's price divided by 0.7, so the platform keeps 30% of the subtotal and adds 42.9% on top of the Easer's price at every size.
 
-| Slice of the Easer's price | Platform adds | Platform's share of that slice |
-|---|---|---|
-| First $500 | 43 cents per dollar | 30% (same as the catalog) |
-| $500 to $1,500 | 25 cents per dollar | 20% |
-| Above $1,500 | 15 cents per dollar | about 13% |
+The fee works like tax brackets on the Easer's price: each rate applies only to its slice, so a bigger price never costs the customer less. Two schedules are on the table; the owner picks one.
 
-- **Minimum platform fee:** $45 per quote. The quote subtotal is never below the catalog minimum for the zone.
-- **Owner adjustment:** the schedule is the ceiling. The owner may lower the fee on one quote down to the larger of $45 or 15% of the subtotal. Every cut records a reason, and the owner sees how often the floor is used.
-- **Rounding:** round the subtotal down to whole dollars; the platform absorbs the cents; Easer pay never changes; tax is calculated exactly.
+**Schedule A (board default since 2026-11-13 review): affordable at every size.** Rates are added on top of the Easer's price.
+
+| Slice of the Easer's price | Platform adds |
+|---|---|
+| First $200 | 28% |
+| $200 to $800 | 20% |
+| $800 to $2,000 | 12% |
+| Above $2,000 | 8% |
+
+**Schedule B (first draft): catalog-equal on small quotes, stepped down above $500.** First $500 adds 43% (30% of that slice of the subtotal, the catalog split); $500 to $1,500 adds 25%; above $1,500 adds 15%.
+
+Rules for either schedule:
+- **Minimum platform fee:** $45. The subtotal is never below the zone's catalog minimum.
+- **No dollar cap.** Card fees grow with the job; a capped fee does not. With a $450 cap, card fees pass the fee at about a $14,300 subtotal, and at the $25,000 quote maximum (`MAX_QUOTE_CENTS`) the platform would lose about $275 on card fees alone.
+- **Profitability floor (section 4a) overrides the schedule.** A quote that does not clear it is held, never sent.
+- **Owner adjustment:** the owner may lower one quote's fee down to the profitability floor, never below it. Every cut records a reason; the owner sees how often cuts happen.
+- **Money is whole cents** (integer arithmetic, as the code does today). Tax is calculated exactly; the subtotal is never rounded in a way that changes Easer pay.
 - **Easer pay:** exactly the Easer's price.
 
-Worked examples (estimates; card fee 2.9% + $0.30 on the tax-inclusive total):
+Worked examples (estimates; card fee 2.9% + $0.30 on the tax-inclusive total, which is how Stripe charges):
 
-| Easer price | Customer total today | Customer total, v1 | Platform after card fees, today | Platform after card fees, v1 | Owner-floor total |
-|---|---|---|---|---|---|
-| $150 | $231.97 | $231.66 | $57.26 | $56.98 | $211.09 |
-| $400 | $618.57 | $618.11 | $153.19 | $152.77 | $509.86 |
-| $1,200 | $1,855.72 | $1,720.09 | $460.17 | $338.82 | $1,528.49 |
-| $3,000 | $4,639.28 | $3,993.34 | $1,150.87 | $572.89 | $3,821.23 |
+| Easer price | Total today | Total, A | Total, B | Platform after card fees: today / A / B |
+|---|---|---|---|---|
+| $150 | $231.97 | $211.09 | $231.66 | $57.26 / $38.58 / $56.98 |
+| $400 | $618.57 | $536.92 | $618.11 | $153.19 / $80.13 / $152.77 |
+| $1,200 | $1,855.72 | $1,541.48 | $1,720.09 | $460.17 / $179.00 / $338.82 |
+| $3,000 | $4,639.28 | $3,680.50 | $3,993.34 | $1,150.87 / $292.97 / $572.89 |
 
-The trade: v1 earns the same total only if it wins about 1.4 times as many $1,200 quotes and about 2 times as many $3,000 quotes. Small quotes do not change. Review after the first 10 quotes (section 8).
+Against Austin anchors (research, pre-tax): A puts a $1,200 gazebo-kit price inside the $600-$1,500 labor range ($1,424); B and today do not. Both A and B sit mid-range on $3,000 office and shed work. A earns less per quote: it matches today's profit only if it wins about 2.6 times as many $1,200 quotes and about 3.9 times as many $3,000 quotes. Watch item for A: between about $105 and $500 an Easer-priced quote comes out cheaper than the same work at the catalog's 30% split.
 
-Building it: `normalizePlatformFeePct` in `api/_source-of-truth.js` accepts only 30% or 25%. The stepped fee is stored on each quote as a dollar fee with Easer pay fixed at the price. That file is a critical module (Article 10): audit before code, and tests proving the Easer is paid exactly the price, the fee never falls below the floor, and tax is exact.
+What flips the choice: after the first 10 custom quotes, more than half accepted at A means A leaves money on the table (move toward B); quotes still declined for price at A mean the Easer prices are the problem, not the fee.
+
+Building it: `normalizePlatformFeePct` in `api/_source-of-truth.js` accepts only 30% or 25%. The stepped fee is stored on each quote as a dollar fee with Easer pay fixed at the price. That file is a critical module (Article 10): audit before code, and tests at $0, $200, $800, $2,000, the minimum, and odd cents proving the Easer is paid exactly the price, the fee never falls below the floor, and tax is exact.
+
+## 4a. Profitability floor
+
+Before any quote is sent, the server computes the expected contribution: platform fee minus card fees on the actual charge, payout fees, and owner-set reserves (support, rework and dispute, acquisition) per service category. The owner sets the minimum in dollars and as a share of the subtotal. A quote below either is held for the owner: change the scope, the Easer's price, or the fee within limits. Reserves start as owner-entered estimates, marked as estimates, and are replaced by measured rates once jobs exist. Never lower an accepted Easer price or exceed an approved customer quote.
 
 ## 5. How Easers price
 
@@ -87,12 +103,19 @@ No agent changes a live price, a fee or Easer pay without the owner's approval. 
 
 | Question | Why it matters |
 |---|---|
-| Which services are taxable in Texas: furniture assembly, mounting a customer-owned TV, smart thermostat, doorbell and lock installs, playsets, sheds and gazebos, office installs? | Old rulings say furniture assembly is taxable; residential installation labor and installing items the installer did not sell may not be. Non-taxable services would drop those totals 8.25% at no cost to margin |
+| Which services are taxable in Texas: mounting a customer-owned TV, smart thermostat, doorbell and lock installs, playsets, sheds and gazebos, office installs? | Furniture and equipment assembly **is taxable** (Comptroller Publication 96-259, "Taxable Services", 01/2026, checked 2026-11-13: tax is due on assembling products such as furniture, toys or equipment, even when the customer supplies them). Residential installation and real-property labor may not be. Non-taxable services would drop those totals 8.25% at no cost to margin |
 | Is AssembleAtEase or the Easer the seller for tax purposes? | Decides who collects and remits |
 | What happens to tax already collected on services found non-taxable? | Refund or remittance exposure |
 | Does insurance cover property damage on a $3,000+ job? | Risk grows as the cut shrinks |
 
-Keep collecting 8.25% until a written answer arrives; under-collecting a taxable service is the costlier mistake.
+Keep collecting 8.25% until a written answer arrives; under-collecting a taxable service is the costlier mistake. The answer becomes a versioned taxability table, one row per service, tested before it changes any price. Past over-collection is assessed by the CPA; no automatic refunds.
+
+## 9a. Quote records and release gates
+
+- **Provenance:** every quote stores the pricing schedule version, tax version, Easer price, scope version, fee, card-fee estimate, contribution, owner decision and any override reason, with timestamps. Historical prices are never rewritten.
+- **States:** custom quotes keep the existing server states (booking status and payment status, price-offer status, and the Easer stage from `easerRequestStage`). No second quote lifecycle is added beside them (Articles 1-3); a new state is added to the existing machine only when one is missing.
+- **Release gates before any fee change goes live:** the boundary tests in section 4; the profitability floor; the tax table for the services affected; Stripe hold, capture and refund paths unchanged and idempotent; test and demo accounts excluded from price requests; owner approval; a switch to turn it off; and the required CI check green (a skipped check is not a pass).
+- **Pilot:** an owner-approved start, measured on response time, acceptance, completion, decline reasons, Easer earnings per hour, refunds, disputes and contribution, by price band and service. Ten or twenty-five quotes guide a decision; they do not prove one.
 
 ## 10. State
 
