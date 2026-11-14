@@ -21,6 +21,7 @@ Start every task here (`docs/process/deep-execution-protocol.md`, section 4). Re
 
 ## Incidents
 - `docs/incidents/2026-11-13-live-e2e-dispatch-and-quote-defects.md`: five defects found by the live hybrid test (#449 to #453), causes and prevention.
+- `docs/incidents/2026-11-13-easer-price-request-page.md`: the Easer price-request page did not say where a request stood; server stages and the rebuilt page.
 
 ## Architecture (docs/platform)
 By area. Each file states its own "As of" date; check code when it is old.

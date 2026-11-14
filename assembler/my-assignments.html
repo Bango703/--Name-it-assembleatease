@@ -1046,7 +1046,7 @@
         var resp = await APP.privateFetch(boundUserId, '/api/assembler/price-requests', { headers: { 'Authorization': 'Bearer ' + pToken } });
         if (!resp.ok) return;
         var data = await resp.json();
-        var open = ((data && data.requests) || []).filter(function(r) { return r.status === 'open'; }).length;
+        var open = ((data && data.requests) || []).filter(function(r) { return r.stage === 'open'; }).length;
         var el = document.getElementById('price-requests-banner');
         if (!el || !open) return;
         el.innerHTML = '<span style="font-weight:700;font-size:0.9rem">' + open + ' price request' + (open === 1 ? '' : 's') + ' waiting</span><span style="font-weight:800;color:#0077a8;font-size:0.85rem">Enter your price</span>';

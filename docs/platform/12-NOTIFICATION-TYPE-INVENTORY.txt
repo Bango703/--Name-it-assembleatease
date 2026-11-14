@@ -147,3 +147,4 @@ weekly_summary
 
 quote_price_request
 quote_price_offer_owner
+quote_price_approved

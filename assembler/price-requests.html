@@ -25,25 +25,76 @@
   <script src="../assets/js/app.js?v=20260818a" defer></script>
   <script src="../assets/js/native-app.js?v=20261008c" defer></script>
   <style>
-    .pr-intro{font-size:0.88rem;color:var(--e-muted);margin:0 0 1rem}
-    .pr-card{background:#fff;border:1px solid var(--e-border);border-radius:14px;padding:1rem 1.05rem;margin-bottom:0.9rem}
-    .pr-top{display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem}
-    .pr-service{font-size:1rem;font-weight:700;color:var(--e-text)}
-    .pr-where{font-size:0.84rem;color:var(--e-muted);margin-top:0.2rem;line-height:1.45}
+    .pr-back{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.84rem;font-weight:600;color:var(--e-teal-dark);text-decoration:none;margin-bottom:0.6rem;min-height:32px}
+    .pr-title{font-size:1.3rem;font-weight:700;color:var(--e-text);margin:0 0 0.3rem}
+    .pr-intro{font-size:0.88rem;color:var(--e-muted);margin:0 0 1.1rem;line-height:1.5}
+    .pr-section{font-size:0.74rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--e-muted);margin:1.2rem 0 0.55rem}
+    .pr-section:first-child{margin-top:0}
+    .pr-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:14px;padding:1rem 1.05rem;margin-bottom:0.9rem;box-shadow:0 1px 2px rgba(15,23,42,0.04)}
+    .pr-card.is-action{border-color:rgba(0,191,255,0.55);box-shadow:0 0 0 3px rgba(0,191,255,0.08)}
+    .pr-top{display:flex;justify-content:space-between;align-items:center;gap:0.75rem;margin-bottom:0.55rem}
     .pr-ref{font-size:0.72rem;color:var(--e-muted);white-space:nowrap}
-    .pr-items{margin:0.75rem 0 0;padding-left:1.1rem;font-size:0.86rem;color:var(--e-text);line-height:1.5}
-    .pr-details{margin:0.6rem 0 0;font-size:0.85rem;color:#374151;background:#f8fafc;border-radius:10px;padding:0.6rem 0.75rem;white-space:pre-wrap}
-    .pr-state{margin-top:0.85rem;font-size:0.85rem;font-weight:600;color:var(--e-text)}
-    .pr-state.ok{color:var(--e-text)}
-    .pr-state.muted{color:var(--e-muted);font-weight:500}
-    .pr-form{margin-top:0.85rem;padding-top:0.85rem;border-top:1px solid var(--e-border)}
+    .pr-badge{display:inline-flex;align-items:center;gap:0.35rem;padding:0.22rem 0.6rem;border-radius:999px;font-size:0.72rem;font-weight:700;white-space:nowrap}
+    .pr-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+    .pr-badge.b-action{background:var(--e-teal-dim);color:var(--e-teal-dark)}
+    .pr-badge.b-wait{background:var(--e-amber-dim);color:#b45309}
+    .pr-badge.b-good{background:var(--e-green-dim);color:var(--e-green)}
+    .pr-badge.b-muted{background:var(--e-elevated);color:var(--e-muted)}
+    .pr-service{font-size:1.05rem;font-weight:700;color:var(--e-text);line-height:1.3}
+    .pr-facts{list-style:none;margin:0.6rem 0 0;padding:0;display:grid;gap:0.45rem}
+    .pr-fact{display:flex;gap:0.55rem;align-items:flex-start;font-size:0.86rem;color:var(--e-soft);line-height:1.4}
+    .pr-fact svg{flex-shrink:0;margin-top:1px;color:var(--e-muted)}
+    .pr-fact small{display:block;color:var(--e-muted);font-size:0.76rem;margin-top:0.1rem}
+    .pr-fact a{color:var(--e-teal-dark);font-weight:600;text-decoration:none;white-space:nowrap}
+    .pr-work{margin-top:0.85rem;padding-top:0.8rem;border-top:1px solid var(--e-border)}
+    .pr-work-title{font-size:0.78rem;font-weight:700;color:var(--e-text);margin-bottom:0.35rem}
+    .pr-items{margin:0;padding-left:1.1rem;font-size:0.86rem;color:var(--e-text);line-height:1.55}
+    .pr-details{margin:0.5rem 0 0;font-size:0.85rem;color:var(--e-soft);background:var(--e-bg);border:1px solid var(--e-border);border-radius:10px;padding:0.6rem 0.75rem;white-space:pre-wrap;line-height:1.5}
+    .pr-steps{list-style:none;margin:0.95rem 0 0;padding:0.8rem 0 0;border-top:1px solid var(--e-border);display:grid;gap:0}
+    .pr-step{position:relative;display:flex;gap:0.65rem;align-items:flex-start;padding-bottom:0.6rem;font-size:0.84rem;color:var(--e-muted);line-height:1.35}
+    .pr-step:last-child{padding-bottom:0}
+    .pr-step:not(:last-child)::after{content:"";position:absolute;left:9px;top:21px;bottom:1px;width:2px;background:var(--e-border)}
+    .pr-step.done:not(:last-child)::after{background:var(--e-teal)}
+    .pr-dot{flex-shrink:0;width:20px;height:20px;border-radius:50%;border:2px solid var(--e-border-md);background:var(--e-surface);display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
+    .pr-step.done .pr-dot{background:var(--e-teal);border-color:var(--e-teal);color:#fff}
+    .pr-step.current .pr-dot{border-color:var(--e-teal);box-shadow:0 0 0 3px rgba(0,191,255,0.18)}
+    .pr-step.current .pr-dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--e-teal)}
+    .pr-step.done,.pr-step.current{color:var(--e-text)}
+    .pr-step.current{font-weight:700}
+    .pr-step-sub{display:block;font-weight:400;color:var(--e-muted);font-size:0.78rem;margin-top:0.1rem}
+    .pr-panel{margin-top:0.9rem;padding-top:0.9rem;border-top:1px solid var(--e-border)}
+    .pr-msg{font-size:0.88rem;color:var(--e-text);line-height:1.45}
+    .pr-msg.muted{color:var(--e-muted)}
+    .pr-msg strong{font-weight:700}
+    .pr-flash{display:flex;gap:0.5rem;align-items:center;background:var(--e-green-dim);color:var(--e-green);border-radius:10px;padding:0.55rem 0.75rem;font-size:0.85rem;font-weight:700;margin-bottom:0.75rem}
+    .pr-deadline{display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;font-size:0.84rem;color:var(--e-soft);margin-bottom:0.65rem}
+    .pr-deadline strong{color:var(--e-text)}
+    .pr-left{font-size:0.76rem;font-weight:700;color:#b45309;white-space:nowrap}
+    .pr-mine{background:var(--e-bg);border:1px solid var(--e-border);border-radius:12px;padding:0.75rem 0.85rem}
+    .pr-mine-label{font-size:0.74rem;font-weight:700;color:var(--e-muted);text-transform:uppercase;letter-spacing:0.05em}
+    .pr-mine-amount{font-size:1.6rem;font-weight:800;color:var(--e-text);line-height:1.15;margin:0.15rem 0 0.2rem}
+    .pr-mine-meta{font-size:0.82rem;color:var(--e-soft)}
+    .pr-mine-note{font-size:0.82rem;color:var(--e-muted);margin-top:0.35rem;white-space:pre-wrap}
+    .pr-mine-sent{font-size:0.76rem;color:var(--e-muted);margin-top:0.45rem}
+    .pr-form .e-label{margin-top:0.6rem}
+    .pr-form .e-label:first-child{margin-top:0}
     .pr-row{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem}
-    .pr-form .e-label{margin-top:0.55rem}
-    .pr-actions{display:flex;gap:0.6rem;margin-top:0.85rem;flex-wrap:wrap}
-    .pr-error{color:var(--e-red,#dc2626);font-size:0.82rem;margin-top:0.5rem}
     .pr-earn-input{position:relative}
-    .pr-earn-input span{position:absolute;left:0.8rem;top:50%;transform:translateY(-50%);color:var(--e-muted);font-weight:600}
-    .pr-earn-input .e-input{padding-left:1.6rem}
+    .pr-earn-input span{position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);color:var(--e-muted);font-weight:700;font-size:1.05rem}
+    .pr-earn-input .e-input{padding-left:1.7rem;font-size:1.15rem;font-weight:700}
+    .pr-actions{display:flex;gap:0.6rem;margin-top:0.85rem}
+    .pr-actions .e-btn{flex:1}
+    .pr-error{color:var(--e-red);font-size:0.82rem;margin-top:0.55rem;line-height:1.4}
+    .pr-confirm{margin-top:0.75rem;background:var(--e-red-dim);border:1px solid rgba(220,38,38,0.2);border-radius:10px;padding:0.7rem 0.8rem}
+    .pr-confirm p{margin:0 0 0.55rem;font-size:0.85rem;color:var(--e-text);font-weight:600}
+    .pr-confirm .pr-actions{margin-top:0}
+    .pr-earlier{margin-top:0.5rem}
+    .pr-earlier summary{cursor:pointer;font-size:0.84rem;font-weight:600;color:var(--e-teal-dark);padding:0.4rem 0;list-style:none}
+    .pr-earlier summary::-webkit-details-marker{display:none}
+    .pr-card.compact{padding:0.8rem 0.95rem}
+    .pr-card.compact .pr-service{font-size:0.95rem}
+    .pr-card.compact .pr-sub{font-size:0.8rem;color:var(--e-muted);margin-top:0.15rem}
+    .pr-card.compact .pr-msg{font-size:0.83rem;margin-top:0.45rem}
   </style>
 </head>
 <body class="theme-pro easer-booting">
@@ -57,11 +108,12 @@
 </header>
 
 <div class="easer-page">
-  <h1 class="e-section-title" style="text-transform:none;letter-spacing:0;color:var(--e-text);font-size:1.25rem;margin-bottom:0.35rem">Price requests</h1>
-  <p class="pr-intro">Custom jobs near you. Enter the total earnings needed for the job, including any helpers. Your price stays private.</p>
+  <a class="pr-back" href="/assembler/my-assignments">&larr; Jobs</a>
+  <h1 class="pr-title">Price requests</h1>
+  <p class="pr-intro">Custom jobs near you. Send what you want to be paid for the whole job. Other Easers may be asked too. Your price stays private.</p>
   <div id="page-alert" class="alert hidden"></div>
   <div id="pr-list">
-    <div class="e-skeleton-card"><div class="e-skeleton" style="height:120px"></div></div>
+    <div class="e-skeleton-card"><div class="e-skeleton" style="height:160px"></div></div>
   </div>
 </div>
 
@@ -86,73 +138,232 @@
 
 <script>
 (function () {
+  // Every request carries `stage`, decided by the server
+  // (api/booking/_quote-offers.js easerRequestStage). This page renders it and
+  // never works out a request's state for itself.
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function money(cents) { return '$' + (Number(cents || 0) / 100).toFixed(2).replace(/\.00$/, ''); }
   function when(iso) {
     if (!iso) return '';
     return new Date(iso).toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   }
+  function timeLeft(iso) {
+    var ms = Date.parse(iso) - Date.now();
+    if (!isFinite(ms) || ms <= 0) return '';
+    var mins = Math.round(ms / 60000);
+    if (mins < 60) return mins + ' min left';
+    var hours = Math.round(mins / 60);
+    if (hours < 48) return hours + ' h left';
+    return Math.round(hours / 24) + ' days left';
+  }
   function apptDate(d) {
     if (!d) return 'Date to be agreed';
     var parts = String(d).slice(0, 10).split('-');
     return new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2], 12)).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' });
   }
+  function crewText(n) { n = Number(n) || 1; return n === 1 ? 'Just you' : 'Crew of ' + n; }
+  function hoursText(h) { return h == null ? '' : (Number(h) === 1 ? '1 hour' : Number(h) + ' hours'); }
+
+  var ICON = {
+    when: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    where: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+    check: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3.2"><polyline points="20 6 9 17 4 12"/></svg>'
+  };
+
+  // Stage -> badge, the step reached, and where the card is listed.
+  var STAGES = {
+    open:              { badge: 'Needs your price', tone: 'b-action', step: 0, group: 'action' },
+    sent:              { badge: 'Price sent', tone: 'b-wait', step: 1, group: 'progress' },
+    in_review:         { badge: 'Price sent', tone: 'b-wait', step: 1, group: 'progress' },
+    with_customer:     { badge: 'Price approved', tone: 'b-good', step: 2, group: 'progress' },
+    customer_approved: { badge: 'Customer approved', tone: 'b-good', step: 3, group: 'progress' },
+    job_offered:       { badge: 'Job offered to you', tone: 'b-action', step: 3, group: 'action' },
+    job_yours:         { badge: 'Your job', tone: 'b-good', step: 4, group: 'progress' },
+    offer_ended:       { badge: 'Offer ended', tone: 'b-muted', group: 'closed' },
+    job_taken:         { badge: 'Another Easer has the job', tone: 'b-muted', group: 'closed' },
+    not_chosen:        { badge: 'Not chosen', tone: 'b-muted', group: 'closed' },
+    withdrawn:         { badge: 'Withdrawn', tone: 'b-muted', group: 'closed' },
+    missed:            { badge: 'Closed', tone: 'b-muted', group: 'closed' },
+    closed:            { badge: 'Closed', tone: 'b-muted', group: 'closed' }
+  };
+  var STEPS = [
+    ['You send your price', ''],
+    ['We send the customer one quote', ''],
+    ['The customer approves', ''],
+    ['The job is offered to you first', 'Accept it in Jobs'],
+    ['You do the job and get paid', 'You are paid your price after the job is complete']
+  ];
 
   var getToken = null;
   var requests = [];
+  var editing = {};      // offerId -> true while the Easer is changing a sent price
+  var confirming = {};   // offerId -> true while the withdraw confirmation is open
+  var flash = {};        // offerId -> one-time success line
+  var drafts = {};       // offerId -> unsaved form values, kept across re-renders
 
-  function stateLine(r) {
+  function stageOf(r) { return STAGES[r.stage] || STAGES.closed; }
+
+  function factsHtml(r) {
+    var area = [r.city, r.zip].filter(Boolean).join(' ') || 'Texas';
+    var map = r.areaMapUrl ? ' &middot; <a href="' + esc(r.areaMapUrl) + '" target="_blank" rel="noopener">View area</a>' : '';
+    var addressNote = r.stage === 'job_yours' ? 'The full address is in the job' : 'Exact address after you accept the job';
+    return '<ul class="pr-facts">'
+      + '<li class="pr-fact">' + ICON.when + '<span>' + esc(apptDate(r.date)) + (r.time ? ' &middot; ' + esc(r.time) : '') + '</span></li>'
+      + '<li class="pr-fact">' + ICON.where + '<span>' + esc(area) + map + '<small>' + esc(addressNote) + '</small></span></li>'
+      + '</ul>';
+  }
+
+  function workHtml(r) {
+    var items = r.items && r.items.length
+      ? '<ul class="pr-items">' + r.items.map(function (i) { return '<li>' + esc(i.name) + (i.quantity > 1 ? ' x' + i.quantity : '') + '</li>'; }).join('') + '</ul>'
+      : '';
+    var details = r.details ? '<div class="pr-details">' + esc(r.details) + '</div>' : '';
+    if (!items && !details) return '';
+    return '<div class="pr-work"><div class="pr-work-title">The work</div>' + items + details + '</div>';
+  }
+
+  function stepsHtml(r) {
+    var reached = stageOf(r).step;
+    return '<ol class="pr-steps" aria-label="Where this job stands">' + STEPS.map(function (s, i) {
+      var cls = i < reached ? 'done' : (i === reached ? 'current' : '');
+      var sub = '';
+      if (i === reached && i === 2 && r.quoteExpiresAt) sub = 'The customer has until ' + when(r.quoteExpiresAt);
+      else if (i === reached || i === 4) sub = s[1];
+      return '<li class="pr-step ' + cls + '"' + (i === reached ? ' aria-current="step"' : '') + '><span class="pr-dot">' + (i < reached ? ICON.check : '') + '</span>'
+        + '<span>' + esc(s[0]) + (sub ? '<span class="pr-step-sub">' + esc(sub) + '</span>' : '') + '</span></li>';
+    }).join('') + '</ol>';
+  }
+
+  function minePriceHtml(r) {
     var o = r.yourOffer;
-    if (r.status === 'chosen') return '<div class="pr-state ok">Price selected. We will notify you when the job is ready.</div>';
-    if (r.status === 'sent') return '<div class="pr-state ok">Price sent: total job earnings ' + money(o && o.earningsCents) + '. ' + (r.canRespond ? 'You can change it until ' + esc(when(r.respondBy)) + '.' : 'We will notify you when there is an update.') + '</div>';
-    if (r.status === 'withdrawn') return '<div class="pr-state muted">You withdrew your price.</div>';
-    if (r.status === 'missed') return '<div class="pr-state muted">Closed. No price was sent.</div>';
-    if (r.status === 'closed') return '<div class="pr-state muted">Closed.</div>';
-    return '<div class="pr-state">Enter your price by ' + esc(when(r.respondBy)) + '.</div>';
+    if (!o) return '';
+    var meta = [hoursText(o.hours), crewText(o.crewSize)].filter(Boolean).join(' &middot; ');
+    return '<div class="pr-mine">'
+      + '<div class="pr-mine-label">Your price</div>'
+      + '<div class="pr-mine-amount">' + money(o.earningsCents) + '</div>'
+      + '<div class="pr-mine-meta">' + meta + '</div>'
+      + (o.note ? '<div class="pr-mine-note">' + esc(o.note) + '</div>' : '')
+      + (o.submittedAt ? '<div class="pr-mine-sent">Sent ' + esc(when(o.submittedAt)) + '</div>' : '')
+      + '</div>';
   }
 
   function formHtml(r) {
-    var o = r.yourOffer || {};
-    var crew = o.crewSize || 1;
-    var opts = [1, 2, 3, 4].map(function (n) { return '<option value="' + n + '"' + (n === crew ? ' selected' : '') + '>' + n + (n === 1 ? ' person' : ' people') + '</option>'; }).join('');
-    return '<form class="pr-form" data-offer="' + esc(r.offerId) + '">'
-      + '<label class="e-label" for="earn-' + esc(r.offerId) + '">Total job earnings, including helpers</label>'
-      + '<div class="pr-earn-input"><span>$</span><input class="e-input" id="earn-' + esc(r.offerId) + '" name="earnings" type="number" inputmode="decimal" min="20" max="15000" step="0.01" required value="' + (o.earningsCents ? (o.earningsCents / 100) : '') + '"/></div>'
+    var id = esc(r.offerId);
+    var o = drafts[r.offerId] || r.yourOffer || {};
+    var earn = o.earningsDollars != null ? o.earningsDollars : (o.earningsCents ? (o.earningsCents / 100) : '');
+    var crew = Number(o.crewSize) || 1;
+    var opts = [1, 2, 3, 4].map(function (n) { return '<option value="' + n + '"' + (n === crew ? ' selected' : '') + '>' + crewText(n) + '</option>'; }).join('');
+    var isChange = !!r.yourOffer;
+    return '<form class="pr-form" data-offer="' + id + '" novalidate>'
+      + '<label class="e-label" for="earn-' + id + '">What you want to be paid <span class="e-label-hint">(include any helpers)</span></label>'
+      + '<div class="pr-earn-input"><span>$</span><input class="e-input" id="earn-' + id + '" name="earnings" type="number" inputmode="decimal" min="20" max="15000" step="0.01" required value="' + esc(earn) + '"/></div>'
       + '<div class="pr-row">'
-      + '<div><label class="e-label" for="hours-' + esc(r.offerId) + '">Hours on site</label><input class="e-input" id="hours-' + esc(r.offerId) + '" name="hours" type="number" inputmode="decimal" min="0.5" max="24" step="0.5" required value="' + (o.hours || '') + '"/></div>'
-      + '<div><label class="e-label" for="crew-' + esc(r.offerId) + '">Crew</label><select class="e-input" id="crew-' + esc(r.offerId) + '" name="crew">' + opts + '</select></div>'
+      + '<div><label class="e-label" for="hours-' + id + '">Hours on site</label><input class="e-input" id="hours-' + id + '" name="hours" type="number" inputmode="decimal" min="0.5" max="24" step="0.5" required value="' + esc(o.hours || '') + '"/></div>'
+      + '<div><label class="e-label" for="crew-' + id + '">Who is coming</label><select class="e-input" id="crew-' + id + '" name="crew">' + opts + '</select></div>'
       + '</div>'
-      + '<label class="e-label" for="note-' + esc(r.offerId) + '">Note for AssembleAtEase <span class="e-label-hint">(optional)</span></label>'
-      + '<textarea class="e-input" id="note-' + esc(r.offerId) + '" name="note" rows="2" maxlength="500" placeholder="Tools, parts or access you need">' + esc(o.note || '') + '</textarea>'
+      + '<label class="e-label" for="note-' + id + '">Note for AssembleAtEase <span class="e-label-hint">(optional)</span></label>'
+      + '<textarea class="e-input" id="note-' + id + '" name="note" rows="2" maxlength="500" placeholder="Tools, parts or access you need">' + esc(o.note || '') + '</textarea>'
       + '<div class="pr-error" role="alert" hidden></div>'
       + '<div class="pr-actions">'
-      + '<button class="e-btn e-btn-primary e-btn-sm" type="submit">' + (r.yourOffer ? 'Update price' : 'Send price') + '</button>'
-      + (r.yourOffer ? '<button class="e-btn e-btn-secondary e-btn-sm" type="button" data-withdraw="' + esc(r.offerId) + '">Withdraw</button>' : '')
+      + (isChange ? '<button class="e-btn e-btn-secondary" type="button" data-cancel-edit="' + id + '">Cancel</button>' : '')
+      + '<button class="e-btn e-btn-primary" type="submit">' + (isChange ? 'Save new price' : 'Send price') + '</button>'
       + '</div></form>';
+  }
+
+  function deadlineHtml(r, label) {
+    if (!r.respondBy) return '';
+    var left = timeLeft(r.respondBy);
+    return '<div class="pr-deadline"><span>' + esc(label) + ' <strong>' + esc(when(r.respondBy)) + '</strong></span>' + (left ? '<span class="pr-left">' + esc(left) + '</span>' : '') + '</div>';
+  }
+
+  function panelHtml(r) {
+    var id = esc(r.offerId);
+    var f = flash[r.offerId] ? '<div class="pr-flash" role="status">' + ICON.check + '<span>' + esc(flash[r.offerId]) + '</span></div>' : '';
+    switch (r.stage) {
+      case 'open':
+        return f + deadlineHtml(r, 'Send by') + formHtml(r);
+      case 'sent':
+        if (editing[r.offerId] && r.canRespond) return f + deadlineHtml(r, 'Change it by') + formHtml(r);
+        return f + minePriceHtml(r)
+          + '<div class="pr-msg muted" style="margin-top:0.65rem">You can change or withdraw it until ' + esc(when(r.respondBy)) + '.</div>'
+          + (confirming[r.offerId]
+            ? '<div class="pr-confirm"><p>Withdraw your price for this job?</p><div class="pr-error" role="alert" hidden></div><div class="pr-actions"><button class="e-btn e-btn-secondary e-btn-sm" type="button" data-keep="' + id + '">Keep it</button><button class="e-btn e-btn-danger e-btn-sm" type="button" data-withdraw="' + id + '">Withdraw price</button></div></div>'
+            : (r.canRespond ? '<div class="pr-actions"><button class="e-btn e-btn-secondary e-btn-sm" type="button" data-withdraw-ask="' + id + '">Withdraw</button><button class="e-btn e-btn-primary e-btn-sm" type="button" data-edit="' + id + '">Change price</button></div><div class="pr-error" role="alert" hidden></div>' : ''));
+      case 'in_review':
+        return f + minePriceHtml(r) + '<div class="pr-msg muted" style="margin-top:0.65rem">Prices are closed. Your price is with AssembleAtEase.</div>';
+      case 'with_customer':
+        return minePriceHtml(r) + '<div class="pr-msg" style="margin-top:0.65rem">Your price was approved. The customer has the quote now.</div>';
+      case 'customer_approved':
+        return minePriceHtml(r) + '<div class="pr-msg" style="margin-top:0.65rem">The customer approved. We will notify you when the job is offered to you.</div>';
+      case 'job_offered':
+        return minePriceHtml(r)
+          + '<div class="pr-msg" style="margin-top:0.65rem"><strong>The job is offered to you.</strong>' + (r.jobOfferExpiresAt ? ' Accept by ' + esc(when(r.jobOfferExpiresAt)) + '.' : '') + '</div>'
+          + '<div class="pr-actions"><a class="e-btn e-btn-primary" href="/assembler/my-assignments?offer=' + encodeURIComponent(r.jobId) + '">Open the job</a></div>';
+      case 'job_yours':
+        return minePriceHtml(r)
+          + '<div class="pr-msg" style="margin-top:0.65rem"><strong>The job is yours.</strong></div>'
+          + '<div class="pr-actions"><a class="e-btn e-btn-primary" href="/assembler/my-assignments?job=' + encodeURIComponent(r.jobId) + '">Open the job</a></div>';
+      default:
+        return '';
+    }
+  }
+
+  var CLOSED_LINE = {
+    offer_ended: 'The job offer to you ended without an accept.',
+    job_taken: 'Another Easer has this job.',
+    not_chosen: 'Another price was chosen for this job.',
+    withdrawn: 'You withdrew your price.',
+    missed: 'Closed. No price was sent.',
+    closed: 'This request is closed.'
+  };
+
+  function cardHtml(r) {
+    var s = stageOf(r);
+    var top = '<div class="pr-top"><span class="pr-badge ' + s.tone + '">' + esc(s.badge) + '</span><span class="pr-ref">' + esc(r.ref || '') + '</span></div>';
+    if (s.group === 'closed') {
+      var mine = r.yourOffer ? ' &middot; Your price ' + money(r.yourOffer.earningsCents) : '';
+      return '<article class="pr-card compact" data-offer-card="' + esc(r.offerId) + '">' + top
+        + '<div class="pr-service">' + esc(r.service) + '</div>'
+        + '<div class="pr-sub">' + esc([r.city, r.zip].filter(Boolean).join(' ') || 'Texas') + ' &middot; ' + esc(apptDate(r.date)) + mine + '</div>'
+        + '<div class="pr-msg muted">' + esc(CLOSED_LINE[r.stage] || CLOSED_LINE.closed) + '</div>'
+        + '</article>';
+    }
+    return '<article class="pr-card' + (s.group === 'action' ? ' is-action' : '') + '" data-offer-card="' + esc(r.offerId) + '">' + top
+      + '<div class="pr-service">' + esc(r.service) + '</div>'
+      + factsHtml(r)
+      + workHtml(r)
+      + stepsHtml(r)
+      + '<div class="pr-panel">' + panelHtml(r) + '</div>'
+      + '</article>';
   }
 
   function render() {
     var list = document.getElementById('pr-list');
     if (!requests.length) {
-      list.innerHTML = '<div class="e-empty"><div class="e-empty-title">No price requests right now.</div></div>';
+      list.innerHTML = '<div class="e-empty"><div class="e-empty-title">No price requests right now.</div><div class="e-empty-desc">New requests show here and in your notifications.</div></div>';
       return;
     }
-    list.innerHTML = requests.map(function (r) {
-      var open = r.canRespond === true;
-      var where = [r.city, r.zip].filter(Boolean).join(' ');
-      var items = r.items && r.items.length
-        ? '<ul class="pr-items">' + r.items.map(function (i) { return '<li>' + esc(i.name) + (i.quantity > 1 ? ' x' + i.quantity : '') + '</li>'; }).join('') + '</ul>'
-        : '';
-      return '<article class="pr-card">'
-        + '<div class="pr-top"><div><div class="pr-service">' + esc(r.service) + '</div>'
-        + '<div class="pr-where">' + esc(where || 'Texas') + '<br>' + esc(apptDate(r.date)) + (r.time ? ', ' + esc(r.time) : '') + '</div></div>'
-        + '<div class="pr-ref">' + esc(r.ref || '') + '</div></div>'
-        + items
-        + (r.details ? '<div class="pr-details">' + esc(r.details) + '</div>' : '')
-        + stateLine(r)
-        + (open ? formHtml(r) : '')
-        + '</article>';
-    }).join('');
+    var groups = { action: [], progress: [], closed: [] };
+    requests.forEach(function (r) { groups[stageOf(r).group].push(r); });
+    var html = '';
+    if (groups.action.length) html += '<h2 class="pr-section">Needs you</h2>' + groups.action.map(cardHtml).join('');
+    if (groups.progress.length) html += '<h2 class="pr-section">In progress</h2>' + groups.progress.map(cardHtml).join('');
+    if (groups.closed.length) {
+      var closedCards = groups.closed.map(cardHtml).join('');
+      html += (groups.action.length || groups.progress.length)
+        ? '<details class="pr-earlier"><summary>Earlier requests (' + groups.closed.length + ')</summary>' + closedCards + '</details>'
+        : '<h2 class="pr-section">Earlier requests</h2>' + closedCards;
+    }
+    list.innerHTML = html;
+  }
+
+  function saveDraft(form) {
+    drafts[form.getAttribute('data-offer')] = {
+      earningsDollars: form.elements.earnings.value,
+      hours: form.elements.hours.value,
+      crewSize: form.elements.crew.value,
+      note: form.elements.note.value
+    };
   }
 
   async function load() {
@@ -160,17 +371,19 @@
       var token = await getToken();
       var resp = await fetch('/api/assembler/price-requests', { headers: { Authorization: 'Bearer ' + token } });
       var data = await resp.json().catch(function () { return {}; });
-      if (!resp.ok) { APP.showAlert('page-alert', data.error || 'Price requests could not be loaded.', 'error'); return; }
+      if (!resp.ok) { APP.showAlert('page-alert', data.error || 'Price requests could not be loaded.', 'error'); return false; }
       requests = data.requests || [];
       render();
+      return true;
     } catch (e) {
       APP.showAlert('page-alert', 'Price requests could not be loaded. Check your connection.', 'error');
+      return false;
     }
   }
 
-  async function post(body, errEl, btn) {
+  async function post(body, errEl, btn, isChange) {
     btn.disabled = true;
-    errEl.hidden = true;
+    if (errEl) errEl.hidden = true;
     try {
       var token = await getToken();
       var resp = await fetch('/api/assembler/price-requests', {
@@ -179,33 +392,71 @@
         body: JSON.stringify(body)
       });
       var data = await resp.json().catch(function () { return {}; });
-      if (!resp.ok) { errEl.textContent = data.error || 'Your price was not saved. Try again.'; errEl.hidden = false; return; }
+      if (!resp.ok) {
+        var msg = data.error || 'Your price was not saved. Try again.';
+        if (data.code === 'PRICE_REQUEST_CLOSED') {
+          // The request closed under the Easer: show its new state, keep the reason.
+          delete editing[body.offerId]; delete confirming[body.offerId]; delete drafts[body.offerId];
+          await load();
+          APP.showAlert('page-alert', msg, 'error');
+          return;
+        }
+        if (errEl) { errEl.textContent = msg; errEl.hidden = false; }
+        return;
+      }
+      delete editing[body.offerId]; delete confirming[body.offerId]; delete drafts[body.offerId];
+      flash = {};
+      if (body.action !== 'withdraw') flash[body.offerId] = isChange ? 'New price sent.' : 'Price sent.';
       await load();
-      APP.showAlert('page-alert', body.action === 'withdraw' ? 'Price withdrawn.' : 'Price sent.', 'success');
+      if (body.action === 'withdraw') APP.showAlert('page-alert', 'Price withdrawn.', 'success');
+      var card = document.querySelector('[data-offer-card="' + body.offerId + '"]');
+      if (card && card.scrollIntoView) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     } catch (e) {
-      errEl.textContent = 'Your price was not saved. Check your connection and try again.';
-      errEl.hidden = false;
-    } finally { btn.disabled = false; }
+      if (errEl) { errEl.textContent = 'Your price was not saved. Check your connection and try again.'; errEl.hidden = false; }
+    } finally { if (btn.isConnected) btn.disabled = false; }
   }
 
+  document.addEventListener('input', function (e) {
+    var form = e.target.closest && e.target.closest('.pr-form');
+    if (form) saveDraft(form);
+  });
   document.addEventListener('submit', function (e) {
     var form = e.target.closest && e.target.closest('.pr-form');
     if (!form) return;
     e.preventDefault();
+    // The server checks the amounts and says what is wrong (validateOfferSubmission).
+    var offerId = form.getAttribute('data-offer');
+    var r = requests.find(function (x) { return x.offerId === offerId; });
     post({
       action: 'submit',
-      offerId: form.getAttribute('data-offer'),
+      offerId: offerId,
       earningsDollars: form.elements.earnings.value,
       hours: form.elements.hours.value,
       crewSize: form.elements.crew.value,
       note: form.elements.note.value
-    }, form.querySelector('.pr-error'), form.querySelector('button[type=submit]'));
+    }, form.querySelector('.pr-error'), form.querySelector('button[type=submit]'), !!(r && r.yourOffer));
   });
   document.addEventListener('click', function (e) {
-    var btn = e.target.closest && e.target.closest('[data-withdraw]');
-    if (!btn) return;
-    var form = btn.closest('.pr-form');
-    post({ action: 'withdraw', offerId: btn.getAttribute('data-withdraw') }, form.querySelector('.pr-error'), btn);
+    var t = e.target.closest && e.target.closest('[data-edit],[data-cancel-edit],[data-withdraw-ask],[data-keep],[data-withdraw]');
+    if (!t) return;
+    var id;
+    if ((id = t.getAttribute('data-edit'))) { editing[id] = true; delete flash[id]; render(); var el = document.getElementById('earn-' + id); if (el) el.focus(); return; }
+    if ((id = t.getAttribute('data-cancel-edit'))) { delete editing[id]; delete drafts[id]; render(); return; }
+    if ((id = t.getAttribute('data-withdraw-ask'))) { confirming[id] = true; delete flash[id]; render(); return; }
+    if ((id = t.getAttribute('data-keep'))) { delete confirming[id]; render(); return; }
+    if ((id = t.getAttribute('data-withdraw'))) {
+      var box = t.closest('.pr-confirm');
+      post({ action: 'withdraw', offerId: id }, box && box.querySelector('.pr-error'), t);
+    }
+  });
+
+  // Coming back to the app shows where each request stands now.
+  var lastLoad = 0;
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible' || !getToken || Date.now() - lastLoad < 30000) return;
+    if (document.querySelector('.pr-form :focus')) return;
+    lastLoad = Date.now();
+    load();
   });
 
   document.addEventListener('DOMContentLoaded', async function () {
@@ -227,6 +478,7 @@
       } catch (e) {}
       return session.access_token;
     };
+    lastLoad = Date.now();
     load();
   });
 })();

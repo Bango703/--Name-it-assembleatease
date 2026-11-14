@@ -18,7 +18,7 @@
 //
 // Off unless PRIVATE_EASER_OFFERS_ENABLED=true. Off, nothing changes anywhere.
 
-import { getPlatformFeePct, computeBookingSplit, SALES_TAX_RATE } from '../_source-of-truth.js';
+import { getPlatformFeePct, computeBookingSplit, SALES_TAX_RATE, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 
 export const QUOTE_OFFER_STATUS = Object.freeze({
   INVITED: 'invited',
@@ -128,17 +128,67 @@ export function offerStatusForEaser(offer, now = Date.now()) {
   return offer.status === QUOTE_OFFER_STATUS.SUBMITTED ? 'sent' : 'open';
 }
 
+// The catalog's placeholder line on a custom quote says nothing about the work.
+const CUSTOM_QUOTE_PLACEHOLDER = /describe your project in the notes/i;
+
+// Booking states after which a chosen price can no longer become this Easer's job.
+const ENDED_BOOKING_STATUSES = new Set(['cancelled', 'declined', 'refunded', 'completed']);
+
+/** The quote is still taking Easer prices (the same test the write path applies). */
+function takingPrices(offer, booking, now) {
+  return offerOpenForEaser(offer, now) && booking.status === 'pending'
+    && !booking.selected_quote_offer_id && !booking.quote_approved_at && !booking.stripe_payment_intent_id;
+}
+
+/**
+ * Where this price request stands for the Easer, decided here so the page
+ * renders one server answer (contract invariant 1). `jobOffer` is this
+ * Easer's latest dispatch offer on the booking, when there is one.
+ *   open              no price yet, still taking prices
+ *   sent              price in, still taking prices (the Easer may change it)
+ *   in_review         price in, the window closed, no quote sent yet
+ *   with_customer     this price was chosen and sent; the customer is deciding
+ *   customer_approved the customer approved; the job offer has not reached this Easer yet
+ *   job_offered       the job is offered to this Easer and can be accepted now
+ *   offer_ended       the job was offered to this Easer and the offer ended unaccepted
+ *   job_yours         this Easer has the job
+ *   job_taken         another Easer has the job
+ *   not_chosen        another price was chosen
+ *   closed | withdrawn | missed
+ */
+export function easerRequestStage(offer = {}, booking = {}, now = Date.now(), jobOffer = null) {
+  if (offer.status === QUOTE_OFFER_STATUS.SELECTED) {
+    if (booking.assembler_id) return booking.assembler_id === offer.easer_id ? 'job_yours' : 'job_taken';
+    if (ENDED_BOOKING_STATUSES.has(booking.status)) return 'closed';
+    if (booking.quote_approved_at) {
+      if (jobOffer?.offer_status === DISPATCH_OFFER_STATUS.SENT && Date.parse(jobOffer.expires_at) > now) return 'job_offered';
+      return jobOffer ? 'offer_ended' : 'customer_approved';
+    }
+    if (booking.quote_expires_at && Date.parse(booking.quote_expires_at) <= now) return 'closed';
+    return 'with_customer';
+  }
+  if (offer.status === QUOTE_OFFER_STATUS.NOT_SELECTED) return 'not_chosen';
+  if (offer.status === QUOTE_OFFER_STATUS.WITHDRAWN) return 'withdrawn';
+  if (offer.status === QUOTE_OFFER_STATUS.CLOSED) return 'closed';
+  const open = takingPrices(offer, booking, now);
+  if (offer.status === QUOTE_OFFER_STATUS.SUBMITTED) return open ? 'sent' : 'in_review';
+  return open ? 'open' : 'missed';
+}
+
 /**
  * What an Easer sees of a quote request: the work and roughly where and when.
  * Never the customer's name, email, phone or street address, and never the
  * customer's price.
  */
-export function quoteRequestForEaser(offer, booking = {}, groups = []) {
+
+export function quoteRequestForEaser(offer, booking = {}, groups = [], jobOffer = null, now = Date.now()) {
   // loadBookingItems groups: [{label, items:[{name, quantity, isAddOn, addOnName}]}]
   const items = [];
   (groups || []).forEach(group => (group.items || []).forEach(item => {
+    if (CUSTOM_QUOTE_PLACEHOLDER.test(String(item.name || ''))) return;
     items.push({ name: item.isAddOn && item.addOnName ? `${item.name}: ${item.addOnName}` : item.name, quantity: item.quantity });
   }));
+  const stage = easerRequestStage(offer, booking, now, jobOffer);
   return {
     offerId: offer.id,
     service: booking.service || 'Custom job',
@@ -155,9 +205,16 @@ export function quoteRequestForEaser(offer, booking = {}, groups = []) {
       quantity: Number(item.quantity) > 0 ? Number(item.quantity) : 1,
     })).filter(item => item.name),
     respondBy: offer.respond_by,
+    invitedAt: offer.invited_at || null,
     status: offerStatusForEaser(offer),
-    canRespond: offerOpenForEaser(offer) && booking.status === 'pending'
-      && !booking.selected_quote_offer_id && !booking.quote_approved_at && !booking.stripe_payment_intent_id,
+    stage,
+    // ZIP-level area only; the street address is released when the job is accepted.
+    areaMapUrl: booking.service_zip ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.service_zip)}` : null,
+    // The job, once it is offered to or accepted by this Easer.
+    jobId: ['job_offered', 'job_yours'].includes(stage) ? booking.id : null,
+    jobOfferExpiresAt: stage === 'job_offered' ? jobOffer.expires_at : null,
+    quoteExpiresAt: stage === 'with_customer' ? (booking.quote_expires_at || null) : null,
+    canRespond: takingPrices(offer, booking, now),
     yourOffer: offer.earnings_cents != null ? {
       earningsCents: offer.earnings_cents,
       hours: offer.hours != null ? Number(offer.hours) : null,

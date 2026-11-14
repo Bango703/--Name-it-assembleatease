@@ -20,6 +20,8 @@ const partners = await import('../api/_partners.js');
 const { selectOfferRecipients } = await import('../api/booking/_dispatch-internal.js');
 const { resolveBookingPromotion, applyPromotionToPricing } = await import('../api/_promotions.js');
 const { computeBookingSplit, SALES_TAX_RATE } = await import('../api/_source-of-truth.js');
+const { priceApprovedNotice } = await import('../api/booking/_quote-offer-invites.js');
+const { NOTIFICATION_COPY } = await import('../api/assembler/notifications.js');
 
 let passed = 0;
 const ok = (name, fn) => { fn(); passed++; };
@@ -76,6 +78,89 @@ ok('offer status for the Easer follows the window', () => {
   assert.equal(offers.offerStatusForEaser({ status: 'submitted', respond_by: future }), 'sent');
   assert.equal(offers.offerStatusForEaser({ status: 'selected', respond_by: past }), 'chosen');
   assert.equal(offers.offerOpenForEaser({ status: 'invited', respond_by: past }), false);
+});
+
+ok('the Easer page gets one stage per request, decided on the server', () => {
+  const now = Date.parse('2026-11-13T15:00:00Z');
+  const future = '2026-11-14T15:00:00Z';
+  const past = '2026-11-13T14:00:00Z';
+  const me = 'e1';
+  const pending = { id: 'b1', status: 'pending', payment_status: 'not_required' };
+  const stage = (offer, booking, jobOffer) => offers.easerRequestStage({ easer_id: me, respond_by: future, ...offer }, booking, now, jobOffer);
+  assert.equal(stage({ status: 'invited' }, pending), 'open');
+  assert.equal(stage({ status: 'invited', respond_by: past }, pending), 'missed');
+  assert.equal(stage({ status: 'submitted' }, pending), 'sent');
+  assert.equal(stage({ status: 'submitted', respond_by: past }, pending), 'in_review');
+  // The write path refuses once a quote is sent or a hold exists; the stage agrees.
+  assert.equal(stage({ status: 'submitted' }, { ...pending, stripe_payment_intent_id: 'pi_1' }), 'in_review');
+  assert.equal(stage({ status: 'invited' }, { ...pending, quote_approved_at: past }), 'missed');
+  assert.equal(stage({ status: 'not_selected' }, pending), 'not_chosen');
+  assert.equal(stage({ status: 'withdrawn' }, pending), 'withdrawn');
+  assert.equal(stage({ status: 'closed' }, pending), 'closed');
+  const sentQuote = { ...pending, payment_status: 'quote_pending_approval', selected_quote_offer_id: 'o1', quote_expires_at: future };
+  assert.equal(stage({ status: 'selected' }, sentQuote), 'with_customer');
+  assert.equal(stage({ status: 'selected' }, { ...sentQuote, quote_expires_at: past }), 'closed');
+  assert.equal(stage({ status: 'selected' }, { ...sentQuote, status: 'declined' }), 'closed');
+  const approved = { ...sentQuote, status: 'confirmed', payment_status: 'authorized', quote_approved_at: past };
+  assert.equal(stage({ status: 'selected' }, approved), 'customer_approved');
+  assert.equal(stage({ status: 'selected' }, approved, { offer_status: 'sent', expires_at: future }), 'job_offered');
+  assert.equal(stage({ status: 'selected' }, approved, { offer_status: 'sent', expires_at: past }), 'offer_ended');
+  assert.equal(stage({ status: 'selected' }, approved, { offer_status: 'declined', expires_at: future }), 'offer_ended');
+  assert.equal(stage({ status: 'selected' }, { ...approved, assembler_id: me }), 'job_yours');
+  assert.equal(stage({ status: 'selected' }, { ...approved, assembler_id: 'e2' }), 'job_taken');
+
+  // The view: the job link only when the job is this Easer's to open, the
+  // area by ZIP only, and the catalog's custom-quote placeholder left out.
+  const groups = [{ items: [{ name: 'Custom Quote: describe your project in the notes', quantity: 1 }, { name: 'Sit-stand desk', quantity: 2 }] }];
+  const offered = offers.quoteRequestForEaser({ id: 'o1', easer_id: me, status: 'selected', respond_by: future }, { ...approved, service_zip: '78701' }, groups, { offer_status: 'sent', expires_at: future }, now);
+  assert.equal(offered.stage, 'job_offered');
+  assert.equal(offered.jobId, 'b1');
+  assert.equal(offered.jobOfferExpiresAt, future);
+  assert.equal(offered.areaMapUrl, 'https://www.google.com/maps/search/?api=1&query=78701');
+  assert.deepEqual(offered.items, [{ name: 'Sit-stand desk', quantity: 2 }]);
+  const waiting = offers.quoteRequestForEaser({ id: 'o1', easer_id: me, status: 'selected', respond_by: future }, approved, [], null, now);
+  assert.equal(waiting.jobId, null);
+  const open = offers.quoteRequestForEaser({ id: 'o2', easer_id: me, status: 'invited', respond_by: future }, pending, [], null, now);
+  assert.equal(open.canRespond, true);
+  assert.equal(open.stage, 'open');
+
+  // The page renders the server's stage and never decides one itself.
+  const page = read('assembler/price-requests.html');
+  assert.match(page, /switch \(r\.stage\)/);
+  assert.doesNotMatch(page, /r\.status ===/);
+  assert.doesNotMatch(page, /window\.confirm|[^.]\bconfirm\(/);
+  // Only promises the platform keeps: no notice is sent when a price is chosen,
+  // and payout can be Zelle, PayPal or check, not only a bank.
+  assert.doesNotMatch(page, /let you know if your price|paid to your bank/i);
+  // The Easer's dispatch offer is read for this Easer only.
+  assert.match(read('api/assembler/price-requests.js'), /from\('dispatch_offers'\)[\s\S]*?\.eq\('easer_id', easerId\)/);
+});
+
+ok('the Easer is texted when their price is approved, once, after the quote is saved', () => {
+  // Owner, 2026-11-13: "they need to get a text once their bid amount is approved".
+  const msg = priceApprovedNotice({ ref: 'AAE-X1', service: 'Office Furniture Assembly', date: '2026-11-20', quote_amount_cents: 231965 }, { id: 'o1', earnings_cents: 150000 }, 'Travis Gibson');
+  assert.match(msg.sms, /^AssembleAtEase: your \$1,500 price for Office Furniture Assembly on .+ was approved and sent to the customer\. When they approve, the job is offered to you first\. Ref AAE-X1: https?:\/\/\S+\/assembler\/price-requests$/);
+  for (const text of [msg.sms, msg.pushBody, msg.subject, msg.html]) assert.doesNotMatch(text, /2,?319|231965/, 'the customer total never reaches the Easer');
+  assert.match(msg.html, /Hi Travis,/);
+
+  const invites = read('api/booking/_quote-offer-invites.js');
+  assert.match(invites, /notificationType: 'quote_price_approved'[^\n]*notificationKey: `quote-price-approved:\$\{offer\.id\}`/);
+  assert.match(invites, /sendSms\(\{ recipient: easer, body: msg\.sms, meta \}\)/);
+  assert.match(invites, /sendPushToUser\(easer\.id/);
+  assert.match(invites, /sendEmail\(\{ to: easer\.email, subject: msg\.subject/);
+
+  const qa = read('api/owner/quote-approve.js');
+  const savedAt = qa.indexOf("console.error('quote prepare update failed:'");
+  const noticeAt = qa.indexOf('await notifyEaserPriceApproved(sb, booking, chosenOffer)');
+  assert.ok(savedAt > 0 && noticeAt > savedAt, 'the Easer is told only after the quote is saved');
+  assert.match(qa, /chosenOffer && chosenOffer\.status !== QUOTE_OFFER_STATUS\.SELECTED\s*\? await notifyEaserPriceApproved/);
+  assert.match(qa, /easerNotice: \{ reached: easerNotice\.reached, channels: easerNotice\.channels \}/);
+
+  // The owner sees whether the Easer was reached, apart from the customer email.
+  const panel = read('owner/index.html');
+  assert.match(panel, /\(d\.warnings \|\| \[\]\)\.indexOf\('quote_approval_email_failed'\) !== -1/);
+  assert.match(panel, /The Easer was told by ' \+ d\.easerNotice\.channels\.join/);
+  assert.equal(NOTIFICATION_COPY.quote_price_approved.action, 'price_requests');
 });
 
 // ── 3. Endpoints: scoping and server pricing ─────────────────────────────────
