@@ -97,6 +97,8 @@ No agent changes a live price, a fee or Easer pay without the owner's approval. 
 
 ## 9. Open questions (owner to take to a CPA)
 
+Owner, 2026-11-15: not pursued for now. Every service keeps collecting 8.25%.
+
 | Question | Why it matters |
 |---|---|
 | Which services are taxable in Texas: mounting a customer-owned TV, smart thermostat, doorbell and lock installs, playsets, sheds and gazebos, office installs? | Furniture and equipment assembly **is taxable** (Comptroller Publication 96-259, "Taxable Services", 01/2026, checked 2026-11-13: tax is due on assembling products such as furniture, toys or equipment, even when the customer supplies them). Residential installation and real-property labor may not be. Non-taxable services would drop those totals 8.25% at no cost to margin |
