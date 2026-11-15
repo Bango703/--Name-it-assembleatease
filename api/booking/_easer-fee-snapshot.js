@@ -1,9 +1,8 @@
-import { computeBookingSplitFromSnapshot, getPlatformFeePct } from '../_source-of-truth.js';
+import { computeBookingSplitFromSnapshot, getPlatformFeePct, isAllowedPlatformFeePct } from '../_source-of-truth.js';
 import { hasEffectiveEaserMembership, isEaserMembershipEnabled } from '../_easer-membership.js';
 
 export function validEaserFeePct(value) {
-  const pct = Number(value);
-  return pct === 25 || pct === 30 ? pct : null;
+  return isAllowedPlatformFeePct(value) ? Number(value) : null;
 }
 
 export function bookingHasCurrentEaserFeeSnapshot(booking, assemblerId = booking?.assembler_id) {

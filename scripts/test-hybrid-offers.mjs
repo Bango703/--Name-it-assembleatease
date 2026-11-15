@@ -19,7 +19,8 @@ const offers = await import('../api/booking/_quote-offers.js');
 const partners = await import('../api/_partners.js');
 const { selectOfferRecipients } = await import('../api/booking/_dispatch-internal.js');
 const { resolveBookingPromotion, applyPromotionToPricing } = await import('../api/_promotions.js');
-const { computeBookingSplit, SALES_TAX_RATE } = await import('../api/_source-of-truth.js');
+const { computeBookingSplit, computeBookingSplitAtFeePct, normalizePlatformFeePct, SALES_TAX_RATE } = await import('../api/_source-of-truth.js');
+const { validEaserFeePct } = await import('../api/booking/_easer-fee-snapshot.js');
 const { priceApprovedNotice } = await import('../api/booking/_quote-offer-invites.js');
 const { NOTIFICATION_COPY } = await import('../api/assembler/notifications.js');
 
@@ -180,9 +181,68 @@ ok('the owner endpoints check the owner, and a quote from an offer is priced on 
   assert.match(qa, /priceCents = offerQuote\.totalCents;/);
   assert.match(qa, /const subtotalCents = offerQuote \? offerQuote\.subtotalCents/);
   assert.match(qa, /!quoteOfferId && \(!Number\.isInteger\(priceCents\)/);
-  // The owner panel sends no amount with an offer.
+  // The owner panel sends no amount with an offer: only the fee percent chosen
+  // from the server's list, and a reason.
   const panel = read('owner/index.html');
-  assert.match(panel, /body: JSON\.stringify\(\{ bookingId: id, quoteOfferId: offerId, offerUpdatedAt: offerUpdatedAt, date: quoteDate, time: quoteTime \}\)/);
+  assert.match(panel, /body: JSON\.stringify\(\{ bookingId: id, quoteOfferId: offerId, offerUpdatedAt: offerUpdatedAt, date: quoteDate, time: quoteTime, feePct: feePct, feeReason: feeReason \}\)/);
+  assert.doesNotMatch(panel, /feePct[^;\n]*\* *\(|subtotalCents *\* /, 'the owner screen never calculates a price');
+});
+
+// ── 3b. Stepped platform fee (pricing model v1 section 4) ────────────────────
+ok('the stepped fee: the business keeps its share after card fees, the Easer keeps their price', () => {
+  const stepped = { QUOTE_FEE_SCHEDULE: 'stepped' };
+  // Net take after card fees: 30% to $500, 20% to $2,000, 15% above.
+  assert.equal(offers.quoteNetTakeCents(15000), 4500);
+  assert.equal(offers.quoteNetTakeCents(50000), 15000);
+  assert.equal(offers.quoteNetTakeCents(120000), 15000 + 14000);
+  assert.equal(offers.quoteNetTakeCents(300000), 15000 + 30000 + 15000);
+  // The worked examples the owner approved on 2026-11-13.
+  const expect = { 15000: [26, 21943], 40000: [26, 58515], 120000: [23, 168702], 300000: [20, 405938], 1500000: [17, 1956325] };
+  for (const [bid, [pct, total]] of Object.entries(expect)) {
+    const q = offers.customerQuoteForEarnings(Number(bid), { env: stepped });
+    assert.deepEqual([q.feePct, q.totalCents], [pct, total], `bid ${bid}`);
+  }
+  for (let earnings = offers.QUOTE_OFFER_MIN_EARNINGS_CENTS; earnings <= 2000000; earnings += 1733) {
+    const q = offers.customerQuoteForEarnings(earnings, { env: stepped });
+    assert.ok(q.feePct >= 10 && q.feePct <= 30 && Number.isInteger(q.feePct));
+    // The pay pipeline splits by the stored percent; the Easer gets at least their price.
+    const split = computeBookingSplitAtFeePct(q.totalCents, q.feePct, { taxCents: q.taxCents });
+    assert.ok(split.assemblerDueCents >= earnings && split.assemblerDueCents - earnings <= 1, `Easer pay at ${earnings}`);
+    assert.equal(split.assemblerDueCents, q.easerEarningsCents);
+    // Rounding up to a whole percent never leaves the business below the schedule.
+    if (q.feePct < 30) assert.ok(q.contributionCents >= offers.quoteNetTakeCents(earnings) - 1, `schedule kept at ${earnings}`);
+    assert.equal(q.taxCents, Math.round(q.subtotalCents * SALES_TAX_RATE));
+  }
+  // Without the switch the flat catalog percentage stays.
+  assert.equal(offers.customerQuoteForEarnings(120000, { env: {} }).feePct, 30);
+  assert.equal(offers.quoteFeeScheduleMode({}), 'flat');
+});
+
+ok('the owner may set a quote fee from 15% to 30%, and a quote below the profit floor is held', () => {
+  const stepped = { QUOTE_FEE_SCHEDULE: 'stepped' };
+  const options = offers.quoteFeeOptions(120000, { env: stepped });
+  assert.deepEqual(options.map(o => o.feePct), Array.from({ length: 16 }, (_, i) => 15 + i));
+  options.forEach(o => assert.equal(o.totalCents, offers.customerQuoteForEarnings(120000, { env: stepped, feePct: o.feePct }).totalCents));
+  assert.throws(() => offers.customerQuoteForEarnings(120000, { feePct: 9 }), /10 to 30/);
+  assert.throws(() => offers.customerQuoteForEarnings(120000, { feePct: 31 }), /10 to 30/);
+  // A $20 price cannot leave $25 after card fees at any fee: held, nothing offered.
+  assert.equal(offers.customerQuoteForEarnings(2000, { env: stepped }).meetsProfitFloor, false);
+  assert.deepEqual(offers.quoteFeeOptions(2000, { env: stepped }), []);
+  // The floor is owner-set in the environment.
+  assert.equal(offers.quoteMinContributionCents({ QUOTE_MIN_CONTRIBUTION_CENTS: '4000' }), 4000);
+
+  const qa = read('api/owner/quote-approve.js');
+  assert.match(qa, /const allowed = quoteFeeOptions\(offer\.earnings_cents, \{ isMember \}\)\.map\(option => option\.feePct\);/);
+  assert.match(qa, /code: 'QUOTE_FEE_REASON_REQUIRED'/);
+  assert.match(qa, /if \(!offerQuote\.meetsProfitFloor\) \{/);
+  assert.match(qa, /code: 'QUOTE_BELOW_PROFIT_FLOOR'/);
+  assert.match(qa, /scheduleVersion: offerQuote\.scheduleVersion/, 'the quote records its pricing version');
+  // The stored percent passes every reader: split, snapshot, database (migration 131).
+  assert.equal(normalizePlatformFeePct(17), 17);
+  assert.equal(normalizePlatformFeePct(9), 30);
+  assert.equal(normalizePlatformFeePct(31), 30);
+  assert.equal(validEaserFeePct(17), 17);
+  assert.equal(validEaserFeePct(25.5), null);
 });
 
 // ── 4. Dispatch: preferred Easers first, then normal matching ────────────────

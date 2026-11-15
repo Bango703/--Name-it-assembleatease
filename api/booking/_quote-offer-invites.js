@@ -16,6 +16,7 @@ import {
   QUOTE_OFFER_RESPONSE_HOURS,
   QUOTE_OFFER_MAX_INVITES,
   customerQuoteForEarnings,
+  quoteFeeOptions,
   quoteRequestForEaser,
 } from './_quote-offers.js';
 
@@ -54,9 +55,8 @@ export async function loadQuoteOffersForOwner(sb, bookingId) {
   return {
     offers: (offers || []).map(offer => {
       const easer = profiles.get(offer.easer_id) || {};
-      const priced = offer.earnings_cents > 0
-        ? customerQuoteForEarnings(offer.earnings_cents, { isMember: hasEffectiveEaserMembership(easer) })
-        : null;
+      const isMember = hasEffectiveEaserMembership(easer);
+      const priced = offer.earnings_cents > 0 ? customerQuoteForEarnings(offer.earnings_cents, { isMember }) : null;
       return {
         id: offer.id,
         status: offer.status,
@@ -82,7 +82,15 @@ export async function loadQuoteOffersForOwner(sb, bookingId) {
           taxCents: priced.taxCents,
           totalCents: priced.totalCents,
           platformFeeCents: priced.platformFeeCents,
+          feePct: priced.feePct,
+          schedulePct: priced.schedulePct,
+          scheduleMode: priced.scheduleMode,
+          contributionCents: priced.contributionCents,
+          meetsProfitFloor: priced.meetsProfitFloor,
+          minContributionCents: priced.minContributionCents,
         } : null,
+        // Each fee the owner may choose, priced here (Rule 4).
+        feeOptions: priced ? quoteFeeOptions(offer.earnings_cents, { isMember }) : [],
       };
     }),
     migrationNeeded: false,

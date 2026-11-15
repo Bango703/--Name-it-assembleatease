@@ -141,6 +141,12 @@ export default async function handler(req, res) {
     ? Math.round(sum(rows.filter(row => !!row.bundleSlug), row => row.netCharged) / bundledJobs)
     : 0;
   const serviceProfitability = buildServiceProfitability(rows, itemMetrics);
+  // Owner console (2026-11-13): the chart, the revenue breakdown and the Easer
+  // table come from the same rows as the totals above, so the months add up to
+  // the totals and the Easers add up to Easer earnings.
+  const monthly = buildMonthlySeries(financeRows);
+  const breakdown = buildRevenueBreakdown({ customerRevenue, salesTaxCollected, processingFees, easerPayouts, platformGrossProfit });
+  const easerEarnings = buildEaserEarnings(financeRows);
   const expansionRows = period === 'all' ? financeRows : await loadExpansionRows(sb);
   const expansionReadiness = await buildExpansionReadiness(sb, expansionRows, activeEasers, expenseSummary.paidAllTimeCents);
 
@@ -304,6 +310,9 @@ export default async function handler(req, res) {
       assemblecashLiabilityCents: assemblecashMetrics.liabilityCents,
     },
     serviceProfitability,
+    monthly,
+    breakdown,
+    easerEarnings,
     contractorTax,
     clawbacks,
     assemblecash: assemblecashMetrics,
@@ -1106,6 +1115,71 @@ function recommendServiceAction({ serviceName, completedJobs, averageTicket, pla
   if (platformGrossPerJob < 3500) return 'Raise Price';
   if (completedJobs < 2 && averageTicket < MIN_PROFITABLE_TICKET_CENTS) return 'Bundle';
   return 'Keep';
+}
+
+
+// Month of a finance row in Central time. A date-only value is already a
+// local date; a timestamp is converted. Rows without either are "undated".
+function financeRowMonth(row) {
+  const value = row.eventAt || row.date;
+  if (!value) return null;
+  const text = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text.slice(0, 7);
+  const at = new Date(text);
+  if (Number.isNaN(at.getTime())) return null;
+  return at.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }).slice(0, 7);
+}
+
+/** Totals per month, in cents, from the same per-row values as the summary. */
+export function buildMonthlySeries(financeRows = []) {
+  const months = new Map();
+  for (const row of financeRows) {
+    const key = financeRowMonth(row) || 'undated';
+    const m = months.get(key) || { month: key === 'undated' ? null : key, customerRevenue: 0, salesTax: 0, processingFees: 0, easerEarnings: 0, platformGross: 0, completedJobs: 0 };
+    const revenue = Number(row.netCharged || 0);
+    const tax = Number(row.taxCollected || 0);
+    const fee = Number(row.stripeFee || 0);
+    const easer = payoutForProfit(row);
+    m.customerRevenue += revenue;
+    m.salesTax += tax;
+    m.processingFees += fee;
+    m.easerEarnings += easer;
+    m.platformGross += revenue - tax - fee - easer;
+    if (row.status === 'completed') m.completedJobs += 1;
+    months.set(key, m);
+  }
+  return [...months.values()].sort((a, b) => (a.month === null) - (b.month === null) || String(a.month).localeCompare(String(b.month)));
+}
+
+/** Where customer payments went: the four parts add up to customer payments. */
+export function buildRevenueBreakdown({ customerRevenue = 0, salesTaxCollected = 0, processingFees = 0, easerPayouts = 0, platformGrossProfit = 0 } = {}) {
+  const total = Number(customerRevenue || 0);
+  const parts = [
+    ['easerEarnings', 'Easer earnings', easerPayouts],
+    ['platformGross', 'Platform gross', platformGrossProfit],
+    ['salesTax', 'Sales tax', salesTaxCollected],
+    ['processingFees', 'Processing fees', processingFees],
+  ];
+  return {
+    totalCents: total,
+    parts: parts.map(([key, label, cents]) => ({ key, label, cents: Number(cents || 0), share: total > 0 ? Number(cents || 0) / total : 0 })),
+  };
+}
+
+/** Easer earnings in the period, per Easer: earned, paid, still owed. */
+export function buildEaserEarnings(financeRows = []) {
+  const easers = new Map();
+  for (const row of financeRows) {
+    const earned = payoutForProfit(row);
+    if (!earned && !row.assemblerId) continue;
+    const key = row.assemblerId || 'unassigned';
+    const e = easers.get(key) || { easerId: row.assemblerId || null, name: row.assemblerName || 'No Easer recorded', jobs: 0, earnedCents: 0, paidCents: 0, owedCents: 0 };
+    if (row.status === 'completed') e.jobs += 1;
+    e.earnedCents += earned;
+    if (row.paidOut) e.paidCents += earned; else e.owedCents += earned;
+    easers.set(key, e);
+  }
+  return [...easers.values()].sort((a, b) => b.earnedCents - a.earnedCents || String(a.name).localeCompare(String(b.name)));
 }
 
 function payoutForProfit(row) {

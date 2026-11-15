@@ -19,6 +19,19 @@ Last verified: 2026-11-13. Active work only; the full prioritized backlog is `bu
 - Found on the way, not fixed yet: Live Ops "Bookings needing action" labels the unpriced quote "Unknown Payment State" (another reader of the `not_required` quote state); the owner's ask list shows the Easer city in capitals (`askableEaserView`).
 - Next action: send the quote from the Easer's price, owner approves with a card, verify the hold and records and that the job is offered to that Easer first, owner cancels.
 
+## 3a. Pricing model v1
+- Objective: owner, 2026-11-13: high demand, affordable, out-do every competitor. Foundation in `docs/business-rules/pricing-model-v1.md`, evidence in `docs/decisions/2026-11-13-custom-quote-take-rate-research.md`.
+- State: owner approved section 4 on 2026-11-13. Stepped fee, card processing in the price, owner fee control, profit floor and quote record built on branch `docs/pricing-model` behind `QUOTE_FEE_SCHEDULE=stepped`; migration 131 written and tested locally, not applied.
+- Next action: owner approves running migration 131 (after comparing the two functions with the production definitions), merge, set `QUOTE_FEE_SCHEDULE=stepped` in Vercel, send one real quote. Then the price-per-person-hour flag, the "Price is too high" re-quote and the AI quote advisor.
+
+## 3b. Owner console revamp
+- Objective: owner, 2026-11-13: the owner dashboard like the four reference images, fully working, nothing broken.
+- State: Phase 1 (frame and Bookings) built on branch `feat/owner-dashboard-revamp`, stacked on `docs/pricing-model`; launch suite, 26 browser tests and governance:truth pass locally.
+- Phase 2 (Financials) built: Overview from server figures (`monthly`, `breakdown`, `easerEarnings`); launch suite, 28 browser tests and governance:truth pass locally.
+- Phase 3 (Cases) built; launch suite, 30 browser tests and governance:truth pass locally.
+- Phase 4 (Market Demand) built; launch suite, 31 browser tests and governance:truth pass locally.
+- Next action: the remaining screens (Live Ops, Today, Messages, Easers, Customers, Partners and the rest) onto the same frame.
+
 ## 4. Waiting on the owner
 - Policy decisions 1 to 4 in the audit record.
 - Checkr account, package choice, API key and webhook secret, before the background-check integration is built.

@@ -66,6 +66,10 @@
 .qo-line { margin-top: 0.15rem; line-height: 1.5; }
 .qo-note { margin-top: 0.3rem; font-style: italic; color: var(--soft, #374151); }
 .qo-send { margin-top: 0.5rem; }
+.qo-fee-row { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.45rem; }
+.qo-fee-row label { font-size: 0.72rem; font-weight: 700; color: var(--muted); }
+.qo-fee-row select, .qo-fee-row input { font-size: 0.8rem; padding: 0.4rem 0.5rem; }
+.qo-held { margin-top: 0.4rem; font-size: 0.78rem; color: var(--red); line-height: 1.45; }
 .qo-chip { font-size: 0.7rem; font-weight: 700; border-radius: 999px; padding: 0.15rem 0.55rem; background: var(--elevated); color: var(--muted); white-space: nowrap; }
 .qo-chip-submitted, .qo-chip-selected { background: var(--teal-glow, rgba(0,191,255,0.12)); color: var(--teal-dark, #0099CC); }
 .qo-not_selected, .qo-closed, .qo-withdrawn { opacity: 0.6; }
@@ -97,7 +101,7 @@
 <div class="layout hidden" id="layout">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <a href=".">AssembleAtEase</a>
+      <a href="." class="sidebar-brand-link"><img src="/images/favicon.svg" alt="" width="26" height="26" class="sidebar-logo" />AssembleAtEase</a>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Run the day</div>
@@ -159,7 +163,7 @@
         <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open navigation">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
-        <div class="topbar-title">Live Operations</div>
+        <div class="topbar-heading"><div class="topbar-title">Live Operations</div><div class="topbar-sub" id="topbar-sub"></div></div>
       </div>
       <div class="topbar-right">
         <button class="btn" id="export-csv-btn" style="font-size:0.78rem">Financial Report</button>
@@ -366,15 +370,28 @@
         <div id="giftcards-body"></div>
       </div>
       <div id="cases-view" class="cases-view-shell" style="display:none">
+        <div class="kpi-row cases-kpis" id="cases-stats-row">
+          <button type="button" class="kpi" data-case-view="active"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-active">&mdash;</span><span class="kpi-label">Active</span><span class="kpi-sub">Needs follow-up</span></span></button>
+          <button type="button" class="kpi" data-case-view="new"><span class="kpi-icon kpi-info"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-new">&mdash;</span><span class="kpi-label">New</span><span class="kpi-sub">Not yet acknowledged</span></span></button>
+          <button type="button" class="kpi" data-case-view="high_priority"><span class="kpi-icon kpi-bad"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-priority">&mdash;</span><span class="kpi-label">High Priority</span><span class="kpi-sub">Active, high or critical</span></span></button>
+          <button type="button" class="kpi" data-case-view="waiting"><span class="kpi-icon kpi-warn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-waiting">&mdash;</span><span class="kpi-label">Waiting on Reply</span><span class="kpi-sub">Customer or Easer</span></span></button>
+          <button type="button" class="kpi" data-case-view="resolved"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-resolved">&mdash;</span><span class="kpi-label">Resolved</span><span class="kpi-sub" id="cases-stat-resolved-sub">Resolved or closed</span></span></button>
+          <div class="kpi"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="6"/><line x1="18" y1="20" x2="18" y2="14"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value" id="cases-stat-avg">&mdash;</span><span class="kpi-label">Avg. to Resolve</span><span class="kpi-sub">Last 30 days</span></span></div>
+        </div>
+
         <div class="cases-toolbar">
-          <div class="cases-toolbar-copy">
-            <h2>Cases</h2>
-            <p>Support, quality, safety, payment, and damage follow-up with a permanent timeline.</p>
+          <div class="tabs bk-tabs" id="cases-tabs" role="tablist" aria-label="Case views">
+            <button class="tab" type="button" data-case-view="all">All Cases <span class="tab-count" id="cases-view-all">0</span></button>
+            <button class="tab active" type="button" data-case-view="active">Active <span class="tab-count" id="cases-view-active">0</span></button>
+            <button class="tab" type="button" data-case-view="new">New <span class="tab-count" id="cases-view-new">0</span></button>
+            <button class="tab" type="button" data-case-view="high_priority">High Priority <span class="tab-count" id="cases-view-high_priority">0</span></button>
+            <button class="tab" type="button" data-case-view="waiting">Waiting on Reply <span class="tab-count" id="cases-view-waiting">0</span></button>
+            <button class="tab" type="button" data-case-view="resolved">Resolved <span class="tab-count" id="cases-view-resolved">0</span></button>
           </div>
           <div class="cases-filters" aria-label="Case filters">
-            <label class="cases-filter">Status
-              <select id="cases-status-filter">
-                <option value="active">Active</option>
+            <label class="cases-filter"><span class="sr-only">Status</span>
+              <select id="cases-status-filter" aria-label="Status">
+                <option value="all">All statuses</option>
                 <option value="open">New</option>
                 <option value="acknowledged">Acknowledged</option>
                 <option value="in_progress">In Progress</option>
@@ -382,11 +399,10 @@
                 <option value="waiting_easer">Waiting for Easer</option>
                 <option value="resolved">Resolved</option>
                 <option value="closed">Closed</option>
-                <option value="all">All</option>
               </select>
             </label>
-            <label class="cases-filter">Type
-              <select id="cases-type-filter">
+            <label class="cases-filter"><span class="sr-only">Type</span>
+              <select id="cases-type-filter" aria-label="Type">
                 <option value="all">All types</option>
                 <option value="support">Support</option>
                 <option value="damage">Damage</option>
@@ -400,8 +416,8 @@
                 <option value="account">Account</option>
               </select>
             </label>
-            <label class="cases-filter">Priority
-              <select id="cases-severity-filter">
+            <label class="cases-filter"><span class="sr-only">Priority</span>
+              <select id="cases-severity-filter" aria-label="Priority">
                 <option value="all">All priorities</option>
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
@@ -409,23 +425,15 @@
                 <option value="low">Low</option>
               </select>
             </label>
+            <button type="button" class="btn c-sm" onclick="window.OwnerCases&amp;&amp;window.OwnerCases.findTestCases()">Find test cases</button>
           </div>
-        </div>
-
-        <div class="stats-row" id="cases-stats-row">
-          <div class="stat amber"><div class="stat-value" id="cases-stat-active">&mdash;</div><div class="stat-label">Active</div></div>
-          <div class="stat teal"><div class="stat-value" id="cases-stat-new">&mdash;</div><div class="stat-label">New</div></div>
-          <div class="stat red"><div class="stat-value" id="cases-stat-priority">&mdash;</div><div class="stat-label">High Priority</div></div>
-          <div class="stat neutral"><div class="stat-value" id="cases-stat-waiting">&mdash;</div><div class="stat-label">Waiting on Reply</div></div>
         </div>
 
         <!-- Cases on a test booking already hide with it. The ones with no
              booking — a support request or voice callback fired during testing
              — have nothing to inherit from, so they need finding by hand. -->
-        <div style="margin:0 0 0.75rem">
-          <button type="button" class="btn" style="font-size:0.78rem;padding:4px 14px"
-            onclick="window.OwnerCases&amp;&amp;window.OwnerCases.findTestCases()">Find test cases</button>
-          <div id="cases-test-sweep" style="margin-top:0.6rem"></div>
+        <div class="cases-sweep-row">
+          <div id="cases-test-sweep"></div>
         </div>
 
         <div class="cases-grid">
@@ -445,44 +453,71 @@
       </div>
 
       <div id="bookings-view" style="display:none">
-        <div class="stats-row" id="stats-row">
-          <div class="stat amber" id="stat-pending"><div class="stat-value">—</div><div class="stat-label">Pending</div></div>
-          <div class="stat teal" id="stat-confirmed"><div class="stat-value">—</div><div class="stat-label">Confirmed</div></div>
-          <div class="stat orange" id="stat-completed"><div class="stat-value">—</div><div class="stat-label">Completed</div></div>
-          <div class="stat neutral" id="stat-total"><div class="stat-value">—</div><div class="stat-label">Total</div></div>
-          <div class="stat teal" id="stat-revenue"><div class="stat-value">—</div><div class="stat-label">Recorded Platform Gross</div></div>
+        <div class="kpi-row" id="stats-row">
+          <button type="button" class="kpi stat" id="stat-pending" data-tab="pending" aria-label="Pending: open the list"><span class="kpi-icon kpi-warn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Pending</span><span class="kpi-sub">Awaiting action</span></span></button>
+          <button type="button" class="kpi stat" id="stat-confirmed" data-tab="confirmed" aria-label="Confirmed: open the list"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Confirmed</span><span class="kpi-sub">On schedule</span></span></button>
+          <button type="button" class="kpi stat" id="stat-completed" data-tab="completed" aria-label="Completed: open the list"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="8 12 11 15 16 9"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Completed</span><span class="kpi-sub">Work done</span></span></button>
+          <button type="button" class="kpi stat" id="stat-cancelled" data-tab="cancelled" aria-label="Cancelled: open the list"><span class="kpi-icon kpi-bad"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Cancelled</span><span class="kpi-sub">Called off</span></span></button>
+          <button type="button" class="kpi stat" id="stat-declined" data-tab="declined" aria-label="Declined: open the list"><span class="kpi-icon kpi-info"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Declined</span><span class="kpi-sub">Not accepted</span></span></button>
+          <button type="button" class="kpi stat" id="stat-total" data-tab="all" aria-label="Total Bookings: open the list"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Total Bookings</span><span class="kpi-sub">Tests excluded</span></span></button>
+          <button type="button" class="kpi stat" id="stat-revenue" data-open-view="analytics" aria-label="Platform gross: open Financials"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="kpi-body"><span class="kpi-value stat-value">&mdash;</span><span class="kpi-label stat-label">Platform Gross</span><span class="kpi-sub">All time</span></span></button>
         </div>
 
-        <!-- Search -->
-        <div class="search-bar">
-          <span class="search-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="text" class="search-input" id="booking-search" placeholder="Search by ref, name, email, service, or address..." />
-          <button class="search-clear" id="search-clear" onclick="clearSearch()">&#10005;</button>
+        <div class="bk-toolbar">
+          <div class="tabs bk-tabs" id="tabs">
+            <button class="tab" data-status="all">All Bookings</button>
+            <button class="tab active" data-status="active">Active</button>
+            <button class="tab" data-status="pending">Pending</button>
+            <button class="tab" data-status="confirmed">Confirmed</button>
+            <button class="tab" data-status="completed">Completed</button>
+            <button class="tab" data-status="cancelled">Cancelled</button>
+            <button class="tab" data-status="declined">Declined</button>
+            <button class="tab" data-status="test">Test</button>
+          </div>
+          <div class="bk-filters">
+            <label class="bk-filter"><span class="sr-only">Date</span>
+              <select id="bk-filter-time" aria-label="Date">
+                <option value="all">All time</option>
+                <option value="today">Today</option>
+                <option value="next7">Next 7 days</option>
+                <option value="last30">Last 30 days</option>
+                <option value="month">This month</option>
+              </select></label>
+            <label class="bk-filter"><span class="sr-only">Service</span><select id="bk-filter-service" aria-label="Service"><option value="">All services</option></select></label>
+            <label class="bk-filter"><span class="sr-only">Area</span><select id="bk-filter-area" aria-label="Area"><option value="">All areas</option></select></label>
+            <div class="search-bar bk-search">
+              <span class="search-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+              <input type="text" class="search-input" id="booking-search" placeholder="Search ref, name, email, service or address" />
+              <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Clear search">&#10005;</button>
+            </div>
+          </div>
         </div>
 
-        <div class="tabs" id="tabs">
-          <button class="tab active" data-status="active">Active</button>
-          <button class="tab" data-status="pending">Pending</button>
-          <button class="tab" data-status="confirmed">Confirmed</button>
-          <button class="tab" data-status="completed">Completed</button>
-          <button class="tab" data-status="cancelled">Cancelled</button>
-          <button class="tab" data-status="declined">Declined</button>
-          <button class="tab" data-status="all">All</button>
-          <button class="tab" data-status="test">Test</button>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem" class="content-grid">
-          <div>
-            <div id="bookings-list"></div>
+        <div class="content-grid bk-split">
+          <div class="bk-list-card">
+            <div class="bk-list-head" aria-hidden="true"><span>Customer / Service</span><span>Date &amp; Time</span><span>Status</span><span>Amount</span></div>
+            <div id="bookings-list" class="bk-list"></div>
+            <div class="bk-pager" id="bookings-pager"></div>
           </div>
           <div>
             <div class="detail-panel" id="detail-panel">
               <div class="detail-header">
-                <h2 id="detail-ref">—</h2>
+                <div class="dp-head-left"><h2 id="detail-ref">—</h2><div class="dp-head-meta" id="dp-head-meta"></div></div>
                 <button class="detail-close" id="detail-close">&times;</button>
               </div>
+              <!-- Tabs -->
+              <div class="detail-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
+                <button class="detail-tab active" data-tab="overview" onclick="switchDetailTab('overview',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:600;color:var(--teal);border-bottom:2px solid var(--teal);cursor:pointer;margin-bottom:-1px">Overview</button>
+                <button class="detail-tab" data-tab="messages" onclick="switchDetailTab('messages',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:600;color:var(--teal);border-bottom:2px solid var(--teal);cursor:pointer;margin-bottom:-1px">Messages</button>
+                <button class="detail-tab" id="detail-dispatch-tab" data-tab="dispatch" onclick="switchDetailTab('dispatch',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Dispatch</button>
+                <button class="detail-tab" data-tab="timeline" onclick="switchDetailTab('timeline',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Timeline</button>
+                <button class="detail-tab" data-tab="notes" onclick="switchDetailTab('notes',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Notes</button>
+                <button class="detail-tab" data-tab="evidence" onclick="switchDetailTab('evidence',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Evidence<span id="evidence-tab-count" style="margin-left:3px;font-size:0.72rem;opacity:0.9"></span></button>
+              </div>
+
+              <div id="tab-overview">
+                <div class="dp-stepper" id="dp-stepper"></div>
               <div class="detail-grid" id="detail-grid"></div>
-              <div class="detail-actions" id="detail-actions"></div>
               <div id="evidence-warning-bar" style="display:none;margin-bottom:1rem;padding:0.65rem 0.875rem;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;font-size:0.8rem;color:#92400e"></div>
               <div id="assign-section" style="display:none;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
                 <div class="detail-section-title">Easer Assignment</div>
@@ -507,14 +542,9 @@
                 <div class="detail-section-title">Easer Accountability</div>
                 <div id="easer-issue-body" style="font-size:0.82rem;color:var(--soft)"></div>
               </div>
-              <!-- Tabs -->
-              <div class="detail-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
-                <button class="detail-tab active" data-tab="messages" onclick="switchDetailTab('messages',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:600;color:var(--teal);border-bottom:2px solid var(--teal);cursor:pointer;margin-bottom:-1px">Messages</button>
-                <button class="detail-tab" id="detail-dispatch-tab" data-tab="dispatch" onclick="switchDetailTab('dispatch',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Dispatch</button>
-                <button class="detail-tab" data-tab="timeline" onclick="switchDetailTab('timeline',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Timeline</button>
-                <button class="detail-tab" data-tab="notes" onclick="switchDetailTab('notes',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Notes</button>
-                <button class="detail-tab" data-tab="evidence" onclick="switchDetailTab('evidence',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Evidence<span id="evidence-tab-count" style="margin-left:3px;font-size:0.72rem;opacity:0.9"></span></button>
+              <div class="detail-actions" id="detail-actions"></div>
               </div>
+
 
               <!-- Messages tab -->
               <div id="tab-messages">
@@ -595,9 +625,23 @@
 
       <!-- ─── MARKET DEMAND VIEW ─── -->
       <div id="market-demand-view" style="display:none">
-        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Where customers are asking for work, and whether you have Easers there. Central Texas dispatches automatically; other Texas bookings need you to assign an Easer.</p>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.8rem 1rem;margin-bottom:1rem">
-          <h3 id="acquisition-heading" style="font-size:0.9rem;font-weight:700;margin:0 0 0.4rem">Acquisition and completed jobs</h3>
+        <div class="kpi-row md-kpis" id="md-stats-row">
+          <div class="kpi md-kpi"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 9a3 3 0 0 1 0 6"/></svg></span><span class="kpi-body"><span class="kpi-label">Demand Signals</span><span class="kpi-value stat-value" id="md-active">&mdash;</span><span class="kpi-sub">Bookings and requests</span></span></div>
+          <div class="kpi md-kpi"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="kpi-body"><span class="kpi-label">Recorded Bookings</span><span class="kpi-value stat-value" id="md-emerging">&mdash;</span><span class="kpi-sub">Test bookings excluded</span></span></div>
+          <div class="kpi md-kpi"><span class="kpi-icon kpi-info"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span><span class="kpi-body"><span class="kpi-label">Unbooked Requests</span><span class="kpi-value stat-value" id="md-requests">&mdash;</span><span class="kpi-sub">Asked, not booked</span></span></div>
+          <div class="kpi md-kpi"><span class="kpi-icon kpi-warn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span><span class="kpi-body"><span class="kpi-label">Manual Assignment</span><span class="kpi-value stat-value" id="md-conversion">&mdash;</span><span class="kpi-sub">You assign the Easer</span></span></div>
+          <div class="kpi md-kpi"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></span><span class="kpi-body"><span class="kpi-label">Eligible Easers</span><span class="kpi-value stat-value" id="md-supply">&mdash;</span><span class="kpi-sub">Ready for jobs</span></span></div>
+          <div class="kpi md-kpi"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span><span class="kpi-body"><span class="kpi-label">Approved Easers</span><span class="kpi-value stat-value" id="md-approved-supply">&mdash;</span><span class="kpi-sub">Includes eligible</span></span></div>
+          <div class="kpi md-kpi"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="kpi-body"><span class="kpi-label">Priced Demand</span><span class="kpi-value stat-value" id="md-potential">&mdash;</span><span class="kpi-sub">Where a price exists</span></span></div>
+        </div>
+        <p id="md-snapshot-status" class="md-status" role="status">Market data has not been loaded.</p>
+        <div class="md-row3">
+          <div class="fin-card">
+            <div class="fin-card-head"><h3>Demand Trend</h3></div>
+            <div id="md-trend" class="fin-chart"><div class="fin-empty">Loading demand...</div></div>
+          </div>
+          <div class="fin-card md-acq">
+          <h3 id="acquisition-heading" class="md-card-title">Acquisition and completed jobs</h3>
           <div style="display:flex;flex-wrap:wrap;gap:0.7rem;align-items:center;margin:0.6rem 0">
             <label for="acquisition-period">Bookings created</label>
             <select id="acquisition-period" style="font:inherit;max-width:100%;padding:0.4rem"><option value="28">Last 28 complete days</option><option value="90">Last 90 complete days</option><option value="all" selected>All time</option></select>
@@ -607,33 +651,21 @@
           <div id="acquisition-report"></div>
           <label style="display:block;margin:0.8rem 0 0.2rem;font-size:0.8rem"><input type="checkbox" id="acquisition-internal"> Exclude this browser from website analytics</label>
           <p id="acquisition-internal-status" role="status" style="font-size:0.75rem;color:var(--muted);margin:0">Applies to subsequent public-page loads in this browser. Booking and payment records remain unchanged.</p>
-        </div>
-        <div class="stats-row" id="md-stats-row">
-          <div class="stat teal"><div class="stat-value" id="md-active">—</div><div class="stat-label">Demand Signals</div></div>
-          <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Recorded Bookings</div></div>
-          <div class="stat neutral"><div class="stat-value" id="md-requests">—</div><div class="stat-label">Unbooked Requests</div></div>
-          <div class="stat teal"><div class="stat-value" id="md-conversion">—</div><div class="stat-label">Manual Assignment</div></div>
-          <div class="stat orange"><div class="stat-value" id="md-supply">—</div><div class="stat-label">Eligible Easers</div></div>
-          <div class="stat neutral"><div class="stat-value" id="md-approved-supply">—</div><div class="stat-label">Approved Easers</div></div>
-          <div class="stat neutral"><div class="stat-value" id="md-potential">—</div><div class="stat-label">Priced Demand</div></div>
-        </div>
-
-        <p id="md-snapshot-status" role="status" style="font-size:0.78rem;color:var(--muted);margin:0 0 0.5rem">Market data has not been loaded.</p>
-        <p style="margin:0 0 1rem;font-size:0.78rem;line-height:1.5;color:var(--muted)">Eligible Easers are included in Approved. Availability on means eligible with availability enabled; it does not confirm a free slot. Areas use configured ZIP regions, not driving distance. Coverage Needed: no eligible Easer in that area. Ready: three or more eligible Easers. Coverage Unverified or Location Review: the recorded location cannot prove coverage. Supply Unavailable means the Easer source could not be read, not that there are none.</p>
-        <div id="md-reconciliation" style="display:flex;flex-wrap:wrap;gap:0.75rem;font-size:0.78rem;margin:0 0 1rem"></div>
-        <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:1.5rem" class="content-grid">
-          <div class="detail-panel open">
-            <div class="detail-section-title">All Market Areas</div>
-            <!-- Scrolls inside its panel. This list renders EVERY market with demand and
-                 had no height cap, so it grew the whole page as coverage widened while the
-                 Demand Activity table beside it already scrolled at 60vh. Same convention
-                 now applies to both. -->
-            <div id="md-top-markets" style="margin-top:0.85rem;max-height:48vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain"></div>
           </div>
-
-          <div class="detail-panel open" style="grid-column:1/-1">
-            <div class="detail-section-title">Demand Activity</div>
-            <div style="overflow:auto;-webkit-overflow-scrolling:touch;max-height:48vh;overscroll-behavior:contain;margin-top:0.85rem">
+          <div class="fin-card">
+            <div class="fin-card-head"><h3>Market Coverage</h3></div>
+            <div id="md-coverage" class="md-coverage"><div class="fin-empty">Loading coverage...</div></div>
+            <p class="fin-card-note">Central Texas dispatches automatically; other Texas bookings need you to assign an Easer. Areas use configured ZIP regions, not driving distance.</p>
+          </div>
+        </div>
+        <div id="md-reconciliation" class="md-recon"></div>
+        <div class="fin-card">
+          <div class="fin-card-head"><h3>Market Coverage by Area</h3><span class="fin-card-note">Ready: three or more eligible Easers. Coverage Needed: none in the area. Unverified: the recorded location cannot prove coverage.</span></div>
+          <div id="md-top-markets" class="md-areas"></div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-card-head"><h3>Demand Activity</h3><span class="fin-card-note">Eligible Easers are included in Approved. Availability on does not confirm a free slot.</span></div>
+          <div class="md-table-wrap">
               <table id="md-requests-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.82rem">
                 <thead>
                   <tr style="text-align:left">
@@ -648,7 +680,6 @@
                 </thead>
                 <tbody id="md-requests-tbody"></tbody>
               </table>
-            </div>
           </div>
         </div>
       </div>
@@ -1010,11 +1041,24 @@
 
       <!-- ─── ANALYTICS VIEW ─── -->
       <div id="analytics-view" style="display:none">
-        <div class="fin-subtabs tabs" id="fin-subtabs">
-          <button class="tab active" data-fin-tab="money" type="button">Money</button>
-          <button class="tab" data-fin-tab="expenses" type="button">Expenses</button>
-          <button class="tab" data-fin-tab="tax" type="button">Tax &amp; Compliance</button>
-          <button class="tab" data-fin-tab="more" type="button">More</button>
+        <div class="fin-head" id="fin-subtabs">
+          <div class="tabs fin-tabbar" role="tablist" aria-label="Financials sections">
+            <button class="tab active" data-fin-tab="overview" type="button">Overview</button>
+            <button class="tab" data-fin-tab="ledger" type="button">Ledger &amp; Payouts</button>
+            <button class="tab" data-fin-tab="expenses" type="button">Expenses</button>
+            <button class="tab" data-fin-tab="tax" type="button">Tax &amp; Compliance</button>
+            <button class="tab" data-fin-tab="more" type="button">More</button>
+          </div>
+          <div class="fin-period">
+            <span class="fin-period-note" id="an-period-note">Year &middot; Central time</span>
+            <div class="tabs" role="group" aria-label="Period">
+              <button class="tab active" data-fin-period="year" type="button">Year</button>
+              <button class="tab" data-fin-period="month" type="button">Month</button>
+              <button class="tab" data-fin-period="week" type="button">Week</button>
+              <button class="tab" data-fin-period="today" type="button">Today</button>
+              <button class="tab" data-fin-period="all" type="button">All</button>
+            </div>
+          </div>
         </div>
         <div class="detail-panel open" id="owner-expenses-panel" style="display:none;margin-bottom:1rem">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:0.8rem">
@@ -1045,91 +1089,87 @@
           </form>
           <div id="expense-list" class="finance-scroll"><div style="padding:1rem;text-align:center;color:var(--muted)">Loading expenses...</div></div>
         </div>
-        <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1rem;margin-bottom:1rem" class="content-grid">
-          <div class="detail-panel open c-hero">
-            <div class="detail-section-title">Platform gross</div>
-            <div class="c-hero-value" id="fin-total-platform-gross">—</div>
-            <div class="c-hero-label">Total platform gross</div>
-            <div class="c-hero-facts">
-              <span><strong id="fin-gross-per-job">—</strong> average per completed job</span>
-              <span><strong id="fin-gross-margin">—</strong> recorded gross margin</span>
-              <span><strong id="fin-costed-gross-per-job">—</strong> average on labor-costed jobs</span>
-            </div>
-            <div class="c-hero-note">Customer payments retained minus sales tax, processing fees, and all recorded Easer earnings. Owner-Easer labor remains compensation for work, not scalable platform profit.</div>
+        <!-- Overview (owner console, 2026-11-13). Every figure is the server's
+             (api/owner/financial-dashboard.js); each card opens the rows behind it. -->
+        <section class="fin-overview" id="fin-overview">
+          <div class="kpi-row fin-kpis">
+            <button type="button" class="kpi fin-kpi" data-fin-tab="ledger" aria-label="Platform Gross: open the rows"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="kpi-body"><span class="kpi-label">Platform Gross</span><span class="kpi-value" id="fin-total-platform-gross">&mdash;</span><span class="kpi-sub" id="fin-kpi-margin">Margin after Easers, fees and tax</span></span></button>
+            <button type="button" class="kpi fin-kpi" data-fin-tab="ledger" aria-label="Customer Payments: open the rows"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg></span><span class="kpi-body"><span class="kpi-label">Customer Payments</span><span class="kpi-value" id="an-gross">&mdash;</span><span class="kpi-sub" id="fin-kpi-revenue-sub">After refunds</span></span></button>
+            <button type="button" class="kpi fin-kpi" data-fin-tab="ledger" aria-label="Easer Earnings: open the rows"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M16 13h2"/><path d="M2 10h20"/></svg></span><span class="kpi-body"><span class="kpi-label">Easer Earnings</span><span class="kpi-value" id="an-easer-payouts">&mdash;</span><span class="kpi-sub" id="fin-kpi-easer-share">Share of payments</span></span></button>
+            <button type="button" class="kpi fin-kpi" data-fin-tab="ledger" aria-label="Processing Fees: open the rows"><span class="kpi-icon kpi-info"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span><span class="kpi-body"><span class="kpi-label">Processing Fees</span><span class="kpi-value" id="an-processing-fees">&mdash;</span><span class="kpi-sub" id="fin-kpi-fee-share">Share of payments</span></span></button>
+            <button type="button" class="kpi fin-kpi" data-fin-tab="tax" aria-label="Sales Tax Collected, owed to Texas and not revenue: open the rows" title="Owed to Texas. Not revenue."><span class="kpi-icon kpi-warn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></span><span class="kpi-body"><span class="kpi-label">Sales Tax Collected</span><span class="kpi-value" id="an-sales-tax">&mdash;</span><span class="kpi-sub" id="fin-kpi-tax-share">Owed to Texas, not revenue</span></span></button>
+            <button type="button" class="kpi fin-kpi" data-fin-tab="more" aria-label="Estimated Net: open the rows"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span><span class="kpi-body"><span class="kpi-label">Estimated Net</span><span class="kpi-value" id="an-net-profit">&mdash;</span><span class="kpi-sub" id="fin-kpi-net-sub">After reserve, expenses</span></span></button>
           </div>
-          <div class="detail-panel open">
-            <div class="detail-section-title" style="margin-bottom:0.75rem">Assumptions</div>
-            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.6rem;font-size:0.78rem;color:var(--soft)">
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Reserve</strong><br><span id="fin-assumption-reserve">Loading...</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Processing</strong><br><span id="fin-assumption-processing">Loading...</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Expenses paid</strong><br><span id="fin-assumption-expenses">Loading...</span></div>
+          <div class="fin-row3">
+            <div class="fin-card">
+              <div class="fin-card-head"><h3>Financial Performance</h3>
+                <div class="tabs fin-toggle" role="group" aria-label="Chart"><button class="tab active" type="button" data-fin-chart="revenue">Revenue</button><button class="tab" type="button" data-fin-chart="jobs">Jobs</button></div></div>
+              <div id="fin-chart" class="fin-chart"></div>
             </div>
-            <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.9rem">
-              <div class="tabs" style="margin:0">
-              <button class="tab active" data-fin-period="year" type="button">Year</button>
-              <button class="tab" data-fin-period="month" type="button">Month</button>
-              <button class="tab" data-fin-period="week" type="button">Week</button>
-              <button class="tab" data-fin-period="today" type="button">Today</button>
-              <button class="tab" data-fin-period="all" type="button">All</button>
-              </div>
+            <div class="fin-card">
+              <div class="fin-card-head"><h3>Where Payments Went</h3></div>
+              <div id="fin-breakdown" class="fin-breakdown"></div>
+            </div>
+            <div class="fin-card">
+              <div class="fin-card-head"><h3>Financial Health</h3><span class="fin-health-pill" id="fin-health-pill"></span></div>
+              <div id="fin-health" class="fin-health"></div>
             </div>
           </div>
-        </div>
+          <div class="fin-metrics">
+            <div class="fin-metric"><span class="fin-metric-label">Completed Jobs</span><span class="fin-metric-value" id="an-completed-jobs">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Avg. Job Value</span><span class="fin-metric-value" id="an-ajv">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Gross / Job</span><span class="fin-metric-value" id="an-gross-per-job">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Gross Margin</span><span class="fin-metric-value" id="an-gross-margin">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Active Easers</span><span class="fin-metric-value" id="an-active-easers">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Add-On Rate <span id="an-addon-source" class="fin-est">(Est.)</span></span><span class="fin-metric-value" id="an-addon-rate">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Repeat Customers</span><span class="fin-metric-value" id="an-repeat-rate">&mdash;</span></div>
+          </div>
+          <div class="fin-row2">
+            <div class="fin-card">
+              <div class="fin-card-head"><h3>Easer Earnings</h3><button type="button" class="btn c-sm" data-fin-tab="ledger">View payout ledger</button></div>
+              <div id="fin-easers" class="fin-table-wrap"></div>
+            </div>
+            <div class="fin-card">
+              <div class="fin-card-head"><h3>Recent Transactions</h3><button type="button" class="btn c-sm" data-fin-tab="ledger">View ledger</button></div>
+              <div id="fin-recent" class="fin-table-wrap"></div>
+            </div>
+          </div>
+          <div class="fin-card fin-reserves-card">
+            <div class="fin-card-head"><h3>Outstanding &amp; Reserves</h3><span class="fin-card-note">All time, apart from the period above</span></div>
+            <div class="fin-reserves">
+              <div class="fin-reserve fin-reserve-warn"><span class="fin-reserve-label">Set aside (do not spend)</span><span class="fin-reserve-value" id="reserve-total">&mdash;</span></div>
+              <div class="fin-reserve fin-reserve-info"><span class="fin-reserve-label">Sales tax owed</span><span class="fin-reserve-value" id="reserve-tax">&mdash;</span></div>
+              <div class="fin-reserve fin-reserve-info"><span class="fin-reserve-label">Pending Easer payouts</span><span class="fin-reserve-value" id="reserve-payouts">&mdash;</span></div>
+              <div class="fin-reserve fin-reserve-info"><span class="fin-reserve-label">AssembleCash liability</span><span class="fin-reserve-value" id="reserve-rewards">&mdash;</span></div>
+              <div class="fin-reserve fin-reserve-bad"><span class="fin-reserve-label">Clawbacks to recover</span><span class="fin-reserve-value" id="reserve-clawbacks">&mdash;</span></div>
+            </div>
+          </div>
+        </section>
 
-        <!-- Money that isn't yours — reserve rollup -->
-        <div class="detail-panel open" style="margin-bottom:1rem;border-color:#f3d28a;background:#fffdf7">
-          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem">
-            <div>
-              <div class="detail-section-title" style="margin:0">Money that isn&rsquo;t yours &mdash; set it aside</div>
-              <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">All-time outstanding obligations, separate from the selected profit period below.</div>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:1.4rem;align-items:flex-end">
-              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Sales tax owed</div><div id="reserve-tax" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
-              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Pending Easer payouts</div><div id="reserve-payouts" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
-              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">AssembleCash liability</div><div id="reserve-rewards" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
-              <div style="border-left:1px solid var(--border);padding-left:1.4rem"><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:#b45309;font-weight:800">Set aside (don&rsquo;t spend)</div><div id="reserve-total" style="font-size:1.3rem;font-weight:800;color:#b45309">&mdash;</div></div>
-              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Clawbacks to recover</div><div id="reserve-clawbacks" style="font-size:1.05rem;font-weight:800;color:#dc2626">&mdash;</div><div style="font-size:0.6rem;color:var(--muted)">owed back to you</div></div>
-            </div>
+        <!-- Detailed metrics (More): the figures that need their own context. -->
+        <div class="detail-panel open" id="fin-details">
+          <div class="detail-section-title">Detailed metrics</div>
+          <div class="c-group-title">Labor</div>
+          <div class="fin-metrics fin-metrics-detail">
+            <div class="fin-metric"><span class="fin-metric-label">Owner-Easer Labor</span><span class="fin-metric-value" id="an-owner-easer-earnings">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">External Easer Labor</span><span class="fin-metric-value" id="an-external-easer-earnings">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Gross / Labor-Costed Job</span><span class="fin-metric-value" id="an-costed-gross-per-job">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Jobs Missing Labor Cost</span><span class="fin-metric-value" id="an-uncosted-jobs">&mdash;</span></div>
           </div>
-        </div>
-
-        <!-- Executive Overview -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;margin:0 0 0.75rem">
-          <div class="detail-section-title" style="margin:0">Selected-Period Money Summary</div>
-          <div id="an-period-note" style="font-size:0.74rem;color:var(--muted);font-weight:700">Year &middot; Central time</div>
-        </div>
-        <div class="c-group-title">Where the money went</div>
-        <div class="stats-row c-metrics c-cols-6" id="analytics-stats-row">
-          <div class="stat teal"><div class="stat-value" id="an-gross">—</div><div class="stat-label">Customer Payments Retained</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-sales-tax">—</div><div class="stat-label">Sales Tax Collected</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-processing-fees">—</div><div class="stat-label">Stripe Processing Fees</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-easer-payouts">—</div><div class="stat-label">Total Easer Earnings</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-owner-easer-earnings">—</div><div class="stat-label">Owner-Easer Labor</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-external-easer-earnings">—</div><div class="stat-label">External Easer Labor</div></div>
-        </div>
-        <div class="c-group-title">Per job</div>
-        <div class="stats-row c-metrics c-cols-6">
-          <div class="stat neutral"><div class="stat-value" id="an-completed-jobs">—</div><div class="stat-label">Completed Jobs</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-ajv">—</div><div class="stat-label">Average Job Value</div></div>
-          <div class="stat teal"><div class="stat-value" id="an-gross-per-job">—</div><div class="stat-label">Platform Gross / Job</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-gross-margin">—</div><div class="stat-label">Recorded Gross Margin</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-costed-gross-per-job">—</div><div class="stat-label">Gross / Labor-Costed Job</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-uncosted-jobs">—</div><div class="stat-label">Jobs Missing Labor Cost</div></div>
-        </div>
-        <div class="c-group-title">Operating estimate</div>
-        <div class="stats-row c-metrics c-cols-2">
-          <div class="stat neutral"><div class="stat-value" id="an-opex-allocated">—</div><div class="stat-label">Business Expenses Paid</div></div>
-            <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Estimated After Reserve &amp; Paid Expenses</div></div>
-        </div>
-        <div class="c-group-title">Customers and add-ons</div>
-        <div class="stats-row c-metrics c-cols-7">
-          <div class="stat amber"><div class="stat-value" id="an-addon-rate">—</div><div class="stat-label">Add-On Attachment Rate <span id="an-addon-source" style="color:#d97706">(Est.)</span></div></div>
-          <div class="stat amber"><div class="stat-value" id="an-addon-value">—</div><div class="stat-label">Average Add-On Value</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-bundle-rate">—</div><div class="stat-label">Bundle Attach Rate</div></div>
-          <div class="stat amber"><div class="stat-value" id="an-ac-liability">—</div><div class="stat-label">AssembleCash Liability</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-repeat-rate">—</div><div class="stat-label">Repeat Customer Rate</div></div>
-          <div class="stat orange"><div class="stat-value" id="an-refund-rework-rate">—</div><div class="stat-label">Refund/Rework Rate</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-active-easers">—</div><div class="stat-label">Active Easers</div></div>
+          <div class="c-group-title">Operating estimate</div>
+          <div class="fin-metrics fin-metrics-detail">
+            <div class="fin-metric"><span class="fin-metric-label">Business Expenses Paid</span><span class="fin-metric-value" id="an-opex-allocated">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Reserve</span><span class="fin-metric-text" id="fin-assumption-reserve">Loading...</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Processing</span><span class="fin-metric-text" id="fin-assumption-processing">Loading...</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Expenses paid</span><span class="fin-metric-text" id="fin-assumption-expenses">Loading...</span></div>
+          </div>
+          <div class="c-group-title">Customers and add-ons</div>
+          <div class="fin-metrics fin-metrics-detail">
+            <div class="fin-metric"><span class="fin-metric-label">Average Add-On Value</span><span class="fin-metric-value" id="an-addon-value">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Bundle Attach Rate</span><span class="fin-metric-value" id="an-bundle-rate">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">AssembleCash Liability</span><span class="fin-metric-value" id="an-ac-liability">&mdash;</span></div>
+            <div class="fin-metric"><span class="fin-metric-label">Refund/Rework Rate</span><span class="fin-metric-value" id="an-refund-rework-rate">&mdash;</span></div>
+          </div>
         </div>
         <div id="an-finance-warning" style="display:none;background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:0.8rem 0.9rem;margin-top:0.85rem;color:#9a3412;font-size:0.8rem;line-height:1.55"></div>
         <div id="an-empty-period" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:0.8rem 0.9rem;margin-top:0.85rem;color:#1e3a8a;font-size:0.8rem;line-height:1.5"></div>
@@ -2072,6 +2112,13 @@ window.intelQuick = intelQuick;
   let _currentMessages = [];
   let currentStatus = 'active';
   let searchQuery = '';
+  // Bookings filters and page (owner console, 2026-11-13). Counts, cards and
+  // the list all read bookingsForTab, so a number is always the length of the
+  // list it opens, with the same filters applied.
+  var bookingFilters = { time: 'all', service: '', area: '' };
+  var bookingPage = 1;
+  var BOOKING_PAGE_SIZE = 10;
+  var bookingFocusSelected = false;
   let siteChatConversations = [];
   let selectedSiteChatId = null;
   var _evidenceCache = {}; // { [bookingId]: { evidence, total, loading, error } }
@@ -3327,6 +3374,7 @@ window.intelQuick = intelQuick;
   // ─── Search ───
   document.getElementById('booking-search').addEventListener('input', function() {
     searchQuery = this.value.trim().toLowerCase();
+    bookingPage = 1;
     var clearBtn = document.getElementById('search-clear');
     clearBtn.classList.toggle('show', searchQuery.length > 0);
     renderList();
@@ -3396,7 +3444,7 @@ window.intelQuick = intelQuick;
     var revenueLabel = document.querySelector('#stat-revenue .stat-label');
     if (!revenueEl) return;
     var d = await loadAllTimeFinance(false);
-    if (revenueLabel) revenueLabel.textContent = 'Platform Gross (All Time)';
+    if (revenueLabel) revenueLabel.textContent = 'Platform Gross';
     if (!d || !d.summary) {
       revenueEl.textContent = '—';
       revenueEl.title = 'Financials could not be loaded, so this is unknown, not zero.';
@@ -3407,25 +3455,26 @@ window.intelQuick = intelQuick;
   }
 
   function updateStats() {
-    const counts = { pending: 0, confirmed: 0, completed: 0 };
-    realBookings().forEach(function(b) {
-      // Count pipeline statuses as Confirmed — they are active/accepted jobs
-      var cat = PIPELINE_STATUSES.includes(b.status) ? 'confirmed' : b.status;
-      if (counts[cat] !== undefined) counts[cat]++;
-    });
+    // Each card is the length of the list its tab opens (bookingsForTab).
+    var counts = {};
+    ['pending', 'confirmed', 'completed', 'cancelled', 'declined', 'all'].forEach(function(tab) { counts[tab] = bookingsForTab(tab).length; });
     document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
     document.querySelector('#stat-confirmed .stat-value').textContent = counts.confirmed;
     document.querySelector('#stat-completed .stat-value').textContent = counts.completed;
-    var realCount = realBookings().length;
-    var testCount = allBookings.length - realCount;
+    document.querySelector('#stat-cancelled .stat-value').textContent = counts.cancelled;
+    document.querySelector('#stat-declined .stat-value').textContent = counts.declined;
+    var realCount = counts.all;
+    var testCount = bookingsForTab('test').length;
     var totalEl = document.querySelector('#stat-total .stat-value');
     totalEl.textContent = realCount;
+    paintBookingFilterOptions();
     totalEl.title = testCount > 0
       ? testCount + ' test booking' + (testCount === 1 ? '' : 's') + ' excluded from every figure on this board.'
       : '';
     paintPlatformGrossTile();
     var $navP = document.getElementById('nav-pending');
-    if (counts.pending > 0) { $navP.textContent = counts.pending; $navP.style.display = ''; }
+    var pendingAll = realBookings().filter(function(b){ return b.status === 'pending'; }).length;
+    if (pendingAll > 0) { $navP.textContent = pendingAll; $navP.style.display = ''; }
     else $navP.style.display = 'none';
     var unreadMessages = allBookings.reduce(function(total, booking) {
       return total + Number(booking.unread_message_count || 0);
@@ -3449,13 +3498,51 @@ window.intelQuick = intelQuick;
     });
   }
 
+  function openBookingTab(status) {
+    document.querySelectorAll('#tabs .tab').forEach(function(t){ t.classList.toggle('active', t.dataset.status === status); });
+    currentStatus = status;
+    bookingPage = 1;
+    renderList();
+  }
   document.getElementById('tabs').addEventListener('click', function(e) {
     var tab = e.target.closest('.tab');
     if (!tab) return;
-    document.querySelectorAll('#tabs .tab').forEach(function(t){t.classList.remove('active')});
-    tab.classList.add('active');
-    currentStatus = tab.dataset.status;
-    renderList();
+    openBookingTab(tab.dataset.status);
+  });
+  document.getElementById('stats-row').addEventListener('click', function(e) {
+    var card = e.target.closest('.kpi');
+    if (!card) return;
+    if (card.dataset.openView) {
+      var link = document.querySelector('.sidebar-nav a[data-view="' + card.dataset.openView + '"]');
+      if (link) link.click();
+      return;
+    }
+    if (card.dataset.tab) openBookingTab(card.dataset.tab);
+  });
+
+  // Filter choices come from the bookings themselves, so none is ever empty.
+  function paintBookingFilterOptions() {
+    var fill = function(id, values, first) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var current = el.value;
+      var html = '<option value="">' + first + '</option>' + values.map(function(v) { return '<option value="' + esc(v) + '"' + (v === current ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('');
+      if (el.innerHTML !== html) el.innerHTML = html;
+    };
+    var real = allBookings.filter(function(b){ return !isTestBooking(b); });
+    var uniq = function(list) { return list.filter(function(v, i) { return v && list.indexOf(v) === i; }).sort(); };
+    fill('bk-filter-service', uniq(real.map(function(b){ return String(b.service || ''); })), 'All services');
+    fill('bk-filter-area', uniq(real.map(bookingArea)), 'All areas');
+  }
+  [['bk-filter-time', 'time'], ['bk-filter-service', 'service'], ['bk-filter-area', 'area']].forEach(function(pair) {
+    var el = document.getElementById(pair[0]);
+    if (!el) return;
+    el.addEventListener('change', function() {
+      bookingFilters[pair[1]] = this.value || (pair[1] === 'time' ? 'all' : '');
+      bookingPage = 1;
+      updateStats();
+      renderList();
+    });
   });
 
   // ─── PDF Financial Report ───
@@ -3621,9 +3708,27 @@ window.intelQuick = intelQuick;
   // live only under Test, so no other tab, All included, mixes them in.
   var ACTIVE_BOOKING_TAB_STATUSES = ['pending', 'confirmed'].concat(PIPELINE_STATUSES);
   var BOOKING_TAB_LABELS = { active: 'active', pending: 'pending', confirmed: 'confirmed', completed: 'completed', cancelled: 'cancelled', declined: 'declined', all: '', test: 'test' };
+  function bookingArea(b) {
+    return String(b.service_city || '').trim() || 'Unknown area';
+  }
+  function bookingMatchesFilters(b) {
+    if (bookingFilters.service && String(b.service || '') !== bookingFilters.service) return false;
+    if (bookingFilters.area && bookingArea(b) !== bookingFilters.area) return false;
+    if (bookingFilters.time !== 'all') {
+      var d = String(b.date || '').slice(0, 10);
+      if (!d) return false;
+      var today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+      var shift = function(days) { var t = new Date(today + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + days); return t.toISOString().slice(0, 10); };
+      if (bookingFilters.time === 'today' && d !== today) return false;
+      if (bookingFilters.time === 'next7' && (d < today || d > shift(7))) return false;
+      if (bookingFilters.time === 'last30' && (d < shift(-30) || d > today)) return false;
+      if (bookingFilters.time === 'month' && d.slice(0, 7) !== today.slice(0, 7)) return false;
+    }
+    return true;
+  }
   function bookingsForTab(tab) {
-    if (tab === 'test') return allBookings.filter(isTestBooking);
-    var real = allBookings.filter(function(b){ return !isTestBooking(b); });
+    if (tab === 'test') return allBookings.filter(function(b){ return isTestBooking(b) && bookingMatchesFilters(b); });
+    var real = allBookings.filter(function(b){ return !isTestBooking(b) && bookingMatchesFilters(b); });
     if (tab === 'all') return real;
     if (tab === 'active') {
       return real.filter(function(b){
@@ -3648,12 +3753,31 @@ window.intelQuick = intelQuick;
           || (b.customer_phone && b.customer_phone.toLowerCase().includes(q));
       });
     }
+    var $pager = document.getElementById('bookings-pager');
     if (!filtered.length) {
+      if ($pager) $pager.innerHTML = '';
       $list.innerHTML = searchQuery
         ?
          '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="empty-state-title">No results</div><div class="empty-state-desc">No bookings match &ldquo;' + esc(searchQuery) + '&rdquo;</div></div>'
         : '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-state-title">No ' + (BOOKING_TAB_LABELS[currentStatus] ? BOOKING_TAB_LABELS[currentStatus] + ' ' : '') + 'bookings</div><div class="empty-state-desc">New bookings will appear here as customers submit requests.</div></div>';
       return;
+    }
+    var totalRows = filtered.length;
+    var pages = Math.max(1, Math.ceil(totalRows / BOOKING_PAGE_SIZE));
+    // An opened booking is shown on the page that holds it.
+    var selectedIndex = selectedId ? filtered.findIndex(function(b){ return b.id === selectedId; }) : -1;
+    if (bookingFocusSelected && selectedIndex >= 0) bookingPage = Math.floor(selectedIndex / BOOKING_PAGE_SIZE) + 1;
+    bookingFocusSelected = false;
+    bookingPage = Math.min(Math.max(1, bookingPage), pages);
+    var firstRow = (bookingPage - 1) * BOOKING_PAGE_SIZE;
+    filtered = filtered.slice(firstRow, firstRow + BOOKING_PAGE_SIZE);
+    if ($pager) {
+      var pageButtons = '';
+      var lo = Math.max(1, Math.min(bookingPage - 2, pages - 4)), hi = Math.min(pages, lo + 4);
+      for (var pg = lo; pg <= hi; pg++) pageButtons += '<button type="button" class="bk-page' + (pg === bookingPage ? ' active' : '') + '" data-page="' + pg + '"' + (pg === bookingPage ? ' aria-current="page"' : '') + '>' + pg + '</button>';
+      $pager.innerHTML = '<span class="bk-pager-count">Showing ' + (firstRow + 1) + '&ndash;' + (firstRow + filtered.length) + ' of ' + totalRows + ' booking' + (totalRows === 1 ? '' : 's') + '</span>'
+        + (pages > 1 ? '<span class="bk-pages"><button type="button" class="bk-page" data-page="' + (bookingPage - 1) + '"' + (bookingPage === 1 ? ' disabled' : '') + ' aria-label="Previous page">&lsaquo;</button>' + pageButtons
+          + '<button type="button" class="bk-page" data-page="' + (bookingPage + 1) + '"' + (bookingPage === pages ? ' disabled' : '') + ' aria-label="Next page">&rsaquo;</button></span>' : '');
     }
     $list.innerHTML = filtered.map(function(b) {
       var msgCount = 0;
@@ -3679,21 +3803,29 @@ window.intelQuick = intelQuick;
         + (b.needs_manual_dispatch && !b.assembler_id && !isTerminalBooking(b) ? '<span class="c-flag-bad">Needs manual assignment</span>' : '')
         + (msgCount ? '<span class="c-sub" style="margin:0">' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '');
       var whenPrefix = b.return_visit_required ? 'Return: ' : (b.return_visit_completed_at ? 'Return completed: ' : '');
-      return '<div class="booking-card c-brow' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '">'
-        + '<div class="c-brow-main">'
+      var initials = String(b.customer_name || 'Customer').trim().split(/\s+/).slice(0, 2).map(function(w){ return w.charAt(0).toUpperCase(); }).join('');
+      return '<div class="booking-card c-brow bk-row' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '">'
+        + '<div class="c-brow-main bk-who"><span class="bk-avatar" aria-hidden="true">' + esc(initials) + '</span><div class="bk-who-text">'
           + '<div class="c-brow-name">' + esc(b.customer_name || 'Customer') + '</div>'
           + '<span class="c-sub">' + esc(cardQuoteStage ? quoteServiceLabel(b) : (b.service || '—')) + '</span>'
           + (flags ? '<div class="c-brow-flags">' + flags + '</div>' : '')
-        + '</div>'
+        + '</div></div>'
         + '<div class="c-brow-when">' + whenPrefix + formatDate(cardDate)
           + (cardTime ? '<span class="c-sub">' + esc(cardTime) + '</span>' : '')
           + '<span class="c-sub c-mono">' + esc(b.ref) + '</span>'
         + '</div>'
-        + '<div class="c-brow-status">' + bookingBadge(b) + (cardMoney ? '<span class="c-sub" style="margin:0">' + cardMoney + '</span>' : '') + '</div>'
+        + '<div class="c-brow-status">' + bookingBadge(b) + '</div>'
+        + '<div class="bk-amount">' + (cardMoney || '&mdash;') + '</div>'
         + '</div>';
     }).join('');
   }
 
+  document.getElementById('bookings-pager').addEventListener('click', function(e) {
+    var btn = e.target.closest('.bk-page');
+    if (!btn || btn.disabled) return;
+    bookingPage = Number(btn.dataset.page) || 1;
+    renderList();
+  });
   $list.addEventListener('click', function(e) {
     var card = e.target.closest('.booking-card');
     if (!card) return;
@@ -3767,6 +3899,7 @@ window.intelQuick = intelQuick;
           + (b.customer_terms_version ? '<br><span style="font-size:0.72rem;color:var(--muted)">Terms ' + esc(b.customer_terms_version) + (b.customer_privacy_notice_version ? ' &bull; Privacy ' + esc(b.customer_privacy_notice_version) : '') + '</span>' : '')
         : '<span style="color:var(--amber)">No versioned acceptance record for this historical booking</span>');
     var quoteStage = quoteLane(b);
+    $detailGrid.classList.remove('dg-grouped');
     $detailGrid.innerHTML = quoteStage ? renderQuoteDetailGrid(b, quoteStage, customerAgreement) : [
       field('Customer', esc(b.customer_name || '—')),
       field('Email', b.customer_email ? '<a href="mailto:'+esc(b.customer_email)+'" style="color:var(--teal);text-decoration:none">'+esc(b.customer_email)+'</a>' : '—'),
@@ -3882,6 +4015,9 @@ window.intelQuick = intelQuick;
       b.status === 'declined' && b.decline_reason ? field('Decline Reason', esc(b.decline_reason) + (b.declined_at ? '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(formatDateTime(b.declined_at)) + '</span>' : '')) : '',
       field('Created', formatDateTime(b.created_at)),
     ].join('');
+    renderRecordHead(b, quoteStage);
+    renderStatusStepper(b);
+    if (!quoteStage) groupDetailFields();
     renderActions(b);
     renderAssignSection(b);
     renderEaserIssueSection(b);
@@ -3901,8 +4037,8 @@ window.intelQuick = intelQuick;
     applyMsgTarget('customer');
     // Notes handled by Notes tab (api/booking/notes.js)
     loadMessages(b.id);
-    // Reset to messages tab on new booking select
-    switchDetailTab('messages', document.querySelector('[data-tab="messages"]'));
+    // A newly opened booking starts on its overview.
+    switchDetailTab('overview', document.querySelector('.detail-tab[data-tab="overview"]'));
     // Pre-load timeline and notes in background
     loadTimeline(b.id);
     loadNotes(b.id);
@@ -3914,12 +4050,96 @@ window.intelQuick = intelQuick;
     if (b.status === 'completed') loadEvidence(b.id);
   }
 
+
+  // ── Record layout (owner console, 2026-11-13) ─────────────────────────────
+  // The fields above keep every rule they had; these only arrange them. Each
+  // field goes to one card by its label, so nothing is shown twice, and a
+  // field no card claims still shows under "More".
+  var RECORD_CARDS = [
+    { key: 'customer', title: 'Customer', labels: ['Customer', 'Email', 'Phone', 'Address', 'Customer Agreement', 'Lead Source', 'Source', 'Rebooked From', 'Created'] },
+    { key: 'money', title: 'Financial Summary', labels: ['Service Subtotal', 'Sales Tax', 'Original Customer Total', 'Documented Discount', 'Adjusted Customer Total', 'Customer Total', 'Paid by Gift Card', 'Card Total', 'Gross Customer Payments', 'Net Payments Retained', 'Total Charged', 'Remaining Balance', 'Refunds', 'Processing Fee', 'Platform Fee', 'Easer Earnings', 'Bonus Pay', 'Reimbursement', 'Platform Gross', 'Payment', 'Payment Method', 'Easer Payout', 'Total With Approved Extras'] },
+    { key: 'easer', title: 'Assigned Easer', labels: ['Easer'] },
+    { key: 'job', title: 'Job Details', labels: ['Service', 'Date', 'Open Return Visit', 'Return Visit Completed', 'First-Visit Work', 'Work Remaining', 'Items & Add-ons', 'Additional Work (Change Orders)', 'Details', 'Decline Reason'] },
+  ];
+  function groupDetailFields() {
+    var grid = $detailGrid;
+    var byLabel = {};
+    RECORD_CARDS.forEach(function(card) { card.labels.forEach(function(l) { byLabel[l] = card.key; }); });
+    var bodies = {};
+    var order = RECORD_CARDS.map(function(c) { return c.key; }).concat(['more']);
+    order.forEach(function(k) { bodies[k] = []; });
+    var last = 'customer';
+    Array.prototype.slice.call(grid.children).forEach(function(el) {
+      var labelEl = el.querySelector(':scope > label');
+      var label = labelEl ? labelEl.textContent.trim() : '';
+      // Shown once, in the record header.
+      if (label === 'Status' || label === 'Customer' || label === 'Service' || label === 'Date') return;
+      var key = label ? (byLabel[label] || 'more') : last;
+      if (label) last = key;
+      bodies[key].push(el);
+    });
+    grid.innerHTML = '';
+    grid.classList.add('dg-grouped');
+    order.forEach(function(key) {
+      if (!bodies[key].length) return;
+      var meta = RECORD_CARDS.filter(function(c) { return c.key === key; })[0];
+      var card = document.createElement('section');
+      card.className = 'dg-card dg-' + key;
+      card.innerHTML = '<h3 class="dg-card-title">' + (meta ? meta.title : 'More') + '</h3>';
+      var body = document.createElement('div');
+      body.className = 'dg-card-body';
+      bodies[key].forEach(function(el) { body.appendChild(el); });
+      card.appendChild(body);
+      grid.appendChild(card);
+    });
+  }
+
+  // Header: who and what, the status and payment chips, the appointment.
+  function renderRecordHead(b, quoteStage) {
+    var el = document.getElementById('dp-head-meta');
+    if (!el) return;
+    var when = b.date ? formatDate(b.date) + (b.time ? ', ' + esc(b.time) : '') : '';
+    el.innerHTML = '<div class="dp-who"><strong>' + esc(b.customer_name || 'Customer') + '</strong>'
+      + '<span>' + esc(quoteStage ? quoteServiceLabel(b) : (b.service || '')) + '</span></div>'
+      + '<div class="dp-chips">' + (isTestBooking(b) ? '<span class="c-tag">Test booking</span>' : '')
+      + bookingBadge(b) + (b.payment_status ? ' ' + paymentBadge(isQuoteAwaitingCard(b) ? 'quote_no_card' : b.payment_status) : '')
+      + (when ? '<span class="dp-when">' + when + '</span>' : '') + '</div>';
+  }
+
+  // Status line from the dates the booking records. A step with no recorded
+  // date but reached by status says so; nothing is assumed.
+  function renderStatusStepper(b) {
+    var el = document.getElementById('dp-stepper');
+    if (!el) return;
+    var reached = function(statuses) { return statuses.indexOf(b.status) !== -1; };
+    var steps = [
+      { label: 'Created', at: b.created_at, done: true },
+      { label: 'Confirmed', at: b.confirmed_at || b.payment_authorized_at, done: !!(b.confirmed_at || b.payment_authorized_at) || reached(['confirmed', 'en_route', 'arrived', 'in_progress', 'completed']) },
+      { label: 'Completed', at: b.completed_at, done: !!b.completed_at || b.status === 'completed' },
+      { label: 'Charged', at: b.payment_captured_at, done: !!b.payment_captured_at || b.payment_status === 'captured' },
+    ];
+    var stop = b.status === 'cancelled' ? { label: 'Cancelled', at: b.cancelled_at }
+      : b.status === 'declined' ? { label: 'Declined', at: b.declined_at } : null;
+    if (stop) {
+      var firstOpen = steps.findIndex(function(st) { return !st.done; });
+      if (firstOpen === -1) firstOpen = steps.length;
+      steps = steps.slice(0, firstOpen).concat([{ label: stop.label, at: stop.at, done: true, stop: true }]).concat(steps.slice(firstOpen).map(function(st) { return Object.assign({}, st, { skipped: true }); }));
+    }
+    el.innerHTML = '<ol class="dp-steps" aria-label="Booking progress">' + steps.map(function(st) {
+      var cls = st.stop ? 'stop' : (st.done ? 'done' : (st.skipped ? 'skipped' : 'todo'));
+      var date = st.at ? formatDateTime(st.at) : (st.done && !st.stop ? 'Date not recorded' : '');
+      return '<li class="dp-step ' + cls + '"><span class="dp-dot" aria-hidden="true">' + (st.stop ? '&times;' : (st.done ? '&#10003;' : '')) + '</span>'
+        + '<span class="dp-step-label">' + esc(st.label) + '</span><span class="dp-step-date">' + esc(date) + '</span></li>';
+    }).join('') + '</ol>';
+  }
+
   function switchDetailTab(tab, el) {
     document.querySelectorAll('.detail-tab').forEach(function(t) {
       t.style.color = 'var(--muted)';
       t.style.borderBottom = 'none';
     });
     if (el) { el.style.color = 'var(--teal)'; el.style.borderBottom = '2px solid var(--teal)'; }
+    document.getElementById('tab-overview').style.display = tab === 'overview' ? '' : 'none';
     document.getElementById('tab-messages').style.display = tab === 'messages' ? '' : 'none';
     document.getElementById('tab-dispatch').style.display = tab === 'dispatch' ? '' : 'none';
     document.getElementById('tab-timeline').style.display = tab === 'timeline' ? '' : 'none';
@@ -4627,6 +4847,19 @@ window.intelQuick = intelQuick;
   // and the customer quote each price makes (fee on top, tax added). This
   // panel renders that verdict and never computes a price of its own.
   var quoteOffersFor = null;
+  var quoteOfferRows = {};
+  // Changing the fee shows the server-priced total for it; a change needs a reason.
+  window.quoteFeeChanged = function(offerId) {
+    var o = quoteOfferRows[offerId];
+    var select = document.getElementById('qo-fee-' + offerId);
+    if (!o || !select) return;
+    var pct = Number(select.value);
+    var option = (o.feeOptions || []).filter(function(x) { return x.feePct === pct; })[0];
+    var reason = document.getElementById('qo-fee-reason-' + offerId);
+    if (reason) reason.hidden = pct === o.customerQuote.schedulePct;
+    var btn = document.getElementById('qo-send-' + offerId);
+    if (btn && option) btn.textContent = btn.getAttribute('data-label') + fmt$(option.totalCents);
+  };
   var quoteOffersData = null;
   var quoteOffersAskingMore = false;
 
@@ -4711,11 +4944,35 @@ window.intelQuick = intelQuick;
         + '<span class="qo-chip qo-chip-' + esc(o.status) + '">' + esc(labels[o.status] || o.status) + '</span></div>';
       if (o.customerQuote) {
         row += '<div class="qo-line">' + esc(o.easer.name.split(' ')[0]) + ' earns <strong>' + fmt$(o.earningsCents) + '</strong>, ' + esc(o.hours) + ' h, crew of ' + esc(o.crewSize) + '</div>'
-          + '<div class="qo-line qo-muted">Customer pays ' + fmt$(o.customerQuote.totalCents) + ' (' + fmt$(o.customerQuote.subtotalCents) + ' + ' + fmt$(o.customerQuote.taxCents) + ' tax). You keep ' + fmt$(o.customerQuote.platformFeeCents) + ' before card fees.</div>'
+          + '<div class="qo-line qo-muted">Customer pays ' + fmt$(o.customerQuote.totalCents) + ' (' + fmt$(o.customerQuote.subtotalCents) + ' + ' + fmt$(o.customerQuote.taxCents) + ' tax). '
+          + 'Fee ' + esc(o.customerQuote.feePct) + '%. You keep ' + fmt$(o.customerQuote.contributionCents) + ' after card fees.</div>'
           + (o.note ? '<div class="qo-note">&ldquo;' + esc(o.note) + '&rdquo;</div>' : '');
         if (d.enabled && (o.status === 'submitted' || o.status === 'selected')) {
-          row += '<button class="btn btn-teal btn-sm qo-send" type="button" onclick="sendQuoteFromOffer(\'' + jsAttr(o.id) + '\', \'' + jsAttr(o.updatedAt) + '\')">'
-            + (o.status === 'selected' ? 'Resend at ' : 'Send quote at ') + fmt$(o.customerQuote.totalCents) + '</button>';
+          quoteOfferRows[o.id] = o;
+          var options = o.feeOptions;
+          if (!options) {
+            row += '<button class="btn btn-teal btn-sm qo-send" type="button" onclick="sendQuoteFromOffer(\'' + jsAttr(o.id) + '\', \'' + jsAttr(o.updatedAt) + '\')">'
+              + (o.status === 'selected' ? 'Resend at ' : 'Send quote at ') + fmt$(o.customerQuote.totalCents) + '</button>';
+          } else if (!options.length) {
+            // The server found no fee that clears the profit floor (section 4a).
+            row += '<div class="qo-held">Held: this price leaves ' + fmt$(o.customerQuote.contributionCents) + ' after card fees, below the '
+              + fmt$(o.customerQuote.minContributionCents) + ' minimum. Ask the Easer for a different price.</div>';
+          } else {
+            var chosenPct = options.some(function(x) { return x.feePct === o.customerQuote.feePct; }) ? o.customerQuote.feePct : options[0].feePct;
+            row += '<div class="qo-fee-row"><label for="qo-fee-' + esc(o.id) + '">Fee for this quote</label>'
+              + '<select class="modal-input" id="qo-fee-' + esc(o.id) + '" onchange="quoteFeeChanged(\'' + jsAttr(o.id) + '\')">'
+              + options.map(function(x) {
+                  return '<option value="' + esc(x.feePct) + '"' + (x.feePct === chosenPct ? ' selected' : '') + '>' + esc(x.feePct) + '%'
+                    + (x.feePct === o.customerQuote.schedulePct ? ' (schedule)' : '') + ' &middot; customer pays ' + fmt$(x.totalCents)
+                    + ' &middot; you keep ' + fmt$(x.contributionCents) + '</option>';
+                }).join('')
+              + '</select>'
+              + '<input class="modal-input" id="qo-fee-reason-' + esc(o.id) + '" maxlength="300" placeholder="Reason for changing the fee" hidden />'
+              + '</div>';
+            var chosen = options.filter(function(x) { return x.feePct === chosenPct; })[0];
+            row += '<button class="btn btn-teal btn-sm qo-send" id="qo-send-' + esc(o.id) + '" data-label="' + (o.status === 'selected' ? 'Resend at ' : 'Send quote at ') + '" type="button" onclick="sendQuoteFromOffer(\'' + jsAttr(o.id) + '\', \'' + jsAttr(o.updatedAt) + '\')">'
+              + (o.status === 'selected' ? 'Resend at ' : 'Send quote at ') + fmt$(chosen.totalCents) + '</button>';
+          }
         }
       } else if (o.status === 'invited' && o.open) {
         row += '<div class="qo-line qo-muted">No price yet. Open until ' + esc(new Date(o.respondBy).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })) + '.</div>';
@@ -4786,12 +5043,16 @@ window.intelQuick = intelQuick;
     var quoteTime = document.getElementById('qm-time').value;
     var errEl = document.getElementById('qm-error');
     if (!quoteDate || !quoteTime) { errEl.textContent = 'Choose the appointment date and time window for this quote.'; errEl.style.display = ''; return; }
+    var feeSelect = document.getElementById('qo-fee-' + offerId);
+    var feePct = feeSelect ? Number(feeSelect.value) : null;
+    var feeReasonEl = document.getElementById('qo-fee-reason-' + offerId);
+    var feeReason = feeReasonEl && !feeReasonEl.hidden ? feeReasonEl.value.trim() : '';
     errEl.style.display = 'none';
     try {
       var r = await fetch('/api/owner/quote-approve', {
         method: 'POST', headers: headers(),
-        // The server prices the quote from the offer; no amount is sent.
-        body: JSON.stringify({ bookingId: id, quoteOfferId: offerId, offerUpdatedAt: offerUpdatedAt, date: quoteDate, time: quoteTime })
+        // The server prices the quote from the offer and the chosen fee; no amount is sent.
+        body: JSON.stringify({ bookingId: id, quoteOfferId: offerId, offerUpdatedAt: offerUpdatedAt, date: quoteDate, time: quoteTime, feePct: feePct, feeReason: feeReason })
       });
       var d = await r.json();
       if (!r.ok || d.error) { errEl.textContent = d.error || 'The quote was not sent.'; errEl.style.display = ''; return; }
@@ -8693,7 +8954,33 @@ window.intelQuick = intelQuick;
   var _badgesTimer = null;
   var _bookingsLoadPromise = null;
 
+  var VIEW_SUBTITLES = {
+    liveops: 'What needs you now, the jobs in motion and the Easers on shift.',
+    today: 'Every job on today\'s schedule.',
+    bookings: 'Manage bookings, dispatch and service across AssembleAtEase.',
+    messages: 'Customer and Easer conversations, newest first.',
+    cases: 'Support, quality, safety, payment and damage follow-up with a permanent timeline.',
+    'voice-calls': 'Calls to the business line and what happened on each.',
+    assemblers: 'Applications, readiness and the Easer roster.',
+    waitlist: 'People waiting for an Easer spot in their area.',
+    analytics: 'Revenue, payouts, fees and profitability for AssembleAtEase.',
+    customers: 'Everyone who has booked, with their history.',
+    partners: 'Partner leads, accounts and the bookings they bring.',
+    giftcards: 'Gift cards and the Move-In Pass.',
+    'market-demand': 'Where demand comes from, how each channel performs, and coverage by market.',
+    thumbtack: 'Thumbtack leads and where each one stands.',
+    reviews: 'What customers said about finished jobs.',
+    'website-photos': 'Photos shown on the public website.',
+    marketing: 'Campaigns, tracking and content.',
+    intelligence: 'Website chat conversations and AI alerts.'
+  };
+  function setTopbarSub(view) {
+    var el = document.getElementById('topbar-sub');
+    if (el) el.textContent = VIEW_SUBTITLES[view] || '';
+  }
+  setTopbarSub('liveops');
   function syncPrimaryOwnerAction(view) {
+    setTopbarSub(view);
     if (!$newBookingBtn) return;
     var show = view === 'bookings' || view === 'customers';
     $newBookingBtn.style.display = show ? '' : 'none';
@@ -9119,6 +9406,7 @@ window.intelQuick = intelQuick;
       hideAllViews();
       $bookingsView.style.display = '';
       $topbarTitle.textContent = 'Bookings';
+      setTopbarSub('bookings');
       stopLiveOps();
       var bookingOpened = await window.openPayoutBooking(bookingId, 'booking');
       if (bookingOpened && action === 'review_damage_evidence') {
@@ -9867,17 +10155,18 @@ window.intelQuick = intelQuick;
   // card in #analytics-view is classified by a marker element inside it and shown only
   // under its tab, so the view stops being one endless scroll and Expansion/Tax get
   // their own space. Classification, not DOM surgery — safe and reversible.
-  var _finTab = 'money';
+  var _finTab = 'overview';
   function finGroupOf(el) {
-    if (!el) return 'money';
+    if (!el) return 'overview';
     // "has" matches the card itself OR any descendant (some cards ARE their marker,
     // e.g. #clawback-panel; others carry a marker child, e.g. #an-expansion-summary).
     var has = function (sel) { return (el.matches && el.matches(sel)) || (el.querySelector && el.querySelector(sel)); };
     if (has('#owner-expenses-panel')) return 'expenses';
-    if (has('#an-expansion-summary')) return 'more';
+    if (has('#an-expansion-summary, #fin-details, #fin-formula')) return 'more';
     if (has('#ct-year, #clawback-panel, [id^="tax-"]')) return 'tax';
     if (has('#an-services, #an-monthly, #an-status, #an-rev-service, #an-job-duration')) return 'more';
-    return 'money';
+    if (has('#an-ledger, #an-payout-table')) return 'ledger';
+    return 'overview';
   }
   function applyFinTab() {
     var view = document.getElementById('analytics-view');
@@ -9903,9 +10192,9 @@ window.intelQuick = intelQuick;
     });
   }
   function setFinTab(tab) {
-    _finTab = tab || 'money';
+    _finTab = tab || 'overview';
     var bar = document.getElementById('fin-subtabs');
-    if (bar) Array.prototype.forEach.call(bar.querySelectorAll('.tab'), function(b) {
+    if (bar) Array.prototype.forEach.call(bar.querySelectorAll('.tab[data-fin-tab]'), function(b) {
       b.classList.toggle('active', b.getAttribute('data-fin-tab') === _finTab);
     });
     applyFinTab();
@@ -9913,6 +10202,144 @@ window.intelQuick = intelQuick;
   document.addEventListener('click', function(e) {
     var t = e.target && e.target.closest ? e.target.closest('[data-fin-tab]') : null;
     if (t) setFinTab(t.getAttribute('data-fin-tab'));
+  });
+
+
+  // ── Financials overview (owner console, 2026-11-13) ───────────────────────
+  // Draws the server's figures: d.monthly, d.breakdown, d.easerEarnings and the
+  // newest ledger rows. Sizes and positions are computed here; money is not.
+  var finChartMode = 'revenue';
+  function finPct(share) { return (Number(share || 0) * 100).toFixed(1) + '%'; }
+  function finMonthLabel(month) {
+    if (!month) return 'Undated';
+    var parts = String(month).split('-');
+    return new Date(Date.UTC(+parts[0], +parts[1] - 1, 15)).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+  }
+  function renderFinanceChart(d) {
+    var el = document.getElementById('fin-chart');
+    if (!el) return;
+    var months = (d.monthly || []).filter(function(m) { return m.month; }).slice(-8);
+    var undated = (d.monthly || []).filter(function(m) { return !m.month; })[0];
+    if (!months.length) { el.innerHTML = '<div class="fin-empty">No payments in this period.</div>'; return; }
+    var W = 520, H = 210, padL = 52, padB = 26, padT = 10, plotW = W - padL - 10, plotH = H - padB - padT;
+    var jobs = finChartMode === 'jobs';
+    var series = months.map(function(m) {
+      return jobs ? { a: m.completedJobs, b: 0, line: null } : { a: m.customerRevenue, b: m.easerEarnings, line: m.platformGross };
+    });
+    var values = [0];
+    series.forEach(function(v) { values.push(v.a, v.b, v.line == null ? 0 : v.line); });
+    var max = Math.max.apply(null, values);
+    var min = Math.min.apply(null, values.concat([0]));
+    if (max <= min) max = min + 1;
+    var y = function(v) { return padT + plotH - ((v - min) / (max - min)) * plotH; };
+    var step = plotW / months.length, barW = Math.min(26, step * 0.32);
+    var ticks = '';
+    for (var t = 0; t <= 4; t++) {
+      var val = min + (max - min) * t / 4, ty = y(val);
+      ticks += '<line x1="' + padL + '" x2="' + (W - 10) + '" y1="' + ty + '" y2="' + ty + '" class="fin-grid"/>'
+        + '<text x="' + (padL - 6) + '" y="' + (ty + 4) + '" text-anchor="end" class="fin-axis">' + (jobs ? Math.round(val) : fmt$(Math.round(val)).replace(/\.\d\d$/, '')) + '</text>';
+    }
+    var bars = '', points = [];
+    series.forEach(function(v, i) {
+      var cx = padL + step * i + step / 2;
+      var title = finMonthLabel(months[i].month) + ': ' + (jobs ? v.a + ' completed' : 'payments ' + fmt$(v.a) + ', Easer earnings ' + fmt$(v.b) + ', platform gross ' + fmtSigned$(v.line));
+      if (jobs) {
+        bars += '<rect class="fin-bar-a" x="' + (cx - barW / 2) + '" y="' + y(v.a) + '" width="' + barW + '" height="' + Math.max(0, y(0) - y(v.a)) + '"><title>' + esc(title) + '</title></rect>';
+      } else {
+        bars += '<rect class="fin-bar-a" x="' + (cx - barW - 1) + '" y="' + y(v.a) + '" width="' + barW + '" height="' + Math.max(0, y(0) - y(v.a)) + '"><title>' + esc(title) + '</title></rect>'
+          + '<rect class="fin-bar-b" x="' + (cx + 1) + '" y="' + y(v.b) + '" width="' + barW + '" height="' + Math.max(0, y(0) - y(v.b)) + '"><title>' + esc(title) + '</title></rect>';
+        points.push(cx + ',' + y(v.line));
+      }
+      bars += '<text x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle" class="fin-axis">' + esc(finMonthLabel(months[i].month)) + '</text>';
+    });
+    var line = points.length ? '<polyline class="fin-line" points="' + points.join(' ') + '"/>' + points.map(function(pt) { var xy = pt.split(','); return '<circle class="fin-dot" cx="' + xy[0] + '" cy="' + xy[1] + '" r="3.5"/>'; }).join('') : '';
+    el.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + (jobs ? 'Completed jobs by month' : 'Payments, Easer earnings and platform gross by month') + '">' + ticks + bars + line + '</svg>'
+      + '<div class="fin-legend">' + (jobs ? '<span><i class="fin-key-a"></i>Completed jobs</span>'
+        : '<span><i class="fin-key-a"></i>Customer payments</span><span><i class="fin-key-b"></i>Easer earnings</span><span><i class="fin-key-line"></i>Platform gross</span>') + '</div>'
+      + (undated && !jobs ? '<div class="fin-card-note">Undated rows: ' + fmt$(undated.customerRevenue) + ' in payments, not on the chart.</div>' : '');
+  }
+  function renderFinanceBreakdown(d) {
+    var el = document.getElementById('fin-breakdown');
+    if (!el) return;
+    var bd = d.breakdown || { totalCents: 0, parts: [] };
+    if (!(bd.totalCents > 0)) { el.innerHTML = '<div class="fin-empty">No payments in this period.</div>'; return; }
+    var colors = { easerEarnings: 'var(--c-brand)', platformGross: 'var(--c-ok)', salesTax: 'var(--c-warn)', processingFees: 'var(--c-info)' };
+    var negative = bd.parts.some(function(pt) { return pt.cents < 0; });
+    var donut = '';
+    if (!negative) {
+      var R = 52, C = 2 * Math.PI * R, offset = 0;
+      donut = '<svg viewBox="0 0 140 140" class="fin-donut" aria-hidden="true"><circle cx="70" cy="70" r="' + R + '" class="fin-donut-bg"/>'
+        + bd.parts.map(function(pt) {
+            var len = C * pt.share, seg = '<circle cx="70" cy="70" r="' + R + '" stroke="' + colors[pt.key] + '" stroke-dasharray="' + len + ' ' + (C - len) + '" stroke-dashoffset="' + (-offset) + '" class="fin-donut-seg"/>';
+            offset += len; return seg;
+          }).join('')
+        + '<text x="70" y="68" text-anchor="middle" class="fin-donut-total">' + fmt$(bd.totalCents).replace(/\.\d\d$/, '') + '</text><text x="70" y="86" text-anchor="middle" class="fin-axis">Payments</text></svg>';
+    }
+    el.innerHTML = donut + '<ul class="fin-parts">' + bd.parts.map(function(pt) {
+      return '<li><i style="background:' + colors[pt.key] + '"></i><span>' + esc(pt.label) + '</span><strong>' + fmtSigned$(pt.cents) + '</strong><em>' + finPct(pt.share) + '</em></li>';
+    }).join('') + '</ul>' + (negative ? '<div class="fin-card-note">Platform gross is below zero for this period.</div>' : '');
+  }
+  // Health: each line is a figure the owner can open, with its state.
+  function renderFinanceHealth() {
+    var el = document.getElementById('fin-health');
+    if (!el) return;
+    var d = latestFinancialDashboard || {};
+    var rec = d.reconciliation || null;
+    var payouts = Number(reserveParts.payouts || 0), tax = Number(reserveParts.tax || 0), clawbacks = Number(reserveParts.clawbacks || 0);
+    var rows = [
+      { label: 'Easer payouts', tab: 'ledger', tone: !payoutTruthAvailable ? 'warn' : (payouts > 0 ? 'warn' : 'ok'), text: !payoutTruthAvailable ? 'Unknown' : (payouts > 0 ? fmt$(payouts) + ' owed' : 'Up to date') },
+      { label: 'Sales tax', tab: 'tax', tone: tax > 0 ? 'info' : 'ok', text: tax > 0 ? fmt$(tax) + ' to remit' : 'Nothing owed' },
+      { label: 'Reconciliation', tab: 'ledger', tone: !rec ? 'warn' : ((Number(rec.mismatchedCount || 0) + Number(rec.duplicateLedgerBookingCount || 0)) > 0 ? 'bad' : 'ok'),
+        text: !rec ? 'Unknown' : ((Number(rec.mismatchedCount || 0) + Number(rec.duplicateLedgerBookingCount || 0)) > 0 ? (Number(rec.mismatchedCount || 0) + Number(rec.duplicateLedgerBookingCount || 0)) + ' to review' : 'In balance') },
+      { label: 'Set aside', tab: 'overview', tone: 'info', text: payoutTruthAvailable ? fmt$(tax + payouts + Number(reserveParts.rewards || 0)) : 'Unknown' },
+      { label: 'Clawbacks', tab: 'tax', tone: clawbacks > 0 ? 'warn' : 'ok', text: clawbacks > 0 ? fmt$(clawbacks) + ' to recover' : 'None' },
+    ];
+    el.innerHTML = rows.map(function(r) {
+      return '<button type="button" class="fin-health-row fin-tone-' + r.tone + '" data-fin-tab="' + r.tab + '"><span class="fin-health-dot" aria-hidden="true"></span><span>' + esc(r.label) + '</span><strong>' + esc(r.text) + '</strong></button>';
+    }).join('');
+    var pill = document.getElementById('fin-health-pill');
+    if (pill) {
+      var attention = rows.some(function(r) { return r.tone === 'warn' || r.tone === 'bad'; });
+      pill.textContent = attention ? 'Needs attention' : 'All clear';
+      pill.className = 'fin-health-pill ' + (attention ? 'fin-tone-warn' : 'fin-tone-ok');
+    }
+  }
+  function renderFinanceOverview(d) {
+    var parts = {};
+    ((d.breakdown && d.breakdown.parts) || []).forEach(function(pt) { parts[pt.key] = pt; });
+    if (parts.platformGross) setText('fin-kpi-margin', finPct(parts.platformGross.share) + ' margin');
+    if (parts.easerEarnings) setText('fin-kpi-easer-share', finPct(parts.easerEarnings.share) + ' of payments');
+    if (parts.processingFees) setText('fin-kpi-fee-share', finPct(parts.processingFees.share) + ' of payments');
+    if (parts.salesTax) setText('fin-kpi-tax-share', finPct(parts.salesTax.share) + ' of payments');
+    renderFinanceChart(d);
+    renderFinanceBreakdown(d);
+    renderFinanceHealth();
+    var easers = d.easerEarnings || [];
+    var easerEl = document.getElementById('fin-easers');
+    if (easerEl) easerEl.innerHTML = easers.length
+      ? '<table class="fin-table"><thead><tr><th>Easer</th><th>Jobs</th><th>Earned</th><th>Paid</th><th>Owed</th><th>Status</th></tr></thead><tbody>'
+        + easers.map(function(e) {
+            var initials = String(e.name || '').trim().split(/\s+/).slice(0, 2).map(function(w) { return w.charAt(0).toUpperCase(); }).join('');
+            return '<tr><td><span class="bk-avatar fin-avatar">' + esc(initials) + '</span>' + esc(e.name) + '</td><td>' + esc(e.jobs) + '</td><td>' + fmt$(e.earnedCents) + '</td><td>' + fmt$(e.paidCents) + '</td><td>' + fmt$(e.owedCents) + '</td>'
+              + '<td><span class="fin-chip ' + (e.owedCents > 0 ? 'fin-tone-warn' : 'fin-tone-ok') + '">' + (e.owedCents > 0 ? 'Owed' : 'Paid') + '</span></td></tr>';
+          }).join('') + '</tbody></table>'
+      : '<div class="fin-empty">No Easer earnings in this period.</div>';
+    var recent = (d.ledger || []).slice(0, 5);
+    var recentEl = document.getElementById('fin-recent');
+    if (recentEl) recentEl.innerHTML = recent.length
+      ? '<table class="fin-table"><tbody>' + recent.map(function(row) {
+          return '<tr><td>' + esc(formatDate(row.eventAt || row.date)) + '</td><td><strong>' + esc(row.customerName || 'Customer') + '</strong> &mdash; ' + esc(row.service || '') + '</td><td class="fin-num">' + fmt$(row.customerRevenue) + '</td>'
+            + '<td><span class="fin-chip fin-tone-info">' + (row.eventType === 'cancellation_earnings' ? 'Cancellation fee' : 'Booking') + '</span></td></tr>';
+        }).join('') + '</tbody></table>'
+      : '<div class="fin-empty">No transactions in this period.</div>';
+  }
+  // end renderFinanceOverview
+  document.addEventListener('click', function(e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-fin-chart]') : null;
+    if (!t) return;
+    finChartMode = t.getAttribute('data-fin-chart');
+    document.querySelectorAll('[data-fin-chart]').forEach(function(b) { b.classList.toggle('active', b === t); });
+    if (latestFinancialDashboard) renderFinanceChart(latestFinancialDashboard);
   });
 
   async function renderAnalytics() {
@@ -9926,6 +10353,7 @@ window.intelQuick = intelQuick;
       if (!r.ok) throw new Error(d.error || 'Failed to load financial dashboard');
       latestFinancialDashboard = d;
       renderFinancialSummary(d);
+      renderFinanceOverview(d);
       renderServiceProfitability(d.serviceProfitability || []);
       renderExpansionReadiness(d.expansionReadiness || {});
       renderFinancialLedger(d.ledger || []);
@@ -10073,6 +10501,7 @@ window.intelQuick = intelQuick;
     setText('reserve-rewards', fmt$(rewards));
     setText('reserve-total', payoutTruthAvailable ? fmt$(tax + payouts + rewards) : 'UNKNOWN');
     setText('reserve-clawbacks', fmt$(Number(reserveParts.clawbacks || 0)));
+    renderFinanceHealth();
   }
 
   function renderClawbacks(cb) {
@@ -10859,8 +11288,11 @@ window.intelQuick = intelQuick;
         if (existingIndex >= 0) allBookings[existingIndex] = booking;
         else allBookings.unshift(booking);
       }
-      // Open the tab that actually holds this booking.
+      // Open the tab that actually holds this booking, unfiltered, on its page.
       currentStatus = isTestBooking(booking) ? 'test' : 'all';
+      bookingFilters = { time: 'all', service: '', area: '' };
+      ['bk-filter-time', 'bk-filter-service', 'bk-filter-area'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = id === 'bk-filter-time' ? 'all' : ''; });
+      bookingFocusSelected = true;
       searchQuery = '';
       var search = document.getElementById('booking-search');
       if (search) search.value = '';
@@ -10993,6 +11425,8 @@ window.intelQuick = intelQuick;
     }
     renderMarketRows(data.markets || [], data);
     renderMarketSummaryLinks(data.summaryRows || {}, data);
+    renderDemandTrend(data.trend || []);
+    renderMarketCoverage(data.markets || [], data);
     if (Array.isArray(data.topAcquisitionSources) && data.topAcquisitionSources.length) {
       document.getElementById('md-top-markets').insertAdjacentHTML(
         'afterbegin',
@@ -11082,6 +11516,56 @@ window.intelQuick = intelQuick;
     } finally { easer.disabled = false; }
   });
 
+
+  // ── Market Demand charts (owner console, 2026-11-13) ──────────────────────
+  // The trend is the server's per-month count (data.trend); coverage lists the
+  // server's market rows by their status, with each market named.
+  function renderDemandTrend(trend) {
+    var el = document.getElementById('md-trend');
+    if (!el) return;
+    var months = trend.filter(function(m) { return m.month; }).slice(-8);
+    var undated = trend.filter(function(m) { return !m.month; })[0];
+    if (!months.length) { el.innerHTML = '<div class="fin-empty">No demand recorded yet.</div>'; return; }
+    var W = 460, H = 200, padL = 34, padB = 26, padT = 10, plotW = W - padL - 10, plotH = H - padB - padT;
+    var max = Math.max.apply(null, months.map(function(m) { return m.demandSignals; }).concat([1]));
+    var y = function(v) { return padT + plotH - (v / max) * plotH; };
+    var step = plotW / months.length, barW = Math.min(30, step * 0.5);
+    var ticks = '';
+    var tickCount = Math.min(4, max);
+    for (var t = 0; t <= tickCount; t++) {
+      var val = Math.round(max * t / tickCount), ty = y(val);
+      ticks += '<line x1="' + padL + '" x2="' + (W - 10) + '" y1="' + ty + '" y2="' + ty + '" class="fin-grid"/><text x="' + (padL - 6) + '" y="' + (ty + 4) + '" text-anchor="end" class="fin-axis">' + val + '</text>';
+    }
+    var bars = '', points = [];
+    months.forEach(function(m, i) {
+      var cx = padL + step * i + step / 2;
+      var title = finMonthLabel(m.month) + ': ' + m.demandSignals + ' demand signals, ' + m.bookings + ' bookings';
+      bars += '<rect class="fin-bar-a" x="' + (cx - barW / 2) + '" y="' + y(m.demandSignals) + '" width="' + barW + '" height="' + Math.max(0, y(0) - y(m.demandSignals)) + '"><title>' + esc(title) + '</title></rect>'
+        + '<text x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle" class="fin-axis">' + esc(finMonthLabel(m.month)) + '</text>';
+      points.push(cx + ',' + y(m.bookings));
+    });
+    el.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Demand signals and bookings by month">' + ticks + bars
+      + '<polyline class="fin-line" points="' + points.join(' ') + '"/>' + points.map(function(pt) { var xy = pt.split(','); return '<circle class="fin-dot" cx="' + xy[0] + '" cy="' + xy[1] + '" r="3.5"/>'; }).join('') + '</svg>'
+      + '<div class="fin-legend"><span><i class="fin-key-a"></i>Demand signals</span><span><i class="fin-key-line"></i>Recorded bookings</span></div>'
+      + (undated ? '<div class="fin-card-note">' + undated.demandSignals + ' undated signal' + (undated.demandSignals === 1 ? '' : 's') + ' not on the chart.</div>' : '');
+  }
+  function renderMarketCoverage(markets, data) {
+    var el = document.getElementById('md-coverage');
+    if (!el) return;
+    if (!markets.length) { el.innerHTML = '<div class="fin-empty">No market records yet.</div>'; return; }
+    var supplyAvailable = data.supplyAvailable !== false;
+    var groups = {};
+    var order = [];
+    markets.forEach(function(m) {
+      var status = supplyAvailable ? String(m.activationStatus || 'COLLECTING DEMAND').toUpperCase() : 'SUPPLY UNAVAILABLE';
+      if (!groups[status]) { groups[status] = []; order.push(status); }
+      groups[status].push(m.marketLabel || m.market || 'Unnamed area');
+    });
+    el.innerHTML = order.map(function(status) {
+      return '<div class="md-cov-row">' + mdStatusPill(status) + '<strong>' + groups[status].length + '</strong><span>' + esc(groups[status].join(', ')) + '</span></div>';
+    }).join('');
+  }
+
   function renderMarketRows(markets, data) {
     data = data || {};
     var el = document.getElementById('md-top-markets');
@@ -11095,7 +11579,7 @@ window.intelQuick = intelQuick;
       var available = data.supplyAvailable !== false && m.approvedEasers !== null;
       var waitlistAvailable = data.waitlistAvailable !== false && m.waitlistEasers !== null;
       var requestsAvailable = (data.sourceStatus || {}).requests !== 'unavailable';
-      return '<div style="border:1px solid var(--border);border-radius:10px;padding:0.9rem 1rem;margin-bottom:0.7rem;background:var(--surface)">'
+      return '<div class="md-market-card" style="border:1px solid var(--border);border-radius:10px;padding:0.9rem 1rem;background:var(--surface)">'
         + '<div class="md-market-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.8rem;margin-bottom:0.55rem">'
         + '<div style="min-width:0;overflow-wrap:anywhere"><div style="font-size:0.96rem;font-weight:800;color:var(--text)">' + esc(m.marketLabel || m.market) + '</div>'
         + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.15rem">' + (m.coverageKnown ? 'Configured ZIP service area' : m.marketKey === 'location-review' ? 'Records needing location review' : 'Recorded location; service area unverified') + '</div></div>'
@@ -11152,6 +11636,7 @@ window.intelQuick = intelQuick;
     hideAllViews();
     $bookingsView.style.display = '';
     $topbarTitle.textContent = 'Bookings';
+    setTopbarSub('bookings');
     stopLiveOps();
     var opened = await window.openPayoutBooking(bookingId, 'booking');
     if (opened && tabName === 'evidence') {

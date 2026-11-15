@@ -9,6 +9,12 @@
 // server that keeps the same contract as api/owner/quote-offers.js,
 // api/owner/quote-approve.js and api/owner/partners.js.
 import { test, expect } from '@playwright/test';
+// The real pricing module, so the stand-in server returns exactly what
+// api/booking/_quote-offer-invites.js and api/owner/quote-approve.js return.
+import { customerQuoteForEarnings, quoteFeeOptions } from '../../api/booking/_quote-offers.js';
+
+const STEPPED = { QUOTE_FEE_SCHEDULE: 'stepped' };
+const usd = cents => '$' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const NOW = new Date('2026-11-13T15:00:00Z');
 const QUOTE_ID = 'b0000000-0000-4000-8000-000000000001';
@@ -47,11 +53,7 @@ function hybridServer() {
     approveBodies: [],
     partner: null,
   };
-  const priced = earnings => {
-    const subtotal = Math.ceil(earnings * 100 / 70);
-    const tax = Math.round(subtotal * 0.0825);
-    return { subtotalCents: subtotal, taxCents: tax, totalCents: subtotal + tax, platformFeeCents: subtotal - earnings };
-  };
+  const priced = (earnings, feePct = null) => customerQuoteForEarnings(earnings, { env: STEPPED, feePct });
   const offersPayload = () => ({
     enabled: true, migrationNeeded: false,
     suggestedScope: 'Two sit-stand desks and two office chairs. Boxes are on the ground floor. Call me at [removed].',
@@ -59,7 +61,9 @@ function hybridServer() {
     askableEasers: state.eligible.filter(e => !state.offers.some(o => o.easer.id === e.id)),
     askRoom: 8 - state.offers.length,
     askMessage: null,
-    offers: state.offers.map(o => ({ ...o, customerQuote: o.earningsCents ? priced(o.earningsCents) : null })),
+    offers: state.offers.map(o => ({ ...o,
+      customerQuote: o.earningsCents ? priced(o.earningsCents) : null,
+      feeOptions: o.earningsCents ? quoteFeeOptions(o.earningsCents, { env: STEPPED }) : [] })),
   });
   return {
     state,
@@ -98,10 +102,16 @@ function hybridServer() {
         state.approveBodies.push(body);
         const offer = state.offers.find(o => o.id === body.quoteOfferId);
         if (!offer || offer.updatedAt !== body.offerUpdatedAt) return json(route, { error: 'That Easer offer is no longer available. Refresh the offers and choose again.' }, 409);
-        const q = priced(offer.earningsCents);
+        const schedule = priced(offer.earningsCents);
+        const changed = body.feePct != null && Number(body.feePct) !== schedule.feePct;
+        if (changed && !quoteFeeOptions(offer.earningsCents, { env: STEPPED }).some(x => x.feePct === Number(body.feePct))) {
+          return json(route, { error: 'That fee is not one this quote allows. Choose a fee from the list.' }, 400);
+        }
+        if (changed && String(body.feeReason || '').trim().length < 3) return json(route, { error: 'Add a short reason for changing the fee.' }, 400);
+        const q = changed ? priced(offer.earningsCents, Number(body.feePct)) : schedule;
         state.offers.forEach(o => { o.status = o === offer ? 'selected' : 'not_selected'; o.open = false; });
         state.booking = { ...state.booking, payment_status: 'quote_pending_approval', quote_amount_cents: q.totalCents, quote_sent_at: NOW.toISOString(), quote_expires_at: '2026-11-20T15:00:00Z' };
-        return json(route, { ok: true, approvalPending: true, amount: q.totalCents, easerEarningsCents: offer.earningsCents, platformFeeCents: q.platformFeeCents, warnings: [] });
+        return json(route, { ok: true, approvalPending: true, amount: q.totalCents, easerEarningsCents: offer.earningsCents, platformFeeCents: q.platformFeeCents, feePct: q.feePct, schedulePct: q.schedulePct, contributionCents: q.contributionCents, warnings: [] });
       }
       if (url.pathname === '/api/owner/partners') return json(route, partnersPayload(state, body, req.method()));
       return json(route, {});
@@ -182,10 +192,13 @@ test('custom quote: ask chosen Easers, receive a price, send one server-priced q
   await modal.getByRole('button', { name: /Refresh/ }).click();
   // The bookings list says a price is in, without opening the quote.
   await page.evaluate(() => window.loadBookings && window.loadBookings(true)).catch(() => {});
-  const send = modal.getByRole('button', { name: /Send quote at \$463\.94/ });
+  // Priced on the server by the stepped schedule (pricing model v1 section 4).
+  const q = customerQuoteForEarnings(30000, { env: STEPPED });
+  const send = modal.getByRole('button', { name: 'Send quote at ' + usd(q.totalCents) });
   await expect(send).toBeVisible();
   await expect(modal).toContainText('Alex earns $300.00');
-  await expect(modal).toContainText('Customer pays $463.94');
+  await expect(modal).toContainText('Customer pays ' + usd(q.totalCents));
+  await expect(modal).toContainText('Fee ' + q.feePct + '%. You keep ' + usd(q.contributionCents) + ' after card fees.');
   await shot(page, '3-price-in');
 
   await send.click();
@@ -194,7 +207,42 @@ test('custom quote: ask chosen Easers, receive a price, send one server-priced q
   const sent = server.state.approveBodies.at(-1);
   expect(sent.quoteOfferId).toBe('o-e1');
   expect(sent.finalPriceCents).toBeUndefined(); // the browser never sends an amount
+  expect(sent.feePct).toBe(q.feePct);
   expect(server.state.offers[0].status).toBe('selected');
+});
+
+test('the owner changes the fee on one quote: a reason is required and the total comes from the server', async ({ page }) => {
+  const server = hybridServer();
+  server.state.offers = [{ id: 'o-e1', status: 'submitted', open: true, easer: server.state.eligible[0], earningsCents: 120000, hours: 8, crewSize: 2,
+    note: null, respondBy: '2026-11-14T15:00:00Z', updatedAt: '2026-11-13T16:00:00Z' }];
+  await openDashboard(page, server);
+  await page.locator('a[data-view="bookings"]').first().click();
+  await page.locator('#bookings-list').getByText('AAE-QUOTE-E2E').first().click();
+  await page.getByRole('button', { name: /Send Quote for Customer Approval/ }).first().click();
+  const modal = page.locator('#quote-modal');
+  const schedule = customerQuoteForEarnings(120000, { env: STEPPED });
+  const fee = modal.locator('#qo-fee-o-e1');
+  await expect(fee).toHaveValue(String(schedule.feePct));
+  // Only 15% to 30% is offered, each priced by the server.
+  const values = await fee.locator('option').evaluateAll(list => list.map(o => Number(o.value)));
+  expect(values).toEqual(Array.from({ length: 16 }, (_, i) => 15 + i));
+  await expect(modal.locator('#qo-fee-reason-o-e1')).toBeHidden();
+  await shot(page, '4-fee-choice');
+
+  // Lower it to 20%: the button shows the server's total and a reason is asked for.
+  const lower = customerQuoteForEarnings(120000, { env: STEPPED, feePct: 20 });
+  await fee.selectOption('20');
+  await expect(modal.getByRole('button', { name: 'Send quote at ' + usd(lower.totalCents) })).toBeVisible();
+  await expect(modal.locator('#qo-fee-reason-o-e1')).toBeVisible();
+  await modal.getByRole('button', { name: 'Send quote at ' + usd(lower.totalCents) }).click();
+  await expect(modal.locator('#qm-error')).toHaveText('Add a short reason for changing the fee.');
+  await modal.locator('#qo-fee-reason-o-e1').fill('Repeat customer, competing quote');
+  await modal.getByRole('button', { name: 'Send quote at ' + usd(lower.totalCents) }).click();
+  await expect(modal).not.toHaveClass(/open/);
+  const sent = server.state.approveBodies.at(-1);
+  expect(sent).toMatchObject({ quoteOfferId: 'o-e1', feePct: 20, feeReason: 'Repeat customer, competing quote' });
+  expect(sent.finalPriceCents).toBeUndefined();
+  expect(server.state.booking.quote_amount_cents).toBe(lower.totalCents);
 });
 
 test('partner account: open with pricing and preferred Easer, then see the report', async ({ page }) => {
