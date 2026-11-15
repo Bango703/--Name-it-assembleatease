@@ -30,7 +30,8 @@ Last verified: 2026-11-13. Active work only; the full prioritized backlog is `bu
 - Phase 2 (Financials) built: Overview from server figures (`monthly`, `breakdown`, `easerEarnings`); launch suite, 28 browser tests and governance:truth pass locally.
 - Phase 3 (Cases) built; launch suite, 30 browser tests and governance:truth pass locally.
 - Phase 4 (Market Demand) built; launch suite, 31 browser tests and governance:truth pass locally.
-- Next action: the remaining screens (Live Ops, Today, Messages, Easers, Customers, Partners and the rest) onto the same frame.
+- Live since #456 (2026-11-15). Owner's live review found five problems (`docs/incidents/2026-11-15-owner-console-live-review.md`), fixed on branch `fix/owner-console-followups`.
+- Next action: merge the follow-ups; then the remaining screens (Live Ops, Today, Easers, Customers, Partners and the rest).
 
 ## 4. Waiting on the owner
 - Policy decisions 1 to 4 in the audit record.

@@ -154,7 +154,9 @@ function buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt, aiAss
   };
 
   if (dueAt) input.dueAt = dueAt;
-  if (imageUrl && shouldAttachImageForChannel(channel)) {
+  // Google Business Profile refuses .webp; a post goes without the image rather than failing.
+  const webpForGoogle = channel.key === 'googleBusiness' && /\.webp(\?|#|$)/i.test(String(imageUrl || ''));
+  if (imageUrl && !webpForGoogle && shouldAttachImageForChannel(channel)) {
     input.assets = [{ image: { url: imageUrl, metadata: { altText: altText || socialImageAlt(title) } } }];
   }
 

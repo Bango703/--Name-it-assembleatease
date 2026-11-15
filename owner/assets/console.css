@@ -555,3 +555,31 @@ body { background: var(--c-bg); color: var(--c-text); }
   .md-row3 { grid-template-columns: minmax(0, 1fr); }
   .md-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Follow-ups (owner, 2026-11-15). */
+.dg-card .detail-field.dg-wide { display: block; }
+.dg-card .detail-field.dg-wide > label { display: block; margin-bottom: 6px; }
+.dg-card .detail-field.dg-wide > span { display: block; text-align: left; }
+.dg-job { grid-column: 1 / -1; }
+
+/* Messages: list on the left, the conversation on the right. */
+.inbox-split { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.25fr); gap: 14px; align-items: start; }
+.inbox-split .inbox-list { max-height: calc(100vh - 220px); overflow-y: auto; }
+.inbox-side { position: sticky; top: 76px; min-width: 0; }
+.inbox-side .sms-panel { margin-top: 0; }
+.sms-panel[hidden], .sms-placeholder[hidden] { display: none !important; }
+.sms-placeholder { border: 1px dashed var(--c-line-strong); border-radius: 12px; padding: 40px 20px; text-align: center; color: var(--c-muted); font-size: 13px; background: var(--c-surface); }
+.inbox-row.active { background: var(--c-brand-wash); box-shadow: inset 3px 0 0 var(--c-brand); }
+.inbox-toolbar .inbox-muted { margin: 0; }
+@media (max-width: 1099px) { .inbox-split { grid-template-columns: minmax(0, 1fr); } .inbox-side { position: static; } }
+
+/* Market Demand: acquisition reads in full; area figures stay on one line. */
+.md-row3 { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+.md-acq { grid-column: 1 / -1; order: 3; }
+.md-acq #acquisition-report { max-height: none; overflow: visible; }
+.md-market-card .md-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.md-market-card .md-metrics-grid > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md-market-card .md-metrics-grid summary { white-space: nowrap; }
+.md-other-areas { grid-column: 1 / -1; }
+.md-other-areas > summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--c-brand-ink); padding: 4px 0; }
+.md-other-areas > .md-areas { margin-top: 10px; }

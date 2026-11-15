@@ -295,14 +295,17 @@
            go through the same SMS consent and delivery rules as every other text. -->
       <div id="messages-view" class="inbox-view" style="display:none">
         <div class="inbox-toolbar">
-          <div><h2>Messages</h2><p class="inbox-muted">SMS messages sent to the business number. Booking chat stays inside the booking detail.</p></div>
+          <p class="inbox-muted">Texts to the business number. Booking chat stays inside the booking record.</p>
           <div class="inbox-actions">
             <button type="button" class="inbox-button" id="inbox-filter-reply" aria-pressed="false">Waiting for you</button>
             <button type="button" class="inbox-button" id="inbox-refresh">Refresh</button>
           </div>
         </div>
         <div id="inbox-notice" class="inbox-note" role="status" hidden></div>
+        <div class="inbox-split">
         <div id="inbox-list" class="inbox-list"><div class="inbox-empty">Loading messages</div></div>
+        <div class="inbox-side">
+        <div id="sms-placeholder" class="sms-placeholder">Choose a conversation to read it and reply.</div>
         <div id="sms-panel" class="sms-panel" hidden>
           <div class="sms-thread-head">
             <div>
@@ -316,6 +319,8 @@
             <button id="sms-reply-send" type="button" class="btn btn-teal">Send SMS</button>
           </div>
           <div class="sms-note">Replies send as SMS only when this number has text-message consent. Consent or STOP replies remain governed by the existing SMS rules.</div>
+        </div>
+        </div>
         </div>
       </div>
 
@@ -4059,7 +4064,7 @@ window.intelQuick = intelQuick;
     { key: 'customer', title: 'Customer', labels: ['Customer', 'Email', 'Phone', 'Address', 'Customer Agreement', 'Lead Source', 'Source', 'Rebooked From', 'Created'] },
     { key: 'money', title: 'Financial Summary', labels: ['Service Subtotal', 'Sales Tax', 'Original Customer Total', 'Documented Discount', 'Adjusted Customer Total', 'Customer Total', 'Paid by Gift Card', 'Card Total', 'Gross Customer Payments', 'Net Payments Retained', 'Total Charged', 'Remaining Balance', 'Refunds', 'Processing Fee', 'Platform Fee', 'Easer Earnings', 'Bonus Pay', 'Reimbursement', 'Platform Gross', 'Payment', 'Payment Method', 'Easer Payout', 'Total With Approved Extras'] },
     { key: 'easer', title: 'Assigned Easer', labels: ['Easer'] },
-    { key: 'job', title: 'Job Details', labels: ['Service', 'Date', 'Open Return Visit', 'Return Visit Completed', 'First-Visit Work', 'Work Remaining', 'Items & Add-ons', 'Additional Work (Change Orders)', 'Details', 'Decline Reason'] },
+    { key: 'job', title: 'Job Details', labels: ['Service', 'Date', 'Time on Job', 'Open Return Visit', 'Return Visit Completed', 'First-Visit Work', 'Work Remaining', 'Items & Add-ons', 'Additional Work (Change Orders)', 'Total With Approved Extras', 'Details', 'Easer Feedback on Customer', 'Decline Reason'] },
   ];
   function groupDetailFields() {
     var grid = $detailGrid;
@@ -4076,6 +4081,8 @@ window.intelQuick = intelQuick;
       if (label === 'Status' || label === 'Customer' || label === 'Service' || label === 'Date') return;
       var key = label ? (byLabel[label] || 'more') : last;
       if (label) last = key;
+      // A wide field (items, change orders) reads as a block: label above, value below.
+      if (el.style && el.style.gridColumn) el.classList.add('dg-wide');
       bodies[key].push(el);
     });
     grid.innerHTML = '';
@@ -8958,7 +8965,7 @@ window.intelQuick = intelQuick;
     liveops: 'What needs you now, the jobs in motion and the Easers on shift.',
     today: 'Every job on today\'s schedule.',
     bookings: 'Manage bookings, dispatch and service across AssembleAtEase.',
-    messages: 'Customer and Easer conversations, newest first.',
+    messages: 'Texts to the business number, newest first.',
     cases: 'Support, quality, safety, payment and damage follow-up with a permanent timeline.',
     'voice-calls': 'Calls to the business line and what happened on each.',
     assemblers: 'Applications, readiness and the Easer roster.',
@@ -11573,7 +11580,7 @@ window.intelQuick = intelQuick;
       el.innerHTML = '<div class="empty-state" style="padding:2rem 1rem"><div class="empty-state-title">No market records available</div><div class="empty-state-desc">Booking demand and Easer locations will appear here when recorded. Check source status above.</div></div>';
       return;
     }
-    el.innerHTML = markets.map(function(m) {
+    var mdCard = function(m) {
       var services = (m.topServices || []).map(function(s){ return esc(s.service) + ' (' + s.count + ')'; }).join(', ') || 'No requests recorded yet';
       var supply = m.supplyRows || {};
       var available = data.supplyAvailable !== false && m.approvedEasers !== null;
@@ -11600,7 +11607,15 @@ window.intelQuick = intelQuick;
         + '</div>'
         + (m.locationIssue ? '<div style="font-size:0.75rem;color:var(--red);margin-top:0.4rem">' + esc(m.locationIssue) + '</div>' : '')
         + '</div>';
-    }).join('');
+    };
+    // Configured service areas first; locations that cannot prove coverage fold
+    // into one section, every one still listed (owner, 2026-11-15: "neat").
+    var known = markets.filter(function(m) { return m.coverageKnown; });
+    var other = markets.filter(function(m) { return !m.coverageKnown; });
+    el.innerHTML = (known.length ? known : other).map(mdCard).join('')
+      + (known.length && other.length
+        ? '<details class="md-other-areas"><summary>Unverified and review locations (' + other.length + ')</summary><div class="md-areas">' + other.map(mdCard).join('') + '</div></details>'
+        : '');
   }
 
   function renderMarketRequests(requests) {

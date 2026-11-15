@@ -3,6 +3,11 @@ import { randomBytes } from 'crypto';
 
 export const SITE = 'https://www.assembleatease.com';
 export const CONTRACTOR_AGREEMENT_VERSION = '2026-10-18';
+// Applications still open for a decision. A waitlisted application is a
+// decision about a submitted application, not a withdrawal of it, so the owner
+// can still finish its onboarding (the same set api/_easer-readiness.js treats
+// as submitted; scripts/test-onboarding-open-applications.mjs keeps them equal).
+export const OPEN_APPLICATION_STATUSES = Object.freeze(['applied', 'waitlist']);
 
 const configuredResumeHours = Number.parseInt(process.env.IDENTITY_RESUME_TOKEN_TTL_HOURS || '72', 10);
 export const IDENTITY_RESUME_TOKEN_TTL_MS = Math.min(

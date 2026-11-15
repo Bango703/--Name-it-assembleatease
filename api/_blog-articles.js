@@ -54,7 +54,8 @@ export function extractImageUrl(filePath, article = {}) {
     const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
     const firstImg = html.match(/<img[^>]+src=["']([^"']+)["']/i);
     const candidate = og?.[1] || firstImg?.[1] || '';
-    const raw = isPlaceholderArticleImage(candidate) ? imageForArticle(article) : (candidate || imageForArticle(article));
+    // A .webp preview falls back to the service photo: Google Business Profile refuses .webp.
+    const raw = isPlaceholderArticleImage(candidate) || /\.webp(\?|#|$)/i.test(candidate) ? imageForArticle(article) : (candidate || imageForArticle(article));
     if (/^https?:\/\//i.test(raw)) return raw;
     if (raw.startsWith('/')) return SITE + raw;
     return SITE + '/' + raw.replace(/^\.?\//, '');
