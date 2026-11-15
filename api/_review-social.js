@@ -21,12 +21,13 @@ const MAX_TEXT = 600;
 
 // Public service photos (never job completion photos, which stay private).
 const SERVICE_IMAGES = [
-  [/tv|mount/i, 'real-tv-mount-console-1200.webp'],
-  [/smart|doorbell|camera|lock|thermostat/i, 'real-smarthome-doorbell-vivint-1024.webp'],
-  [/fitness|gym|treadmill|bike/i, 'real-fitness-home-gym-1200.webp'],
-  [/office|desk|workstation/i, 'real-office-home-ldesk-1200.webp'],
-  [/outdoor|playset|swing|gazebo|trampoline/i, 'service-outdoor-playsets-1200.webp'],
-  [/furniture|assembly|bed|dresser/i, 'real-furniture-dresser-wood-1000.webp'],
+  // JPG or PNG only: Google Business Profile refuses .webp.
+  [/tv|mount/i, 'real-tv-mount-console.jpg'],
+  [/smart|doorbell|camera|lock|thermostat/i, 'real-smarthome-doorbell-vivint.png'],
+  [/fitness|gym|treadmill|bike/i, 'real-fitness-home-gym.jpg'],
+  [/office|desk|workstation/i, 'real-office-home-ldesk.jpg'],
+  [/outdoor|playset|swing|gazebo|trampoline/i, 'service-outdoor-playsets.jpg'],
+  [/furniture|assembly|bed|dresser/i, 'real-furniture-dresser-wood.jpg'],
 ];
 
 const PROFANITY = /\b(fuck|shit|bitch|damn|asshole|bastard|crap|dick|piss)\w*/i;

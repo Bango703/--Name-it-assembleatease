@@ -17,23 +17,24 @@ const ORIGIN = 'https://www.assembleatease.com';
 export const FACEBOOK_ROTATION = ['service', 'blog', 'offer', 'blog', 'service', 'assemblecash', 'blog'];
 
 // The catalog key, how it is said in a post, and a real job photo (images/real-*).
+// JPG or PNG only: Google Business Profile refuses .webp (scripts/test-social-images.mjs).
 const SERVICES = [
-  { key: 'Furniture Assembly', name: 'Furniture assembly', image: 'real-furniture-dresser-wood-1000.webp',
+  { key: 'Furniture Assembly', name: 'Furniture assembly', image: 'real-furniture-dresser-wood.jpg',
     lines: ['Beds, dressers, wardrobes, desks and shelving, built level and tight.',
       'Flat-pack from IKEA, Wayfair, Amazon or anywhere else, put together by a pro who brings the tools.'] },
-  { key: 'Mounting & Hanging', name: 'TV mounting', image: 'real-tv-mount-console-1200.webp',
+  { key: 'Mounting & Hanging', name: 'TV mounting', image: 'real-tv-mount-console.jpg',
     lines: ['Your TV mounted level, at the height you choose.',
       'TVs, soundbars, mirrors and art, mounted level on the wall you pick.'] },
-  { key: 'Smart Home', name: 'Smart home setup', image: 'real-smarthome-doorbell-vivint-1024.webp',
+  { key: 'Smart Home', name: 'Smart home setup', image: 'real-smarthome-doorbell-vivint.png',
     lines: ['Smart thermostats, locks, doorbells, cameras and hubs set up, connected and working before we leave.',
       'Smart locks, cameras and video doorbells installed and paired to your phone.'] },
-  { key: 'Office Assembly', name: 'Office furniture assembly', image: 'real-office-home-ldesk-1200.webp',
+  { key: 'Office Assembly', name: 'Office furniture assembly', image: 'real-office-home-ldesk.jpg',
     lines: ['Standing desks, office chairs, filing cabinets and workstations, assembled and ready for Monday.',
       'Home office or a whole floor of workstations, assembled and placed where you want them.'] },
-  { key: 'Fitness Equipment', name: 'Fitness equipment assembly', image: 'real-fitness-home-gym-1200.webp',
+  { key: 'Fitness Equipment', name: 'Fitness equipment assembly', image: 'real-fitness-home-gym.jpg',
     lines: ['Treadmills, bikes, racks and home gyms, assembled and checked before your first workout.',
       'Home gym equipment built and set up in the room you train in.'] },
-  { key: 'Outdoor & Playsets', name: 'Outdoor and playset assembly', image: 'real-outdoor-gazebo-356.webp',
+  { key: 'Outdoor & Playsets', name: 'Outdoor and playset assembly', image: 'real-outdoor-gazebo.png',
     lines: ['Playsets, gazebos, patio furniture and trampolines, assembled on site.',
       'Patio sets, gazebos and backyard playsets, built where they will stand.'] },
 ];
@@ -95,7 +96,7 @@ export function assembleCashPost() {
   const url = utmLink('/assemblecash', 'assemblecash');
   const cap = ASSEMBLECASH.MAX_REDEEM_CENTS / 100;
   const text = `Every completed booking earns ${ASSEMBLECASH.EARN_RATE_PCT}% back in AssembleCash.\n\nIt comes off your next setup, up to $${cap} a booking. It is credit toward future bookings, not cash.\n${url}`;
-  return { kind: 'assemblecash', title: 'AssembleCash', url, text, imageUrl: `${ORIGIN}/images/real-furniture-dresser-white-1200.webp`, altText: 'Dresser assembled by AssembleAtEase' };
+  return { kind: 'assemblecash', title: 'AssembleCash', url, text, imageUrl: `${ORIGIN}/images/real-furniture-dresser-white.png`, altText: 'Dresser assembled by AssembleAtEase' };
 }
 
 /** Today's non-blog Facebook post, or null when the slot is a blog day. */

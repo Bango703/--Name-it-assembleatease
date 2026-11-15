@@ -5,6 +5,7 @@ import { logActivity } from '../booking/_activity.js';
 import {
   buildIdentityResumeUrl,
   CONTRACTOR_AGREEMENT_VERSION,
+  OPEN_APPLICATION_STATUSES,
   ensureIdentityResumeToken,
 } from '../_assembler-onboarding.js';
 import { isApplicationFeeSatisfied } from '../_easer-application-fee.js';
@@ -38,8 +39,13 @@ export default async function handler(req, res) {
 
   const status = String(profile.status || '').toLowerCase();
   const applicationStatus = String(profile.application_status || '').toLowerCase();
-  if (status !== 'pending' || !['applied', 'pending', 'reviewing'].includes(applicationStatus)) {
-    return res.status(409).json({ error: 'Onboarding links can be reissued only for a pending Easer application.' });
+  if (status !== 'pending' || !OPEN_APPLICATION_STATUSES.includes(applicationStatus)) {
+    // Say which state stopped it; the owner sees this exact sentence.
+    const reason = applicationStatus === 'approved' ? 'This application is already approved.'
+      : status === 'active' ? 'This Easer is already active.'
+      : status === 'rejected' || applicationStatus === 'rejected' ? 'This application was rejected.'
+      : `This account is ${status || 'not pending'} with application ${applicationStatus || 'not submitted'}.`;
+    return res.status(409).json({ error: `${reason} Onboarding links go only to open applications.`, code: 'ONBOARDING_NOT_OPEN' });
   }
   if (['requested', 'reviewing', 'completed'].includes(String(profile.account_closure_status || '').toLowerCase())) {
     return res.status(409).json({ error: 'This Easer has an account-closure request. Resolve it before onboarding.' });

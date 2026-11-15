@@ -82,6 +82,9 @@ test('cards, trend, coverage, area cards and demand activity come from the serve
   // Each area is a card; the warning sits above them across the width.
   await expect(page.locator('#md-top-markets .md-market-card')).toHaveCount(3);
   await expect(page.locator('#md-top-markets')).toContainText('no usable city/state');
+  // Locations that cannot prove coverage fold into one section, still listed.
+  await expect(page.locator('#md-top-markets details.md-other-areas > summary')).toHaveText('Unverified and review locations (1)');
+  await expect(page.locator('#md-top-markets > .md-market-card')).toHaveCount(2);
   await expect(page.locator('#md-requests-tbody tr')).toHaveCount(2);
   await expect(page.locator('#md-requests-tbody')).toContainText('Not priced');
 

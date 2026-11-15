@@ -126,5 +126,12 @@ test('list and record side by side, and the page itself does not scroll', async 
   const sizes = await page.evaluate(() => ({ h: document.scrollingElement.scrollHeight, vh: innerHeight, w: document.scrollingElement.scrollWidth, vw: innerWidth }));
   expect(sizes.w).toBeLessThanOrEqual(sizes.vw);
   expect(sizes.h).toBeLessThanOrEqual(sizes.vh + 1);
+  // Items & Add-ons spans the Job Details card: label above, list below at full width.
+  const items = page.locator('.dg-job .detail-field', { has: page.locator('label', { hasText: 'Items & Add-ons' }) });
+  await expect(items).toHaveClass(/dg-wide/);
+  const label = await items.locator('label').boundingBox();
+  const value = await items.locator('span').first().boundingBox();
+  expect(Math.abs(value.x - label.x)).toBeLessThan(2);
+  expect(value.y).toBeGreaterThan(label.y + label.height - 1);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/console-bookings-record.png` });
 });

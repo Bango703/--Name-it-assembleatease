@@ -65,7 +65,7 @@
       var tags = '';
       if (c.needsReply) tags += '<span class="inbox-tag inbox-tag-reply">Waiting for you</span>';
       if (c.unreadForOwner) tags += '<span class="inbox-tag inbox-tag-unread">' + c.unreadForOwner + ' unread</span>';
-      return '<button type="button" class="inbox-row' + (c.needsReply ? ' inbox-row-reply' : '') + '" data-inbox-sms="' + esc(c.conversationId) + '">' +
+      return '<button type="button" class="inbox-row' + (c.needsReply ? ' inbox-row-reply' : '') + (c.conversationId === state.selectedSmsId ? ' active' : '') + '" data-inbox-sms="' + esc(c.conversationId) + '">' +
         '<span class="inbox-row-top"><strong>' + esc(c.ref || c.phone || 'SMS conversation') + '</strong><span class="inbox-who">' + who + '</span><span class="inbox-when">' + esc(when(c.lastMessage.at)) + '</span></span>' +
         '<span class="inbox-direction">' + esc(c.lastMessage.direction) + '</span>' +
         '<span class="inbox-body">' + esc(c.lastMessage.body) + '</span>' +
@@ -114,6 +114,11 @@
     state.selectedSmsId = id;
     var panel = el('sms-panel');
     panel.hidden = false;
+    var placeholder = el('sms-placeholder');
+    if (placeholder) placeholder.hidden = true;
+    Array.prototype.forEach.call(document.querySelectorAll('#inbox-list [data-inbox-sms]'), function(row) {
+      row.classList.toggle('active', row.dataset.inboxSms === id);
+    });
     el('sms-thread-body').innerHTML = '<div class="inbox-empty">Loading SMS conversation...</div>';
     el('sms-thread-title').textContent = 'SMS conversation';
     el('sms-thread-meta').textContent = '';

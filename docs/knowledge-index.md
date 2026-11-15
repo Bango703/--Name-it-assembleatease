@@ -23,6 +23,7 @@ Start every task here (`docs/process/deep-execution-protocol.md`, section 4). Re
 
 ## Incidents
 - `docs/incidents/2026-11-13-live-e2e-dispatch-and-quote-defects.md`: five defects found by the live hybrid test (#449 to #453), causes and prevention.
+- `docs/incidents/2026-11-15-owner-console-live-review.md`: five problems the owner found in the live console (Messages off-screen, waitlisted onboarding refused, .webp on Google, squeezed items, cramped Market Demand).
 - `docs/incidents/2026-11-13-easer-price-request-page.md`: the Easer price-request page did not say where a request stood; server stages and the rebuilt page.
 
 ## Architecture (docs/platform)
