@@ -13,6 +13,8 @@
 // is decided here, so the panel renders a verdict instead of making one
 // (Articles 1, 2 and 4).
 
+import { slotStartMinutes } from '../_easer-work-preferences.js';
+
 // Ordered by what an operator needs to see first: work happening right now,
 // then work that is set, then work still waiting on someone.
 export const ACTIVE_JOB_STAGE_ORDER = Object.freeze([
@@ -59,6 +61,16 @@ export function activeJobStage(booking) {
   if (!booking?.assembler_id) return 'needs_easer';
   if (!booking?.assembler_accepted_at) return 'awaiting_accept';
   return 'scheduled';
+}
+
+/**
+ * A day's schedule in clock order, by the start of each slot (2026-11-16:
+ * comparing slot text put "11:00 AM" above "8:00 AM"). A slot without a
+ * readable time goes last; equal starts keep their order.
+ */
+export function orderByStartTime(rows = []) {
+  const start = row => slotStartMinutes(row?.time) ?? 24 * 60;
+  return rows.slice().sort((a, b) => start(a) - start(b));
 }
 
 /**

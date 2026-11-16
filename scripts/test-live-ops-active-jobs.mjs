@@ -22,6 +22,7 @@ import {
   buildActiveJobs,
   isOperationalBooking,
   operationalDate,
+  orderByStartTime,
 } from '../api/owner/_active-jobs.js';
 
 const booking = (overrides = {}) => ({
@@ -130,5 +131,19 @@ assert.match(panel, /var active = d\.activeJobs \|\| \[\];/, 'the panel renders 
 assert.doesNotMatch(panel, /d\.enRoute\s*\|\|\s*\[\]\)\.concat/,
   'and never rebuilds its own idea of what is active');
 assert.match(panel, /b\._stage/, 'the stage badge comes from the server verdict');
+
+// ── 7. Today's schedule reads in clock order (2026-11-16) ──────────────────
+// Slot text compared as text put "11:00 AM" above "8:00 AM".
+{
+  const day = orderByStartTime([
+    { ref: 'late', time: '11:00 AM – 1:00 PM' },
+    { ref: 'none', time: '' },
+    { ref: 'afternoon', time: '2:00 PM – 4:00 PM' },
+    { ref: 'early', time: '8:00 AM – 10:00 AM' },
+    { ref: 'nine', time: '9:00 AM' },
+  ]);
+  assert.deepEqual(day.map(b => b.ref), ['early', 'nine', 'late', 'afternoon', 'none'], 'by the start of the slot; unreadable last');
+  assert.match(liveOps, /const todayAll = orderByStartTime\(bookings/, 'Live Ops sends today in clock order');
+}
 
 console.log('Live Ops active jobs tests: PASS');

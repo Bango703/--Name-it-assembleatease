@@ -28,6 +28,7 @@
   <script src="/assets/js/status-source-of-truth.js" defer></script>
   <script src="/assets/js/image-upload.js" defer></script>
   <script src="/assets/js/job-duration.js" defer></script>
+  <script src="/owner/assets/console-frame.js"></script>
   <script src="/owner/assets/cases.js" defer></script>
   <script src="/owner/assets/voice-calls.js" defer></script>
   <script src="/owner/assets/acquisition.js" defer></script>
@@ -191,7 +192,7 @@
         <div class="content-grid">
 
           <!-- Unassigned -->
-          <div class="ops-panel c-span-2">
+          <div class="ops-panel c-span-2" id="ops-actions-panel">
             <div class="ops-panel-header">
               <div class="ops-panel-title">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -199,6 +200,7 @@
               </div>
               <button id="ops-dispatch-all-btn" class="btn btn-teal c-sm" onclick="opsDispatchAll()">Dispatch all</button>
             </div>
+            <div class="v2-panel-tabs" id="ops-action-tabs"></div>
             <div id="ops-unassigned">—</div>
           </div>
 
@@ -213,13 +215,13 @@
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
                 Quote Requests Never Received
               </div>
-              <button id="ops-orphan-refresh" class="btn" style="font-size:0.73rem;padding:3px 10px">Recheck</button>
+              <button id="ops-orphan-refresh" class="btn c-sm">Recheck</button>
             </div>
             <div id="ops-orphans">—</div>
           </div>
 
           <!-- Active jobs -->
-          <div class="ops-panel">
+          <div class="ops-panel" id="ops-active-panel">
             <div class="ops-panel-header">
               <div class="ops-panel-title">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
@@ -230,7 +232,7 @@
           </div>
 
           <!-- Online Easers -->
-          <div class="ops-panel">
+          <div class="ops-panel" id="ops-easers-panel">
             <div class="ops-panel-header">
               <div class="ops-panel-title">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -241,7 +243,7 @@
           </div>
 
           <!-- Today schedule -->
-          <div class="ops-panel c-span-2">
+          <div class="ops-panel c-span-2" id="ops-today-panel">
             <div class="ops-panel-header">
               <div class="ops-panel-title">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -279,30 +281,28 @@
 
       <!-- Durable owner-only support and operational case queue. Financial,
            booking, dispatch, payout, and Stripe truth remain in their existing workflows. -->
-      <div id="voice-calls-view" class="voice-calls-view" style="display:none">
-        <div class="voice-calls-toolbar">
-          <div><h2>Phone Calls</h2><p class="voice-muted">Call activity and confirmed requests, kept separate.</p></div>
-          <button type="button" class="voice-button" id="voice-calls-refresh">Refresh</button>
+      <div id="voice-calls-view" class="voice-calls-view v2-screen v2-fixed" style="display:none">
+        <div id="voice-calls-kpis"></div>
+        <div class="v2-toolbar">
+          <div id="voice-calls-tabs"></div>
+          <div class="v2-tools"><span id="voice-calls-updated" class="v2-meta" aria-live="polite"></span><button type="button" class="btn c-sm" id="voice-calls-refresh">Refresh</button></div>
         </div>
-        <div id="voice-calls-notice" class="voice-calls-note" role="status">Checking call capture and history...</div>
-        <p id="voice-calls-updated" class="voice-muted" aria-live="polite"></p>
-        <div class="voice-calls-grid">
-          <div><div id="voice-calls-list" class="voice-calls-list"><div class="voice-call-empty">Loading call history...</div></div><button type="button" id="voice-calls-more" class="voice-button" hidden>Load older activity</button></div>
-          <div id="voice-calls-detail" class="voice-calls-detail" aria-live="polite"><p>Select a call to see its timeline and any linked request.</p></div>
+        <div id="voice-calls-notice" class="v2-note voice-calls-note" role="status">Checking call capture and history...</div>
+        <div class="v2-split v2-fill voice-calls-grid">
+          <div class="v2-card"><div id="voice-calls-list" class="v2-scroll voice-calls-list"><div class="voice-call-empty">Loading call history...</div></div><div class="v2-foot"><button type="button" id="voice-calls-more" class="btn c-sm" hidden>Load older activity</button></div></div>
+          <div id="voice-calls-detail" class="v2-card v2-detail voice-calls-detail" aria-live="polite"><p>Select a call to see its timeline and any linked request.</p></div>
         </div>
       </div>
       <!-- Owner SMS inbox. Texts to the business number land here; owner replies
            go through the same SMS consent and delivery rules as every other text. -->
-      <div id="messages-view" class="inbox-view" style="display:none">
-        <div class="inbox-toolbar">
-          <p class="inbox-muted">Texts to the business number. Booking chat stays inside the booking record.</p>
-          <div class="inbox-actions">
-            <button type="button" class="inbox-button" id="inbox-filter-reply" aria-pressed="false">Waiting for you</button>
-            <button type="button" class="inbox-button" id="inbox-refresh">Refresh</button>
-          </div>
+      <div id="messages-view" class="inbox-view v2-screen v2-fixed" style="display:none">
+        <div id="inbox-kpis"></div>
+        <div class="v2-toolbar">
+          <div id="inbox-tabs"></div>
+          <div class="v2-tools"><span class="v2-meta">Booking chat stays inside the booking record.</span><button type="button" class="btn c-sm" id="inbox-refresh">Refresh</button></div>
         </div>
         <div id="inbox-notice" class="inbox-note" role="status" hidden></div>
-        <div class="inbox-split">
+        <div class="inbox-split v2-split v2-fill">
         <div id="inbox-list" class="inbox-list"><div class="inbox-empty">Loading messages</div></div>
         <div class="inbox-side">
         <div id="sms-placeholder" class="sms-placeholder">Choose a conversation to read it and reply.</div>
@@ -326,26 +326,19 @@
 
       <!-- Referral partners for the move-in channel. Rules and lists come from
            /api/owner/partners (api/_partners.js); owner/assets/partners.js renders them. -->
-      <div id="partners-view" class="partners-view" style="display:none">
-        <div class="partners-toolbar">
-          <div><h2>Partners</h2><p class="partners-muted">Leasing offices, property managers, movers, realtors and furniture stores who can send you move-in jobs.</p></div>
-          <div class="partners-actions">
-            <button type="button" class="partners-button partners-week" id="partners-week" title="Partners contacted this week. Target: 10 a week, each followed up once after 4 to 5 days." aria-pressed="false">0 / 10</button>
-            <button type="button" class="partners-button" id="partners-due" aria-pressed="false">0 follow-ups due</button>
-            <button type="button" class="partners-button" id="partners-refresh">Refresh</button>
-          </div>
-        </div>
+      <div id="partners-view" class="partners-view v2-screen v2-fixed" style="display:none">
+        <div id="partners-kpis"></div>
         <div id="partners-notice" class="partners-note" role="status" hidden></div>
         <div id="partners-setup" class="partners-note" hidden></div>
-        <div id="partners-body" hidden>
-          <div class="partners-stages" id="partners-stages" role="group" aria-label="Filter by stage"></div>
-          <div class="partners-filters">
+        <div id="partners-body" class="v2-screen v2-fill" hidden>
+          <div class="v2-toolbar">
+          <div id="partners-stages" role="group" aria-label="Filter by stage"></div>
+          <div class="v2-tools partners-filters">
             <select id="partners-kind" aria-label="Partner type"></select>
             <select id="partners-city" aria-label="City"></select>
-            <input type="search" id="partners-search" placeholder="Search name, street or notes" aria-label="Search partners">
-          </div>
+            <div class="search-bar bk-search"><input type="search" class="search-input" id="partners-search" placeholder="Search name, street or notes" aria-label="Search partners"></div>
           <details class="partners-add">
-            <summary>Add a partner you met</summary>
+            <summary class="btn btn-teal c-sm">Add partner</summary>
             <form id="partners-add-form">
               <label class="partners-field">Business name<input id="partners-add-name" required maxlength="120"></label>
               <label class="partners-field">Type<select id="partners-add-kind"></select></label>
@@ -353,26 +346,30 @@
               <label class="partners-field">Phone<input id="partners-add-phone" maxlength="40"></label>
               <label class="partners-field">Email<input id="partners-add-email" type="email" maxlength="160"></label>
               <label class="partners-field">Website<input id="partners-add-website" type="url" maxlength="300" placeholder="https://"></label>
-              <button type="submit" class="partners-button partners-primary">Add partner</button>
+              <button type="submit" class="btn btn-teal">Add partner</button>
               <span id="partners-add-status" class="partners-muted" role="status"></span>
             </form>
           </details>
-          <div class="partners-grid">
-            <div class="partners-listwrap"><div class="partners-listhead" id="partners-count">Loading partners</div><div class="partners-list" id="partners-list"></div></div>
-            <div class="partners-detail" id="partners-detail" aria-live="polite"></div>
+            <button type="button" class="btn c-sm" id="partners-refresh">Refresh</button>
+          </div>
+          </div>
+          <div class="partners-grid v2-split v2-fill">
+            <div class="partners-listwrap v2-card"><div class="partners-listhead" id="partners-count">Loading partners</div><div class="partners-list v2-scroll" id="partners-list"></div></div>
+            <div class="partners-detail v2-card v2-detail" id="partners-detail" aria-live="polite"></div>
           </div>
         </div>
         <div id="partners-toast" class="partners-toast" hidden></div>
       </div>
       <!-- Gift cards and the Move-In Pass. Numbers come from /api/owner/gift-cards
            (api/_gift-cards.js); owner/assets/gift-cards.js renders them. -->
-      <div id="giftcards-view" class="giftcards-view" style="display:none">
-        <div class="giftcards-toolbar">
-          <div><h2>Gift Cards</h2><p class="giftcards-muted">Gift cards and Move-In Passes sold, what is still owed in service, and emails that did not go out.</p></div>
-          <div><span class="giftcards-status" id="giftcards-status">Loading</span> <button type="button" class="giftcards-btn" id="giftcards-refresh">Refresh</button></div>
+      <div id="giftcards-view" class="giftcards-view v2-screen v2-fixed" style="display:none">
+        <div id="giftcards-kpis"></div>
+        <div class="v2-toolbar">
+          <div id="giftcards-tabs"></div>
+          <div class="v2-tools"><span class="giftcards-status" id="giftcards-status">Loading</span><button type="button" class="btn c-sm" id="giftcards-refresh">Refresh</button></div>
         </div>
         <p id="giftcards-notice" class="giftcards-note" role="status" hidden></p>
-        <div id="giftcards-body"></div>
+        <div id="giftcards-body" class="v2-card v2-fill"></div>
       </div>
       <div id="cases-view" class="cases-view-shell" style="display:none">
         <div class="kpi-row cases-kpis" id="cases-stats-row">
@@ -612,20 +609,10 @@
       </div><!-- /bookings-view -->
 
       <!-- ─── TODAY VIEW ─── -->
-      <div id="today-view" style="display:none">
-        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem">All bookings <strong>scheduled for today</strong> (<span id="today-date-display"></span>). These are jobs customers have booked on this date, regardless of confirmation status.</p>
-        <div class="stats-row" id="today-stats-row">
-          <div class="stat teal"><div class="stat-value" id="today-count">—</div><div class="stat-label">Jobs Today</div></div>
-          <div class="stat amber"><div class="stat-value" id="today-pending">—</div><div class="stat-label">Pending Confirmation</div></div>
-          <div class="stat orange"><div class="stat-value" id="today-confirmed">—</div><div class="stat-label">Confirmed</div></div>
-          <div class="stat neutral"><div class="stat-value" id="today-done">—</div><div class="stat-label">Completed</div></div>
-        </div>
-        <div id="today-list" style="display:flex;flex-direction:column;gap:0.75rem;margin-top:1rem"></div>
-        <div id="today-empty" class="empty-state" style="display:none">
-          <div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-          <div class="empty-state-title">No jobs today</div>
-          <div class="empty-state-desc">Nothing is scheduled for today's date. Pending bookings in the sidebar may be for a different date &mdash; click <strong>Bookings</strong> to see all.</div>
-        </div>
+      <div id="today-view" class="v2-screen v2-fixed" style="display:none">
+        <div id="today-stats-row"></div>
+        <div class="v2-toolbar"><div id="today-tabs"></div><div class="v2-tools"><span class="v2-meta" id="today-date-display"></span></div></div>
+        <div class="v2-card v2-fill"><div class="v2-scroll" id="today-list"></div></div>
       </div>
 
       <!-- ─── MARKET DEMAND VIEW ─── -->
@@ -690,77 +677,65 @@
       </div>
 
       <!-- ─── WAITLIST VIEW ─── -->
-      <div id="waitlist-view" style="display:none">
-        <div class="stats-row" id="wl-stats-row">
-          <div class="stat neutral"><div class="stat-value" id="wl-total">—</div><div class="stat-label">Total</div></div>
-          <div class="stat amber"><div class="stat-value" id="wl-pending">—</div><div class="stat-label">Pending</div></div>
-          <div class="stat orange"><div class="stat-value" id="wl-invited">—</div><div class="stat-label">Invited</div></div>
-          <div class="stat teal"><div class="stat-value" id="wl-applied">—</div><div class="stat-label">Applied</div></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:0.9rem;flex-wrap:wrap">
-          <p style="margin:0;font-size:0.82rem;color:var(--muted);max-width:52ch">Met someone who wants to work? Put them here so the lead is not lost in a phone.</p>
-          <button class="btn btn-teal" id="wl-add-toggle" type="button">Add someone</button>
-        </div>
-        <div id="wl-add-panel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.1rem;margin-bottom:1.1rem">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:0.85rem">
-          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-name">Full name</label><input id="wl-add-name" type="text" placeholder="Trapper Riney" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" /></div>
-          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-email">Email</label><input id="wl-add-email" type="text" placeholder="name@example.com" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" /></div>
-          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-phone">Phone</label><input id="wl-add-phone" type="text" placeholder="(512) 555-0134" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" /></div>
-          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-city">City</label><input id="wl-add-city" type="text" placeholder="Austin" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" /></div>
-          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-state">State</label><input id="wl-add-state" type="text" placeholder="TX" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" maxlength="2" /></div>
-          <div><label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-zip">ZIP (optional)</label><input id="wl-add-zip" type="text" placeholder="78704" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" maxlength="5" inputmode="numeric" /></div>
+      <div id="waitlist-view" class="v2-screen v2-fixed" style="display:none">
+        <div id="wl-stats-row"></div>
+        <div class="v2-toolbar">
+          <div class="tabs bk-tabs" id="wl-tabs">
+            <button class="tab active" data-wl-status="all">All</button>
+            <button class="tab" data-wl-status="pending">Pending</button>
+            <button class="tab" data-wl-status="invited">Invited</button>
+            <button class="tab" data-wl-status="applied">Applied</button>
           </div>
-          <div style="margin-top:0.85rem">
-            <label style="display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:0.25rem;font-weight:600" for="wl-add-notes">Notes (optional)</label>
-            <input id="wl-add-notes" type="text" placeholder="Where you met them, what they do, who referred them" style="width:100%;padding:0.5rem 0.6rem;border:1px solid var(--border-md);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.85rem;font-family:inherit" />
-          </div>
-          <label style="display:flex;align-items:flex-start;gap:0.55rem;margin-top:0.9rem;font-size:0.82rem;color:var(--soft);cursor:pointer">
-            <input type="checkbox" id="wl-add-notify" style="margin-top:0.15rem;flex-shrink:0" />
-            <span>Email them a confirmation. Only tick this if they asked to be added &mdash; they did not fill in a form, so an unexpected email from us is a cold email.</span>
-          </label>
-          <div id="wl-add-msg" style="display:none;margin-top:0.9rem;font-size:0.82rem;line-height:1.55;border-radius:8px;padding:0.6rem 0.75rem"></div>
-          <div style="display:flex;gap:0.6rem;margin-top:1rem">
-            <button class="btn btn-teal" id="wl-add-save" type="button">Add to waitlist</button>
-            <button class="btn" id="wl-add-cancel" type="button">Cancel</button>
+          <div class="v2-tools"><button class="btn btn-teal c-sm" id="wl-add-toggle" type="button">Add someone</button></div>
+        </div>
+        <div id="wl-add-panel" class="v2-card" style="display:none">
+          <div class="v2-card-head"><h3>Add someone you met</h3></div>
+          <div class="v2-card-body">
+            <div class="v2-form-grid">
+              <label class="v2-field" for="wl-add-name">Full name<input id="wl-add-name" type="text" placeholder="Trapper Riney" /></label>
+              <label class="v2-field" for="wl-add-email">Email<input id="wl-add-email" type="text" placeholder="name@example.com" /></label>
+              <label class="v2-field" for="wl-add-phone">Phone<input id="wl-add-phone" type="text" placeholder="(512) 555-0134" /></label>
+              <label class="v2-field" for="wl-add-city">City<input id="wl-add-city" type="text" placeholder="Austin" /></label>
+              <label class="v2-field" for="wl-add-state">State<input id="wl-add-state" type="text" placeholder="TX" maxlength="2" /></label>
+              <label class="v2-field" for="wl-add-zip">ZIP (optional)<input id="wl-add-zip" type="text" placeholder="78704" maxlength="5" inputmode="numeric" /></label>
+            </div>
+            <div class="v2-form-grid" style="margin-top:12px"><label class="v2-field" for="wl-add-notes">Notes (optional)<input id="wl-add-notes" type="text" placeholder="Where you met them, what they do, who referred them" /></label></div>
+            <label class="v2-check" style="margin-top:12px">
+              <input type="checkbox" id="wl-add-notify" />
+              <span>Email them a confirmation. Only tick this if they asked to be added &mdash; they did not fill in a form, so an unexpected email from us is a cold email.</span>
+            </label>
+            <div id="wl-add-msg" style="display:none;margin-top:0.9rem;font-size:0.82rem;line-height:1.55;border-radius:8px;padding:0.6rem 0.75rem"></div>
+            <div class="v2-actions" style="margin-top:14px">
+              <button class="btn btn-teal" id="wl-add-save" type="button">Add to waitlist</button>
+              <button class="btn" id="wl-add-cancel" type="button">Cancel</button>
+            </div>
           </div>
         </div>
-        <div class="tabs" id="wl-tabs">
-          <button class="tab active" data-wl-status="all">All</button>
-          <button class="tab" data-wl-status="pending">Pending</button>
-          <button class="tab" data-wl-status="invited">Invited</button>
-          <button class="tab" data-wl-status="applied">Applied</button>
-        </div>
-        <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem" id="wl-table">
+        <div class="v2-card v2-fill">
+          <div class="v2-scroll">
+          <table style="width:100%" id="wl-table">
             <thead>
               <tr style="text-align:left">
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Name</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Email</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Phone</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Location</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Date</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Status</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Actions</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Location</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="wl-tbody"></tbody>
           </table>
+          </div>
         </div>
       </div>
 
       <!-- ─── ASSEMBLERS VIEW ─── -->
-      <div id="assemblers-view" style="display:none">
-        <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
-          <button class="btn" id="check-phones-btn" style="font-size:0.78rem">Email Missing Phones</button>
-          <button class="btn btn-teal" id="add-easer-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Easer</button>
-        </div>
-        <div class="stats-row" id="asm-stats-row">
-          <div class="stat neutral"><div class="stat-value" id="asm-total">—</div><div class="stat-label">Total</div></div>
-          <div class="stat amber"><div class="stat-value" id="asm-pending">—</div><div class="stat-label">Pending</div></div>
-          <div class="stat teal"><div class="stat-value" id="asm-active">—</div><div class="stat-label">Active</div></div>
-          <div class="stat orange"><div class="stat-value" id="asm-elite">—</div><div class="stat-label">Elite</div></div>
-        </div>
-        <div class="tabs" id="asm-tabs">
+      <div id="assemblers-view" class="v2-screen v2-fixed" style="display:none">
+        <div id="asm-stats-row"></div>
+        <div class="v2-toolbar">
+        <div class="tabs bk-tabs" id="asm-tabs">
           <button class="tab active" data-tier="active">Active</button>
           <button class="tab" data-tier="pending">Pending</button>
           <button class="tab" data-tier="starter">Starter</button>
@@ -770,89 +745,88 @@
           <button class="tab" data-tier="deactivated">Deactivated</button>
           <button class="tab" data-tier="rejected">Rejected</button>
         </div>
-        <p style="font-size:0.78rem;color:var(--muted);line-height:1.5">Active means the account is approved. Job readiness also requires the current onboarding steps and availability. Tier is the stored platform level; identity verification and payout capability are separate.</p>
-        <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem" id="asm-table">
+          <div class="v2-tools">
+            <button class="btn c-sm" id="check-phones-btn">Email Missing Phones</button>
+            <button class="btn btn-teal c-sm" id="add-easer-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Easer</button>
+          </div>
+        </div>
+        <div class="v2-card v2-fill">
+          <div class="v2-scroll">
+          <table style="width:100%" id="asm-table">
             <thead>
               <tr style="text-align:left">
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Name</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Status</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Tier</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">ID Verification</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Connect Status</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Payouts Enabled</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">SMS Job Offers</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Completed jobs</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Rating</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Applied</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Actions</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Tier</th>
+                <th>ID Verification</th>
+                <th>Connect Status</th>
+                <th>Payouts Enabled</th>
+                <th>SMS Job Offers</th>
+                <th>Completed jobs</th>
+                <th>Rating</th>
+                <th>Applied</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="asm-tbody"></tbody>
           </table>
+          </div>
+          <div class="v2-foot">Active means the account is approved. Job readiness also requires the current onboarding steps and availability. Tier is the stored platform level; identity verification and payout capability are separate.</div>
         </div>
       </div>
 
       <!-- ─── AI INTELLIGENCE VIEW ─── -->
-      <div id="intelligence-view" style="display:none">
-        <div class="stats-row" id="intel-stats-row">
-          <div class="stat amber"><div class="stat-value" id="intel-urgent">—</div><div class="stat-label">Urgent Alerts</div></div>
-          <div class="stat teal"><div class="stat-value" id="intel-velocity">—</div><div class="stat-label">7-Day Trend</div></div>
-          <div class="stat neutral"><div class="stat-value" id="intel-needs-review">—</div><div class="stat-label">Needs Review Request</div></div>
-          <div class="stat orange"><div class="stat-value" id="intel-payouts">—</div><div class="stat-label">Manual Payout Action</div></div>
+      <div id="intelligence-view" class="v2-screen" style="display:none">
+        <div class="kpi-row v2-kpis" id="intel-stats-row">
+          <button type="button" aria-pressed="false" class="kpi" data-kpi="alerts"><span class="kpi-icon kpi-bad"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></span><span class="kpi-body"><span class="kpi-value" id="intel-urgent">&mdash;</span><span class="kpi-label">Urgent bookings</span><span class="kpi-sub">Listed under Active alerts</span></span></button>
+          <div class="kpi is-static"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span><span class="kpi-body"><span class="kpi-value" id="intel-velocity">&mdash;</span><span class="kpi-label">7-day trend</span><span class="kpi-sub">Booking velocity</span></span></div>
+          <button type="button" aria-pressed="false" class="kpi" data-kpi="alerts"><span class="kpi-icon kpi-warn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="kpi-body"><span class="kpi-value" id="intel-needs-review">&mdash;</span><span class="kpi-label">Review requests due</span><span class="kpi-sub">Listed under Active alerts</span></span></button>
+          <button type="button" aria-pressed="false" class="kpi" data-kpi="payouts"><span class="kpi-icon kpi-info"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="kpi-body"><span class="kpi-value" id="intel-payouts">&mdash;</span><span class="kpi-label">Manual payout action</span><span class="kpi-sub">Opens Financials</span></span></button>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem" class="content-grid">
+        <div class="v2-grid-2">
 
           <!-- AI Briefing -->
-          <div class="detail-panel open" style="grid-column:1/-1">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
-              <div class="detail-section-title" style="margin:0">Platform Intelligence</div>
-              <button id="intel-refresh-btn" onclick="runIntelligence()" class="btn btn-teal" style="font-size:0.78rem;padding:4px 14px">Run Analysis</button>
-            </div>
-            <div id="intel-briefing" style="font-size:0.875rem;color:var(--soft);line-height:1.75;white-space:pre-wrap;min-height:80px;background:var(--elevated);border-radius:8px;padding:1rem">
-              Click "Run Analysis" to get a full AI analysis of your platform.
-            </div>
+          <div class="v2-card v2-wide">
+            <div class="v2-card-head"><h3>Platform analysis</h3><button id="intel-refresh-btn" onclick="runIntelligence()" class="btn btn-teal c-sm">Run Analysis</button></div>
+            <div class="v2-card-body"><div id="intel-briefing" class="intel-briefing">Click "Run Analysis" to get a full AI analysis of your platform.</div></div>
           </div>
 
           <!-- Alert Cards -->
-          <div class="detail-panel open">
-            <div class="detail-section-title" style="margin-bottom:0.75rem">Active Alerts</div>
-            <div id="intel-alert-list" style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.82rem">
-              <div style="color:var(--muted)">Run a check to see alerts.</div>
-            </div>
+          <div class="v2-card" id="intel-alerts-card">
+            <div class="v2-card-head"><h3>Active alerts</h3></div>
+            <div class="v2-card-body"><div id="intel-alert-list" class="intel-alerts">
+              <div class="v2-meta">Run a check to see alerts.</div>
+            </div></div>
           </div>
 
           <!-- AI Chat -->
-          <div class="detail-panel open" style="display:flex;flex-direction:column">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.75rem">
-              <div class="detail-section-title" style="margin:0">Ask the AI</div>
-              <button type="button" onclick="clearIntelChat()" class="btn" style="font-size:0.68rem;padding:2px 9px">New chat</button>
+          <div class="v2-card">
+            <div class="v2-card-head"><h3>Ask the AI</h3><button type="button" onclick="clearIntelChat()" class="btn c-sm">New chat</button></div>
+            <div class="v2-card-body intel-chat">
+            <div id="intel-chat-msgs" class="intel-chat-msgs">
+              <div class="v2-meta">Ask about your business, get a draft email, analyze trends, or request specific actions.</div>
             </div>
-            <div id="intel-chat-msgs" style="flex:1;min-height:120px;max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.75rem">
-              <div style="font-size:0.8rem;color:var(--muted);line-height:1.5">Ask about your business, get a draft email, analyze trends, or request specific actions.</div>
+            <div class="v2-actions" style="margin:10px 0 8px">
+              <button onclick="intelQuick('Why am I getting cancellations?')" class="v2-chip">Cancellation reasons</button>
+              <button onclick="intelQuick('Write a follow-up email for a customer who cancelled')" class="v2-chip">Draft follow-up email</button>
+              <button onclick="intelQuick('What should I charge for furniture assembly across my active Texas markets?')" class="v2-chip">Pricing advice</button>
+              <button onclick="intelQuick('How do I expand to a second city?')" class="v2-chip">Expansion strategy</button>
+              <button onclick="intelQuick('Which service makes me the most money?')" class="v2-chip">Most profitable service</button>
             </div>
-            <div style="margin-bottom:0.5rem;display:flex;gap:0.4rem;flex-wrap:wrap">
-              <button onclick="intelQuick('Why am I getting cancellations?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Cancellation reasons</button>
-              <button onclick="intelQuick('Write a follow-up email for a customer who cancelled')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Draft follow-up email</button>
-              <button onclick="intelQuick('What should I charge for furniture assembly across my active Texas markets?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Pricing advice</button>
-              <button onclick="intelQuick('How do I expand to a second city?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Expansion strategy</button>
-              <button onclick="intelQuick('Which service makes me the most money?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Most profitable service</button>
+            <div class="intel-compose">
+              <input id="intel-chat-input" type="text" maxlength="2000" placeholder="Ask anything about your business…" onkeydown="if(event.key==='Enter')sendIntelChat()"/>
+              <button id="intel-chat-send" type="button" onclick="sendIntelChat()" class="btn btn-teal">Send</button>
             </div>
-            <div style="display:flex;gap:0.4rem">
-              <input id="intel-chat-input" type="text" maxlength="2000" placeholder="Ask anything about your business…" style="flex:1;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;padding:0.5rem 0.75rem;font-family:inherit;font-size:0.82rem;color:var(--text);outline:none" onkeydown="if(event.key==='Enter')sendIntelChat()"/>
-              <button id="intel-chat-send" type="button" onclick="sendIntelChat()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:0.5rem 0.9rem;cursor:pointer;font-size:0.82rem;font-weight:600">Send</button>
             </div>
           </div>
 
-          <div class="detail-panel open" style="grid-column:1/-1">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem">
-              <div>
-                <div class="detail-section-title" style="margin:0 0 0.35rem">Website Chat Inbox</div>
-                <div id="site-chat-summary" style="font-size:0.82rem;color:var(--muted);line-height:1.5">Loading recent Sora conversations from the last 48 hours...</div>
-              </div>
-              <button id="site-chat-refresh-btn" onclick="loadSiteChatInbox(true)" class="btn" style="font-size:0.78rem;padding:4px 14px">Refresh chats</button>
+          <div class="v2-card v2-wide">
+            <div class="v2-card-head">
+              <div><h3>Website Chat Inbox</h3><p id="site-chat-summary">Loading recent Sora conversations from the last 48 hours...</p></div>
+              <button id="site-chat-refresh-btn" onclick="loadSiteChatInbox(true)" class="btn c-sm">Refresh chats</button>
             </div>
+            <div class="v2-card-body">
             <div class="site-chat-grid">
               <div id="site-chat-list" class="site-chat-list">
                 <div class="site-chat-empty">Loading website chats...</div>
@@ -861,101 +835,91 @@
                 <div class="site-chat-empty">Choose a conversation to see the full customer question and Sora response thread.</div>
               </div>
             </div>
+            </div>
           </div>
 
         </div>
       </div>
 
       <!-- ─── REVIEWS VIEW ─── -->
-      <div id="thumbtack-view" style="display:none">
-        <div style="max-width:1200px">
-          <h2 style="margin:0 0 0.35rem">Thumbtack leads and job return</h2>
-          <p style="font-size:0.82rem;color:var(--muted);line-height:1.55;margin:0 0 0.85rem">Track incoming leads, Thumbtack lead charges, refunds or credits, AAE bookings, and completed-job platform gross in one place. Lead activity comes from Thumbtack; job return comes from AAE’s recorded finance data.</p>
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.7rem;flex-wrap:wrap;margin-bottom:0.65rem">
-            <p id="thumbtack-status" role="status" style="font-size:0.78rem;color:var(--muted);margin:0">Thumbtack activity has not been loaded.</p>
-            <button type="button" class="btn" id="thumbtack-refresh">Refresh Thumbtack</button>
-          </div>
-          <div id="thumbtack-summary" style="display:flex;flex-wrap:wrap;gap:0.55rem;margin-bottom:0.8rem"></div>
-          <div id="thumbtack-leads"></div>
-          <p style="font-size:0.74rem;color:var(--muted);line-height:1.5;margin-top:0.9rem">Thumbtack does not send refund or credit events through the lead webhook. Verify those in Thumbtack and record them here. Linking a booking affects reporting only; it does not modify that booking or payment.</p>
+      <div id="thumbtack-view" class="v2-screen v2-fixed" style="display:none">
+        <div id="thumbtack-summary"></div>
+        <div class="v2-toolbar">
+          <div id="thumbtack-tabs"></div>
+          <div class="v2-tools"><span id="thumbtack-status" class="v2-meta" role="status">Thumbtack activity has not been loaded.</span><button type="button" class="btn c-sm" id="thumbtack-refresh">Refresh</button></div>
+        </div>
+        <div id="thumbtack-warnings" class="v2-note is-warn" hidden></div>
+        <div class="v2-split v2-fill">
+          <div class="v2-card"><div class="v2-scroll" id="thumbtack-leads"></div></div>
+          <div class="v2-card v2-detail" id="thumbtack-detail"><div class="v2-empty">Choose a lead to track its cost and outcome.</div></div>
         </div>
       </div>
 
-      <div id="reviews-view" style="display:none">
-        <div class="stats-row" id="reviews-stats-row">
-          <div class="stat teal"><div class="stat-value" id="rev-total">—</div><div class="stat-label">Total Reviews</div></div>
-          <div class="stat orange"><div class="stat-value" id="rev-avg">—</div><div class="stat-label">Avg Rating</div></div>
-          <div class="stat neutral"><div class="stat-value" id="rev-five">—</div><div class="stat-label">5-Star</div></div>
-          <div class="stat amber"><div class="stat-value" id="rev-pending">—</div><div class="stat-label">Hidden</div></div>
-        </div>
-        <div id="reviews-list" style="display:flex;flex-direction:column;gap:0.75rem;margin-top:1rem"></div>
-        <div id="reviews-empty" class="empty-state" style="display:none">
-          <div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
-          <div class="empty-state-title">No reviews yet</div>
-          <div class="empty-state-desc">Reviews are collected after job completion. Select a completed booking and click <strong>Request Review</strong> to prompt the customer.</div>
-        </div>
+      <div id="reviews-view" class="v2-screen v2-fixed" style="display:none">
+        <div id="reviews-stats-row"></div>
+        <div class="v2-toolbar"><div id="reviews-tabs"></div></div>
+        <div class="v2-card v2-fill"><div class="v2-scroll v2-list" id="reviews-list"></div></div>
       </div>
 
       <!-- ─── WEBSITE PHOTOS VIEW (owner/assets/website-photos.js) ─── -->
-      <div id="website-photos-view" style="display:none"></div>
+      <div id="website-photos-view" class="v2-screen v2-fixed" style="display:none"></div>
 
       <!-- ─── CUSTOMERS VIEW ─── -->
-      <div id="customers-view" style="display:none">
-        <div class="stats-row" id="cust-stats-row">
-          <div class="stat teal"><div class="stat-value" id="cust-total">—</div><div class="stat-label">Total Customers</div></div>
-          <div class="stat orange"><div class="stat-value" id="cust-repeat">—</div><div class="stat-label">Repeat Customers</div></div>
-          <div class="stat neutral"><div class="stat-value" id="cust-ltv">—</div><div class="stat-label">Avg Net Payments</div></div>
+      <div id="customers-view" class="v2-screen v2-fixed" style="display:none">
+        <div id="cust-stats-row"></div>
+        <div class="v2-toolbar">
+          <div id="cust-tabs"></div>
+          <div class="v2-tools">
+            <div class="search-bar bk-search">
+              <span class="search-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+              <input type="text" class="search-input" id="cust-search" placeholder="Search by name or email..." oninput="filterCustomers()"/>
+            </div>
+          </div>
         </div>
-        <div class="search-bar" style="margin:1rem 0">
-          <span class="search-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="text" class="search-input" id="cust-search" placeholder="Search by name or email..." oninput="filterCustomers()"/>
-        </div>
-        <div style="overflow-x:auto">
-          <table id="cust-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem">
+        <div class="v2-card v2-fill">
+          <div class="v2-scroll">
+          <table id="cust-table" style="width:100%">
             <thead>
               <tr style="text-align:left">
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Customer</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Phone</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Bookings</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Net Payments</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Last Service</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Last Booking</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Rebook</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Bookings</th>
+                <th>Net Payments</th>
+                <th>Last Service</th>
+                <th>Last Booking</th>
+                <th>Rebook</th>
               </tr>
             </thead>
             <tbody id="cust-tbody"></tbody>
           </table>
+          </div>
         </div>
       </div>
 
       <!-- ─── MARKETING VIEW ─── -->
-      <div id="marketing-view" style="display:none">
-        <div class="stats-row" id="marketing-stats-row">
-          <div class="stat teal"><div class="stat-value" id="mk-status">—</div><div class="stat-label">Offer Status</div></div>
-          <div class="stat neutral"><div class="stat-value" id="mk-redemptions">—</div><div class="stat-label">Redemptions</div></div>
-          <div class="stat orange"><div class="stat-value" id="mk-discount-total">—</div><div class="stat-label">Discount Given</div></div>
-          <div class="stat neutral"><div class="stat-value" id="mk-revenue-touched">—</div><div class="stat-label">Revenue Touched</div></div>
+      <div id="marketing-view" class="v2-screen" style="display:none">
+        <div class="kpi-row v2-kpis" id="marketing-stats-row">
+          <div class="kpi is-static"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span><span class="kpi-body"><span class="kpi-value" id="mk-status">&mdash;</span><span class="kpi-label">Promo</span><span class="kpi-sub">Homepage and checkout offer</span></span></div>
+          <div class="kpi is-static"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></span><span class="kpi-body"><span class="kpi-value" id="mk-redemptions">&mdash;</span><span class="kpi-label">Redemptions</span><span class="kpi-sub">Bookings that used it</span></span></div>
+          <div class="kpi is-static"><span class="kpi-icon kpi-warn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="kpi-body"><span class="kpi-value" id="mk-discount-total">&mdash;</span><span class="kpi-label">Discount given</span><span class="kpi-sub">Total off bookings</span></span></div>
+          <div class="kpi is-static"><span class="kpi-icon kpi-info"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="kpi-body"><span class="kpi-value" id="mk-revenue-touched">&mdash;</span><span class="kpi-label">Revenue touched</span><span class="kpi-sub">Bookings with the promo</span></span></div>
+          <div class="kpi is-static"><span class="kpi-icon kpi-brand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span><span class="kpi-body"><span class="kpi-value" id="mk-social-ready">&mdash;</span><span class="kpi-label">Connected channels</span><span class="kpi-sub">Ready to post</span></span></div>
+          <div class="kpi is-static"><span class="kpi-icon kpi-info"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><span class="kpi-body"><span class="kpi-value" id="mk-social-queued">&mdash;</span><span class="kpi-label">Queued vs target</span><span class="kpi-sub">Posts waiting in Buffer</span></span></div>
+          <div class="kpi is-static"><span class="kpi-icon kpi-warn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span><span class="kpi-body"><span class="kpi-value" id="mk-social-below">&mdash;</span><span class="kpi-label">Below target</span><span class="kpi-sub">Channels to top up</span></span></div>
+          <div class="kpi is-static"><span class="kpi-icon kpi-bad"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></span><span class="kpi-body"><span class="kpi-value" id="mk-social-errors">&mdash;</span><span class="kpi-label">Social errors</span><span class="kpi-sub">Recent failures</span></span></div>
         </div>
 
-        <div class="detail-panel open" style="margin-bottom:1rem">
-          <div class="view-header" style="margin-bottom:1rem">
-            <div class="view-header-left">
-              <h2>Social Automation</h2>
-              <p>Buffer queue coverage for Facebook, Google Business, and founder-led LinkedIn posting.</p>
-            </div>
-            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-              <button id="mk-social-refresh" class="btn" type="button">Refresh</button>
-              <button id="mk-social-dry-run" class="btn btn-amber" type="button">Dry Run Queue</button>
-              <button id="mk-social-run" class="btn btn-teal" type="button">Top Up Queue</button>
+        <div class="v2-card">
+          <div class="v2-card-head">
+            <div><h3>Social automation</h3><p>Buffer queue coverage for Facebook, Google Business, and founder-led LinkedIn posting.</p></div>
+            <div class="v2-actions">
+              <button id="mk-social-refresh" class="btn c-sm" type="button">Refresh</button>
+              <button id="mk-social-dry-run" class="btn btn-amber c-sm" type="button">Dry Run Queue</button>
+              <button id="mk-social-run" class="btn btn-teal c-sm" type="button">Top Up Queue</button>
             </div>
           </div>
-          <div id="mk-social-note" style="font-size:0.8rem;color:var(--muted);line-height:1.6;margin-bottom:1rem">Loading social automation status...</div>
-          <div class="stats-row" style="margin-bottom:1rem">
-            <div class="stat teal"><div class="stat-value" id="mk-social-ready">—</div><div class="stat-label">Connected Channels</div></div>
-            <div class="stat neutral"><div class="stat-value" id="mk-social-queued">—</div><div class="stat-label">Queued vs Target</div></div>
-            <div class="stat orange"><div class="stat-value" id="mk-social-below">—</div><div class="stat-label">Channels Below Target</div></div>
-            <div class="stat red"><div class="stat-value" id="mk-social-errors">—</div><div class="stat-label">Recent Social Errors</div></div>
-          </div>
+          <div class="v2-card-body">
+          <div id="mk-social-note" class="v2-meta" style="line-height:1.6;margin-bottom:12px">Loading social automation status...</div>
           <div style="overflow:auto">
             <table class="pro-table" id="mk-social-table">
               <thead>
@@ -973,21 +937,16 @@
               </tbody>
             </table>
           </div>
+          </div>
         </div>
 
-        <div class="detail-panel open">
-          <div class="view-header" style="margin-bottom:1rem">
-            <div class="view-header-left">
-              <h2>Promo Control</h2>
-              <p>One live promo source for homepage, service pages, and checkout.</p>
-            </div>
-          </div>
+        <div class="v2-card">
+          <div class="v2-card-head"><div><h3>Promo Control</h3><p>One live promo source for homepage, service pages, and checkout.</p></div></div>
+          <div class="v2-card-body">
+          <div id="mk-setup-banner" class="v2-note is-warn" style="display:none;margin-bottom:12px"></div>
 
-          <div id="mk-setup-banner" style="display:none;margin-bottom:1rem;padding:0.8rem 0.95rem;border:1px solid #fde68a;border-radius:10px;background:#fffbeb;color:#92400e;font-size:0.82rem;line-height:1.55"></div>
-
-          <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,0.9fr);gap:1rem" class="content-grid">
-            <div style="padding:1rem;border:1px solid var(--border);border-radius:12px;background:var(--surface)">
-              <div class="detail-section-title" style="margin-bottom:0.85rem">Live Promo Settings</div>
+          <div class="v2-grid-2">
+            <div class="v2-card"><div class="v2-card-head"><h3>Live promo settings</h3></div><div class="v2-card-body">
               <div class="promo-fields" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.85rem">
                 <label style="display:flex;align-items:center;gap:0.55rem;font-size:0.84rem;color:var(--text);font-weight:600">
                   <input id="mk-enabled" type="checkbox" />
@@ -1023,12 +982,11 @@
               </div>
               <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-top:1rem">
                 <button id="mk-save" class="btn btn-teal" type="button">Save Promo</button>
-                <div id="mk-save-note" style="font-size:0.78rem;color:var(--muted)"></div>
+                <div id="mk-save-note" class="v2-meta"></div>
               </div>
-            </div>
+            </div></div>
 
-            <div style="padding:1rem;border:1px solid var(--border);border-radius:12px;background:var(--surface)">
-              <div class="detail-section-title" style="margin-bottom:0.85rem">Recent Redemptions</div>
+            <div class="v2-card"><div class="v2-card-head"><h3>Recent redemptions</h3></div>
               <div style="overflow:auto">
                 <table class="pro-table" id="mk-recent-table">
                   <thead>
@@ -1040,6 +998,7 @@
                 </table>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -1470,12 +1429,12 @@ async function runIntelligence() {
     if (pd.reviews && pd.reviews.lowRatingCount > 0) alertItems.push({ level:'red', msg: pd.reviews.lowRatingCount + ' review(s) rated 2 stars or below — check and respond.' });
 
     if (!alertItems.length) {
-      alertList.innerHTML = '<div style="color:var(--teal);font-weight:600">No alerts found in this intelligence check. Review Live Ops for operational health.</div>';
+      alertList.innerHTML = '<div class="c-note c-note--ok" style="border:1px solid var(--c-line);border-radius:8px">No alerts found in this intelligence check. Review Live Ops for operational health.</div>';
     } else {
       var colors = { red:'#ef4444', amber:'#f59e0b' };
       alertList.innerHTML = alertItems.map(function(a) {
         var safeLevel = a.level === 'red' ? 'red' : 'amber';
-        return '<div style="background:'+colors[safeLevel]+'18;border-left:3px solid '+colors[safeLevel]+';border-radius:0 6px 6px 0;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--text);line-height:1.5">' + intelEsc(a.msg) + '</div>';
+        return '<div class="c-note ' + (safeLevel === 'red' ? 'c-note--bad' : 'c-note--warn') + '" style="border:1px solid var(--c-line);border-radius:8px">' + intelEsc(a.msg) + '</div>';
       }).join('');
     }
 
@@ -1486,7 +1445,7 @@ async function runIntelligence() {
     document.getElementById('intel-briefing').textContent = 'Failed to run analysis. Check your connection.';
   } finally {
     _intelRunning = false;
-    if (btn) { btn.disabled = false; btn.textContent = '↻ Run Analysis'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Run Analysis'; }
   }
 }
 
@@ -8969,7 +8928,7 @@ window.intelQuick = intelQuick;
     cases: 'Support, quality, safety, payment and damage follow-up with a permanent timeline.',
     'voice-calls': 'Calls to the business line and what happened on each.',
     assemblers: 'Applications, readiness and the Easer roster.',
-    waitlist: 'People waiting for an Easer spot in their area.',
+    waitlist: 'People who want to be Easers: waitlisted applicants and leads you added.',
     analytics: 'Revenue, payouts, fees and profitability for AssembleAtEase.',
     customers: 'Everyone who has booked, with their history.',
     partners: 'Partner leads, accounts and the bookings they bring.',
@@ -8977,7 +8936,7 @@ window.intelQuick = intelQuick;
     'market-demand': 'Where demand comes from, how each channel performs, and coverage by market.',
     thumbtack: 'Thumbtack leads and where each one stands.',
     reviews: 'What customers said about finished jobs.',
-    'website-photos': 'Photos shown on the public website.',
+    'website-photos': 'Completion photos: save the best, then post them to a service page.',
     marketing: 'Campaigns, tracking and content.',
     intelligence: 'Website chat conversations and AI alerts.'
   };
@@ -9146,26 +9105,22 @@ window.intelQuick = intelQuick;
         : cEmpty('Nothing needs you right now.'))
       + '</div>';
 
-    // Number strip: the five numbers the owner reads first. Every other counter
-    // appears only when it is not zero, as a flag under the strip.
+    // Number cards: the five numbers the owner reads first. Each is the length
+    // of a list on this page and opens it (the action groups are the tabs of
+    // Bookings needing action). Health counters with no list here show only
+    // when not zero, as flags under the cards.
     var num = function (v) { var n = Number(v); return Number.isFinite(n) ? n : 0; };
-    var needsEaser = num(s.unassigned) + num(s.ownerManualNeedsAssignment) + num(s.offersExpired) + num(s.needsManual);
+    lastOpsData = d;
+    var actionGroups = opsActionGroups(d);
+    var freeEasers = (d.onlineEasers || []).filter(function (e) { return e.status === 'available'; });
     var core = [
-      { label: 'Need you now', val: alerts.length, alert: alerts.length > 0 },
-      { label: 'Active jobs', val: num(s.totalActive) },
-      { label: 'Today', val: num(s.todayJobs) },
-      { label: 'Need an Easer', val: needsEaser, alert: needsEaser > 0 },
-      { label: 'Easers free', val: num(s.freeEasers), alert: num(s.freeEasers) === 0 },
+      { key: 'alerts', tone: alerts.length ? 'bad' : 'ok', icon: 'alert', value: alerts.length, label: 'Need you now', sub: alerts.length ? 'Waiting on you' : 'Nothing waiting' },
+      { key: 'active', tone: 'brand', icon: 'trend', value: (d.activeJobs || []).length, label: 'Active jobs', sub: 'Scheduled or underway' },
+      { key: 'today', tone: 'info', icon: 'calendar', value: (d.todaySchedule || []).length, label: 'Today', sub: 'On today\'s schedule' },
+      { key: 'easer', tone: actionGroups.easer.length ? 'warn' : 'ok', icon: 'user', value: actionGroups.easer.length, label: 'Need an Easer', sub: 'No Easer on the job yet' },
+      { key: 'free', tone: freeEasers.length ? 'ok' : 'bad', icon: 'users', value: freeEasers.length, label: 'Easers free', sub: (d.onlineEasers || []).length + ' online' },
     ];
     var flags = [
-      { label: 'Owner reconciliation', val: num(s.ownerManualReconciliation), kind: 'warn' },
-      { label: 'Payment recovery', val: num(s.pendingPayment), kind: 'warn' },
-      { label: 'Quotes to price', val: num(s.quoteNeedsPricing), kind: 'warn' },
-      { label: 'Quote customer action', val: num(s.quoteAwaitingApproval) + num(s.quoteAuthorizationPending), kind: 'warn' },
-      { label: 'Offers sent', val: num(s.awaitingDispatch), kind: 'brand' },
-      { label: 'Awaiting accept', val: num(s.awaitingAcceptance), kind: 'info' },
-      { label: 'En route', val: num(s.enRoute), kind: 'brand' },
-      { label: 'In progress', val: num(s.inProgress), kind: 'ok' },
       { label: 'Runtime errors', val: num(s.runtimeErrors), kind: 'bad' },
       { label: 'Failed emails', val: num(s.failedNotifications), kind: 'bad' },
       { label: 'Unnotified offers', val: num(s.unnotifiedActiveOffers), kind: 'bad' },
@@ -9175,59 +9130,10 @@ window.intelQuick = intelQuick;
       { label: 'Damage reports', val: num(s.recentDamageReports), kind: 'warn' },
       { label: 'Cron errors', val: num(s.cronErrors), kind: 'bad' },
     ].filter(function (f) { return f.val > 0; });
-    document.getElementById('ops-summary').innerHTML = '<div class="c-stats">'
-      + core.map(function (c) { return '<div class="c-stat' + (c.alert ? ' is-alert' : '') + '"><b>' + c.val + '</b><span>' + c.label + '</span></div>'; }).join('')
-      + '</div>'
+    document.getElementById('ops-summary').innerHTML = window.OwnerFrame.kpiRow(core)
       + (flags.length ? '<div class="c-flags">' + flags.map(function (f) { return cPill(f.kind, f.val + ' ' + f.label); }).join('') + '</div>' : '');
 
-    // Unassigned / needs Easer — also shows pending-payment bookings at top
-    var unassignedEl = document.getElementById('ops-unassigned');
-    var pending = (d.pendingPayment || d.pendingConfirm || []).map(function(item) {
-      return Object.assign({}, item, {
-        _ownerLabel: item.payment_status === 'failed' ? 'Authorization Failed' : 'Payment Incomplete',
-        _ownerDescription: item.stripe_payment_intent_id
-          ? 'Secure continuation is available from the booking record.'
-          : 'Stripe PaymentIntent is missing; reconcile before contacting the customer.',
-        _ownerColor: item.stripe_payment_intent_id ? '#d97706' : '#dc2626',
-      });
-    });
-    var quoteActions = []
-      .concat((d.quoteNeedsPricing || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Quote Needs Pricing', _ownerDescription:'Set the server-controlled price and send it for customer approval.', _ownerColor:'#d97706' }); }))
-      .concat((d.quoteAwaitingApproval || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Quote Awaiting Customer', _ownerDescription:'No payment has been captured. Review expiry and customer response.', _ownerColor:'#7c3aed' }); }))
-      .concat((d.quoteAuthorizationPending || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Authorization Needs Review', _ownerDescription:'Reconcile Stripe before changing status or dispatching.', _ownerColor:'#dc2626' }); }))
-      .concat((d.pendingOther || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Unknown Payment State', _ownerDescription:'Review payment truth before any operational action.', _ownerColor:'#dc2626' }); }));
-    pending = pending.concat(quoteActions);
-    var needs = (d.ownerManualReconciliation || []).concat(d.ownerManualNeedsAssignment || []).concat(d.needsManual || []).concat(d.unassigned || []).concat(d.offersExpired || []).concat(d.awaitingDispatch || []);
-    var colorKind = { '#d97706': 'warn', '#dc2626': 'bad', '#7c3aed': 'info' };
-    var stateLabels = { active_offers: 'Offers sent', offers_expired: 'Offers expired', needs_manual: 'Needs manual', owner_manual_assignment: 'Owner assignment needed', owner_manual_reconciliation: 'Owner reconciliation' };
-    var stateKinds = { active_offers: 'brand', offers_expired: 'warn', needs_manual: 'bad', owner_manual_assignment: 'bad', owner_manual_reconciliation: 'warn' };
-    var actionRows = [];
-    pending.forEach(function(b) {
-      actionRows.push([
-        esc(b.service) + '<span class="c-sub">' + esc(b._ownerDescription) + '</span>',
-        '<span class="c-mono">' + esc(b.ref) + '</span><span class="c-sub">' + esc(b.customer_name || 'Customer') + '</span>',
-        (b.date ? formatDate(b.date) : 'No date') + '<span class="c-sub">Submitted ' + esc(relativeAge(b.created_at)) + '</span>',
-        cPill(colorKind[b._ownerColor] || 'warn', b._ownerLabel),
-        '<button onclick="opsAction(\'review_timeline\',\'' + b.id + '\')" class="btn c-sm">Open booking</button>',
-      ]);
-    });
-    needs.forEach(function(b) {
-      var label = stateLabels[b._dispatchState] || (b.dispatch_offered_at ? 'Offer sent' : 'No Easer yet');
-      var kind = stateKinds[b._dispatchState] || (b.dispatch_offered_at ? 'warn' : 'bad');
-      var isOwnerManual = ['needs_manual','owner_manual_assignment','owner_manual_reconciliation'].includes(b._dispatchState);
-      var action = isOwnerManual ? 'review_timeline' : 'dispatch';
-      var actionLabel = isOwnerManual ? 'Open booking' : 'Dispatch now';
-      actionRows.push([
-        esc(b.service),
-        '<span class="c-mono">' + esc(b.ref) + '</span><span class="c-sub">' + esc(b.customer_name || '') + '</span>',
-        (b.date ? formatDate(b.date) : 'No date') + (b.time ? '<span class="c-sub">' + esc(b.time) + '</span>' : ''),
-        cPill(kind, label),
-        '<button onclick="opsAction(\'' + action + '\',\'' + b.id + '\')" class="btn c-sm' + (isOwnerManual ? '' : ' btn-teal') + '">' + actionLabel + '</button>',
-      ]);
-    });
-    unassignedEl.innerHTML = actionRows.length
-      ? cTable([{ t: 'Booking', w: '30%' }, { t: 'Ref', w: '20%' }, { t: 'When', w: '15%' }, { t: 'Status', w: '19%' }, { t: '', w: '16%', c: 'c-right' }], actionRows)
-      : cEmpty('No payment, quote or assignment actions are waiting.');
+    renderOpsActions(d);
 
     // Active jobs. The server decides which bookings are active and what stage
     // each one is at; this only renders that list. Rebuilding the list here from
@@ -9301,58 +9207,48 @@ window.intelQuick = intelQuick;
     var errorsEl = document.getElementById('ops-errors');
     var failures = d.recentFailures || [];
     if (!failures.length) {
-      errorsEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No recent platform errors in the last 24 hours</div>';
+      errorsEl.innerHTML = cEmpty('No recent platform errors in the last 24 hours.');
     } else {
-      errorsEl.innerHTML = failures.map(function(item) {
+      errorsEl.innerHTML = cTable([{ t: 'What happened', w: '58%' }, { t: 'When', w: '14%' }, { t: 'State', w: '13%' }, { t: '', w: '15%', c: 'c-right' }], failures.map(function(item) {
         var inactive = item.state === 'historical' || item.state === 'resolved';
-        var color = inactive ? '#64748b' : (item.severity === 'high' ? '#dc2626' : '#d97706');
-        var meta = item.meta ? '<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">' + esc(item.meta) + '</div>' : '';
+        var kind = inactive ? 'info' : (item.severity === 'high' ? 'bad' : 'warn');
         var when = item.when ? new Date(item.when).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : '';
         var safeFailureBookingId = /^[0-9a-f-]{36}$/i.test(String(item.bookingId || '')) ? item.bookingId : '';
         var failureAction = item.kind === 'notification' && safeFailureBookingId
-          ? '<button class="btn" style="font-size:0.7rem;padding:2px 9px;margin-top:7px" onclick="opsAction(\'review_timeline\',\'' + safeFailureBookingId + '\',\'' + jsAttr(encodeURIComponent(item.recipient || '')) + '\')">Review Booking</button>'
+          ? '<button class="btn c-sm" onclick="opsAction(\'review_timeline\',\'' + safeFailureBookingId + '\',\'' + jsAttr(encodeURIComponent(item.recipient || '')) + '\')">Review Booking</button>'
           : '';
-        var recipient = item.recipient ? '<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Recipient: ' + esc(item.recipient) + (item.notificationType ? ' &bull; ' + esc(item.notificationType) : '') + '</div>' : '';
-        var ownerAction = item.ownerAction ? '<div style="font-size:0.75rem;color:#9a3412;margin-top:4px">Owner action: ' + esc(item.ownerAction) + '</div>' : '';
-        var resolution = item.resolution ? '<div style="font-size:0.75rem;color:#047857;margin-top:4px">' + esc(item.resolution) + '</div>' : '';
-        var stateLabel = item.state === 'resolved' ? 'resolved' : (item.state === 'historical' ? 'historical' : (item.kind || 'error'));
-        return '<div style="padding:0.75rem 0;border-bottom:1px solid var(--border)">'
-          + '<div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start">'
-          + '<div style="flex:1;min-width:0">'
-          + '<div style="font-size:0.84rem;font-weight:700;color:var(--text)">' + esc(item.title || 'Platform error') + '</div>'
-          + '<div style="font-size:0.8rem;color:var(--soft);line-height:1.45;margin-top:2px">' + esc(item.detail || 'Unknown error') + '</div>'
-          + meta
-          + recipient
-          + ownerAction
-          + resolution
-          + failureAction
-          + '</div>'
-          + '<div style="text-align:right;flex-shrink:0">'
-          + '<span style="display:inline-flex;align-items:center;justify-content:center;min-height:22px;padding:0 8px;border-radius:999px;background:rgba(' + hexToRgb(color) + ',0.1);color:' + color + ';font-size:0.68rem;font-weight:700;text-transform:uppercase">' + esc(stateLabel) + '</span>'
-          + (when ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:6px">' + esc(when) + '</div>' : '')
-          + '</div>'
-          + '</div>'
-          + '</div>';
-      }).join('');
+        var stateLabel = item.state === 'resolved' ? 'Resolved' : (item.state === 'historical' ? 'Historical' : (item.kind ? item.kind.charAt(0).toUpperCase() + item.kind.slice(1) : 'Error'));
+        return [
+          '<strong>' + esc(item.title || 'Platform error') + '</strong>'
+            + '<span class="c-sub">' + esc(item.detail || 'Unknown error') + '</span>'
+            + (item.meta ? '<span class="c-sub">' + esc(item.meta) + '</span>' : '')
+            + (item.recipient ? '<span class="c-sub">Recipient: ' + esc(item.recipient) + (item.notificationType ? ' &middot; ' + esc(item.notificationType) : '') + '</span>' : '')
+            + (item.ownerAction ? '<span class="c-sub">Owner action: ' + esc(item.ownerAction) + '</span>' : '')
+            + (item.resolution ? '<span class="c-sub">' + esc(item.resolution) + '</span>' : ''),
+          esc(when || ''),
+          cPill(kind, stateLabel),
+          failureAction,
+        ];
+      }));
     }
 
     var damageEl = document.getElementById('ops-damage');
     var damageReports = d.damageReports || [];
     if (!damageReports.length) {
-      damageEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No recent damage or rework reports</div>';
+      damageEl.innerHTML = cEmpty('No recent damage or rework reports.');
     } else {
-      damageEl.innerHTML = damageReports.map(function(report) {
+      damageEl.innerHTML = cTable([{ t: 'Booking', w: '18%' }, { t: 'Report', w: '50%' }, { t: 'When', w: '14%' }, { t: '', w: '18%', c: 'c-right' }], damageReports.map(function(report) {
         var when = report.created_at || report.when;
         var safeDamageBookingId = /^[0-9a-f-]{36}$/i.test(String(report.booking_id || report.bookingId || ''))
           ? (report.booking_id || report.bookingId)
           : '';
-        return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border);display:flex;gap:0.75rem;align-items:flex-start">'
-          + '<div style="flex:1"><div style="font-size:0.84rem;font-weight:700;color:var(--text)">' + esc(report.booking_ref || report.ref || 'Booking report') + '</div>'
-          + '<div style="font-size:0.8rem;color:var(--soft);line-height:1.45">' + esc(report.description || report.detail || report.notes || 'Damage or rework evidence requires review.') + '</div>'
-          + (when ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:3px">' + esc(new Date(when).toLocaleString()) + '</div>' : '') + '</div>'
-          + (safeDamageBookingId ? '<button class="btn" style="font-size:0.7rem;padding:2px 9px" onclick="opsAction(\'review_damage_evidence\',\'' + safeDamageBookingId + '\')">Review and Close Alert</button>' : '')
-          + '</div>';
-      }).join('');
+        return [
+          '<span class="c-mono">' + esc(report.booking_ref || report.ref || 'Booking report') + '</span>',
+          esc(report.description || report.detail || report.notes || 'Damage or rework evidence requires review.'),
+          when ? esc(new Date(when).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })) : '',
+          safeDamageBookingId ? '<button class="btn c-sm" onclick="opsAction(\'review_damage_evidence\',\'' + safeDamageBookingId + '\')">Review and Close Alert</button>' : '',
+        ];
+      }));
     }
 
     // Platform errors and damage reports are panels only while they hold
@@ -9374,6 +9270,90 @@ window.intelQuick = intelQuick;
     // Last updated
     document.getElementById('ops-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   }
+
+  // Bookings waiting on the owner, in the groups the cards and tabs name. Every
+  // group is a list the server sent (api/owner/live-ops.js); a count is a
+  // group's length, so the card, the tab and the rows cannot disagree.
+  var lastOpsData = null;
+  var opsActionTab = 'all';
+  var OPS_ACTION_TABS = [
+    { key: 'all', label: 'All' },
+    { key: 'easer', label: 'Need an Easer' },
+    { key: 'offers', label: 'Offers out' },
+    { key: 'payment', label: 'Payment and quotes' },
+    { key: 'recon', label: 'Reconciliation' },
+  ];
+  function opsActionGroups(d) {
+    var payment = (d.pendingPayment || d.pendingConfirm || []).map(function(item) {
+      return Object.assign({}, item, {
+        _ownerLabel: item.payment_status === 'failed' ? 'Authorization Failed' : 'Payment Incomplete',
+        _ownerDescription: item.stripe_payment_intent_id
+          ? 'Secure continuation is available from the booking record.'
+          : 'Stripe PaymentIntent is missing; reconcile before contacting the customer.',
+        _ownerColor: item.stripe_payment_intent_id ? '#d97706' : '#dc2626',
+      });
+    })
+      .concat((d.quoteNeedsPricing || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Quote Needs Pricing', _ownerDescription:'Set the server-controlled price and send it for customer approval.', _ownerColor:'#d97706' }); }))
+      .concat((d.quoteAwaitingApproval || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Quote Awaiting Customer', _ownerDescription:'No payment has been captured. Review expiry and customer response.', _ownerColor:'#7c3aed' }); }))
+      .concat((d.quoteAuthorizationPending || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Authorization Needs Review', _ownerDescription:'Reconcile Stripe before changing status or dispatching.', _ownerColor:'#dc2626' }); }))
+      .concat((d.pendingOther || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Unknown Payment State', _ownerDescription:'Review payment truth before any operational action.', _ownerColor:'#dc2626' }); }));
+    return {
+      payment: payment,
+      recon: d.ownerManualReconciliation || [],
+      easer: (d.ownerManualNeedsAssignment || []).concat(d.needsManual || [], d.unassigned || [], d.offersExpired || []),
+      offers: d.awaitingDispatch || [],
+    };
+  }
+  function opsPaymentRow(b) {
+    var colorKind = { '#d97706': 'warn', '#dc2626': 'bad', '#7c3aed': 'info' };
+    return [
+      esc(b.service) + '<span class="c-sub">' + esc(b._ownerDescription) + '</span>',
+      '<span class="c-mono">' + esc(b.ref) + '</span><span class="c-sub">' + esc(b.customer_name || 'Customer') + '</span>',
+      (b.date ? formatDate(b.date) : 'No date') + '<span class="c-sub">Submitted ' + esc(relativeAge(b.created_at)) + '</span>',
+      cPill(colorKind[b._ownerColor] || 'warn', b._ownerLabel),
+      '<button onclick="opsAction(\'review_timeline\',\'' + b.id + '\')" class="btn c-sm">Open booking</button>',
+    ];
+  }
+  function opsNeedRow(b) {
+    var stateLabels = { active_offers: 'Offers sent', offers_expired: 'Offers expired', needs_manual: 'Needs manual', owner_manual_assignment: 'Owner assignment needed', owner_manual_reconciliation: 'Owner reconciliation' };
+    var stateKinds = { active_offers: 'brand', offers_expired: 'warn', needs_manual: 'bad', owner_manual_assignment: 'bad', owner_manual_reconciliation: 'warn' };
+    var label = stateLabels[b._dispatchState] || (b.dispatch_offered_at ? 'Offer sent' : 'No Easer yet');
+    var kind = stateKinds[b._dispatchState] || (b.dispatch_offered_at ? 'warn' : 'bad');
+    var isOwnerManual = ['needs_manual','owner_manual_assignment','owner_manual_reconciliation'].includes(b._dispatchState);
+    var action = isOwnerManual ? 'review_timeline' : 'dispatch';
+    var actionLabel = isOwnerManual ? 'Open booking' : 'Dispatch now';
+    return [
+      esc(b.service),
+      '<span class="c-mono">' + esc(b.ref) + '</span><span class="c-sub">' + esc(b.customer_name || '') + '</span>',
+      (b.date ? formatDate(b.date) : 'No date') + (b.time ? '<span class="c-sub">' + esc(b.time) + '</span>' : ''),
+      cPill(kind, label),
+      '<button onclick="opsAction(\'' + action + '\',\'' + b.id + '\')" class="btn c-sm' + (isOwnerManual ? '' : ' btn-teal') + '">' + actionLabel + '</button>',
+    ];
+  }
+  function renderOpsActions(d) {
+    var g = opsActionGroups(d);
+    var rowsFor = { payment: g.payment.map(opsPaymentRow), recon: g.recon.map(opsNeedRow), easer: g.easer.map(opsNeedRow), offers: g.offers.map(opsNeedRow) };
+    rowsFor.all = rowsFor.payment.concat(rowsFor.recon, rowsFor.easer, rowsFor.offers);
+    document.getElementById('ops-action-tabs').innerHTML = window.OwnerFrame.tabs(OPS_ACTION_TABS.map(function (t) {
+      return { key: t.key, label: t.label, count: rowsFor[t.key].length };
+    }), opsActionTab, 'data-ops-tab');
+    var rows = rowsFor[opsActionTab] || [];
+    document.getElementById('ops-unassigned').innerHTML = rows.length
+      ? cTable([{ t: 'Booking', w: '30%' }, { t: 'Ref', w: '20%' }, { t: 'When', w: '15%' }, { t: 'Status', w: '19%' }, { t: '', w: '16%', c: 'c-right' }], rows)
+      : cEmpty(opsActionTab === 'all' ? 'No payment, quote or assignment actions are waiting.' : 'Nothing in this group right now.');
+  }
+  // A card opens the list it counts; a tab narrows the action list.
+  document.getElementById('liveops-view').addEventListener('click', function (e) {
+    var tab = e.target.closest('[data-ops-tab]');
+    if (tab && lastOpsData) { opsActionTab = tab.getAttribute('data-ops-tab'); renderOpsActions(lastOpsData); return; }
+    var card = e.target.closest('#ops-summary [data-kpi]');
+    if (!card) return;
+    var key = card.getAttribute('data-kpi');
+    if (key === 'easer' && lastOpsData) { opsActionTab = 'easer'; renderOpsActions(lastOpsData); }
+    var target = { alerts: document.querySelector('#ops-alerts-bar .ops-panel'), active: document.getElementById('ops-active-panel'),
+      today: document.getElementById('ops-today-panel'), easer: document.getElementById('ops-actions-panel'), free: document.getElementById('ops-easers-panel') }[key];
+    window.OwnerFrame.reveal(target);
+  });
 
   async function opsAction(action, bookingId, encodedRecipient) {
     if (action === 'dispatch' || action === 'redispatch') {
@@ -9454,27 +9434,24 @@ window.intelQuick = intelQuick;
       var list = d.orphans || [];
       if (!list.length) { panel.style.display = 'none'; return; }
       panel.style.display = '';
-      body.innerHTML = '<div style="font-size:0.78rem;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.6rem 0.75rem;margin-bottom:0.6rem">'
-        + '<strong>' + list.length + ' customer' + (list.length === 1 ? '' : 's') + '</strong> saved a card, but no booking was created &mdash; so they never appeared in your queue and were never contacted. Their cards are valid. Reach out and quote them.</div>'
-        + list.map(function(o) {
+      body.innerHTML = '<div class="c-note c-note--warn" style="border:0;border-bottom:1px solid var(--c-line)">'
+        + '<strong>' + list.length + ' customer' + (list.length === 1 ? '' : 's') + '</strong> saved a card, but no booking was created, so they never reached your queue. Reach out and quote them.</div>'
+        + cTable([{ t: 'Customer', w: '34%' }, { t: 'Saved', w: '22%' }, { t: 'Waiting', w: '18%' }, { t: '', w: '26%', c: 'c-right' }], list.map(function(o) {
           var when = o.savedAt ? new Date(o.savedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'unknown date';
           var waited = (typeof o.ageDays === 'number')
-            ? o.ageDays + ' day' + (o.ageDays === 1 ? '' : 's') + ' waiting'
-            : '';
+            ? o.ageDays + ' day' + (o.ageDays === 1 ? '' : 's')
+            : 'Unknown';
           var stale = (typeof o.ageDays === 'number') && o.ageDays >= 7;
-          return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:0.45rem 0;border-bottom:1px solid var(--border)">'
-            + '<div style="min-width:0"><div style="font-size:0.85rem;font-weight:600;color:var(--text)">' + esc(o.name || 'Name not on file') + '</div>'
-            + '<div style="font-size:0.75rem;color:var(--muted)">' + esc(when)
-              + (waited ? ' &bull; <span style="' + (stale ? 'color:var(--red);font-weight:600' : '') + '">' + esc(waited) + '</span>' : '')
-              + (o.sourceLabel ? ' &bull; ' + esc(o.sourceLabel) : '')
-              + (o.cardOnFile ? ' &bull; card on file' : ' &bull; no card') + '</div></div>'
-            + '<div style="display:flex;gap:6px;align-items:center">'
-            + (o.email
-              ? '<a href="mailto:' + esc(o.email) + '?subject=' + encodeURIComponent('Your AssembleAtEase quote request') + '" class="btn btn-teal" style="font-size:0.72rem;padding:3px 10px;text-decoration:none;white-space:nowrap">Email</a>'
-              : '<span style="font-size:0.72rem;color:var(--red);white-space:nowrap">No email</span>')
-            + '<button type="button" class="btn ops-orphan-resolve" data-setup-intent-id="' + esc(o.setupIntentId) + '" style="font-size:0.72rem;padding:3px 10px;white-space:nowrap">Mark Resolved</button></div>'
-          + '</div>';
-        }).join('');
+          return [
+            esc(o.name || 'Name not on file') + '<span class="c-sub">' + esc([o.sourceLabel, o.cardOnFile ? 'Card on file' : 'No card'].filter(Boolean).join(' · ')) + '</span>',
+            esc(when),
+            stale ? cPill('bad', waited) : esc(waited),
+            '<span class="c-actions">' + (o.email
+              ? '<a href="mailto:' + esc(o.email) + '?subject=' + encodeURIComponent('Your AssembleAtEase quote request') + '" class="btn btn-teal c-sm" style="text-decoration:none">Email</a>'
+              : cPill('bad', 'No email'))
+            + '<button type="button" class="btn c-sm ops-orphan-resolve" data-setup-intent-id="' + esc(o.setupIntentId) + '">Mark Resolved</button></span>',
+          ];
+        }));
     } catch (e) {
       panel.style.display = 'none';
     }
@@ -9542,47 +9519,90 @@ window.intelQuick = intelQuick;
     if (active > 0) { navToday.textContent = active; navToday.style.display = ''; }
     else navToday.style.display = 'none';
   }
+  document.getElementById('intel-stats-row').addEventListener('click', function (e) {
+    var card = e.target.closest('button[data-kpi]');
+    if (!card) return;
+    if (card.getAttribute('data-kpi') === 'payouts') { var fin = document.querySelector('.sidebar-nav a[data-view="analytics"]'); if (fin) fin.click(); return; }
+    window.OwnerFrame.reveal(document.getElementById('intel-alerts-card'));
+  });
+
+  // Tabs of the Today list. A card and its tab are the same filter, so the
+  // number on the card is the number of rows the tab shows.
+  var todayTab = 'all';
+  var TODAY_TABS = [
+    { key: 'all', label: 'All' },
+    { key: 'pending', label: 'Pending' },
+    { key: 'confirmed', label: 'Confirmed' },
+    { key: 'completed', label: 'Completed' },
+  ];
+  // Minutes after midnight of a slot's start ("9:00 AM – 11:00 AM" is 540).
+  // A slot without a readable time goes last.
+  function scheduleMinutes(slot) {
+    var m = String(slot || '').match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!m) return 24 * 60;
+    var h = Number(m[1]) % 12 + (m[3].toUpperCase() === 'PM' ? 12 : 0);
+    return h * 60 + Number(m[2]);
+  }
+  function todayInTab(b, key) {
+    // Pending = customer submitted, owner has not confirmed. Confirmed = actively
+    // managed (confirmed and every pipeline stage).
+    if (key === 'pending') return b.status === 'pending';
+    if (key === 'confirmed') return b.status === 'confirmed' || PIPELINE_STATUSES.includes(b.status);
+    if (key === 'completed') return b.status === 'completed';
+    return true;
+  }
   function renderTodayView() {
     var today = ownerBusinessDate || chicagoBusinessDate(new Date());
-    // Show the date so the owner knows exactly what date is being shown
-    var dateDisplay = businessDateLabel(today, true);
     var dd = document.getElementById('today-date-display');
-    if (dd) dd.textContent = dateDisplay;
+    if (dd) dd.textContent = businessDateLabel(today, true);
     function usesReturnVisitSchedule(b) { return todayUsesReturnVisit(b, today); }
     var jobs = todayScheduleJobs(today);
     jobs.sort(function(a,b){
       var aTime = usesReturnVisitSchedule(a) ? a.return_visit_time : a.time;
       var bTime = usesReturnVisitSchedule(b) ? b.return_visit_time : b.time;
-      return (aTime||'').localeCompare(bTime||'');
+      return scheduleMinutes(aTime) - scheduleMinutes(bTime) || (aTime||'').localeCompare(bTime||'');
     });
-    document.getElementById('today-count').textContent = jobs.length;
-    // Pending confirmation = customer submitted, owner has not confirmed.
-    document.getElementById('today-pending').textContent = jobs.filter(function(b){return b.status==='pending';}).length;
-    // "Confirmed" = actively managed jobs (confirmed + all pipeline stages)
-    document.getElementById('today-confirmed').textContent = jobs.filter(function(b){return b.status==='confirmed'||PIPELINE_STATUSES.includes(b.status);}).length;
-    document.getElementById('today-done').textContent = jobs.filter(function(b){return b.status==='completed';}).length;
+    var counts = {};
+    TODAY_TABS.forEach(function (t) { counts[t.key] = jobs.filter(function (b) { return todayInTab(b, t.key); }).length; });
+    document.getElementById('today-stats-row').innerHTML = window.OwnerFrame.kpiRow([
+      { key: 'all', id: 'today-count', tone: 'brand', icon: 'calendar', value: counts.all, label: 'Jobs today', sub: 'Booked for this date', active: todayTab === 'all' },
+      { key: 'pending', id: 'today-pending', tone: counts.pending ? 'warn' : 'info', icon: 'clock', value: counts.pending, label: 'Pending confirmation', sub: 'Customer booked, not confirmed', active: todayTab === 'pending' },
+      { key: 'confirmed', id: 'today-confirmed', tone: 'brand', icon: 'trend', value: counts.confirmed, label: 'Confirmed', sub: 'Confirmed or underway', active: todayTab === 'confirmed' },
+      { key: 'completed', id: 'today-done', tone: 'ok', icon: 'check', value: counts.completed, label: 'Completed', sub: 'Finished today', active: todayTab === 'completed' },
+    ]);
+    document.getElementById('today-tabs').innerHTML = window.OwnerFrame.tabs(TODAY_TABS.map(function (t) {
+      return { key: t.key, label: t.label, count: counts[t.key] };
+    }), todayTab, 'data-today-tab');
     paintTodayBadge();
     var list = document.getElementById('today-list');
-    var empty = document.getElementById('today-empty');
-    if(!jobs.length){ list.innerHTML=''; empty.style.display=''; return; }
-    empty.style.display='none';
-    list.innerHTML = jobs.map(function(b){
-      var showingReturnVisit = usesReturnVisitSchedule(b);
-      var scheduleDate = showingReturnVisit ? b.return_visit_date : b.date;
-      var scheduleTime = showingReturnVisit ? b.return_visit_time : b.time;
-      return '<div class="today-job-card" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">'
-        +'<div class="today-job-time" style="font-size:14px;font-weight:700;color:var(--c-text);min-width:150px">'+esc(scheduleTime||'—')+'<div style="font-size:12px;font-weight:500;color:var(--c-muted);margin-top:2px">'+(scheduleDate ? formatDate(scheduleDate) : '')+(showingReturnVisit ? ' &bull; Return visit' : '')+'</div></div>'
-        +'<div class="today-job-main" style="flex:1;min-width:0">'
-          +'<div style="font-size:0.9rem;font-weight:600;color:var(--text)">'+esc(b.customer_name||'—')+'</div>'
-          +'<div style="font-size:0.8rem;color:var(--muted)">'+esc(b.service||'—')+' &bull; '+esc(b.address||'—')+'</div>'
-        +'</div>'
-        +'<div class="today-job-actions" style="display:flex;align-items:center;gap:0.5rem">'
-          + bookingBadge(b)
-          +(b.customer_phone ? businessCallButton('booking', b.id) : '')
-        +'</div>'
-      +'</div>';
-    }).join('');
+    var rows = jobs.filter(function (b) { return todayInTab(b, todayTab); });
+    if (!jobs.length) { list.innerHTML = '<div class="v2-empty"><strong>No jobs today.</strong><br>Nothing is booked for this date. Bookings lists every date.</div>'; return; }
+    if (!rows.length) { list.innerHTML = '<div class="v2-empty">No jobs in this tab today.</div>'; return; }
+    list.innerHTML = cTable(
+      [{ t: 'Time', w: '15%' }, { t: 'Customer', w: '23%' }, { t: 'Address', w: '27%' }, { t: 'Easer', w: '14%' }, { t: 'Status', w: '12%' }, { t: '', w: '9%', c: 'c-right' }],
+      rows.map(function (b) {
+        var showingReturnVisit = usesReturnVisitSchedule(b);
+        var scheduleDate = showingReturnVisit ? b.return_visit_date : b.date;
+        var scheduleTime = showingReturnVisit ? b.return_visit_time : b.time;
+        return [
+          '<strong>' + esc(scheduleTime || 'Time TBD') + '</strong><span class="c-sub">' + (showingReturnVisit ? 'Return visit' : (scheduleDate ? formatDate(scheduleDate) : '')) + '</span>',
+          esc(b.customer_name || 'Customer') + '<span class="c-sub">' + esc(b.service || '') + '</span>',
+          esc(b.address || 'No address on file'),
+          esc(b.assembler_name || 'Unassigned'),
+          bookingBadge(b),
+          b.customer_phone ? businessCallButton('booking', b.id) : '',
+        ];
+      }),
+      rows.map(function (b) { return 'class="c-click today-job-card" data-today-booking="' + esc(b.id) + '"'; })
+    );
   }
+  document.getElementById('today-view').addEventListener('click', function (e) {
+    var pick = e.target.closest('[data-today-tab]') || e.target.closest('#today-stats-row [data-kpi]');
+    if (pick) { todayTab = pick.getAttribute('data-today-tab') || pick.getAttribute('data-kpi'); renderTodayView(); return; }
+    if (e.target.closest('button, a')) return;
+    var row = e.target.closest('[data-today-booking]');
+    if (row) opsAction('review_timeline', row.getAttribute('data-today-booking'));
+  });
 
   // ─── REVIEWS VIEW ───
   var allReviews = [];
@@ -9597,44 +9617,63 @@ window.intelQuick = intelQuick;
       renderReviews();
     } catch(e) { document.getElementById('reviews-list').innerHTML = '<div class="empty">Failed to load reviews.</div>'; }
   }
+  // Tabs over the reviews the server sent. Test-booking reviews are listed under
+  // their own tab and never counted (api/_reviews-truth.js); every other tab uses
+  // the summary's own tests, so a card, its tab and the rows agree.
+  var reviewsTab = 'all';
+  var REVIEW_TABS = [
+    { key: 'all', label: 'All' },
+    { key: 'visible', label: 'Visible' },
+    { key: 'hidden', label: 'Hidden' },
+    { key: 'five', label: '5-star' },
+    { key: 'test', label: 'Test bookings' },
+  ];
+  function reviewInTab(r, key) {
+    if (key === 'test') return r.is_test === true;
+    if (r.is_test) return false;
+    if (key === 'visible') return r.approved === true;
+    if (key === 'hidden') return r.approved !== true;
+    if (key === 'five') return Number(r.rating) === 5;
+    return true;
+  }
   function renderReviews() {
-    // Counts come from the server (api/_reviews-truth.js): test-booking reviews are listed, never counted.
     var sum = reviewSummary || { total: 0, average: null, fiveStar: 0, hidden: 0, testExcluded: 0 };
-    document.getElementById('rev-total').textContent = sum.total;
-    document.getElementById('rev-avg').textContent = sum.average != null ? Number(sum.average).toFixed(1) + ' / 5' : '—';
-    document.getElementById('rev-five').textContent = sum.fiveStar;
-    document.getElementById('rev-pending').textContent = sum.hidden;
+    var counts = {};
+    REVIEW_TABS.forEach(function (t) { counts[t.key] = allReviews.filter(function (r) { return reviewInTab(r, t.key); }).length; });
+    document.getElementById('reviews-stats-row').innerHTML = window.OwnerFrame.kpiRow([
+      { key: 'all', id: 'rev-total', tone: 'brand', icon: 'star', value: counts.all, label: 'Reviews', sub: 'From finished jobs', active: reviewsTab === 'all' },
+      { key: 'avg', id: 'rev-avg', tone: 'ok', icon: 'chart', value: sum.average != null ? Number(sum.average).toFixed(1) + ' / 5' : '\u2014', label: 'Average rating', sub: 'Across counted reviews', open: false },
+      { key: 'five', id: 'rev-five', tone: 'ok', icon: 'check', value: counts.five, label: '5-star', sub: 'Top rating', active: reviewsTab === 'five' },
+      { key: 'hidden', id: 'rev-pending', tone: counts.hidden ? 'warn' : 'info', icon: 'eyeOff', value: counts.hidden, label: 'Hidden', sub: 'Not shown on the site', active: reviewsTab === 'hidden' },
+    ]);
+    document.getElementById('reviews-tabs').innerHTML = window.OwnerFrame.tabs(REVIEW_TABS.filter(function (t) {
+      return t.key !== 'test' || counts.test > 0 || reviewsTab === 'test';
+    }).map(function (t) { return { key: t.key, label: t.label, count: counts[t.key] }; }), reviewsTab, 'data-review-tab');
     var list = document.getElementById('reviews-list');
-    var empty = document.getElementById('reviews-empty');
-    if(!allReviews.length){ list.innerHTML=''; empty.style.display=''; return; }
-    empty.style.display='none';
-    list.innerHTML = allReviews.map(function(r){
-      var stars='<span style="color:#f59e0b">'+Number(r.rating || 0).toFixed(1)+' / 5</span>';
-      var date=r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-      var approvedBg = r.approved ? 'rgba(29,158,117,0.12)' : 'rgba(245,158,11,0.12)';
-      var approvedColor = r.approved ? 'var(--teal)' : 'var(--amber)';
-      var approvedLabel = r.approved ? 'Visible' : 'Hidden';
-      var testTag = r.is_test ? '<span style="font-size:0.72rem;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--elevated);color:var(--muted)">Test booking, not counted</span>' : '';
+    var rows = allReviews.filter(function (r) { return reviewInTab(r, reviewsTab); });
+    if (!allReviews.length) { list.innerHTML = '<div class="v2-empty"><strong>No reviews yet.</strong><br>Reviews are collected after job completion. Select a completed booking and click Request Review to prompt the customer.</div>'; return; }
+    if (!rows.length) { list.innerHTML = '<div class="v2-empty">No reviews in this tab.</div>'; return; }
+    list.innerHTML = rows.map(function(r){
+      var date = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
       var bodyText = String(r.body || '').trim();
-      var bodyHtml = bodyText
-        ? '<p style="font-size:0.875rem;color:var(--text);line-height:1.65;margin:0">&ldquo;'+esc(bodyText)+'&rdquo;</p>'
-        : '<p style="font-size:0.8rem;color:var(--muted);margin:0">No comment left.</p>';
-      return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.25rem">'
-        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">'
-          +'<div>'
-            +'<div style="font-size:1rem;margin-bottom:2px">'+stars+'</div>'
-            +'<div style="font-size:0.8rem;color:var(--muted)">'+esc(r.customer_name||'Customer')+' &bull; '+esc(r.service||'')+(date ? ' &bull; '+esc(date) : '')+'</div>'
-          +'</div>'
-          +'<div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">'
-            +testTag
-            +'<span style="font-size:0.72rem;font-weight:700;padding:2px 10px;border-radius:999px;background:'+approvedBg+';color:'+approvedColor+'">'+approvedLabel+'</span>'
-            +'<button onclick="toggleReview(\''+r.id+'\','+(r.approved ? 'false' : 'true')+')" class="btn" style="font-size:0.72rem;padding:3px 10px">'+(r.approved ? 'Hide' : 'Show')+'</button>'
-          +'</div>'
-        +'</div>'
-        +bodyHtml
-      +'</div>';
+      return '<div class="v2-item">'
+        + '<div><span class="v2-item-title">' + Number(r.rating || 0).toFixed(1) + ' / 5</span>'
+        + '<span class="v2-item-sub">' + esc([r.customer_name || 'Customer', r.service || '', date].filter(Boolean).join(' · ')) + '</span>'
+        + (bodyText ? '<p class="v2-item-text">&ldquo;' + esc(bodyText) + '&rdquo;</p>' : '<p class="v2-item-text" style="color:var(--c-muted)">No comment left.</p>')
+        + '</div>'
+        + '<div class="v2-item-side">'
+        + (r.is_test ? '<span class="c-tag" style="margin:0">Test booking, not counted</span>' : '')
+        + cPill(r.approved ? 'ok' : 'warn', r.approved ? 'Visible' : 'Hidden')
+        + '<button onclick="toggleReview(\''+r.id+'\','+(r.approved ? 'false' : 'true')+')" class="btn c-sm">'+(r.approved ? 'Hide' : 'Show')+'</button>'
+        + '</div></div>';
     }).join('');
   }
+  document.getElementById('reviews-view').addEventListener('click', function (e) {
+    var pick = e.target.closest('[data-review-tab]') || e.target.closest('#reviews-stats-row button[data-kpi]');
+    if (!pick) return;
+    reviewsTab = pick.getAttribute('data-review-tab') || pick.getAttribute('data-kpi');
+    renderReviews();
+  });
   window.toggleReview = async function(id, approved) {
     try {
       var r = await fetch('/api/owner/reviews', { method:'PATCH', headers:headers(), body:JSON.stringify({id:id,approved:approved}) });
@@ -9711,39 +9750,57 @@ window.intelQuick = intelQuick;
   async function renderCustomers(force) {
     await loadCustomerTotals(force);
     buildCustomers();
-    var known = customerTotalsByKey !== null;
-    var repeat = allCustomers.filter(function(c){return c.completedJobs>1;}).length;
-    var avgLtv = allCustomers.length ? Math.round(allCustomers.reduce(function(s,c){return s+(c.spent||0);},0)/allCustomers.length) : 0;
-    document.getElementById('cust-total').textContent = allCustomers.length;
-    var repeatEl = document.getElementById('cust-repeat');
-    var ltvEl = document.getElementById('cust-ltv');
-    repeatEl.textContent = known ? repeat : '—';
-    ltvEl.textContent = known ? fmt$(avgLtv) : '—';
-    repeatEl.title = known ? 'Customers with more than one completed job, as in Financials.' : 'Payments could not be loaded, so this is unknown, not zero.';
-    ltvEl.title = repeatEl.title;
     filterCustomers();
   }
+  // Cards and tabs count the customers the table shows (search included). Repeat
+  // and money come from Financials; when it could not load they are unknown.
+  var custTab = 'all';
   function filterCustomers() {
     var q = (document.getElementById('cust-search').value||'').toLowerCase();
-    var filtered = allCustomers.filter(function(c){
+    var known = customerTotalsByKey !== null;
+    var searched = allCustomers.filter(function(c){
       return !q || (c.name||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q);
     });
+    var repeatList = searched.filter(function(c){ return c.completedJobs > 1; });
+    var avgLtv = searched.length ? Math.round(searched.reduce(function(s,c){return s+(c.spent||0);},0)/searched.length) : 0;
+    document.getElementById('cust-stats-row').innerHTML = window.OwnerFrame.kpiRow([
+      { key: 'all', id: 'cust-total', tone: 'brand', icon: 'users', value: searched.length, label: 'Customers', sub: 'Everyone who has booked', active: custTab === 'all' },
+      { key: 'repeat', id: 'cust-repeat', tone: 'ok', icon: 'star', value: known ? repeatList.length : '\u2014', label: 'Repeat customers', sub: known ? 'More than one completed job' : 'Payments could not be loaded', active: custTab === 'repeat', open: known },
+      { key: 'ltv', id: 'cust-ltv', tone: 'info', icon: 'money', value: known ? fmt$(avgLtv) : '\u2014', label: 'Avg net payments', sub: known ? 'Per customer, from Financials' : 'Payments could not be loaded', open: known },
+    ]);
+    document.getElementById('cust-tabs').innerHTML = window.OwnerFrame.tabs([
+      { key: 'all', label: 'All', count: searched.length },
+      { key: 'repeat', label: 'Repeat', count: known ? repeatList.length : '\u2014' },
+    ], custTab, 'data-cust-tab');
+    var filtered = custTab === 'repeat' ? repeatList : searched;
     var tbody = document.getElementById('cust-tbody');
-    if(!filtered.length){ tbody.innerHTML='<tr><td colspan="7" style="padding:2rem;text-align:center;color:var(--muted)">No customers found.</td></tr>'; return; }
+    if(!filtered.length){ tbody.innerHTML='<tr><td colspan="7" class="v2-empty">' + (custTab === 'repeat' && !known ? 'Payments could not be loaded, so repeat customers are unknown.' : 'No customers found.') + '</td></tr>'; return; }
     tbody.innerHTML = filtered.map(function(c){
       var date = c.lastDate ? new Date(c.lastDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
-      return '<tr style="border-bottom:1px solid var(--border)">'
-        +'<td style="padding:0.7rem 1rem"><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(c.name||'—')+'</div><div style="font-size:0.75rem;color:var(--muted)">'+esc(c.email||'')+'</div></td>'
-        +'<td style="padding:0.7rem 1rem;font-size:0.85rem;color:var(--soft);white-space:nowrap">'+(hasValidUsPhone(c.phone) ? phoneWithCall(c.phone, 'booking', c.lastBookingId) : '<span style="color:var(--red)">Valid phone required</span>')+'</td>'
-        +'<td style="padding:0.7rem 1rem;font-size:0.875rem;font-weight:600;color:var(--text)">'+c.bookings+(c.completedJobs>1 ? ' <span style="font-size:0.7rem;color:var(--teal);font-weight:700" title="More than one completed job">REPEAT</span>' : '')+'</td>'
-        +'<td style="padding:0.7rem 1rem;font-size:0.875rem;color:var(--text)">'+(c.spent==null ? '—' : fmt$(c.spent))+'</td>'
-        +'<td style="padding:0.7rem 1rem;font-size:0.8rem;color:var(--soft)">'+esc(c.lastService)+'</td>'
-        +'<td style="padding:0.7rem 1rem;font-size:0.8rem;color:var(--muted)">'+date+'</td>'
-        +'<td style="padding:0.7rem 1rem;white-space:nowrap">'+(c.email ? '<button class="btn" style="font-size:0.72rem;padding:3px 10px" onclick="rebookCustomer(\''+jsAttr(c.email)+'\',\''+jsAttr(c.name||'')+'\',\''+jsAttr(c.phone||'')+'\')">Email to rebook</button>' : '<span style="color:var(--muted);font-size:0.75rem">No email</span>')+'</td>'
+      return '<tr class="c-click" data-cust-booking="' + esc(c.lastBookingId || '') + '">'
+        +'<td><strong>'+esc(c.name||'—')+'</strong><span class="c-sub">'+esc(c.email||'')+'</span></td>'
+        +'<td style="white-space:nowrap">'+(hasValidUsPhone(c.phone) ? phoneWithCall(c.phone, 'booking', c.lastBookingId) : '<span class="c-pill c-pill--bad">Valid phone required</span>')+'</td>'
+        +'<td>'+c.bookings+(c.completedJobs>1 ? ' <span class="c-tag" title="More than one completed job">Repeat</span>' : '')+'</td>'
+        +'<td class="c-num" style="text-align:left">'+(c.spent==null ? '—' : fmt$(c.spent))+'</td>'
+        +'<td>'+esc(c.lastService)+'</td>'
+        +'<td style="color:var(--c-muted)">'+date+'</td>'
+        +'<td style="white-space:nowrap">'+(c.email ? '<button class="btn c-sm" onclick="rebookCustomer(\''+jsAttr(c.email)+'\',\''+jsAttr(c.name||'')+'\',\''+jsAttr(c.phone||'')+'\')">Email to rebook</button>' : '<span class="c-sub">No email</span>')+'</td>'
       +'</tr>';
     }).join('');
   }
   window.filterCustomers = filterCustomers;
+  document.getElementById('customers-view').addEventListener('click', function (e) {
+    var pick = e.target.closest('[data-cust-tab]') || e.target.closest('#cust-stats-row [data-kpi]');
+    if (pick) {
+      var key = pick.getAttribute('data-cust-tab') || pick.getAttribute('data-kpi');
+      // The average is a Financials figure: its card opens Financials.
+      if (key === 'ltv') { var fin = document.querySelector('.sidebar-nav a[data-view="analytics"]'); if (fin) fin.click(); return; }
+      custTab = key; filterCustomers(); return;
+    }
+    if (e.target.closest('button, a')) return;
+    var row = e.target.closest('[data-cust-booking]');
+    if (row && row.getAttribute('data-cust-booking')) opsAction('review_timeline', row.getAttribute('data-cust-booking'));
+  });
 
   // Send a past customer a branded "book again" email with a prefilled booking link
   // (in-app, logged, on-brand — not a plain mailto). Shows an exact PREVIEW first;
@@ -11693,10 +11750,6 @@ window.intelQuick = intelQuick;
       var data = await r.json();
       allWaitlistEntries = data.entries || [];
       var stats = data.stats || {};
-      document.getElementById('wl-total').textContent = stats.total || 0;
-      document.getElementById('wl-pending').textContent = stats.pending || 0;
-      document.getElementById('wl-invited').textContent = stats.invited || 0;
-      document.getElementById('wl-applied').textContent = stats.applied || 0;
       var $navWl = document.getElementById('nav-waitlist');
       if (stats.pending > 0) { $navWl.textContent = stats.pending; $navWl.style.display = ''; }
       else $navWl.style.display = 'none';
@@ -11706,14 +11759,30 @@ window.intelQuick = intelQuick;
     }
   }
 
+  function selectWlFilter(status) {
+    currentWlFilter = status;
+    document.querySelectorAll('#wl-tabs .tab').forEach(function(t){ t.classList.toggle('active', t.dataset.wlStatus === status); });
+    renderWaitlistTable();
+  }
   document.getElementById('wl-tabs').addEventListener('click', function(e) {
     var tab = e.target.closest('.tab');
     if (!tab) return;
-    document.querySelectorAll('#wl-tabs .tab').forEach(function(t){ t.classList.remove('active'); });
-    tab.classList.add('active');
-    currentWlFilter = tab.dataset.wlStatus;
-    renderWaitlistTable();
+    selectWlFilter(tab.dataset.wlStatus);
   });
+  document.getElementById('wl-stats-row').addEventListener('click', function(e) {
+    var card = e.target.closest('[data-kpi]');
+    if (card) selectWlFilter(card.getAttribute('data-kpi'));
+  });
+  // Number cards: the same four lists the tabs show.
+  function renderWlKpis() {
+    var n = function (s) { return s === 'all' ? allWaitlistEntries.length : allWaitlistEntries.filter(function(w){ return w.status === s; }).length; };
+    document.getElementById('wl-stats-row').innerHTML = window.OwnerFrame.kpiRow([
+      { key: 'all', id: 'wl-total', tone: 'brand', icon: 'users', value: n('all'), label: 'Everyone', sub: 'Applicants and people you added', active: currentWlFilter === 'all' },
+      { key: 'pending', id: 'wl-pending', tone: n('pending') ? 'warn' : 'info', icon: 'clock', value: n('pending'), label: 'Pending', sub: 'Not invited yet', active: currentWlFilter === 'pending' },
+      { key: 'invited', id: 'wl-invited', tone: 'brand', icon: 'send', value: n('invited'), label: 'Invited', sub: 'Invite sent', active: currentWlFilter === 'invited' },
+      { key: 'applied', id: 'wl-applied', tone: 'ok', icon: 'check', value: n('applied'), label: 'Applied', sub: 'Application started', active: currentWlFilter === 'applied' },
+    ]);
+  }
 
   function wlStatusBadge(status) {
     var map = {
@@ -11728,6 +11797,7 @@ window.intelQuick = intelQuick;
   }
 
   function renderWaitlistTable() {
+    renderWlKpis();
     var filtered = currentWlFilter === 'all' ? allWaitlistEntries : allWaitlistEntries.filter(function(w){ return w.status === currentWlFilter; });
     document.querySelectorAll('#wl-tabs .tab').forEach(function(t) {
       var s = t.dataset.wlStatus;
@@ -11958,10 +12028,6 @@ window.intelQuick = intelQuick;
       var stats = data.stats || {};
       asmConnectRequired = !!stats.connectRequired;
       document.getElementById('asm-table').classList.toggle('connect-disabled', !asmConnectRequired);
-      document.getElementById('asm-total').textContent = stats.total || 0;
-      document.getElementById('asm-pending').textContent = stats.pending || 0;
-      document.getElementById('asm-active').textContent = stats.active || 0;
-      document.getElementById('asm-elite').textContent = stats.elite || 0;
       var $navApps = document.getElementById('nav-pending-apps');
       if (stats.pending > 0) { $navApps.textContent = stats.pending; $navApps.style.display = ''; }
       else $navApps.style.display = 'none';
@@ -11979,6 +12045,31 @@ window.intelQuick = intelQuick;
     document.querySelectorAll('#asm-tabs .tab').forEach(function(t){ t.classList.remove('active'); });
     tab.classList.add('active');
     currentTierFilter = tab.dataset.tier;
+    renderAssemblerTable();
+  });
+  // Number cards: one per account status, each the length of its tab's list.
+  // A status with nobody in it has no tab showing, so its card does not open.
+  var ASM_CARDS = [
+    { key: 'active', label: 'Active', sub: 'Approved accounts', icon: 'users', tone: 'ok' },
+    { key: 'pending', label: 'Pending', sub: 'Applications to review', icon: 'clock', tone: 'warn' },
+    { key: 'suspended', label: 'Suspended', sub: 'Paused accounts', icon: 'pause', tone: 'warn' },
+    { key: 'deactivated', label: 'Deactivated', sub: 'Closed accounts', icon: 'stop', tone: 'info' },
+    { key: 'rejected', label: 'Rejected', sub: 'Applications declined', icon: 'stop', tone: 'info' },
+  ];
+  function renderAsmKpis() {
+    var row = document.getElementById('asm-stats-row');
+    if (!row || !window.OwnerFrame) return;
+    row.innerHTML = window.OwnerFrame.kpiRow(ASM_CARDS.map(function (c) {
+      var n = allAssemblerProfiles.filter(function (a) { return a.status === c.key; }).length;
+      var opens = n > 0 || c.key === 'active' || c.key === 'pending';
+      return { key: c.key, id: 'asm-' + c.key, tone: n ? c.tone : 'info', icon: c.icon, value: n, label: c.label, sub: c.sub, active: currentTierFilter === c.key, open: opens };
+    }));
+  }
+  document.getElementById('asm-stats-row').addEventListener('click', function(e) {
+    var card = e.target.closest('button[data-kpi]');
+    if (!card) return;
+    currentTierFilter = card.getAttribute('data-kpi');
+    document.querySelectorAll('#asm-tabs .tab').forEach(function(t){ t.classList.toggle('active', t.dataset.tier === currentTierFilter); });
     renderAssemblerTable();
   });
 
@@ -12099,6 +12190,7 @@ window.intelQuick = intelQuick;
       return renderAssemblerTable();
     }
 
+    renderAsmKpis();
     var tbody = document.getElementById('asm-tbody');
     if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="11" style="padding:2rem;text-align:center;color:var(--muted)">No Easers found</td></tr>'; return; }
     var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';

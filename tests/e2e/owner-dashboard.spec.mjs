@@ -114,9 +114,9 @@ test('Customers: repeat and spent come from Financials, not the bookings list', 
   const ann = page.locator('#cust-tbody tr', { hasText: 'ann@example.test' });
   const bo = page.locator('#cust-tbody tr', { hasText: 'bo@example.test' });
   await expect(ann).toContainText('$0.00');
-  await expect(ann).not.toContainText('REPEAT');
+  await expect(ann).not.toContainText('Repeat');
   await expect(bo).toContainText('$900.00');
-  await expect(bo).toContainText('REPEAT');
+  await expect(bo).toContainText('Repeat');
 });
 
 test('Menu badges refresh every minute without a page reload', async ({ page }) => {

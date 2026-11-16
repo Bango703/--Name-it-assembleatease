@@ -24,6 +24,7 @@ Start every task here (`docs/process/deep-execution-protocol.md`, section 4). Re
 ## Incidents
 - `docs/incidents/2026-11-13-live-e2e-dispatch-and-quote-defects.md`: five defects found by the live hybrid test (#449 to #453), causes and prevention.
 - `docs/incidents/2026-11-15-owner-console-live-review.md`: five problems the owner found in the live console (Messages off-screen, waitlisted onboarding refused, .webp on Google, squeezed items, cramped Market Demand).
+- `docs/incidents/2026-11-16-today-schedule-order.md`: Today and the Live Ops Today panel listed 11:00 AM above 8:00 AM; clock order on the server and the screen.
 - `docs/incidents/2026-11-13-easer-price-request-page.md`: the Easer price-request page did not say where a request stood; server stages and the rebuilt page.
 
 ## Architecture (docs/platform)
@@ -41,3 +42,4 @@ By area. Each file states its own "As of" date; check code when it is old.
 - Geography today: `api/_source-of-truth.js` (`isTexasZip`, `AUTOMATIC_DISPATCH_*`, `SERVICE_MARKETS`), `api/_booking-location.js`, `api/_easer-coverage.js`, `api/booking/_dispatch-internal.js` (`bookingLocation`, `findEligibleEasers`).
 - Custom quotes and Easer prices: `api/booking/_quote-state.js`, `api/booking/_quote-offers.js`, `api/booking/_quote-offer-invites.js`, `api/owner/quote-approve.js`.
 - Partner accounts: `api/_partners.js`, `api/owner/partners.js`, `api/_promotions.js`.
+- Owner console frame: `owner/assets/console-frame.js` (number cards, tabs with counts; every screen builds them here), styles in `owner/assets/console.css` ("every screen"); each card is the length of the list it opens (`tests/e2e/owner-console-screens.spec.mjs`).

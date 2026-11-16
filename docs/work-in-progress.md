@@ -31,7 +31,8 @@ Last verified: 2026-11-13. Active work only; the full prioritized backlog is `bu
 - Phase 3 (Cases) built; launch suite, 30 browser tests and governance:truth pass locally.
 - Phase 4 (Market Demand) built; launch suite, 31 browser tests and governance:truth pass locally.
 - Live since #456; the five fixes from the owner's live review shipped in #457 (2026-11-15).
-- Next action: check the fixes with the owner's real data; then the remaining screens (Live Ops, Today, Easers, Customers, Partners and the rest).
+- Phase 5 (every remaining screen, owner 2026-11-16) built on branch `feat/owner-console-all-screens` in worktree `aae-console-all`: Live Ops, Today, Messages, Phone Calls, Easers, Easer Waitlist, Customers, Partners, Gift Cards, Thumbtack, Reviews, Website Photos, Marketing, AI Intelligence on the frame through `owner/assets/console-frame.js`; Today schedule order fixed on the server and the screen. Launch suite, 46 browser tests and governance:truth pass locally.
+- Next action: owner says push; then check every screen with the owner's real data once signed in.
 
 ## 4. Waiting on the owner
 - Policy decisions 1 to 4 in the audit record.

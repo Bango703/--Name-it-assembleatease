@@ -40,7 +40,10 @@ const fnSource = (name) => {
     assert.equal(ctx.k(email, name), customerKeyFor(email, name), `${email}/${name}`);
   }
   assert.match(owner, /c\.completedJobs = customerTotalsByKey \? \(t \? t\.completedJobs : 0\) : null;/);
-  assert.match(owner, /var repeat = allCustomers\.filter\(function\(c\)\{return c\.completedJobs>1;\}\)\.length;/);
+  // Repeat = more than one completed job (Financials' count); the card is the
+  // length of the Repeat tab's list (owner console frame, 2026-11-16).
+  assert.match(owner, /var repeatList = searched\.filter\(function\(c\)\{ return c\.completedJobs > 1; \}\);/);
+  assert.match(owner, /value: known \? repeatList\.length : '\\u2014', label: 'Repeat customers'/);
   assert.match(owner, /\(c\.spent==null \? '—' : fmt\$\(c\.spent\)\)/, 'unknown spend shows unknown, never $0');
 }
 console.log('PASS customers: spent and repeat are Financials\' numbers, matched the same way');

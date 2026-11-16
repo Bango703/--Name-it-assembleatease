@@ -3,7 +3,24 @@
 // (api/_gift-cards.js owns the rules; balances come from the database ledger).
 (function () {
   'use strict';
-  var state = { data: null, loading: false, error: null, confirmVoid: null };
+  var state = { data: null, loading: false, error: null, confirmVoid: null, tab: 'all' };
+  // Tabs over the cards the server sent. "Not sent" and "Priority" are the same
+  // tests the server's summary counts (api/_gift-cards.js summarizeForOwner), so
+  // a card's number is the number of rows its tab lists.
+  var TABS = [
+    { key: 'all', label: 'All' },
+    { key: 'active', label: 'Active' },
+    { key: 'unsent', label: 'Email not sent' },
+    { key: 'priority', label: 'Priority' },
+    { key: 'void', label: 'Void' },
+  ];
+  function inTab(c, key) {
+    if (key === 'active') return c.status === 'active';
+    if (key === 'unsent') return c.status === 'active' && !c.deliveredAt;
+    if (key === 'priority') return c.status === 'active' && !!c.priorityUntil && new Date(c.priorityUntil) > new Date();
+    if (key === 'void') return c.status === 'void';
+    return true;
+  }
   function el(id) { return document.getElementById(id); }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(cents) { return '$' + (Number(cents || 0) / 100).toFixed(2); }
@@ -37,28 +54,36 @@
     el('giftcards-status').textContent = status;
     if (d.tableMissing) { body.innerHTML = '<p class="giftcards-note">' + esc(d.message) + '</p>'; return; }
     var s = d.summary;
-    var html = '<div class="giftcards-tiles">' +
-      tile('Sold', money(s.soldCents), s.soldCount + ' total: ' + s.giftCardCount + ' gift cards, ' + s.moveInPassCount + ' Move-In Passes') +
-      tile('Still owed in service', money(s.outstandingPaidCents), 'Paid credit not yet used. Never expires.') +
-      tile('Bonus credit live', money(s.outstandingBonusCents), 'Promotional. Expires on its date.') +
-      tile('Used on bookings', money(s.redeemedCents), '') +
-      tile('Emails not sent', String(s.undelivered), s.undelivered ? 'Resend from the list below.' : 'All delivered.') +
-      tile('Priority active', String(s.activePriority), 'Move-In Passes inside 30 days') +
-      '</div>';
+    var counts = {};
+    TABS.forEach(function (t) { counts[t.key] = d.cards.filter(function (c) { return inTab(c, t.key); }).length; });
+    var F = window.OwnerFrame;
+    if (F) {
+      el('giftcards-kpis').innerHTML = F.kpiRow([
+        { key: 'all', tone: 'brand', icon: 'gift', value: money(s.soldCents), label: 'Sold', sub: s.soldCount + ' sold: ' + s.giftCardCount + ' gift cards, ' + s.moveInPassCount + ' passes', active: state.tab === 'all' },
+        { key: 'owed', tone: 'warn', icon: 'money', value: money(s.outstandingPaidCents), label: 'Still owed in service', sub: 'Paid credit not used yet', open: false },
+        { key: 'bonus', tone: 'info', icon: 'tag', value: money(s.outstandingBonusCents), label: 'Bonus credit live', sub: 'Promotional, expires', open: false },
+        { key: 'used', tone: 'ok', icon: 'check', value: money(s.redeemedCents), label: 'Used on bookings', sub: 'Redeemed so far', open: false },
+        { key: 'unsent', tone: s.undelivered ? 'bad' : 'ok', icon: 'mail', value: s.undelivered, label: 'Emails not sent', sub: s.undelivered ? 'Resend from the list' : 'All delivered', active: state.tab === 'unsent', open: s.undelivered > 0 },
+        { key: 'priority', tone: 'brand', icon: 'clock', value: s.activePriority, label: 'Priority active', sub: 'Move-In Passes inside 30 days', active: state.tab === 'priority', open: s.activePriority > 0 },
+      ]);
+      el('giftcards-tabs').innerHTML = F.tabs(TABS.map(function (t) { return { key: t.key, label: t.label, count: counts[t.key] }; }), state.tab, 'data-gc-tab');
+    }
+    var html = '';
     if (!d.cards.length) {
-      html += '<p class="giftcards-muted">No gift cards or Move-In Passes sold yet.</p>';
-      body.innerHTML = html;
+      body.innerHTML = '<div class="v2-empty">No gift cards or Move-In Passes sold yet.</div>';
       return;
     }
-    html += '<div class="giftcards-tablewrap"><table class="giftcards-table"><thead><tr><th>Bought</th><th>Card</th><th>Paid</th><th>Left</th><th>To</th><th>From</th><th>Email</th><th></th></tr></thead><tbody>';
-    d.cards.forEach(function (c) {
+    var rows = d.cards.filter(function (c) { return inTab(c, state.tab); });
+    html += '<div class="v2-scroll"><table class="giftcards-table c-table"><colgroup><col style="width:9%"><col style="width:15%"><col style="width:7%"><col style="width:12%"><col style="width:15%"><col style="width:15%"><col style="width:11%"><col style="width:16%"></colgroup><thead><tr><th>Bought</th><th>Card</th><th>Paid</th><th>Left</th><th>To</th><th>From</th><th>Email</th><th></th></tr></thead><tbody>';
+    if (!rows.length) html += '<tr><td colspan="8" class="v2-empty">No cards in this tab.</td></tr>';
+    rows.forEach(function (c) {
       var left = c.status === 'void' ? 'Void' : money(c.balancePaidCents + c.balanceBonusCents) + (c.balanceBonusCents ? ' (' + money(c.balanceBonusCents) + ' bonus, ends ' + day(c.bonusExpiresAt) + ')' : '');
       var mail = c.deliveredAt ? 'Sent ' + day(c.deliveredAt) : (c.deliveryError ? 'Failed: ' + c.deliveryError : 'Not sent yet');
       var actions = c.status === 'active'
-        ? '<button type="button" class="giftcards-btn" data-resend="' + esc(c.id) + '">Resend code</button>' +
+        ? '<button type="button" class="btn c-sm" data-resend="' + esc(c.id) + '">Resend code</button>' +
           (state.confirmVoid === c.id
-            ? ' <button type="button" class="giftcards-btn giftcards-danger" data-void-confirm="' + esc(c.id) + '">Confirm void</button> <button type="button" class="giftcards-btn" data-void-cancel="1">Keep</button>'
-            : ' <button type="button" class="giftcards-btn" data-void="' + esc(c.id) + '">Void</button>')
+            ? ' <button type="button" class="btn btn-red c-sm" data-void-confirm="' + esc(c.id) + '">Confirm void</button> <button type="button" class="btn c-sm" data-void-cancel="1">Keep</button>'
+            : ' <button type="button" class="btn c-sm" data-void="' + esc(c.id) + '">Void</button>')
         : '';
       html += '<tr' + (c.status === 'void' ? ' class="giftcards-void"' : '') + '>' +
         '<td>' + esc(day(c.createdAt)) + '</td>' +
@@ -71,15 +96,15 @@
         '<td class="giftcards-actions">' + actions + '</td></tr>';
     });
     html += '</tbody></table></div>';
-    if (state.confirmVoid) html += '<p class="giftcards-muted">Voiding stops any remaining credit on the card from being used. Use it for a refunded or disputed purchase.</p>';
-    html += returnCreditForm();
+    html += '<div class="v2-foot">' + returnCreditForm()
+      + (state.confirmVoid ? '<span class="giftcards-muted">Voiding stops any remaining credit on the card from being used. Use it for a refunded or disputed purchase.</span>' : '') + '</div>';
     body.innerHTML = html;
   }
 
   function returnCreditForm() {
     return '<form class="giftcards-return" id="giftcards-return-form"><label class="giftcards-muted" for="giftcards-return-ref">Return gift card credit from a refunded booking</label>' +
-      '<div class="giftcards-return-row"><input id="giftcards-return-ref" placeholder="AAE-ABC123XYZ0" maxlength="24" autocomplete="off"> ' +
-      '<button type="submit" class="giftcards-btn">Return credit</button></div></form>';
+      '<span class="giftcards-return-row"><input id="giftcards-return-ref" placeholder="AAE-ABC123XYZ0" maxlength="24" autocomplete="off"> ' +
+      '<button type="submit" class="btn c-sm">Return credit</button></span></form>';
   }
 
   function updateBadge() {
@@ -115,6 +140,8 @@
   document.addEventListener('click', function (event) {
     var t = event.target;
     if (!t || !t.closest || !t.closest('#giftcards-view')) return;
+    var pick = t.closest('[data-gc-tab], #giftcards-kpis button[data-kpi]');
+    if (pick) { state.tab = pick.getAttribute('data-gc-tab') || pick.getAttribute('data-kpi'); render(); return; }
     if (t.dataset.resend) { t.disabled = true; act({ action: 'resend', id: t.dataset.resend }, 'Sent.'); }
     else if (t.dataset.void) { state.confirmVoid = t.dataset.void; render(); }
     else if (t.dataset.voidCancel) { state.confirmVoid = null; render(); }
