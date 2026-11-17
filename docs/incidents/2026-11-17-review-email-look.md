@@ -40,3 +40,17 @@ The `reviews` table holds no rows at all; there have been 11 completed bookings.
 ## Prevention
 - An email that builds its own complete page skips the house frame. New customer emails are fragments. Two customer emails still have their own layout without the logo header, the app sign-in code (`api/customer/sign-in.js`) and the AssembleCash code (`api/assemblecash/request-code.js`); EMAIL-FRAME-STRAYS in the backlog.
 - A claim about inbox placement is measured before it changes a design. REVIEW-TAP-MEASURE in the backlog records star taps so the next decision rests on data.
+
+## Follow-up the same day: the owner's check failed with a message that hid why
+After #461 went live, the owner pressed Request Review to see the new email and got "Review email delivery was not accepted. Nothing was marked sent." Vercel logs show eight presses between 2:07 and 2:20 PM:
+- Six on the two test bookings (AAE-GX0XLYQM, AAE-4NSSNOA): `prepareNotification` (`api/_notification-policy.js`) refuses routine mail for test bookings, and review requests are routine (quiet hours). The rule is meant for automatic mail; it also blocked the owner's deliberate send, so the check suggested after #461 could not work.
+- Two on a real customer (AAE-DVSNHXE4OO) who clicked Unsubscribe on Oct 24: the opt-out list stopped the send, as the law requires.
+
+Both blocks were right; `api/review-request.js` turned every refusal into one sentence.
+
+Fix:
+- `reviewSendRefusal` in `api/review-request.js` states the reason: the customer unsubscribed; automatic emails are not sent for test bookings; or the email service's own reason.
+- The owner's send carries `ownerInitiated: true`, and `prepareNotification` lets that one through to a test booking. The automatic sender never sets it, quiet hours still apply, and real customers are unaffected.
+- Both test bookings send to an @assembleatease.com mailbox (checked by domain, read-only).
+
+Test: `scripts/test-review-request-email.mjs` section 7 runs the real `prepareNotification` against a fake database. An automatic review on a test booking is refused; the owner's send reaches the reservation; the cron never sets the flag; the old catch-all sentence is gone.

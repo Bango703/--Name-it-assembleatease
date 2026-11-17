@@ -69,7 +69,10 @@ export async function prepareNotification(sb, { channel, recipient, subject, met
     const timeZone = meta.timeZone || appointmentTimeZone(booking || {});
     const type = String(meta.notificationType || 'transactional');
     const routine = isRoutineNotification(type, meta.recipientType, meta.routine);
-    if (routine && booking?.is_test_booking === true) return { ok: false, skipped: 'test_booking', error: 'Routine notifications are disabled for test bookings.' };
+    // A test booking gets no automatic (routine) email or text. The owner sending
+    // one on purpose from the dashboard is not automatic: it is how a template is
+    // checked before a customer sees it (owner, 2026-11-17, review request).
+    if (routine && booking?.is_test_booking === true && meta.ownerInitiated !== true) return { ok: false, skipped: 'test_booking', error: 'Routine notifications are disabled for test bookings.' };
     let recipientSnapshot = null;
     if (meta.recipientType === 'easer' && meta.recipientUserId && /^(easer_tier_|easer_coaching|easer_onboarding_link_reissued|identity_resume_link_reissued|easer_application_received|approval)/.test(type)) {
       const { data: profile, error: profileError } = await sb.from('profiles')
