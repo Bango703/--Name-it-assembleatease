@@ -22,14 +22,16 @@ console.log('PASS the offer: $10 off a $100+ booking, random single-use codes');
 
 // ── Any rating qualifies; only the website review is rewarded ───────────────
 // The offer and its terms are shown on /review before submitting. The request
-// email is a plain personal note (owner, 2026-10-23: it was landing in Promotions)
-// and does not pitch the reward.
+// email does not pitch the reward and carries no photo (owner, 2026-10-23: the
+// old one read like an advert). Since 2026-11-17 it answers with five tappable
+// stars, each a text link to /review with that rating chosen: one action, not a
+// grid of image buttons. scripts/test-review-request-email.mjs holds the layout.
 const reviewPage = await read('review.html');
 assert.match(reviewPage, /Any rating qualifies\./, 'the reward never depends on the rating');
 assert.match(reviewPage, /Google reviews are optional and not rewarded/, 'Google reviews are never incentivized');
 const email = await read('api/_review-email.js');
 assert.doesNotMatch(email, /\$10|thank-you offer|<img/, 'the request email carries no offer or images');
-assert.doesNotMatch(email, /&#9733;|starRow/, 'no star grid');
+assert.doesNotMatch(email, /<img|background-image/, 'the stars are text links, never images');
 // Owner, 2026-10-23: customer email speaks as the business, never as one person.
 assert.doesNotMatch(email, /Travis|I will|I would/, 'the review email speaks as the business');
 assert.match(email, /The AssembleAtEase Team/);

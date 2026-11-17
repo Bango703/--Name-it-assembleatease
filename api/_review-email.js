@@ -11,22 +11,34 @@ import { loadCustomerFacingCompletionPhoto } from './booking/_completion-evidenc
 export const GOOGLE_REVIEW_URL = (process.env.GOOGLE_REVIEW_URL || '').trim()
   || 'https://g.page/r/CeHfRKINOeZsEBM/review';
 
-// Owner, 2026-10-23: no reviews came back, and the request was landing in
-// Gmail's Promotions tab. It read like an advert: a star grid, a large photo, a
-// discount box and button blocks. It now reads like a plain note from the business: a
-// few plain lines, two text links and a signature. The thank-you reward and its
-// "any rating qualifies" terms are shown on /review before submitting, and
-// the opt-out footer still comes from the marketing path in api/_email.js.
+// How it looks (owner, 2026-11-17). The request is a FRAGMENT, so sendEmail puts
+// it in the one email frame every other AssembleAtEase email uses: logo header,
+// white card, house footer. From Oct 23 to Nov 17 it was a hand-built bare page
+// (no header, no card, the footer stapled under it), because the earlier
+// designed version was thought to land in Gmail's Promotions tab. Neither
+// version brought back a review, and opens were never measured, so that theory
+// was never tested. See docs/incidents/2026-11-17-review-email-look.md.
+//
+// What it is now, from how marketplaces ask: the job (service, day, pro), one
+// question, and the answer as five tappable stars. Each star opens /review with
+// that rating already chosen (review.html reads ?rating=). The Google link sits
+// under the stars for everyone, never only for high ratings (Google's policy and
+// the FTC review rule both forbid selective asking). Still no photo, no offer
+// and no button blocks: those read as an advert. The thank-you reward and its
+// "any rating qualifies" terms stay on /review, shown before submitting.
+
+// The same gold as the lit stars on /review, so the tap and the page match.
+const STAR_GOLD = '#f59e0b';
 
 // First request and one follow-up. Step is 1-based.
 export const STEP_COPY = {
   1: {
     subject: (b, first) => (first ? `How did it go, ${first}?` : `How did your ${b.service} go?`),
-    opening: (b, pro) => `Thanks for booking with AssembleAtEase. ${pro ? `${esc(pro)} finished your ${esc(b.service)} job` : `Your ${esc(b.service)} job is finished`}. How did it go?`,
+    opening: (first) => `Hi ${esc(first || 'there')}, thanks for booking with AssembleAtEase. Tap a star to rate the job.`,
   },
   2: {
     subject: (b) => `Quick follow-up on your ${b.service} job`,
-    opening: (b) => `Following up once on your ${esc(b.service)} job. If you have a minute, we would love to hear how it went.`,
+    opening: (first, b) => `Hi ${esc(first || 'there')}, following up once on your ${esc(b.service)} job. Tap a star to rate it.`,
   },
 };
 
@@ -35,21 +47,51 @@ function firstNameOf(b) {
   return first ? normalizePersonName(first) : '';
 }
 
+// "Tue, Nov 11" in Texas time, or '' when the booking has no completion time.
+export function finishedOn(b) {
+  const at = b?.completed_at ? new Date(b.completed_at) : null;
+  if (!at || Number.isNaN(at.getTime())) return '';
+  return new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', weekday: 'short', month: 'short', day: 'numeric' }).format(at);
+}
+
+// The review link with a rating already chosen.
+export function ratingUrl(url, rating) {
+  return `${url}${url.includes('?') ? '&' : '?'}rating=${rating}`;
+}
+
+function ratingStars(url) {
+  const cells = [1, 2, 3, 4, 5].map(n => {
+    const label = `${n} star${n === 1 ? '' : 's'}`;
+    return `<td style="padding:0 3px"><a href="${ratingUrl(url, n)}" title="${label}" aria-label="${label}" style="display:block;font-size:40px;line-height:44px;color:${STAR_GOLD};text-decoration:none">&#9733;</a></td>`;
+  }).join('');
+  // The labels share the stars' table, so they sit under the first and last star
+  // whatever width the client draws the glyph at.
+  const label = 'padding-top:2px;font-size:12px;color:#71717a;white-space:nowrap';
+  return `<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto"><tr>${cells}</tr>
+<tr><td colspan="2" style="${label};text-align:left">Poor</td><td></td><td colspan="2" style="${label};text-align:right">Excellent</td></tr></table>`;
+}
+
+/**
+ * The review request: { subject, html, preheader }. `html` is a fragment for
+ * sendEmail to frame; the caller adds nothing but the unsubscribe block.
+ */
 export function buildReviewEmail(step, b, url, { proFirst } = {}) {
   const c = STEP_COPY[step] || STEP_COPY[1];
   const first = firstNameOf(b);
-  const p = 'margin:0 0 14px;font-size:15px;line-height:1.6;color:#1a1a1a';
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
-<div style="max-width:560px;margin:0 auto;padding:24px 18px">
-  <p style="${p}">Hi ${esc(first || 'there')},</p>
-  <p style="${p}">${c.opening(b, proFirst)}</p>
-  <p style="${p}">If you have a minute, you can leave a quick review here: <a href="${url}" style="color:#0369a1">rate your ${esc(b.service)} job</a>. You can also leave one on Google: <a href="${GOOGLE_REVIEW_URL}" style="color:#0369a1">Review us on Google</a>.</p>
-  <p style="${p}">If anything is not right, reply to this email and we will take care of it.</p>
-  <p style="${p}">Did your pro offer to work with you directly, outside AssembleAtEase? Reply to this email and tell us.</p>
-  <p style="margin:0;font-size:15px;line-height:1.6;color:#1a1a1a">Thanks,<br/>The AssembleAtEase Team</p>
-  <p style="margin:18px 0 0;font-size:12px;color:#71717a">Serving customers across Texas</p>
-</div></body></html>`;
-  return { subject: c.subject(b, first), html };
+  const pro = String(proFirst || '').trim();
+  const when = finishedOn(b);
+  const html = `<p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#0099CC">${esc(b.service)}${when ? ` &middot; ${esc(when)}` : ''}</p>
+<p style="margin:0 0 12px;font-size:22px;font-weight:700;line-height:1.3;color:#1a1a1a">${pro ? `How did ${esc(pro)} do?` : 'How did it go?'}</p>
+<p style="margin:0 0 22px;font-size:15px;line-height:1.6;color:#3f3f46">${c.opening(first, b)}</p>
+${ratingStars(url)}
+<p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:#71717a;text-align:center"><a href="${url}" style="color:#0099CC">Open the review page</a> &nbsp;&middot;&nbsp; <a href="${GOOGLE_REVIEW_URL}" style="color:#0099CC">Review us on Google</a></p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0 0;background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:14px 16px;font-size:13px;line-height:1.6;color:#52525b">
+  <p style="margin:0 0 6px">If anything is not right, reply to this email and we will take care of it.</p>
+  <p style="margin:0">Did your pro offer to work with you directly, outside AssembleAtEase? Reply to this email and tell us.</p>
+</td></tr></table>
+<p style="margin:22px 0 0;font-size:15px;line-height:1.6;color:#3f3f46">Thanks,<br/>The AssembleAtEase Team</p>`;
+  const preheader = `Tap a star to rate your ${b.service} job.`;
+  return { subject: c.subject(b, first), html, preheader };
 }
 
 // The Easer's completion photo as a signed URL (30-day), or null. Reuses the same

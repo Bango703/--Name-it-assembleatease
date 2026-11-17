@@ -44,7 +44,7 @@ export default async function handler(req, res) {
   }
 
   // Candidates: completed within the age window, not yet at the request cap.
-  const COLS_BASE = 'id, ref, service, customer_email, completed_at, review_requested_at, assembler_id, assembler_name, job_started_at, evidence_requested_at, source, payment_status, status, return_visit_required, is_test_booking';
+  const COLS_BASE = 'id, ref, service, customer_name, customer_email, completed_at, review_requested_at, assembler_id, assembler_name, job_started_at, evidence_requested_at, source, payment_status, status, return_visit_required, is_test_booking';
   const cutoff = new Date(now - MAX_AGE_DAYS * 86400000).toISOString();
 
   // Deploy-order-safe: review_request_count (migration 064) may not be applied yet.
@@ -133,7 +133,7 @@ export default async function handler(req, res) {
       const url = `https://www.assembleatease.com/review?ref=${encodeURIComponent(b.ref)}&email=${encodeURIComponent(b.customer_email)}&token=${encodeURIComponent(reviewToken)}`;
       const photoUrl = await completionPhotoUrl(sb, b);
       const proFirst = (b.assembler_name || '').split(' ')[0] || '';
-      const { subject, html } = buildReviewEmail(step, b, url, { photoUrl, proFirst });
+      const { subject, html, preheader } = buildReviewEmail(step, b, url, { photoUrl, proFirst });
 
       // Hold the provider's pace. This loop can reach 100 bookings; unpaced that
       // is far past Resend's 2/second default, and the overflow returns 429 —
@@ -142,11 +142,14 @@ export default async function handler(req, res) {
       const emailResult = await sendEmail({
         to: b.customer_email,
         subject,
-        html: html.replace('</body>', `${broadcastFooter(b.customer_email)}</body>`),
+        // A fragment: sendEmail frames it like every other email. The unsubscribe
+        // block goes inside the card, so the footer does not offer a second opt-out.
+        html: `${html}${broadcastFooter(b.customer_email)}`,
         replyTo: ownerEmail(),
         meta: {
           bookingId: b.id,
           notificationType: `review_request_${step}`,
+          preheader,
           recipientType: 'customer',
           notificationKey: `review:${b.id}:${step}`,
           routine: true,
