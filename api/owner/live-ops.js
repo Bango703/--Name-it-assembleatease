@@ -22,6 +22,7 @@ import {
   isOperationalBooking,
   operationalDate,
   operationalTime,
+  orderByStartTime,
 } from './_active-jobs.js';
 
 export function classifyRuntimeFailures(rows = [], activeAfter) {
@@ -931,8 +932,8 @@ export default async function handler(req, res) {
   const busyEasers = onlineEasers.filter(e => assignedIds.has(e.id));
   const freeEasers = onlineEasers.filter(e => !assignedIds.has(e.id));
 
-  // ── Today's schedule ─────────────────────────────────────────────
-  const todayAll = bookings
+  // ── Today's schedule, in clock order ─────────────────────────────
+  const todayAll = orderByStartTime(bookings
     .filter(b => {
       const completedReturnToday = b.status === 'completed'
         && b.return_visit_date === todayStr
@@ -950,7 +951,7 @@ export default async function handler(req, res) {
         ? b.return_visit_time
         : operationalTime(b),
       is_return_visit: b.return_visit_date === todayStr && (b.return_visit_required || b.return_visit_completed_at),
-    }));
+    })));
 
   // 72 hours: long enough to catch an overnight failure, short enough that a
   // resolved problem stops shouting.

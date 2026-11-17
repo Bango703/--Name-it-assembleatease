@@ -89,13 +89,20 @@
     });
   }
 
+  // Number cards. Each list card counts what it opens: a card clears the type,
+  // city and search filters, so the list it opens holds exactly that many.
   function renderHeader() {
-    var s = summary(); var n = s.contactedThisWeek.length;
-    el('partners-week').innerHTML = '<span class="partners-week-num">' + n + ' / ' + esc(s.weeklyTarget) + '</span><span class="partners-week-bar"><i style="width:' + Math.min(100, Math.round(n / (s.weeklyTarget || 10) * 100)) + '%"></i></span>';
-    el('partners-week').setAttribute('aria-pressed', String(state.focus === 'week'));
-    el('partners-due').textContent = s.followUpDue.length + (s.followUpDue.length === 1 ? ' follow-up due' : ' follow-ups due');
-    el('partners-due').setAttribute('aria-pressed', String(state.focus === 'due'));
-    el('partners-due').disabled = !s.followUpDue.length && state.focus !== 'due';
+    var F = window.OwnerFrame; if (!F) return;
+    var s = summary(); var n = s.contactedThisWeek.length; var due = s.followUpDue.length;
+    var all = partners();
+    var known = all.every(function(p) { return p.bookings !== null; });
+    var booked = all.reduce(function(t, p) { return t + (p.bookings || 0); }, 0);
+    el('partners-kpis').innerHTML = F.kpiRow([
+      { key: 'all', tone: 'brand', icon: 'link', value: all.length, label: 'Partners', sub: 'On the list', active: !state.focus && state.stage === 'all' },
+      { key: 'week', tone: n >= (s.weeklyTarget || 10) ? 'ok' : 'warn', icon: 'send', value: n + ' / ' + (s.weeklyTarget || 10), label: 'Contacted this week', sub: 'Weekly target ' + (s.weeklyTarget || 10), active: state.focus === 'week' },
+      { key: 'due', tone: due ? 'bad' : 'ok', icon: 'clock', value: due, label: 'Follow-ups due', sub: due ? 'Due today or earlier' : 'Nothing due', active: state.focus === 'due', open: due > 0 || state.focus === 'due' },
+      { key: 'booked', tone: 'ok', icon: 'calendar', value: known ? booked : '\u2014', label: 'Bookings from partners', sub: known ? 'Counted from booking records' : 'Counts unavailable', open: false },
+    ]);
   }
   function renderFilters() {
     var data = state.data;
@@ -110,10 +117,7 @@
     if (!addKind.options.length && data.kinds) addKind.innerHTML = data.kinds.map(function(k) { return '<option value="' + esc(k.id) + '">' + esc(k.label) + '</option>'; }).join('');
     var base = baseList();
     var chips = [{ id: 'all', label: 'All', count: base.length }].concat((data.stages || []).map(function(s) { return { id: s.id, label: s.label, count: base.filter(function(p) { return p.stage === s.id; }).length }; }));
-    el('partners-stages').innerHTML = chips.map(function(c) {
-      return '<button type="button" class="partners-chip" data-partner-stage-filter="' + esc(c.id) + '" aria-pressed="' + (state.stage === c.id) + '">' +
-        (c.id !== 'all' ? '<span class="partners-dot" data-stage="' + esc(c.id) + '"></span>' : '') + esc(c.label) + ' <span class="partners-chip-count">' + c.count + '</span></button>';
-    }).join('');
+    el('partners-stages').innerHTML = window.OwnerFrame ? window.OwnerFrame.tabs(chips.map(function(c) { return { key: c.id, label: c.label, count: c.count }; }), state.stage, 'data-partner-stage-filter') : '';
   }
   function renderList() {
     var list = visibleList(); var due = summary().followUpDue;
@@ -353,8 +357,13 @@
     }
     if ((t = event.target.closest('[data-partner-stage-filter]'))) { state.stage = t.dataset.partnerStageFilter; state.limit = 80; renderFilters(); renderList(); return; }
     if (event.target.closest('#partners-refresh')) { load(); return; }
-    if (event.target.closest('#partners-due')) { state.focus = state.focus === 'due' ? null : 'due'; state.stage = 'all'; render(); return; }
-    if (event.target.closest('#partners-week')) { state.focus = state.focus === 'week' ? null : 'week'; state.stage = 'all'; render(); return; }
+    if ((t = event.target.closest('#partners-kpis button[data-kpi]'))) {
+      var key = t.dataset.kpi;
+      state.focus = key === 'due' || key === 'week' ? (state.focus === key ? null : key) : null;
+      state.stage = 'all'; state.kind = 'all'; state.city = 'all'; state.q = ''; state.limit = 80;
+      if (el('partners-search')) el('partners-search').value = '';
+      render(); return;
+    }
     if (event.target.closest('[data-partner-more]')) { state.limit += 100; renderList(); return; }
     if ((t = event.target.closest('[data-partner-copy]'))) { copy(t.dataset.partnerCopy, t.dataset.partnerCopyWhat || 'Text'); return; }
     if ((t = event.target.closest('[data-partner-pitch]'))) { state.pitch = t.dataset.partnerPitch; renderDetail(); return; }

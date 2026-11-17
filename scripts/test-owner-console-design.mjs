@@ -25,7 +25,12 @@ assert.ok((live.match(/cTable\(/g) || []).length >= 5, 'Live Ops lists use cTabl
 
 // A count is the length of the list it summarises.
 assert.match(live, /var alertCount = \(d\.alerts \|\| \[\]\)\.length;/, 'the sidebar badge counts the Needs you now list');
-assert.match(live, /\{ label: 'Need you now', val: alerts\.length/, 'the strip counts the same list');
+// Every Live Ops number card is the length of a list on the page (2026-11-16).
+assert.match(live, /\{ key: 'alerts',[^}]*value: alerts\.length, label: 'Need you now'/, 'the Need you now card counts the same list');
+assert.match(live, /\{ key: 'active',[^}]*value: \(d\.activeJobs \|\| \[\]\)\.length/, 'Active jobs counts the active list');
+assert.match(live, /\{ key: 'today',[^}]*value: \(d\.todaySchedule \|\| \[\]\)\.length/, 'Today counts the schedule list');
+assert.match(live, /\{ key: 'easer',[^}]*value: actionGroups\.easer\.length/, 'Need an Easer counts its action tab');
+assert.match(live, /\{ key: 'free',[^}]*value: freeEasers\.length/, 'Easers free counts the available Easers');
 
 // Red counts only where the owner must act.
 for (const id of ['nav-liveops-alerts', 'nav-inbox', 'nav-cases']) {

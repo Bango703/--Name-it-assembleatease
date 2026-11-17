@@ -4,7 +4,7 @@
 // reply through /api/owner/sms-messages.
 (function() {
   'use strict';
-  var state = { data: null, loading: false, onlyReply: false, badgeStarted: false, selectedSmsId: null, smsLoading: false, sendingSms: false };
+  var state = { data: null, loading: false, tab: 'all', badgeStarted: false, selectedSmsId: null, smsLoading: false, sendingSms: false };
   function el(id) { return document.getElementById(id); }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function headers() { return typeof window._ownerHeaders === 'function' ? window._ownerHeaders() : {}; }
@@ -44,12 +44,32 @@
   function needsReply(c, data) {
     return data.needsReply.indexOf(c.kind === 'sms' ? 'sms:' + c.conversationId : c.bookingId) !== -1;
   }
+  // Cards and tabs: each count is the number of conversations its tab lists.
+  var TABS = [
+    { key: 'all', label: 'All' },
+    { key: 'reply', label: 'Waiting for you' },
+    { key: 'unread', label: 'Unread' },
+  ];
+  function inTab(c, key, data) {
+    if (key === 'reply') return needsReply(c, data);
+    if (key === 'unread') return Number(c.unreadForOwner || 0) > 0;
+    return true;
+  }
+  function renderFrame(data) {
+    var F = window.OwnerFrame; if (!F) return;
+    var counts = {};
+    TABS.forEach(function(t) { counts[t.key] = data.conversations.filter(function(c) { return inTab(c, t.key, data); }).length; });
+    el('inbox-kpis').innerHTML = F.kpiRow([
+      { key: 'all', tone: 'brand', icon: 'chat', value: counts.all, label: 'Conversations', sub: 'Texts to the business number', active: state.tab === 'all' },
+      { key: 'reply', tone: counts.reply ? 'bad' : 'ok', icon: 'send', value: counts.reply, label: 'Waiting for you', sub: counts.reply ? 'Need a reply' : 'Nothing waiting', active: state.tab === 'reply' },
+      { key: 'unread', tone: counts.unread ? 'warn' : 'info', icon: 'mail', value: counts.unread, label: 'Unread', sub: 'Not opened yet', active: state.tab === 'unread' },
+    ]);
+    el('inbox-tabs').innerHTML = F.tabs(TABS.map(function(t) { return { key: t.key, label: t.label, count: counts[t.key] }; }), state.tab, 'data-inbox-tab');
+  }
   function render() {
     var data = state.data; if (!data) return;
-    var list = data.conversations.filter(function(c) { return !state.onlyReply || needsReply(c, data); });
-    var btn = el('inbox-filter-reply');
-    btn.setAttribute('aria-pressed', String(state.onlyReply));
-    btn.textContent = 'Waiting for you (' + data.needsReply.length + ')';
+    var list = data.conversations.filter(function(c) { return inTab(c, state.tab, data); });
+    renderFrame(data);
     var notes = [];
     if (data.smsAvailable === false) {
       notes.push('SMS conversations could not be loaded. '
@@ -57,7 +77,7 @@
     }
     el('inbox-notice').hidden = !notes.length; el('inbox-notice').textContent = notes.join(' ');
     if (!list.length) {
-      el('inbox-list').innerHTML = '<div class="inbox-empty">' + (state.onlyReply ? 'Nothing is waiting for your reply.' : 'No SMS messages yet. Texts to the business number will appear here.') + '</div>';
+      el('inbox-list').innerHTML = '<div class="inbox-empty">' + (state.tab === 'reply' ? 'Nothing is waiting for your reply.' : state.tab === 'unread' ? 'Nothing unread.' : 'No SMS messages yet. Texts to the business number will appear here.') + '</div>';
       return;
     }
     el('inbox-list').innerHTML = list.map(function(c) {
@@ -187,7 +207,8 @@
     if (row) { await openSms(row.dataset.inboxSms); return; }
     if (event.target.closest('#sms-reply-send')) { await sendSmsReply(); return; }
     if (event.target.closest('#inbox-refresh')) { load(); return; }
-    if (event.target.closest('#inbox-filter-reply')) { state.onlyReply = !state.onlyReply; render(); }
+    var pick = event.target.closest('[data-inbox-tab]') || event.target.closest('#inbox-kpis [data-kpi]');
+    if (pick) { state.tab = pick.getAttribute('data-inbox-tab') || pick.getAttribute('data-kpi'); render(); }
   });
   window.OwnerInbox = { load: load, refresh: load, loadBadge: loadBadge };
 })();

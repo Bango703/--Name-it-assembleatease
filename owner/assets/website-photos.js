@@ -158,10 +158,16 @@
     if (!d) { view.innerHTML = '<div class="wp-note">Loading photos…</div>'; return; }
     var counts = d.counts || {};
     var countFor = { available: counts.available || 0, collected: counts.collected || 0, on_website: counts.onWebsite || 0 };
-    var tabs = '<div class="tabs wp-tabs">' + TABS.map(function (t) {
+    var tabs = '<div class="tabs bk-tabs wp-tabs">' + TABS.map(function (t) {
       return '<button type="button" class="tab' + (state.tab === t.key ? ' active' : '') + '" data-wp-tab="' + t.key + '">'
-        + esc(t.label) + '<span class="tab-count">' + countFor[t.key] + '</span></button>';
+        + esc(t.label) + ' <span class="tab-count">' + countFor[t.key] + '</span></button>';
     }).join('') + '</div>';
+    var F = window.OwnerFrame;
+    var cards = F ? F.kpiRow([
+      { key: 'available', tone: 'brand', icon: 'photo', value: countFor.available, label: 'Job photos', sub: 'From finished jobs', active: state.tab === 'available' },
+      { key: 'collected', tone: 'warn', icon: 'star', value: countFor.collected, label: 'Collection', sub: 'Saved, not posted yet', active: state.tab === 'collected' },
+      { key: 'on_website', tone: 'ok', icon: 'eye', value: countFor.on_website, label: 'On website', sub: 'Posted to service pages', active: state.tab === 'on_website' },
+    ]) : '';
     var photos = (d.photos || []).filter(function (p) { return p.state === state.tab; });
     var grid = photos.length
       ? '<div class="wp-grid">' + photos.map(function (p) {
@@ -174,8 +180,8 @@
           + '</figcaption></figure>';
       }).join('') + '</div>'
       : '<div class="empty-state"><div class="empty-state-title">Nothing here yet</div><div class="empty-state-desc">' + esc(EMPTY[state.tab]) + '</div></div>';
-    view.innerHTML = '<div class="wp-note">Photos of finished work from bookings under the current Terms. Save the ones you like to the collection, then post them to a service page when you are ready.</div>'
-      + tabs + grid;
+    view.innerHTML = cards + '<div class="v2-toolbar">' + tabs + '<span class="v2-meta">Bookings under the current Terms only</span></div>'
+      + '<div class="v2-card v2-fill"><div class="v2-scroll wp-scroll">' + grid + '</div></div>';
   }
 
   async function load() {
@@ -198,9 +204,9 @@
   }
 
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-wp-tab]');
+    var t = e.target.closest('[data-wp-tab], #website-photos-view button[data-kpi]');
     if (!t) return;
-    state.tab = t.getAttribute('data-wp-tab');
+    state.tab = t.getAttribute('data-wp-tab') || t.getAttribute('data-kpi');
     render();
   });
 
