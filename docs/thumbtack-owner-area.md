@@ -1,4 +1,6 @@
-# Thumbtack owner area
+# Thumbtack owner area (retired 2026-11-16)
+
+**Retired.** The owner stopped using Thumbtack on 2026-11-16. The Thumbtack screen, `api/owner/thumbtack.js` and the lead webhook `api/webhooks/thumbtack.js` were removed on branch `chore/remove-thumbtack`; the dashboard no longer offers Thumbtack when creating a booking or recording a payment. The two past Thumbtack bookings keep their record, payment, payout and reporting handling. The `thumbtack_leads` and `thumbtack_webhook_events` tables stay (no data deleted). What follows describes the area as it was.
 
 The owner console has a dedicated Thumbtack view at **Growth → Thumbtack**. It stores lead summaries and message previews from inbound Thumbtack webhooks, tracks lead charges separately from refunds and courtesy credits, and links a Thumbtack lead to an AAE booking for completed-job return reporting.
 

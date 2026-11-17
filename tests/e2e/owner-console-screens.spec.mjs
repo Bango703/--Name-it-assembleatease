@@ -96,19 +96,6 @@ const GIFT = {
   summary: { soldCount: 12, soldCents: 60000, giftCardCount: 6, moveInPassCount: 6, outstandingPaidCents: 22500, outstandingBonusCents: 0, redeemedCents: 22500, undelivered: 2, activePriority: 3, voided: 3 },
 };
 
-const LEAD_OUTCOME = i => (i < 8 ? 'open' : i < 17 ? 'booked' : 'not_converted');
-const LEADS = Array.from({ length: 20 }, (_, i) => ({
-  negotiation_id: `neg-${i}`, service: 'Furniture Assembly', city: 'Austin', state: 'TX', lead_status: 'new', lead_created_at: '2026-11-12T12:00:00Z',
-  lead_price_cents: 1800, refunded_cents: 0, credited_cents: 0, owner_outcome: LEAD_OUTCOME(i),
-  booking_id: LEAD_OUTCOME(i) === 'booked' ? u(800 + i) : null,
-  booking: LEAD_OUTCOME(i) === 'booked' ? { id: u(800 + i), ref: `AAE-TT${i}`, status: 'completed' } : null,
-  latest_message_preview: i === 0 ? 'Can you come Saturday?' : '', platformGrossCents: null,
-}));
-const THUMBTACK = {
-  leads: LEADS, bookings: [], warnings: [],
-  summary: { leads: 20, linkedJobs: 9, leadCostCents: 36000, refundsCents: 0, creditsCents: 0, netLeadCostCents: 36000, platformGrossCents: 81000, netAfterLeadCostCents: 45000 },
-};
-
 const REVIEWS = [
   ...Array.from({ length: 16 }, (_, i) => ({ id: u(900 + i), rating: i < 10 ? 5 : 4, approved: i < 12, customer_name: `Reviewer ${i}`, service: 'TV Mounting', created_at: '2026-11-10T12:00:00Z', body: i % 3 ? 'Quick and careful work.' : '' })),
   { id: u(950), rating: 5, approved: true, is_test: true, customer_name: 'Test', service: 'TV Mounting', created_at: '2026-11-10T12:00:00Z' },
@@ -136,7 +123,6 @@ const API = {
   '/api/owner/waitlist': { entries: WAITLIST, stats: { pending: 15 } },
   '/api/owner/partners': PARTNER_DATA,
   '/api/owner/gift-cards': GIFT,
-  '/api/owner/thumbtack': THUMBTACK,
   '/api/owner/reviews': REVIEW_DATA,
   '/api/owner/website-photos': PHOTOS,
   '/api/owner/messages': { conversations: CONVERSATIONS, needsReply: ['sms:sms-1', 'sms:sms-2'], smsAvailable: true },
@@ -336,22 +322,6 @@ test('Gift Cards: emails not sent and priority open their rows', async ({ page }
   await expect(page.locator('#giftcards-body tbody tr')).toHaveCount(3);
 });
 
-test('Thumbtack: leads list beside the lead being tracked; Jobs booked equals its rows', async ({ page }) => {
-  await openView(page, 'thumbtack');
-  const values = await cardValues(page, '#thumbtack-summary');
-  expect(values.slice(0, 3)).toEqual(['20', '8', '9']);
-  await expect(page.locator('#thumbtack-leads .v2-item')).toHaveCount(20);
-  await expect(page.locator('#thumbtack-detail [data-refund]')).toBeVisible();
-  await expect(page.locator('#thumbtack-detail')).toContainText('Can you come Saturday?');
-  await besideEachOther(page, '#thumbtack-leads', '#thumbtack-detail');
-  await staysInWindow(page);
-  await shot(page, 'thumbtack');
-  await page.click('#thumbtack-summary [data-kpi="booked"]');
-  await expect(page.locator('#thumbtack-leads .v2-item')).toHaveCount(9);
-  await page.locator('#thumbtack-leads .v2-item').nth(2).click();
-  await expect(page.locator('#thumbtack-leads .v2-item').nth(2)).toHaveAttribute('aria-pressed', 'true');
-});
-
 test('Reviews: counted reviews only, test bookings under their own tab', async ({ page }) => {
   await openView(page, 'reviews');
   expect(await cardValues(page, '#reviews-stats-row')).toEqual(['16', '4.6 / 5', '10', '4']);
@@ -393,8 +363,14 @@ test('Marketing and AI Intelligence: one row of number cards, titled cards, no r
   await expect(page.locator('.topbar-title')).toHaveText('Financials');
 });
 
-test('No owner screen keeps the old number strip', async ({ page }) => {
+test('No owner screen keeps the old number strip, and Thumbtack is gone', async ({ page }) => {
   await openView(page, 'liveops');
+  // Owner, 2026-11-16: no more Thumbtack. No menu entry, no screen, no Thumbtack
+  // choice when creating a booking or recording a payment.
+  await expect(page.locator('a[data-view="thumbtack"]')).toHaveCount(0);
+  await expect(page.locator('#thumbtack-view')).toHaveCount(0);
+  await expect(page.locator('#ocb-payment-method option[value="thumbtack"]')).toHaveCount(0);
+  await expect(page.locator('#collection-method option[value="thumbtack"]')).toHaveCount(0);
   // Every screen draws number cards (kpi), never the old stat strip or c-stats.
   const old = await page.evaluate(() => Array.from(document.querySelectorAll('.content > [id$="-view"] .stats-row > .stat:not(.kpi), .content > [id$="-view"] .c-stats'))
     .map(n => n.closest('[id$="-view"]').id));

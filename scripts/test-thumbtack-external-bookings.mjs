@@ -60,10 +60,12 @@ assert.match(collectApi, /THUMBTACK_PAYMENT_REFERENCE_REQUIRED/);
 assert.match(migration, /external_payment_reference/);
 assert.match(migration, /bookings_payment_method_check/);
 assert.match(migration, /record_booking_payout/);
-assert.match(ownerHtml, /ocb-external-agreement/);
-assert.match(ownerHtml, /Customer communication stays in Thumbtack/);
-assert.match(ownerHtml, /collection-reference/);
+// Owner, 2026-11-16: Thumbtack is no longer used. The dashboard offers no
+// Thumbtack choice for a new booking or a payment; past Thumbtack bookings keep
+// the server rules above and their record handling below.
+assert.doesNotMatch(ownerHtml, /<option value="thumbtack">/, 'no Thumbtack choice in the owner forms');
+assert.doesNotMatch(ownerHtml, /ocb-external-agreement|collection-reference/, 'no Thumbtack agreement or deposit fields');
 assert.match(ownerHtml, /thumbtackLiveAssignment = b\.source === 'owner_manual'[\s\S]*?b\.external_platform === 'thumbtack'[\s\S]*?eligibleAssemblers\.filter\(function\(a\) \{\s*if \(thumbtackLiveAssignment\) return a\.is_owner !== true && a\.is_demo_account !== true;/,
   'verified Thumbtack bookings must offer ready real Easers without opening owner-manual assignment to other booking types');
 
-console.log('PASS: Thumbtack booking consent, assignment, payment, and payout gates');
+console.log('PASS: past Thumbtack bookings keep their consent, assignment, payment and payout gates; no new Thumbtack choice in the dashboard');
