@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
   const photoUrl = await completionPhotoUrl(sb, b);
   const proFirst = (b.assembler_name || '').split(' ')[0] || '';
-  const { subject, html } = buildReviewEmail(1, b, reviewUrl, { photoUrl, proFirst });
+  const { subject, html, preheader } = buildReviewEmail(1, b, reviewUrl, { photoUrl, proFirst });
 
   const result = await sendEmail({
     to:      b.customer_email,
@@ -65,6 +65,7 @@ export default async function handler(req, res) {
     meta:    {
       bookingId,
       notificationType: 'review_request',
+      preheader,
       recipientType: 'customer',
       notificationKey: `review_request_manual:${b.id}:${sendNumber}`,
       reviewRequestStep: nextCount,

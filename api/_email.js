@@ -444,9 +444,11 @@ const EMAIL_HEADER = `  <table width="100%" cellpadding="0" cellspacing="0" styl
 
 /* The opt-out line is for people who could reasonably want out. The owner
  * cannot unsubscribe from his own operational alerts, so telling him he can
- * would be noise. */
-function emailFooter(recipientType, contactEmail = SUPPORT_EMAIL) {
-  const optOut = recipientType === 'owner'
+ * would be noise. Marketing mail already carries its own Unsubscribe block
+ * (broadcastFooter); a second line calling it "a transactional email" under
+ * that block says two different things about one email. */
+function emailFooter(recipientType, contactEmail = SUPPORT_EMAIL, hasOwnUnsubscribe = false) {
+  const optOut = recipientType === 'owner' || hasOwnUnsubscribe
     ? ''
     : `\n    <p style="margin:0;font-size:10px;color:#c4c4c4">This is a transactional email related to your booking. To opt out of non-essential emails, <a href="${SITE}/contact?subject=Email+Preferences" style="color:#a1a1aa;text-decoration:underline">contact us here</a>.</p>`;
   return `  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
@@ -520,11 +522,12 @@ export function ensureEmailShell(html, recipientType, preheader, contactEmail = 
   // pass-through meant pass-through of the footer too. Rewriting six
   // bespoke templates risks six new layout bugs; giving them the house
   // footer does not, and it closes the whole class at once.
+  const hasOwnUnsubscribe = /\/api\/unsubscribe/.test(raw);
   if (isFullEmailDocument(raw)) {
     if (recipientType === 'owner' || /assembleatease\.com<\/a>|232-5139/.test(raw)) return raw;
     const close = raw.lastIndexOf('</body>');
-    if (close === -1) return `${raw}${emailFooter(recipientType, contactEmail)}`;
-    return `${raw.slice(0, close)}${emailFooter(recipientType, contactEmail)}${raw.slice(close)}`;
+    if (close === -1) return `${raw}${emailFooter(recipientType, contactEmail, hasOwnUnsubscribe)}`;
+    return `${raw.slice(0, close)}${emailFooter(recipientType, contactEmail, hasOwnUnsubscribe)}${raw.slice(close)}`;
   }
   const preview = preheader === undefined ? derivePreheader(raw) : preheader;
   return `${EMAIL_DOC_OPEN}${preheaderBlock(preview)}
@@ -533,7 +536,7 @@ ${EMAIL_HEADER}
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px;font-size:15px;line-height:1.7;color:#3f3f46">
 ${raw}
   </td></tr></table>
-${emailFooter(recipientType, contactEmail)}
+${emailFooter(recipientType, contactEmail, hasOwnUnsubscribe)}
 </div></body></html>`;
 }
 

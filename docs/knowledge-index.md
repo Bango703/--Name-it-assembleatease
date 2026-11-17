@@ -25,6 +25,7 @@ Start every task here (`docs/process/deep-execution-protocol.md`, section 4). Re
 - `docs/incidents/2026-11-13-live-e2e-dispatch-and-quote-defects.md`: five defects found by the live hybrid test (#449 to #453), causes and prevention.
 - `docs/incidents/2026-11-15-owner-console-live-review.md`: five problems the owner found in the live console (Messages off-screen, waitlisted onboarding refused, .webp on Google, squeezed items, cramped Market Demand).
 - `docs/incidents/2026-11-16-today-schedule-order.md`: Today and the Live Ops Today panel listed 11:00 AM above 8:00 AM; clock order on the server and the screen.
+- `docs/incidents/2026-11-17-review-email-look.md`: the review request was a bare page outside the shared email frame with the ask buried; research on how review requests look; stars that open /review with the rating chosen.
 - `docs/incidents/2026-11-13-easer-price-request-page.md`: the Easer price-request page did not say where a request stood; server stages and the rebuilt page.
 
 ## Architecture (docs/platform)
