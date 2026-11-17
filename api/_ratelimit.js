@@ -29,6 +29,10 @@ const limiters = {
   // app refresh these while open, often from one household connection; the
   // write limit (5 a minute) locked the customer's own page out (2026-10-12).
   booking_read: buildLimiter('rl:booking_read', 60, '60 s'),
+  // The AI assistant connector (api/mcp.js). Claude and ChatGPT call from
+  // their own servers, so many customers share one address, and one question
+  // can take several calls (connect, list tools, search, price).
+  mcp: buildLimiter('rl:mcp', 120, '60 s'),
   // 5 per 10 minutes, counted only for attempts that pass validation (see
   // api/assembler/apply.js). Three was too tight once a genuine retry or a
   // transient server error could consume a slot, and carrier NAT means several

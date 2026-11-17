@@ -265,7 +265,7 @@ export function classifyPage(pagePath) {
   // Out of search until something is on sale or launched (Setup Club: Similarweb
   // flagged it thin and orphaned, 2026-10-26).
   if (path === 'gift-cards.html' || path === 'setup-club.html') return 'prelaunch';
-  if (path === 'track.html' || path === 'review.html' || path === 'assemblecash.html') return 'support';
+  if (path === 'track.html' || path === 'review.html' || path === 'assemblecash.html' || path === 'ai-assistants.html') return 'support';
   if (path === 'about.html' || path === 'contact.html' || path === 'bundles.html' || path === 'locations.html' || path === 'compare-assembly-options.html' || path === 'furniture-stores-texas.html') return 'core_marketing';
   if (path.startsWith('owner/')) return 'owner_portal';
   if (path === 'app.html') return 'app_entry';

@@ -20,9 +20,15 @@ function campaignLabel(value, max = 80) {
     && text.replace(/\D/g, '').length < 7 && !/[a-f0-9]{24,}/.test(text) ? text : '';
 }
 
-const UTM_SOURCES = new Set(['google', 'bing', 'duckduckgo', 'ecosia', 'ecosia.org', 'yahoo', 'google_jobs_apply', 'facebook', 'instagram', 'linkedin', 'nextdoor', 'buffer', 'partner', 'owner', 'sora', 'newsletter']);
-const UTM_MEDIA = new Set(['organic', 'social', 'organic_social', 'referral', 'email', 'voice', 'cpc', 'ppc', 'paidsearch', 'paid_search', 'paid_social', 'paidsocial']);
-const CAMPAIGN_PREFIX = /^(?:gbp|rebook|partner|easer|organic|social|newsletter|sora|business|referral|austin|san_antonio|houston|dallas|tyler|texas|offer|service|assemblecash|page|meta)(?:[_-][a-z0-9]+)*$/;
+// claude/chatgpt/gemini/ai_assistant tag the AI assistant connector's booking
+// links (api/_mcp-tools.js); chatgpt.com is the tag ChatGPT adds to links in
+// its own answers. assets/js/attribution.js keeps the same three lists.
+const UTM_SOURCES = new Set(['google', 'bing', 'duckduckgo', 'ecosia', 'ecosia.org', 'yahoo', 'google_jobs_apply', 'facebook', 'instagram', 'linkedin', 'nextdoor', 'buffer', 'partner', 'owner', 'sora', 'newsletter', 'claude', 'chatgpt', 'gemini', 'ai_assistant', 'chatgpt.com']);
+const UTM_MEDIA = new Set(['organic', 'social', 'organic_social', 'referral', 'email', 'voice', 'ai_assistant', 'cpc', 'ppc', 'paidsearch', 'paid_search', 'paid_social', 'paidsocial']);
+const CAMPAIGN_PREFIX = /^(?:gbp|rebook|partner|easer|organic|social|newsletter|sora|mcp|business|referral|austin|san_antonio|houston|dallas|tyler|texas|offer|service|assemblecash|page|meta)(?:[_-][a-z0-9]+)*$/;
+// Assistants whose answers link to the site. A visit from one with no tags is
+// the AI assistant channel, not a generic referral.
+const AI_ASSISTANT_HOST = /^(?:chatgpt\.com|chat\.openai\.com|claude\.ai|gemini\.google\.com|perplexity\.ai|copilot\.microsoft\.com)$/;
 
 export function safeAcquisitionPath(value) {
   const path = String(value || '').replace(/\.html$/, '').replace(/\/$/, '') || '/';
@@ -50,11 +56,15 @@ export function cleanAcquisitionAttribution(value) {
   const paidSocial = /^(facebook|instagram)$/.test(utmSource) && /^(paid_social|paidsocial|cpc|ppc)$/.test(utmMedium);
   const searchHost = /^(?:google\.[a-z.]+|bing\.com|duckduckgo\.com|ecosia\.org|search\.yahoo\.com)$/;
   const paid = !paidSocial && (searchClickIdType || (utmSource && /^(cpc|ppc|paidsearch|paid_search)$/.test(utmMedium)));
+  const aiAssistant = (utmMedium === 'ai_assistant' && /^(claude|chatgpt|gemini|ai_assistant)$/.test(utmSource))
+    || utmSource === 'chatgpt.com'
+    || (!utmSource && !utmMedium && AI_ASSISTANT_HOST.test(referrerHost));
   const organic = utmMedium === 'organic' && /^(google|bing|duckduckgo|ecosia(?:\.org)?|yahoo|google_jobs_apply)$/.test(utmSource)
     || (!utmSource && !utmMedium && searchHost.test(referrerHost));
   const source = utmSource || (clickIdType === 'msclkid' ? 'bing' : clickIdType === 'fbclid' ? 'facebook' : clickIdType ? 'google' : referrerHost) || 'direct';
   const channel = paidSocial ? 'paid_social' : paid ? 'paid_search' : clickId && clickIdType !== 'fbclid' ? 'paid_unclassified'
     : organic ? 'organic_search'
+      : aiAssistant ? 'ai_assistant'
       : (/^(social|organic_social)$/.test(utmMedium) && /^(facebook|instagram|linkedin|nextdoor|buffer)$/.test(utmSource)) || (!utmSource && !utmMedium && (clickIdType === 'fbclid' || /(^|\.)(facebook|instagram|linkedin|nextdoor)\.com$/.test(referrerHost))) ? 'organic_social'
         : utmMedium === 'email' && utmSource ? 'email' : utmMedium === 'referral' && utmSource ? 'referral' : utmSource ? 'campaign' : referrerHost ? 'referral' : 'unattributed';
   const landingPath = safeAcquisitionPath(input.landingPath);

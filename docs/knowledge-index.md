@@ -20,6 +20,7 @@ Start every task here (`docs/process/deep-execution-protocol.md`, section 4). Re
 ## Decisions
 - `docs/decisions/2026-11-13-dispatch-contract-audit.md`: current system measured against the dispatch contract; Phase 1 to 3 plan; open owner decisions.
 - `docs/decisions/2026-11-13-custom-quote-take-rate-research.md`: competitor fees, take rates, cost per job, price sensitivity, Austin prices; evidence for the pricing model.
+- `docs/decisions/2026-11-17-ai-assistant-channel.md`: the AI assistant connector at /api/mcp (Claude, ChatGPT): six read-only tools, the directory rules they follow, cart links to /book, the AI assistant channel, evidence and activation.
 
 ## Incidents
 - `docs/incidents/2026-11-13-live-e2e-dispatch-and-quote-defects.md`: five defects found by the live hybrid test (#449 to #453), causes and prevention.
@@ -43,4 +44,5 @@ By area. Each file states its own "As of" date; check code when it is old.
 - Geography today: `api/_source-of-truth.js` (`isTexasZip`, `AUTOMATIC_DISPATCH_*`, `SERVICE_MARKETS`), `api/_booking-location.js`, `api/_easer-coverage.js`, `api/booking/_dispatch-internal.js` (`bookingLocation`, `findEligibleEasers`).
 - Custom quotes and Easer prices: `api/booking/_quote-state.js`, `api/booking/_quote-offers.js`, `api/booking/_quote-offer-invites.js`, `api/owner/quote-approve.js`.
 - Partner accounts: `api/_partners.js`, `api/owner/partners.js`, `api/_promotions.js`.
+- AI assistant connector: `api/mcp.js` (transport), `api/_mcp-tools.js` (tools), `api/_public-facts.js` (booking facts shared with llms.txt); the cart link is read by `book.html` (`params.getAll('add')`); guards `test-mcp-server`, `test-mcp-sdk-client`, `tests/e2e/ai-assistant-cart.spec.mjs`.
 - Owner console frame: `owner/assets/console-frame.js` (number cards, tabs with counts; every screen builds them here), styles in `owner/assets/console.css` ("every screen"); each card is the length of the list it opens (`tests/e2e/owner-console-screens.spec.mjs`).

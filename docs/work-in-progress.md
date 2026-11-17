@@ -2,6 +2,11 @@
 
 Last verified: 2026-11-13. Active work only; the full prioritized backlog is `business-artifacts/backlog.md`. Check each item against the code before resuming: this record is not proof that anything was implemented.
 
+## 00. AI assistant channel (owner, 2026-11-17)
+- Objective: bookable from Claude, ChatGPT and other assistants, as TaskRabbit, Thumbtack and Angi are (`docs/decisions/2026-11-17-ai-assistant-channel.md`).
+- State: built on branch `feat/ai-assistant-channel` in worktree `aae-ai-channel`: `/api/mcp` with six read-only tools, cart links into `/book`, the AI assistant channel in the acquisition report, the `/ai-assistants` help page. `test-mcp-server` (30), `test-mcp-sdk-client` (11, official MCP client), 4 browser tests and the launch gate pass locally. Not pushed.
+- Next action: owner's word to push and merge; owner adds the connector in Claude and runs one real question through to the booking link; check Vercel logs for `/api/mcp`; owner submits to the Claude directory and the ChatGPT app directory.
+
 ## 0. Review request email (owner, 2026-11-17)
 - Objective: the owner found the review email bare and unlike the rest; research how real review requests look and rebuild it (`docs/incidents/2026-11-17-review-email-look.md`).
 - State: #461 merged and live 2026-11-17. The owner's first check was refused (test bookings get no review mail; the dashboard hid the reason). Fix built on `fix/review-request-reasons` in worktree `aae-review-reasons`.
