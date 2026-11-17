@@ -33,7 +33,8 @@ Last verified: 2026-11-13. Active work only; the full prioritized backlog is `bu
 - Live since #456; the five fixes from the owner's live review shipped in #457 (2026-11-15).
 - Phase 5 (every remaining screen, owner 2026-11-16) built on branch `feat/owner-console-all-screens` in worktree `aae-console-all`: Live Ops, Today, Messages, Phone Calls, Easers, Easer Waitlist, Customers, Partners, Gift Cards, Thumbtack, Reviews, Website Photos, Marketing, AI Intelligence on the frame through `owner/assets/console-frame.js`; Today schedule order fixed on the server and the screen. Launch suite, 46 browser tests and governance:truth pass locally.
 - Thumbtack retired (owner, 2026-11-16) on branch `chore/remove-thumbtack`, stacked on the console branch: tools removed, the past Thumbtack job kept; see backlog THUMBTACK-RETIRED.
-- Next action: owner says push; then check every screen with the owner's real data once signed in.
+- Merged: #459 and #460 (2026-11-17).
+- Next action: check every screen with the owner's real data once signed in. Owner: switch off the Thumbtack webhook and delete `THUMBTACK_WEBHOOK_USERNAME` and `THUMBTACK_WEBHOOK_PASSWORD` in Vercel.
 
 ## 4. Waiting on the owner
 - Policy decisions 1 to 4 in the audit record.
