@@ -127,4 +127,61 @@ const url = 'https://www.assembleatease.com/review?ref=AAE-TEST1&email=customer%
   console.log('PASS the automatic and manual senders read the name and pass the preview line');
 }
 
+// ── 7. A refused send says why; the owner can check the email on a test booking ──
+// Owner, 2026-11-17: every refusal read "Review email delivery was not
+// accepted". Eight presses: six on test bookings (blocked as automatic mail),
+// two on a customer who had unsubscribed (blocked by law). Both blocks were
+// right; the message hid them, and the owner had no way to see the new email.
+{
+  const { reviewSendRefusal } = await import('../api/review-request.js');
+  const unsub = reviewSendRefusal({ ok: true, suppressed: true, reason: 'unsubscribed' });
+  assert.equal(unsub.code, 'CUSTOMER_UNSUBSCRIBED');
+  assert.match(unsub.error, /unsubscribed from these emails/);
+  assert.equal(reviewSendRefusal({ ok: false, skipped: 'test_booking', error: 'x' }).code, 'TEST_BOOKING');
+  assert.equal(reviewSendRefusal({ ok: false, error: 'Email provider rejected the send (HTTP 422).' }).error,
+    'The review email was not sent: Email provider rejected the send (HTTP 422). Nothing was marked sent.');
+  assert.match(reviewSendRefusal({ ok: false }).error, /gave no reason/);
+  for (const r of [unsub, reviewSendRefusal({ ok: false, error: 'x' })]) {
+    assert.doesNotMatch(r.error, /delivery was not accepted/, 'never the old catch-all');
+  }
+
+  const { prepareNotification } = await import('../api/_notification-policy.js');
+  const fakeDb = booking => {
+    const reserved = [];
+    return {
+      reserved,
+      async rpc(name, args) {
+        if (name !== 'reserve_notification_send_v1') return { data: null, error: null };
+        reserved.push(args);
+        return { data: { action: 'send', id: 'log-1', token: 't', attempt: 1, key: args.p_key, payload: args.p_payload, snapshot: args.p_snapshot }, error: null };
+      },
+      from() {
+        const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: booking, error: null }) };
+        return q;
+      },
+    };
+  };
+  const testBooking = { id: 'b1', is_test_booking: true, customer_email: 'test@example.invalid', status: 'completed' };
+  const base = { channel: 'email', recipient: 'test@example.invalid', subject: 'How did it go?', payload: { body: {} } };
+  const meta = { bookingId: 'b1', recipientType: 'customer', notificationType: 'review_request', notificationKey: 'k1' };
+
+  let db = fakeDb(testBooking);
+  const automatic = await prepareNotification(db, { ...base, meta });
+  assert.equal(automatic.skipped, 'test_booking', 'automatic review mail still never reaches a test booking');
+  assert.equal(db.reserved.length, 0);
+
+  db = fakeDb(testBooking);
+  const byOwner = await prepareNotification(db, { ...base, meta: { ...meta, ownerInitiated: true } });
+  assert.ok(byOwner.claim, 'the owner pressing Request Review on a test booking sends it');
+  assert.equal(db.reserved.length, 1);
+  assert.equal(db.reserved[0].p_routine, true, 'still routine: quiet hours still apply');
+
+  const manual = await read('api/review-request.js');
+  const cron = await read('api/cron/review-request.js');
+  assert.match(manual, /ownerInitiated: true,/, 'the dashboard send is marked as the owner\'s');
+  assert.doesNotMatch(cron, /ownerInitiated/, 'the automatic sender never claims to be the owner');
+  assert.doesNotMatch(manual, /Review email delivery was not accepted/);
+  console.log('PASS a refused send says why; the owner can send to a test booking, automatic mail cannot');
+}
+
 console.log('Review request email checks passed.');

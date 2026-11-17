@@ -9,6 +9,26 @@ import { logActivity } from './booking/_activity.js';
 // can send even during an open dispute — that's the intended manual escape hatch.
 // Uses the same upgraded email (clickable stars + completion photo + pro name) as
 // the cron, via the shared api/_review-email.js builder.
+// Why a review request did not go out, in the owner's words. One generic line
+// for every cause hid the two that are working as intended (owner, 2026-11-17):
+// a customer who unsubscribed, and a booking marked as a test.
+export function reviewSendRefusal(result) {
+  if (result?.suppressed === true && result.reason === 'unsubscribed') {
+    return { status: 409, code: 'CUSTOMER_UNSUBSCRIBED', error: 'This customer unsubscribed from these emails, so no review request was sent.' };
+  }
+  if (result?.skipped === 'test_booking') {
+    return { status: 409, code: 'TEST_BOOKING', error: 'Automatic emails are not sent for test bookings. Nothing was marked sent.' };
+  }
+  const reason = String(result?.error || '').trim().slice(0, 200);
+  return {
+    status: 502,
+    code: 'EMAIL_NOT_SENT',
+    error: reason
+      ? `The review email was not sent: ${reason.replace(/[.\s]+$/, '')}. Nothing was marked sent.`
+      : 'The review email was not sent and the email service gave no reason. Nothing was marked sent.',
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -66,6 +86,9 @@ export default async function handler(req, res) {
       bookingId,
       notificationType: 'review_request',
       preheader,
+      // The owner pressed the button, so a test booking may receive it; the
+      // automatic sender never sets this.
+      ownerInitiated: true,
       recipientType: 'customer',
       notificationKey: `review_request_manual:${b.id}:${sendNumber}`,
       reviewRequestStep: nextCount,
@@ -81,8 +104,9 @@ export default async function handler(req, res) {
   }
 
   if (!result.ok || (result.suppressed === true && result.reason !== 'already_sent')) {
-    console.error('Review request send error:', result.error);
-    return res.status(500).json({ error: 'Review email delivery was not accepted. Nothing was marked sent.' });
+    const refusal = reviewSendRefusal(result);
+    console.error('Review request send error:', result.error || result.reason || result.skipped || 'no reason returned');
+    return res.status(refusal.status).json({ error: refusal.error, code: refusal.code });
   }
   // This click matched an email that had already gone out; nothing new was sent.
   if (result.suppressed === true) {
