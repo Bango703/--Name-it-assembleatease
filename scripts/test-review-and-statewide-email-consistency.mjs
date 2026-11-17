@@ -96,7 +96,11 @@ for (const path of transactionalEmailFiles) {
 }
 
 assert.match(emailHelpers, /Serving customers across Texas/);
-assert.match(reviewEmail, /Serving customers across Texas/);
+// The review request is framed by the shared shell since 2026-11-17, so its
+// service-area line comes from the shared footer, once. A second copy in the
+// body printed it twice.
+assert.doesNotMatch(reviewEmail, /Serving customers across Texas/);
+assert.doesNotMatch(reviewEmail, /<!DOCTYPE/i, 'the review request is a fragment inside the shared frame');
 
 const purchasedMailbox = /ASSEMBLEATEASE LLC, 9169 W State St #3847, Garden City, ID 83714/;
 assert.match(broadcastHelpers, purchasedMailbox);

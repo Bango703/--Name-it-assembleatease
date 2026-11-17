@@ -2,6 +2,11 @@
 
 Last verified: 2026-11-13. Active work only; the full prioritized backlog is `business-artifacts/backlog.md`. Check each item against the code before resuming: this record is not proof that anything was implemented.
 
+## 0. Review request email (owner, 2026-11-17)
+- Objective: the owner found the review email bare and unlike the rest; research how real review requests look and rebuild it (`docs/incidents/2026-11-17-review-email-look.md`).
+- State: built on branch `fix/review-request-email` in worktree `aae-review-email`; not pushed.
+- Next action: owner's word to push and merge, then one request sent from the dashboard to the owner's inbox, a star tapped through to /review.
+
 ## 1. Dispatch contract, Phase 1: one coverage service
 - Objective: make geography and eligibility one service, per `docs/business-rules/dispatch-contract-v1.md`.
 - Approved scope: audit done (`docs/decisions/2026-11-13-dispatch-contract-audit.md`). Owner asked for it to be fully built and retested until green. Policy changes (strict coverage, opening Houston and DFW, removing Laredo) await explicit owner approval (contract 11.4) and ship behind switches.
