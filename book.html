@@ -3804,8 +3804,26 @@ var BOOKING_WINDOW_DAYS = 30;
 // freely. Change it there first.
 var IMMEDIATE_AUTHORIZATION_DAYS = 2;
 
+// The campaign tags on this page's own address, read once when it loads and
+// kept in memory only. Owner, 2026-11-18: five of the six website bookings
+// since Oct 27 had no source, because the source is stored only after Accept.
+// A booking made from a tagged link (an AI assistant's cart link, an ad or a
+// partner link pointed at /book) now says where it came from without a cookie:
+// campaign tags only, never a click ID or referrer, nothing written to storage,
+// and adConsent is never set, so no ad platform hears about it. The server
+// keeps only known tags (api/_attribution.js).
+var BOOK_PAGE_TAGS = (function () {
+  try {
+    var p = new URLSearchParams(window.location.search || '');
+    if (!p.get('utm_source')) return null;
+    return { utmSource: p.get('utm_source') || '', utmMedium: p.get('utm_medium') || '', utmCampaign: p.get('utm_campaign') || '', utmContent: p.get('utm_content') || '', landingPath: '/book' };
+  } catch (e) { return null; }
+})();
+
 function captureBookingAttribution() {
-  return window.AAE_ATTRIBUTION ? window.AAE_ATTRIBUTION.capture() : {};
+  var stored = window.AAE_ATTRIBUTION ? window.AAE_ATTRIBUTION.capture() : {};
+  if (stored && (stored.utmSource || stored.referrerHost || stored.clickId)) return stored;
+  return BOOK_PAGE_TAGS ? Object.assign({}, BOOK_PAGE_TAGS) : (stored || {});
 }
 
 // Owner "rebook" links (utm_campaign=rebook) prefill the customer's contact step from
