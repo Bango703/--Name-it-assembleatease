@@ -48,6 +48,14 @@ Public help page: `/ai-assistants` (connector address, steps for Claude and Chat
 - `tests/e2e/ai-assistant-cart.spec.mjs`: 4 browser tests. The cart link opens `/book` with the same items and quantities. The page's own total equals the connector's estimate and the engine in every zone. Unknown names are skipped and quantities are bounded. The visit is attributed to the assistant after Accept.
 - `scripts/generate-llms.mjs --check` passed before the shared facts module existed and after it, byte for byte.
 
+## Live verification (2026-11-17, after #464 merged)
+
+- Initialize from production answered 200 with `Mcp-Session-Id: claude.<uuid>` for client name `claude-ai`; GET answers 405.
+- The official MCP client (`aae-live-check`) listed and called all six tools. The estimate for Bed frame — queen plus TV 41"–55" (standard wall) was $263.05 (26,305 cents), equal to `calculateBookingPricing` for 78701.
+- The cart link opened the live /book with both items, and `getPricingSnapshot` gave $263.05.
+- `operational_events` held six `ai_assistant_tool_call` rows, one per call, with no arguments.
+- `/ai-assistants` and `/llms.txt` answer 200; llms.txt and /contact link the connector.
+
 ## Not verified here, and why
 
 - **A real Claude or ChatGPT conversation.** Claude reaches a connector from Anthropic's servers, so it needs the deployed URL. It needs the owner's word to push.
