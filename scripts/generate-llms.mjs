@@ -13,6 +13,9 @@
 //   prices, services, bundles  assets/js/booking-source-of-truth.js (via lib/catalog-prices.mjs)
 //   contact, hours, profiles   the Organization JSON-LD in index.html
 //   cancellation terms         CANCELLATION_POLICY in api/_source-of-truth.js
+//   the booking facts          api/_public-facts.js, shared with the AI
+//                              assistant connector (api/mcp.js) so the two
+//                              cannot tell an assistant different things
 //   service pages, city pages  the files that exist in this repo
 //
 //   node scripts/generate-llms.mjs          write both files
@@ -21,7 +24,7 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadBookingSource, trueFromPrice } from './lib/catalog-prices.mjs';
-import { CANCELLATION_POLICY } from '../api/_source-of-truth.js';
+import { bookingFacts, factLines, organization } from '../api/_public-facts.js';
 
 const ROOT = process.cwd();
 const SITE = 'https://www.assembleatease.com';
@@ -50,45 +53,11 @@ const SITE_PAGES = [
   ['assemblecash', 'AssembleCash', 'Credit earned on completed jobs, used on future bookings.'],
   ['about', 'About', 'Who we are.'],
   ['contact', 'Contact', 'Phone, email and hours.'],
+  ['ai-assistants', 'Book with an AI assistant', 'Add AssembleAtEase to Claude or ChatGPT as a connector (https://www.assembleatease.com/api/mcp): live prices, arrival windows, service area and booking links.'],
 ];
 
 const page = (slug) => existsSync(join(ROOT, `${slug}.html`));
 const url = (slug) => `${SITE}/${slug}`;
-
-function organization() {
-  const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
-  for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
-    let data;
-    try { data = JSON.parse(m[1]); } catch { continue; }
-    for (const node of [].concat(data['@graph'] || data)) {
-      if (node && node['@type'] === 'Organization') return node;
-    }
-  }
-  throw new Error('index.html has no Organization JSON-LD to read contact details from');
-}
-
-function phone(e164) {
-  const d = String(e164 || '').replace(/\D/g, '').slice(-10);
-  return d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : String(e164 || '');
-}
-
-function clock(hhmm) {
-  const [h, m] = String(hhmm).split(':').map(Number);
-  const suffix = h >= 12 ? 'PM' : 'AM';
-  const hour = h % 12 || 12;
-  return m ? `${hour}:${String(m).padStart(2, '0')} ${suffix}` : `${hour} ${suffix}`;
-}
-
-// Customer-service hours: contactPoint.hoursAvailable on the Organization.
-function hours(org) {
-  const specs = [].concat(org.contactPoint || []).flatMap((c) => [].concat(c.hoursAvailable || []));
-  if (!specs.length) throw new Error('index.html Organization JSON-LD has no contactPoint.hoursAvailable');
-  return specs.map((s) => {
-    const days = [].concat(s.dayOfWeek || []).map((d) => String(d).replace(/^https?:\/\/schema\.org\//, ''));
-    const span = days.length > 2 ? `${days[0]} to ${days[days.length - 1]}` : days.join(' and ');
-    return `${span}, ${clock(s.opens)} to ${clock(s.closes)}`;
-  });
-}
 
 function bookableItems(groups) {
   return groups.flatMap((g) => (g.items || []).map((item) => ({ ...item, group: g.group })))
@@ -107,20 +76,9 @@ function cityPages() {
 export function buildLlms() {
   const source = loadBookingSource(ROOT);
   const catalog = source.subcategories;
-  const org = organization();
+  const org = organization(ROOT);
   const services = Object.keys(SERVICE_SLUGS).filter((name) => catalog[name]);
-  const p = CANCELLATION_POLICY;
-
-  const facts = [
-    `- Services: ${services.join(', ')}, and custom quotes for anything else.`,
-    `- Where: Texas. Core areas are the Austin metro and the San Antonio metro, where a local pro is matched automatically. Other Texas ZIP codes can book and are confirmed by our team.`,
-    `- Prices: fixed and itemized per piece, shown before booking. Texas sales tax is added at checkout.`,
-    `- Payment: you pay after the work is done. A hold for the total is placed on your card before the appointment.`,
-    `- Cancellation: free up to ${p.freeWindowHours} hours before the appointment. Inside ${p.freeWindowHours} hours, once a pro has accepted the job, a ${p.lateFeePct}% fee on the service price applies, or ${p.imminentFeePct}% when the pro is already on the way or it is under ${p.imminentWindowHours} hours. No fee applies if no pro has accepted. A booking that was rescheduled no longer has the free window.`,
-    `- Custom quotes: no card is needed to ask. We email a price; you approve it and add a card to book.`,
-    `- The pros (called Easers) are independent contractors who bring their own tools.`,
-    `- Contact: ${phone(org.telephone)}, ${org.email}. Phone and email hours: ${hours(org).join('; ')}. Booking online is open any time.`,
-  ];
+  const facts = factLines(bookingFacts({ org, services }));
 
   const servicesSection = services.map((name) => {
     const from = trueFromPrice(catalog[name]);

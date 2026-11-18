@@ -7330,6 +7330,33 @@ function saveContactEdit() {
     }
   }
 
+  // Cart link from the AI assistant connector (api/_mcp-tools.js bookingUrl):
+  // /book?add=<service>|<item>|<qty>, one per item. Each name must match the
+  // catalog; the price is the catalog's, never the link's, and the server
+  // re-prices everything at checkout. Unknown names are skipped.
+  var cartLines = params.getAll('add');
+  if (cartLines.length) {
+    if (!BOOK.selectedServices) BOOK.selectedServices = [];
+    var cartLead = '';
+    cartLines.slice(0, 20).forEach(function(line) {
+      var parts = String(line || '').split('|');
+      var cartService = parts[0];
+      var item = parts.length >= 2 && SUBCATS[cartService] ? findCatalogItem(cartService, parts[1]) : null;
+      if (!item) return;
+      var cartQty = Math.min(99, Math.max(1, parseInt(parts[2], 10) || 1));
+      if (BOOK.selectedServices.indexOf(cartService) === -1) BOOK.selectedServices.push(cartService);
+      if (!BOOK.selectedItems[cartService]) BOOK.selectedItems[cartService] = [];
+      var existing = BOOK.selectedItems[cartService].find(function(i) { return i.name === item.name; });
+      if (existing) existing.qty = Math.min(99, (parseInt(existing.qty, 10) || 1) + cartQty);
+      else BOOK.selectedItems[cartService].push({ name: item.name, price: item.price, priceMax: item.priceMax, addon: !!item.addon, customQuote: !!item.customQuote, qty: cartQty });
+      if (!cartLead) cartLead = cartService;
+    });
+    if (cartLead) {
+      showItemScreen(cartLead, 'items');
+      return;
+    }
+  }
+
   if (!svc) return;
 
   var resolvedSvc = resolveServiceSelection(svc);

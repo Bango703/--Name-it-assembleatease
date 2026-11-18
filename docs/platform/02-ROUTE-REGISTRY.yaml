@@ -16,6 +16,7 @@ surfaces:
       - /api/booking/message
       - /api/booking/payment-recovery
       - /api/booking-confirmed
+      - /api/mcp  # AI assistant connector, read-only, no auth (docs/decisions/2026-11-17-ai-assistant-channel.md)
   easer:
     paths:
       - /assembler

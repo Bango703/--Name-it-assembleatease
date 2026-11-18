@@ -58,6 +58,7 @@
 - [AssembleCash](https://www.assembleatease.com/assemblecash): Credit earned on completed jobs, used on future bookings.
 - [About](https://www.assembleatease.com/about): Who we are.
 - [Contact](https://www.assembleatease.com/contact): Phone, email and hours.
+- [Book with an AI assistant](https://www.assembleatease.com/ai-assistants): Add AssembleAtEase to Claude or ChatGPT as a connector (https://www.assembleatease.com/api/mcp): live prices, arrival windows, service area and booking links.
 - [Full price list for AI assistants](https://www.assembleatease.com/llms-full.txt)
 
 ## Profiles

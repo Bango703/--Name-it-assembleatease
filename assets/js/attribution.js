@@ -45,13 +45,13 @@
     var result = {};
     var source = String(item.utmSource || '').trim().toLowerCase();
     var medium = String(item.utmMedium || '').trim().toLowerCase();
-    result.utmSource = ['google', 'bing', 'duckduckgo', 'ecosia', 'ecosia.org', 'yahoo', 'google_jobs_apply', 'facebook', 'instagram', 'linkedin', 'nextdoor', 'buffer', 'partner', 'owner', 'sora', 'newsletter'].indexOf(source) !== -1 ? source : '';
-    result.utmMedium = ['organic', 'social', 'organic_social', 'referral', 'email', 'voice', 'cpc', 'ppc', 'paidsearch', 'paid_search', 'paid_social', 'paidsocial'].indexOf(medium) !== -1 ? medium : '';
+    result.utmSource = ['google', 'bing', 'duckduckgo', 'ecosia', 'ecosia.org', 'yahoo', 'google_jobs_apply', 'facebook', 'instagram', 'linkedin', 'nextdoor', 'buffer', 'partner', 'owner', 'sora', 'newsletter', 'claude', 'chatgpt', 'gemini', 'ai_assistant', 'chatgpt.com'].indexOf(source) !== -1 ? source : '';
+    result.utmMedium = ['organic', 'social', 'organic_social', 'referral', 'email', 'voice', 'ai_assistant', 'cpc', 'ppc', 'paidsearch', 'paid_search', 'paid_social', 'paidsocial'].indexOf(medium) !== -1 ? medium : '';
     var campaign = campaignIdentifier(item.utmCampaign);
     // Mirrors api/_partners.js REF_CODE; the partner pipeline generates these.
     var rawCampaign = String(item.utmCampaign || '').trim().toLowerCase();
     var partnerCode = source === 'partner' && /^[a-z0-9]{6}$/.test(rawCampaign);
-    result.utmCampaign = result.utmSource && (/^(?:gbp|rebook|partner|easer|organic|social|newsletter|sora|business|referral|austin|san_antonio|houston|dallas|tyler|texas|offer|service|assemblecash|page|meta)(?:[_-][a-z0-9]+)*$/.test(campaign) || partnerCode) ? (partnerCode ? rawCampaign : campaign) : '';
+    result.utmCampaign = result.utmSource && (/^(?:gbp|rebook|partner|easer|organic|social|newsletter|sora|mcp|business|referral|austin|san_antonio|houston|dallas|tyler|texas|offer|service|assemblecash|page|meta)(?:[_-][a-z0-9]+)*$/.test(campaign) || partnerCode) ? (partnerCode ? rawCampaign : campaign) : '';
     var content = campaignIdentifier(item.utmContent);
     result.utmContent = result.utmSource && content.length <= 64 && (/^(website|book)$/.test(content) || (source === 'partner' && result.utmCampaign && content)) ? content : '';
     result.referrerHost = acquisitionHost(item.referrerHost);
