@@ -89,3 +89,33 @@ test('the visit is remembered as coming from the assistant (after cookies are ac
   const captured = await page.evaluate(() => window.AAE_ATTRIBUTION.capture());
   expect(captured).toEqual(expect.objectContaining({ utmSource: 'chatgpt', utmMedium: 'ai_assistant', utmCampaign: 'mcp_estimate_price', landingPath: '/book' }));
 });
+
+// Owner, 2026-11-18: five of six website bookings had no source because it is
+// stored only after Accept. Without Accept, a booking from a tagged /book link
+// carries the link's campaign tags from memory: no storage, no click ID.
+test('without Accept, a tagged booking link still says where the booking came from', async ({ page }) => {
+  const estimate = callTool('estimate_price', { items: CART.slice(0, 1) }, { source: 'claude' }).structuredContent;
+  const tagged = new URL(estimate.bookingUrl);
+  tagged.searchParams.set('gclid', 'should-not-travel');
+  await openBookingLink(page, tagged.toString());
+  const sent = await page.evaluate(() => captureBookingAttribution());
+  expect(sent).toEqual({ utmSource: 'claude', utmMedium: 'ai_assistant', utmCampaign: 'mcp_estimate_price', utmContent: '', landingPath: '/book' });
+  expect(sent.clickId).toBeUndefined();
+  expect(sent.adConsent).toBeUndefined();
+  const stored = await page.evaluate(() => ({ session: sessionStorage.getItem('aaeAcquisitionAttribution'), local: localStorage.getItem('aaeAcquisitionAttribution') }));
+  expect(stored).toEqual({ session: null, local: null });
+  const { cleanAcquisitionAttribution } = await import('../../api/_attribution.js');
+  expect(cleanAcquisitionAttribution(sent)).toEqual(expect.objectContaining({ channel: 'ai_assistant', source: 'claude', utmCampaign: 'mcp_estimate_price' }));
+
+  const google = new URL('https://www.assembleatease.com/book?service=Furniture+Assembly&utm_source=google&utm_medium=cpc&utm_campaign=houston_furniture');
+  await openBookingLink(page, google.toString());
+  const ad = await page.evaluate(() => captureBookingAttribution());
+  expect(cleanAcquisitionAttribution(ad)).toEqual(expect.objectContaining({ channel: 'paid_search', source: 'google', utmCampaign: 'houston_furniture' }));
+});
+
+test('without Accept and without tags, the booking carries no source at all', async ({ page }) => {
+  await page.route('**/api/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+  await page.goto('/book?service=Furniture+Assembly');
+  await page.waitForFunction(() => typeof captureBookingAttribution === 'function');
+  expect(await page.evaluate(() => captureBookingAttribution())).toEqual({});
+});
