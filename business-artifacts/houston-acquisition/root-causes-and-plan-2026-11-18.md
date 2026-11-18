@@ -1,4 +1,6 @@
-# Houston acquisition: root causes and execution plan
+# Houston advertising strategy: root causes and execution plan
+
+**Revised 2026-11-18 (evening) for the owner's operating model:** Houston runs on automatic dispatch across the full Houston service market. Easer capacity, weekly availability and Easer ZIP codes are not prerequisites for advertising or booking. If bookings outgrow supply, that triggers recruitment and dispatch scaling, never demand suppression. Advertising targets Greater Houston. Existing dispatch logic is not changed without authorization; no ad-account change or code deploy without approval. The launch checklist is in `launch-readiness-checklist-2026-11-18.md`.
 
 Prepared 2026-11-18 from direct reads of the production database, the Google Ads account (293-675-5780), Google Keyword Planner, GA4, PageSpeed Insights, a phone-size walkthrough of the live booking page, and the code on `main`. Nothing in Google Ads was changed during this work (no budget, bid, location, conversion or campaign edits). The full strategy draft with external research is in `Houston customer acquisition system.md`; where the two disagree, this document wins because it rests on later, deeper checks.
 
@@ -13,9 +15,10 @@ Labels: **VERIFIED** (checked directly or by authoritative source), **BUSINESS D
 3. **The booking page leaks phones.** On a phone, after a visitor ticks a TV, nothing on screen shows a total or a next step; the Continue button is about 2.5 screens down. Two-thirds of measured visitors are on phones; phones produced 1 of the 3 measured bookings. (VERIFIED UI fact; cause of the 7-of-40 drop is HYPOTHESIS until instrumented.)
 4. **Measurement is weaker than Google's "Misconfigured" label suggests, and stronger than I first said.** The label only means no tag fired in 7 days (there were no bookings in 7 days). The real gaps: Google only counts a booking when the visitor clicked Accept, the value sent is the tax-inclusive total (or $1), and five irrelevant "primary" goals sit beside the real one. Our own database can measure paid bookings without any consent issue, using the tagged ad links shipped in #467.
 5. **The old $380 bought one real, completed, paid job** ($153 total, May 18). Most of the waste was a Smart campaign (181 clicks, $104.61, nothing booked), app and website placements, and broad furniture terms.
-6. **The current campaign targets the wrong map.** The Houston Easer's completed Houston-area jobs were in Spring (77389) and Katy (77449). Google lists Spring, Katy and Cypress as separate targets from "Houston (city)". Target the ZIPs he confirms instead.
+6. **The campaign's map is too small for Greater Houston.** It targets "Houston (city)" only. Google lists Spring, Katy and Cypress as separate targets, and our Houston-area customers so far were in Spring and Katy. Proposed: the 10 counties of the Houston metro (section 4).
+7. **Houston is not on automatic dispatch in today's code.** Houston ZIPs (770-775) are outside `AUTOMATIC_DISPATCH_ZIP_PREFIXES` (782, 787 only), so every Houston booking is saved as "needs manual dispatch", the automatic dispatcher skips it, and the customer is told "Our team is reviewing local Easer availability." Measured: San Antonio (automatic) assigned in a median 6 minutes; Houston (manual) in a median 535 minutes. Matching the code to the operating model is a change to a critical module and needs your authorization (section 4).
 
-**Recommendation to the owner:** do not turn the campaign on yet. Fix the phone booking step and the conversion goals first (days, not weeks), confirm the Easer's ZIPs and weekly capacity, then run a capped Houston test built around larger tickets with a hard stop-loss. Decisions needing your approval are listed at the end.
+**Recommendation to the owner:** fix the phone booking step and the conversion goals, authorize automatic dispatch for the Houston market so the code matches how you run it, widen targeting to Greater Houston, then launch the test built around larger tickets with a profitability stop-loss. Decisions needing your approval are listed at the end.
 
 ---
 
@@ -102,20 +105,40 @@ All-time account history (VERIFIED, Google Ads, May 2, 2024 - Nov 18, 2026): **$
 
 ---
 
-## 4. Geographic targeting vs real Easer coverage
+## 4. Greater Houston targeting, and how Houston bookings are dispatched
 
-**VERIFIED**
-- The campaign targets "Houston, Texas (city)" with Presence. Google's picker lists **Spring (city, reach 158,000), Katy (262,000) and Cypress (1,050,000)** as separate targets. Google's "Houston (city)" reach estimate is 12.7 million, about 85% of the whole Houston TV market (14.9 million), so Google's Houston area is broader than the city limits - but the picker cannot show whether it includes Spring or Katy. Treat it as unknown.
-- The Houston Easer is based in **77002** (downtown). His profile has no service-area or travel-radius field. His completed jobs: **Spring 77389, Katy 77449**, and far outside Houston: **Bullard 75757** (East Texas, the $1,353 job) and **Fischer 78623** (Hill Country, $695); a San Antonio $1,678 job was assigned and cancelled.
-- The platform's own Houston market is ZIP prefixes 770-775 (`SERVICE_MARKETS.houston`): Houston, Katy, Spring, Cypress, Sugar Land, Pearland, Pasadena, Baytown, League City and Galveston.
+### Operating model (owner decision, 2026-11-18)
+Houston coverage is the whole Houston service market. Customers book anywhere in it; eligible Easers receive jobs through the platform's dispatch. Easer count, weekly slots and individual Easer ZIPs do not limit advertising or booking. Demand above supply is a recruitment and dispatch-scaling signal (section 11).
 
-**Implication (challenge to the current plan):** the only Houston Easer also travels statewide for large jobs, so his Houston capacity is shared with jobs 150-200 miles away. "One Easer in Houston" is less capacity than it sounds.
+### What the platform defines as the Houston market (VERIFIED, code)
+`SERVICE_MARKETS.houston` = ZIP prefixes **770, 771, 772, 773, 774, 775**. Dispatch offers a Houston booking only to Easers whose ZIP is in the same market (`isSameServiceMarket`).
 
-**Recommended structure (needs your approval and his answer):**
-1. Ask the Easer two things in writing: which ZIPs or how many miles from 77002 he will take a $119-$200 job, and how many open slots per week (Fri/Sat especially).
-2. Replace the city target with **ZIP code targets** for exactly those ZIPs, Presence only. ZIP targets remove the boundary guesswork and match how dispatch already works.
-3. If he will not drive far for small jobs, use a tighter ring for TV/furniture ad groups and the wider ring only for outdoor/playset (bigger tickets justify the drive).
-4. First-week check: Google Ads "user location" report must show clicks only from those ZIPs.
+### Proposed Google Ads targeting (needs your approval to apply)
+**Target the 10 counties of the Houston metro, "Presence" (people in or regularly in the area):** Harris, Fort Bend, Montgomery, Brazoria, Galveston, Liberty, Waller, Chambers, Austin and San Jacinto. These are the counties of the federal Houston-Pasadena-The Woodlands metro area as listed by the Dallas Fed and the Greater Houston Partnership (OMB 2023 delineation; secondary sources, the OMB bulletin itself was not opened). It covers Houston, Katy, Spring, Cypress, The Woodlands, Conroe, Sugar Land, Missouri City, Richmond, Pearland, Friendswood, League City, Pasadena, Baytown, Galveston and the rest of Greater Houston.
+
+Why counties, and not the alternatives:
+| Option | Verdict |
+|---|---|
+| "Houston (city)" (today) | Too small and ambiguous. Spring (reach 158,000), Katy (262,000) and Cypress (1,050,000) are separate Google targets; our Houston-area customers so far were in Spring and Katy. |
+| Houston DMA (TV market, reach 14.9 million) | Too loose. A TV-market region reaches counties outside our Houston service market. |
+| A radius around downtown | Workable, but cuts across counties unevenly and makes reporting harder. |
+| **10 metro counties (recommended)** | Matches "Greater Houston"; every one of these counties sits inside the 770-775 market (Sugar Land and Katy 774, The Woodlands and Conroe 773, Pearland and Galveston 775), so every ad-driven booking routes to Houston dispatch; Google reports results by county, which gives clean evidence later. |
+
+Do not add Katy, Spring, Sugar Land or Pearland as extra city targets on top of the counties: they are already inside, and overlapping targets split the reporting. City-level results appear in Google's user-location report. No exclusions at launch; exclude a county only if, after enough clicks, it shows spend and no completed jobs.
+
+Fringe parts of the 773-775 market outside the metro (for example Huntsville, Wharton, Bay City) stay bookable through the website; they are simply not advertised to at first.
+
+### How Houston bookings are dispatched today (VERIFIED, code on `main`, commit 58538ace)
+- `AUTOMATIC_DISPATCH_ZIP_PREFIXES` = **782 and 787** (plus listed Central Texas and San Antonio suburb ZIPs). Houston's 770-775 are not on it.
+- `api/booking.js`: `requiresOwnerAssignment = !isAutomaticDispatchZip(zip)` → every Houston booking is saved with `needs_manual_dispatch = true`.
+- `api/cron/auto-dispatch.js` selects only bookings with `needs_manual_dispatch = false`; `dispatchBooking` returns "Flagged for manual dispatch". No automatic offer is sent.
+- The customer's confirmation email for these bookings says: "Our team is reviewing local Easer availability for your requested appointment. We'll email you as soon as an Easer accepts the job; the appointment is not assigned until then." The owner email says the booking "requires owner assignment".
+- Measured (BUSINESS DATA, all non-test bookings): San Antonio, which is automatic, sent 3 offers and assigned in a **median 6 minutes**; Houston has had **0 automatic offers** and its 2 assigned bookings took a **median 535 minutes** (about 9 hours) from confirmation to assignment.
+- The dispatcher also caps each Easer at `DISPATCH_MAX_DAILY_JOBS` (default 3 per day) and offers to `DISPATCH_BATCH_SIZE` (default 3) Easers at a time with a 20-minute expiry and 3 attempts. That is existing logic and stays as is.
+
+**So the code does not match the operating model.** To make Houston automatic, Houston's market (770-775) has to join the automatic-dispatch list in `api/_source-of-truth.js`, a critical module (Article 10). Side effects to handle in that change: `getServiceCallZone` would move Houston ZIPs from `texas_statewide` to `near_suburb`, whose label reads "Participating Central Texas communities" (wrong for Houston, so Houston needs its own zone or label; the fee is $5 either way and the informational minimum is $149 either way); the `booking-confirmed.js` payment-recovery path decides by call zone and must follow; the AI-assistant connector's service-area answer reads the same list; and the customer email switches to "We're matching you with a verified Easer". I have not changed it. It needs your explicit authorization, then an audit, tests and a PR.
+
+Until it changes, every Houston booking from an ad waits for you to assign it by hand, and the customer sees the "reviewing availability" message.
 
 ---
 
@@ -230,7 +253,8 @@ What would change this: a measured click-to-completed rate above about 12% at $4
 |---|---|---|---|---|
 | 1 | Phone booking step: pinned total + Continue, merge notes screen, step events | High: every paid and organic phone visitor | Low-medium (one page) | Medium (UI fact verified; size of effect unproven) |
 | 2 | Conversion goals: one primary "Booking placed", value = platform contribution, others secondary | High: prevents paying Google to chase the wrong thing | Low (account settings + small code change) | High |
-| 3 | Confirm Easer ZIPs and weekly capacity; switch to ZIP targeting | High: no wasted clicks, no unfulfillable bookings | Low (one conversation, one setting) | High |
+| 3 | Authorize automatic dispatch for the Houston market (770-775) so the code matches the operating model | High: assignment in minutes instead of hours; no "reviewing availability" message to ad customers | Medium (critical module, audit + tests + PR) | High (San Antonio 6 min vs Houston 535 min, small samples) |
+| 3b | Target the 10 Houston metro counties instead of Houston (city) | High: reaches Katy, Spring, Sugar Land, Pearland and the rest | Low (one setting, after approval) | High |
 | 4 | Re-aim the test at bigger tickets (outdoor/playset ad group, large-TV messaging, furniture paused) | High: moves cost per job toward break-even | Low-medium | Medium |
 | 5 | Record lead/ad cost per booking (Thumbtack fee, ad spend) | Medium: true profit per job | Medium | High |
 | 6 | Get Thumbtack lead cost and win rate from your account | Medium-high: may be the cheapest channel | Low (you read it) | High |
@@ -246,34 +270,76 @@ What would change this: a measured click-to-completed rate above about 12% at $4
 ### A. Critical fixes before any ad spend (I can build 1, 2-code, 4, 5 now on a branch; nothing goes live until you say push)
 1. **Phone booking step** (section 3 fixes 1-3). Tested on a 390 px phone, desktop, and the existing booking tests.
 2. **Conversion setup:** code sends platform contribution as the value; in Google Ads, set "Book appointment" as the only Primary, demote the other five to Secondary. Account change needs your yes.
-3. **Easer capacity and ZIPs:** you ask him; I set ZIP targeting after your yes.
+3. **Houston automatic dispatch:** after your authorization, add the Houston market to automatic dispatch with its own zone label, audited and tested, on a PR. Without it, every ad booking waits for manual assignment.
+3b. **Greater Houston targeting:** replace "Houston (city)" with the 10 metro counties, Presence, after your yes.
 4. **GA4 filter** for internal and non-US traffic.
 5. **Tagged test booking** (marked as test) to prove `utm_campaign=houston_search` lands in the booking row.
 6. **Pay the $99.35 balance** (you).
 
 ### B. Campaign ready to test, after A (each item needs your approval)
-- Same campaign, $10/day, Search only, ZIP targets, Presence, schedule 7 AM-10 PM, no bid adjustments, **Maximize clicks with the $4 cap kept**.
+- Same campaign, $10/day (budget is your call), Search only, **10 Houston metro counties**, Presence, schedule 7 AM-10 PM, no bid adjustments, **Maximize clicks with the $4 cap kept**.
 - Ad groups: **TV Mounting** (copy and landing aimed at larger setups); **Outdoor & Playsets** (new: playset/swing set/trampoline/shed/gazebo assembly, landing on the outdoor booking link); **Furniture paused**.
 - Negatives: add "d riggs", job/hiring terms, DIY/how-to (already in the 33), competitor brand names.
 - Decision metric: kept-per-job minus ad cost, from our own database, read weekly.
-- **Stop-loss:** pause at $300 spent with no completed paid job, or at 60 days, whichever first. **Scale gate:** 3+ completed paid jobs with total kept above total ad spend, and the Easer has open slots.
+- **Stop-loss (a profitability rule, not a capacity rule):** pause and review at $300 spent with no completed paid job, or at 60 days, whichever first. **Scale gate:** 3+ completed paid jobs with total kept above total ad spend. Supply never gates scaling; if dispatch strains, section 11's recruitment triggers fire.
 
 ### C. Later growth (in order)
 1. Thumbtack measured as a channel (your lead data first).
 2. Google Business Profile and reviews for the Houston area (free, high intent, Maps).
 3. Partners for big tickets: playset and shed sellers, apartment communities in the Inner Loop and Northwest Houston, movers.
-4. A second Houston Easer before raising spend (the pending 775 applicant).
+4. Houston Easer recruitment running continuously, stepped up by the triggers in section 11 (the pending 775 applicant is the first to review).
 5. Completed-job conversion upload and value-based bidding after 15+ completed paid jobs in 30 days.
 6. Microsoft Ads (imports the Google campaign; needs your approval under the Google-only rule).
 
 ---
 
+## 11. Dispatch tracking and Easer recruitment
+
+### Baseline today (BUSINESS DATA, all non-test bookings, by service ZIP)
+| Market | Bookings | Assigned | Median time to assignment | Automatic offers sent / accepted / expired | Completed | Cancelled or declined |
+|---|---|---|---|---|---|---|
+| Houston (770-775) | 3 | 2 | 535 min | 0 / 0 / 0 | 2 | 1 |
+| San Antonio (780-782) | 2 | 2 | 6 min | 3 / 1 / 0 | 1 | 1 |
+| Central Texas (786-787) | 6 | 3 | 2,774 min (mostly owner-entered) | 0 / 0 / 0 | 3 | 3 |
+| Dallas-Fort Worth | 1 | 0 | - | 0 | 0 | 1 |
+| Other Texas | 12 | 5 | 2,050 min | 4 / 0 / 4 | 3 | 9 |
+
+Cancellation reasons recorded include "Card authorization was not completed within 7 days" and "Cancelled by customer (guest)". Houston supply on record: 1 approved active Easer (base 77002, completed Houston-area jobs in Spring and Katy, also travels statewide), 1 applicant pending (775).
+
+### What already exists (VERIFIED, code)
+- `api/_stranded-bookings-core.js`: any real booking unassigned more than 45 minutes is "stranded", with a reason (including "outside the automatic dispatch area").
+- Unassigned-escalation cron, `dispatch-all` and owner assign tools.
+- `dispatch_offers` records each offer with status and accepted/declined times.
+- Missing: a per-market report of acceptance rate and time to assignment, and a cancellations-by-reason view.
+
+### Houston dispatch health panel (to build after approval; server computes every number and ships the rows, per the count-equals-list rule)
+| Metric | Definition | Watch level |
+|---|---|---|
+| Offer acceptance | accepted / sent, Houston, trailing 30 days; plus first-offer acceptance | below 60% |
+| Time to assignment | confirmation to Easer acceptance, median and slowest 10% | median above 60 min |
+| Unassigned now | confirmed, no Easer, list with appointment time (existing stranded rule) | any booking unassigned within 24 h of its appointment |
+| Manual-flagged | `needs_manual_dispatch` bookings, with reason | any |
+| Cancellations | by reason: customer, no Easer, payment, Easer no-show | any "no Easer" cancellation |
+| Fulfillment | completed / confirmed, by service | below 80% |
+| Load | confirmed Houston jobs per active Houston Easer per week; daily-cap hits (`DISPATCH_MAX_DAILY_JOBS`) | cap hit on any day |
+
+### Recruitment triggers (supply follows demand; demand is never cut)
+Any one of these starts a Houston recruitment push the same week:
+- offer acceptance below 60% for two weeks, or median time to assignment above 60 minutes;
+- any booking cancelled because no Easer took it;
+- an Easer hitting the 3-jobs-per-day cap;
+- paid Houston bookings above about 5 a week per active Houston Easer.
+
+The push uses what exists: the `/easer-jobs-houston-tx` page and `/become-an-easer` funnel, Indeed posts, an Easer referral bonus paid after the referred Easer's first completed job, and fast review of pending applicants (the 775 applicant first). Recruitment advertising stays separate from customer advertising and uses independent-contractor language (no "hiring", "shifts" or "wage"). Contractor classification and copy wording go past the General Counsel seat before any paid recruitment.
+
 ## Decisions that are yours
 
 1. Approve the phone booking-step fix and the conversion-value change (code, on a branch until you say push).
 2. Approve setting "Book appointment" as the only Primary goal in Google Ads.
-3. Get the Easer's ZIPs and weekly open slots; approve ZIP targeting.
-4. Approve the re-aimed test: outdoor/playset ad group added, furniture paused, $4 cap kept, $300 stop-loss.
+3. **Authorize automatic dispatch for the Houston market (770-775)**: a critical-module change, audited, tested and shipped on a PR you approve. Until then, Houston ad bookings are assigned by hand.
+3b. Approve targeting the 10 Houston metro counties (Presence) in place of Houston (city).
+4. Approve the re-aimed test: outdoor/playset ad group added, furniture paused, $4 cap kept, $300 profitability stop-loss.
+4b. Approve building the Houston dispatch health panel (section 11).
 5. Share your Thumbtack lead cost and how many leads became jobs.
 6. Decide whether the platform or the Easer pays for promotions.
 7. Send the US consent question to General Counsel.
