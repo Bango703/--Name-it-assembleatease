@@ -20,7 +20,7 @@ Last verified: 2026-11-13. Each line was checked in code, CI, the live site or p
 
 ## Known limitations (verified)
 - Four different "same area" rules: automatic-dispatch ZIPs, service markets, `isTexasZip` (defined twice) and `_easer-coverage.js`; browser copies in `booking-source-of-truth.js`, `book.html` and `aae-location.js` (Austin only). Details: `docs/decisions/2026-11-13-dispatch-contract-audit.md`.
-- Houston and Dallas-Fort Worth bookings wait for manual assignment although those markets have active Easers.
+- Dallas-Fort Worth bookings wait for manual assignment although that market has active Easers. Houston (ZIPs 770-775, Greater Houston) joined automatic dispatch on 2026-11-18 on the owner's authorization (`HOUSTON_MARKET_ZIP_PREFIXES` in `api/_source-of-truth.js`, own `houston_metro` service-call zone labelled "Greater Houston").
 - `isSameServiceMarket` fails open when either ZIP maps to no market.
 - Custom-quote price requests are owner-triggered; no automatic asking.
 - No time-overlap check between jobs (daily cap only); no Easer travel radius or opt-in zones; no address validation or geocoding.
