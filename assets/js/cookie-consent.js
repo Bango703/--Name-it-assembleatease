@@ -185,16 +185,23 @@
   // and it was covering a service card on the homepage and a service row on
   // /book. Reserving the same height at the end of the document keeps every
   // page fully reachable while the choice is still open.
+  // Pinned page bars (the /book Continue bar) read --aae-cookie-banner-space
+  // and sit above the open banner, so a first-time visitor sees both the
+  // consent choice and the next step. Consent itself is unchanged.
   function reserveSpaceForBanner() {
     if (!document.body) return;
+    var rootStyle = document.documentElement && document.documentElement.style;
     var banner = getBanner();
     if (!banner || banner.classList.contains('hidden')) {
       document.body.style.removeProperty('padding-bottom');
+      if (rootStyle) rootStyle.removeProperty('--aae-cookie-banner-space');
       return;
     }
     var height = banner.getBoundingClientRect().height;
     if (!height) return;
-    document.body.style.setProperty('padding-bottom', Math.ceil(height + 16) + 'px');
+    var space = Math.ceil(height + 16) + 'px';
+    document.body.style.setProperty('padding-bottom', space);
+    if (rootStyle) rootStyle.setProperty('--aae-cookie-banner-space', space);
   }
 
   function hideBanner() {
