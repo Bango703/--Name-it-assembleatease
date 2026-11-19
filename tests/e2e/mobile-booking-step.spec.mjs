@@ -96,3 +96,34 @@ test('desktop: picking an item and pressing Continue still reaches scheduling', 
   await expect(page.locator('#step-3')).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+// First visit on a phone (every ad click): the cookie banner is open. Both the
+// consent choice and Continue must be visible and usable at the same time, and
+// answering the banner must still record the choice exactly as before.
+test('phone, first visit: cookie banner and Continue are both visible and usable', async ({ page }) => {
+  await open(page, PHONE);
+  const banner = page.locator('#cookie-banner');
+  await expect(banner).toBeVisible();
+  await page.getByText('TV 41"–55" (standard wall)', { exact: false }).first().click();
+  await expect(page.getByTestId('running-subtotal')).toHaveText('$119');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+
+  const topAt = (selector) => page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return { onScreen: r.top >= 0 && r.bottom <= window.innerHeight, unobstructed: !!hit && (hit === el || el.contains(hit)) };
+  }, selector);
+  expect(await topAt('#s1-next')).toEqual({ onScreen: true, unobstructed: true });
+  expect(await topAt('button.cookie-decline')).toEqual({ onScreen: true, unobstructed: true });
+  expect(await topAt('button.cookie-accept')).toEqual({ onScreen: true, unobstructed: true });
+
+  // Answering the banner works as before, and the bar drops back to the bottom.
+  await page.locator('button.cookie-decline').click();
+  await expect(banner).toBeHidden();
+  expect(await page.evaluate(() => localStorage.getItem('cookie-consent'))).toBe('declined');
+  expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--aae-cookie-banner-space'))).toBe('');
+  expect(await topAt('#s1-next')).toEqual({ onScreen: true, unobstructed: true });
+  await page.locator('#s1-next').click();
+  await expect(page.locator('#step-3')).toBeVisible();
+});
