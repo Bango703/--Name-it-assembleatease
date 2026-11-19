@@ -47,14 +47,15 @@ assert.equal(customerOwnsBooking({ customer_id: null, customer_email: 'other@exa
 assert.equal(isActiveInstantBookingZip('78701'), true, 'Austin books');
 assert.equal(isActiveInstantBookingZip('78205'), true, 'San Antonio books');
 assert.equal(isActiveInstantBookingZip('75201'), true, 'Dallas books (then waits for owner assignment)');
-assert.equal(isActiveInstantBookingZip('77002'), true, 'Houston books (then waits for owner assignment)');
+assert.equal(isActiveInstantBookingZip('77002'), true, 'Houston books');
 assert.equal(isActiveInstantBookingZip('79901'), true, 'El Paso books (then waits for owner assignment)');
 assert.equal(isActiveInstantBookingZip('88510'), true, 'El Paso 885 ZIPs book');
 assert.equal(isActiveInstantBookingZip('90210'), false, 'A non-Texas ZIP must never take a booking');
 // The load-bearing safety guarantee: auto-dispatch is NOT statewide. It covers
 // only markets with ready local Easers, so a far-market job can never blast to
 // an Easer hours away. Austin from the start; San Antonio added 2026-09-23 once
-// two ready Easers lived there. Everywhere else still waits for the owner.
+// two ready Easers lived there; Greater Houston (770-775) added 2026-11-18 on the
+// owner's authorization. Everywhere else still waits for the owner.
 assert.equal(isAutomaticDispatchZip('78701'), true, 'Austin auto-dispatches');
 assert.equal(isAutomaticDispatchZip('78664'), true, 'Austin metro list auto-dispatches');
 assert.equal(isAutomaticDispatchZip('78205'), true, 'San Antonio auto-dispatches (opened 2026-09-23)');
@@ -65,7 +66,11 @@ assert.equal(isAutomaticDispatchZip('78006'), true, 'Boerne is in the San Antoni
 assert.equal(isAutomaticDispatchZip('78040'), false, 'Laredo must wait for owner assignment');
 assert.equal(isAutomaticDispatchZip('78045'), false, 'Laredo must wait for owner assignment');
 assert.equal(isAutomaticDispatchZip('75201'), false, 'Dallas must wait for owner assignment');
-assert.equal(isAutomaticDispatchZip('77002'), false, 'Houston must wait for owner assignment');
+assert.equal(isAutomaticDispatchZip('77002'), true, 'Houston auto-dispatches (opened 2026-11-18)');
+assert.equal(isAutomaticDispatchZip('77494'), true, 'Katy auto-dispatches with Houston');
+assert.equal(isAutomaticDispatchZip('77389'), true, 'Spring auto-dispatches with Houston');
+assert.equal(isAutomaticDispatchZip('77801'), false, 'Bryan (778) is outside the Houston market and waits for owner assignment');
+assert.equal(getServiceCallZone('77002'), 'houston_metro', 'Houston has its own Greater Houston zone, never the Central Texas label');
 assert.equal(isAutomaticDispatchZip('79901'), false, 'El Paso must wait for owner assignment');
 assert.equal(isTexasZip('78701'), true, 'Austin ZIPs must be recognized as Texas');
 assert.equal(isTexasZip('75201'), true, 'Dallas ZIPs must be recognized as Texas');
@@ -414,7 +419,8 @@ assert.match(bookingApi, /requiresOwnerAssignment = !isAutomaticDispatchZip\(zip
 assert.match(bookingApi, /needs_manual_dispatch: requiresOwnerAssignment/, 'Booking creation must persist statewide manual-dispatch truth');
 const bookingConfirmedApi = source('api/booking-confirmed.js');
 assert.match(bookingConfirmedApi, /booking\.needs_manual_dispatch\) return/, 'Payment confirmation must not auto-dispatch owner-assigned statewide jobs');
-assert.match(bookingConfirmedApi, /!\['austin_core', 'near_suburb'\]\.includes\(booking\.call_zone\)/, 'Payment-hold recovery must preserve statewide or unknown-zone manual assignment');
+assert.match(bookingConfirmedApi, /requiresOwnerAssignment = !isAutomaticDispatchZip\(booking\.service_zip \|\| ''\)/, 'Payment-hold recovery must decide by the same automatic-dispatch rule as booking creation (a missing ZIP stays manual)');
+assert.match(bookingConfirmedApi, /call_zone, service_zip,/, 'Payment-hold recovery must read the booking ZIP it decides by');
 assert.match(bookingConfirmedApi, /booking\.needs_manual_dispatch = updatePayload\.needs_manual_dispatch/, 'Recovered dispatch truth must update the current request before dispatch runs');
 const homePage = source('index.html');
 assert.doesNotMatch(homePage, /p===['"]788['"]|786xx through 788xx/);

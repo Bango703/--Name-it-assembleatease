@@ -705,7 +705,17 @@ export function isTexasZip(zip) {
 // '780' would have made a Laredo booking auto-offer to a San Antonio Easer,
 // which is the exact harm the note below describes. The metro towns that do
 // belong are listed by ZIP instead, the same way Austin's suburbs are.
-export const AUTOMATIC_DISPATCH_ZIP_PREFIXES = Object.freeze(['782', '787']);
+//
+// Houston (770-775) opened 2026-11-18 on the owner's authorization: Houston
+// runs on automatic dispatch across its whole service market (Greater Houston:
+// Katy, Spring, Cypress, The Woodlands, Sugar Land, Pearland, League City,
+// Pasadena, Baytown, Galveston). The three conditions below hold: a ready Easer
+// lives in the market, SERVICE_MARKETS.houston is this same list, and stranded
+// or unaccepted jobs surface to the owner (expire-offers, unassigned
+// escalation, stranded bookings). Offers still go only to Easers in the
+// Houston market (isSameServiceMarket) who pass every eligibility check.
+export const HOUSTON_MARKET_ZIP_PREFIXES = Object.freeze(['770', '771', '772', '773', '774', '775']);
+export const AUTOMATIC_DISPATCH_ZIP_PREFIXES = Object.freeze(['782', '787', ...HOUSTON_MARKET_ZIP_PREFIXES]);
 export const AUTOMATIC_DISPATCH_ZIPS = Object.freeze([
   // Austin suburbs
   '78610', '78613', '78626', '78628', '78630', '78633', '78634',
@@ -770,7 +780,7 @@ export function isAutomaticDispatchZip(zip) {
 // check would break the market that actually works.
 export const SERVICE_MARKETS = Object.freeze({
   central_texas: Object.freeze(['786', '787']),
-  houston:       Object.freeze(['770', '771', '772', '773', '774', '775']),
+  houston:       HOUSTON_MARKET_ZIP_PREFIXES,
   san_antonio:   Object.freeze(['780', '781', '782']),
   lubbock:       Object.freeze(['793', '794']),
   permian_basin: Object.freeze(['797', '798']),
@@ -812,6 +822,7 @@ export function isSameServiceMarket(bookingZip, easerZip) {
 export const SERVICE_CALL_ZONES = Object.freeze({
   austin_core:    { label: 'Austin core', fee: 500 },
   near_suburb:    { label: 'Participating Central Texas communities', fee: 500 },
+  houston_metro:  { label: 'Greater Houston', fee: 500 },
   texas_statewide: { label: 'Statewide Texas service', fee: 500 },
 });
 
@@ -820,6 +831,7 @@ export const SERVICE_CALL_ZONES = Object.freeze({
 export const MIN_PRETAX_BOOKING_BY_ZONE = Object.freeze({
   austin_core: 12900,
   near_suburb: 14900,
+  houston_metro: 14900,
   texas_statewide: 14900,
 });
 
@@ -831,6 +843,7 @@ export function getServiceCallZone(zip) {
   if (!isTexasZip(zip)) return null;
   const prefix = String(zip || '').trim().slice(0, 3);
   if (prefix === '787') return 'austin_core';
+  if (HOUSTON_MARKET_ZIP_PREFIXES.includes(prefix)) return 'houston_metro';
   if (isAutomaticDispatchZip(zip)) return 'near_suburb';
   return 'texas_statewide';
 }

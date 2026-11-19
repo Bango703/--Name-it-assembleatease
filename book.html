@@ -3714,6 +3714,7 @@ var SERVICE_AREA = AAE_BOOKING_SOURCE.serviceArea || { city:'Texas', state:'TX',
 var SERVICE_CALL_ZONES = {
   austin_core: { label: 'Austin core', fee: 5, minPretax: 129 },
   central_texas: { label: 'Participating Central Texas communities', fee: 5, minPretax: 149 },
+  houston_metro: { label: 'Greater Houston', fee: 5, minPretax: 149 },
   texas_statewide: { label: 'Statewide Texas service', fee: 5, minPretax: 149 }
 };
 
@@ -4081,6 +4082,8 @@ function getServiceCallFee(zip) {
 function getServiceCallZoneInfo(zip) {
   if (!isTexasZip(zip)) return null;
   if (String(zip).slice(0, 3) === '787') return SERVICE_CALL_ZONES.austin_core;
+  var houstonPrefixes = Array.isArray(SERVICE_AREA.houstonZipPrefixes) ? SERVICE_AREA.houstonZipPrefixes : [];
+  if (houstonPrefixes.indexOf(String(zip).slice(0, 3)) !== -1) return SERVICE_CALL_ZONES.houston_metro;
   if (isAutomaticDispatchZip(zip)) return SERVICE_CALL_ZONES.central_texas;
   return SERVICE_CALL_ZONES.texas_statewide;
 }

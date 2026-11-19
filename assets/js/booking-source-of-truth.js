@@ -8,13 +8,16 @@ window.AAE_BOOKING_SOURCE = {
     state: 'TX',
     label: 'Statewide Texas service',
     statewideTexas: true,
-    // zipPrefixes/zipCodes describe the AUTO-DISPATCH area (Austin and San
-    // Antonio), not who may book. Booking is open statewide; anything outside
-    // this area books but needs owner assignment. Mirrors
-    // AUTOMATIC_DISPATCH_ZIP_PREFIXES / AUTOMATIC_DISPATCH_ZIPS in
+    // zipPrefixes/zipCodes describe the AUTO-DISPATCH area (Austin, San
+    // Antonio and Greater Houston 770-775), not who may book. Booking is open
+    // statewide; anything outside this area books but needs owner assignment.
+    // Mirrors AUTOMATIC_DISPATCH_ZIP_PREFIXES / AUTOMATIC_DISPATCH_ZIPS in
     // api/_source-of-truth.js; scripts/test-dispatch-area-parity.mjs fails if
     // they drift.
-    zipPrefixes: ['782', '787'],
+    zipPrefixes: ['782', '787', '770', '771', '772', '773', '774', '775'],
+    // Greater Houston's service-call zone label. Mirrors
+    // HOUSTON_MARKET_ZIP_PREFIXES (same parity test).
+    houstonZipPrefixes: ['770', '771', '772', '773', '774', '775'],
     zipCodes: [
       // Austin suburbs
       '78610', '78613', '78626', '78628', '78630', '78633', '78634',
