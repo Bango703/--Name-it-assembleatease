@@ -436,6 +436,56 @@ export function computeBookingSplitFromSnapshot({
   };
 }
 
+// Same-day fee is an ADDITIVE layer — it must never run through the 30/70 base
+// split. These parts EXCLUDE it from the split base (its tax cancels out exactly
+// in the subtraction, so the standard base stays penny-accurate); the fixed Easer
+// rush bonus and platform remainder are added back on top. Moved here unchanged
+// from api/booking/assembler-complete.js (2026-11-18) so the completion split and
+// the ad conversion value read one rule.
+export function sameDaySplitParts(booking) {
+  const feeCents = Math.max(0, Number(booking?.same_day_fee_cents || 0));
+  const bonusCents = Math.min(feeCents, Math.max(0, Number(booking?.same_day_easer_bonus_cents || 0)));
+  const taxCents = Math.round(feeCents * SALES_TAX_RATE);
+  return {
+    grossCents: feeCents + taxCents,      // remove from amountCharged
+    taxCents,                             // remove from taxCents
+    bonusCents,                           // add to assemblerDue
+    platformExtra: feeCents - bonusCents, // add to platformFee
+  };
+}
+
+/**
+ * What the platform keeps from a booking before card fees, excluding sales
+ * tax: the platform fee from computeBookingSplitFromSnapshot plus the
+ * platform's part of any same-day fee. This is the value reported to ad
+ * platforms for a placed booking (owner, 2026-11-18: "send accurate platform
+ * revenue excluding sales tax"); it is an estimate at booking time, not
+ * captured revenue, and never a payout input.
+ */
+export function estimatedPlatformRevenueCents({
+  totalCents = 0,
+  taxCents = 0,
+  sameDayFeeCents = 0,
+  sameDayEaserBonusCents = 0,
+  giftCardAppliedCents = 0,
+  assemblecashRedeemedCents = 0,
+  reviewRewardDiscountCents = 0,
+  feePct = null,
+  isMember = false,
+} = {}) {
+  const sameDay = sameDaySplitParts({ same_day_fee_cents: sameDayFeeCents, same_day_easer_bonus_cents: sameDayEaserBonusCents });
+  const split = computeBookingSplitFromSnapshot({
+    amountChargedCents: Math.max(0, Math.round(Number(totalCents) || 0) - sameDay.grossCents),
+    taxCents: Math.max(0, Math.round(Number(taxCents) || 0) - sameDay.taxCents),
+    isMember,
+    feePct,
+    assemblecashRedeemedCents,
+    reviewRewardDiscountCents,
+    giftCardAppliedCents,
+  });
+  return Math.max(0, split.platformFeeCents + sameDay.platformExtra);
+}
+
 // ─── Cancellation policy ─────────────────────────────────────────────────────
 // Tiered cancellation fee as a % of the PRE-TAX SERVICE SUBTOTAL (labor only —
 // NEVER tax, never the service-call fee). Free with reasonable notice; a fair,
@@ -705,7 +755,17 @@ export function isTexasZip(zip) {
 // '780' would have made a Laredo booking auto-offer to a San Antonio Easer,
 // which is the exact harm the note below describes. The metro towns that do
 // belong are listed by ZIP instead, the same way Austin's suburbs are.
-export const AUTOMATIC_DISPATCH_ZIP_PREFIXES = Object.freeze(['782', '787']);
+//
+// Houston (770-775) opened 2026-11-18 on the owner's authorization: Houston
+// runs on automatic dispatch across its whole service market (Greater Houston:
+// Katy, Spring, Cypress, The Woodlands, Sugar Land, Pearland, League City,
+// Pasadena, Baytown, Galveston). The three conditions below hold: a ready Easer
+// lives in the market, SERVICE_MARKETS.houston is this same list, and stranded
+// or unaccepted jobs surface to the owner (expire-offers, unassigned
+// escalation, stranded bookings). Offers still go only to Easers in the
+// Houston market (isSameServiceMarket) who pass every eligibility check.
+export const HOUSTON_MARKET_ZIP_PREFIXES = Object.freeze(['770', '771', '772', '773', '774', '775']);
+export const AUTOMATIC_DISPATCH_ZIP_PREFIXES = Object.freeze(['782', '787', ...HOUSTON_MARKET_ZIP_PREFIXES]);
 export const AUTOMATIC_DISPATCH_ZIPS = Object.freeze([
   // Austin suburbs
   '78610', '78613', '78626', '78628', '78630', '78633', '78634',
@@ -770,7 +830,7 @@ export function isAutomaticDispatchZip(zip) {
 // check would break the market that actually works.
 export const SERVICE_MARKETS = Object.freeze({
   central_texas: Object.freeze(['786', '787']),
-  houston:       Object.freeze(['770', '771', '772', '773', '774', '775']),
+  houston:       HOUSTON_MARKET_ZIP_PREFIXES,
   san_antonio:   Object.freeze(['780', '781', '782']),
   lubbock:       Object.freeze(['793', '794']),
   permian_basin: Object.freeze(['797', '798']),
@@ -812,6 +872,7 @@ export function isSameServiceMarket(bookingZip, easerZip) {
 export const SERVICE_CALL_ZONES = Object.freeze({
   austin_core:    { label: 'Austin core', fee: 500 },
   near_suburb:    { label: 'Participating Central Texas communities', fee: 500 },
+  houston_metro:  { label: 'Greater Houston', fee: 500 },
   texas_statewide: { label: 'Statewide Texas service', fee: 500 },
 });
 
@@ -820,6 +881,7 @@ export const SERVICE_CALL_ZONES = Object.freeze({
 export const MIN_PRETAX_BOOKING_BY_ZONE = Object.freeze({
   austin_core: 12900,
   near_suburb: 14900,
+  houston_metro: 14900,
   texas_statewide: 14900,
 });
 
@@ -831,6 +893,7 @@ export function getServiceCallZone(zip) {
   if (!isTexasZip(zip)) return null;
   const prefix = String(zip || '').trim().slice(0, 3);
   if (prefix === '787') return 'austin_core';
+  if (HOUSTON_MARKET_ZIP_PREFIXES.includes(prefix)) return 'houston_metro';
   if (isAutomaticDispatchZip(zip)) return 'near_suburb';
   return 'texas_statewide';
 }

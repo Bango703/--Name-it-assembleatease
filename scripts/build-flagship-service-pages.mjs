@@ -401,6 +401,14 @@ function locationFaq(city) {
       a: 'New Braunfels is another listed service area near San Antonio. Other Texas service areas are listed on our Locations page. Enter your service address during booking to check current availability for your location, service, and appointment.',
     };
   }
+  if (city.citySlug === 'houston') {
+    // Owner, 2026-11-18: Houston books and dispatches across all of Greater
+    // Houston (ZIPs 770-775). Availability stays address-specific.
+    return {
+      q: 'Do you serve the rest of Greater Houston?',
+      a: 'Yes. Bookings anywhere in Greater Houston, including Katy, Spring, Cypress, The Woodlands, Sugar Land, Pearland, League City, Pasadena and Baytown, go straight to local pros. Enter your service address during booking to confirm current availability for your location, service, and appointment.',
+    };
+  }
   const names = city.nearby.map((c) => c.name);
   const list = names.length > 1
     ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`

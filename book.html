@@ -1711,6 +1711,8 @@
 
     .mobile-step-summary strong { color: var(--ink); }
     .mobile-step-summary span { color: var(--muted); }
+    .mobile-step-summary .mss-left { min-width: 0; }
+    .mobile-step-summary .mss-total { color: var(--ink); font-size: 0.95rem; font-weight: 800; white-space: nowrap; }
     .quote-helper { margin-top: 0.75rem; padding: 0.8rem 0.95rem; border: 1px solid rgba(0,191,255,0.26); border-radius: var(--radius-md); background: #f6fcff; color: var(--ink-soft); font-size: 0.82rem; line-height: 1.55; }
     .quote-helper strong { color: var(--ink); }
     .booking-stage-divider { display: flex; align-items: center; gap: 0.65rem; margin: 1.05rem 0 1.15rem; padding: 0.65rem; border: 1px solid rgba(148,163,184,0.22); border-radius: 16px; background: #f8fbfd; }
@@ -2163,9 +2165,17 @@
 
       html, body, .book-page { width: 100%; max-width: 100vw; overflow-x: hidden; }
 
+      /* `hidden` turns body, .book-page, .book-main and .step-panel into scroll
+         containers that never scroll, so the sticky Continue bar
+         (.item-stage-actions) stuck to them and never to the screen: on a
+         phone it sat ~2.5 screens below the items (2026-11-18). `clip` hides
+         sideways overflow without creating a scroll container. Browsers
+         without `clip` keep `hidden`, exactly as before. */
+      body, .book-page { overflow-x: clip; }
+
       /* Full-screen step panels, edge-to-edge */
 
-      .book-main { padding: 0; gap: 0; width: 100%; max-width: 100%; overflow-x: hidden; }
+      .book-main { padding: 0; gap: 0; width: 100%; max-width: 100%; overflow-x: hidden; overflow-x: clip; }
 
       .book-form-col { width: 100%; max-width: 100%; min-width: 0; }
 
@@ -2176,7 +2186,7 @@
         border-radius: 0; border-left: none; border-right: none;
 
         border-top: none; padding: 1.1rem 1rem 1.35rem;
-        width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden;
+        width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden; overflow-x: clip;
 
         box-shadow: none;
 
@@ -2246,7 +2256,8 @@
       }
 
       .item-stage-actions {
-        position: sticky; bottom: 0; z-index: 20;
+        /* Above the cookie banner while it is open (cookie-consent.js sets the space). */
+        position: sticky; bottom: var(--aae-cookie-banner-space, 0px); z-index: 20;
         margin: 1.25rem -1rem -1.35rem;
         padding: 0.7rem 1rem max(0.7rem, env(safe-area-inset-bottom));
         background: rgba(255,255,255,0.98);
@@ -3714,6 +3725,7 @@ var SERVICE_AREA = AAE_BOOKING_SOURCE.serviceArea || { city:'Texas', state:'TX',
 var SERVICE_CALL_ZONES = {
   austin_core: { label: 'Austin core', fee: 5, minPretax: 129 },
   central_texas: { label: 'Participating Central Texas communities', fee: 5, minPretax: 149 },
+  houston_metro: { label: 'Greater Houston', fee: 5, minPretax: 149 },
   texas_statewide: { label: 'Statewide Texas service', fee: 5, minPretax: 149 }
 };
 
@@ -4081,6 +4093,8 @@ function getServiceCallFee(zip) {
 function getServiceCallZoneInfo(zip) {
   if (!isTexasZip(zip)) return null;
   if (String(zip).slice(0, 3) === '787') return SERVICE_CALL_ZONES.austin_core;
+  var houstonPrefixes = Array.isArray(SERVICE_AREA.houstonZipPrefixes) ? SERVICE_AREA.houstonZipPrefixes : [];
+  if (houstonPrefixes.indexOf(String(zip).slice(0, 3)) !== -1) return SERVICE_CALL_ZONES.houston_metro;
   if (isAutomaticDispatchZip(zip)) return SERVICE_CALL_ZONES.central_texas;
   return SERVICE_CALL_ZONES.texas_statewide;
 }
@@ -4656,10 +4670,11 @@ function getItemStagePath(svc) {
   // Open straight into the item browser (which already shows category pills via
   // renderSectionSwitcher). The old standalone 'group' category-card screen was a
   // redundant extra step — removed. 'items' defaults its group via getDefaultPrimaryGroup.
-  // Add-ons are folded into the items list (no separate 'extras' stage), so the
-  // flow is just items → notes — one fewer transition, no "Continue to extras".
-  var path = ['items', 'notes'];
-  return path;
+  // Add-ons are folded into the items list (no separate 'extras' stage). The
+  // optional notes and the custom-quote choice sit below the items on the same
+  // screen (2026-11-18), so picking an item and pressing Continue reaches
+  // scheduling in one tap; the separate notes screen was an extra stop.
+  return ['items'];
 }
 
 function ensureValidItemStage(svc) {
@@ -5212,7 +5227,7 @@ function updateItemStageActions(svc) {
   nextBtn.disabled = false;
 
   if (secondaryBtn) {
-    secondaryBtn.hidden = stage !== 'notes';
+    secondaryBtn.hidden = !(stage === 'notes' || (stage === 'items' && hasSelectedPrimaryItems(svc)));
     secondaryBtn.textContent = 'Add another service';
   }
 
@@ -5222,7 +5237,7 @@ function updateItemStageActions(svc) {
       nextBtn.disabled = true;
       nextBtn.innerHTML = 'Choose an item first';
     } else {
-      nextBtn.innerHTML = 'Continue to notes <span>&#8594;</span>';
+      nextBtn.innerHTML = 'Review job plan &amp; schedule <span>&#8594;</span>';
     }
   }
   else if (stage === 'extras') nextBtn.innerHTML = 'Continue to notes <span>&#8594;</span>';
@@ -5291,9 +5306,9 @@ function handleServiceStageContinue() {
       return;
     }
 
-    // Add-ons now live inline in the items list, so continue goes straight to notes.
-    BOOK.itemStage = 'notes';
-    renderItemScreen(BOOK.currentSvc);
+    // Add-ons, notes and the custom-quote choice are all on this screen, so
+    // continue goes straight to scheduling.
+    goToStep2Account();
     return;
   }
 
@@ -5318,9 +5333,17 @@ function updateMobileStepSummary() {
   }
 
   var totalServices = BOOK.selectedServices.length;
-  summary.innerHTML = '<strong>' + esc(getDisplayServiceName(BOOK.currentSvc)) + '</strong>'
+  // Running subtotal of everything picked so far (all services in the visit).
+  // The service-call fee and tax are itemized at checkout, as the schedule
+  // step already says.
+  var snapshot = getPricingSnapshot('');
+  var subtotalHtml = snapshot.itemSubtotal > 0
+    ? '<strong class="mss-total" data-testid="running-subtotal">' + esc(dollars(snapshot.itemSubtotal)) + '</strong>'
+    : '';
+  summary.innerHTML = '<span class="mss-left"><strong>' + esc(getDisplayServiceName(BOOK.currentSvc)) + '</strong> '
     + '<span>' + (currentCount > 0 ? (currentCount + ' item' + (currentCount === 1 ? '' : 's') + ' selected') : 'Choose your first item')
-    + (totalServices > 1 ? ' • ' + totalServices + ' services in visit' : '') + '</span>';
+    + (totalServices > 1 ? ' • ' + totalServices + ' services in visit' : '') + '</span></span>'
+    + subtotalHtml;
   summary.style.display = '';
 }
 
@@ -5488,7 +5511,8 @@ function renderItemScreen(svc) {
 
   if (groupsPane) groupsPane.classList.toggle('is-active', stage === 'group');
   if (browserPane) browserPane.classList.toggle('is-active', stage === 'items' || stage === 'extras');
-  if (notesPane) notesPane.classList.toggle('is-active', stage === 'notes');
+  // Notes and the custom-quote choice show under the items (one screen).
+  if (notesPane) notesPane.classList.toggle('is-active', stage === 'notes' || stage === 'items');
 
   if (stage === 'items' || stage === 'extras') {
     renderBrowserPane(svc, stage);
@@ -5895,6 +5919,8 @@ function toggleItem(svc, name, price, priceMax, isAddon, isCustomQuote) {
   if (idx === -1) {
 
     items.push({ name: name, price: price, priceMax: priceMax, addon: isAddon, customQuote: isCustomQuote, qty: 1 });
+    // First item picked in this attempt: shows how many /book visitors start choosing.
+    trackBookingFunnelOnce('item_selected', { service_name: svc });
 
   } else {
 
@@ -8139,6 +8165,10 @@ async function submitBooking() {
     }
 
     BOOK._analytics = data.analytics || {};
+    // The server's estimate of what the platform keeps (before card fees, no
+    // sales tax). The Ads booking conversion reports this, never the customer total.
+    BOOK._conversionValueCents = Number.isFinite(Number(data.conversionValueCents)) && data.conversionValueCents !== null
+      ? Math.max(0, Math.round(Number(data.conversionValueCents))) : null;
     // Hold the created booking so a card retry reuses it instead of creating another.
     BOOK._pendingPayment = { fingerprint: orderFingerprint, data: data };
 
@@ -8374,8 +8404,10 @@ function trackBookingConfirmation(ref, isQuote, isScheduledAuthorization) {
   // New key-event reporting must select the distinct outcome above, not both aliases.
   trackBookingFunnelOnce('booking_completed', Object.assign({ deprecated_event: true }, outcome), ref);
 
-  // Existing Ads actions remain separate. Their value is the reservation estimate,
-  // not captured revenue; quote leads have no monetary value.
+  // Existing Ads actions remain separate. The booking value is the server's
+  // estimate of what the platform keeps (no sales tax, before card fees), not the
+  // customer total and not captured revenue; quote leads have no monetary value.
+  // transaction_id (the booking ref) lets Google drop a repeat of the same booking.
   var ADS_BOOKING_CONVERSION = 'AW-16551666395/7KS0CIjz1aMcENvFudQ9';
   var ADS_QUOTE_CONVERSION = 'AW-16551666395/YSgLCNCQie8cENvFudQ9';
 
@@ -8384,12 +8416,14 @@ function trackBookingConfirmation(ref, isQuote, isScheduledAuthorization) {
   try { adsSent = sessionStorage.getItem(adsKey) === '1'; } catch (e) {}
   if (!adsSent && window.gtag && window.AAEAnalytics && window.AAEAnalytics.canMeasure()) {
     if (!isQuote) {
-      window.gtag('event', 'conversion', {
-        send_to: ADS_BOOKING_CONVERSION,
-        transaction_id: ref,
-        value: Number(BOOK._grandTotalCents || 0) / 100,
-        currency: 'USD'
-      });
+      var bookingConversion = { send_to: ADS_BOOKING_CONVERSION, transaction_id: ref };
+      // Unknown value (for example a recovered payment) is left out rather than
+      // guessed; Google then counts the conversion without a value.
+      if (BOOK._conversionValueCents != null) {
+        bookingConversion.value = BOOK._conversionValueCents / 100;
+        bookingConversion.currency = 'USD';
+      }
+      window.gtag('event', 'conversion', bookingConversion);
     } else if (ADS_QUOTE_CONVERSION) {
       // Deliberately no value or currency. The price is unknown at this moment.
       window.gtag('event', 'conversion', {
