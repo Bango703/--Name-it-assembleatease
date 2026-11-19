@@ -31,8 +31,11 @@ assert.match(adsConversionBlock, /var ADS_QUOTE_CONVERSION = 'AW-16551666395\/YS
 assert.match(bookingBranch, /if \(!isQuote\)/);
 assert.match(bookingBranch, /send_to: ADS_BOOKING_CONVERSION/);
 assert.match(bookingBranch, /transaction_id: ref/);
-assert.match(bookingBranch, /value: Number\(BOOK\._grandTotalCents \|\| 0\) \/ 100/);
-assert.match(bookingBranch, /currency: 'USD'/);
+// 2026-11-18: the value is the server's estimate of what the platform keeps
+// (no sales tax), never the customer total (scripts/test-ads-conversion-value.mjs).
+assert.match(bookingBranch, /bookingConversion\.value = BOOK\._conversionValueCents \/ 100/);
+assert.match(bookingBranch, /bookingConversion\.currency = 'USD'/);
+assert.doesNotMatch(bookingBranch, /_grandTotalCents/, 'The tax-inclusive customer total must not be the conversion value.');
 assert.match(quoteBranch, /send_to: ADS_QUOTE_CONVERSION/);
 assert.match(quoteBranch, /transaction_id: ref/);
 assert.doesNotMatch(quoteBranch, /\bvalue\s*:/, 'Quote leads must not report unapproved revenue.');

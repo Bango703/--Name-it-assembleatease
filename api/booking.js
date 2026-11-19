@@ -7,7 +7,7 @@ import { markQuoteLeadConverted } from './booking/quote-lead.js';
 import { sendEmail, ownerEmail, esc, formatAddress } from './_email.js';
 import { guardCustomerFacing } from './_customer-error-alert.js';
 import { calculateBookingPricing, TX_TAX_RATE } from './_pricing.js';
-import { getMinimumPretaxBookingCents, isActiveInstantBookingZip, isAutomaticDispatchZip, sameDayFeeForAppointment, SAME_DAY_EASER_BONUS_CENTS, SAME_DAY_MIN_LEAD_MINUTES } from './_source-of-truth.js';
+import { getMinimumPretaxBookingCents, isActiveInstantBookingZip, isAutomaticDispatchZip, sameDayFeeForAppointment, SAME_DAY_EASER_BONUS_CENTS, SAME_DAY_MIN_LEAD_MINUTES, estimatedPlatformRevenueCents } from './_source-of-truth.js';
 import {
   applyPromotionToPricing,
   isMissingColumnError,
@@ -230,6 +230,16 @@ export default async function handler(req, res) {
   const appliedSameDayFeeCents = Math.max(0, Number(pricingWithPromo.sameDayFeeCents || 0));
   const sameDayEaserBonusCents = appliedSameDayFeeCents > 0 ? SAME_DAY_EASER_BONUS_CENTS : 0;
   const pricedBooking = amount > 0 && !quoteRequested;
+  // What the platform keeps before card fees, excluding sales tax: the value an
+  // ad platform is told a placed booking is worth (null for a quote request,
+  // whose price is not known yet). Server-calculated, never by the browser.
+  const conversionValueCentsFor = (extra = {}) => (pricedBooking ? estimatedPlatformRevenueCents({
+    totalCents: amount,
+    taxCents,
+    sameDayFeeCents: appliedSameDayFeeCents,
+    sameDayEaserBonusCents,
+    ...extra,
+  }) : null);
   const shouldAuthorizeNow = pricedBooking && !scheduledAuthorization;
   const requestedPaymentMethod = normalizeBookingPaymentMethod(paymentMethod);
   if (!requestedPaymentMethod) {
@@ -304,6 +314,7 @@ export default async function handler(req, res) {
           isDeposit: false,
           depositAmountCents: null,
           reusedExistingBooking: true,
+          conversionValueCents: conversionValueCentsFor(),
           analytics: bookingAnalyticsContext(serviceLocation),
           pricing: {
             itemSubtotalCents: subtotalCents,
@@ -1074,6 +1085,11 @@ export default async function handler(req, res) {
       scheduledAuthorization,
       isDeposit,
       depositAmountCents,
+      conversionValueCents: conversionValueCentsFor({
+        giftCardAppliedCents,
+        assemblecashRedeemedCents,
+        reviewRewardDiscountCents: promo.reviewRewardId ? promoDiscountCents : 0,
+      }),
       analytics: bookingAnalyticsContext(serviceLocation),
       pricing: {
         itemSubtotalCents: subtotalCents,

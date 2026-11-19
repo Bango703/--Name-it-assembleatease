@@ -8164,6 +8164,10 @@ async function submitBooking() {
     }
 
     BOOK._analytics = data.analytics || {};
+    // The server's estimate of what the platform keeps (before card fees, no
+    // sales tax). The Ads booking conversion reports this, never the customer total.
+    BOOK._conversionValueCents = Number.isFinite(Number(data.conversionValueCents)) && data.conversionValueCents !== null
+      ? Math.max(0, Math.round(Number(data.conversionValueCents))) : null;
     // Hold the created booking so a card retry reuses it instead of creating another.
     BOOK._pendingPayment = { fingerprint: orderFingerprint, data: data };
 
@@ -8399,8 +8403,10 @@ function trackBookingConfirmation(ref, isQuote, isScheduledAuthorization) {
   // New key-event reporting must select the distinct outcome above, not both aliases.
   trackBookingFunnelOnce('booking_completed', Object.assign({ deprecated_event: true }, outcome), ref);
 
-  // Existing Ads actions remain separate. Their value is the reservation estimate,
-  // not captured revenue; quote leads have no monetary value.
+  // Existing Ads actions remain separate. The booking value is the server's
+  // estimate of what the platform keeps (no sales tax, before card fees), not the
+  // customer total and not captured revenue; quote leads have no monetary value.
+  // transaction_id (the booking ref) lets Google drop a repeat of the same booking.
   var ADS_BOOKING_CONVERSION = 'AW-16551666395/7KS0CIjz1aMcENvFudQ9';
   var ADS_QUOTE_CONVERSION = 'AW-16551666395/YSgLCNCQie8cENvFudQ9';
 
@@ -8409,12 +8415,14 @@ function trackBookingConfirmation(ref, isQuote, isScheduledAuthorization) {
   try { adsSent = sessionStorage.getItem(adsKey) === '1'; } catch (e) {}
   if (!adsSent && window.gtag && window.AAEAnalytics && window.AAEAnalytics.canMeasure()) {
     if (!isQuote) {
-      window.gtag('event', 'conversion', {
-        send_to: ADS_BOOKING_CONVERSION,
-        transaction_id: ref,
-        value: Number(BOOK._grandTotalCents || 0) / 100,
-        currency: 'USD'
-      });
+      var bookingConversion = { send_to: ADS_BOOKING_CONVERSION, transaction_id: ref };
+      // Unknown value (for example a recovered payment) is left out rather than
+      // guessed; Google then counts the conversion without a value.
+      if (BOOK._conversionValueCents != null) {
+        bookingConversion.value = BOOK._conversionValueCents / 100;
+        bookingConversion.currency = 'USD';
+      }
+      window.gtag('event', 'conversion', bookingConversion);
     } else if (ADS_QUOTE_CONVERSION) {
       // Deliberately no value or currency. The price is unknown at this moment.
       window.gtag('event', 'conversion', {

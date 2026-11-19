@@ -436,6 +436,56 @@ export function computeBookingSplitFromSnapshot({
   };
 }
 
+// Same-day fee is an ADDITIVE layer — it must never run through the 30/70 base
+// split. These parts EXCLUDE it from the split base (its tax cancels out exactly
+// in the subtraction, so the standard base stays penny-accurate); the fixed Easer
+// rush bonus and platform remainder are added back on top. Moved here unchanged
+// from api/booking/assembler-complete.js (2026-11-18) so the completion split and
+// the ad conversion value read one rule.
+export function sameDaySplitParts(booking) {
+  const feeCents = Math.max(0, Number(booking?.same_day_fee_cents || 0));
+  const bonusCents = Math.min(feeCents, Math.max(0, Number(booking?.same_day_easer_bonus_cents || 0)));
+  const taxCents = Math.round(feeCents * SALES_TAX_RATE);
+  return {
+    grossCents: feeCents + taxCents,      // remove from amountCharged
+    taxCents,                             // remove from taxCents
+    bonusCents,                           // add to assemblerDue
+    platformExtra: feeCents - bonusCents, // add to platformFee
+  };
+}
+
+/**
+ * What the platform keeps from a booking before card fees, excluding sales
+ * tax: the platform fee from computeBookingSplitFromSnapshot plus the
+ * platform's part of any same-day fee. This is the value reported to ad
+ * platforms for a placed booking (owner, 2026-11-18: "send accurate platform
+ * revenue excluding sales tax"); it is an estimate at booking time, not
+ * captured revenue, and never a payout input.
+ */
+export function estimatedPlatformRevenueCents({
+  totalCents = 0,
+  taxCents = 0,
+  sameDayFeeCents = 0,
+  sameDayEaserBonusCents = 0,
+  giftCardAppliedCents = 0,
+  assemblecashRedeemedCents = 0,
+  reviewRewardDiscountCents = 0,
+  feePct = null,
+  isMember = false,
+} = {}) {
+  const sameDay = sameDaySplitParts({ same_day_fee_cents: sameDayFeeCents, same_day_easer_bonus_cents: sameDayEaserBonusCents });
+  const split = computeBookingSplitFromSnapshot({
+    amountChargedCents: Math.max(0, Math.round(Number(totalCents) || 0) - sameDay.grossCents),
+    taxCents: Math.max(0, Math.round(Number(taxCents) || 0) - sameDay.taxCents),
+    isMember,
+    feePct,
+    assemblecashRedeemedCents,
+    reviewRewardDiscountCents,
+    giftCardAppliedCents,
+  });
+  return Math.max(0, split.platformFeeCents + sameDay.platformExtra);
+}
+
 // ─── Cancellation policy ─────────────────────────────────────────────────────
 // Tiered cancellation fee as a % of the PRE-TAX SERVICE SUBTOTAL (labor only —
 // NEVER tax, never the service-call fee). Free with reasonable notice; a fair,
