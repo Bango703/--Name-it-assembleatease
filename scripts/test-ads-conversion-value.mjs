@@ -60,6 +60,39 @@ check('a same-day fee adds only the platform part, outside the 30/70 base', () =
   assert.equal(withSameDay, base + (sameDayFee - 3000));
 });
 
+// Real server pricing with the discounts and fees a customer can actually get.
+const { calculateBookingPricing } = await import('../api/_pricing.js');
+const { applyPromotionToPricing } = await import('../api/_promotions.js');
+const keep30 = (pretaxCents) => Math.round(pretaxCents * 0.30);
+
+check('Houston TV booking with the $25 first-booking promo: value is 30% of what the customer pays before tax', () => {
+  const pricing = calculateBookingPricing({ services: ['Mounting & Hanging'], itemsByService: { 'Mounting & Hanging': [{ name: 'TV 56"–65" (standard wall)', qty: 1 }] }, zip: '77494' });
+  const promo = applyPromotionToPricing(pricing, { applied: true, discountCents: 2500, appliedCode: 'WELCOME25', enteredCode: 'WELCOME25' });
+  const pretax = promo.promoAdjustedItemSubtotalCents + promo.serviceCallFeeCents;
+  assert.equal(pretax, 14900 - 2500 + 500, '$149 TV, $25 off, $5 service call');
+  const value = estimatedPlatformRevenueCents({ totalCents: promo.totalCents, taxCents: promo.taxCents });
+  assert.equal(value, keep30(pretax));
+  assert.equal(value, estimatedPlatformRevenueCents({ totalCents: pretax, taxCents: 0 }), 'identical with or without tax');
+  assert.ok(value < promo.totalCents - promo.taxCents);
+});
+
+check('two-service, three-item visit: the multi-service discount lowers the value exactly as it lowers the price', () => {
+  const pricing = calculateBookingPricing({
+    services: ['Mounting & Hanging', 'Furniture Assembly'],
+    itemsByService: { 'Mounting & Hanging': [{ name: 'TV 41"–55" (standard wall)', qty: 1 }], 'Furniture Assembly': [{ name: 'Bed frame — queen', qty: 1 }, { name: 'Dresser (up to 6 drawers)', qty: 1 }] },
+    zip: '77002',
+  });
+  assert.ok(pricing.discountCents > 0, 'the discount applies to a two-service visit');
+  const pretax = pricing.discountedItemSubtotalCents + pricing.serviceCallFeeCents;
+  assert.equal(estimatedPlatformRevenueCents({ totalCents: pricing.totalCents, taxCents: pricing.taxCents }), keep30(pretax));
+});
+
+check('the $5 service-call fee is inside the platform base, as in the payout split', () => {
+  const pricing = calculateBookingPricing({ services: ['Furniture Assembly'], itemsByService: { 'Furniture Assembly': [{ name: 'Bed frame — queen', qty: 1 }] }, zip: '78701' });
+  assert.equal(pricing.serviceCallFeeCents, 500);
+  assert.equal(estimatedPlatformRevenueCents({ totalCents: pricing.totalCents, taxCents: pricing.taxCents }), keep30(pricing.discountedItemSubtotalCents + 500));
+});
+
 const book = read('book.html');
 const conversionBlock = book.slice(book.indexOf('function trackBookingConfirmation'), book.indexOf('function showConfirmation'));
 
