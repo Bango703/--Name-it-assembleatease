@@ -1,0 +1,88 @@
+# Google Ads change set: Houston (prepared, NOT applied)
+
+Account 293-675-5780, campaign "Houston | Assembly & TV Mounting | Search" (ID 24490173783). Prepared 2026-11-18. **Nothing here has been applied.** Apply only after the owner approves, after the code branches are deployed, and after the $99.35 balance is paid. Unchanged on purpose: $10/day budget, Maximize clicks with the $4 max CPC, schedule every day 7:00 AM-10:00 PM Central, no hourly bid adjustments, Search only, AI Max / text customization / final URL expansion off, Presence location option.
+
+## 1. Conversion goals (fix the six Primary goals)
+
+| Conversion action | Today | Change to | Why |
+|---|---|---|---|
+| Book appointment (website) | Primary | **Primary (only one)** | Fires on the booking confirmation; after `fix/ads-conversion-value` deploys it carries the platform's share (no tax) as the value and the booking ref as the transaction ID |
+| Add to cart (1) (website, counts every) | Primary | Secondary | Not a booking |
+| Calls from Smart Campaign Ads | Primary | Secondary | Smart campaign removed |
+| Smart campaign ad clicks to call | Primary | Secondary | Smart campaign removed |
+| Conversation started (Google hosted) | Primary | Secondary | Not a booking |
+| Lead form - Submit (Google hosted) | Primary | Secondary | Not a booking; no lead form in use |
+| Quote Request (website) | Secondary | Secondary (no change) | No value until priced |
+| Website calls (60+ seconds) | Secondary | Secondary (no change) | |
+
+Keep "Book appointment" value setting "Use different values". Do not turn on enhanced conversions until the General Counsel consent decision (backlog BOOKING-SOURCE-COVERAGE).
+
+## 2. Location targeting (Greater Houston)
+
+Remove: **Houston, Texas (city)**.
+
+Add (Presence): **Harris, Fort Bend, Montgomery, Brazoria, Galveston, Liberty, Waller, Chambers, Austin, San Jacinto** counties.
+
+Exclude these postal codes. They sit inside those counties but outside the platform's Houston market (ZIPs 770-775), so a booking there is statewide (owner-assigned), not automatic:
+
+| ZIP | Place | County |
+|---|---|---|
+| 77617 | Gilchrist | Galveston |
+| 77623 | High Island | Galveston |
+| 77650 | Port Bolivar / Crystal Beach | Galveston |
+| 77661 | Stowell | Chambers |
+| 77665 | Winnie | Chambers |
+| 78931 | Bleiblerville | Austin |
+| 78933 | Cat Spring | Austin |
+| 78944 | Industry | Austin |
+| 78950 | New Ulm | Austin |
+
+Verification (2026-11-18): GeoNames postal-code lists per county. Harris (200 codes), Fort Bend (22), Montgomery (25), Brazoria (21), Liberty (11), Waller (5) and San Jacinto (4) are entirely 770-775; the nine codes above are the only exceptions in Galveston, Chambers and Austin counties. 77650, 77665 and 78950 were cross-checked on zip-codes.com. Re-check in Google's location picker when applying: each exclusion should show inside its county.
+
+## 3. Ad groups
+
+Final URL suffix (unchanged): `utm_source=google&utm_medium=cpc&utm_campaign=houston_search`. Each final URL below is the booking page for that service, so the booking records its source without cookies.
+
+### 3a. TV Mounting (re-aimed at larger setups; keep its existing keywords)
+Final URL: `https://www.assembleatease.com/book?service=Mounting+%26+Hanging`
+
+Add keywords (phrase and exact): mount tv above fireplace, tv mounting above fireplace, fireplace tv mounting, large tv mounting, 75 inch tv mounting, 85 inch tv mounting, tv mounting with cable concealment, tv and soundbar mounting.
+
+Responsive search ad (replace the current one). Headlines (all 30 characters or fewer, checked):
+Houston TV Mounting · Large TV Mounting From $189 · Above-Fireplace TV Mounting · 75" and 85" TVs Mounted · One Upfront Price, Tax Shown · Book Online, Pick Your Time · ID-Verified Local Pros · Soundbar & Cable Routing · Second TV Same Visit +$69 · Katy, Spring, Sugar Land · You Pay After the Job · Brick & Tile Walls Welcome · Flat Prices, No Hourly Meter · See Your Total Before Booking · Greater Houston TV Installers
+
+Descriptions (90 or fewer, checked):
+1. Large TVs from $189; above-fireplace mounting adds $175. See your total before you book.
+2. Pick your TV size and wall online. Local pros bring the tools. You pay after the job.
+3. Serving Houston, Katy, Spring, Sugar Land, Pearland and the rest of Greater Houston.
+4. Add a soundbar, cable routing or a second TV in the same visit. Flat prices, tax shown.
+
+Prices quoted are catalog prices: TV 66-75" $189, 76-85" $229, above fireplace +$175, second TV +$69, soundbar mount +$55, cable routing +$35, brick +$110, tile +$65. No hardware, same-day, insurance or guarantee claims.
+
+### 3b. Outdoor & Playsets (new ad group)
+Final URL: `https://www.assembleatease.com/book?service=Outdoor+%26+Playsets`
+
+Keywords (phrase and exact): swing set assembly, swing set installation, playset assembly, playset installation, trampoline assembly, trampoline installation, basketball hoop assembly, outdoor furniture assembly, patio furniture assembly, grill assembly, gazebo assembly, pergola assembly.
+
+Headlines: Houston Playset Assembly · Swing Sets Assembled From $349 · Trampolines From $319 · Basketball Hoops From $249 · Patio Sets From $179 · One Upfront Price, Tax Shown · Book Online, Pick Your Day · ID-Verified Local Pros · You Pay After the Job · Katy, Spring, Cypress & More · Gazebo & Shed Quotes Online · Flat Prices, No Hourly Meter · Grills & Fire Pits From $119 · Greater Houston Backyard Pros · See Your Total Before Booking
+
+Descriptions:
+1. Swing sets from $349, trampolines from $319. See your full total before you book.
+2. Pick the playset or patio set online and choose a day. Local pros bring the tools.
+3. Serving Houston, Katy, Spring, Cypress, The Woodlands, Sugar Land and Pearland.
+4. Gazebos, pergolas and sheds get a written quote first. You pay after the job.
+
+Catalog prices: swing set / playset $349, trampoline $319 / $389 / $449, basketball hoop $249, outdoor dining set from $179, grill $129, fire pit $119; gazebo, pergola and shed are custom quotes.
+
+### 3c. Furniture Assembly
+**Pause.** Completed furniture jobs kept $27-$38 each; Houston click prices for these terms start around $3.50-$7.
+
+## 4. Negative keywords to add (if not already among the 33)
+d riggs, diy, how to, instructions, manual, parts, replacement parts, jobs, hiring, careers, salary.
+
+## 5. Order of operations after approval
+1. Deploy `feat/houston-auto-dispatch`, `fix/ads-conversion-value`, `fix/mobile-booking-continue`, then `feat/houston-dispatch-health` (owner approves each PR).
+2. One tagged test booking (marked as test) to confirm `houston_search` lands in the booking row and the Ads value equals the platform share.
+3. Apply sections 1 to 4.
+4. Pay the balance; enable the campaign.
+5. Day 1-14: watch the Greater Houston dispatch card and the stranded-booking alerts daily; weekly search terms and user-location report.
