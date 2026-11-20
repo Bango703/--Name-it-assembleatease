@@ -1,6 +1,8 @@
 # Google Ads change set: Houston (prepared, NOT applied)
 
-Account 293-675-5780, campaign "Houston | Assembly & TV Mounting | Search" (ID 24490173783). Prepared 2026-11-18. **Nothing here has been applied.** Apply only after the owner approves, after the code branches are deployed, and after the $99.35 balance is paid. Unchanged on purpose: $10/day budget, Maximize clicks with the $4 max CPC, schedule every day 7:00 AM-10:00 PM Central, no hourly bid adjustments, Search only, AI Max / text customization / final URL expansion off, Presence location option.
+> **Status 2026-11-20:** sections 3 (all six ad groups and ads), 3g (8 service links), 3h (Services snippet, callouts) and 4 (negatives) are applied in the paused campaign, plus real job photos, the business name and Excellent ad strength on all six ads. Details: competitor-scan-2026-11-20.md. Sections 1 (conversion goals) and 2 (Greater Houston targeting) are **not** applied and wait for the owner's explicit yes. The campaign stays paused.
+
+Account 293-675-5780, campaign "Houston | Assembly & TV Mounting | Search" (ID 24490173783). Prepared 2026-11-18. **Nothing here had been applied when this was written.** Apply only after the owner approves, after the code branches are deployed, and after the $99.35 balance is paid. Unchanged on purpose: $10/day budget, Maximize clicks with the $4 max CPC, schedule every day 7:00 AM-10:00 PM Central, no hourly bid adjustments, Search only, AI Max / text customization / final URL expansion off, Presence location option.
 
 ## 1. Conversion goals (fix the six Primary goals)
 
