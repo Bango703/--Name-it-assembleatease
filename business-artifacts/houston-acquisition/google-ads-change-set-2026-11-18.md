@@ -74,8 +74,33 @@ Descriptions:
 
 Catalog prices: swing set / playset $349, trampoline $319 / $389 / $449, basketball hoop $249, outdoor dining set from $179, grill $129, fire pit $119; gazebo, pergola and shed are custom quotes.
 
-### 3c. Furniture Assembly
-**Pause.** Completed furniture jobs kept $27-$38 each; Houston click prices for these terms start around $3.50-$7.
+### 3c. Furniture Assembly (revised 2026-11-20: keep running, aimed at bigger orders)
+Final URL: `https://www.assembleatease.com/book?service=Furniture+Assembly`. Keep its 12 keywords. Replace the ad.
+Headlines: Houston Furniture Assembly · Bed Frames From $99 · Sectionals From $159 · Move-In Setups, One Visit · Room-Ready Bundles · Bunk & Loft Beds From $229 · One Upfront Price, Tax Shown · Book Online, Pick Your Time · ID-Verified Local Pros · You Pay After the Job · Flat-Pack Furniture Built · Flat Prices, No Hourly Meter · Greater Houston Assembly Pros · See Your Total Before Booking · Katy, Spring, Sugar Land
+Descriptions: Bed frames from $99, sofas from $119, sectionals from $159. See your total first. · Moving in? Book every room in one visit. Local pros bring the tools. You pay after. · Serving Houston, Katy, Spring, Sugar Land, Pearland and the rest of Greater Houston. · Dressers, desks, bunk beds and wardrobes too. Flat prices, tax shown before you book.
+
+### 3d. Smart Home (new)
+Final URL: `https://www.assembleatease.com/book?service=Smart+Home`
+Keywords (phrase and exact): video doorbell installation, doorbell camera installation, ring doorbell installation, smart lock installation, smart thermostat installation, security camera installation, outdoor camera installation, home security camera install.
+Headlines: Houston Smart Home Installs · Video Doorbells From $89 · Smart Locks Installed From $99 · Smart Thermostats From $99 · Camera Systems From $169 · Outdoor Cameras From $109 · One Upfront Price, Tax Shown · Book Online, Pick Your Time · ID-Verified Local Pros · You Pay After the Job · Keypad Entry From $119 · Flat Prices, No Hourly Meter · Greater Houston Installers · See Your Total Before Booking · Katy, Spring, Sugar Land
+Descriptions: Video doorbells from $89, smart locks from $99, camera systems from $169. See your total. · Pick your devices online and choose a time. Local pros bring the tools. You pay after. · Serving Houston, Katy, Spring, Sugar Land, Pearland and the rest of Greater Houston. · Add a thermostat, keypad or sensors in the same visit. Flat prices, tax shown up front.
+
+### 3e. Fitness Equipment (new)
+Final URL: `https://www.assembleatease.com/book?service=Fitness+Equipment`
+Keywords: treadmill assembly, home gym assembly, gym equipment assembly, exercise equipment assembly, peloton assembly, elliptical assembly, squat rack assembly, rowing machine assembly, weight bench assembly.
+Headlines: Houston Gym Equipment Assembly · Treadmills Assembled From $219 · Home Gyms From $399 · Squat Racks From $279 · Exercise Bikes From $179 · Ellipticals From $239 · One Upfront Price, Tax Shown · Book Online, Pick Your Time · ID-Verified Local Pros · You Pay After the Job · Built Where You Want It · Flat Prices, No Hourly Meter · Greater Houston Fitness Pros · See Your Total Before Booking · Katy, Spring, Cypress & More
+Descriptions: Treadmills from $219, home gyms from $399, bikes from $179. See your total first. · Pick your equipment online and choose a day. Local pros bring the tools. You pay after. · Serving Houston, Katy, Spring, Cypress, The Woodlands, Sugar Land and Pearland. · Racks, rowers, benches and cable machines too. Flat prices, tax shown before you book.
+
+### 3f. Office Furniture (new)
+Final URL: `https://www.assembleatease.com/book?service=Office+Assembly`
+Keywords: office furniture assembly, office furniture installation, desk assembly, standing desk assembly, cubicle installation, office chair assembly, conference table assembly.
+Headlines: Houston Office Furniture Setup · Standing Desks From $199 · Cubicle Setups From $399 · Office Chairs From $89 · Conference Tables From $229 · Desks Assembled From $99 · One Upfront Price, Tax Shown · Book Online, Pick Your Time · ID-Verified Local Pros · Quotes for Larger Offices · Flat Prices, No Hourly Meter · Home Offices & Small Offices · Greater Houston Office Pros · See Your Total Before Booking · You Pay After the Job
+Descriptions: Desks from $99, standing desks from $199, cubicle setups from $399. See your total first. · Book online for home or small offices. Local pros bring the tools. You pay after the job. · Serving Houston, Katy, Spring, Sugar Land, Pearland and the rest of Greater Houston. · Larger office build-outs get a written quote first. Flat prices, tax shown up front.
+
+### 3g. Sitelinks (campaign level, replace the four)
+See All Prices (/pricing) · Playsets & Outdoor (/book?service=Outdoor+%26+Playsets) · Smart Home Installs (/book?service=Smart+Home) · Office Furniture (/book?service=Office+Assembly) · Gym Equipment Setup (/book?service=Fitness+Equipment) · TV Mounting From $99 (/book?service=Mounting+%26+Hanging) · Furniture Assembly (/book?service=Furniture+Assembly) · Room-Ready Bundles (/bundles)
+
+Guardrail per ad group (owner: maximize coverage; marketing: let the data decide): after $75 spent in one ad group with no booking from it in our own records, pause that ad group; the rest keep running. Budget, bid cap and schedule unchanged.
 
 ## 4. Negative keywords to add (if not already among the 33)
 d riggs, diy, how to, instructions, manual, parts, replacement parts, jobs, hiring, careers, salary.
