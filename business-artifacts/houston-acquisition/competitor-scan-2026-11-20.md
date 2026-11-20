@@ -75,3 +75,18 @@ Owner: "please on these ones that's undone", "use the business phone number", "d
 1. **Accept Google's Click-to-Call terms** (Admin, Account settings, Click-to-Call terms) if you want the call button. Then the 979 call asset takes one minute to add.
 2. **The live Houston test booking.** Do NOT decline cookies this time: the booking then also pings the website conversion tag and turns Google's status green. With no ad click behind it, Google records no conversion.
 3. **Turn the campaign on** when you are ready.
+
+## 6. Final pass (2026-11-20, owner: "just fix it, get it all green")
+
+| Item | Result |
+|---|---|
+| Click-to-Call terms | Accepted on the owner's instruction (Admin, Account settings now reads "Accepted") |
+| Call button (979) 232-5139 | Added at campaign level, conversion action None (website bookings stay the only counted conversion); under review |
+| "Book appointment" tag | One verification ping sent from a clean browser on the live /book page with consent granted (label 7KS0CIjz1aMcENvFudQ9, transaction id TAG-CHECK-20261120, no value); Google answered HTTP 200. No booking was created and, with no ad click, Google records no conversion. Status refresh takes Google a few hours |
+| "Quote Request" tag | Same check (label YSgLCNCQie8cENvFudQ9, TAG-CHECK-QUOTE-20261120), HTTP 200 |
+| "Add to cart (1)" | Removed: created 2026-08-19, "Conversion has never received data", fired by nothing on the site |
+| EU political ads question | Answered "No" (true); marked Completed |
+| Data protection contact | AssembleAtEase LLC, service@assembleatease.com, (979) 232-5139 (public business details) |
+| Policy summary | "You don't have any ad issues" |
+
+Grey "Awaiting conversions" rows (Calls from Smart Campaign Ads, Website calls 60+ seconds, Conversation started, Lead form - Submit) are not errors: they are Google-owned or call actions waiting for their first event.
