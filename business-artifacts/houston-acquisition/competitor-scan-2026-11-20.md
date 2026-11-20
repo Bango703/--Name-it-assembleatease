@@ -58,10 +58,20 @@ Claims we deliberately do **not** make: same-day (fee flag is off), insured, war
 - Also used: 12 of the 16 real job photos already published on the site (images/real-*). Left out: real-furniture-bed-paneled and real-outdoor-gazebo (too small, would read as blurry), real-outdoor-sectional (low resolution), and real-tv-mount-console (MLB, YouTube and Amazon logos on the TV screen invite a trademark disapproval).
 - Every upload was re-encoded through PIL, so EXIF and GPS data were removed (verified: 0 EXIF tags on each file). Never upscaled.
 
-## 4. Waiting on the owner (not applied)
+## 4. Applied after the owner's yes (2026-11-20, later the same day)
 
-1. **Greater Houston targeting** (change set section 2): the 10 counties minus 9 ZIPs. Today the ads reach the City of Houston only, while the copy names Katy, Spring and Sugar Land, where most Houston-area customers were. The tool's safety check refused this change without your explicit yes, because you reserved geographic targeting earlier. **A Harris County addition is sitting UNSAVED in the open Google Ads settings tab. Do not press Save there; press Cancel or close the tab.** To approve, reply "apply the Greater Houston targeting".
-2. **Conversion goals** (change set section 1): make "Book appointment" the campaign's only goal. The campaign currently uses the account default (Book appointments, Leads from messages, plus one more). This doesn't change what is spent under Maximize clicks; it makes the conversion count honest.
-3. **Call asset:** Google asks for one because "phone calls" is a campaign goal. Which number belongs on ads is your call (979 business, 512 job calls, 877 automatic texts).
-4. **Business Profile location asset (account level, "All locations selected")**: check which address the profile shows. If it is an Austin address, Houston ads may show directions to Austin.
-5. **Turning the campaign on** after the live Houston test booking.
+Owner: "please on these ones that's undone", "use the business phone number", "don't worry about Google profile", conversion tracking "directly to my website".
+
+| Item | Result (verified after reload) |
+|---|---|
+| Greater Houston targeting | Houston (city) removed; Harris, Fort Bend, Montgomery, Brazoria, Galveston, Liberty, Waller, Chambers, Austin and San Jacinto counties targeted; 77617, 77623, 77650, 77661, 77665, 78931, 78933, 78944, 78950 excluded. Settings now read "Targeted: 10 locations, Excluded: 9 locations"; Presence only |
+| Conversion goal | Campaign-specific goal "Book appointments" (Website) only; the campaign no longer counts phone-call leads or message leads. Budget, Maximize clicks and the $4 cap unchanged |
+| Website conversion tag | The "Book appointment" action (AW-16551666395 / 7KS0CIjz1aMcENvFudQ9) shows Misconfigured only because it has had no ping in 7 days. In that window the only online booking was a test (AAE-DMA4UGNPV2, Nov 13); the last real online bookings were Nov 9 and Nov 5. A fresh visitor on the live /book page loads the Ads tag and its consent-mode pings return HTTP 200 with no CSP or console errors. The owner's own Chrome is excluded from measurement on purpose (aae-analytics-internal). The status turns green on the next real website booking |
+| Call button, (979) 232-5139 | NOT added. Google refuses to create a call asset until the account's Click-to-Call terms are accepted (Admin, Account settings: "Not accepted yet"). Those terms are a legal agreement that lets Google monitor and record a sample of calls and texts from the ads. Left for the owner to accept or decline personally. Routing of 979 untouched |
+| Approvals | Sitelinks 8/8, callouts 6/6, Services snippet: Eligible. Images 27 of 29 Eligible, 2 still in review, none disapproved. All six ads Excellent; Google found no policy issues |
+
+## 5. Still open
+
+1. **Accept Google's Click-to-Call terms** (Admin, Account settings, Click-to-Call terms) if you want the call button. Then the 979 call asset takes one minute to add.
+2. **The live Houston test booking.** Do NOT decline cookies this time: the booking then also pings the website conversion tag and turns Google's status green. With no ad click behind it, Google records no conversion.
+3. **Turn the campaign on** when you are ready.
