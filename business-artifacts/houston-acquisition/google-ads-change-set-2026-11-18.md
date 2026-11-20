@@ -100,6 +100,10 @@ Descriptions: Desks from $99, standing desks from $199, cubicle setups from $399
 ### 3g. Sitelinks (campaign level, replace the four)
 See All Prices (/pricing) · Playsets & Outdoor (/book?service=Outdoor+%26+Playsets) · Smart Home Installs (/book?service=Smart+Home) · Office Furniture (/book?service=Office+Assembly) · Gym Equipment Setup (/book?service=Fitness+Equipment) · TV Mounting From $99 (/book?service=Mounting+%26+Hanging) · Furniture Assembly (/book?service=Furniture+Assembly) · Room-Ready Bundles (/bundles)
 
+### 3h. Structured snippet and callouts (campaign level, show under every ad)
+Structured snippet, header **Services**: TV Mounting · Furniture Assembly · Smart Home Installs · Playset Assembly · Gym Equipment Assembly · Office Furniture Setup · Outdoor Furniture · Camera Installation (each 25 characters or fewer).
+Callouts: Flat Prices, Tax Shown · You Pay After the Job · ID-Verified Local Pros · Book Online Any Time · Free Cancellation 24 Hrs (free window verified: CANCELLATION_POLICY.freeWindowHours = 24).
+
 Guardrail per ad group (owner: maximize coverage; marketing: let the data decide): after $75 spent in one ad group with no booking from it in our own records, pause that ad group; the rest keep running. Budget, bid cap and schedule unchanged.
 
 ## 4. Negative keywords to add (if not already among the 33)
