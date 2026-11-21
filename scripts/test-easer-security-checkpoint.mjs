@@ -300,8 +300,13 @@ assert.match(verificationApi, /signed name must match the full legal name/i);
 assert.match(ownerAddEaserApi, /time-limited onboarding link/);
 assert.doesNotMatch(ownerAddEaserApi, /reusable onboarding link/);
 assert.match(ownerAddEaserApi, /emailDelivered/);
-assert.match(webhookApi, /updateProfileRequired/);
-assert.match(webhookApi, /identity_resume_token_expires_at:\s*null/);
+// The verified/retry writes live in one module both ID providers call
+// (api/_identity-outcome.js, 2026-11-21); the webhook must route through it.
+assert.match(webhookApi, /recordIdentityVerified\(sb, \{/);
+assert.match(webhookApi, /recordIdentityRetry\(sb, \{/);
+const identityOutcome = await readFile(new URL('../api/_identity-outcome.js', import.meta.url), 'utf8');
+assert.match(identityOutcome, /updateProfileRequired/);
+assert.match(identityOutcome, /identity_resume_token_expires_at:\s*null/);
 assert.match(webhookApi, /Webhook processing failed and is retryable/);
 assert.match(webhookAlias, /export \{ default \} from '\.\.\/assembler\/stripe-webhook\.js'/);
 
