@@ -100,7 +100,9 @@ assert.equal(safeAcquisitionPath('/smart-home-installation-austin-tx'), '/smart-
 assert.equal(safeAcquisitionPath('/furniture-assembly-customer-name-tx'), '');
 assert.equal(safeAcquisitionPath('/blog/article-slug'), '/blog');
 assert.deepEqual(bookingAnalyticsContext({ city: 'Austin', zip: '78701' }), { service_market: 'central_texas', service_city: 'Austin' });
-assert.deepEqual(bookingAnalyticsContext({ city: 'Tyler', zip: '75701' }), { service_market: 'unknown', service_city: 'Tyler' });
+// Every Texas ZIP has a market since 2026-11-21; only a ZIP outside Texas is unknown.
+assert.deepEqual(bookingAnalyticsContext({ city: 'Tyler', zip: '75701' }), { service_market: 'east_texas', service_city: 'Tyler' });
+assert.equal(bookingAnalyticsContext({ city: 'Tulsa', zip: '74103' }).service_market, 'unknown');
 assert.equal(bookingAnalyticsContext({ city: 'person@example.com', zip: '' }).service_city, 'unknown');
 
 // Published GBP and partner links keep useful identifiers, never contact/free text.

@@ -1,6 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
-import { activeEaserZips, easersCovering, UNCOVERED_AREA_NOTE } from '../_easer-coverage.js';
+import { activeEaserAreas, easersCovering, UNCOVERED_AREA_NOTE } from '../_easer-coverage.js';
 
 /**
  * GET /api/booking/area-coverage?zip=78701 — does an active Easer cover this
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   if (!/^\d{5}$/.test(zip)) return res.status(400).json({ error: 'Enter a five-digit ZIP.' });
 
   try {
-    const covered = easersCovering(await activeEaserZips(getSupabase()), zip) > 0;
+    const covered = easersCovering(await activeEaserAreas(getSupabase()), zip) > 0;
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
     return res.status(200).json({ covered, note: covered ? null : UNCOVERED_AREA_NOTE });
   } catch (error) {
