@@ -32,19 +32,24 @@ import {
 const SENT_STATUSES = ['provider_accepted', 'sent', 'delivered', 'delivery_delayed'];
 const PROFILE_SELECT = 'id, role, full_name, email, phone, city, zip, application_status, account_closure_status, contractor_agreement_signed_at, identity_verified, id_verification_status, stripe_identity_session_id, stripe_verification_id, identity_resume_token, identity_resume_token_expires_at, sms_consent_at, sms_opted_out_at, created_at';
 
+/** { count, lastSentMs }: distinct reminders delivered to this applicant, and when the latest went out. */
 async function followupsSent(sb, profileId) {
   const { data, error } = await sb.from('notification_log')
-    .select('notification_key, status')
+    .select('notification_key, status, sent_at')
     .eq('notification_type', IDENTITY_FOLLOWUP_TYPE)
     .eq('recipient_user_id', profileId)
     .in('status', SENT_STATUSES);
   if (error) throw error;
   const numbers = new Set();
+  let lastSentMs = null;
   for (const row of data || []) {
     const m = String(row.notification_key || '').match(/identity-followup:[^:]+:(\d+)/);
-    if (m) numbers.add(Number(m[1]));
+    if (!m) continue;
+    numbers.add(Number(m[1]));
+    const at = Date.parse(row.sent_at || '');
+    if (Number.isFinite(at) && (lastSentMs === null || at > lastSentMs)) lastSentMs = at;
   }
-  return numbers.size;
+  return { count: numbers.size, lastSentMs };
 }
 
 async function alertOwner(profile, stage, reason) {
@@ -99,8 +104,8 @@ export default async function handler(req, res) {
           continue;
         }
 
-        const sentCount = await followupsSent(sb, profile.id);
-        const next = nextIdentityFollowup({ anchorMs: identityActivityAnchorMs(profile, session), sentCount, nowMs: Date.now() });
+        const { count: sentCount, lastSentMs } = await followupsSent(sb, profile.id);
+        const next = nextIdentityFollowup({ anchorMs: identityActivityAnchorMs(profile, session), sentCount, lastSentMs, nowMs: Date.now() });
         if (!next) { result.skipped.push({ id: profile.id, stage, why: sentCount >= 3 ? 'reminders_done' : 'not_due' }); continue; }
 
         const token = await ensureIdentityResumeToken(sb, profile, { rotate: true });

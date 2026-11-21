@@ -48,6 +48,15 @@ check('reminders fall on days 1, 3 and 7 after the last ID activity, then stop',
   assert.deepEqual(nextIdentityFollowup({ anchorMs: anchor, sentCount: 2, nowMs: anchor + 8 * DAY }), { number: 3, isLast: true });
   assert.equal(nextIdentityFollowup({ anchorMs: anchor, sentCount: 3, nowMs: anchor + 30 * DAY }), null);
 });
+check('an applicant who stalled weeks ago gets the reminders spaced 2 then 4 days apart, never on consecutive days', () => {
+  const anchor = Date.parse('2026-10-01T12:00:00Z');
+  const now = Date.parse('2026-11-22T15:17:00Z');
+  assert.deepEqual(nextIdentityFollowup({ anchorMs: anchor, sentCount: 0, nowMs: now }), { number: 1, isLast: false });
+  assert.equal(nextIdentityFollowup({ anchorMs: anchor, sentCount: 1, lastSentMs: now, nowMs: now + 1 * DAY }), null, 'not the next day');
+  assert.deepEqual(nextIdentityFollowup({ anchorMs: anchor, sentCount: 1, lastSentMs: now, nowMs: now + 2 * DAY }), { number: 2, isLast: false });
+  assert.equal(nextIdentityFollowup({ anchorMs: anchor, sentCount: 2, lastSentMs: now + 2 * DAY, nowMs: now + 5 * DAY }), null, 'not three days later');
+  assert.deepEqual(nextIdentityFollowup({ anchorMs: anchor, sentCount: 2, lastSentMs: now + 2 * DAY, nowMs: now + 6 * DAY }), { number: 3, isLast: true });
+});
 check('the anchor moves forward when the applicant opens a new ID session', () => {
   const session = { created: Date.parse('2026-11-20T10:00:00Z') / 1000 };
   assert.equal(identityActivityAnchorMs(base, session), Date.parse('2026-11-20T10:00:00Z'));

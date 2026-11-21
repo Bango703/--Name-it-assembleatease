@@ -59,13 +59,20 @@ export function identityActivityAnchorMs(profile = {}, session = null) {
 
 /**
  * Next reminder due, or null. `sentCount` is how many follow-ups this applicant
- * already received. Each reminder is due IDENTITY_FOLLOWUP_DAYS[n] days after
- * the anchor; nothing goes out after the last one.
+ * already received and `lastSentMs` when the latest one went out. Each reminder
+ * is due IDENTITY_FOLLOWUP_DAYS[n] days after the anchor AND no sooner than the
+ * planned gap after the previous reminder (2 days, then 4). Without the gap, an
+ * applicant who stalled weeks ago is past every date at once and would get three
+ * reminders on three days running. Nothing goes out after the last one.
  */
-export function nextIdentityFollowup({ anchorMs, sentCount = 0, nowMs = Date.now() } = {}) {
+export function nextIdentityFollowup({ anchorMs, sentCount = 0, nowMs = Date.now(), lastSentMs = null } = {}) {
   if (!Number.isFinite(anchorMs) || sentCount >= IDENTITY_FOLLOWUP_DAYS.length) return null;
   const dueAt = anchorMs + IDENTITY_FOLLOWUP_DAYS[sentCount] * DAY_MS;
   if (nowMs < dueAt) return null;
+  if (sentCount > 0 && Number.isFinite(lastSentMs)) {
+    const gapDays = IDENTITY_FOLLOWUP_DAYS[sentCount] - IDENTITY_FOLLOWUP_DAYS[sentCount - 1];
+    if (nowMs < lastSentMs + gapDays * DAY_MS) return null;
+  }
   return { number: sentCount + 1, isLast: sentCount + 1 === IDENTITY_FOLLOWUP_DAYS.length };
 }
 
