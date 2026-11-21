@@ -12074,6 +12074,16 @@ window.intelQuick = intelQuick;
   function statusBadge(status) { return easerAccountBadge(status); }
   function tierBadge(tier)     { return easerTierBadge(tier); }
   function idVerificationBadge(a) { return verificationBadge(a); }
+  // Server verdict from /api/assembler/list (describeEaserServiceArea): the area
+  // and travel distance dispatch uses for this Easer. Rendered, never recomputed.
+  function easerJobAreaText(area) {
+    if (!area) return '<span style="color:var(--muted)">Not reported</span>';
+    if (!area.located) return '<span style="color:var(--red);font-weight:600">Home ZIP is missing or outside Texas. Gets no job offers until it is fixed.</span>';
+    return 'Within ' + esc(String(area.radiusMiles)) + ' miles of ' + esc(area.homeZip || '')
+      + (area.isDefault ? ' (default)' : ' (Easer chose)')
+      + (area.areaLabel ? ' &middot; ' + esc(area.areaLabel) : '')
+      + (area.approximate ? ' &middot; <span style="color:var(--muted)">PO box ZIP, location approximate</span>' : '');
+  }
   function connectState(a) {
     if (!asmConnectRequired) {
       return { code:'not-required', label:'Not required', bg:'#f1f5f9', fg:'#475569' };
@@ -12627,7 +12637,8 @@ window.intelQuick = intelQuick;
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Contact</div>'
         + '<strong>Email:</strong> <a href="mailto:' + esc(a.email) + '" style="color:var(--accent)">' + esc(a.email) + '</a><br>'
         + '<strong>Phone:</strong> ' + (hasValidUsPhone(a.phone) ? phoneWithCall(a.phone, 'easer', a.id) + textEaserControl(a) : '<span style="color:var(--red)">Valid phone required — cannot be dispatched</span>') + '<br>'
-        + '<strong>Location:</strong> ' + esc(a.city||'—') + (a.zip ? ', ' + esc(a.zip) : '')
+        + '<strong>Location:</strong> ' + esc(a.city||'—') + (a.zip ? ', ' + esc(a.zip) : '') + '<br>'
+        + '<strong>Job area:</strong> ' + easerJobAreaText(a.serviceArea)
         + '</div>',
       // Dispatch readiness checklist
       dispatchChecklist,

@@ -94,7 +94,8 @@ try {
   assert.deepEqual(knownMarketAreas().map(area => area.marketKey), Object.keys(SERVICE_MARKETS));
   for (const [key, prefixes] of Object.entries(SERVICE_MARKETS)) {
     for (const prefix of prefixes) {
-      const zip = `${prefix}01`;
+      // 885xx (El Paso) starts at 88510; 88501 is not a Texas ZIP.
+      const zip = prefix === '885' ? '88510' : `${prefix}01`;
       assert.equal(resolveMarketArea({ city: 'Recorded base', state: 'TX', zip }).marketKey, marketForZip(zip));
       assert.equal(resolveMarketArea({ city: 'Recorded base', state: 'TX', zip }).marketKey, key);
     }
@@ -102,12 +103,15 @@ try {
   assert.equal(resolveMarketArea({ city: 'Austin', state: 'Texas', zip: '78660-1234' }).marketKey, 'central_texas');
   assert.equal(resolveMarketArea({ city: 'Pflugerville', state: '', zip: '78759' }).marketKey, 'central_texas');
   assert.equal(resolveMarketArea({ city: 'San Antonio', state: 'TX', zip: '78006' }).marketKey, 'san_antonio');
-  // Caddo Mills (75135) is in the Dallas-Fort Worth market since 2026-11-11; Tyler is still unconfigured.
+  // Caddo Mills (75135) is in the Dallas-Fort Worth market since 2026-11-11.
   assert.equal(resolveMarketArea({ city: 'Caddo Mills', state: 'TX', zip: '75135' }).marketKey, 'dallas_fort_worth');
-  const unknown = resolveMarketArea({ city: 'Tyler', state: 'TX', zip: '75701' });
+  // Every Texas ZIP has a market since 2026-11-21: Tyler is East Texas.
+  assert.equal(resolveMarketArea({ city: 'Tyler', state: 'TX', zip: '75701' }).marketKey, 'east_texas');
+  // Only a place outside Texas stays unconfigured.
+  const unknown = resolveMarketArea({ city: 'Oklahoma City', state: 'OK', zip: '73102' });
   assert.equal(unknown.coverageKnown, false);
   assert.equal(unknown.locationIssue, null);
-  assert.match(unknown.marketLabel, /Tyler, TX 75701/);
+  assert.match(unknown.marketLabel, /Oklahoma City, OK 73102/);
   assert.notEqual(unknown.marketKey, 'central_texas');
   for (const patch of [
     { city: null }, { zip: null }, { zip: 'bad 78201' }, { state: 'ZZ' },
@@ -171,8 +175,8 @@ try {
   assert.equal(area('san_antonio').readyEasers, 2);
   assert.equal(area('san_antonio').requestCount, 1);
   assert.equal(area('permian_basin').totalEasers, 0);
-  assert.equal(area(unknown.marketKey).easerApplications, 1);
-  assert.equal(area(unknown.marketKey).activationStatus, 'COVERAGE UNVERIFIED');
+  // The Tyler applicant lands in East Texas, a named market, not an unknown one.
+  assert.equal(area('east_texas').easerApplications, 1);
   assert.equal(area('location-review').readyEasers, 1, 'Location review must not erase a ready person from global totals');
   assert.equal(area('location-review').activationStatus, 'LOCATION REVIEW');
   const originalLocation = area('san_antonio').supplyRows.ready.find(row => row.id === 'sa-normalized');

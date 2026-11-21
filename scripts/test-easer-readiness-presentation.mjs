@@ -10,6 +10,7 @@ import { normalizeAssemblerProfile } from '../api/_assembler-state.js';
 import { hasEffectiveEaserMembership } from '../api/_easer-membership.js';
 import { inspectApplicationText } from '../api/booking/_relay-contact-guard.js';
 import { workActivityFor } from '../api/_easer-work-activity.js';
+import { describeEaserServiceArea } from '../api/_market-area.js';
 
 const baseProfile = {
   ...Object.fromEntries(EASER_READINESS_FIELDS.map(field => [field, null])),
@@ -182,6 +183,8 @@ async function callHandler(kind, profiles, options = {}) {
     loadAcceptanceTallies: async () => ({ tallies: new Map(), error: null }),
     workActivityFor,
     serviceNames: () => ['Furniture Assembly'],
+    // The Easer's job area is covered by scripts/test-service-areas.mjs.
+    describeEaserServiceArea,
     // Inactivity is covered by scripts/test-easer-inactivity.mjs.
     loadJobHistory: async () => new Map(),
     loadInactivityNotices: async () => new Map(),

@@ -1,4 +1,5 @@
 import { getBookingCatalog } from './_pricing.js';
+import { TRAVEL_RADIUS_MILES } from './_source-of-truth.js';
 
 /**
  * THE rule for which jobs an Easer takes: the services they do and the hours
@@ -145,6 +146,40 @@ export async function loadWorkPreferences(sb, easerIds) {
     prefs.set(id, { ...(prefs.get(id) || { id }), owner_blocked_services: services });
   }
   return prefs;
+}
+
+/**
+ * Map<easerId, miles> of the travel distance each Easer chose (migration 132),
+ * read with its own query so dispatch keeps working before the column exists:
+ * an Easer missing from the map gets TRAVEL_RADIUS_MILES.default through
+ * easerTravelRadiusMiles() in _source-of-truth.js.
+ */
+export async function loadTravelRadii(sb, easerIds) {
+  const ids = [...new Set((easerIds || []).filter(Boolean))];
+  if (!ids.length) return new Map();
+  try {
+    const { data, error } = await sb.from('profiles')
+      .select('id, travel_radius_miles')
+      .in('id', ids);
+    if (error) return new Map();
+    return new Map((data || [])
+      .filter(row => row.travel_radius_miles !== null && row.travel_radius_miles !== undefined)
+      .map(row => [row.id, row.travel_radius_miles]));
+  } catch {
+    return new Map();
+  }
+}
+
+/**
+ * Validates the travel distance an Easer picks: one of
+ * TRAVEL_RADIUS_MILES.options. Returns { ok, value } or { ok:false, error }.
+ */
+export function normalizeTravelRadius(miles) {
+  const value = Number(miles);
+  if (!TRAVEL_RADIUS_MILES.options.includes(value)) {
+    return { ok: false, error: `Choose ${TRAVEL_RADIUS_MILES.options.join(', ')} miles.` };
+  }
+  return { ok: true, value };
 }
 
 /** Map<easerId, string[]> of services the owner keeps each Easer off (migration 124). */

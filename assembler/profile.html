@@ -323,10 +323,17 @@
         </div>
         <div id="sms-pref-status" role="status" aria-live="polite" style="font-size:0.8rem;margin-top:0.75rem;display:none"></div>
       </div>
-      <!-- The services an Easer takes and the hours they work (api/assembler/work-preferences.js).
-           Dispatch reads the same settings; unset means every service, any time. -->
+      <!-- The services an Easer takes, the hours they work and how far they travel
+           (api/assembler/work-preferences.js). Dispatch reads the same settings;
+           unset means every service, any time, and the default travel distance. -->
       <div class="form-section" id="work-pref-section" style="display:none">
         <div class="form-section-title">Work preferences</div>
+        <div id="work-area" style="display:none;margin:0 0 0.9rem">
+          <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.3rem">Job area</div>
+          <div id="work-area-summary" style="font-size:0.82rem;color:var(--pro-muted);line-height:1.5;margin-bottom:0.45rem"></div>
+          <label for="work-radius" style="font-size:0.85rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap">Travel up to
+            <select id="work-radius" style="min-height:36px"></select> miles from home</label>
+        </div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;margin-bottom:0.5rem"><input type="checkbox" id="work-all-services" checked> Every service</label>
         <div id="work-services" style="display:none;margin:0 0 0.75rem 1.5rem;font-size:0.82rem"></div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;margin-bottom:0.5rem"><input type="checkbox" id="work-any-time" checked> Any day, any time</label>
@@ -923,6 +930,9 @@
       var anyBox = document.getElementById('work-any-time');
       var servicesEl = document.getElementById('work-services');
       var daysEl = document.getElementById('work-days');
+      var areaEl = document.getElementById('work-area');
+      var areaSummary = document.getElementById('work-area-summary');
+      var radiusSelect = document.getElementById('work-radius');
       var status = document.getElementById('work-status');
       var state = null;
       function say(message, tone) {
@@ -946,6 +956,21 @@
         }).join('');
         servicesEl.style.display = allBox.checked ? 'none' : '';
         daysEl.style.display = anyBox.checked ? 'none' : '';
+        renderArea(data.travelArea);
+      }
+      function renderArea(area) {
+        if (!area || area.unavailable) { areaEl.style.display = 'none'; return; }
+        areaEl.style.display = '';
+        radiusSelect.innerHTML = area.options.map(function (miles) {
+          return '<option value="' + miles + '"' + (miles === area.radiusMiles ? ' selected' : '') + '>' + miles + '</option>';
+        }).join('');
+        if (!area.located) {
+          areaSummary.textContent = 'Add your home ZIP code to your profile to get job offers.';
+          return;
+        }
+        var place = area.homeCity ? area.homeCity + ' ' + area.homeZip : area.homeZip;
+        areaSummary.textContent = 'You get job offers within ' + area.radiusMiles + ' miles of ' + place
+          + (area.areaLabel ? ' (' + area.areaLabel + ').' : '.');
       }
       allBox.addEventListener('change', function () { servicesEl.style.display = allBox.checked ? 'none' : ''; });
       anyBox.addEventListener('change', function () { daysEl.style.display = anyBox.checked ? 'none' : ''; });
@@ -966,13 +991,17 @@
             availability[day] = on ? [{ start: start, end: end }] : [];
           });
         }
+        var payload = { services: services, availability: availability };
+        if (state.travelArea && !state.travelArea.unavailable && radiusSelect.value) {
+          payload.travelRadiusMiles = Number(radiusSelect.value);
+        }
         var button = this;
         button.disabled = true;
         say('Saving…');
         fetch('/api/assembler/work-preferences', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ services: services, availability: availability })
+          body: JSON.stringify(payload)
         })
           .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
           .then(function (res) {

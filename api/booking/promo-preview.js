@@ -9,7 +9,7 @@ import {
 import { sameDayFeeForAppointment } from '../_source-of-truth.js';
 import { parseIsoCalendarDate } from './_appt-date.js';
 import { checkoutPlan, checkoutSummary } from './_checkout.js';
-import { activeEaserZips, easersCovering, UNCOVERED_AREA_NOTE } from '../_easer-coverage.js';
+import { activeEaserAreas, easersCovering, UNCOVERED_AREA_NOTE } from '../_easer-coverage.js';
 import { getAvailableBalanceCents, maxRedeemableCents, totalsAfterAssembleCash, verifyRedemptionToken } from '../_assemblecash.js';
 import { getMinimumPretaxBookingCents, CANCELLATION_POLICY } from '../_source-of-truth.js';
 import { GIFT_CARD_REDEMPTION_READY, previewGiftCard } from '../_gift-cards.js';
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   // stays unknown (null): no note is added on a guess.
   let areaCovered = null;
   if (/^\d{5}$/.test(String(zip || '').trim())) {
-    try { areaCovered = easersCovering(await activeEaserZips(sb), zip) > 0; } catch { areaCovered = null; }
+    try { areaCovered = easersCovering(await activeEaserAreas(sb), zip) > 0; } catch { areaCovered = null; }
   }
   const promo = await resolveBookingPromotion({
     promoCode,

@@ -4,7 +4,7 @@ import { logActivity } from '../booking/_activity.js';
 import { notificationAppointmentTimestampMs, formatAppointmentDate, formatAppointmentDateShort } from '../booking/_appt-date.js';
 import { logCron } from './_cron-logger.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
-import { activeEaserZips, easersCovering } from '../_easer-coverage.js';
+import { activeEaserAreas, easersCovering } from '../_easer-coverage.js';
 
 /**
  * GET /api/cron/unassigned-escalation — every 15 minutes.
@@ -129,7 +129,7 @@ export default async function handler(req, res) {
         const { data: stillOpen, error: openError } = await currentUnaccepted(sb.from('bookings').select('id'), b).maybeSingle();
         if (openError) throw openError;
         if (!stillOpen || await earlyAlertSent(sb, b)) continue;
-        if (!easerZips) easerZips = await activeEaserZips(sb);
+        if (!easerZips) easerZips = await activeEaserAreas(sb);
         const covering = easersCovering(easerZips, b.service_zip);
         const area = [b.service_city, b.service_zip].filter(Boolean).join(' ') || 'Area not recorded';
         const earlyKey = ['unstaffed-early', b.id, b.date, b.time, b.rescheduled_at || 'original'].join(':');

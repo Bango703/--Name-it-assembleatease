@@ -92,20 +92,25 @@ export default async function handler(req, res) {
     }
   }
 
-  // Alert owner about genuine dispatch failures (no Easers available, not just dedup skips)
-  const noEaserFailed = failed.filter(b =>
-    results.find(r => r.ref === b.ref)?.message?.includes('No')
-  );
+  // Alert owner about genuine dispatch failures (no Easers available, not just dedup skips).
+  // Nobody within travel distance and a job ZIP that cannot be placed on the map
+  // are named by code (serviceAreaCheck); each line states the server's reason.
+  const NO_EASER_CODES = ['NO_EASER_IN_RANGE', 'JOB_LOCATION_UNKNOWN'];
+  const resultFor = b => results.find(r => r.ref === b.ref);
+  const noEaserFailed = failed.filter(b => {
+    const r = resultFor(b);
+    return NO_EASER_CODES.includes(r?.code) || r?.message?.includes('No');
+  });
   if (noEaserFailed.length) {
-    const list = noEaserFailed.map(b => `• ${b.ref} — ${b.service} on ${b.date}`).join('\n');
+    const list = noEaserFailed.map(b => `• ${b.ref} — ${b.service} on ${b.date}: ${resultFor(b)?.message || 'reason not reported'}`).join('\n');
     await sendEmail({
       to:   ownerEmail(),
       subject: `${noEaserFailed.length} booking(s) need Easer assignment`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
         <h2 style="color:#dc2626">No Easers Available</h2>
-        <p>${noEaserFailed.length} booking(s) could not be dispatched — no eligible Easers in the service area:</p>
+        <p>${noEaserFailed.length} booking(s) could not be dispatched. The reason is on each line:</p>
         <pre style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:1rem;color:#991b1b">${list}</pre>
-        <p>Check that Easers are marked available and have phone numbers on file.</p>
+        <p>Assign an Easer by hand from the dashboard. A job with nobody within travel distance needs an Easer in that area.</p>
         <p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">Open Owner Dashboard</a></p>
       </div>`,
     }).catch(() => {});
