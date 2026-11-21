@@ -153,6 +153,13 @@ final class CustomerAPI: APIClient {
         }
     }
 
+    /// Whether gift card codes are taken at checkout (api/gift-cards/checkout.js GET).
+    func giftCardsAccepting() async -> Bool {
+        guard let data = try? await publicCall("GET", "/api/gift-cards/checkout"),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return false }
+        return object["acceptingCodes"] as? Bool ?? false
+    }
+
     /// The offer running now, or nil.
     func currentOffer() async -> CurrentOffer? {
         guard let data = try? await publicCall("GET", "/api/promo") else { return nil }

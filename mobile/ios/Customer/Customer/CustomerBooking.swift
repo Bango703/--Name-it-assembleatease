@@ -59,6 +59,10 @@ final class BookingFlow: ObservableObject {
     @Published var projectDescription = ""
     @Published var textUpdates = false
     @Published var promoCode = ""
+    /// A gift card code. The server decides how much of it applies.
+    @Published var giftCardCode = ""
+    /// Shown only while the server takes gift card codes, as on the website.
+    @Published var giftCardsAccepting = false
     /// The bundle this order started from, sent with the booking as book.html does,
     /// so the owner's bundle reporting counts it. It never changes the price.
     private(set) var bundleSlug: String?
@@ -336,7 +340,12 @@ final class BookingFlow: ObservableObject {
             "date": dayISO,
             "isQuoteRequest": quote,
             "assemblecashToken": assemblecashToken ?? "",
+            "giftCardCode": giftCardsAccepting && !quote ? giftCardCode.trimmingCharacters(in: .whitespaces) : "",
         ]
+    }
+
+    func loadGiftCardAvailability() async {
+        giftCardsAccepting = await api.giftCardsAccepting()
     }
 
     func refreshPreview() async {
@@ -361,6 +370,18 @@ final class BookingFlow: ObservableObject {
     var promoStatus: String? {
         guard !promoCode.trimmingCharacters(in: .whitespaces).isEmpty, let preview else { return nil }
         return preview.promoApplied ? "Code applied." : "This code does not apply to this booking."
+    }
+
+    /// The server's answer for the gift card, never a guess.
+    var giftCardStatus: (text: String, applied: Bool)? {
+        guard !giftCardCode.trimmingCharacters(in: .whitespaces).isEmpty, let preview else { return nil }
+        if let error = preview.giftCardError, !error.isEmpty { return (error, false) }
+        guard preview.giftCardAppliedCents > 0 else { return nil }
+        var text = "\(Format.money(cents: preview.giftCardAppliedCents)) applied from your gift card."
+        if preview.giftCardRemainingCents > 0 {
+            text += " \(Format.money(cents: preview.giftCardRemainingCents)) stays on the card."
+        }
+        return (text, true)
     }
 
     var reviewProblem: String? {
@@ -505,6 +526,7 @@ final class BookingFlow: ObservableObject {
         details = ""
         projectDescription = ""
         promoCode = ""
+        giftCardCode = ""
         preview = nil
         problem = nil
         pendingHold = nil
@@ -527,6 +549,7 @@ final class BookingFlow: ObservableObject {
         details = ""
         projectDescription = ""
         promoCode = ""
+        giftCardCode = ""
         preview = nil
         problem = nil
         pendingHold = nil
@@ -1087,6 +1110,23 @@ private struct ReviewStepView: View {
                     }
                 }
 
+                if flow.giftCardsAccepting && !flow.hasCustomQuote {
+                    CustomerBlock(title: "Gift card") {
+                        HStack {
+                            TextField("AAEG-XXXX-XXXX-XXXX", text: $flow.giftCardCode)
+                                .textInputAutocapitalization(.characters)
+                                .autocorrectionDisabled()
+                                .accessibilityLabel("Gift card code")
+                            Button("Apply") { Task { await flow.refreshPreview() } }
+                                .disabled(flow.giftCardCode.trimmingCharacters(in: .whitespaces).isEmpty || flow.loadingPreview)
+                        }
+                        if let status = flow.giftCardStatus {
+                            Text(status.text).font(.footnote)
+                                .foregroundStyle(status.applied ? Color.secondary : Brand.attention)
+                        }
+                    }
+                }
+
                 if let summary = flow.preview?.summary {
                     CustomerBlock(title: summary.totalLabel) {
                         if summary.totalCents > 0 {
@@ -1124,6 +1164,7 @@ private struct ReviewStepView: View {
         .navigationTitle("Review")
         .navigationBarTitleDisplayMode(.inline)
         .task { await flow.refreshPreview() }
+        .task { await flow.loadGiftCardAvailability() }
         .sheet(isPresented: $editingOrder, onDismiss: {
             if flow.itemCount == 0 {
                 flow.backToItems()

@@ -191,6 +191,23 @@ const app = Object.values(customer).join('\n');
   assert.match(flow, /Optional: Text me appointment and service updates from AssembleAtEase at the number above\. Message frequency varies\. Message and data rates may apply\. Consent is not a condition of purchase\. Reply STOP to opt out or HELP for help\./,
     'the text-message consent words are the website\'s, word for word');
   assert.ok(read('book.html').includes('Optional: Text me appointment and service updates from AssembleAtEase at the number above.'), 'and the website still says them');
+  // Gift cards, as on the website: the field shows only while the server takes codes, the code
+  // rides the same order fields book.html sends, and the amount and any refusal are the server's.
+  const giftCardApi = read('api/gift-cards/checkout.js');
+  assert.match(giftCardApi, /acceptingCodes,/, 'the server says whether codes are taken');
+  assert.match(customer['CustomerAPI.swift'], /publicCall\("GET", "\/api\/gift-cards\/checkout"\)/);
+  assert.match(customer['CustomerAPI.swift'], /object\["acceptingCodes"\]/);
+  assert.match(read('book.html'), /giftCardCode:BOOK\.giftCardCode/, 'the website preview sends giftCardCode');
+  assert.match(preview, /const \{[^}]*giftCardCode[^}]*\} = req\.body/, 'the preview reads giftCardCode');
+  assert.match(bookingApi, /giftCardCode,/, 'the booking reads giftCardCode');
+  assert.match(flow, /"giftCardCode": giftCardsAccepting && !quote \?/, 'never sent on a quote or while codes are not taken');
+  assert.match(flow, /if flow\.giftCardsAccepting && !flow\.hasCustomQuote/);
+  for (const field of ['gift_card', 'applied_cents', 'remaining_cents', 'gift_card_error']) {
+    assert.ok(preview.includes(field) && models.includes(`"${field}"`), `preview field ${field}`);
+  }
+  assert.match(flow, /if let error = preview\.giftCardError, !error\.isEmpty \{ return \(error, false\) \}/, 'the server\'s reason, word for word');
+  assert.doesNotMatch(flow, /giftCard\w*Cents\s*[-+*]/, 'no gift card math in the app');
+
   // A retry reuses the booking it already made instead of minting another (book.html does the same).
   assert.match(flow, /held\.fingerprint == orderPrint/);
   // A card hold that went through is confirmed without asking the customer again (Rule 16).

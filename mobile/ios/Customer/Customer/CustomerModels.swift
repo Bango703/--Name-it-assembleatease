@@ -452,6 +452,11 @@ struct CheckoutPreview: Decodable {
     let totalCents: Double
     /// AssembleCash this booking would apply (already in the summary rows).
     let assemblecashAppliedCents: Double
+    /// Gift card this booking would apply (already in the summary rows).
+    let giftCardAppliedCents: Double
+    let giftCardRemainingCents: Double
+    /// The server's reason a gift card code does not apply, word for word.
+    let giftCardError: String?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
@@ -464,6 +469,11 @@ struct CheckoutPreview: Decodable {
         totalCents = pricing?.number("totalCents") ?? 0
         let cash = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("assemblecash"))
         assemblecashAppliedCents = cash?.number("applied_cents") ?? 0
+        let gift = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("gift_card"))
+        giftCardAppliedCents = gift?.number("applied_cents") ?? 0
+        giftCardRemainingCents = gift?.number("remaining_cents") ?? 0
+        let giftError = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("gift_card_error"))
+        giftCardError = giftError?.string("error")
     }
 }
 
