@@ -3,6 +3,10 @@
 // The scheduled-authorization lead time is owned by _booking-window.js; the
 // refusal message quotes it rather than restating the number (Article 2).
 import { SCHEDULED_AUTHORIZATION_LEAD_DAYS } from './booking/_booking-window.js';
+// Service-area distance (serviceAreaCheck): the Census ZIP points and the one
+// great-circle formula the platform already uses for arrival checks.
+import { TEXAS_ZIP_LOCATIONS } from './_texas-zip-locations.js';
+import { distanceMetres } from './_geocode.js';
 
 export const BOOKING_STATUS = Object.freeze({
   PENDING: 'pending',
@@ -762,8 +766,8 @@ export function isTexasZip(zip) {
 // Pasadena, Baytown, Galveston). The three conditions below hold: a ready Easer
 // lives in the market, SERVICE_MARKETS.houston is this same list, and stranded
 // or unaccepted jobs surface to the owner (expire-offers, unassigned
-// escalation, stranded bookings). Offers still go only to Easers in the
-// Houston market (isSameServiceMarket) who pass every eligibility check.
+// escalation, stranded bookings). Offers still go only to Easers within their
+// travel distance of the job (serviceAreaCheck) who pass every eligibility check.
 export const HOUSTON_MARKET_ZIP_PREFIXES = Object.freeze(['770', '771', '772', '773', '774', '775']);
 export const AUTOMATIC_DISPATCH_ZIP_PREFIXES = Object.freeze(['782', '787', ...HOUSTON_MARKET_ZIP_PREFIXES]);
 export const AUTOMATIC_DISPATCH_ZIPS = Object.freeze([
@@ -788,8 +792,9 @@ export const AUTOMATIC_DISPATCH_ZIPS = Object.freeze([
 // Widening isAutomaticDispatchZip is now GATED, not forbidden. It used to be
 // forbidden outright, because dispatch had no hard proximity rule and this
 // narrowness was the only thing keeping a far-market job away from an Austin
-// Pro. SERVICE_MARKETS + isSameServiceMarket (above) now enforce that directly,
-// so adding a prefix here opens exactly one market and cannot leak into another.
+// Pro. serviceAreaCheck (below) now enforces that directly: an offer goes only
+// to Easers within their travel distance of the job, so adding a prefix here
+// opens exactly one market and cannot leak into another.
 //
 // Before adding a prefix, confirm all three: a ready Easer actually lives in
 // that market, SERVICE_MARKETS covers its prefixes, and someone is accountable
@@ -828,19 +833,45 @@ export function isAutomaticDispatchZip(zip) {
 // Austin deliberately spans 786 and 787 — Travis is 78660 (786) and real
 // bookings have come from 78759 (787) and 78642 (786). A naive prefix-equality
 // check would break the market that actually works.
+//
+// EVERY Texas ZIP is in exactly one market (owner, 2026-11-21: "everyone should
+// be in a located area"). Until then Tyler (757) and Killeen (765) had no
+// market, and the old fail-open rule offered those Easers every job in Texas:
+// the Whitehouse Easer was offered a Houston job 166 miles away. A market is the
+// AREA an Easer or a job is in, for the owner, reporting and the per-hub fee.
+// It is NOT who gets an offer: that is distance, serviceAreaCheck() below,
+// because one prefix can be 150 miles wide (780 runs from San Antonio to Laredo,
+// 798 from El Paso to Big Bend). Opening automatic dispatch in a market is still
+// gated separately (AUTOMATIC_DISPATCH_*, above).
 export const SERVICE_MARKETS = Object.freeze({
-  central_texas: Object.freeze(['786', '787']),
+  central_texas: Object.freeze(['733', '786', '787']),
   houston:       HOUSTON_MARKET_ZIP_PREFIXES,
   san_antonio:   Object.freeze(['780', '781', '782']),
   lubbock:       Object.freeze(['793', '794']),
-  permian_basin: Object.freeze(['797', '798']),
+  // 798 is the El Paso postal area (Far West Texas, Big Bend), not Midland.
+  permian_basin: Object.freeze(['797']),
   // Owner, 2026-11-11: Dallas-Fort Worth is a priority hub with active Easers
   // (75227, 75409) and no market until now, so its Easers were offered jobs in
   // every other market and could not be counted as a hub.
   dallas_fort_worth: Object.freeze(['750', '751', '752', '753', '754', '760', '761', '762']),
+  east_texas:        Object.freeze(['755', '756', '757', '758', '759']),
+  wichita_falls:     Object.freeze(['763']),
+  stephenville:      Object.freeze(['764']),
+  waco_killeen:      Object.freeze(['765', '766', '767']),
+  brownwood:         Object.freeze(['768']),
+  san_angelo:        Object.freeze(['769']),
+  beaumont:          Object.freeze(['776', '777']),
+  brazos_valley:     Object.freeze(['778', '789']),
+  victoria:          Object.freeze(['779']),
+  corpus_christi:    Object.freeze(['783', '784']),
+  rio_grande_valley: Object.freeze(['785']),
+  southwest_texas:   Object.freeze(['788']),
+  amarillo:          Object.freeze(['790', '791', '792']),
+  abilene:           Object.freeze(['795', '796']),
+  el_paso:           Object.freeze(['798', '799', '885']),
 });
 
-/** Which market does this ZIP belong to, or null if we do not serve/know it. */
+/** Which market does this ZIP belong to? Every Texas ZIP has one; null only for a non-Texas or malformed ZIP. */
 export function marketForZip(zip) {
   const normalized = String(zip || '').trim();
   if (!/^\d{5}$/.test(normalized)) return null;
@@ -852,19 +883,108 @@ export function marketForZip(zip) {
 }
 
 /**
- * May an Easer in `easerZip` be offered a job in `bookingZip`?
- *
- * Fails OPEN when either ZIP maps to no known market, so an unrecognised or
- * mistyped ZIP degrades to today's behaviour (offer it, let scoring sort it)
- * rather than silently dispatching to nobody. It fails CLOSED only when both
- * sides are known and genuinely different — the case that would put an Easer on
- * the road for five hours.
+ * Are these two ZIPs in the same market? Reporting only: dispatch eligibility
+ * is serviceAreaCheck(). Fails CLOSED: an unknown or non-Texas ZIP is in no
+ * market, so it matches nothing (owner, 2026-11-21: the old fail-open answer
+ * put two Easers with no market on every job in the state).
  */
 export function isSameServiceMarket(bookingZip, easerZip) {
   const a = marketForZip(bookingZip);
   const b = marketForZip(easerZip);
-  if (!a || !b) return true;
+  if (!a || !b) return false;
   return a === b;
+}
+
+// ── Service area: who may be offered a job ────────────────────────────────────
+// The way field-service and home-service platforms do it (Salesforce Field
+// Service "maximum travel from home", Thumbtack travel radius, Angi ZIP
+// coverage): every Easer has a home ZIP and a travel distance, and a job is
+// offered only to Easers whose home is within that distance of the job,
+// nearest first. Distance is straight-line between ZIP points from the Census
+// table in api/_texas-zip-locations.js. The 50-mile default is about an hour's
+// drive and holds every metro we serve together: downtown Houston to Galveston
+// is 47 miles, to Conroe 38; Pflugerville to San Marcos 45; Dallas to Denton
+// 41. Whitehouse to Houston (166) and Harker Heights to Austin (55) are out.
+// Easers choose 15, 25, 50 or 75 (profiles.travel_radius_miles, migration
+// 132); unset means the default.
+export const TRAVEL_RADIUS_MILES = Object.freeze({
+  default: 50,
+  options: Object.freeze([15, 25, 50, 75]),
+  max: 75,
+});
+
+const METRES_PER_MILE = 1609.344;
+
+/**
+ * Where a ZIP is: { zip, lat, lng, precision } or null.
+ * precision 'zip' is the ZIP's own Census point. A PO-box or business ZIP
+ * (77001, 78711) has no Census area, so it takes the nearest-numbered ZIP in
+ * the same 3-digit area, or failing that in the same market ('nearby_zip'):
+ * the Postal Service numbers those near the town they serve. A non-Texas or
+ * malformed ZIP returns null: nobody is offered that job automatically and the
+ * owner assigns it.
+ */
+export function zipLocation(zip) {
+  const normalized = String(zip || '').trim().slice(0, 5);
+  if (!/^\d{5}$/.test(normalized) || !isTexasZip(normalized)) return null;
+  const exact = TEXAS_ZIP_LOCATIONS[normalized];
+  if (exact) return { zip: normalized, lat: exact[0], lng: exact[1], precision: 'zip' };
+  const prefix = normalized.slice(0, 3);
+  const target = Number(normalized);
+  const nearest = (prefixes) => {
+    let best = null;
+    for (const candidate of Object.keys(TEXAS_ZIP_LOCATIONS)) {
+      if (!prefixes.includes(candidate.slice(0, 3))) continue;
+      const gap = Math.abs(Number(candidate) - target);
+      if (!best || gap < best.gap) best = { candidate, gap };
+    }
+    return best;
+  };
+  // Same 3-digit area first; an area that is all PO boxes (Houston 771, El
+  // Paso 885) takes the nearest-numbered ZIP in its market instead.
+  const market = marketForZip(normalized);
+  const best = nearest([prefix]) || (market ? nearest(SERVICE_MARKETS[market]) : null);
+  if (!best) return null;
+  const [lat, lng] = TEXAS_ZIP_LOCATIONS[best.candidate];
+  return { zip: normalized, lat, lng, precision: 'nearby_zip', basedOn: best.candidate };
+}
+
+/** Straight-line miles between two ZIPs, one decimal, or null when either cannot be located. */
+export function milesBetweenZips(zipA, zipB) {
+  const a = zipLocation(zipA);
+  const b = zipLocation(zipB);
+  if (!a || !b) return null;
+  const metres = distanceMetres(a.lat, a.lng, b.lat, b.lng);
+  return metres == null ? null : Math.round((metres / METRES_PER_MILE) * 10) / 10;
+}
+
+/** The Easer's travel distance in miles: their own choice, held to the platform maximum, or the default. */
+export function easerTravelRadiusMiles(easer = {}) {
+  const raw = easer?.travel_radius_miles;
+  const miles = raw === null || raw === undefined || raw === '' ? NaN : Number(raw);
+  if (!Number.isFinite(miles) || miles <= 0) return TRAVEL_RADIUS_MILES.default;
+  return Math.min(Math.round(miles), TRAVEL_RADIUS_MILES.max);
+}
+
+/**
+ * May this Easer be offered a job at `bookingZip`? THE rule, read by dispatch
+ * (job offers and custom-quote price requests) and by the coverage check the
+ * booking page and the owner alerts use.
+ *   { ok: true,  reason: 'in_range', distanceMiles, radiusMiles }
+ *   { ok: false, reason: 'too_far' | 'job_location_unknown' | 'easer_location_unknown', ... }
+ * Fails CLOSED: a job or an Easer that cannot be placed on the map is offered
+ * to nobody automatically. The job waits for the owner; it is never sent
+ * statewide.
+ */
+export function serviceAreaCheck(bookingZip, easer = {}) {
+  const radiusMiles = easerTravelRadiusMiles(easer);
+  if (!zipLocation(bookingZip)) return { ok: false, reason: 'job_location_unknown', distanceMiles: null, radiusMiles };
+  if (!zipLocation(easer?.zip)) return { ok: false, reason: 'easer_location_unknown', distanceMiles: null, radiusMiles };
+  const distanceMiles = milesBetweenZips(bookingZip, easer.zip);
+  if (distanceMiles == null) return { ok: false, reason: 'job_location_unknown', distanceMiles: null, radiusMiles };
+  return distanceMiles <= radiusMiles
+    ? { ok: true, reason: 'in_range', distanceMiles, radiusMiles }
+    : { ok: false, reason: 'too_far', distanceMiles, radiusMiles };
 }
 
 // Service-call fee — FLAT $5 across all Texas booking zones.
