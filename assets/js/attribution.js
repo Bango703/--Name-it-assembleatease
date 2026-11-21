@@ -45,7 +45,7 @@
     var result = {};
     var source = String(item.utmSource || '').trim().toLowerCase();
     var medium = String(item.utmMedium || '').trim().toLowerCase();
-    result.utmSource = ['google', 'bing', 'duckduckgo', 'ecosia', 'ecosia.org', 'yahoo', 'google_jobs_apply', 'facebook', 'instagram', 'linkedin', 'nextdoor', 'buffer', 'partner', 'owner', 'sora', 'newsletter', 'claude', 'chatgpt', 'gemini', 'ai_assistant', 'chatgpt.com'].indexOf(source) !== -1 ? source : '';
+    result.utmSource = ['google', 'bing', 'duckduckgo', 'ecosia', 'ecosia.org', 'yahoo', 'google_jobs_apply', 'facebook', 'instagram', 'linkedin', 'nextdoor', 'buffer', 'partner', 'owner', 'sora', 'newsletter', 'claude', 'chatgpt', 'gemini', 'ai_assistant', 'chatgpt.com', 'easer_referral'].indexOf(source) !== -1 ? source : '';
     result.utmMedium = ['organic', 'social', 'organic_social', 'referral', 'email', 'voice', 'ai_assistant', 'cpc', 'ppc', 'paidsearch', 'paid_search', 'paid_social', 'paidsocial'].indexOf(medium) !== -1 ? medium : '';
     var campaign = campaignIdentifier(item.utmCampaign);
     // Mirrors api/_partners.js REF_CODE; the partner pipeline generates these.

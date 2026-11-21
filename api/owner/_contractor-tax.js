@@ -10,6 +10,11 @@
  *                   payout_amount, and easer_reimbursement_cents for its
  *                   reimbursed part.
  *
+ * Referral rewards (migration 134, api/_easer-referrals.js) are contractor
+ * income: a reward paid outside Stripe is added to the year's total and to
+ * the Delta file (Stripe never saw it); one sent through Stripe Connect is
+ * already in Stripe's own total, so it is counted here but not added again.
+ *
  * Reimbursements repay a cost and are left out of every total here. Stripe's
  * own 1099 for a connected account sums its transfers, reimbursements
  * included, so stripeAdjustmentCsv() produces the Delta import that subtracts
@@ -105,6 +110,29 @@ export async function loadContractorTaxYear(sb, year = defaultTaxYear()) {
       }
     }
 
+    // Referral rewards paid this year, read on their own so a database
+    // without migration 134 still shows every payout above.
+    try {
+      const { data: rewards, error: rewardErr } = await sb.from('easer_referral_rewards')
+        .select('referrer_id, status, amount_cents, paid_at, paid_method')
+        .gte('paid_at', start).lt('paid_at', end);
+      if (!rewardErr) {
+        for (const row of rewards || []) {
+          if (row.status !== 'paid' || !row.referrer_id) continue;
+          const e = easer(row.referrer_id, null);
+          const cents = Math.max(0, Number(row.amount_cents || 0));
+          e.referralPaidCents = (e.referralPaidCents || 0) + cents;
+          e.ytdPaidCents += cents;
+          if (row.paid_method === 'outside_stripe') {
+            e.manualPaidCents += cents;
+            e.referralOutsideStripeCents = (e.referralOutsideStripeCents || 0) + cents;
+          } else {
+            e.stripePaidCents += cents;
+          }
+        }
+      }
+    } catch { /* referral rewards unavailable: payouts above still stand */ }
+
     const easers = Array.from(byEaser.values())
       .map(e => ({ ...e, needs1099: e.ytdPaidCents >= NEC_THRESHOLD_CENTS }))
       .sort((a, b) => b.ytdPaidCents - a.ytdPaidCents);
@@ -122,12 +150,28 @@ export async function loadContractorTaxYear(sb, year = defaultTaxYear()) {
   }
 }
 
-/** One row per connected account that received reimbursements in the year. */
+/**
+ * One row per connected account whose Stripe total needs correcting: minus
+ * reimbursements, plus referral rewards paid outside Stripe (put on the
+ * Easer's first connected account). deltaCents is what the Delta file adds.
+ */
 export function stripeAdjustmentRows(easers = []) {
   const rows = [];
   for (const e of easers) {
+    const byAccount = new Map();
     for (const [accountId, cents] of Object.entries(e.stripeReimbursedByAccount || {})) {
-      if (cents > 0) rows.push({ stripeAccountId: accountId, name: e.name, reimbursedCents: cents });
+      if (cents > 0) byAccount.set(accountId, { reimbursedCents: cents, referralCents: 0 });
+    }
+    const outside = Number(e.referralOutsideStripeCents || 0);
+    const firstAccount = (e.stripeAccountIds || [])[0];
+    if (outside > 0 && firstAccount) {
+      const row = byAccount.get(firstAccount) || { reimbursedCents: 0, referralCents: 0 };
+      row.referralCents += outside;
+      byAccount.set(firstAccount, row);
+    }
+    for (const [accountId, row] of byAccount) {
+      const deltaCents = row.referralCents - row.reimbursedCents;
+      if (deltaCents !== 0) rows.push({ stripeAccountId: accountId, name: e.name, ...row, deltaCents });
     }
   }
   return rows.sort((a, b) => a.stripeAccountId.localeCompare(b.stripeAccountId));
@@ -136,12 +180,14 @@ export function stripeAdjustmentRows(easers = []) {
 /**
  * Stripe Tax reporting > Import > 1099-NEC > Delta. Columns per Stripe's Delta
  * schema: stripe_account_id identifies the form; nonemployee_compensation_delta
- * is added to Stripe's calculated total, so a reimbursement is negative.
+ * is added to Stripe's calculated total, so a reimbursement is negative and a
+ * referral reward paid outside Stripe is positive.
  */
 export function stripeAdjustmentCsv(easers = []) {
   const lines = ['stripe_account_id,nonemployee_compensation_delta'];
   for (const row of stripeAdjustmentRows(easers)) {
-    lines.push(`${row.stripeAccountId},-${(row.reimbursedCents / 100).toFixed(2)}`);
+    const sign = row.deltaCents < 0 ? '-' : '';
+    lines.push(`${row.stripeAccountId},${sign}${(Math.abs(row.deltaCents) / 100).toFixed(2)}`);
   }
   return lines.join('\n') + '\n';
 }

@@ -499,6 +499,7 @@ Auto-dispatch flow (`api/booking/_dispatch-internal.js`):
 | `reauth-payments` | Daily 10:00 UTC | Re-authorize Stripe cards before 7-day expiry |
 | `stale-booking` | Daily 06:00 UTC | Re-queue unaccepted assignments after 24h |
 | `identity-followup` | Daily 15:17 UTC | Easer applicants who signed the agreement but have not finished Stripe Identity get a fresh 72-hour link on days 1, 3 and 7 (email, plus text with consent); owner emailed after the third. Never marks anyone verified (`api/_identity-followup.js`) |
+| `referral-rewards` | Daily 14:41 UTC | Easer referrals: a pending reward becomes earned when the referred Easer completes 2 paid jobs within 90 days (owner and referrer emailed once), or is voided; never moves money, the owner pays and records it (`api/_easer-referrals.js`, migration 134) |
 | `tier-check` | Daily 07:00 UTC | Adjust Easer tiers based on activity |
 | `review-request` | Daily 14:00 UTC | Send post-job review requests |
 | `daily-summary` | Daily 13:00 UTC | Owner daily ops email |

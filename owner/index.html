@@ -737,6 +737,9 @@
       <!-- ─── ASSEMBLERS VIEW ─── -->
       <div id="assemblers-view" class="v2-screen v2-fixed" style="display:none">
         <div id="asm-stats-row"></div>
+        <!-- Easer referral rewards (migration 134): the server decides what is
+             owed; this lists it and records payment. -->
+        <div id="asm-referrals" style="display:none;margin:0 0 0.75rem;padding:0.75rem 0.9rem;border:1px solid var(--border);border-radius:10px;background:var(--surface,#fff)"></div>
         <div class="v2-toolbar">
         <div class="tabs bk-tabs" id="asm-tabs">
           <button class="tab active" data-tier="active">Active</button>
@@ -12019,7 +12022,47 @@ window.intelQuick = intelQuick;
     document.getElementById('asm-detail-modal').classList.remove('open');
   }
 
+  // Referral rewards owed (api/owner/referral-rewards.js). The list is the
+  // server's; the count shown is its length.
+  async function loadReferralRewards() {
+    var box = document.getElementById('asm-referrals');
+    if (!box) return;
+    try {
+      var r = await fetch('/api/owner/referral-rewards', { headers: headers(), cache: 'no-store' });
+      var d = await r.json().catch(function(){ return {}; });
+      if (!r.ok || d.unavailable) { box.style.display = 'none'; return; }
+      var owed = d.owed || [];
+      var pending = (d.rewards || []).filter(function(x){ return x.status === 'pending'; });
+      var money = function(c){ return '$' + (Number(c || 0) / 100).toFixed(2); };
+      box.style.display = '';
+      box.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
+        + '<strong>Referral rewards</strong>'
+        + '<span style="font-size:0.8rem;color:var(--muted)">' + owed.length + ' to pay (' + money(d.owedCents) + ') &middot; ' + pending.length + ' in progress &middot; ' + money(d.policy && d.policy.rewardCents) + ' after ' + ((d.policy && d.policy.qualifyingJobs) || 2) + ' paid jobs</span></div>'
+        + (owed.length ? owed.map(function(x){
+          return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0.45rem 0;border-top:1px solid var(--border);font-size:0.85rem">'
+            + '<span><strong>' + esc(x.referrerName) + '</strong> referred ' + esc(x.refereeName) + (x.refereeArea ? ' (' + esc(x.refereeArea) + ')' : '') + ': <strong>' + money(x.amount_cents) + '</strong></span>'
+            + '<span><button type="button" class="btn" style="font-size:0.72rem;padding:2px 8px" onclick="window.markReferralPaid(&quot;' + esc(String(x.id)) + '&quot;)">Mark paid</button></span></div>';
+        }).join('') : '<div style="font-size:0.8rem;color:var(--muted);margin-top:0.35rem">Nothing to pay right now.</div>');
+    } catch (e) { box.style.display = 'none'; }
+  }
+  window.markReferralPaid = async function(id) {
+    var viaStripe = confirm('Did you send this reward through Stripe? OK = through Stripe. Cancel = outside Stripe (Zelle, cash).');
+    var reference = prompt('Payment reference (optional): Stripe transfer id, Zelle confirmation, or a note.') || '';
+    try {
+      var r = await fetch('/api/owner/referral-rewards', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, headers()),
+        body: JSON.stringify({ id: id, action: 'mark_paid', method: viaStripe ? 'stripe_transfer' : 'outside_stripe', reference: reference })
+      });
+      var d = await r.json().catch(function(){ return {}; });
+      if (!r.ok) { toast(d.error || 'The payment could not be recorded, and the server did not say why.', 'error'); return; }
+      toast('Referral reward recorded as paid.', 'success');
+      loadReferralRewards();
+    } catch (e) { toast('Network error. Nothing changed.', 'error'); }
+  };
+
   async function loadAssemblerList() {
+    loadReferralRewards();
     document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="10" style="padding:2rem;text-align:center;color:var(--muted)">Loading Easers...</td></tr>';
     try {
       var r = await fetch('/api/assembler/list', { headers: headers() });
