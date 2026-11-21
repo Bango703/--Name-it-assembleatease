@@ -115,18 +115,39 @@ export function buildCustomerLegRequest(config, state, ownerCallControlId) {
 
 /**
  * The other leg of a two-leg call, from a hangup event's client_state, or null.
- * Only the second legs we place carry a peer: when one ends unanswered or
- * hangs up, the person still on the first leg is not left in silence.
+ * Both directions: the second leg carries the first as its peer from the start,
+ * so the person still on the first leg is not left in silence; the first leg
+ * (owner_leg, booking_inbound) is given the second as its peer once that leg is
+ * placed (firstLegStateWithPeer), so hanging up first ends the other phone too.
+ *
+ * Why the first direction matters (owner, 2026-11-21, Telnyx "Concurrent Call
+ * Limit Reached"): the account allows 2 outbound calls at once and one owner
+ * call uses both. When the owner hung up on an Easer who had not answered, the
+ * Easer's phone kept ringing for up to 45 seconds and held a line, so the next
+ * call was refused.
  */
+const PEER_STAGES = Object.freeze(['customer_leg', 'booking_bridge', 'owner_leg', 'booking_inbound']);
 export function peerToHangUp(encoded) {
   try {
     const parsed = JSON.parse(Buffer.from(String(encoded || ''), 'base64').toString('utf8'));
-    if (!parsed || parsed.v !== 1 || !['customer_leg', 'booking_bridge'].includes(parsed.stage)) return null;
+    if (!parsed || parsed.v !== 1 || !PEER_STAGES.includes(parsed.stage)) return null;
     const peer = String(parsed.peer || '').trim();
     return peer || null;
   } catch {
     return null;
   }
+}
+
+/**
+ * The first leg's client_state with the second leg attached as its peer, for
+ * Telnyx's client_state_update. An owner leg keeps everything it had; an
+ * inbound call we answered (no state of ours yet) becomes a booking_inbound leg.
+ */
+export function firstLegStateWithPeer(encoded, peerCallControlId) {
+  let parsed = null;
+  try { parsed = JSON.parse(Buffer.from(String(encoded || ''), 'base64').toString('utf8')); } catch { parsed = null; }
+  const base = parsed && parsed.v === 1 && parsed.stage === 'owner_leg' ? parsed : { v: 1, stage: 'booking_inbound' };
+  return Buffer.from(JSON.stringify({ ...base, peer: String(peerCallControlId || '') || null })).toString('base64');
 }
 
 /** POST a call to Telnyx. Never throws; the caller decides what a failure means. */
