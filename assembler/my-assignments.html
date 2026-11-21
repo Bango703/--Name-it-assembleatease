@@ -2370,6 +2370,9 @@
         ? formatMoneyCents(b._pay_estimate_lo)
         : formatMoneyCents(b._pay_estimate_lo) + '–' + formatMoneyCents(b._pay_estimate_hi))
       : (!isCompleted && b.assembler_due != null ? formatMoneyCents(b.assembler_due) : null);
+    const payBonusNote = !isCompleted && Number(b._bonus_cents || 0) > 0
+      ? 'Includes a ' + formatMoneyCents(b._bonus_cents) + ' bonus'
+      : '';
 
     // Tightened hierarchy: status -> when -> where -> customer -> booked scope
     // -> payout -> next job action.
@@ -2380,7 +2383,7 @@
       : '';
     const pinSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
     const payoutPill = !isCompleted && payEst
-      ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.35rem 0.9rem;font-size:0.95rem;margin-bottom:0.75rem"><strong style="color:var(--pro-teal)">' + payEst + '</strong><span style="color:var(--pro-muted);font-size:0.72rem">' + (accepted ? 'Your payout' : 'Estimated payout') + '</span></div>'
+      ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.35rem 0.9rem;font-size:0.95rem;margin-bottom:0.75rem"><strong style="color:var(--pro-teal)">' + payEst + '</strong><span style="color:var(--pro-muted);font-size:0.72rem">' + (accepted ? 'Your payout' : 'Estimated payout') + (payBonusNote ? ' · ' + payBonusNote : '') + '</span></div>'
       : '';
     // Phone and email are released by the server shortly before the appointment.
     // Until then the card must say so plainly and offer the working channel —

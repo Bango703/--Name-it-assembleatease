@@ -157,7 +157,8 @@ for (const file of apiFiles) {
   }
 }
 // 11th: the partner account report (api/_partners.js summarizeAccountBookings).
-assert.equal(splitCalls, 11, 'all eleven split call sites were checked');
+// 12th: the job boost's pay preview before assignment (api/owner/easer-bonus.js).
+assert.equal(splitCalls, 12, 'all twelve split call sites were checked');
 
 // ── Every way a booking fails, ends or expires returns the credit ────────
 {
