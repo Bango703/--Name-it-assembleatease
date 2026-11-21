@@ -3,6 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendSms } from '../_sms.js';
 import { logCron } from './_cron-logger.js';
+import { retrievePersonaInquiry } from '../_persona.js';
 import { buildIdentityResumeUrl, ensureIdentityResumeToken, OPEN_APPLICATION_STATUSES } from '../_assembler-onboarding.js';
 import {
   IDENTITY_FOLLOWUP_OWNER_TYPE,
@@ -52,6 +53,21 @@ async function followupsSent(sb, profileId) {
   return { count: numbers.size, lastSentMs };
 }
 
+/**
+ * Persona references (migration 133), read with their own query so the
+ * follow-up keeps working on Stripe before the columns exist.
+ */
+async function loadPersonaRefs(sb, ids) {
+  if (!ids.length) return new Map();
+  try {
+    const { data, error } = await sb.from('profiles').select('id, identity_provider, persona_inquiry_id').in('id', ids);
+    if (error) return new Map();
+    return new Map((data || []).map(row => [row.id, row]));
+  } catch {
+    return new Map();
+  }
+}
+
 async function alertOwner(profile, stage, reason) {
   return sendEmail({
     to: ownerEmail(),
@@ -83,29 +99,39 @@ export default async function handler(req, res) {
       .or('identity_verified.is.null,identity_verified.eq.false');
     if (error) throw error;
 
-    for (const profile of (profiles || []).filter(isAwaitingIdentity)) {
+    const awaiting = (profiles || []).filter(isAwaitingIdentity);
+    const personaRefs = await loadPersonaRefs(sb, awaiting.map(p => p.id));
+    for (const base of awaiting) {
+      const profile = { ...base, ...(personaRefs.get(base.id) || {}) };
       result.checked += 1;
       try {
-        const sessionId = profile.stripe_identity_session_id || profile.stripe_verification_id;
         let session = null;
+        let inquiry = null;
         let sessionLookupFailed = false;
-        if (sessionId) {
-          if (!stripe) sessionLookupFailed = true;
-          else {
-            try { session = await stripe.identity.verificationSessions.retrieve(sessionId); }
-            catch { sessionLookupFailed = true; }
+        if (profile.identity_provider === 'persona' && profile.persona_inquiry_id) {
+          try { inquiry = await retrievePersonaInquiry(profile.persona_inquiry_id); }
+          catch { sessionLookupFailed = true; }
+        } else {
+          const sessionId = profile.stripe_identity_session_id || profile.stripe_verification_id;
+          if (sessionId) {
+            if (!stripe) sessionLookupFailed = true;
+            else {
+              try { session = await stripe.identity.verificationSessions.retrieve(sessionId); }
+              catch { sessionLookupFailed = true; }
+            }
           }
         }
-        const stage = identityFollowupStage(profile, session, { sessionLookupFailed });
+        const stage = identityFollowupStage(profile, session, { sessionLookupFailed, inquiry });
         if (stage === 'unknown' || stage === 'in_review') { result.skipped.push({ id: profile.id, stage }); continue; }
         if (stage === 'verified_unrecorded') {
-          const sent = await alertOwner(profile, stage, 'Stripe shows this ID check verified, but the profile does not. Check the Stripe webhook before approving.');
+          const provider = profile.identity_provider === 'persona' ? 'Persona' : 'Stripe';
+          const sent = await alertOwner(profile, stage, `${provider} shows this ID check verified, but the profile does not. Check the ${provider} webhook before approving.`);
           if (sent?.ok !== false) result.ownerAlerts += 1;
           continue;
         }
 
         const { count: sentCount, lastSentMs } = await followupsSent(sb, profile.id);
-        const next = nextIdentityFollowup({ anchorMs: identityActivityAnchorMs(profile, session), sentCount, lastSentMs, nowMs: Date.now() });
+        const next = nextIdentityFollowup({ anchorMs: identityActivityAnchorMs(profile, session, inquiry), sentCount, lastSentMs, nowMs: Date.now() });
         if (!next) { result.skipped.push({ id: profile.id, stage, why: sentCount >= 3 ? 'reminders_done' : 'not_due' }); continue; }
 
         const token = await ensureIdentityResumeToken(sb, profile, { rotate: true });

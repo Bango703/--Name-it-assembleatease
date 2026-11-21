@@ -12,6 +12,7 @@
  * never changes verification state: only Stripe's verified webhook does that.
  */
 import { OPEN_APPLICATION_STATUSES } from './_assembler-onboarding.js';
+import { personaFollowupStage } from './_persona.js';
 
 /** Reminders go out this many days after the applicant's last ID activity. */
 export const IDENTITY_FOLLOWUP_DAYS = Object.freeze([1, 3, 7]);
@@ -39,7 +40,12 @@ export function isAwaitingIdentity(profile = {}) {
  *   verified_unrecorded   Stripe verified it but our profile does not say so
  *   unknown               the session could not be read; do nothing
  */
-export function identityFollowupStage(profile = {}, session = null, { sessionLookupFailed = false } = {}) {
+export function identityFollowupStage(profile = {}, session = null, { sessionLookupFailed = false, inquiry = null } = {}) {
+  // Persona holds the check (migration 133): its inquiry status is the truth.
+  if (profile.identity_provider === 'persona' && profile.persona_inquiry_id) {
+    if (sessionLookupFailed || !inquiry) return 'unknown';
+    return personaFollowupStage(inquiry.status);
+  }
   const sessionId = profile.stripe_identity_session_id || profile.stripe_verification_id || null;
   if (!sessionId) return 'not_started';
   if (sessionLookupFailed || !session) return 'unknown';
@@ -50,9 +56,10 @@ export function identityFollowupStage(profile = {}, session = null, { sessionLoo
 }
 
 /** Latest moment the applicant did something on the ID step (ms). */
-export function identityActivityAnchorMs(profile = {}, session = null) {
+export function identityActivityAnchorMs(profile = {}, session = null, inquiry = null) {
   const times = [Date.parse(profile.contractor_agreement_signed_at || '')];
   if (session && Number.isFinite(session.created)) times.push(session.created * 1000);
+  if (inquiry && inquiry.createdAt) times.push(Date.parse(inquiry.createdAt));
   const valid = times.filter(Number.isFinite);
   return valid.length ? Math.max(...valid) : NaN;
 }

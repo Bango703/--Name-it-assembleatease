@@ -313,7 +313,7 @@
     <section class="hero">
       <div class="eyebrow" id="hero-eyebrow">Easer Onboarding</div>
       <h1 id="hero-title">Continue your identity verification</h1>
-      <p class="hero-copy" id="hero-copy">Use this secure AssembleAtEase page to start or reopen Stripe identity verification. If you switch devices or the Stripe page expires, come back to this link and we will reopen it securely.</p>
+      <p class="hero-copy" id="hero-copy">Use this secure AssembleAtEase page to start or reopen your identity verification. If you switch devices or the verification page expires, come back to this link and we will reopen it securely.</p>
     </section>
 
     <section class="card stack">
@@ -321,15 +321,15 @@
 
       <div id="process-section">
         <p class="section-title" id="process-title">What happens here</p>
-        <p class="section-copy" id="process-copy">We use Stripe Identity to confirm every Easer before approval. Complete your agreement if needed, finish secure identity verification, and then check your application status here.</p>
+        <p class="section-copy" id="process-copy">We confirm every Easer's identity before approval. Complete your agreement if needed, finish secure identity verification, and then check your application status here.</p>
         <div class="steps" id="process-steps">
           <div class="step">
             <div class="step-num">1</div>
-            <div><strong>Review your onboarding details</strong><span>If your contractor agreement is not already on file, we will ask you to confirm it here before sending you to Stripe.</span></div>
+            <div><strong>Review your onboarding details</strong><span>If your contractor agreement is not already on file, we will ask you to confirm it here before the ID check.</span></div>
           </div>
           <div class="step">
             <div class="step-num">2</div>
-            <div><strong>Complete secure ID verification</strong><span>Stripe will ask for a government ID and selfie and may compare facial identifiers to verify that the ID belongs to you. This usually takes about two minutes.</span></div>
+            <div><strong>Complete secure ID verification</strong><span>Our verification partner will ask for a government ID and a selfie and may compare facial identifiers to verify that the ID belongs to you. This usually takes about two minutes.</span></div>
           </div>
           <div class="step">
             <div class="step-num">3</div>
@@ -363,8 +363,8 @@
         <a href="mailto:service@assembleatease.com" class="btn btn-secondary">Contact support</a>
       </div>
 
-      <p class="meta">This is identity verification, not a full criminal background check. Stripe controls the raw verification data under its privacy terms; AssembleAtEase generally receives the result and session reference. Read our <a href="/privacy" target="_blank" rel="noopener">Privacy Notice</a>. For an alternative verification method or an identity-data request, contact <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>
-      <p class="meta" id="helper-copy">If Stripe asks you for more information later, use this same AssembleAtEase link again instead of waiting for a new email.</p>
+      <p class="meta">This is identity verification, not a full criminal background check. Our identity verification partner controls the raw verification data under its privacy terms; AssembleAtEase generally receives the result and a reference number. Read our <a href="/privacy" target="_blank" rel="noopener">Privacy Notice</a>. For an alternative verification method or an identity-data request, contact <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>
+      <p class="meta" id="helper-copy">If you are asked for more information later, use this same AssembleAtEase link again instead of waiting for a new email.</p>
     </section>
   </main>
 
@@ -412,7 +412,7 @@
 
       function establishedProcessSteps(needsIdentity) {
         var identityStep = needsIdentity
-          ? '<div class="step"><div class="step-num">2</div><div><strong>Complete secure ID verification</strong><span>Stripe will confirm your identity. Your existing account status remains unchanged.</span></div></div>'
+          ? '<div class="step"><div class="step-num">2</div><div><strong>Complete secure ID verification</strong><span>Our verification partner will confirm your identity. Your existing account status remains unchanged.</span></div></div>'
           : '';
         processSteps.innerHTML = '<div class="step"><div class="step-num">1</div><div><strong>Review the current agreement</strong><span>Acknowledge the latest contractor agreement and Code of Conduct for your existing Easer account.</span></div></div>'
           + identityStep
@@ -497,8 +497,8 @@
 
           heroTitle.textContent = establishedEaser ? 'Your Easer account is up to date' : 'Identity verification already completed';
           heroCopy.textContent = establishedEaser
-            ? 'Your current agreement acknowledgment and Stripe identity verification are already on file. No new application or verification step is required.'
-            : 'Stripe identity verification is already on file for this application. We will email you when your application status changes.';
+            ? 'Your current agreement acknowledgment and identity verification are already on file. No new application or verification step is required.'
+            : 'Identity verification is already on file for this application. We will email you when your application status changes.';
           continueBtn.style.display = 'none';
           helperCopy.textContent = establishedEaser ? 'Return to your Easer dashboard to manage availability and jobs.' : 'If you still need help, contact service@assembleatease.com.';
           showAlert('success', establishedEaser ? 'Your account requirements are current.' : 'Your identity verification is already marked complete.');
@@ -514,14 +514,14 @@
           establishedProcessSteps(true);
           heroTitle.textContent = verificationComplete ? 'Identity verification submitted' : 'Complete an account verification requirement';
           heroCopy.textContent = verificationComplete
-            ? 'Stripe received the verification update for your existing Easer account. Your prior account status remains unchanged.'
+            ? 'We received the verification update for your existing Easer account. Your prior account status remains unchanged.'
             : 'This verification step applies to your existing Easer account. You are not starting a new application.';
-          helperCopy.textContent = 'Return to this secure page if Stripe requests more information, or use your Easer dashboard to check readiness.';
+          helperCopy.textContent = 'Return to this secure page if more information is requested, or use your Easer dashboard to check readiness.';
           if (verificationComplete) showAlert('success', 'Verification submitted for your existing Easer account.');
         }
       }
 
-      async function continueToStripe() {
+      async function continueToVerification() {
         clearAlert();
         continueBtn.disabled = true;
         continueBtn.textContent = 'Opening secure verification...';
@@ -563,7 +563,7 @@
               ? 'Your current agreement acknowledgment is saved. Your identity verification, approval, and existing Easer account remain on file.'
               : data.agreementRecorded
                 ? 'Your agreement acceptance is now on file and your identity verification is already complete. We will email you when your application status changes.'
-                : 'Stripe identity verification is already on file for this account.';
+                : 'Identity verification is already on file for this account.';
             continueBtn.style.display = 'none';
             if (establishedEaser) showDashboardLink();
             showAlert('success', establishedEaser && data.agreementRecorded
@@ -589,14 +589,14 @@
         }
       }
 
-      continueBtn.addEventListener('click', continueToStripe);
+      continueBtn.addEventListener('click', continueToVerification);
 
       window.addEventListener('load', function () {
         requestContext().then(function () {
           if (verificationComplete && !establishedEaser) {
             heroTitle.textContent = 'Verification submitted';
-            heroCopy.textContent = 'Stripe has received your identity verification. We will email you when your application status changes.';
-            helperCopy.textContent = 'If Stripe later asks for more information or you need to retry, use this same AssembleAtEase link again.';
+            heroCopy.textContent = 'Your identity verification was received. We will email you when your application status changes.';
+            helperCopy.textContent = 'If you are asked for more information or need to retry, use this same AssembleAtEase link again.';
             showAlert('success', 'Verification submitted successfully. We will contact you when your status changes.');
             continueBtn.textContent = 'Reopen verification if needed';
           }

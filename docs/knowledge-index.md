@@ -19,6 +19,7 @@ Start every task here (`docs/process/deep-execution-protocol.md`, section 4). Re
 
 ## Decisions
 - `docs/decisions/2026-11-13-dispatch-contract-audit.md`: current system measured against the dispatch contract; Phase 1 to 3 plan; open owner decisions.
+- `docs/decisions/2026-11-21-persona-identity.md`: Persona as a second Easer ID provider (built, off); owner dashboard steps and the legal wording to approve before go-live.
 - `docs/decisions/2026-11-13-custom-quote-take-rate-research.md`: competitor fees, take rates, cost per job, price sensitivity, Austin prices; evidence for the pricing model.
 - `docs/decisions/2026-11-17-ai-assistant-channel.md`: the AI assistant connector at /api/mcp (Claude, ChatGPT): six read-only tools, the directory rules they follow, cart links to /book, the AI assistant channel, evidence and activation.
 

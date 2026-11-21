@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { createPersonaInquiry, generatePersonaLink, identityProvider, personaInquiryResumable, retrievePersonaInquiry } from './_persona.js';
 import { randomBytes } from 'crypto';
 
 export const SITE = 'https://www.assembleatease.com';
@@ -119,15 +120,31 @@ export async function restoreIdentityResumeTokenAfterFailedStart(sb, profileId, 
   if (!data?.id) throw new Error('Identity resume token restoration lost a concurrent update');
 }
 
+/**
+ * Start (or resume) the applicant's ID check and return the hosted link.
+ * Persona when it is chosen and configured (api/_persona.js), otherwise Stripe
+ * Identity. If Persona fails for any reason (outage, missing migration 133, bad
+ * key) the applicant gets a working Stripe check instead of an error: our
+ * failure must never become their extra step (Rule 16, Article 13).
+ */
 export async function createIdentityVerificationSession(sb, { profileId, resumeToken = null } = {}) {
+  const returnUrl = new URL('/assembler/verify-identity', SITE);
+  if (resumeToken) returnUrl.searchParams.set('token', resumeToken);
+  returnUrl.searchParams.set('verification', 'complete');
+
+  if (identityProvider() === 'persona') {
+    try {
+      return await createPersonaVerification(sb, { profileId, redirectUri: returnUrl.toString() });
+    } catch (error) {
+      console.error('[identity] Persona unavailable, using Stripe Identity:', error?.message || error);
+    }
+  }
+
   if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error('Stripe is not configured');
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  const returnUrl = new URL('/assembler/verify-identity', SITE);
-  if (resumeToken) returnUrl.searchParams.set('token', resumeToken);
-  returnUrl.searchParams.set('verification', 'complete');
 
   const session = await stripe.identity.verificationSessions.create({
     type: 'document',
@@ -148,11 +165,60 @@ export async function createIdentityVerificationSession(sb, { profileId, resumeT
     id_verification_status: 'pending',
     identity_verified: false,
   }, 'Identity verification session persistence');
+  // Which provider holds the current check. Best-effort: before migration 133
+  // the column does not exist, and that must never block a Stripe check.
+  try { await sb.from('profiles').update({ identity_provider: 'stripe' }).eq('id', profileId); } catch { /* column not migrated yet */ }
 
   return {
     sessionId: session.id,
     verificationUrl: session.url,
+    provider: 'stripe',
   };
+}
+
+/**
+ * Persona: reuse the applicant's open inquiry when it can still be finished,
+ * otherwise create one, then hand back a fresh one-time link. Throws on any
+ * failure so the caller falls back to Stripe.
+ */
+async function createPersonaVerification(sb, { profileId, redirectUri }) {
+  const { data: refs, error } = await sb.from('profiles')
+    .select('persona_inquiry_id, full_name, email')
+    .eq('id', profileId)
+    .maybeSingle();
+  if (error) throw new Error(`Persona reference lookup failed: ${error.message || error}`);
+
+  let inquiryId = refs?.persona_inquiry_id || null;
+  if (inquiryId) {
+    try {
+      const existing = await retrievePersonaInquiry(inquiryId);
+      if (!personaInquiryResumable(existing.status)) inquiryId = null;
+    } catch {
+      inquiryId = null;
+    }
+  }
+  if (!inquiryId) {
+    const [nameFirst, ...rest] = String(refs?.full_name || '').trim().split(/\s+/).filter(Boolean);
+    const created = await createPersonaInquiry({
+      profileId,
+      redirectUri,
+      nameFirst,
+      nameLast: rest.join(' ') || undefined,
+      email: refs?.email || undefined,
+    });
+    inquiryId = created.id;
+    if (!inquiryId) throw new Error('Persona returned no inquiry id');
+  }
+
+  const verificationUrl = await generatePersonaLink(inquiryId);
+  await updateProfileRequired(sb, profileId, {
+    persona_inquiry_id: inquiryId,
+    identity_provider: 'persona',
+    id_verification_status: 'pending',
+    identity_verified: false,
+  }, 'Persona inquiry persistence');
+
+  return { sessionId: inquiryId, verificationUrl, provider: 'persona' };
 }
 
 export async function recordAgreementAcceptance(sb, {
