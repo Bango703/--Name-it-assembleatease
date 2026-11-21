@@ -16,6 +16,7 @@ import {
   VISIBLE_ASSIGNMENT_STATUSES,
   computeBookingSplitFromSnapshot,
   SALES_TAX_RATE,
+  easerBonusCents,
 } from '../_source-of-truth.js';
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 import { loadCrew } from './_crew.js';
@@ -503,9 +504,12 @@ export default async function handler(req, res) {
 
   allBookings.forEach(b => {
     if (b.status === BOOKING_STATUS.COMPLETED && !b._return_visit_open) return;
+    // The owner's job boost is paid with the job, so every estimate includes it.
+    const jobBonus = easerBonusCents(b);
+    if (jobBonus > 0) b._bonus_cents = jobBonus;
     if (b._return_visit_open && Number(b.assembler_due || 0) > 0) {
-      b._pay_estimate_lo = Number(b.assembler_due);
-      b._pay_estimate_hi = Number(b.assembler_due);
+      b._pay_estimate_lo = Number(b.assembler_due) + jobBonus;
+      b._pay_estimate_hi = Number(b.assembler_due) + jobBonus;
       return;
     }
     const price = Number(b.amount_charged || b.total_price) || 0;
@@ -528,7 +532,7 @@ export default async function handler(req, res) {
         reviewRewardDiscountCents: b.review_reward_discount_cents || 0,
         giftCardAppliedCents: b.gift_card_applied_cents || 0,
       });
-      const estimateDue = split.assemblerDueCents + sdBonus;
+      const estimateDue = split.assemblerDueCents + sdBonus + jobBonus;
       b._pay_estimate_lo = estimateDue;
       b._pay_estimate_hi = estimateDue;
       if (sdBonus > 0) b._same_day_bonus_cents = sdBonus;
@@ -541,8 +545,8 @@ export default async function handler(req, res) {
       // (Rule 10).
       const myShare = crewShareByBooking.get(b.id);
       if (myShare && myShare.crewSize > 1) {
-        b._pay_estimate_lo = myShare.dueCents;
-        b._pay_estimate_hi = myShare.dueCents;
+        b._pay_estimate_lo = myShare.dueCents + jobBonus;
+        b._pay_estimate_hi = myShare.dueCents + jobBonus;
         b._crew_size = myShare.crewSize;
         b._crew_role = myShare.role;
       }

@@ -717,6 +717,60 @@ export function easerPayoutDueCents(booking) {
   return cents(booking.assembler_due) + cents(booking.easer_bonus_cents) + cents(booking.easer_reimbursement_cents);
 }
 
+// ── Job boost: the owner's bonus, before or after the job ────────────────────
+// Owner, 2026-11-21 (AAE-WEIDRMMJRZ: "give the easer more" on a job nobody had
+// accepted). The bonus (migration 085, api/owner/easer-bonus.js) used to be
+// allowed only on a completed job, so it could thank an Easer but never win an
+// acceptance. It can now be set on any confirmed job, with or without an Easer,
+// and it is shown on the offer and in the app. It stays with the JOB (an Easer
+// who takes it over gets it), it is void if the job is cancelled
+// (easerPayoutDueCents pays no bonus on a cancellation), and it comes out of
+// platform margin, so it is capped where the platform would start losing money
+// on the job. The customer's price never changes.
+export const EASER_BONUS_POLICY = Object.freeze({
+  maxCents: 50000,          // migration 085 CHECK, a fat-finger ceiling
+  minPlatformNetCents: 0,   // never so much that this job loses money
+  statuses: Object.freeze(['confirmed', 'en_route', 'arrived', 'in_progress', 'completed']),
+});
+
+/** The bonus on this job, in cents (0 when none). */
+export function easerBonusCents(booking) {
+  return Math.min(EASER_BONUS_POLICY.maxCents, Math.max(0, Math.round(Number(booking?.easer_bonus_cents) || 0)));
+}
+
+/**
+ * The largest bonus this job can carry before the platform's net on it (after
+ * tax, the Stripe fee, the Easer's split and any reimbursement) would fall
+ * below EASER_BONUS_POLICY.minPlatformNetCents. Uses the recorded split when an
+ * Easer is assigned, otherwise the split the job would pay.
+ */
+export function maxEaserBonusCents(booking = {}) {
+  const split = computeBookingSplitFromSnapshot({
+    amountChargedCents: booking.amount_charged ?? null,
+    totalPriceCents: booking.total_price ?? null,
+    taxCents: booking.tax_amount || 0,
+    feePct: booking.easer_fee_pct_snapshot ?? null,
+    assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+    reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
+    giftCardAppliedCents: booking.gift_card_applied_cents || 0,
+  });
+  const dueCents = booking.assembler_due != null && Number(booking.assembler_due) > 0
+    ? Number(booking.assembler_due)
+    : split.assemblerDueCents;
+  const summary = computeBookingFinancialSummary({
+    amountChargedCents: booking.amount_charged || 0,
+    totalPriceCents: booking.total_price || 0,
+    refundAmountCents: booking.refund_amount || 0,
+    taxAmountCents: booking.tax_amount || 0,
+    stripeFeeCents: booking.stripe_fee ?? null,
+    assemblerDueCents: dueCents,
+    easerBonusCents: 0,
+    easerReimbursementCents: booking.easer_reimbursement_cents || 0,
+    giftCardAppliedCents: booking.gift_card_applied_cents || 0,
+  });
+  return Math.max(0, Math.min(EASER_BONUS_POLICY.maxCents, summary.platformGrossCents - EASER_BONUS_POLICY.minPlatformNetCents));
+}
+
 // Owner-created bookings can be collected in multiple verified payments. Until
 // the invoice is fully satisfied, only the proportional share of sales tax has
 // actually been collected. Keeping this allocation in one helper prevents the

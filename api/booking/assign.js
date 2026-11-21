@@ -5,7 +5,7 @@ import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, describeStaffingPaymentBlock, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, describeStaffingPaymentBlock, computeBookingSplitFromSnapshot, easerBonusCents } from '../_source-of-truth.js';
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { describeAssignmentGuardFailure } from './_assignment-guard-reasons.js';
 import { CONTACT_RELEASE_LEAD_HOURS } from './_customer-contact-release.js';
@@ -429,7 +429,10 @@ export default async function handler(req, res) {
   const firstName = (assembler.full_name || 'Easer').split(' ')[0];
   const acceptUrl = `${SITE}/assembler/my-assignments?accept=${bookingId}&token=${assignmentToken}`;
   const declineUrl = `${SITE}/assembler/my-assignments?decline=${bookingId}&token=${assignmentToken}`;
-  const estimatedPayCents = feeSnapshot.estimatedDueCents;
+  // The owner's job boost is paid with the job, so the assignment shows it.
+  const estimatedPayCents = feeSnapshot.estimatedDueCents > 0
+    ? feeSnapshot.estimatedDueCents + easerBonusCents(booking)
+    : feeSnapshot.estimatedDueCents;
 
   let emailResult = { ok: false, error: 'Missing Easer email' };
   try {
