@@ -645,9 +645,16 @@ final class EaserStore: ObservableObject {
         try? await api.get("/api/assembler/work-preferences", as: WorkPreferences.self)
     }
 
-    /// Saves services (nil = all) and weekly hours (nil = any time). Returns the problem to show, or nil once saved.
-    func saveWorkPreferences(services: [String]?, availability: [String: [WorkWindow]]?) async -> String? {
+    /// The Easer's referral link and progress (api/assembler/referral.js).
+    func referralInfo() async -> ReferralInfo? {
+        try? await api.get("/api/assembler/referral", as: ReferralInfo.self)
+    }
+
+    /// Saves services (nil = all), weekly hours (nil = any time) and, when given,
+    /// the travel distance in miles. Returns the problem to show, or nil once saved.
+    func saveWorkPreferences(services: [String]?, availability: [String: [WorkWindow]]?, travelRadiusMiles: Int? = nil) async -> String? {
         var body: [String: Any] = [:]
+        if let travelRadiusMiles { body["travelRadiusMiles"] = travelRadiusMiles }
         body["services"] = services.map { $0 as Any } ?? NSNull()
         if let availability {
             var days: [String: Any] = [:]

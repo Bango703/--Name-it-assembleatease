@@ -399,12 +399,30 @@ struct WorkPreferencesView: View {
     @State private var days: [DayHours] = []
     @State private var saving = false
     @State private var problem: String?
+    @State private var area: TravelArea?
+    @State private var radius = 50
 
     var body: some View {
         List {
             if !loaded {
                 Section { HStack { ProgressView(); Text("Loading").foregroundStyle(.secondary) } }
             } else {
+                if let area, !area.unavailable {
+                    Section {
+                        if area.located {
+                            Text("You get job offers within \(radius) miles of \(area.homeZip ?? "")")
+                            if let label = area.areaLabel { Text(label).font(.subheadline).foregroundStyle(.secondary) }
+                        } else {
+                            Text("Add your home ZIP code to get job offers.").foregroundStyle(Brand.attention)
+                        }
+                        Picker("Travel up to", selection: $radius) {
+                            ForEach(area.options, id: \.self) { miles in Text("\(miles) miles").tag(miles) }
+                        }
+                    } header: {
+                        Text("Job area")
+                    }
+                }
+
                 Section {
                     Toggle("Every service", isOn: $everyService)
                     if !everyService {
@@ -468,6 +486,8 @@ struct WorkPreferencesView: View {
 
     private func load() async {
         let prefs = await store.workPreferences()
+        area = prefs?.travelArea
+        radius = prefs?.travelArea?.radiusMiles ?? 50
         allServicesList = prefs?.allServices ?? []
         everyService = prefs?.services == nil
         chosen = Set(prefs?.services ?? allServicesList)
@@ -515,7 +535,8 @@ struct WorkPreferencesView: View {
             availability = map
         }
         saving = true
-        problem = await store.saveWorkPreferences(services: services, availability: availability)
+        let miles: Int? = (area?.unavailable == false) ? radius : nil
+        problem = await store.saveWorkPreferences(services: services, availability: availability, travelRadiusMiles: miles)
         saving = false
     }
 }
@@ -616,7 +637,11 @@ struct PayoutsView: View {
                         }
                         .disabled(opening)
                     } footer: {
-                        EmptyView()
+                        if connect.payoutsEnabled {
+                            Text("Your 1099 tax form is in the same Stripe account.")
+                        } else {
+                            EmptyView()
+                        }
                     }
 
                     if let quote = store.instantQuote, quote.available {
@@ -760,5 +785,67 @@ struct EarningsHistoryView: View {
         .navigationTitle("Earnings history")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await store.refresh() }
+    }
+}
+
+/// Refer a pro (api/assembler/referral.js): the link to share and the people
+/// referred. The reward rules live on the server (api/_easer-referrals.js).
+struct ReferralView: View {
+    @EnvironmentObject private var store: EaserStore
+    @State private var info: ReferralInfo?
+    @State private var loaded = false
+    @State private var copied = false
+
+    var body: some View {
+        List {
+            if !loaded {
+                Section { HStack { ProgressView(); Text("Loading").foregroundStyle(.secondary) } }
+            } else if let info, info.eligible, let link = info.link, let url = URL(string: link) {
+                Section {
+                    Text("Earn \(Format.money(cents: info.rewardCents)) when a pro you refer completes \(info.qualifyingJobs) paid jobs within \(info.windowDays) days.")
+                    Text(link).font(.footnote).foregroundStyle(.secondary).textSelection(.enabled)
+                    ShareLink(item: url, message: Text("Do assembly or TV mounting? Get paid per job with AssembleAtEase.")) {
+                        Label("Share your link", systemImage: "square.and.arrow.up")
+                    }
+                    Button {
+                        UIPasteboard.general.string = link
+                        copied = true
+                    } label: {
+                        Label(copied ? "Link copied" : "Copy link", systemImage: copied ? "checkmark" : "doc.on.doc")
+                    }
+                }
+                if !info.referrals.isEmpty {
+                    Section("Your referrals") {
+                        ForEach(info.referrals) { entry in
+                            LabeledContent {
+                                statusText(entry)
+                            } label: {
+                                Text(verbatim: entry.name)
+                            }
+                        }
+                    }
+                }
+            } else {
+                Section {
+                    Text("Your referral link opens once your account is approved.").foregroundStyle(.secondary)
+                }
+            }
+        }
+        .navigationTitle("Refer a pro")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            guard !loaded else { return }
+            info = await store.referralInfo()
+            loaded = true
+        }
+    }
+
+    private func statusText(_ entry: ReferralEntry) -> Text {
+        switch entry.status {
+        case "earned": return Text("Earned \(Format.money(cents: entry.amountCents))")
+        case "paid": return Text("Paid \(Format.money(cents: entry.amountCents))")
+        case "void": return Text("Did not qualify")
+        default: return Text("In progress")
+        }
     }
 }

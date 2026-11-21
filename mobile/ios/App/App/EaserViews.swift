@@ -924,6 +924,10 @@ struct JobDetailView: View {
                         Label("Includes \(Format.money(cents: bonus)) same-day bonus", systemImage: "bolt.fill")
                             .font(.subheadline).foregroundStyle(Brand.skyDark)
                     }
+                    if !job.isFinished, let bonus = job.bonusCents, bonus > 0 {
+                        Label("Includes a \(Format.money(cents: bonus)) bonus", systemImage: "gift.fill")
+                            .font(.subheadline).foregroundStyle(Brand.skyDark)
+                    }
                     if job.crewSize > 1 {
                         Label("Crew of \(job.crewSize)", systemImage: "person.2")
                             .font(.subheadline).foregroundStyle(.secondary)
@@ -2845,6 +2849,9 @@ private struct AccountView: View {
                     }
                     NavigationLink { WorkPreferencesView() } label: {
                         Label("Work preferences", systemImage: "slider.horizontal.3")
+                    }
+                    NavigationLink { ReferralView() } label: {
+                        Label("Refer a pro", systemImage: "person.badge.plus")
                     }
                     Picker(selection: $navigationApp) {
                         Text("Ask each time").tag("")

@@ -183,6 +183,8 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     let completedAt: String?
     let payEstimateHiCents: Double?
     let sameDayBonusCents: Double?
+    /// The owner's job boost (api/booking/my-assignments.js _bonus_cents), already in the pay estimate.
+    let bonusCents: Double?
     let crewSize: Int
     /// When a step is not open yet: stage (en_route, arrived, in_progress) to the time it opens.
     let stageOpensAt: [String: String]
@@ -239,6 +241,7 @@ struct EaserJob: Decodable, Identifiable, Hashable {
         completedAt = c.string("completed_at")
         payEstimateHiCents = c.number("_pay_estimate_hi")
         sameDayBonusCents = c.number("_same_day_bonus_cents")
+        bonusCents = c.number("_bonus_cents")
         crewSize = Int(c.number("_crew_size") ?? 1)
         var opens: [String: String] = [:]
         if let gates = try? c.decodeIfPresent([String: StageGate].self, forKey: DynamicKey("_stage_availability")) {
@@ -609,6 +612,7 @@ struct WorkPreferences: Decodable {
     let services: [String]?
     let availability: [String: [WorkWindow]]?
     let unavailable: Bool
+    let travelArea: TravelArea?
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         allServices = (try? c.decodeIfPresent([String].self, forKey: DynamicKey("allServices"))) ?? []
@@ -616,6 +620,68 @@ struct WorkPreferences: Decodable {
         services = try? c.decodeIfPresent([String].self, forKey: DynamicKey("services"))
         availability = try? c.decodeIfPresent([String: [WorkWindow]].self, forKey: DynamicKey("availability"))
         unavailable = c.bool("unavailable") ?? false
+        travelArea = try? c.decodeIfPresent(TravelArea.self, forKey: DynamicKey("travelArea"))
+    }
+}
+
+/// Where the Easer gets job offers: home ZIP, its area and the travel distance
+/// dispatch uses (api/_market-area.js describeEaserServiceArea).
+struct TravelArea: Decodable {
+    let homeZip: String?
+    let homeCity: String?
+    let areaLabel: String?
+    let located: Bool
+    let radiusMiles: Int
+    let options: [Int]
+    let unavailable: Bool
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        homeZip = c.string("homeZip")
+        homeCity = c.string("homeCity")
+        areaLabel = c.string("areaLabel")
+        located = c.bool("located") ?? false
+        radiusMiles = Int(c.number("radiusMiles") ?? 50)
+        options = (try? c.decodeIfPresent([Int].self, forKey: DynamicKey("options"))) ?? [15, 25, 50, 75]
+        unavailable = c.bool("unavailable") ?? false
+    }
+}
+
+/// Refer a pro (api/assembler/referral.js): the Easer's link, the reward terms
+/// and the people they referred (first names only).
+struct ReferralInfo: Decodable {
+    let eligible: Bool
+    let unavailable: Bool
+    let link: String?
+    let message: String?
+    let rewardCents: Double
+    let qualifyingJobs: Int
+    let windowDays: Int
+    let referrals: [ReferralEntry]
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        eligible = c.bool("eligible") ?? false
+        unavailable = c.bool("unavailable") ?? false
+        link = c.string("link")
+        message = c.string("message")
+        let terms = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("terms"))
+        rewardCents = terms?.number("rewardCents") ?? 7500
+        qualifyingJobs = Int(terms?.number("qualifyingJobs") ?? 2)
+        windowDays = Int(terms?.number("windowDays") ?? 90)
+        referrals = (try? c.decodeIfPresent([ReferralEntry].self, forKey: DynamicKey("referrals"))) ?? []
+    }
+}
+
+struct ReferralEntry: Decodable, Identifiable {
+    let id: String
+    let name: String
+    let status: String
+    let amountCents: Double?
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: DynamicKey.self)
+        id = c.string("id") ?? UUID().uuidString
+        name = c.string("name") ?? ""
+        status = c.string("status") ?? ""
+        amountCents = c.number("amountCents")
     }
 }
 
