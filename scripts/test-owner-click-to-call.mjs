@@ -91,7 +91,16 @@ assert.equal(second.link_to, 'ccid-123', 'link_to names the owner leg');
 assert.equal(second.bridge_on_answer, true, 'bridge_on_answer is what joins the audio');
 const { peerToHangUp } = await import('../api/_owner-call.js');
 assert.equal(peerToHangUp(second.client_state), 'ccid-123', 'when the customer leg ends, the owner leg is ended too');
-assert.equal(peerToHangUp(Buffer.from(JSON.stringify({ v: 1, stage: 'owner_leg', peer: 'x' })).toString('base64')), null, 'an owner leg names no peer');
+// 2026-11-21: the owner leg learns the customer leg once it is placed, so
+// hanging up first stops the customer's phone ringing and frees the line
+// (Telnyx allowed 2 concurrent calls; a ringing leg blocked the next call).
+const { firstLegStateWithPeer } = await import('../api/_owner-call.js');
+const ownerWithPeer = firstLegStateWithPeer(leg.body.client_state, 'cust-leg-9');
+assert.equal(peerToHangUp(ownerWithPeer), 'cust-leg-9', 'when the owner hangs up, the ringing customer leg is ended');
+assert.equal(parseClientState(ownerWithPeer).customer, '+15125550147', 'the owner leg keeps its own state');
+assert.equal(peerToHangUp(leg.body.client_state), null, 'an owner leg names no peer until the customer leg exists');
+assert.equal(peerToHangUp(firstLegStateWithPeer(null, 'out-7')), 'out-7', 'an answered inbound call learns its outbound leg');
+assert.equal(peerToHangUp(Buffer.from(JSON.stringify({ v: 1, stage: 'something_else', peer: 'x' })).toString('base64')), null);
 
 // --------------------------------------------------------------- endpoints --
 const endpoint = await read('api/owner/call-customer.js');
