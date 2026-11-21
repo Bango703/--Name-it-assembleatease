@@ -10,6 +10,7 @@ import { loadOpenWork, workActivityFor } from '../_easer-work-activity.js';
 import { serviceNames } from '../_easer-work-preferences.js';
 import { inactivityReasons, inactivityNoticeState, loadJobHistory, loadInactivityNotices } from '../_easer-inactivity.js';
 import { loadDemoEaserIds } from '../_demo-accounts.js';
+import { describeEaserServiceArea } from '../_market-area.js';
 
 /**
  * GET /api/assembler/list
@@ -93,6 +94,9 @@ export default async function handler(req, res) {
       applicationScreen: inspectApplicationText(profile.bio),
       workActivity: workActivityFor(profile.id, workByEaser, acceptance.tallies, acceptanceAllTime.tallies),
       inactivity: inactivityFor(profile),
+      // Where this Easer gets job offers: home area and travel distance, the
+      // same numbers dispatch uses (serviceAreaCheck).
+      serviceArea: describeEaserServiceArea(profile),
     };
   }));
 

@@ -3,10 +3,12 @@
 // unaccepted booking, and by the per-hub Easer application fee.
 //
 // An Easer covers a ZIP when they are active, approved and not the App Review
-// demo account, and their own ZIP is in the same service market (marketForZip,
-// the map dispatch uses), or, where no market is set up yet, the same first
-// three digits.
-import { marketForZip } from './_source-of-truth.js';
+// demo account, and the ZIP is within their travel distance of their home ZIP:
+// serviceAreaCheck, the same rule dispatch uses to send offers (owner,
+// 2026-11-21). "Covered" before booking and "offered" after booking can no
+// longer disagree.
+import { serviceAreaCheck } from './_source-of-truth.js';
+import { loadTravelRadii } from './_easer-work-preferences.js';
 
 export async function activeEaserZips(sb) {
   const { data, error } = await sb
@@ -22,17 +24,36 @@ export async function activeEaserZips(sb) {
     .filter(zip => /^\d{5}$/.test(zip));
 }
 
-export function sameCoverageArea(customerZip, easerZip) {
-  const a = String(customerZip || '').trim().slice(0, 5);
-  const b = String(easerZip || '').trim().slice(0, 5);
-  if (!/^\d{5}$/.test(a) || !/^\d{5}$/.test(b)) return false;
-  const marketA = marketForZip(a);
-  if (marketA) return marketA === marketForZip(b);
-  return !marketForZip(b) && a.slice(0, 3) === b.slice(0, 3);
+/**
+ * Active Easers' home ZIPs with the travel distance each chose, for coverage.
+ * The distance is read with its own query (loadTravelRadii), so this works
+ * before migration 132; an Easer without one gets the default distance.
+ * @returns {Promise<Array<{zip:string, travel_radius_miles:number|null}>>}
+ */
+export async function activeEaserAreas(sb) {
+  const { data, error } = await sb
+    .from('profiles')
+    .select('id, zip, is_demo_account')
+    .eq('role', 'assembler')
+    .eq('status', 'active')
+    .eq('application_status', 'approved');
+  if (error) throw new Error(`Active Easer count failed: ${error.message || error}`);
+  const rows = (data || [])
+    .filter(profile => profile.is_demo_account !== true)
+    .map(profile => ({ id: profile.id, zip: String(profile.zip || '').trim().slice(0, 5) }))
+    .filter(row => /^\d{5}$/.test(row.zip));
+  const radii = await loadTravelRadii(sb, rows.map(row => row.id));
+  return rows.map(row => ({ zip: row.zip, travel_radius_miles: radii.get(row.id) ?? null }));
 }
 
-export function easersCovering(easerZips, customerZip) {
-  return (easerZips || []).filter(zip => sameCoverageArea(customerZip, zip)).length;
+/** Does an Easer (a home ZIP string, or { zip, travel_radius_miles }) cover this customer ZIP? */
+export function sameCoverageArea(customerZip, easer) {
+  const area = typeof easer === 'string' || easer == null ? { zip: easer } : easer;
+  return serviceAreaCheck(String(customerZip || '').trim().slice(0, 5), area).ok;
+}
+
+export function easersCovering(easers, customerZip) {
+  return (easers || []).filter(easer => sameCoverageArea(customerZip, easer)).length;
 }
 
 // Shown before booking where no active Easer covers the ZIP. Booking stays open.

@@ -93,7 +93,8 @@ async function test(name, check) {
   catch (error) { failed++; console.error('FAIL ' + name + ': ' + error.message); }
 }
 
-for (const zip of ['75701', '75201', '77001', null]) {
+// Houston (770-775) joined automatic dispatch 2026-11-18; Bryan (778) is outside it.
+for (const zip of ['75701', '75201', '77801', null]) {
   await test(`release preserves manual coverage gate for ${zip || 'unknown ZIP'}`, async () => {
     const h = harness(releaseSource, fixture({ service_zip: zip, address: zip ? `123 Example St, TX ${zip}` : '78701 Example St' }));
     const result = await h.run();
@@ -103,7 +104,7 @@ for (const zip of ['75701', '75201', '77001', null]) {
     assert.equal(h.booking.assembler_id, null);
   });
 }
-for (const zip of ['78701', '78201']) {
+for (const zip of ['78701', '78201', '77001']) {
   await test(`release allows canonical automatic market ${zip} and invalidates tokens`, async () => {
     const h = harness(releaseSource, fixture({ service_zip: zip, dispatch_token: 'old-dispatch' }));
     assert.equal((await h.run()).statusCode, 200);

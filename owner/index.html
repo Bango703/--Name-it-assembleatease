@@ -625,6 +625,11 @@
           <div class="kpi md-kpi"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="kpi-body"><span class="kpi-label">Priced Demand</span><span class="kpi-value stat-value" id="md-potential">&mdash;</span><span class="kpi-sub">Where a price exists</span></span></div>
         </div>
         <p id="md-snapshot-status" class="md-status" role="status">Market data has not been loaded.</p>
+        <div class="fin-card" id="dispatch-health-card" style="margin-bottom:1rem">
+          <div class="fin-card-head"><h3>Greater Houston dispatch</h3></div>
+          <p id="dh-status" class="md-status" role="status">Dispatch health has not been loaded.</p>
+          <div id="dh-body"></div>
+        </div>
         <div class="md-row3">
           <div class="fin-card">
             <div class="fin-card-head"><h3>Demand Trend</h3></div>
@@ -11363,6 +11368,7 @@ window.intelQuick = intelQuick;
       if (!r.ok || d.error) throw new Error(d.error || 'Failed to load market demand');
       renderMarketDemand(d);
       _marketDemandHasSnapshot = true;
+      if (typeof loadDispatchHealth === 'function') loadDispatchHealth();
       _marketDemandGeneratedAt = d.generatedAt || null;
       var partial = d.supplyAvailable === false || d.waitlistAvailable === false || Object.values(d.sourceStatus || {}).includes('unavailable');
       marketSnapshotStatus(partial ? 'Partial snapshot. See source warnings; missing data is not zero.' : 'Market snapshot loaded. Refreshes every 30 seconds while visible.', partial);
@@ -11397,6 +11403,67 @@ window.intelQuick = intelQuick;
     document.getElementById('md-reconciliation').innerHTML = '';
     document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1rem;color:var(--muted)">Loading market requests...</td></tr>';
   }
+
+  // Greater Houston dispatch health (owner, 2026-11-18). Every number is
+  // computed on the server (api/owner/_dispatch-health.js) and each count sits
+  // beside the rows it counts. Triggers start recruitment; they never limit ads.
+  var _dispatchHealthRequest = 0;
+  async function loadDispatchHealth() {
+    var request = ++_dispatchHealthRequest;
+    var status = document.getElementById('dh-status');
+    var body = document.getElementById('dh-body');
+    if (!status || !body) return;
+    try {
+      var r = await fetch('/api/owner/dispatch-health?market=houston', { headers: headers(), cache: 'no-store' });
+      var d = await r.json();
+      if (request !== _dispatchHealthRequest) return;
+      if (!r.ok || d.error) throw new Error(d.error || 'Dispatch health could not be loaded.');
+      body.innerHTML = renderDispatchHealth(d);
+      status.textContent = 'Last ' + d.windowDays + ' days, ZIPs ' + (d.zipPrefixes || []).join(', ') + '. Unassigned and flagged lists are live.';
+    } catch (e) {
+      if (request !== _dispatchHealthRequest) return;
+      status.textContent = (e && e.message ? e.message : 'Dispatch health could not be loaded.') + ' These numbers are unknown, not zero.';
+    }
+  }
+
+  function dhPct(v) { return v == null ? 'not enough data' : Math.round(v * 100) + '%'; }
+  function dhMin(v) { return v == null ? 'not enough data' : (v >= 120 ? (Math.round(v / 6) / 10) + ' h' : v + ' min'); }
+  function dhList(title, rows, cols) {
+    var head = '<h4 style="margin:0.9rem 0 0.35rem;font-size:0.85rem">' + esc(title) + ' (' + rows.length + ')</h4>';
+    if (!rows.length) return head + '<div style="color:var(--muted);font-size:0.8rem">None.</div>';
+    return head + '<div style="overflow-x:auto"><table class="data-table" style="width:100%;font-size:0.78rem"><thead><tr>'
+      + cols.map(function(c) { return '<th style="text-align:left">' + esc(c[0]) + '</th>'; }).join('')
+      + '</tr></thead><tbody>' + rows.map(function(row) {
+        return '<tr>' + cols.map(function(c) { var v = c[1](row); return '<td>' + esc(v == null ? '' : v) + '</td>'; }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  function renderDispatchHealth(d) {
+    var s = d.summary || {};
+    var fired = (d.triggers || []).filter(function(t) { return t.fired; });
+    var triggerHtml = '<div style="margin:0.5rem 0;padding:0.6rem 0.75rem;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">'
+      + (fired.length ? '<strong style="color:var(--red)">Recruitment needed:</strong> ' + fired.map(function(t) { return esc(t.label) + ' (' + esc(t.detail) + ')'; }).join('; ')
+        : '<strong>No recruitment trigger fired.</strong>')
+      + '<div style="color:var(--muted);margin-top:0.3rem">' + (d.triggers || []).map(function(t) { return (t.fired ? 'Fired: ' : 'Clear: ') + esc(t.label) + ' - ' + esc(t.detail); }).join('<br>') + '</div></div>';
+    var stats = [
+      ['Median time to assignment', dhMin(s.medianMinutesToAssign) + ' (' + (s.assigned || 0) + ' assigned)'],
+      ['Slowest 10%', dhMin(s.slowestTenthMinutesToAssign)],
+      ['Offer acceptance', dhPct(s.acceptanceRate) + ' (' + (s.offersAccepted || 0) + ' of ' + ((s.offersAccepted || 0) + (s.offersDeclined || 0) + (s.offersExpired || 0)) + ')'],
+      ['First-offer acceptance', dhPct(s.firstOfferAcceptanceRate)],
+      ['Unassigned now', String(s.unassignedNow || 0)],
+      ['Completed', (s.completed || 0) + ' of ' + (s.confirmed || 0) + ' confirmed (' + dhPct(s.fulfillmentRate) + ')'],
+      ['Cancelled or declined', String(s.cancelled || 0)],
+      ['Ready Easers in this market', (s.readyEasers || 0) + ' of ' + (s.easersOnRecord || 0) + ' on record'],
+    ];
+    var statHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0.5rem;margin:0.5rem 0">'
+      + stats.map(function(x) { return '<div style="padding:0.5rem 0.6rem;border:1px solid var(--border);border-radius:8px"><div style="font-size:0.72rem;color:var(--muted)">' + esc(x[0]) + '</div><div style="font-weight:700;font-size:0.9rem">' + esc(x[1]) + '</div></div>'; }).join('')
+      + '</div>';
+    return triggerHtml + statHtml
+      + dhList('Unassigned now', d.unassigned || [], [['Ref', function(r){return r.ref;}], ['Service', function(r){return r.service;}], ['City', function(r){return r.city;}], ['Appointment', function(r){return (r.date || '') + ' ' + (r.time || '');}], ['Hours to go', function(r){return r.hoursToAppointment;}], ['Manual', function(r){return r.needsManualDispatch ? 'yes' : '';}]])
+      + dhList('Cancelled or declined', d.cancellations || [], [['Ref', function(r){return r.ref;}], ['Service', function(r){return r.service;}], ['City', function(r){return r.city;}], ['Reason', function(r){return r.reason || 'No reason recorded';}], ['Before any Easer accepted', function(r){return r.neverAssigned ? 'yes' : '';}]])
+      + dhList('Completed', d.completedJobs || [], [['Ref', function(r){return r.ref;}], ['Service', function(r){return r.service;}], ['City', function(r){return r.city;}], ['Date', function(r){return r.date;}]])
+      + dhList('Slowest assignments', (d.assignments || []).slice(0, 10), [['Ref', function(r){return r.ref;}], ['Service', function(r){return r.service;}], ['City', function(r){return r.city;}], ['Time to assignment', function(r){return dhMin(r.minutesToAssign);}]]);
+  }
+
 
   function renderMarketDemand(data) {
     var s = data.summary || {};
@@ -12007,6 +12074,16 @@ window.intelQuick = intelQuick;
   function statusBadge(status) { return easerAccountBadge(status); }
   function tierBadge(tier)     { return easerTierBadge(tier); }
   function idVerificationBadge(a) { return verificationBadge(a); }
+  // Server verdict from /api/assembler/list (describeEaserServiceArea): the area
+  // and travel distance dispatch uses for this Easer. Rendered, never recomputed.
+  function easerJobAreaText(area) {
+    if (!area) return '<span style="color:var(--muted)">Not reported</span>';
+    if (!area.located) return '<span style="color:var(--red);font-weight:600">Home ZIP is missing or outside Texas. Gets no job offers until it is fixed.</span>';
+    return 'Within ' + esc(String(area.radiusMiles)) + ' miles of ' + esc(area.homeZip || '')
+      + (area.isDefault ? ' (default)' : ' (Easer chose)')
+      + (area.areaLabel ? ' &middot; ' + esc(area.areaLabel) : '')
+      + (area.approximate ? ' &middot; <span style="color:var(--muted)">PO box ZIP, location approximate</span>' : '');
+  }
   function connectState(a) {
     if (!asmConnectRequired) {
       return { code:'not-required', label:'Not required', bg:'#f1f5f9', fg:'#475569' };
@@ -12560,7 +12637,8 @@ window.intelQuick = intelQuick;
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Contact</div>'
         + '<strong>Email:</strong> <a href="mailto:' + esc(a.email) + '" style="color:var(--accent)">' + esc(a.email) + '</a><br>'
         + '<strong>Phone:</strong> ' + (hasValidUsPhone(a.phone) ? phoneWithCall(a.phone, 'easer', a.id) + textEaserControl(a) : '<span style="color:var(--red)">Valid phone required — cannot be dispatched</span>') + '<br>'
-        + '<strong>Location:</strong> ' + esc(a.city||'—') + (a.zip ? ', ' + esc(a.zip) : '')
+        + '<strong>Location:</strong> ' + esc(a.city||'—') + (a.zip ? ', ' + esc(a.zip) : '') + '<br>'
+        + '<strong>Job area:</strong> ' + easerJobAreaText(a.serviceArea)
         + '</div>',
       // Dispatch readiness checklist
       dispatchChecklist,

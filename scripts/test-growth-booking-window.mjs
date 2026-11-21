@@ -41,7 +41,7 @@ const booking = {
   service: 'Furniture Assembly', customer_name: 'Test Customer', customer_email: 'customer@example.com',
   status: 'confirmed', payment_status: 'card_saved', date: '2026-08-20', time: '9:00 AM - 11:00 AM',
   total_price: 12500, stripe_customer_id: 'cus_test', stripe_payment_method_id: 'pm_test',
-  stripe_payment_intent_id: null, service_zip: '77002', assembler_id: null,
+  stripe_payment_intent_id: null, service_zip: '75201', assembler_id: null,
   financial_operation_key: null, financial_operation_type: null, financial_operation_started_at: null,
 };
 
@@ -137,7 +137,9 @@ assert.equal(createKeys.length, 1, 'one hold, one key');
 assert.equal(sb.state.booking.payment_status, 'authorized');
 assert.equal(sb.state.booking.stripe_payment_intent_id, 'pi_scheduled');
 assert.equal(sb.state.booking.dispatch_paused, false);
-assert.equal(sb.state.booking.needs_manual_dispatch, true, 'Houston remains owner-assigned after authorization');
+// Dallas (752) is outside automatic dispatch (Houston joined it 2026-11-18), so this
+// booking still proves an owner-assigned job stays owner-assigned after authorization.
+assert.equal(sb.state.booking.needs_manual_dispatch, true, 'An owner-assigned (Dallas) booking remains owner-assigned after authorization');
 assert.equal(sb.state.booking.financial_operation_key, null);
 assert.equal(sb.state.activity[0].event_type, 'payment_authorized');
 

@@ -20,7 +20,7 @@ const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8').re
 {
   assert.deepEqual([...SERVICE_MARKETS.dallas_fort_worth], ['750', '751', '752', '753', '754', '760', '761', '762']);
   for (const zip of ['75227', '75409', '76102', '76010', '76201']) assert.equal(marketForZip(zip), 'dallas_fort_worth', zip);
-  assert.equal(marketForZip('75701'), null, 'Tyler has no market yet');
+  assert.equal(marketForZip('75701'), 'east_texas', 'Tyler is East Texas (every Texas ZIP has a market, 2026-11-21)');
   assert.equal(isSameServiceMarket('78701', '75227'), false, 'a Dallas Easer is no longer offered Austin jobs');
   assert.equal(isSameServiceMarket('76102', '75227'), true, 'Fort Worth and Dallas share Easers');
   assert.match(read('api/_market-area.js'), /dallas_fort_worth: \{ city: 'Dallas', label: 'Dallas-Fort Worth area' \}/);
@@ -56,7 +56,10 @@ console.log('PASS fee: free in a hub until six active Easers, free outside the h
 {
   assert.equal(sameCoverageArea('78701', '78660'), true, 'Austin and Pflugerville');
   assert.equal(sameCoverageArea('76102', '75227'), true, 'Fort Worth and Dallas');
-  assert.equal(sameCoverageArea('75701', '75791'), true, 'Tyler and Whitehouse share 757 with no market');
+  assert.equal(sameCoverageArea('75701', '75791'), true, 'Whitehouse covers Tyler, 8 miles away');
+  assert.equal(sameCoverageArea('77018', '75791'), false, 'Whitehouse does not cover Houston, 166 miles away');
+  assert.equal(sameCoverageArea('78701', { zip: '76548', travel_radius_miles: 25 }), false, 'Harker Heights at 25 miles does not cover Austin');
+  assert.equal(sameCoverageArea('78701', { zip: '76548', travel_radius_miles: 75 }), true, 'Harker Heights at 75 miles covers Austin, 55 away');
   assert.equal(sameCoverageArea('75701', '75227'), false);
   assert.equal(sameCoverageArea('79413', '78701'), false);
   const zips = await activeEaserZips({ from: () => {

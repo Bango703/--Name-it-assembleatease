@@ -18,9 +18,14 @@
 //
 // WHAT THIS LOCKS. Central Texas keeps spanning 786 AND 787 — Travis is 78660
 // (786) and real bookings came from 78759 (787) and 78642 (786), so a naive
-// prefix-equality gate would break the one market that works. And an unknown ZIP
-// must fail OPEN, so a mistyped or unrecognised ZIP degrades to the old
-// behaviour instead of silently dispatching to nobody.
+// prefix-equality gate would break the one market that works.
+//
+// CHANGED 2026-11-21. The gate used to fail OPEN on an unknown ZIP. Tyler (757)
+// and Killeen (765) had no market, so the Whitehouse and Harker Heights Easers
+// were offered every job in Texas, including a Houston job 166 miles away. Every
+// Texas ZIP now has a market, eligibility is distance (serviceAreaCheck: home
+// ZIP within the Easer's travel distance), and anything that cannot be placed
+// on the map fails CLOSED: the job waits for the owner, never goes statewide.
 
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -30,6 +35,7 @@ import {
   marketForZip,
   isSameServiceMarket,
   isAutomaticDispatchZip,
+  serviceAreaCheck,
 } from '../api/_source-of-truth.js';
 
 let failures = 0;
@@ -48,12 +54,14 @@ console.log('dispatch market gate');
 // ── The market that already works must keep working ────────────────────────
 check('Austin 787 booking still reaches the 786 Easer (Travis, 78660)', () => {
   assert.equal(isSameServiceMarket('78759', '78660'), true);
+  assert.equal(serviceAreaCheck('78759', { zip: '78660' }).ok, true);
 });
 check('Liberty Hill 78642 still reaches the 786 Easer', () => {
   assert.equal(isSameServiceMarket('78642', '78660'), true);
+  assert.equal(serviceAreaCheck('78642', { zip: '78660' }).ok, true);
 });
-check('Central Texas spans both 786 and 787', () => {
-  assert.deepEqual([...SERVICE_MARKETS.central_texas].sort(), ['786', '787']);
+check('Central Texas spans 786 and 787 (and the Austin IRS ZIPs, 733)', () => {
+  assert.deepEqual([...SERVICE_MARKETS.central_texas].sort(), ['733', '786', '787']);
 });
 
 // ── The incident this exists to prevent ────────────────────────────────────
@@ -73,13 +81,28 @@ check('a Houston booking IS offered to the Houston Easer (77002)', () => {
   assert.equal(isSameServiceMarket('77099', '77002'), true);
 });
 
-// ── Fail open, never closed ────────────────────────────────────────────────
-check('an unknown booking ZIP fails OPEN', () => {
-  assert.equal(isSameServiceMarket('99999', '78660'), true);
+// ── Fail closed, never statewide ───────────────────────────────────────────
+check('an unknown booking ZIP matches no Easer', () => {
+  assert.equal(isSameServiceMarket('99999', '78660'), false);
+  assert.equal(serviceAreaCheck('99999', { zip: '78660' }).reason, 'job_location_unknown');
 });
-check('a missing Easer ZIP fails OPEN', () => {
-  assert.equal(isSameServiceMarket('78759', null), true);
-  assert.equal(isSameServiceMarket('78759', ''), true);
+check('a missing Easer ZIP matches no job', () => {
+  assert.equal(isSameServiceMarket('78759', null), false);
+  assert.equal(isSameServiceMarket('78759', ''), false);
+  assert.equal(serviceAreaCheck('78759', { zip: null }).reason, 'easer_location_unknown');
+  assert.equal(serviceAreaCheck('78759', { zip: '' }).ok, false);
+});
+check('the two Easers who had no market are no longer offered far jobs', () => {
+  assert.equal(serviceAreaCheck('77018', { zip: '75791' }).ok, false, 'Whitehouse is 166 miles from Houston');
+  assert.equal(serviceAreaCheck('75701', { zip: '75791' }).ok, true, 'Whitehouse to Tyler is 8 miles');
+  assert.equal(serviceAreaCheck('78701', { zip: '76548' }).ok, false, 'Harker Heights is 55 miles from Austin');
+  assert.equal(serviceAreaCheck('76502', { zip: '76548' }).ok, true, 'Harker Heights to Temple is 14 miles');
+});
+check('every Texas ZIP prefix is in a market', () => {
+  const missing = [];
+  for (let p = 750; p <= 799; p += 1) if (!marketForZip(`${p}01`)) missing.push(p);
+  for (const zip of ['73301', '88510']) if (!marketForZip(zip)) missing.push(zip);
+  assert.deepEqual(missing, []);
 });
 check('a malformed ZIP maps to no market', () => {
   assert.equal(marketForZip('787'), null);
@@ -89,16 +112,21 @@ check('a malformed ZIP maps to no market', () => {
 
 // ── The gate is actually wired in, not just exported ───────────────────────
 const dispatchSrc = await readFile(new URL('../api/booking/_dispatch-internal.js', import.meta.url), 'utf8');
-check('dispatch imports isSameServiceMarket', () => {
+check('dispatch imports serviceAreaCheck from the source of truth', () => {
   assert.ok(
-    /import\s*\{[^}]*isSameServiceMarket[^}]*\}\s*from\s*'\.\.\/_source-of-truth\.js'/.test(dispatchSrc),
-    'isSameServiceMarket is not imported from the source of truth',
+    /import\s*\{[^}]*serviceAreaCheck[^}]*\}\s*from\s*'\.\.\/_source-of-truth\.js'/.test(dispatchSrc),
+    'serviceAreaCheck is not imported from the source of truth',
   );
+  assert.ok(!/isSameServiceMarket/.test(dispatchSrc), 'dispatch must not decide offers by market');
 });
-check('dispatch REJECTS an out-of-market Easer (not merely scores them lower)', () => {
+check('dispatch REJECTS an out-of-range Easer (not merely scores them lower)', () => {
   assert.ok(
-    dispatchSrc.includes('if (!isSameServiceMarket(bookingZip, easer.zip)) return false;'),
-    'the eligibility filter does not reject out-of-market Easers',
+    dispatchSrc.includes('area: serviceAreaCheck(bookingZip, { zip: easer.zip, travel_radius_miles: radii.get(easer.id) }),'),
+    'the eligibility filter does not check the travel distance',
+  );
+  assert.ok(
+    dispatchSrc.includes('let eligible = areaChecks.filter(({ area }) => area.ok)'),
+    'the eligibility filter does not reject out-of-range Easers',
   );
 });
 check('the market gate is not re-derived from city names anywhere in dispatch', () => {
@@ -159,15 +187,14 @@ check('Austin and its suburbs are unchanged', () => {
   assert.equal(isAutomaticDispatchZip('78660'), true);
 });
 
-// KNOWN AND DELIBERATELY NOT FIXED HERE: SERVICE_MARKETS.san_antonio contains
-// '780', so isSameServiceMarket treats a Laredo booking and a San Antonio Easer
-// as one market. Auto-dispatch can no longer act on it, but an owner pressing
-// Dispatch Now on a Laredo job still would. Narrowing that list touches the
-// market grouping the 2026-09-23 market-area work just rebuilt, so it is a
-// separate change. This assertion records the state as it is, so tightening it
-// later is a deliberate edit rather than a surprise.
-check('Laredo still shares a market with San Antonio (known, tracked)', () => {
+// SERVICE_MARKETS.san_antonio contains '780', so Laredo still REPORTS in the
+// San Antonio market. It no longer matters for offers: since 2026-11-21 an
+// offer needs the Easer within their travel distance, and Laredo is 150 miles
+// from San Antonio, so even an owner pressing Dispatch Now cannot send it there.
+check('Laredo reports in the San Antonio market but is never offered to a San Antonio Easer', () => {
   assert.equal(isSameServiceMarket('78040', '78209'), true);
+  assert.equal(serviceAreaCheck('78040', { zip: '78209' }).ok, false);
+  assert.equal(serviceAreaCheck('78040', { zip: '78209', travel_radius_miles: 75 }).ok, false);
 });
 
 // Found in the live test of AAE-DMA4UGNPV2 (2026-11-13): customer-app bookings
@@ -181,8 +208,8 @@ check('Laredo still shares a market with San Antonio (known, tracked)', () => {
   check('an app booking is placed by its stored ZIP, not its address text', () => {
     assert.equal(where.zip, '78254');
     assert.equal(where.city, 'San Antonio');
-    assert.equal(isSameServiceMarket(where.zip, '78701'), false, 'an Austin Easer is not offered a San Antonio job');
-    assert.equal(isSameServiceMarket(where.zip, '78209'), true);
+    assert.equal(serviceAreaCheck(where.zip, { zip: '78701' }).ok, false, 'an Austin Easer is not offered a San Antonio job');
+    assert.equal(serviceAreaCheck(where.zip, { zip: '78209' }).ok, true);
   });
   check('a website booking with the ZIP in the address still works', () => {
     assert.equal(bookingLocation({ address: '100 Congress Ave, Austin, TX 78701' }).zip, '78701');

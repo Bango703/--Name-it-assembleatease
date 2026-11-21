@@ -54,6 +54,7 @@ const MAX_QUERY_LENGTH = 120;
 export const ZONE_SAMPLE_ZIPS = Object.freeze({
   austin_core: '78701',
   near_suburb: '78660',
+  houston_metro: '77002',
   texas_statewide: '75201',
 });
 

@@ -5,14 +5,14 @@ import { parseServiceLocation } from '../_booking-location.js';
 import { sendEmail, esc, ownerEmail } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForStaffing, isSameServiceMarket, EASER_RELIABILITY_POLICY } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForStaffing, serviceAreaCheck, EASER_RELIABILITY_POLICY, TRAVEL_RADIUS_MILES } from '../_source-of-truth.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { logActivity } from './_activity.js';
 import { DISPATCH_HISTORY_EXCLUSION_STATUSES } from './_dispatch-safety.js';
 import { loadEaserStrikes } from '../_easer-reliability.js';
 import { loadDemoEaserIds, withoutDemoEasers } from '../_demo-accounts.js';
-import { loadWorkPreferences, easerTakesBooking } from '../_easer-work-preferences.js';
+import { loadWorkPreferences, easerTakesBooking, loadTravelRadii } from '../_easer-work-preferences.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -50,8 +50,7 @@ function buildWorkAvailableNudge(firstName) {
 
 async function sendSoftJobNudges(sb, offeredEaserIds, bookingZip) {
   try {
-    const zipPrefix = String(bookingZip || '').trim().slice(0, 3);
-    if (!/^\d{3}$/.test(zipPrefix)) return; // no usable service area → skip
+    if (!/^\d{5}$/.test(String(bookingZip || '').trim())) return; // no usable job location → skip
     const { data: candidates, error } = await sb.from('profiles')
       .select('id, full_name, email, zip, is_available')
       .eq('role', 'assembler')
@@ -61,11 +60,13 @@ async function sendSoftJobNudges(sb, offeredEaserIds, bookingZip) {
     if (error || !candidates?.length) return;
     const offered = new Set(offeredEaserIds || []);
     const demoEaserIds = await loadDemoEaserIds(sb);
+    // "Near you" is the offer rule: within the Easer's own travel distance.
+    const radii = await loadTravelRadii(sb, candidates.map(c => c.id));
     for (const e of candidates) {
       if (offered.has(e.id) || !e.email) continue;      // already got the real offer
       if (demoEaserIds.has(e.id)) continue;             // demo accounts are never nudged toward real work
       if (e.is_available === true) continue;            // already online — no nudge needed
-      if (String(e.zip || '').trim().slice(0, 3) !== zipPrefix) continue; // different service area
+      if (!serviceAreaCheck(bookingZip, { zip: e.zip, travel_radius_miles: radii.get(e.id) }).ok) continue; // outside their travel distance
       const first = String(e.full_name || 'there').split(' ')[0] || 'there';
       await sendEmail({
         to: e.email,
@@ -140,7 +141,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   const nowMs       = Date.now();
 
   const found = await findEligibleEasers(sb, booking, { excludeEaserId });
-  if (!found.easers.length) return { dispatched: 0, message: found.message };
+  if (!found.easers.length) return { dispatched: 0, message: found.message, ...(found.code ? { code: found.code } : {}) };
   let eligible = found.easers;
 
   // ── Authoritative same-day workload from bookings table ───────────────────
@@ -211,7 +212,8 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     if (isHighValue && e.tier === 'starter') score -= 100;
 
     if (hasEffectiveEaserMembership(e)) score += 150;
-    if (bookingZip && e.zip && e.zip === bookingZip) score += 75;
+    // Nearer Easers first (0-75; the same ZIP scores the full 75 it always did).
+    score += proximityScore(e._distanceMiles);
 
     // Rating bonus (0–75)
     if (e.rating) score += Math.round(Number(e.rating) * 15);
@@ -264,6 +266,8 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
         email: e.email,
         rating: e.rating,
         city: e.city,
+        distanceMiles: e._distanceMiles ?? null,
+        travelRadiusMiles: e._radiusMiles ?? null,
       })),
     };
   }
@@ -573,6 +577,18 @@ function extractZip(address) {
  * Easers) goes to those of them still eligible and not yet offered it. Once
  * each has had it, or none is eligible, normal matching takes over.
  */
+/**
+ * Dispatch points for being near the job: the full 75 within 5 miles, falling
+ * evenly to 0 at the platform's longest travel distance. Unknown distance
+ * scores 0 (it cannot happen for an eligible Easer; serviceAreaCheck requires it).
+ */
+export function proximityScore(distanceMiles) {
+  const d = Number(distanceMiles);
+  if (distanceMiles === null || distanceMiles === undefined || !Number.isFinite(d)) return 0;
+  const span = TRAVEL_RADIUS_MILES.max - 5;
+  return Math.max(0, Math.round(75 * (1 - Math.max(0, d - 5) / span)));
+}
+
 export function selectOfferRecipients(scored, preferredIds) {
   const preferred = Array.isArray(preferredIds) ? preferredIds.filter(Boolean).map(String) : [];
   if (preferred.length) {
@@ -610,28 +626,40 @@ export async function findEligibleEasers(sb, booking, { excludeEaserId = null } 
   // Demo (App Review) accounts get test bookings only. Read with its own query,
   // so this is a no-op until migration 106 adds the column.
   const demoEaserIds = await loadDemoEaserIds(sb);
-  let eligible = readinessPairs.filter(({ easer, readiness }) => {
+  const ready = readinessPairs.filter(({ easer, readiness }) => {
     if (!readiness.isReady) return false;
     // When re-dispatching a job a Pro just dropped, don't bounce it straight back
     // to them — it should go to OTHER online Pros (per the drop-and-rematch flow).
     if (excludeEaserId && easer.id === excludeEaserId) return false;
-    // Never match on city NAME. It drifts (an "Austin" Pro on a Pflugerville job,
-    // or a mistyped city) and silently chokes dispatch. Match on service market
-    // instead — see SERVICE_MARKETS in _source-of-truth.js, which spans 786+787
-    // so Central Texas keeps working exactly as it does today.
-    //
-    // This gate used to be absent: proximity was only a scoring bonus (+75), and
-    // the safety came entirely from auto-dispatch being Austin-only. That premise
-    // died when Easers registered in Lubbock, Houston and San Antonio. Without
-    // this, widening auto-dispatch by one prefix would offer a Lubbock job to an
-    // Austin Pro. It fails OPEN on an unknown ZIP, so nothing that dispatches
-    // today stops dispatching.
-    if (!isSameServiceMarket(bookingZip, easer.zip)) return false;
     return true;
   }).map(({ easer }) => easer);
+
+  // Service area: an Easer is offered only jobs within their travel distance of
+  // their home ZIP (serviceAreaCheck in _source-of-truth.js). Never match on
+  // city NAME, which drifts, and never on a market alone: one ZIP prefix can be
+  // 150 miles wide. This replaced a market gate that failed OPEN for an Easer
+  // whose ZIP had no market, which offered the Whitehouse and Harker Heights
+  // Easers every job in Texas (owner, 2026-11-21: "why are offers being sent to
+  // locations thats 200 miles away"). It fails CLOSED: a job or an Easer that
+  // cannot be placed on the map goes to nobody, and the job waits for the owner.
+  const radii = await loadTravelRadii(sb, ready.map(e => e.id));
+  const areaChecks = ready.map(easer => ({
+    easer,
+    area: serviceAreaCheck(bookingZip, { zip: easer.zip, travel_radius_miles: radii.get(easer.id) }),
+  }));
+  let eligible = areaChecks.filter(({ area }) => area.ok).map(({ easer, area }) => ({
+    ...easer,
+    _distanceMiles: area.distanceMiles,
+    _radiusMiles: area.radiusMiles,
+  }));
   eligible = withoutDemoEasers(eligible, demoEaserIds, booking);
 
-  if (!eligible.length) return { easers: [], message: 'No available Easers in service area' };
+  if (!eligible.length) {
+    if (areaChecks.length && areaChecks.every(({ area }) => area.reason === 'job_location_unknown')) {
+      return { easers: [], message: `This job's ZIP (${bookingZip || 'none'}) could not be placed on the map. Assign it by hand.`, code: 'JOB_LOCATION_UNKNOWN' };
+    }
+    return { easers: [], message: 'No ready Easer lives within their travel distance of this job', code: 'NO_EASER_IN_RANGE' };
+  }
 
   // Work preferences (migration 110): the services an Easer takes and the hours
   // they work. Read with its own query and failing open, so an Easer with none

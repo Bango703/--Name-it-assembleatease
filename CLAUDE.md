@@ -481,7 +481,7 @@ Stripe manual-capture flow:
 ### Dispatch Engine
 
 Auto-dispatch flow (`api/booking/_dispatch-internal.js`):
-1. Scores available Easers by tier, ZIP match, rating, fairness, and acceptance rate. Membership priority is inert while Easer membership is disabled.
+1. Offers go only to Easers whose home ZIP is within their travel distance of the job (`serviceAreaCheck` in `_source-of-truth.js`: Census ZIP points in `api/_texas-zip-locations.js`, Easer choice 15/25/50/75 miles, default 50, `profiles.travel_radius_miles`). Fails closed: a ZIP off the map goes to the owner, never statewide. Every Texas ZIP is in one `SERVICE_MARKETS` market (the area label, not the offer rule). Eligible Easers are scored by tier, distance (nearer first), rating, fairness, and acceptance rate. Membership priority is inert while Easer membership is disabled.
 2. Sends offers to top N Easers (default 3) via `dispatch_offers` table (per-Easer token, 20-min TTL)
 3. First Easer to call `api/booking/accept-dispatch.js` wins via atomic CAS (`.is('assembler_id', null)`)
 4. On accept: other offers marked `superseded`
