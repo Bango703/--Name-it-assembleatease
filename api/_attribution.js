@@ -23,7 +23,9 @@ function campaignLabel(value, max = 80) {
 // claude/chatgpt/gemini/ai_assistant tag the AI assistant connector's booking
 // links (api/_mcp-tools.js); chatgpt.com is the tag ChatGPT adds to links in
 // its own answers. assets/js/attribution.js keeps the same three lists.
-const UTM_SOURCES = new Set(['google', 'bing', 'duckduckgo', 'ecosia', 'ecosia.org', 'yahoo', 'google_jobs_apply', 'facebook', 'instagram', 'linkedin', 'nextdoor', 'buffer', 'partner', 'owner', 'sora', 'newsletter', 'claude', 'chatgpt', 'gemini', 'ai_assistant', 'chatgpt.com']);
+const UTM_SOURCES = new Set(['google', 'bing', 'duckduckgo', 'ecosia', 'ecosia.org', 'yahoo', 'google_jobs_apply', 'facebook', 'instagram', 'linkedin', 'nextdoor', 'buffer', 'partner', 'owner', 'sora', 'newsletter', 'claude', 'chatgpt', 'gemini', 'ai_assistant', 'chatgpt.com',
+  // An Easer's referral link (api/_easer-referrals.js referralLink).
+  'easer_referral']);
 const UTM_MEDIA = new Set(['organic', 'social', 'organic_social', 'referral', 'email', 'voice', 'ai_assistant', 'cpc', 'ppc', 'paidsearch', 'paid_search', 'paid_social', 'paidsocial']);
 const CAMPAIGN_PREFIX = /^(?:gbp|rebook|partner|easer|organic|social|newsletter|sora|mcp|business|referral|austin|san_antonio|houston|dallas|tyler|texas|offer|service|assemblecash|page|meta)(?:[_-][a-z0-9]+)*$/;
 // Assistants whose answers link to the site. A visit from one with no tags is

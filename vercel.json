@@ -124,6 +124,10 @@
       "schedule": "17 15 * * *"
     },
     {
+      "path": "/api/cron/referral-rewards",
+      "schedule": "41 14 * * *"
+    },
+    {
       "path": "/api/cron/easer-start-nudge",
       "schedule": "*/5 * * * *"
     },

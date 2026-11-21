@@ -7,6 +7,7 @@ import { rateLimit } from '../_ratelimit.js';
 import { logActivity } from '../booking/_activity.js';
 import { isActiveInstantBookingZip } from '../_source-of-truth.js';
 import { cleanAcquisitionAttribution, isMissingAttributionColumn } from '../_attribution.js';
+import { recordReferralFromAttribution } from '../_easer-referrals.js';
 import { formatUsPhone, normalizeUsPhone } from '../_phone.js';
 import {
   buildIdentityResumeUrl,
@@ -323,6 +324,10 @@ export default async function handler(req, res) {
       error: 'We could not save your application. Nothing was submitted — please try again, or contact support if it keeps happening.',
     });
   }
+
+  // An Easer's referral link brought them: credit the referrer (migration 134).
+  // Never blocks the application; any failure records nothing.
+  await recordReferralFromAttribution(sb, { refereeId: userId, attribution: coreProfile.application_attribution });
 
   // Assembler-specific columns — all known-good after migration 018
   try {
