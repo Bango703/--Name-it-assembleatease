@@ -2,12 +2,18 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
+import { EASER_BONUS_POLICY, computeBookingSplitFromSnapshot, maxEaserBonusCents } from '../_source-of-truth.js';
 
 /**
  * POST /api/owner/easer-bonus — the owner pays an Easer more than the split.
  *
  * Body: { bookingId, amountCents, reason }
  *   amountCents 0 clears a bonus that has not been paid out yet.
+ *
+ * JOB BOOST (owner, 2026-11-21). Allowed on any confirmed, active or completed
+ * job (EASER_BONUS_POLICY.statuses), with or without an Easer, so it can be set
+ * BEFORE anyone accepts and is shown on the offer. It belongs to the job, not to
+ * one Easer, and it is capped at maxEaserBonusCents so the job never loses money.
  *
  * WHERE THE MONEY COMES FROM
  * The platform. The customer has already paid by the time a bonus is decided,
@@ -28,7 +34,7 @@ import { writeFinancialAudit } from '../_financial-audit.js';
  * make the books disagree with the bank.
  */
 
-const MAX_BONUS_CENTS = 50000;
+const MAX_BONUS_CENTS = EASER_BONUS_POLICY.maxCents;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -54,19 +60,29 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error: bookingErr } = await sb
     .from('bookings')
-    .select('id, ref, service, status, assembler_id, assembler_name, assembler_due, payout_status, payout_amount, easer_bonus_cents, easer_bonus_reason')
+    .select('id, ref, service, status, assembler_id, assembler_name, assembler_accepted_at, assembler_due, payout_status, payout_amount, easer_bonus_cents, easer_bonus_reason, total_price, amount_charged, tax_amount, refund_amount, stripe_fee, easer_fee_pct_snapshot, assemblecash_redeemed_cents, review_reward_discount_cents, gift_card_applied_cents, easer_reimbursement_cents')
     .eq('id', bookingId)
     .maybeSingle();
   if (bookingErr || !booking) return res.status(404).json({ error: 'Booking not found' });
 
-  if (booking.status !== 'completed') {
+  if (!EASER_BONUS_POLICY.statuses.includes(booking.status)) {
     return res.status(409).json({
-      error: 'A bonus can only be added to a completed job.',
-      code: 'NOT_COMPLETED',
+      error: 'A bonus can be set on a confirmed, active or completed job, not on one that is ' + (booking.status || 'unknown') + '.',
+      code: 'NOT_ELIGIBLE',
     });
   }
-  if (!booking.assembler_id) {
+  // A finished job pays someone; before then the bonus waits on the job for
+  // whoever takes it.
+  if (booking.status === 'completed' && !booking.assembler_id) {
     return res.status(409).json({ error: 'This job has no Easer to pay a bonus to.', code: 'NO_EASER' });
+  }
+  const maxCents = maxEaserBonusCents(booking);
+  if (amount > maxCents) {
+    return res.status(409).json({
+      error: `The most this job can carry is $${(maxCents / 100).toFixed(2)}. More would lose money on it.`,
+      code: 'BONUS_ABOVE_MARGIN',
+      maxBonusCents: maxCents,
+    });
   }
   // After the money has moved, changing the figure would make the books
   // disagree with the bank. Pay a second bonus on a future job instead.
@@ -100,7 +116,20 @@ export default async function handler(req, res) {
     });
   }
 
-  const baseDue = Number(booking.assembler_due || 0);
+  // Before assignment the job has no recorded split yet; show the one it pays.
+  const baseDue = Number(booking.assembler_due || 0) > 0
+    ? Number(booking.assembler_due)
+    : computeBookingSplitFromSnapshot({
+      amountChargedCents: booking.amount_charged ?? null,
+      totalPriceCents: booking.total_price ?? null,
+      taxCents: booking.tax_amount || 0,
+      feePct: booking.easer_fee_pct_snapshot ?? null,
+      assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+      reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
+      giftCardAppliedCents: booking.gift_card_applied_cents || 0,
+    }).assemblerDueCents;
+  const stage = booking.status === 'completed' ? 'after_job'
+    : booking.assembler_accepted_at ? 'accepted' : 'before_acceptance';
   const money = c => `$${(c / 100).toFixed(2)}`;
 
   // Every movement of money leaves a trail, including the ones that are gifts.
@@ -116,6 +145,9 @@ export default async function handler(req, res) {
       bonusCents: amount,
       reason: bonusReason || null,
       fundedBy: 'platform_margin',
+      stage,
+      maxBonusCents: maxCents,
+      platformNetAfterCents: maxCents - amount + EASER_BONUS_POLICY.minPlatformNetCents,
     },
   }).catch(err => console.error('[easer-bonus] audit failed:', err?.message || err));
 
@@ -133,7 +165,7 @@ export default async function handler(req, res) {
   // Rule 10: an Easer must always know what they will be paid. A bonus they
   // only discover in a bank statement is a missed thank-you.
   let notified = false;
-  if (amount > 0 && amount !== previous) {
+  if (amount > 0 && amount !== previous && booking.assembler_id) {
     const { data: easer } = await sb
       .from('profiles').select('email, full_name').eq('id', booking.assembler_id).maybeSingle();
     if (easer?.email) {
@@ -172,6 +204,10 @@ export default async function handler(req, res) {
     baseDueCents: baseDue,
     totalDueCents: baseDue + amount,
     fundedBy: 'platform_margin',
+    stage,
+    maxBonusCents: maxCents,
+    platformNetAfterCents: maxCents - amount + EASER_BONUS_POLICY.minPlatformNetCents,
     easerNotified: notified,
+    hasEaser: Boolean(booking.assembler_id),
   });
 }

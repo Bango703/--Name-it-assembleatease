@@ -5,7 +5,7 @@ import { parseServiceLocation } from '../_booking-location.js';
 import { sendEmail, esc, ownerEmail } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { sendSms } from '../_sms.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForStaffing, serviceAreaCheck, EASER_RELIABILITY_POLICY, TRAVEL_RADIUS_MILES } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForStaffing, serviceAreaCheck, EASER_RELIABILITY_POLICY, TRAVEL_RADIUS_MILES, easerBonusCents } from '../_source-of-truth.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { logActivity } from './_activity.js';
@@ -369,6 +369,8 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 
     // Show net pay in the push too, so a Pro isn't blind. AssembleCash is funded
     // by the platform margin, so reward use must not shrink the Easer estimate.
+    // The owner's job boost (easer_bonus_cents) rides on top of the split and is
+    // paid with the job, so the offer shows it: that is what it is for.
     const estPayCents = booking.total_price > 0
       ? computeBookingSplitFromSnapshot({
           totalPriceCents: booking.total_price,
@@ -377,7 +379,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
           assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
           reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
           giftCardAppliedCents: booking.gift_card_applied_cents || 0,
-        }).assemblerDueCents
+        }).assemblerDueCents + easerBonusCents(booking)
       : 0;
     const pushPay = estPayCents > 0
       ? new Intl.NumberFormat('en-US', {
@@ -687,8 +689,10 @@ function buildOfferEmail(easer, booking, city, offerUrl, expiresAt) {
     reviewRewardDiscountCents: booking.review_reward_discount_cents || 0,
     giftCardAppliedCents: booking.gift_card_applied_cents || 0,
   });
+  const bonusCents = easerBonusCents(booking);
   const payEstimate = booking.total_price > 0
-    ? '$' + Math.round(split.assemblerDueCents / 100).toLocaleString()
+    ? '$' + Math.round((split.assemblerDueCents + bonusCents) / 100).toLocaleString()
+      + (bonusCents > 0 ? ' (includes a $' + (bonusCents / 100).toFixed(2) + ' bonus)' : '')
     : 'Custom quote — price set by owner after review';
   const expiryMin   = Math.round((new Date(expiresAt) - Date.now()) / 60000);
   const tierLabel   = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[easer.tier] || easer.tier;

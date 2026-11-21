@@ -3888,11 +3888,12 @@ window.intelQuick = intelQuick;
       field('Easer Earnings', !b.assembler_id
         ? '<span style="color:var(--muted)">Not calculated — assign the owner-Easer</span>'
         : (b.assembler_due != null ? fmt$(b.assembler_due) : '<span style="color:var(--muted)">Not finalized</span>')),
-      // Owner-funded bonus. It comes out of platform margin — the customer has
-      // already paid and is never re-charged for a decision made afterwards —
-      // and it rides on top of the split rather than through it.
-      field('Bonus Pay', !b.assembler_id || b.status !== 'completed'
-        ? '<span style="color:var(--muted)">Available once a completed job has an Easer</span>'
+      // Owner-funded bonus, also the "job boost" (2026-11-21): settable on any
+      // confirmed job, with or without an Easer, and shown on the offer. It comes
+      // out of platform margin (the server caps it where the job would lose
+      // money) and rides on top of the split rather than through it.
+      field('Bonus Pay', ['confirmed','en_route','arrived','in_progress','completed'].indexOf(b.status) === -1 || (b.status === 'completed' && !b.assembler_id)
+        ? '<span style="color:var(--muted)">Available on a confirmed job</span>'
         : ((Number(b.easer_bonus_cents || 0) > 0
             ? '<strong style="color:var(--green)">' + fmt$(b.easer_bonus_cents) + '</strong>'
               + (b.easer_bonus_reason ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">' + esc(b.easer_bonus_reason) + '</div>' : '')
@@ -4395,7 +4396,8 @@ window.intelQuick = intelQuick;
   window.setEaserBonus = async function(bookingId) {
     var b = allBookings.find(function(x){ return x.id === bookingId; }) || {};
     var current = Number(b.easer_bonus_cents || 0);
-    var raw = prompt('Bonus amount in dollars for ' + (b.assembler_name || 'this Easer') + '. Enter 0 to remove it.', current ? (current / 100).toFixed(2) : '');
+    var who = b.assembler_name || 'whoever takes this job';
+    var raw = prompt('Bonus in dollars for ' + who + '. It shows on the job offer and is paid with the job. Enter 0 to remove it.', current ? (current / 100).toFixed(2) : '');
     if (raw === null) return;
     var dollars = Number(String(raw).replace(/[^0-9.]/g, ''));
     if (!isFinite(dollars) || dollars < 0) { toast('Enter a dollar amount', 'error'); return; }
@@ -4413,8 +4415,11 @@ window.intelQuick = intelQuick;
       });
       var d = await r.json().catch(function(){ return {}; });
       if (!r.ok) { toast(d.error || 'The bonus could not be saved, and the server did not say why.', 'error'); return; }
+      var leftover = d.platformNetAfterCents != null ? ' Platform keeps about $' + (d.platformNetAfterCents / 100).toFixed(2) + ' after fees.' : '';
       toast(cents > 0
-        ? 'Bonus set' + (d.easerNotified ? ' and the Easer was emailed' : ' (the Easer email did not send)')
+        ? (d.hasEaser
+          ? 'Bonus set' + (d.easerNotified ? ' and the Easer was emailed.' : ' (the Easer email did not send).')
+          : 'Bonus set. It shows on the offer to whoever takes the job.') + leftover
         : 'Bonus removed', 'success');
       await loadBookings();
     } catch (err) {

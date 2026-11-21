@@ -1146,6 +1146,7 @@
       // My Assignments detail exactly. Never re-derive pay with a hardcoded rate here.
       var pay = b._pay_estimate_lo != null ? fmtPay(b._pay_estimate_lo)
         : (b.assembler_due != null ? fmtPay(b.assembler_due) : 'Estimate pending');
+      if (Number(b._bonus_cents || 0) > 0) pay += ' incl. ' + fmtPay(b._bonus_cents) + ' bonus';
       var expiresAt = b._offer_expires_at || b.offer_expires_at || b.dispatch_offered_at;
       var offerTok = b._offer_token || b.dispatch_token || b.assignment_token || '';
       return '<div class="eh-offer-card">'

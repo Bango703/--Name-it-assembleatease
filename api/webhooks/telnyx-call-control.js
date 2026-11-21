@@ -1,6 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { voiceConfig, verifyVoiceSignature } from '../_voice-call-history.js';
-import { ownerCallConfig, parseClientState, buildCustomerLegRequest, placeCall, peerToHangUp } from '../_owner-call.js';
+import { ownerCallConfig, parseClientState, buildCustomerLegRequest, placeCall, peerToHangUp, firstLegStateWithPeer } from '../_owner-call.js';
 import { normalizeUsPhone } from '../_phone.js';
 import { rateLimitKey } from '../_ratelimit.js';
 import { evaluateCustomerContactRelease } from '../booking/_customer-contact-release.js';
@@ -65,9 +65,10 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, ...result });
   }
 
-  // A second leg ended (unanswered, busy, declined or hung up): end the first
-  // leg too, so nobody is left holding a silent line. Hanging up a call that
-  // already ended is harmless.
+  // Either leg ended (unanswered, busy, declined or hung up): end the other one
+  // too, so nobody is left holding a silent line and no phone keeps ringing on
+  // a line the account needs for the next call. Hanging up a call that already
+  // ended is harmless.
   if (eventType === 'call.hangup') {
     const peer = peerToHangUp(payload.client_state);
     const cfg = ownerCallConfig();
@@ -95,6 +96,13 @@ export default async function handler(req, res) {
   }
 
   const result = await placeCall(cfg, buildCustomerLegRequest(cfg, state, callControlId));
+  // Give the owner leg the customer leg as its peer, so hanging up before the
+  // customer answers stops their phone ringing (and frees the line).
+  if (result.ok && result.callControlId) {
+    await callControlRequest(cfg.apiKey, `https://api.telnyx.com/v2/calls/${encodeURIComponent(callControlId)}/actions/client_state_update`, {
+      client_state: firstLegStateWithPeer(payload.client_state, result.callControlId),
+    }, 'PUT');
+  }
   // The owner hears something while the customer's phone rings, or hears why
   // the call cannot go through and is hung up.
   await callControlRequest(cfg.apiKey, `https://api.telnyx.com/v2/calls/${encodeURIComponent(callControlId)}/actions/speak`, {
@@ -217,6 +225,14 @@ async function routeInboundBookingCall(payload) {
       peer: callControlId,
     })).toString('base64'),
   });
+  // The caller's leg learns the other phone, so if they hang up while it rings,
+  // that phone stops ringing too.
+  const outboundId = outbound.ok ? outbound.data?.data?.call_control_id : null;
+  if (outboundId) {
+    await callControlRequest(cfg.apiKey, `https://api.telnyx.com/v2/calls/${encodeURIComponent(callControlId)}/actions/client_state_update`, {
+      client_state: firstLegStateWithPeer(null, outboundId),
+    }, 'PUT');
+  }
   try {
     await recordOperationalEvents(sb, {
       event_type: outbound.ok ? 'booking_call_bridged' : 'booking_call_bridge_failed',
@@ -245,10 +261,10 @@ async function routeInboundBookingCall(payload) {
   return { routed: outbound.ok, bookingRef: booking.ref, callerType };
 }
 
-async function callControlRequest(apiKey, url, body) {
+async function callControlRequest(apiKey, url, body, method = 'POST') {
   try {
     const response = await fetch(url, {
-      method: 'POST',
+      method,
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
