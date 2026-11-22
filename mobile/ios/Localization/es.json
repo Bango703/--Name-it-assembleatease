@@ -723,6 +723,8 @@
     "Remove this card?": "¿Quitar esta tarjeta?",
     "Remove %@ ending in %@": "Quitar %@ terminada en %@",
     "Card saved.": "Tarjeta guardada.",
-    "Card removed.": "Tarjeta quitada."
+    "Card removed.": "Tarjeta quitada.",
+    "Referral links are not open yet.": "Los enlaces para recomendar todavía no están abiertos.",
+    "Your referral link could not be loaded. Pull down to try again.": "No se pudo cargar tu enlace para recomendar. Desliza hacia abajo para intentarlo de nuevo."
   }
 }

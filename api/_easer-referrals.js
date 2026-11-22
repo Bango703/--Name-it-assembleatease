@@ -11,6 +11,7 @@
  * sign-up alone earns nothing and a fake friend costs nothing.
  */
 import { randomInt } from 'node:crypto';
+import { isEaserClosureBlocking, normalizeEaserClosureStatus } from './_easer-closure.js';
 
 export const EASER_REFERRAL_POLICY = Object.freeze({
   rewardCents: 7500,        // $75 to the referring Easer
@@ -95,7 +96,7 @@ export async function recordReferralFromAttribution(sb, { refereeId, attribution
       .maybeSingle();
     if (error || !referrer) return { recorded: false, reason: 'unknown_code' };
     if (referrer.id === refereeId) return { recorded: false, reason: 'self_referral' };
-    if (referrer.role !== 'assembler' || referrer.status !== 'active' || referrer.account_closure_status) {
+    if (!canRefer(referrer)) {
       return { recorded: false, reason: 'referrer_not_active' };
     }
     const { error: profileError } = await sb.from('profiles')
@@ -127,12 +128,20 @@ export async function recordReferralFromAttribution(sb, { refereeId, attribution
  *   void    the window passed, or the new Easer was rejected or closed
  *   wait    neither yet
  */
+/**
+ * Whether an Easer can refer: approved and active, with no closure that blocks work.
+ * A closure request the Easer cancelled does not block (api/_easer-closure.js).
+ */
+export function canRefer(profile) {
+  return Boolean(profile) && profile.role === 'assembler' && profile.status === 'active' && !isEaserClosureBlocking(profile);
+}
+
 export function referralRewardDecision(reward, { completedJobs = 0, referee = {}, nowMs = Date.now() } = {}) {
   if (!reward || reward.status !== 'pending') return { action: 'none' };
   const needed = Number(reward.qualifying_jobs || EASER_REFERRAL_POLICY.qualifyingJobs);
   if (completedJobs >= needed) return { action: 'earned' };
   const status = String(referee.application_status || '').toLowerCase();
-  if (status === 'rejected' || referee.account_closure_status === 'closed') return { action: 'void', reason: 'referee_not_approved' };
+  if (status === 'rejected' || normalizeEaserClosureStatus(referee) === 'completed') return { action: 'void', reason: 'referee_not_approved' };
   const deadline = Date.parse(reward.referred_at) + EASER_REFERRAL_POLICY.windowDays * DAY_MS;
   if (Number.isFinite(deadline) && nowMs > deadline) return { action: 'void', reason: 'window_expired' };
   return { action: 'wait' };
