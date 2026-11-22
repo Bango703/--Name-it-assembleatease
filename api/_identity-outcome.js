@@ -10,6 +10,116 @@ import { buildIdentityResumeUrl, ensureIdentityResumeToken, updateProfileRequire
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
+// ── Whose ID is it? (owner, 2026-11-22) ─────────────────────────────────────
+// The provider proves the ID is genuine and the selfie is the person holding it.
+// It does not prove that person is the account holder: the owner verified an
+// account whose name did not match his ID. These rules decide that, for both
+// providers, before anyone is marked verified.
+
+export const MINIMUM_EASER_AGE = 18;
+const NAME_SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv', 'v']);
+
+/** Lowercase name words without accents, apostrophes, punctuation or suffixes. */
+export function nameTokens(value) {
+  return String(value || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/['’`]/g, '')
+    .replace(/[^a-z]+/g, ' ')
+    .split(' ')
+    .filter((t) => t && !NAME_SUFFIXES.has(t));
+}
+
+/**
+ * The account name belongs to the person on the ID: its first word is one of the
+ * ID's first names and its last word is one of the ID's last names. Middle
+ * names, accents, hyphens, suffixes and compound surnames (Garcia Lopez) pass;
+ * a different person, or a nickname (Mike for Michael), goes to the owner.
+ */
+export function identityNameMatches(accountName, { firstName, lastName } = {}) {
+  const account = nameTokens(accountName);
+  const first = nameTokens(firstName);
+  const last = nameTokens(lastName);
+  if (account.length < 2 || !first.length || !last.length) return false;
+  return first.includes(account[0]) && last.includes(account[account.length - 1]);
+}
+
+/** Whole years from a { year, month, day } date of birth, or null. */
+export function identityAgeYears(dob, now = new Date()) {
+  const year = Number(dob?.year); const month = Number(dob?.month); const day = Number(dob?.day);
+  if (!year || !month || !day) return null;
+  let age = now.getUTCFullYear() - year;
+  const beforeBirthday = now.getUTCMonth() + 1 < month || (now.getUTCMonth() + 1 === month && now.getUTCDate() < day);
+  if (beforeBirthday) age -= 1;
+  return age;
+}
+
+/**
+ * Whether a passed ID check may mark this account verified. `document` is what
+ * the provider read off the ID: { firstName, lastName, dob }.
+ * Returns { ok: true } or { ok: false, reason, documentName }.
+ */
+export function identityDocumentCheck(accountName, document = {}, now = new Date()) {
+  const documentName = [document.firstName, document.lastName].filter(Boolean).join(' ').trim();
+  if (!document.firstName || !document.lastName) return { ok: false, reason: 'name_unreadable', documentName };
+  if (!identityNameMatches(accountName, document)) return { ok: false, reason: 'name_mismatch', documentName };
+  const age = identityAgeYears(document.dob, now);
+  if (age !== null && age < MINIMUM_EASER_AGE) return { ok: false, reason: 'under_minimum_age', documentName };
+  return { ok: true, documentName };
+}
+
+const HOLD_COPY = {
+  name_mismatch: {
+    owner: 'The name on the ID does not match the name on the account.',
+    applicant: 'The name on your ID does not match the name on your AssembleAtEase account. Reply to this email with your full legal name as it appears on your ID.',
+  },
+  name_unreadable: {
+    owner: 'The ID check passed, but the name on the ID could not be read, so the account was not marked verified.',
+    applicant: 'We could not confirm the name on your ID. Reply to this email with your full legal name as it appears on your ID.',
+  },
+  under_minimum_age: {
+    owner: `The date of birth on the ID is under ${MINIMUM_EASER_AGE}.`,
+    applicant: `Easers must be ${MINIMUM_EASER_AGE} or older.`,
+  },
+};
+
+/**
+ * The provider passed the ID but it does not establish this account holder:
+ * keep the Easer unverified, and send the owner both names. No retry link:
+ * a new check of the same ID gives the same answer. The owner corrects the
+ * account name and uses Mark ID Verified, or rejects the application.
+ */
+export async function recordIdentityHeldForReview(sb, { userId, profile, referenceUpdates = {}, reason = 'name_mismatch', documentName = '', context = 'Identity held for review', notificationKey = null }) {
+  await updateProfileRequired(sb, userId, {
+    identity_verified: false,
+    id_verification_status: 'failed',
+    ...referenceUpdates,
+  }, context);
+
+  if (!profile) return;
+  const copy = HOLD_COPY[reason] || HOLD_COPY.name_mismatch;
+  try {
+    await sendEmail({
+      to: ownerEmail(),
+      subject: `ID check held: ${esc(profile.full_name || 'Easer applicant')}`,
+      html: `<p><strong>${esc(copy.owner)}</strong></p>
+        <p>Name on the account: <strong>${esc(profile.full_name || '(none)')}</strong><br>Name on the ID: <strong>${esc(documentName || '(not readable)')}</strong></p>
+        <p>The Easer is not verified and cannot receive jobs. If this is the same person, correct the account name to the legal name and use Mark ID Verified on the Easer. If not, reject the application.</p>`,
+      meta: { notificationType: 'identity_held_owner', recipientType: 'owner', ...(notificationKey ? { notificationKey: `${notificationKey}:owner` } : {}) },
+    });
+  } catch (e) { console.error('Owner identity hold email error:', e); }
+
+  try {
+    await sendEmail({
+      to: profile.email,
+      subject: 'About your ID check',
+      html: `<p>Hi ${esc(String(profile.full_name || '').split(' ')[0] || 'there')},</p><p>${esc(copy.applicant)}</p><p>The AssembleAtEase Team</p>`,
+      replyTo: ownerEmail(),
+      meta: { notificationType: 'identity_held_applicant', recipientType: 'easer', recipientUserId: userId, ...(notificationKey ? { notificationKey: `${notificationKey}:applicant` } : {}) },
+    });
+  } catch (e) { console.error('Applicant identity hold email error:', e); }
+}
+
 /**
  * Mark the Easer verified and tell the owner and the applicant.
  * referenceUpdates holds the provider's own reference (session or inquiry id).

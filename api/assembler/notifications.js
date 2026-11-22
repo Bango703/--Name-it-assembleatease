@@ -86,6 +86,7 @@ export const NOTIFICATION_COPY = Object.freeze({
   identity_resume_link_reissued: notice('Verification link ready', 'Finish identity verification from Today.', 'today', 'Open Today', ACCOUNT),
   identity_verified_applicant: notice('Identity verified', 'Your identity verification is complete.', 'today', 'Open Today', ACCOUNT),
   identity_failed_applicant: notice('Verification needs another try', 'Identity verification did not finish. Try again from Today.', 'today', 'Open Today', ACCOUNT),
+  identity_held_applicant: notice('ID check on hold', 'Check your email for the next step.', 'none', null, ACCOUNT),
   easer_account_closure_requested: notice('Closure requested', 'Your account closure request was received. You are offline.', 'account', 'Open Account', ACCOUNT),
   easer_account_closure_cancelled_confirmation: notice('Closure cancelled', 'Your account stays open.', 'account', 'Open Account', ACCOUNT),
   easer_account_closed: notice('Account closed', 'Your account is closed.', 'none', null, ACCOUNT),

@@ -215,7 +215,7 @@ async function call(handler, { method = 'GET', body = {}, query = {} } = {}) {
   // Rows written for the owner or the customer next to an Easer row, and the
   // pre-account waitlist (no Easer account to show an inbox to).
   const notEaserInbox = new Set([
-    'identity_failed_owner', 'identity_verified_owner', 'easer_account_closure', 'easer_account_closure_cancelled',
+    'identity_failed_owner', 'identity_verified_owner', 'identity_held_owner', 'easer_account_closure', 'easer_account_closure_cancelled',
     'scheduled_payment_owner_action', 'referral_reward_earned_owner',
     'easer_waitlist', 'easer_waitlist_confirmation', 'easer_waitlist_owner_added', 'waitlist_invite', 'easer_phone_verification',
   ]);
