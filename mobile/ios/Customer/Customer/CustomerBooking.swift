@@ -254,14 +254,14 @@ final class BookingFlow: ObservableObject {
     }
 
     var detailsProblem: String? {
-        if street.trimmingCharacters(in: .whitespaces).isEmpty { return "Enter the street address." }
-        if city.trimmingCharacters(in: .whitespaces).isEmpty { return "Enter the city." }
+        if street.trimmingCharacters(in: .whitespaces).isEmpty { return String(localized: "Enter the street address.") }
+        if city.trimmingCharacters(in: .whitespaces).isEmpty { return String(localized: "Enter the city.") }
         let zipDigits = zip.trimmingCharacters(in: .whitespaces)
-        if zipDigits.count != 5 || !zipDigits.allSatisfy(\.isNumber) { return "Enter a 5-digit ZIP code." }
-        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Enter your name." }
-        if Format.phoneDigits(phone).count != 10 { return "Enter a 10-digit phone number." }
+        if zipDigits.count != 5 || !zipDigits.allSatisfy(\.isNumber) { return String(localized: "Enter a 5-digit ZIP code.") }
+        if name.trimmingCharacters(in: .whitespaces).isEmpty { return String(localized: "Enter your name.") }
+        if Format.phoneDigits(phone).count != 10 { return String(localized: "Enter a 10-digit phone number.") }
         if hasCustomQuote && projectDescription.trimmingCharacters(in: .whitespacesAndNewlines).count < 10 {
-            return "Describe the project."
+            return String(localized: "Describe the project.")
         }
         return nil
     }
@@ -369,7 +369,7 @@ final class BookingFlow: ObservableObject {
 
     var promoStatus: String? {
         guard !promoCode.trimmingCharacters(in: .whitespaces).isEmpty, let preview else { return nil }
-        return preview.promoApplied ? "Code applied." : "This code does not apply to this booking."
+        return preview.promoApplied ? String(localized: "Code applied.") : String(localized: "This code does not apply to this booking.")
     }
 
     /// The server's answer for the gift card, never a guess.
@@ -377,15 +377,15 @@ final class BookingFlow: ObservableObject {
         guard !giftCardCode.trimmingCharacters(in: .whitespaces).isEmpty, let preview else { return nil }
         if let error = preview.giftCardError, !error.isEmpty { return (error, false) }
         guard preview.giftCardAppliedCents > 0 else { return nil }
-        var text = "\(Format.money(cents: preview.giftCardAppliedCents)) applied from your gift card."
+        var text = String(localized: "\(Format.money(cents: preview.giftCardAppliedCents)) applied from your gift card.")
         if preview.giftCardRemainingCents > 0 {
-            text += " \(Format.money(cents: preview.giftCardRemainingCents)) stays on the card."
+            text += String(localized: " \(Format.money(cents: preview.giftCardRemainingCents)) stays on the card.")
         }
         return (text, true)
     }
 
     var reviewProblem: String? {
-        if preview?.plan == nil { return previewProblem ?? "Loading the total." }
+        if preview?.plan == nil { return previewProblem ?? String(localized: "Loading the total.") }
         return nil
     }
 
@@ -519,7 +519,7 @@ final class BookingFlow: ObservableObject {
 
     private func finish(_ created: CreatedBooking, plan: CheckoutPlan) async {
         saveContact()
-        booked = JustBooked(ref: created.ref, title: plan.isQuote ? "Quote requested" : "You're booked", note: plan.note)
+        booked = JustBooked(ref: created.ref, title: plan.isQuote ? String(localized: "Quote requested") : String(localized: "You're booked"), note: plan.note)
         quantities = [:]
         bundleSlug = nil
         slot = nil
@@ -595,7 +595,7 @@ struct BundleCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: "square.stack.3d.up.fill")
+            Image(systemName: "square.stack.3d.up.fill").accessibilityHidden(true)
                 .font(.title3)
                 .foregroundStyle(Brand.skyDark)
                 .frame(width: 40, height: 40)
@@ -607,7 +607,7 @@ struct BundleCard: View {
                 .lineLimit(3, reservesSpace: true)
             Spacer(minLength: 0)
             Button(action: add) {
-                Label(bundle.included.count == 1 ? "Add 1 item" : "Add \(bundle.included.count) items", systemImage: "plus")
+                Label(bundle.included.count == 1 ? String(localized: "Add 1 item") : String(localized: "Add \(bundle.included.count) items"), systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
             }
             .buttonStyle(.bordered)
@@ -632,7 +632,7 @@ struct CartBar: View {
             HStack(spacing: 12) {
                 Button { showOrder = true } label: {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(flow.itemCount == 1 ? "1 item" : "\(flow.itemCount) items").font(.headline).foregroundStyle(.primary)
+                        Text(flow.itemCount == 1 ? String(localized: "1 item") : String(localized: "\(flow.itemCount) items")).font(.headline).foregroundStyle(.primary)
                         Label("View order", systemImage: "chevron.up")
                             .labelStyle(.titleAndIcon)
                             .font(.caption.weight(.semibold))
@@ -789,7 +789,7 @@ struct ItemRow: View {
     var showsPrice = false
 
     private var priceText: String {
-        if item.customQuote { return "Quote" }
+        if item.customQuote { return String(localized: "Quote") }
         return (item.addOn ? "+" : "") + Format.money(cents: item.priceCents)
     }
 
@@ -801,9 +801,9 @@ struct ItemRow: View {
                     if showsPrice {
                         Text(priceText).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark).monospacedDigit()
                     } else if item.customQuote {
-                        tag("Custom quote")
+                        tag(String(localized: "Custom quote"))
                     } else if item.addOn {
-                        tag("Add-on")
+                        tag(String(localized: "Add-on"))
                     }
                     if item.popular {
                         Text("Popular")
@@ -943,7 +943,7 @@ private struct ScheduleStepView: View {
             flow.preview = nil
         }
         .safeAreaInset(edge: .bottom) {
-            StepButton(title: "Continue", problem: flow.slot == nil ? "Pick an arrival window." : nil) {
+            StepButton(title: String(localized: "Continue"), problem: flow.slot == nil ? String(localized: "Pick an arrival window.") : nil) {
                 if store.phase == .signedIn {
                     flow.path.append(.details)
                 } else {
@@ -954,7 +954,7 @@ private struct ScheduleStepView: View {
         // Browsing needs no account; booking does. The order and the time stay as picked.
         .sheet(isPresented: $signingIn) {
             NavigationStack {
-                CustomerSignInView(message: "Sign in with your email to book.")
+                CustomerSignInView(message: String(localized: "Sign in with your email to book."))
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) { Button("Cancel") { signingIn = false } }
                     }
@@ -1039,7 +1039,7 @@ private struct DetailsStepView: View {
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
-            StepButton(title: "Review", problem: flow.detailsProblem) {
+            StepButton(title: String(localized: "Review"), problem: flow.detailsProblem) {
                 flow.path.append(.review)
             }
         }
@@ -1054,14 +1054,14 @@ private struct ReviewStepView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                CustomerBlock(title: "Your order") {
+                CustomerBlock(title: String(localized: "Your order")) {
                     ForEach(flow.lines, id: \.self) { line in
                         Text(line.quantity > 1 ? "\(line.quantity) × \(line.name)" : line.name).font(.subheadline)
                     }
                     Button("Edit order") { editingOrder = true }.font(.subheadline)
                 }
 
-                CustomerBlock(title: "When and where") {
+                CustomerBlock(title: String(localized: "When and where")) {
                     Label(flow.whenText, systemImage: "calendar")
                     Label(flow.addressText, systemImage: "mappin.and.ellipse")
                     Label([flow.name.trimmingCharacters(in: .whitespaces), Format.phone(flow.phone)]
@@ -1074,7 +1074,7 @@ private struct ReviewStepView: View {
                     .font(.subheadline)
                 }
 
-                CustomerBlock(title: "Notes for your pro") {
+                CustomerBlock(title: String(localized: "Notes for your pro")) {
                     let project = flow.projectDescription.trimmingCharacters(in: .whitespacesAndNewlines)
                     let access = flow.details.trimmingCharacters(in: .whitespacesAndNewlines)
                     if flow.hasCustomQuote && !project.isEmpty {
@@ -1094,10 +1094,10 @@ private struct ReviewStepView: View {
                     if access.isEmpty && !(flow.hasCustomQuote && !project.isEmpty) {
                         Text("No notes").font(.subheadline).foregroundStyle(.secondary)
                     }
-                    Button(access.isEmpty ? "Add notes" : "Edit notes") { flow.backToDetails() }.font(.subheadline)
+                    Button(access.isEmpty ? String(localized: "Add notes") : String(localized: "Edit notes")) { flow.backToDetails() }.font(.subheadline)
                 }
 
-                CustomerBlock(title: "Promo code") {
+                CustomerBlock(title: String(localized: "Promo code")) {
                     HStack {
                         TextField("Code", text: $flow.promoCode)
                             .textInputAutocapitalization(.characters)
@@ -1111,7 +1111,7 @@ private struct ReviewStepView: View {
                 }
 
                 if flow.giftCardsAccepting && !flow.hasCustomQuote {
-                    CustomerBlock(title: "Gift card") {
+                    CustomerBlock(title: String(localized: "Gift card")) {
                         HStack {
                             TextField("AAEG-XXXX-XXXX-XXXX", text: $flow.giftCardCode)
                                 .textInputAutocapitalization(.characters)
@@ -1145,7 +1145,7 @@ private struct ReviewStepView: View {
                         }
                     }
                 } else if let problem = flow.previewProblem {
-                    CustomerBlock(title: "Total") {
+                    CustomerBlock(title: String(localized: "Total")) {
                         Text(problem).foregroundStyle(.secondary)
                         Button("Try again") { Task { await flow.refreshPreview() } }
                     }
@@ -1177,7 +1177,7 @@ private struct ReviewStepView: View {
                 .presentationDetents([.medium, .large])
         }
         .safeAreaInset(edge: .bottom) {
-            StepButton(title: flow.preview?.plan?.button ?? "Book now", problem: flow.reviewProblem, working: flow.working, agreementNotice: true) {
+            StepButton(title: flow.preview?.plan?.button ?? String(localized: "Book now"), problem: flow.reviewProblem, working: flow.working, agreementNotice: true) {
                 Task { await flow.submit() }
             }
         }
@@ -1193,7 +1193,7 @@ struct BookedView: View {
     var body: some View {
         VStack(spacing: 18) {
             Spacer()
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: "checkmark.circle.fill").accessibilityHidden(true)
                 .font(.system(size: 72))
                 .foregroundStyle(Brand.skyDark)
             Text(done.title).font(.largeTitle.bold())

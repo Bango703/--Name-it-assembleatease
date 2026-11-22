@@ -15,7 +15,10 @@ import { EASER_STAGE } from '../api/_source-of-truth.js';
 const read = (f) => readFileSync(f, 'utf8');
 const APP = 'mobile/ios/App/App';
 const swiftFiles = readdirSync(APP).filter(f => f.endsWith('.swift'));
-const swift = Object.fromEntries(swiftFiles.map(f => [f, read(`${APP}/${f}`)]));
+// Spanish (scripts/test-ios-spanish.mjs) wraps on-screen phrases in String(localized:); the
+// wiring checks here read the phrase itself.
+const unwrapLocalized = (s) => s.replace(/String\(localized: ("(?:[^"\\\n]|\\.)*")\)/g, '$1');
+const swift = Object.fromEntries(swiftFiles.map(f => [f, unwrapLocalized(read(`${APP}/${f}`))]));
 // Code both iPhone apps share (mobile/ios/Shared, 2026-10-13) is read as part of
 // the Easer file it came from, so every check below still covers it.
 swift['EaserSupport.swift'] += '\n' + read('mobile/ios/Shared/AppFoundation.swift');

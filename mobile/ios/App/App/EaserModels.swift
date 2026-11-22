@@ -48,11 +48,11 @@ struct EaserProfile: Decodable {
     /// Same labels as assembler/profile.html.
     var levelLabel: String {
         switch tier ?? "" {
-        case "pending": return "Application Pending"
-        case "starter": return "Starter Pro"
-        case "professional": return "Professional"
-        case "elite": return "Elite Pro"
-        case "suspended": return "Suspended"
+        case "pending": return String(localized: "Application Pending")
+        case "starter": return String(localized: "Starter Pro")
+        case "professional": return String(localized: "Professional")
+        case "elite": return String(localized: "Elite Pro")
+        case "suspended": return String(localized: "Suspended")
         case "": return "Easer"
         default: return tier ?? "Easer"
         }
@@ -287,7 +287,7 @@ struct EaserJob: Decodable, Identifiable, Hashable {
         let work = itemGroups.flatMap(\.items).filter { !$0.isAddOn }
         guard let first = work.first else { return nil }
         let name = first.quantity > 1 ? "\(first.quantity) \(Self.plural(first.name))" : first.name
-        return work.count > 1 ? "\(name) · +\(work.count - 1) more" : name
+        return work.count > 1 ? String(localized: "\(name) · +\(work.count - 1) more") : name
     }
 
     private static func plural(_ name: String) -> String {
@@ -327,27 +327,27 @@ struct EaserJob: Decodable, Identifiable, Hashable {
     /// Same rule as the web dashboard: accepted, confirmed, not started.
     var canRelease: Bool { acceptedAt != nil && status == "confirmed" && selfDropAllowed && !isHelper }
 
-    var title: String { service ?? "Service job" }
+    var title: String { service ?? String(localized: "Service job") }
     var when: String { [Format.day(date), time].compactMap { $0 }.joined(separator: " · ") }
     /// Before acceptance the server sends an area, not the address.
-    var place: String { (acceptedAt != nil ? address : nil) ?? offerLocation ?? address ?? "Location shared after you accept" }
+    var place: String { (acceptedAt != nil ? address : nil) ?? offerLocation ?? address ?? String(localized: "Location shared after you accept") }
 
     var payText: String {
-        if customQuote { return "Pay confirmed after quote" }
-        guard let cents = payEstimateCents, cents > 0 else { return "Pay to be confirmed" }
+        if customQuote { return String(localized: "Pay confirmed after quote") }
+        guard let cents = payEstimateCents, cents > 0 else { return String(localized: "Pay to be confirmed") }
         return Format.money(cents: cents)
     }
 
     /// Words a person uses, never a status code (seat 15).
     var statusLabel: String {
-        if needsAcceptance { return isOffer ? "New offer" : "Waiting for you to accept" }
+        if needsAcceptance { return isOffer ? String(localized: "New offer") : String(localized: "Waiting for you to accept") }
         switch status {
-        case "en_route": return "On the way"
-        case "arrived": return "Arrived"
-        case "in_progress": return "In progress"
-        case "completed": return returnVisitOpen ? "Return visit needed" : "Completed"
-        case "cancelled", "declined", "refunded": return "Cancelled"
-        default: return "Scheduled"
+        case "en_route": return String(localized: "On the way")
+        case "arrived": return String(localized: "Arrived")
+        case "in_progress": return String(localized: "In progress")
+        case "completed": return returnVisitOpen ? String(localized: "Return visit needed") : String(localized: "Completed")
+        case "cancelled", "declined", "refunded": return String(localized: "Cancelled")
+        default: return String(localized: "Scheduled")
         }
     }
 
@@ -414,16 +414,16 @@ struct Earning: Decodable, Identifiable {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         bookingID = c.string("booking_id") ?? UUID().uuidString
         bookingRef = c.string("booking_ref")
-        service = c.string("service") ?? "Service"
+        service = c.string("service") ?? String(localized: "Service")
         earningType = c.string("earning_type") ?? "completed_job"
         earnedAt = c.string("earned_at")
         amountCents = c.number("amount_cents") ?? 0
         if let payout = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("payout")) {
-            statusLabel = payout.string("status_label") ?? "Processing"
+            statusLabel = payout.string("status_label") ?? String(localized: "Processing")
             statusMessage = payout.string("status_message") ?? ""
             disposition = payout.string("disposition") ?? ""
         } else {
-            statusLabel = "Processing"
+            statusLabel = String(localized: "Processing")
             statusMessage = ""
             disposition = ""
         }
@@ -557,17 +557,17 @@ struct ExtraWorkRequest: Decodable, Hashable, Identifiable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         id = c.string("id") ?? UUID().uuidString
-        description = c.string("description") ?? "Extra work"
+        description = c.string("description") ?? String(localized: "Extra work")
         status = c.string("status") ?? ""
     }
     /// The change-order status (api/booking/_change-orders.js) in the Easer's words.
     var statusLabel: String {
         switch status {
-        case "pending_customer_approval": return "Waiting for the customer"
-        case "authorized", "captured": return "Approved"
-        case "declined": return "Declined"
-        case "refunded": return "Refunded"
-        default: return "Closed"
+        case "pending_customer_approval": return String(localized: "Waiting for the customer")
+        case "authorized", "captured": return String(localized: "Approved")
+        case "declined": return String(localized: "Declined")
+        case "refunded": return String(localized: "Refunded")
+        default: return String(localized: "Closed")
         }
     }
     var approved: Bool { status == "authorized" || status == "captured" }
@@ -761,7 +761,7 @@ struct EaserNotice: Decodable, Identifiable {
         actionLabel = c.string("actionLabel")
         category = c.string("category") ?? "account"
         id = c.string("id") ?? UUID().uuidString
-        title = c.string("title") ?? "Update"
+        title = c.string("title") ?? String(localized: "Update")
         detail = c.string("detail") ?? ""
         createdAt = c.string("createdAt")
         read = c.bool("read") ?? false
@@ -785,7 +785,7 @@ struct RequiredAction: Decodable, Identifiable {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         key = c.string("key") ?? UUID().uuidString
         rule = c.string("rule")
-        title = c.string("title") ?? "Action needed"
+        title = c.string("title") ?? String(localized: "Action needed")
         body = c.string("body") ?? ""
         actionLabel = c.string("actionLabel")
         actionURL = c.string("actionUrl")
@@ -819,7 +819,7 @@ enum MessageThread: String {
     case customer
     case team
 
-    var title: String { self == .customer ? "Customer" : "AssembleAtEase" }
+    var title: String { self == .customer ? String(localized: "Customer") : "AssembleAtEase" }
 }
 
 struct JobMessage: Decodable, Identifiable {
@@ -878,14 +878,14 @@ struct ReleaseImpact: Decodable {
         let plural = strikesAdded == 1 ? "" : "s"
         let cost: String
         switch kind {
-        case "grace": cost = "You accepted this job less than 15 minutes ago, so cancelling now has no reliability strike."
-        case "advance": cost = "The job is more than 24 hours away, so cancelling now has no reliability strike."
-        case "same_day": cost = "The job is today. Cancelling counts as \(strikesAdded) reliability strikes."
-        default: cost = "The job starts in less than 24 hours. Cancelling counts as \(strikesAdded) reliability strike\(plural)."
+        case "grace": cost = String(localized: "You accepted this job less than 15 minutes ago, so cancelling now has no reliability strike.")
+        case "advance": cost = String(localized: "The job is more than 24 hours away, so cancelling now has no reliability strike.")
+        case "same_day": cost = String(localized: "The job is today. Cancelling counts as \(strikesAdded) reliability strikes.")
+        default: cost = String(localized: "The job starts in less than 24 hours. Cancelling counts as \(strikesAdded) reliability strike\(plural).")
         }
         let before = strikesBefore == 1 ? "" : "s"
-        let standing = " You have \(strikesBefore) strike\(before) in the last \(windowDays) days; at \(pauseAtStrikes), new jobs pause."
-        let pause = willPause ? " This cancellation will pause new jobs until AssembleAtEase reviews your account." : ""
+        let standing = String(localized: " You have \(strikesBefore) strike\(before) in the last \(windowDays) days; at \(pauseAtStrikes), new jobs pause.")
+        let pause = willPause ? String(localized: " This cancellation will pause new jobs until AssembleAtEase reviews your account.") : ""
         return cost + standing + pause
     }
 }
@@ -939,7 +939,7 @@ struct EaserReview: Decodable, Identifiable {
         id = c.string("id") ?? UUID().uuidString
         rating = max(0, min(5, Int(c.number("rating") ?? 0)))
         comment = c.string("comment") ?? ""
-        customerFirstName = c.string("customerFirstName") ?? "Customer"
+        customerFirstName = c.string("customerFirstName") ?? String(localized: "Customer")
         createdAt = c.string("createdAt")
     }
 }

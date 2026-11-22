@@ -15,6 +15,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { unwrapLocalized } from './lib/ios-strings.mjs';
 import { easerMessageThread } from '../api/booking/_message-routing.js';
 import { messageDirectionLabel } from '../api/_owner-inbox.js';
 import { operationCaseOwnerStatusLabel } from '../api/_operation-cases.js';
@@ -26,7 +27,11 @@ import {
 } from '../api/assembler/notifications.js';
 
 // Line endings normalised: a Windows checkout (CRLF) must pass the same checks as CI (LF).
-const read = (f) => readFileSync(f, 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n');
+// Swift phrases are wrapped for Spanish (test-ios-spanish); wiring checks read the phrase itself.
+const read = (f) => {
+  const source = readFileSync(f, 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n');
+  return f.endsWith('.swift') ? unwrapLocalized(source) : source;
+};
 
 // ── In-memory database, with the PostgREST filters these handlers use ────────
 function orTerms(expr) {

@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		E79253287AFF2FA24758A1FE /* EaserAccountViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B7D4CA0CE2D8E19C5BF37B /* EaserAccountViews.swift */; };
 		ECEEA0346EA710E5EAA22643 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 28DDF1AF7DBB75E111EE13BE /* PrivacyInfo.xcprivacy */; };
+		AE51E0000000000000000002 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AE51E0000000000000000001 /* Localizable.xcstrings */; };
+		AE51E0000000000000000004 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AE51E0000000000000000003 /* InfoPlist.xcstrings */; };
 		62DEA74AB385F71DF0942393 /* EaserSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E96B49669C94509C5B713F3C /* EaserSupport.swift */; };
 		B9D30A393C005D2ACB0AABC2 /* EaserModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25476047CEB710CBCBA89DD /* EaserModels.swift */; };
 		4E76051AEAA64D4894A9793D /* EaserAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B5AAD52E45A815E66307DB /* EaserAPI.swift */; };
@@ -31,6 +33,8 @@
 /* Begin PBXFileReference section */
 		76B7D4CA0CE2D8E19C5BF37B /* EaserAccountViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserAccountViews.swift; sourceTree = "<group>"; };
 		28DDF1AF7DBB75E111EE13BE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		AE51E0000000000000000001 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		AE51E0000000000000000003 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		E96B49669C94509C5B713F3C /* EaserSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserSupport.swift; sourceTree = "<group>"; };
 		D25476047CEB710CBCBA89DD /* EaserModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserModels.swift; sourceTree = "<group>"; };
 		C1B5AAD52E45A815E66307DB /* EaserAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EaserAPI.swift; sourceTree = "<group>"; };
@@ -90,6 +94,8 @@
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				76B7D4CA0CE2D8E19C5BF37B /* EaserAccountViews.swift */,
 				28DDF1AF7DBB75E111EE13BE /* PrivacyInfo.xcprivacy */,
+				AE51E0000000000000000001 /* Localizable.xcstrings */,
+				AE51E0000000000000000003 /* InfoPlist.xcstrings */,
 				E96B49669C94509C5B713F3C /* EaserSupport.swift */,
 				D25476047CEB710CBCBA89DD /* EaserModels.swift */,
 				C1B5AAD52E45A815E66307DB /* EaserAPI.swift */,
@@ -160,6 +166,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				es,
 				Base,
 			);
 			mainGroup = 504EC2FB1FED79650016851F;
@@ -182,6 +189,8 @@
 			files = (
 				504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */,
 				ECEEA0346EA710E5EAA22643 /* PrivacyInfo.xcprivacy in Resources */,
+				AE51E0000000000000000002 /* Localizable.xcstrings in Resources */,
+				AE51E0000000000000000004 /* InfoPlist.xcstrings in Resources */,
 				50B271D11FEDC1A000F3C39B /* public in Resources */,
 				504EC30F1FED79650016851F /* Assets.xcassets in Resources */,
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,

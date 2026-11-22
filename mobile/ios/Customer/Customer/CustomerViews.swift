@@ -28,7 +28,7 @@ struct CustomerSignInView: View {
                 BrandLogo(size: 84).padding(.top, 48)
                 VStack(spacing: 6) {
                     Text("AssembleAtEase").font(.title.bold())
-                    Text(codeSent ? "Enter the code we sent to \(cleanEmail)." : (message ?? "Sign in with the email you book with."))
+                    Text(codeSent ? String(localized: "Enter the code we sent to \(cleanEmail).") : (message ?? String(localized: "Sign in with the email you book with.")))
                         .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
 
@@ -66,7 +66,7 @@ struct CustomerSignInView: View {
                         if codeSent { await verify() } else { await send() }
                     }
                 } label: {
-                    if working { ProgressView().tint(Brand.ink) } else { Text(codeSent ? "Sign in" : "Email me a code") }
+                    if working { ProgressView().tint(Brand.ink) } else { Text(codeSent ? String(localized: "Sign in") : String(localized: "Email me a code")) }
                 }
                 .buttonStyle(PrimaryButtonStyle(enabled: canSubmit))
                 .disabled(!canSubmit || working)
@@ -149,7 +149,7 @@ struct ActivityView: View {
                     Picker("Show", selection: $segment) {
                         Text("Upcoming").tag(Segment.upcoming)
                         Text("Past").tag(Segment.past)
-                        Text(store.unreadCount > 0 ? "Messages (\(store.unreadCount))" : "Messages").tag(Segment.messages)
+                        Text(store.unreadCount > 0 ? String(localized: "Messages (\(store.unreadCount))") : String(localized: "Messages")).tag(Segment.messages)
                     }
                     .pickerStyle(.segmented)
                     .listRowBackground(Color.clear)
@@ -163,14 +163,14 @@ struct ActivityView: View {
                 switch segment {
                 case .upcoming:
                     if store.loadedOnce && store.upcoming.isEmpty {
-                        emptyState("No upcoming visits", "calendar", "Book a service and it shows up here.")
+                        emptyState(String(localized: "No upcoming visits"), "calendar", String(localized: "Book a service and it shows up here."))
                     }
                     ForEach(store.upcoming) { booking in
                         NavigationLink(value: BookingRef(ref: booking.ref)) { BookingRow(booking: booking) }
                     }
                 case .past:
                     if store.loadedOnce && store.past.isEmpty {
-                        emptyState("No past visits", "clock.arrow.circlepath", "Finished and cancelled bookings show up here.")
+                        emptyState(String(localized: "No past visits"), "clock.arrow.circlepath", String(localized: "Finished and cancelled bookings show up here."))
                     }
                     ForEach(store.past) { booking in
                         NavigationLink(value: BookingRef(ref: booking.ref)) { BookingRow(booking: booking) }
@@ -183,11 +183,11 @@ struct ActivityView: View {
                     }
                 case .messages:
                     if store.loadedOnce && store.conversations.isEmpty {
-                        emptyState("No messages yet", "bubble.left.and.bubble.right", "Messages with your pro and with AssembleAtEase show up here.")
+                        emptyState(String(localized: "No messages yet"), "bubble.left.and.bubble.right", String(localized: "Messages with your pro and with AssembleAtEase show up here."))
                     }
                     ForEach(store.conversations) { conversation in
                         NavigationLink {
-                            CustomerMessagesView(ref: conversation.ref, recipient: conversation.messageRecipient == "pro" ? (conversation.proFirstName ?? "Your pro") : "AssembleAtEase", proName: conversation.proFirstName)
+                            CustomerMessagesView(ref: conversation.ref, recipient: conversation.messageRecipient == "pro" ? (conversation.proFirstName ?? String(localized: "Your pro")) : "AssembleAtEase", proName: conversation.proFirstName)
                         } label: {
                             ConversationRow(conversation: conversation)
                         }
@@ -239,7 +239,7 @@ struct ActivityView: View {
             if flow.rebook(found.items) > 0 {
                 store.continueBooking()
             } else {
-                store.banner = CustomerBanner(text: "Those items are no longer offered. Pick from Home.", kind: .problem)
+                store.banner = CustomerBanner(text: String(localized: "Those items are no longer offered. Pick from Home."), kind: .problem)
             }
         } catch {
             store.banner = CustomerBanner(text: error.localizedDescription, kind: .problem)
@@ -328,7 +328,7 @@ struct BookingDetailView: View {
                     if let proposal = detail.proposal { proposalCard(detail, proposal) }
                     if detail.proFirstName != nil { proCard(detail) }
                     if detail.returnVisit {
-                        CustomerBlock(title: "Return visit") {
+                        CustomerBlock(title: String(localized: "Return visit")) {
                             if !detail.returnVisitWhen.isEmpty {
                                 Label(detail.returnVisitWhen, systemImage: "calendar")
                             } else {
@@ -349,14 +349,14 @@ struct BookingDetailView: View {
                         }
                     }
                     if let notes = detail.notes?.trimmingCharacters(in: .whitespacesAndNewlines), !notes.isEmpty {
-                        CustomerBlock(title: "Your notes for the pro") {
+                        CustomerBlock(title: String(localized: "Your notes for the pro")) {
                             Text(notes).font(.subheadline).textSelection(.enabled)
                         }
                     }
                     if !detail.isPast { photosCard(detail) }
 
                     if let url = detail.completionPhotoURL {
-                        CustomerBlock(title: "Finished work") {
+                        CustomerBlock(title: String(localized: "Finished work")) {
                             AsyncImage(url: url) { phase in
                                 if let image = phase.image { image.resizable().scaledToFit() } else { Brand.surface.frame(height: 180) }
                             }
@@ -368,7 +368,7 @@ struct BookingDetailView: View {
                             if store.flow.rebook(detail.items) > 0 {
                                 store.continueBooking()
                             } else {
-                                store.banner = CustomerBanner(text: "Those items are no longer offered. Pick from Home.", kind: .problem)
+                                store.banner = CustomerBanner(text: String(localized: "Those items are no longer offered. Pick from Home."), kind: .problem)
                             }
                         } label: {
                             Label("Book this again", systemImage: "arrow.clockwise")
@@ -411,7 +411,7 @@ struct BookingDetailView: View {
             }
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle(detail?.service ?? "Booking")
+        .navigationTitle(detail?.service ?? String(localized: "Booking"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
         .refreshable { await load() }
@@ -424,7 +424,7 @@ struct BookingDetailView: View {
             Button("Cancel booking", role: .destructive) {
                 Task {
                     working = true
-                    _ = await store.perform("Your booking is cancelled.") { try await store.api.cancel(ref: ref) }
+                    _ = await store.perform(String(localized: "Your booking is cancelled.")) { try await store.api.cancel(ref: ref) }
                     working = false
                     await load()
                 }
@@ -474,18 +474,18 @@ struct BookingDetailView: View {
     private func actionBar(_ detail: BookingDetail) -> some View {
         HStack(spacing: 10) {
             NavigationLink {
-                CustomerMessagesView(ref: detail.ref, recipient: detail.messageRecipient == "pro" ? (detail.proFirstName ?? "Your pro") : "AssembleAtEase", proName: detail.proFirstName)
+                CustomerMessagesView(ref: detail.ref, recipient: detail.messageRecipient == "pro" ? (detail.proFirstName ?? String(localized: "Your pro")) : "AssembleAtEase", proName: detail.proFirstName)
             } label: {
-                ActionTile(symbol: "bubble.left.fill", title: "Message")
+                ActionTile(symbol: "bubble.left.fill", title: String(localized: "Message"))
             }
             Button {
                 if let url = URL(string: "tel:" + Site.supportPhone) { openURL(url) }
             } label: {
-                ActionTile(symbol: "phone.fill", title: "Call")
+                ActionTile(symbol: "phone.fill", title: String(localized: "Call"))
             }
             if detail.canReschedule {
                 Button { rescheduling = true } label: {
-                    ActionTile(symbol: "calendar.badge.clock", title: "Change time")
+                    ActionTile(symbol: "calendar.badge.clock", title: String(localized: "Change time"))
                 }
             }
         }
@@ -498,7 +498,7 @@ struct BookingDetailView: View {
             BookingPhotosView(ref: detail.ref)
         } label: {
             HStack(spacing: 14) {
-                Image(systemName: "camera.fill")
+                Image(systemName: "camera.fill").accessibilityHidden(true)
                     .font(.title3)
                     .foregroundStyle(Brand.skyDark)
                     .frame(width: 44, height: 44)
@@ -508,7 +508,7 @@ struct BookingDetailView: View {
                     Text("The space, the boxes or the wall").font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                Image(systemName: "chevron.right").accessibilityHidden(true).font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
             }
             .padding(14)
             .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -517,14 +517,14 @@ struct BookingDetailView: View {
     }
 
     private func proposalCard(_ detail: BookingDetail, _ proposal: ProposedTime) -> some View {
-        CustomerBlock(title: "\(detail.proFirstName ?? "Your pro") proposed a new time") {
+        CustomerBlock(title: String(localized: "\(detail.proFirstName ?? String(localized: "Your pro")) proposed a new time")) {
             Label([Format.day(proposal.date), proposal.time].compactMap { $0 }.joined(separator: " · "), systemImage: "calendar.badge.clock")
                 .font(.headline)
             if let note = proposal.note, !note.isEmpty { Text(note).font(.subheadline).foregroundStyle(.secondary) }
             Button {
                 Task {
                     working = true
-                    _ = await store.perform("Your booking moved to the new time.") {
+                    _ = await store.perform(String(localized: "Your booking moved to the new time.")) {
                         try await store.api.reschedule(ref: detail.ref, date: proposal.date, time: proposal.time, proposalID: proposal.id)
                     }
                     working = false
@@ -536,7 +536,7 @@ struct BookingDetailView: View {
             Button("Keep my time") {
                 Task {
                     working = true
-                    _ = await store.perform("Your booked time stays the same.") {
+                    _ = await store.perform(String(localized: "Your booked time stays the same.")) {
                         try await store.api.keepBookedTime(ref: detail.ref, proposalID: proposal.id)
                     }
                     working = false
@@ -548,7 +548,7 @@ struct BookingDetailView: View {
     }
 
     private func proCard(_ detail: BookingDetail) -> some View {
-        CustomerBlock(title: "Your pro") {
+        CustomerBlock(title: String(localized: "Your pro")) {
             HStack(spacing: 12) {
                 Avatar(photo: detail.proPhoto, name: detail.proFirstName, size: 52)
                 VStack(alignment: .leading, spacing: 3) {
@@ -567,7 +567,7 @@ struct BookingDetailView: View {
     }
 
     private func itemsCard(_ detail: BookingDetail) -> some View {
-        CustomerBlock(title: "What you booked") {
+        CustomerBlock(title: String(localized: "What you booked")) {
             ForEach(Array(detail.items.enumerated()), id: \.offset) { index, group in
                 if index > 0 { Divider() }
                 if detail.items.count > 1 { Text(group.label).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark) }
@@ -614,10 +614,10 @@ private struct ChangeOrderCard: View {
                 .foregroundStyle(Brand.skyDark)
             Text(order.summary).font(.subheadline)
             VStack(spacing: 6) {
-                row("Additional work", order.subtotalCents)
-                row("Sales tax", order.taxCents)
+                row(String(localized: "Additional work"), order.subtotalCents)
+                row(String(localized: "Sales tax"), order.taxCents)
                 Divider()
-                row("Added to your total", order.totalCents, strong: true)
+                row(String(localized: "Added to your total"), order.totalCents, strong: true)
             }
             Text("Charged with the job when it is finished.").font(.caption).foregroundStyle(.secondary)
             HStack(spacing: 10) {
@@ -738,7 +738,7 @@ private struct TipCard: View {
             switch outcome {
             case .done:
                 try await store.api.finishTip(ref: ref, succeeded: true)
-                store.banner = CustomerBanner(text: "Your tip is on its way. Thank you.", kind: .success)
+                store.banner = CustomerBanner(text: String(localized: "Your tip is on its way. Thank you."), kind: .success)
             case .cancelled:
                 try? await store.api.finishTip(ref: ref, succeeded: false)
             case .failed(let reason):
@@ -765,7 +765,7 @@ private struct RatingCard: View {
     @State private var words = ""
     @State private var sending = false
 
-    private var who: String { proName ?? "your pro" }
+    private var who: String { proName ?? String(localized: "your pro") }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -812,12 +812,12 @@ private struct RatingCard: View {
     private func submit() async {
         let text = words.trimmingCharacters(in: .whitespacesAndNewlines)
         if !text.isEmpty && text.count < 10 {
-            store.banner = CustomerBanner(text: "Write at least a sentence, or leave the words empty.", kind: .problem)
+            store.banner = CustomerBanner(text: String(localized: "Write at least a sentence, or leave the words empty."), kind: .problem)
             return
         }
         sending = true
         defer { sending = false }
-        let sent = await store.perform("Thanks. Your rating is in.") {
+        let sent = await store.perform(String(localized: "Thanks. Your rating is in.")) {
             try await store.api.review(ref: ref, rating: stars, body: text)
         }
         if sent {
@@ -836,7 +836,7 @@ private struct ActionTile: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            Image(systemName: symbol).font(.title3).foregroundStyle(Brand.skyDark)
+            Image(systemName: symbol).accessibilityHidden(true).font(.title3).foregroundStyle(Brand.skyDark)
             Text(title).font(.caption.weight(.semibold)).foregroundStyle(.primary).lineLimit(1)
         }
         .frame(maxWidth: .infinity)
@@ -917,7 +917,7 @@ struct RescheduleSheet: View {
                         guard let slot else { return }
                         working = true
                         Task {
-                            let moved = await store.perform("Your booking moved to the new time.") {
+                            let moved = await store.perform(String(localized: "Your booking moved to the new time.")) {
                                 try await store.api.reschedule(ref: detail.ref, date: Self.iso.string(from: day), time: slot)
                             }
                             working = false
@@ -965,7 +965,7 @@ struct CustomerMessagesView: View {
                 id: message.id,
                 text: message.body,
                 fromMe: message.fromMe,
-                author: message.sender == "assembler" ? (proName ?? (toPro ? recipient : "Your pro")) : "AssembleAtEase",
+                author: message.sender == "assembler" ? (proName ?? (toPro ? recipient : String(localized: "Your pro"))) : "AssembleAtEase",
                 sentAt: Format.timestamp(message.createdAt),
                 readAt: Format.timestamp(message.readAt)
             )
@@ -974,7 +974,7 @@ struct CustomerMessagesView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ChatTranscript(lines: lines, emptyText: loaded ? "Send \(recipient) a message. Replies show up here and as a notification." : "")
+            ChatTranscript(lines: lines, emptyText: loaded ? String(localized: "Send \(recipient) a message. Replies show up here and as a notification.") : "")
                 .refreshable { await load() }
             VStack(spacing: 6) {
                 if let problem {
@@ -983,7 +983,7 @@ struct CustomerMessagesView: View {
                 if draft.isEmpty {
                     QuickReplies(replies: replies) { text in Task { await send(text) } }
                 }
-                ChatComposer(draft: $draft, placeholder: "Message \(recipient)", sending: sending) {
+                ChatComposer(draft: $draft, placeholder: String(localized: "Message \(recipient)"), sending: sending) {
                     Task { await send(draft) }
                 }
             }
@@ -1086,7 +1086,7 @@ struct BookingPhotosView: View {
         uploading = true
         defer { uploading = false; picked = nil }
         guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
-            problem = "That photo could not be opened. Choose another."
+            problem = String(localized: "That photo could not be opened. Choose another.")
             return
         }
         do {
@@ -1112,7 +1112,7 @@ struct CustomerAccountView: View {
     private var displayName: String {
         let saved = flow.name.trimmingCharacters(in: .whitespaces)
         if !saved.isEmpty { return saved }
-        return store.firstName ?? "Your account"
+        return store.firstName ?? String(localized: "Your account")
     }
 
     private var initials: String {
@@ -1123,7 +1123,7 @@ struct CustomerAccountView: View {
     private var version: String {
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
-        return "Version \(short) (\(build))"
+        return String(localized: "Version \(short) (\(build))")
     }
 
     var body: some View {
@@ -1150,14 +1150,14 @@ struct CustomerAccountView: View {
                 Section("Your bookings") {
                     Button { store.tab = .activity } label: {
                         HStack {
-                            accountRow("calendar", "Upcoming")
+                            accountRow("calendar", String(localized: "Upcoming"))
                             Spacer()
                             Text("\(store.upcoming.count)").foregroundStyle(.secondary)
                         }
                     }
                     Button { store.tab = .activity } label: {
                         HStack {
-                            accountRow("checkmark.circle", "Completed")
+                            accountRow("checkmark.circle", String(localized: "Completed"))
                             Spacer()
                             Text("\(store.finishedJobs.count)").foregroundStyle(.secondary)
                         }
@@ -1165,31 +1165,31 @@ struct CustomerAccountView: View {
                 }
 
                 Section("Account settings") {
-                    NavigationLink { YourDetailsView() } label: { accountRow("person.text.rectangle", "Your details") }
-                    NavigationLink { PaymentMethodsView() } label: { accountRow("creditcard", "Payment methods") }
+                    NavigationLink { YourDetailsView() } label: { accountRow("person.text.rectangle", String(localized: "Your details")) }
+                    NavigationLink { PaymentMethodsView() } label: { accountRow("creditcard", String(localized: "Payment methods")) }
                     Button {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
-                    } label: { accountRow("bell", "Notifications") }
+                    } label: { accountRow("bell", String(localized: "Notifications")) }
                     HStack {
-                        accountRow("star.circle", "AssembleCash")
+                        accountRow("star.circle", String(localized: "AssembleCash"))
                         Spacer()
                         Text(wholeDollars(store.account?.assemblecashCents ?? 0)).foregroundStyle(.secondary).monospacedDigit()
                     }
                 }
 
                 Section("Support") {
-                    Button { openURL(Site.page("/contact")) } label: { accountRow("questionmark.circle", "Help and contact") }
+                    Button { openURL(Site.page("/contact")) } label: { accountRow("questionmark.circle", String(localized: "Help and contact")) }
                     Button {
                         if let url = URL(string: "tel:" + Site.supportPhone) { openURL(url) }
-                    } label: { accountRow("phone", "Call AssembleAtEase") }
+                    } label: { accountRow("phone", String(localized: "Call AssembleAtEase")) }
                     Button {
                         if let url = URL(string: "mailto:" + Site.supportEmail) { openURL(url) }
-                    } label: { accountRow("envelope", "Email \(Site.supportEmail)") }
+                    } label: { accountRow("envelope", String(localized: "Email \(Site.supportEmail)")) }
                 }
 
                 Section("About") {
-                    Button { openURL(Site.page("/pricing")) } label: { accountRow("tag", "Prices") }
-                    Button { openURL(Site.page("/about")) } label: { accountRow("info.circle", "About AssembleAtEase") }
+                    Button { openURL(Site.page("/pricing")) } label: { accountRow("tag", String(localized: "Prices")) }
+                    Button { openURL(Site.page("/about")) } label: { accountRow("info.circle", String(localized: "About AssembleAtEase")) }
                 }
 
                 Section {
@@ -1233,7 +1233,7 @@ struct CustomerAccountView: View {
         Label {
             Text(title).foregroundStyle(.primary)
         } icon: {
-            Image(systemName: symbol).foregroundStyle(Brand.skyDark)
+            Image(systemName: symbol).accessibilityHidden(true).foregroundStyle(Brand.skyDark)
         }
     }
 }
@@ -1278,7 +1278,7 @@ private struct YourDetailsView: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
                     flow.saveDetails()
-                    store.banner = CustomerBanner(text: "Your details are saved.", kind: .success)
+                    store.banner = CustomerBanner(text: String(localized: "Your details are saved."), kind: .success)
                     dismiss()
                 }
             }
@@ -1303,7 +1303,7 @@ struct PaymentMethodsView: View {
                 Section {
                     ForEach(cards) { card in
                         HStack(spacing: 12) {
-                            Image(systemName: "creditcard.fill").foregroundStyle(Brand.skyDark)
+                            Image(systemName: "creditcard.fill").accessibilityHidden(true).foregroundStyle(Brand.skyDark)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("\(card.brandName) ending in \(card.last4)")
                                 Text("Expires \(card.expiry)").font(.footnote).foregroundStyle(.secondary)
@@ -1368,7 +1368,7 @@ struct PaymentMethodsView: View {
             let phone = Format.e164(flow.phone) ?? flow.phone
             switch await CardSheet.present(.setup(secret), publishableKey: key, name: name, email: store.email ?? "", phone: phone) {
             case .done:
-                store.banner = CustomerBanner(text: "Card saved.", kind: .success)
+                store.banner = CustomerBanner(text: String(localized: "Card saved."), kind: .success)
                 await load()
             case .cancelled:
                 return
@@ -1385,7 +1385,7 @@ struct PaymentMethodsView: View {
         defer { working = false }
         do {
             try await store.api.removeCard(card.id)
-            store.banner = CustomerBanner(text: "Card removed.", kind: .success)
+            store.banner = CustomerBanner(text: String(localized: "Card removed."), kind: .success)
             await load()
         } catch {
             problem = error.localizedDescription

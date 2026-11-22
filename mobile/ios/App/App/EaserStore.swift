@@ -58,10 +58,10 @@ final class EaserStore: ObservableObject {
     private var knownOfferIDs: Set<String>?
 
     static let declineReasons: [DeclineReason] = [
-        DeclineReason(code: "scheduling_conflict", label: "Scheduling conflict"),
-        DeclineReason(code: "too_far", label: "Too far from my location"),
-        DeclineReason(code: "not_my_skill", label: "Not in my service scope"),
-        DeclineReason(code: "unavailable", label: "Currently unavailable"),
+        DeclineReason(code: "scheduling_conflict", label: String(localized: "Scheduling conflict")),
+        DeclineReason(code: "too_far", label: String(localized: "Too far from my location")),
+        DeclineReason(code: "not_my_skill", label: String(localized: "Not in my service scope")),
+        DeclineReason(code: "unavailable", label: String(localized: "Currently unavailable")),
     ]
     /// Every step other than going online is done. Offline alone is not "setup":
     /// the server counts being offline as not ready, so isReady cannot decide this.
@@ -123,7 +123,7 @@ final class EaserStore: ObservableObject {
     private var registeredPushToken: String?
     init() {
         api.onSessionEnded = { [weak self] in
-            Task { @MainActor in self?.endSession(message: "Please sign in again.") }
+            Task { @MainActor in self?.endSession(message: String(localized: "Please sign in again.")) }
         }
     }
 
@@ -140,7 +140,7 @@ final class EaserStore: ObservableObject {
     func signIn(email: String, password: String) async throws {
         let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanEmail.isEmpty, !password.isEmpty else {
-            throw EaserError(message: "Enter your email and password.", status: 0)
+            throw EaserError(message: String(localized: "Enter your email and password."), status: 0)
         }
         try await api.signIn(email: cleanEmail, password: password)
         let me: EaserProfile
@@ -152,7 +152,7 @@ final class EaserStore: ObservableObject {
         }
         guard me.role == "assembler" else {
             api.signOut()
-            throw EaserError(message: "This app is for AssembleAtEase Easers. To book a service, visit assembleatease.com.", status: 403)
+            throw EaserError(message: String(localized: "This app is for AssembleAtEase Easers. To book a service, visit assembleatease.com."), status: 403)
         }
         profile = me
         phase = .signedIn
@@ -207,7 +207,7 @@ final class EaserStore: ObservableObject {
         do {
             value = try JSONDecoder().decode(T.self, from: data)
         } catch {
-            throw EaserError(message: "This screen could not be loaded right now. Pull down to try again.", status: 0)
+            throw EaserError(message: String(localized: "This screen could not be loaded right now. Pull down to try again."), status: 0)
         }
         cache?.save(data, as: key)
         return value
@@ -349,7 +349,7 @@ final class EaserStore: ObservableObject {
     func acknowledge(_ action: RequiredAction) async {
         do {
             _ = try await api.call("POST", "/api/assembler/acknowledge-announcement", body: ["key": action.key])
-            banner = Banner(text: "Saved.", kind: .success)
+            banner = Banner(text: String(localized: "Saved."), kind: .success)
             await refresh()
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)
@@ -374,7 +374,7 @@ final class EaserStore: ObservableObject {
         guard job.isFinished else { return job.payText }
         if let earned = earning(for: job) { return Format.money(cents: earned.amountCents) }
         guard earnings != nil else { return "\u{2014}" }
-        return ["cancelled", "declined", "refunded"].contains(job.status) ? "No payout" : "Processing"
+        return ["cancelled", "declined", "refunded"].contains(job.status) ? String(localized: "No payout") : String(localized: "Processing")
     }
 
     private func capture<T>(_ work: @escaping () async throws -> T) async -> Result<T, Error> {
@@ -396,7 +396,7 @@ final class EaserStore: ObservableObject {
     func accept(_ job: EaserJob) async {
         var body: [String: Any] = ["bookingId": job.id]
         if let token = job.acceptToken { body["token"] = token }
-        await perform(job, success: "Job accepted. It is in your schedule.") {
+        await perform(job, success: String(localized: "Job accepted. It is in your schedule.")) {
             _ = try await self.api.call("POST", "/api/booking/accept-dispatch", body: body)
         }
     }
@@ -404,13 +404,13 @@ final class EaserStore: ObservableObject {
     func decline(_ job: EaserJob, reason: String?) async {
         var body: [String: Any] = ["bookingId": job.id, "reason": reason ?? NSNull()]
         if let token = job.offerToken { body["token"] = token }
-        await perform(job, success: "Offer declined.") {
+        await perform(job, success: String(localized: "Offer declined.")) {
             _ = try await self.api.call("POST", "/api/booking/decline-dispatch", body: body)
         }
     }
 
     func startTravel(_ job: EaserJob) async {
-        await perform(job, success: "The customer has been told you are on the way.") {
+        await perform(job, success: String(localized: "The customer has been told you are on the way.")) {
             _ = try await self.api.call("POST", "/api/booking/easer-status", body: ["bookingId": job.id, "stage": "en_route"])
         }
     }
@@ -424,13 +424,13 @@ final class EaserStore: ObservableObject {
             body["lng"] = here.coordinate.longitude
             body["accuracy"] = here.horizontalAccuracy
         }
-        await perform(job, success: "Checked in.") {
+        await perform(job, success: String(localized: "Checked in.")) {
             _ = try await self.api.call("POST", "/api/booking/easer-status", body: body)
         }
     }
 
     func startJob(_ job: EaserJob) async {
-        await perform(job, success: "Job started.") {
+        await perform(job, success: String(localized: "Job started.")) {
             _ = try await self.api.call("POST", "/api/booking/easer-status", body: ["bookingId": job.id, "stage": "in_progress"])
         }
     }
@@ -445,17 +445,17 @@ final class EaserStore: ObservableObject {
             guard currentJob.completionPhotoCountKnown,
                   let remaining = currentJob.remainingCompletionPhotoCount,
                   remaining >= 0 else {
-                banner = Banner(text: "The required photo count could not be loaded. Refresh the job and try again.", kind: .problem)
+                banner = Banner(text: String(localized: "The required photo count could not be loaded. Refresh the job and try again."), kind: .problem)
                 await refreshJobs()
                 return false
             }
             guard photos.count >= remaining else {
-                banner = Banner(text: "Add \(remaining) clear completion photo\(remaining == 1 ? "" : "s"), one for each booked item still missing.", kind: .problem)
+                banner = Banner(text: String(localized: "Add \(remaining) clear completion photo\(remaining == 1 ? "" : "s"), one for each booked item still missing."), kind: .problem)
                 return false
             }
             for (index, photo) in photos.prefix(remaining).enumerated() {
                 guard let jpeg = PhotoPrep.jpeg(from: photo) else {
-                    banner = Banner(text: "Photo \(index + 1) could not be prepared. Take a new one and try again.", kind: .problem)
+                    banner = Banner(text: String(localized: "Photo \(index + 1) could not be prepared. Take a new one and try again."), kind: .problem)
                     await refreshJobs()
                     return false
                 }
@@ -484,18 +484,18 @@ final class EaserStore: ObservableObject {
         guard currentJob.completionPhotoCountKnown,
               let remaining = currentJob.remainingCompletionPhotoCount,
               remaining >= 0 else {
-            banner = Banner(text: "The required photo count could not be loaded. Refresh the job and try again.", kind: .problem)
+            banner = Banner(text: String(localized: "The required photo count could not be loaded. Refresh the job and try again."), kind: .problem)
             await refreshJobs()
             return false
         }
         guard photos.count >= remaining else {
-            banner = Banner(text: "Add \(remaining) clear completion photo\(remaining == 1 ? "" : "s") to continue.", kind: .problem)
+            banner = Banner(text: String(localized: "Add \(remaining) clear completion photo\(remaining == 1 ? "" : "s") to continue."), kind: .problem)
             return false
         }
         do {
             for (index, image) in photos.prefix(remaining).enumerated() {
                 guard let jpeg = PhotoPrep.jpeg(from: image) else {
-                    throw AppError(message: "Photo \(index + 1) could not be prepared. Take a new one and try again.", status: 0)
+                    throw AppError(message: String(localized: "Photo \(index + 1) could not be prepared. Take a new one and try again."), status: 0)
                 }
                 try await api.call("POST", "/api/booking/upload-evidence", body: [
                     "bookingId": job.id,
@@ -504,7 +504,7 @@ final class EaserStore: ObservableObject {
                     "evidenceType": "completion_photo",
                 ])
             }
-            banner = Banner(text: "Photos sent to AssembleAtEase.", kind: .success)
+            banner = Banner(text: String(localized: "Photos sent to AssembleAtEase."), kind: .success)
             await refresh()
             return true
         } catch {
@@ -543,10 +543,10 @@ final class EaserStore: ObservableObject {
         let body = note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "[\(title)]" : "[\(title)]\n\(note)"
         do {
             _ = try await api.call("POST", "/api/booking/message", body: ["bookingId": job.id, "body": body, "sender": "assembler", "supportType": type])
-            banner = Banner(text: type == "safety_concern" ? "Urgent report sent." : "Sent to AssembleAtEase.", kind: .success)
+            banner = Banner(text: type == "safety_concern" ? String(localized: "Urgent report sent.") : String(localized: "Sent to AssembleAtEase."), kind: .success)
             return nil
         } catch {
-            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+            return error.localizedDescription.isEmpty ? String(localized: "That did not go through. Try again.") : error.localizedDescription
         }
     }
 
@@ -557,17 +557,17 @@ final class EaserStore: ObservableObject {
         defer { busyJobs.remove(job.id) }
         do {
             _ = try await api.call("POST", "/api/booking/customer-unavailable", body: ["bookingId": job.id, "action": action, "note": note])
-            banner = Banner(text: action == "start" ? "The customer was told you're here." : "No-show reported. You can leave.", kind: .success)
+            banner = Banner(text: action == "start" ? String(localized: "The customer was told you're here.") : String(localized: "No-show reported. You can leave."), kind: .success)
             await refreshJobs()
             return nil
         } catch {
-            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+            return error.localizedDescription.isEmpty ? String(localized: "That did not go through. Try again.") : error.localizedDescription
         }
     }
 
     /// Running late: one message to the customer through the platform.
     func runningLate(_ job: EaserJob, minutes: Int) async {
-        await perform(job, success: "The customer was told.") {
+        await perform(job, success: String(localized: "The customer was told.")) {
             _ = try await self.api.call("POST", "/api/booking/message", body: [
                 "bookingId": job.id,
                 "body": "Running about \(minutes) minutes late. I'm on my way.",
@@ -587,11 +587,11 @@ final class EaserStore: ObservableObject {
         do {
             let data = try await api.call("POST", "/api/booking/extra-work", body: ["bookingId": job.id, "items": payload, "note": note])
             let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["message"] as? String
-            banner = Banner(text: message ?? "Sent to the customer to approve.", kind: .success)
+            banner = Banner(text: message ?? String(localized: "Sent to the customer to approve."), kind: .success)
             await refreshJobs()
             return nil
         } catch {
-            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+            return error.localizedDescription.isEmpty ? String(localized: "That did not go through. Try again.") : error.localizedDescription
         }
     }
 
@@ -603,16 +603,16 @@ final class EaserStore: ObservableObject {
     func proposeTime(_ job: EaserJob, date: String, time: String, note: String) async -> String? {
         do {
             _ = try await api.call("POST", "/api/booking/time-proposal", body: ["bookingId": job.id, "action": "propose", "date": date, "time": time, "note": note])
-            banner = Banner(text: "Sent to the customer.", kind: .success)
+            banner = Banner(text: String(localized: "Sent to the customer."), kind: .success)
             await refreshJobs()
             return nil
         } catch {
-            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+            return error.localizedDescription.isEmpty ? String(localized: "That did not go through. Try again.") : error.localizedDescription
         }
     }
 
     func withdrawTimeProposal(_ job: EaserJob) async {
-        await perform(job, success: "Proposed time withdrawn.") {
+        await perform(job, success: String(localized: "Proposed time withdrawn.")) {
             _ = try await self.api.call("POST", "/api/booking/time-proposal", body: ["bookingId": job.id, "action": "withdraw"])
         }
     }
@@ -620,10 +620,10 @@ final class EaserStore: ObservableObject {
     /// Reasons an Easer can flag a customer (api/booking/customer-feedback.js).
     static let customerFlagReasons: [(code: String, label: String)] = [
         ("safety", "Safety concern"),
-        ("conduct", "Rude or abusive"),
-        ("payment", "Asked to pay outside the app"),
-        ("access", "Could not access the home"),
-        ("other", "Other"),
+        ("conduct", String(localized: "Rude or abusive")),
+        ("payment", String(localized: "Asked to pay outside the app")),
+        ("access", String(localized: "Could not access the home")),
+        ("other", String(localized: "Other")),
     ]
 
     /// Private rating of the customer after the job. Returns the problem to show, or nil once saved.
@@ -633,11 +633,11 @@ final class EaserStore: ObservableObject {
         if let flagReason { body["flagReason"] = flagReason }
         do {
             _ = try await api.call("POST", "/api/booking/customer-feedback", body: body)
-            banner = Banner(text: "Thanks. Only AssembleAtEase sees this.", kind: .success)
+            banner = Banner(text: String(localized: "Thanks. Only AssembleAtEase sees this."), kind: .success)
             await refreshJobs()
             return nil
         } catch {
-            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+            return error.localizedDescription.isEmpty ? String(localized: "That did not go through. Try again.") : error.localizedDescription
         }
     }
 
@@ -665,10 +665,10 @@ final class EaserStore: ObservableObject {
         }
         do {
             _ = try await api.call("POST", "/api/assembler/work-preferences", body: body)
-            banner = Banner(text: "Work preferences saved.", kind: .success)
+            banner = Banner(text: String(localized: "Work preferences saved."), kind: .success)
             return nil
         } catch {
-            return error.localizedDescription.isEmpty ? "That did not go through. Try again." : error.localizedDescription
+            return error.localizedDescription.isEmpty ? String(localized: "That did not go through. Try again.") : error.localizedDescription
         }
     }
 
@@ -679,18 +679,18 @@ final class EaserStore: ObservableObject {
         guard let me = profile, me.isAvailable != on else { return }
         if on {
             if me.closureHeld {
-                banner = Banner(text: "Your account closure request is open.", kind: .problem)
+                banner = Banner(text: String(localized: "Your account closure request is open."), kind: .problem)
                 return
             }
             if let ready = readiness {
                 if ready.suspended {
-                    banner = Banner(text: "Your account is paused. Contact \(Site.supportEmail) to reactivate it.", kind: .problem)
+                    banner = Banner(text: String(localized: "Your account is paused. Contact \(Site.supportEmail) to reactivate it."), kind: .problem)
                     return
                 }
                 // Being offline is what this switch fixes, so only the other steps block it.
                 if needsSetup {
                     let missing = setupItems.joined(separator: ", ")
-                    banner = Banner(text: missing.isEmpty ? "Finish your setup before going online." : "Still needed before going online: \(missing)", kind: .problem)
+                    banner = Banner(text: missing.isEmpty ? String(localized: "Finish your setup before going online.") : String(localized: "Still needed before going online: \(missing)"), kind: .problem)
                     return
                 }
             }
@@ -711,13 +711,13 @@ final class EaserStore: ObservableObject {
     /// Customers see this photo on their booking, so it is saved only when the server confirms.
     func updateProfilePhoto(_ image: UIImage) async -> Bool {
         guard let dataURL = ProfilePhotoPrep.dataURL(from: image) else {
-            banner = Banner(text: "That photo could not be prepared. Try a different photo.", kind: .problem)
+            banner = Banner(text: String(localized: "That photo could not be prepared. Try a different photo."), kind: .problem)
             return false
         }
         do {
             try await api.setProfilePhoto(dataURL)
             profile = try await api.profile()
-            banner = Banner(text: "Profile photo saved.", kind: .success)
+            banner = Banner(text: String(localized: "Profile photo saved."), kind: .success)
             // A requested photo is a setup step; Today updates from the server.
             await refresh()
             return true
@@ -745,7 +745,7 @@ final class EaserStore: ObservableObject {
             var body: [String: Any] = ["bookingId": job.id, "reason": reason]
             body["note"] = trimmed.isEmpty ? NSNull() : String(trimmed.prefix(1200))
             _ = try await api.call("POST", "/api/booking/drop-job", body: body)
-            banner = Banner(text: "You're off this job.", kind: .success)
+            banner = Banner(text: String(localized: "You're off this job."), kind: .success)
             await refresh()
             return true
         } catch {
@@ -761,7 +761,7 @@ final class EaserStore: ObservableObject {
     /// A photo AssembleAtEase asked for, or a damage report. Damage needs a description.
     func sendPhoto(_ image: UIImage, for job: EaserJob, damageNote: String?) async -> Bool {
         guard let jpeg = PhotoPrep.jpeg(from: image) else {
-            banner = Banner(text: "That photo could not be prepared. Take a new one and try again.", kind: .problem)
+            banner = Banner(text: String(localized: "That photo could not be prepared. Take a new one and try again."), kind: .problem)
             return false
         }
         var body: [String: Any] = [
@@ -773,7 +773,7 @@ final class EaserStore: ObservableObject {
         if let damageNote { body["notes"] = damageNote }
         do {
             _ = try await api.call("POST", "/api/booking/upload-evidence", body: body)
-            banner = Banner(text: damageNote == nil ? "Photo sent to AssembleAtEase." : "Damage report sent. AssembleAtEase will follow up.", kind: .success)
+            banner = Banner(text: damageNote == nil ? String(localized: "Photo sent to AssembleAtEase.") : String(localized: "Damage report sent. AssembleAtEase will follow up."), kind: .success)
             await refresh()
             return true
         } catch {
@@ -800,7 +800,7 @@ final class EaserStore: ObservableObject {
         do {
             let data = try await api.call("POST", "/api/assembler/sms-preference", body: ["enabled": on])
             textAlerts = try? JSONDecoder().decode(TextAlerts.self, from: data)
-            banner = Banner(text: on ? "Job texts are on." : "Job texts are off.", kind: .success)
+            banner = Banner(text: on ? String(localized: "Job texts are on.") : String(localized: "Job texts are off."), kind: .success)
             // Job texts are a setup step; the setup card updates from the server.
             await refresh()
         } catch {
@@ -825,7 +825,7 @@ final class EaserStore: ObservableObject {
         do {
             try await api.updateDetails(updates)
             profile = try await api.profile()
-            banner = Banner(text: "Profile saved.", kind: .success)
+            banner = Banner(text: String(localized: "Profile saved."), kind: .success)
             return true
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)
@@ -843,7 +843,7 @@ final class EaserStore: ObservableObject {
             return nil
         } catch {
             let message = error.localizedDescription
-            return message.isEmpty ? "The code could not be sent. Try again." : message
+            return message.isEmpty ? String(localized: "The code could not be sent. Try again.") : message
         }
     }
 
@@ -853,21 +853,21 @@ final class EaserStore: ObservableObject {
             _ = try await api.call("POST", "/api/assembler/phone-verification", body: ["action": "verify", "code": code])
         } catch {
             let message = error.localizedDescription
-            return message.isEmpty ? "The code could not be checked. Try again." : message
+            return message.isEmpty ? String(localized: "The code could not be checked. Try again.") : message
         }
-        banner = Banner(text: "Phone number updated.", kind: .success)
+        banner = Banner(text: String(localized: "Phone number updated."), kind: .success)
         await refresh()
         return nil
     }
 
     func sendPasswordReset() async {
         guard let email else {
-            banner = Banner(text: "Use Forgot password on the sign-in screen.", kind: .problem)
+            banner = Banner(text: String(localized: "Use Forgot password on the sign-in screen."), kind: .problem)
             return
         }
         do {
             try await api.sendPasswordReset(to: email)
-            banner = Banner(text: "Check \(email) for a link to set a new password.", kind: .success)
+            banner = Banner(text: String(localized: "Check \(email) for a link to set a new password."), kind: .success)
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)
         }
@@ -887,8 +887,8 @@ final class EaserStore: ObservableObject {
             ])
             let start = try? JSONDecoder().decode(VerificationStart.self, from: data)
             banner = Banner(text: start?.verificationURL != nil
-                            ? "Agreement signed. Next, verify your identity with Stripe."
-                            : "Agreement signed.", kind: .success)
+                            ? String(localized: "Agreement signed. Next, verify your identity with Stripe.")
+                            : String(localized: "Agreement signed."), kind: .success)
             await refresh()
             return start?.verificationURL
         } catch {
@@ -903,12 +903,12 @@ final class EaserStore: ObservableObject {
             let data = try await api.call("POST", "/api/assembler/verification-link", body: [:])
             let start = try? JSONDecoder().decode(VerificationStart.self, from: data)
             if start?.alreadyVerified == true {
-                banner = Banner(text: "Your identity is already verified.", kind: .success)
+                banner = Banner(text: String(localized: "Your identity is already verified."), kind: .success)
                 await refresh()
                 return nil
             }
             if let url = start?.verificationURL { return url }
-            banner = Banner(text: "Identity verification could not be started. Try again.", kind: .problem)
+            banner = Banner(text: String(localized: "Identity verification could not be started. Try again."), kind: .problem)
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)
         }
@@ -934,7 +934,7 @@ final class EaserStore: ObservableObject {
             }
         } catch {
             connect = nil
-            payoutsProblem = "Payout setup could not be loaded. Pull down to try again."
+            payoutsProblem = String(localized: "Payout setup could not be loaded. Pull down to try again.")
         }
     }
 
@@ -942,17 +942,17 @@ final class EaserStore: ObservableObject {
 
     /// The website's list (assembler/payouts.html).
     static let payoutMethods: [PayoutMethod] = [
-        PayoutMethod(value: "ach", label: "ACH bank transfer"),
+        PayoutMethod(value: "ach", label: String(localized: "ACH bank transfer")),
         PayoutMethod(value: "zelle", label: "Zelle"),
         PayoutMethod(value: "paypal", label: "PayPal"),
-        PayoutMethod(value: "check", label: "Check"),
+        PayoutMethod(value: "check", label: String(localized: "Check")),
     ]
 
     func savePayoutPreference(_ value: String) async {
         do {
             _ = try await api.call("POST", "/api/assembler/payout-preference", body: ["preference": value])
             payoutPreference = value
-            banner = Banner(text: "Payout method saved.", kind: .success)
+            banner = Banner(text: String(localized: "Payout method saved."), kind: .success)
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)
         }
@@ -963,7 +963,7 @@ final class EaserStore: ObservableObject {
         do {
             let data = try await api.call("POST", manage ? "/api/assembler/connect-login" : "/api/assembler/connect-link")
             if let url = try JSONDecoder().decode(LinkEnvelope.self, from: data).url { return url }
-            banner = Banner(text: "Payout setup could not be opened. Try again.", kind: .problem)
+            banner = Banner(text: String(localized: "Payout setup could not be opened. Try again."), kind: .problem)
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)
         }
@@ -975,7 +975,7 @@ final class EaserStore: ObservableObject {
         do {
             let data = try await api.call("POST", "/api/assembler/instant-payout", body: ["action": "payout", "acknowledgedFeeCents": Int(quote.feeCents.rounded())])
             let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
-            banner = Banner(text: (json?["message"] as? String) ?? "Your payout is on its way.", kind: .success)
+            banner = Banner(text: (json?["message"] as? String) ?? String(localized: "Your payout is on its way."), kind: .success)
         } catch {
             banner = Banner(text: error.localizedDescription, kind: .problem)
         }
@@ -1025,7 +1025,7 @@ final class EaserStore: ObservableObject {
     func requestClosure(reason: String) async -> Bool {
         do {
             try await api.call("POST", "/api/assembler/request-account-closure", body: ["reason": reason])
-            banner = Banner(text: "Closure request received. You're offline.", kind: .success)
+            banner = Banner(text: String(localized: "Closure request received. You're offline."), kind: .success)
             await refresh()
             return true
         } catch {

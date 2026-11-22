@@ -9,12 +9,12 @@ struct AppError: LocalizedError {
     let status: Int
     var errorDescription: String? { message }
 
-    static let offline = AppError(message: "No connection. Check your signal and try again.", status: 0)
-    static let unreachable = AppError(message: "AssembleAtEase could not be reached. Pull down to try again.", status: 0)
+    static let offline = AppError(message: String(localized: "No connection. Check your signal and try again."), status: 0)
+    static let unreachable = AppError(message: String(localized: "AssembleAtEase could not be reached. Pull down to try again."), status: 0)
     /// A request the app itself cancelled (a newer refresh replaced it). Never shown.
     static let cancelled = AppError(message: "", status: -1)
     var isCancelled: Bool { status == -1 }
-    static let signedOut = AppError(message: "Please sign in again.", status: 401)
+    static let signedOut = AppError(message: String(localized: "Please sign in again."), status: 401)
 }
 
 /// Talks to the existing AssembleAtEase server, which stays the source of truth.
@@ -41,7 +41,7 @@ class APIClient {
     }
 
     /// The words when an email and password do not match.
-    var passwordMismatchMessage: String { "That email and password do not match an account." }
+    var passwordMismatchMessage: String { String(localized: "That email and password do not match an account.") }
 
     // MARK: Sign-in
 
@@ -72,7 +72,7 @@ class APIClient {
                 throw AppError(message: passwordMismatchMessage, status: response.statusCode)
             }
             if grant == "refresh_token" { throw AppError.signedOut }
-            throw AppError(message: Self.reason(in: data) ?? "Sign in did not go through. Please try again.", status: response.statusCode)
+            throw AppError(message: Self.reason(in: data) ?? String(localized: "Sign in did not go through. Please try again."), status: response.statusCode)
         }
         return data
     }
@@ -89,7 +89,7 @@ class APIClient {
               let refresh = json["refresh_token"] as? String,
               let user = json["user"] as? [String: Any],
               let userID = user["id"] as? String else {
-            throw AppError(message: "Sign in did not go through. Please try again.", status: 0)
+            throw AppError(message: String(localized: "Sign in did not go through. Please try again."), status: 0)
         }
         let expiresIn = (json["expires_in"] as? Double) ?? 3600
         let next = AppSession(accessToken: access, refreshToken: refresh, userID: userID,
@@ -185,7 +185,7 @@ class APIClient {
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
-            throw AppError(message: "This screen could not be loaded right now. Pull down to try again.", status: 0)
+            throw AppError(message: String(localized: "This screen could not be loaded right now. Pull down to try again."), status: 0)
         }
     }
 
@@ -200,7 +200,7 @@ class APIClient {
         request.httpBody = try JSONSerialization.data(withJSONObject: ["email": email])
         let (data, response) = try await send(request)
         guard (200..<300).contains(response.statusCode) else {
-            throw AppError(message: Self.reason(in: data) ?? "The reset email could not be sent. Try again in a minute.", status: response.statusCode)
+            throw AppError(message: Self.reason(in: data) ?? String(localized: "The reset email could not be sent. Try again in a minute."), status: response.statusCode)
         }
     }
 
@@ -274,12 +274,12 @@ class APIClient {
 
     private static func fallback(for status: Int) -> String {
         switch status {
-        case 403: return "Your account can't do that."
-        case 404: return "That is no longer available. Pull down to refresh."
-        case 409: return "That changed a moment ago. Pull down to see the latest."
-        case 429: return "Too many tries. Wait a minute and try again."
-        case 500...599: return "AssembleAtEase is not responding right now. Try again in a minute."
-        default: return "That did not go through. Try again."
+        case 403: return String(localized: "Your account can't do that.")
+        case 404: return String(localized: "That is no longer available. Pull down to refresh.")
+        case 409: return String(localized: "That changed a moment ago. Pull down to see the latest.")
+        case 429: return String(localized: "Too many tries. Wait a minute and try again.")
+        case 500...599: return String(localized: "AssembleAtEase is not responding right now. Try again in a minute.")
+        default: return String(localized: "That did not go through. Try again.")
         }
     }
 

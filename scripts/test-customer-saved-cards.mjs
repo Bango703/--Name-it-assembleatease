@@ -3,9 +3,14 @@
 // legal text (owner, 2026-11-10).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { unwrapLocalized } from './lib/ios-strings.mjs';
 import handler, { bookingStillNeedsCard, cardView, CHECKOUT_SESSION_COMPONENTS } from '../api/customer/payment-methods.js';
 
-const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+// Swift phrases are wrapped for Spanish (test-ios-spanish); wiring checks read the phrase itself.
+const read = (f) => {
+  const source = readFileSync(new URL(`../${f}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  return f.endsWith('.swift') ? unwrapLocalized(source) : source;
+};
 
 function res() {
   return {

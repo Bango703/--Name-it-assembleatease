@@ -75,7 +75,7 @@ private struct CustomerBannerView: View {
     let banner: CustomerBanner
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: banner.kind == .success ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+            Image(systemName: banner.kind == .success ? "checkmark.circle.fill" : "exclamationmark.circle.fill").accessibilityHidden(true)
                 .foregroundStyle(banner.kind == .success ? Brand.skyDark : Brand.attention)
             Text(banner.text)
                 .font(.subheadline)
@@ -99,7 +99,7 @@ struct CustomerTabsView: View {
                 if store.phase == .signedIn {
                     ActivityView()
                 } else {
-                    CustomerSignInView(message: "Sign in to see your bookings and messages.", autoFocus: false)
+                    CustomerSignInView(message: String(localized: "Sign in to see your bookings and messages."), autoFocus: false)
                 }
             }
                 .tabItem { Label("Activity", systemImage: "list.bullet.rectangle.fill") }

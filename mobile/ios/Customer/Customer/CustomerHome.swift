@@ -26,7 +26,7 @@ struct HomeView: View {
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
-        let part = hour < 12 ? "Good morning" : (hour < 17 ? "Good afternoon" : "Good evening")
+        let part = hour < 12 ? String(localized: "Good morning") : (hour < 17 ? String(localized: "Good afternoon") : String(localized: "Good evening"))
         let name = store.firstName ?? flow.name.split(separator: " ").first.map(String.init)
         return name.map { "\(part), \($0)" } ?? part
     }
@@ -55,13 +55,13 @@ struct HomeView: View {
                     if let catalog = flow.catalog {
                         ServicesGrid(catalog: catalog)
                         if !catalog.bundles.isEmpty {
-                            HomeSection(title: "Room-ready bundles") {
+                            HomeSection(title: String(localized: "Room-ready bundles")) {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 12) {
                                         ForEach(catalog.bundles) { bundle in
                                             BundleCard(bundle: bundle) {
                                                 flow.add(bundle)
-                                                store.banner = CustomerBanner(text: "\(bundle.name) added.", kind: .success)
+                                                store.banner = CustomerBanner(text: String(localized: "\(bundle.name) added."), kind: .success)
                                             }
                                         }
                                     }
@@ -142,7 +142,7 @@ private struct LiveVisitBar: View {
                     Text(booking.time ?? booking.service).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer()
-                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                Image(systemName: "chevron.right").accessibilityHidden(true).font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
             }
             .padding(14)
             .background(Brand.sky.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -176,17 +176,17 @@ private struct SuggestionCard: View {
         if let pick {
             switch pick {
             case .updates:
-                card("bell.badge.fill", "Know when your pro is on the way", "Get a notification when your pro is confirmed, on the way and done.", "Turn on") {
+                card("bell.badge.fill", String(localized: "Know when your pro is on the way"), String(localized: "Get a notification when your pro is confirmed, on the way and done."), String(localized: "Turn on")) {
                     _ = await push.request()
                 }
             case .cash(let cents):
-                card("star.circle.fill", "\(wholeDollars(cents)) in AssembleCash", "It comes off your next booking at checkout.", "Book") {
+                card("star.circle.fill", String(localized: "\(wholeDollars(cents)) in AssembleCash"), String(localized: "It comes off your next booking at checkout."), String(localized: "Book")) {
                     search()
                 }
             case .offer(let offer):
-                card("gift.fill", offer.title, offer.label, flow.promoCode.caseInsensitiveCompare(offer.code) == .orderedSame ? "Added" : "Use code") {
+                card("gift.fill", offer.title, offer.label, flow.promoCode.caseInsensitiveCompare(offer.code) == .orderedSame ? String(localized: "Added") : String(localized: "Use code")) {
                     flow.promoCode = offer.code
-                    store.banner = CustomerBanner(text: "Code \(offer.code) is on your order.", kind: .success)
+                    store.banner = CustomerBanner(text: String(localized: "Code \(offer.code) is on your order."), kind: .success)
                 }
             }
         }
@@ -194,7 +194,7 @@ private struct SuggestionCard: View {
 
     private func card(_ symbol: String, _ title: String, _ detail: String, _ action: String, perform: @escaping () async -> Void) -> some View {
         HStack(spacing: 14) {
-            Image(systemName: symbol)
+            Image(systemName: symbol).accessibilityHidden(true)
                 .font(.title2)
                 .foregroundStyle(Brand.skyDark)
                 .frame(width: 46, height: 46)
@@ -238,7 +238,7 @@ private struct ServicesGrid: View {
     }
 
     var body: some View {
-        HomeSection(title: "Services") {
+        HomeSection(title: String(localized: "Services")) {
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(tiles) { service in
                     NavigationLink(value: BookStep.service(service.name)) {
@@ -250,7 +250,7 @@ private struct ServicesGrid: View {
             if catalog.service(named: otherServiceName) != nil {
                 NavigationLink(value: BookStep.service(otherServiceName)) {
                     HStack(spacing: 14) {
-                        Image(systemName: "text.bubble.fill")
+                        Image(systemName: "text.bubble.fill").accessibilityHidden(true)
                             .font(.title3)
                             .foregroundStyle(Brand.skyDark)
                             .frame(width: 40, height: 40)
@@ -260,7 +260,7 @@ private struct ServicesGrid: View {
                             Text("Describe your project for a custom quote").font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                        Image(systemName: "chevron.right").accessibilityHidden(true).font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
                     }
                     .padding(14)
                     .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -333,7 +333,7 @@ struct SearchSheet: View {
                                     store.browse(service.name)
                                 } label: {
                                     HStack(spacing: 12) {
-                                        Image(systemName: serviceSymbol(service.name)).foregroundStyle(Brand.skyDark).frame(width: 26)
+                                        Image(systemName: serviceSymbol(service.name)).accessibilityHidden(true).foregroundStyle(Brand.skyDark).frame(width: 26)
                                         Text(service.name).foregroundStyle(.primary)
                                         Spacer()
                                     }
@@ -371,7 +371,7 @@ struct SearchSheet: View {
             .listStyle(.insetGrouped)
             .safeAreaInset(edge: .top) {
                 HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                    Image(systemName: "magnifyingglass").accessibilityHidden(true).foregroundStyle(.secondary)
                     TextField("What do you need help with?", text: $query)
                         .focused($focused)
                         .submitLabel(.search)
@@ -436,7 +436,7 @@ struct ConversationRow: View {
                 }
                 Text(conversation.service).font(.caption).foregroundStyle(.secondary)
                 HStack(alignment: .top) {
-                    Text((conversation.lastFrom == "you" ? "You: " : "") + conversation.lastBody)
+                    Text((conversation.lastFrom == "you" ? String(localized: "You: ") : "") + conversation.lastBody)
                         .font(.subheadline)
                         .foregroundStyle(conversation.unread > 0 ? Color.primary : Color.secondary)
                         .lineLimit(2)
@@ -495,7 +495,7 @@ struct ProgressTracker: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(progress.steps.indices.contains(progress.step) ? "Step \(progress.step + 1) of \(progress.steps.count): \(progress.steps[progress.step])" : "")
+        .accessibilityLabel(progress.steps.indices.contains(progress.step) ? String(localized: "Step \(progress.step + 1) of \(progress.steps.count): \(progress.steps[progress.step])") : "")
     }
 }
 
@@ -587,7 +587,7 @@ private struct SeasonSection: View {
             let shown = expanded ? all : Array(all.prefix(firstShown))
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
-                    Image(systemName: symbolName)
+                    Image(systemName: symbolName).accessibilityHidden(true)
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(width: 44, height: 44)
@@ -615,7 +615,7 @@ private struct SeasonSection: View {
 
                 if all.count > firstShown {
                     Divider()
-                    Button(expanded ? "Show fewer" : "See all \(all.count)") {
+                    Button(expanded ? String(localized: "Show fewer") : String(localized: "See all \(all.count)")) {
                         withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
                     }
                     .font(.subheadline.weight(.semibold))

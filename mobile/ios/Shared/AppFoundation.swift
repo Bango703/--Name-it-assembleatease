@@ -129,6 +129,24 @@ enum Site {
     static let supportEmail = "service@assembleatease.com"
 }
 
+/// The language this app is showing (English or Spanish), with US conventions.
+/// Dates and times follow it; money stays in the website's "$45.00" form.
+enum AppLocale {
+    static let current: Locale = {
+        let language = Bundle.main.preferredLocalizations.first ?? "en"
+        return Locale(identifier: language.hasPrefix("es") ? "es_US" : "en_US")
+    }()
+}
+
+extension String {
+    /// The app's translation of a fixed English phrase kept as data (a help topic
+    /// sent to the server in English, an enum label); the phrase itself otherwise.
+    /// Plain lookup, no formatting, so any text is safe to pass.
+    var localizedDisplay: String {
+        Bundle.main.localizedString(forKey: self, value: self, table: nil)
+    }
+}
+
 enum Format {
     private static let currency: NumberFormatter = {
         let f = NumberFormatter()
@@ -153,9 +171,9 @@ enum Format {
 
     private static let dayOut: DateFormatter = {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US")
+        f.locale = AppLocale.current
         f.timeZone = TimeZone(identifier: "America/Chicago")
-        f.dateFormat = "EEE, MMM d"
+        f.setLocalizedDateFormatFromTemplate("EEEMMMd")
         return f
     }()
 
@@ -179,7 +197,7 @@ enum Format {
 
     private static let clockOut: DateFormatter = {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US")
+        f.locale = AppLocale.current
         f.timeZone = TimeZone(identifier: "America/Chicago")
         f.dateFormat = "h:mm a"
         return f
@@ -230,10 +248,10 @@ enum Format {
     static func timeLeft(until raw: String?, now: Date = Date()) -> String? {
         guard let end = timestamp(raw) else { return nil }
         let seconds = Int(end.timeIntervalSince(now))
-        if seconds <= 0 { return "Offer expired" }
+        if seconds <= 0 { return String(localized: "Offer expired") }
         let minutes = max(1, seconds / 60)
-        if minutes < 60 { return "Respond within \(minutes) min" }
-        return "Respond within \(minutes / 60) hr \(minutes % 60) min"
+        if minutes < 60 { return String(localized: "Respond within \(minutes) min") }
+        return String(localized: "Respond within \(minutes / 60) hr \(minutes % 60) min")
     }
 }
 
@@ -439,15 +457,15 @@ struct ChatLine: Identifiable, Equatable {
 enum ChatFormat {
     private static let time: DateFormatter = {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US")
+        f.locale = AppLocale.current
         f.dateFormat = "h:mm a"
         return f
     }()
 
     private static let day: DateFormatter = {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US")
-        f.dateFormat = "EEEE, MMM d"
+        f.locale = AppLocale.current
+        f.setLocalizedDateFormatFromTemplate("EEEEMMMd")
         return f
     }()
 
@@ -455,8 +473,8 @@ enum ChatFormat {
 
     static func dayLabel(_ date: Date) -> String {
         let calendar = Calendar.current
-        if calendar.isDateInToday(date) { return "Today" }
-        if calendar.isDateInYesterday(date) { return "Yesterday" }
+        if calendar.isDateInToday(date) { return String(localized: "Today") }
+        if calendar.isDateInYesterday(date) { return String(localized: "Yesterday") }
         return day.string(from: date)
     }
 }
@@ -708,7 +726,7 @@ struct AddressSuggestionList: View {
                 }
             } label: {
                 HStack(spacing: 10) {
-                    Image(systemName: "mappin.circle.fill")
+                    Image(systemName: "mappin.circle.fill").accessibilityHidden(true)
                         .font(.title3)
                         .foregroundStyle(Brand.skyDark)
                     VStack(alignment: .leading, spacing: 2) {
