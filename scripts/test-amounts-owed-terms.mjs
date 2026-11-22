@@ -36,5 +36,5 @@ assert.match(read('api/booking.js'), /setup_future_usage: 'off_session'/);
 assert.match(read('api/booking/change-order-approve.js'), /off_session: true/);
 assert.match(read('api/booking/_stripe-booking-payment.js'), /type: 'customer_booking_balance'/);
 
-assert.match(read('api/_legal-consent.js'), /CUSTOMER_TERMS_VERSION = '2026-11-10-amounts-owed-v1'/);
+assert.match(read('api/_legal-consent.js'), /CUSTOMER_TERMS_VERSION = '2026-11-22-identity-provider-v1'/);
 console.log('PASS amounts owed: saved-card charges for amounts owed, a written notice, then collection or small claims; never property');
