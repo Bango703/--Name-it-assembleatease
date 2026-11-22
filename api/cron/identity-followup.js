@@ -122,7 +122,7 @@ export default async function handler(req, res) {
           }
         }
         const stage = identityFollowupStage(profile, session, { sessionLookupFailed, inquiry });
-        if (stage === 'unknown' || stage === 'in_review') { result.skipped.push({ id: profile.id, stage }); continue; }
+        if (stage === 'unknown' || stage === 'in_review' || stage === 'held_for_review') { result.skipped.push({ id: profile.id, stage }); continue; }
         if (stage === 'verified_unrecorded') {
           const provider = profile.identity_provider === 'persona' ? 'Persona' : 'Stripe';
           const sent = await alertOwner(profile, stage, `${provider} shows this ID check verified, but the profile does not. Check the ${provider} webhook before approving.`);

@@ -44,12 +44,15 @@ export function identityFollowupStage(profile = {}, session = null, { sessionLoo
   // Persona holds the check (migration 133): its inquiry status is the truth.
   if (profile.identity_provider === 'persona' && profile.persona_inquiry_id) {
     if (sessionLookupFailed || !inquiry) return 'unknown';
-    return personaFollowupStage(inquiry.status);
+    const personaStage = personaFollowupStage(inquiry.status);
+    return personaStage === 'verified_unrecorded' && profile.id_verification_status === 'failed' ? 'held_for_review' : personaStage;
   }
   const sessionId = profile.stripe_identity_session_id || profile.stripe_verification_id || null;
   if (!sessionId) return 'not_started';
   if (sessionLookupFailed || !session) return 'unknown';
-  if (session.status === 'verified') return 'verified_unrecorded';
+  // A passed check on a profile marked failed is an ID held for the owner (name or
+  // age did not establish the account holder, api/_identity-outcome.js), not a lost webhook.
+  if (session.status === 'verified') return profile.id_verification_status === 'failed' ? 'held_for_review' : 'verified_unrecorded';
   if (session.status === 'processing') return 'in_review';
   if (session.status === 'requires_input' || session.status === 'canceled') return 'started_not_finished';
   return 'unknown';

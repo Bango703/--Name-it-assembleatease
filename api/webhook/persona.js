@@ -1,8 +1,8 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { buildRequestId, insertOperationalEventFailOpen } from '../_observability.js';
-import { personaOutcome, verifyPersonaSignature } from '../_persona.js';
-import { recordIdentityRetry, recordIdentityVerified } from '../_identity-outcome.js';
+import { personaDocumentOutputs, personaOutcome, verifyPersonaSignature } from '../_persona.js';
+import { identityDocumentCheck, recordIdentityHeldForReview, recordIdentityRetry, recordIdentityVerified } from '../_identity-outcome.js';
 
 /**
  * POST /api/webhook/persona: Persona inquiry events (api/_persona.js).
@@ -67,6 +67,7 @@ export default async function handler(req, res, deps = {}) {
   const sb = deps.sb || getSupabase();
   const record = deps.recordVerified || recordIdentityVerified;
   const retry = deps.recordRetry || recordIdentityRetry;
+  const hold = deps.recordHeld || recordIdentityHeldForReview;
   const requestId = buildRequestId(req.headers || {});
   const eventId = event?.data?.id || null;
   const eventName = event?.data?.attributes?.name || null;
@@ -105,6 +106,13 @@ export default async function handler(req, res, deps = {}) {
       if (profile.identity_verified === true) {
         await logEvent(sb, { requestId, eventName, inquiryId, outcome: 'already_verified', statusCode: 200 });
         return res.status(200).json({ received: true, alreadyVerified: true });
+      }
+      // Persona proves the ID and selfie; the name on the ID must also be this account's.
+      const check = identityDocumentCheck(profile.full_name, personaDocumentOutputs(event?.data?.attributes?.payload));
+      if (!check.ok) {
+        await hold(sb, { userId: profileId, profile, referenceUpdates, reason: check.reason, documentName: check.documentName, context: 'Persona held for review', notificationKey: key });
+        await logEvent(sb, { requestId, eventName, inquiryId, outcome: 'held', statusCode: 200, reason: check.reason });
+        return res.status(200).json({ received: true, outcome: 'held', reason: check.reason });
       }
       await record(sb, { userId: profileId, profile, referenceUpdates, context: 'Persona verified state', notificationKey: key });
     } else if (outcome === 'retry') {

@@ -10,7 +10,7 @@ import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
 import { isAutomaticDispatchZip } from '../_source-of-truth.js';
 import { CANCELLATION_POLICY } from '../_source-of-truth.js';
-import { recordIdentityRetry, recordIdentityVerified } from '../_identity-outcome.js';
+import { identityDocumentCheck, recordIdentityHeldForReview, recordIdentityRetry, recordIdentityVerified } from '../_identity-outcome.js';
 import {
   EASER_APPLICATION_FEE_CENTS,
   EASER_APPLICATION_FEE_DISPLAY,
@@ -189,6 +189,26 @@ export default async function handler(req, res) {
         }
         if (profile.stripe_identity_session_id && profile.stripe_identity_session_id !== session.id) {
           webhookMetadata = { ...webhookMetadata, ignored: true, reason: 'stale-identity-session', sessionId: session.id };
+          break;
+        }
+
+        // Stripe proves the ID is genuine and the selfie matches it, not that it is
+        // this account holder: read what it saw on the ID and check it first. If
+        // the read fails this throws, Stripe retries, and nobody is verified on hope.
+        const read = await stripe.identity.verificationSessions.retrieve(session.id, { expand: ['verified_outputs'] });
+        const outputs = read?.verified_outputs || {};
+        const check = identityDocumentCheck(profile.full_name, { firstName: outputs.first_name, lastName: outputs.last_name, dob: outputs.dob });
+        if (!check.ok) {
+          webhookMetadata = { ...webhookMetadata, identityHeld: check.reason, sessionId: session.id };
+          await recordIdentityHeldForReview(sb, {
+            userId,
+            profile,
+            referenceUpdates: { stripe_identity_session_id: session.id },
+            reason: check.reason,
+            documentName: check.documentName,
+            context: 'Stripe Identity held for review',
+            notificationKey: `identity-held:${session.id}`,
+          });
           break;
         }
 
