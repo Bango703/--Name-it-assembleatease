@@ -34,7 +34,7 @@ final class CustomerAPI: APIClient {
         let data = try await call("POST", "/api/customer/payment-methods", body: ["action": "add"])
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let secret = object["clientSecret"] as? String, !secret.isEmpty else {
-            throw AppError(message: "The card screen could not open. Try again.", status: 0)
+            throw AppError(message: String(localized: "The card screen could not open. Try again."), status: 0)
         }
         return secret
     }
@@ -87,7 +87,7 @@ final class CustomerAPI: APIClient {
         do {
             return try JSONDecoder().decode(BookingEnvelope.self, from: data).booking
         } catch {
-            throw AppError(message: "This booking could not be loaded right now. Pull down to try again.", status: 0)
+            throw AppError(message: String(localized: "This booking could not be loaded right now. Pull down to try again."), status: 0)
         }
     }
 
@@ -139,7 +139,7 @@ final class CustomerAPI: APIClient {
         do {
             return try JSONDecoder().decode(BookingCatalog.self, from: data)
         } catch {
-            throw AppError(message: "Services could not be loaded right now. Pull down to try again.", status: 0)
+            throw AppError(message: String(localized: "Services could not be loaded right now. Pull down to try again."), status: 0)
         }
     }
 
@@ -149,8 +149,15 @@ final class CustomerAPI: APIClient {
         do {
             return try JSONDecoder().decode(CheckoutPreview.self, from: data)
         } catch {
-            throw AppError(message: "The total could not be loaded right now. Try again.", status: 0)
+            throw AppError(message: String(localized: "The total could not be loaded right now. Try again."), status: 0)
         }
+    }
+
+    /// Whether gift card codes are taken at checkout (api/gift-cards/checkout.js GET).
+    func giftCardsAccepting() async -> Bool {
+        guard let data = try? await publicCall("GET", "/api/gift-cards/checkout"),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return false }
+        return object["acceptingCodes"] as? Bool ?? false
     }
 
     /// The offer running now, or nil.
@@ -163,7 +170,7 @@ final class CustomerAPI: APIClient {
         let data = try await publicCall("GET", "/api/config/public-key")
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let key = object["publishableKey"] as? String, !key.isEmpty else {
-            throw AppError(message: "Card payments are not available right now. Try again in a minute.", status: 0)
+            throw AppError(message: String(localized: "Card payments are not available right now. Try again in a minute."), status: 0)
         }
         return key
     }
@@ -175,7 +182,7 @@ final class CustomerAPI: APIClient {
         ])
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let secret = object["clientSecret"] as? String, !secret.isEmpty else {
-            throw AppError(message: "The card screen could not open. Try again.", status: 0)
+            throw AppError(message: String(localized: "The card screen could not open. Try again."), status: 0)
         }
         return secret
     }
@@ -183,7 +190,7 @@ final class CustomerAPI: APIClient {
     func createBooking(_ order: [String: Any]) async throws -> CreatedBooking {
         let data = try await publicCall("POST", "/api/booking", body: order)
         guard let created = try? JSONDecoder().decode(CreatedBooking.self, from: data), !created.ref.isEmpty else {
-            throw AppError(message: "The booking could not be confirmed. Check Bookings before trying again.", status: 0)
+            throw AppError(message: String(localized: "The booking could not be confirmed. Check Bookings before trying again."), status: 0)
         }
         return created
     }
@@ -213,7 +220,7 @@ final class CustomerAPI: APIClient {
 
     func upload(_ image: UIImage, ref: String) async throws {
         guard let jpeg = PhotoPrep.jpeg(from: image) else {
-            throw AppError(message: "That photo is too large. Choose another.", status: 0)
+            throw AppError(message: String(localized: "That photo is too large. Choose another."), status: 0)
         }
         try await call("POST", "/api/booking/customer-photos", body: [
             "ref": ref,

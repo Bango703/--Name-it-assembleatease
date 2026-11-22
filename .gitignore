@@ -57,3 +57,6 @@ mobile/ios/Customer/Customer.xcodeproj/
 # Browser test output (npm run test:e2e)
 test-results/
 playwright-report/
+
+# Easer App Store screenshots: Codemagic generates this from mobile/ios/App/screenshots.yml
+mobile/ios/App/EaserShots.xcodeproj/

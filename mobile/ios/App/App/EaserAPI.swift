@@ -8,7 +8,7 @@ typealias EaserError = AppError
 
 @MainActor
 final class EaserAPI: APIClient {
-    override var passwordMismatchMessage: String { "That email and password do not match an Easer account." }
+    override var passwordMismatchMessage: String { String(localized: "That email and password do not match an Easer account.") }
 
     /// The signed-in person's own profile row, read under their own permissions.
     func profile() async throws -> EaserProfile {
@@ -17,7 +17,7 @@ final class EaserAPI: APIClient {
 
     static func decodeProfile(_ data: Data) throws -> EaserProfile {
         let rows = try JSONDecoder().decode([EaserProfile].self, from: data)
-        guard let row = rows.first else { throw AppError(message: "Your Easer profile could not be found.", status: 404) }
+        guard let row = rows.first else { throw AppError(message: String(localized: "Your Easer profile could not be found."), status: 404) }
         return row
     }
 

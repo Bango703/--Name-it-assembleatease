@@ -42,12 +42,12 @@ struct BookingSummary: Decodable, Identifiable, Hashable {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         id = c.string("id") ?? UUID().uuidString
         ref = c.string("ref") ?? ""
-        service = c.string("service") ?? "Booking"
+        service = c.string("service") ?? String(localized: "Booking")
         date = c.string("date")
         time = c.string("time")
         address = c.string("address")
         status = c.string("status") ?? ""
-        statusLabel = c.string("customer_status") ?? "Booking received"
+        statusLabel = c.string("customer_status") ?? String(localized: "Booking received")
         statusDetail = c.string("customer_status_detail")
         proFirstName = c.string("pro_first_name")
         progress = try? c.decodeIfPresent(BookingProgress.self, forKey: DynamicKey("customer_progress"))
@@ -111,7 +111,7 @@ struct PaymentSummary: Decodable, Hashable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
-        totalLabel = c.string("total_label") ?? "Booking Total"
+        totalLabel = c.string("total_label") ?? String(localized: "Booking Total")
         totalCents = c.number("total_cents") ?? 0
         rows = (try? c.decodeIfPresent([Row].self, forKey: DynamicKey("rows"))) ?? []
         note = c.string("note")
@@ -200,9 +200,9 @@ struct BookingDetail: Decodable {
         id = c.string("id") ?? ""
         ref = c.string("ref") ?? ""
         status = c.string("status") ?? ""
-        statusLabel = c.string("customer_status") ?? "Booking received"
+        statusLabel = c.string("customer_status") ?? String(localized: "Booking received")
         statusDetail = c.string("customer_status_detail")
-        service = c.string("service") ?? "Booking"
+        service = c.string("service") ?? String(localized: "Booking")
         date = c.string("date")
         time = c.string("time")
         address = c.string("address")
@@ -437,7 +437,7 @@ struct CheckoutPlan: Decodable, Hashable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         kind = c.string("kind") ?? "pay_now"
-        button = c.string("button") ?? "Book now"
+        button = c.string("button") ?? String(localized: "Book now")
         note = c.string("note") ?? ""
     }
 }
@@ -452,6 +452,11 @@ struct CheckoutPreview: Decodable {
     let totalCents: Double
     /// AssembleCash this booking would apply (already in the summary rows).
     let assemblecashAppliedCents: Double
+    /// Gift card this booking would apply (already in the summary rows).
+    let giftCardAppliedCents: Double
+    let giftCardRemainingCents: Double
+    /// The server's reason a gift card code does not apply, word for word.
+    let giftCardError: String?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
@@ -464,6 +469,11 @@ struct CheckoutPreview: Decodable {
         totalCents = pricing?.number("totalCents") ?? 0
         let cash = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("assemblecash"))
         assemblecashAppliedCents = cash?.number("applied_cents") ?? 0
+        let gift = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("gift_card"))
+        giftCardAppliedCents = gift?.number("applied_cents") ?? 0
+        giftCardRemainingCents = gift?.number("remaining_cents") ?? 0
+        let giftError = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("gift_card_error"))
+        giftCardError = giftError?.string("error")
     }
 }
 
@@ -536,7 +546,7 @@ struct InboxConversation: Decodable, Identifiable, Hashable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         ref = c.string("ref") ?? ""
-        service = c.string("service") ?? "Booking"
+        service = c.string("service") ?? String(localized: "Booking")
         date = c.string("date")
         proFirstName = c.string("pro_first_name")
         messageRecipient = c.string("message_recipient") ?? "team"
@@ -566,7 +576,7 @@ struct ChangeOrder: Decodable, Identifiable, Hashable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
         id = c.string("id") ?? ""
-        summary = c.string("description") ?? "Additional work"
+        summary = c.string("description") ?? String(localized: "Additional work")
         subtotalCents = c.number("subtotal_cents") ?? 0
         taxCents = c.number("tax_cents") ?? 0
         totalCents = c.number("total_cents") ?? 0
@@ -583,7 +593,7 @@ struct TipQuote: Decodable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicKey.self)
-        easerFirstName = c.string("easerFirstName") ?? "your pro"
+        easerFirstName = c.string("easerFirstName") ?? String(localized: "your pro")
         canReceive = c.bool("canReceive") ?? false
         let already = try? c.nestedContainer(keyedBy: DynamicKey.self, forKey: DynamicKey("alreadyTipped"))
         alreadyTippedCents = already?.number("amountCents")
@@ -683,7 +693,7 @@ struct SavedCard: Decodable, Identifiable, Hashable {
         case "diners": return "Diners Club"
         case "jcb": return "JCB"
         case "unionpay": return "UnionPay"
-        default: return "Card"
+        default: return String(localized: "Card")
         }
     }
 

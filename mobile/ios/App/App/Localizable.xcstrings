@@ -1,0 +1,5583 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    " This cancellation will pause new jobs until AssembleAtEase reviews your account." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " Esta cancelación pausará los trabajos nuevos hasta que AssembleAtEase revise tu cuenta."
+          }
+        }
+      }
+    },
+    " You have %lld strike%@ in the last %lld days; at %lld, new jobs pause." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " Tienes %lld falta%@ en los últimos %lld días; con %lld se pausan los trabajos nuevos."
+          }
+        }
+      }
+    },
+    "%@ must end after it starts." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ debe terminar después de empezar."
+          }
+        }
+      }
+    },
+    "%@ · +%lld more" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · +%lld más"
+          }
+        }
+      }
+    },
+    "%lld miles" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld millas"
+          }
+        }
+      }
+    },
+    "%lld minutes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minutos"
+          }
+        }
+      }
+    },
+    "%lld of %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld de %lld"
+          }
+        }
+      }
+    },
+    "%lld of 5" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld de 5"
+          }
+        }
+      }
+    },
+    "%lld strike%@ in the last %lld days. New jobs pause at %lld." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld falta%@ en los últimos %lld días. Los trabajos nuevos se pausan al llegar a %lld."
+          }
+        }
+      }
+    },
+    "6-digit code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código de 6 dígitos"
+          }
+        }
+      }
+    },
+    "A %@ instant fee applies." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se cobra una tarifa instantánea de %@."
+          }
+        }
+      }
+    },
+    "A new time can't be proposed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede proponer otro horario"
+          }
+        }
+      }
+    },
+    "A quick ID and selfie check with Stripe." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una revisión rápida de tu identificación y una selfie con Stripe."
+          }
+        }
+      }
+    },
+    "ACH bank transfer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transferencia bancaria ACH"
+          }
+        }
+      }
+    },
+    "Accept job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceptar trabajo"
+          }
+        }
+      }
+    },
+    "Accepted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceptado"
+          }
+        }
+      }
+    },
+    "Account" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuenta"
+          }
+        }
+      }
+    },
+    "Account closure requested" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cierre de cuenta solicitado"
+          }
+        }
+      }
+    },
+    "Action needed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acción necesaria"
+          }
+        }
+      }
+    },
+    "Add" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar"
+          }
+        }
+      }
+    },
+    "Add %lld clear completion photo%@ to continue." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega %lld foto%@ de finalización para continuar."
+          }
+        }
+      }
+    },
+    "Add %lld clear completion photo%@, one for each booked item still missing." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega %lld foto%@ de finalización, una por cada artículo reservado que falte."
+          }
+        }
+      }
+    },
+    "Add %lld clear photo%@ of the completed work." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega %lld foto%@ del trabajo terminado."
+          }
+        }
+      }
+    },
+    "Add a clear photo of the finished work. %lld photo%@ still needed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega una foto nítida del trabajo terminado. Por subir: %lld foto%@."
+          }
+        }
+      }
+    },
+    "Add a little more detail." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega un poco más de detalle."
+          }
+        }
+      }
+    },
+    "Add a photo of the damage and describe what happened." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega una foto del daño y describe qué pasó."
+          }
+        }
+      }
+    },
+    "Add a photo to continue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega una foto para continuar"
+          }
+        }
+      }
+    },
+    "Add details" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega detalles"
+          }
+        }
+      }
+    },
+    "Add details (optional)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega detalles (opcional)"
+          }
+        }
+      }
+    },
+    "Add photos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar fotos"
+          }
+        }
+      }
+    },
+    "Add the remaining photos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega las fotos que faltan"
+          }
+        }
+      }
+    },
+    "Add the required photos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega las fotos necesarias"
+          }
+        }
+      }
+    },
+    "Add work" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar trabajo"
+          }
+        }
+      }
+    },
+    "Add your home ZIP code to get job offers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrega el código postal de tu casa para recibir ofertas de trabajo."
+          }
+        }
+      }
+    },
+    "Add-on" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extra"
+          }
+        }
+      }
+    },
+    "Adding" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregando"
+          }
+        }
+      }
+    },
+    "Agreement signed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrato firmado."
+          }
+        }
+      }
+    },
+    "Agreement signed. Next, verify your identity with Stripe." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrato firmado. Ahora verifica tu identidad con Stripe."
+          }
+        }
+      }
+    },
+    "All" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo"
+          }
+        }
+      }
+    },
+    "Also needed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "También se necesita"
+          }
+        }
+      }
+    },
+    "An updated version needs your signature" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hay una versión actualizada que necesita tu firma"
+          }
+        }
+      }
+    },
+    "An updated version needs your signature." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hay una versión actualizada que necesita tu firma."
+          }
+        }
+      }
+    },
+    "Any day, any time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cualquier día, a cualquier hora"
+          }
+        }
+      }
+    },
+    "Anything else (optional)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algo más (opcional)"
+          }
+        }
+      }
+    },
+    "Application Pending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicitud pendiente"
+          }
+        }
+      }
+    },
+    "Apply to become an Easer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicita ser Easer"
+          }
+        }
+      }
+    },
+    "Approval by AssembleAtEase" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aprobación de AssembleAtEase"
+          }
+        }
+      }
+    },
+    "Approved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aprobado"
+          }
+        }
+      }
+    },
+    "Arrived" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Llegó"
+          }
+        }
+      }
+    },
+    "Arrives in about 30 minutes. Standard payouts are free." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Llega en unos 30 minutos. Los pagos estándar son gratis."
+          }
+        }
+      }
+    },
+    "Ask each time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preguntar cada vez"
+          }
+        }
+      }
+    },
+    "Asked to pay outside the app" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pidió pagar fuera de la app"
+          }
+        }
+      }
+    },
+    "AssembleAtEase" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AssembleAtEase"
+          }
+        }
+      }
+    },
+    "AssembleAtEase confirms it with the customer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AssembleAtEase lo confirma con el cliente."
+          }
+        }
+      }
+    },
+    "AssembleAtEase could not be reached. Pull down to try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No pudimos conectar con AssembleAtEase. Desliza hacia abajo para intentarlo de nuevo."
+          }
+        }
+      }
+    },
+    "AssembleAtEase is not responding right now. Try again in a minute." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AssembleAtEase no responde en este momento. Inténtalo en un minuto."
+          }
+        }
+      }
+    },
+    "AssembleAtEase needs %lld more completion photo%@ of the booked work." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AssembleAtEase necesita %lld foto%@ más del trabajo reservado."
+          }
+        }
+      }
+    },
+    "AssembleAtEase reviews your account." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AssembleAtEase revisa tu cuenta."
+          }
+        }
+      }
+    },
+    "AssembleAtEase will confirm the day." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AssembleAtEase confirmará el día."
+          }
+        }
+      }
+    },
+    "Available after step 1." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponible después del paso 1."
+          }
+        }
+      }
+    },
+    "Available for jobs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponible para trabajos"
+          }
+        }
+      }
+    },
+    "Available now" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponible ahora"
+          }
+        }
+      }
+    },
+    "Awaiting payout" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pago pendiente"
+          }
+        }
+      }
+    },
+    "Booked: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reservado: %@"
+          }
+        }
+      }
+    },
+    "Call AssembleAtEase" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Llamar a AssembleAtEase"
+          }
+        }
+      }
+    },
+    "Call customer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Llamar al cliente"
+          }
+        }
+      }
+    },
+    "Calling..." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Llamando..."
+          }
+        }
+      }
+    },
+    "Can't make this job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No puedo hacer este trabajo"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar"
+          }
+        }
+      }
+    },
+    "Cancel this job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar este trabajo"
+          }
+        }
+      }
+    },
+    "Cancelled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelado"
+          }
+        }
+      }
+    },
+    "Cancelling within 24 hours of a job is 1 strike; on the day of the job, 2." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar a menos de 24 horas de un trabajo es 1 falta; el mismo día del trabajo, 2."
+          }
+        }
+      }
+    },
+    "Change profile photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar foto de perfil"
+          }
+        }
+      }
+    },
+    "Change this any time in Account." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puedes cambiar esto cuando quieras en Cuenta."
+          }
+        }
+      }
+    },
+    "Check" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cheque"
+          }
+        }
+      }
+    },
+    "Check %@ for a link to set a new password." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisa %@: te enviamos un enlace para crear una contraseña nueva."
+          }
+        }
+      }
+    },
+    "Check in when you arrive" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra tu llegada al llegar"
+          }
+        }
+      }
+    },
+    "Checked in." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Llegada registrada."
+          }
+        }
+      }
+    },
+    "Choose" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir"
+          }
+        }
+      }
+    },
+    "Choose a method" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un método"
+          }
+        }
+      }
+    },
+    "Choose a reason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un motivo"
+          }
+        }
+      }
+    },
+    "Choose a reason to continue." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un motivo para continuar."
+          }
+        }
+      }
+    },
+    "Choose at least one service." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige al menos un servicio."
+          }
+        }
+      }
+    },
+    "Choose from library" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir de la fototeca"
+          }
+        }
+      }
+    },
+    "City" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciudad"
+          }
+        }
+      }
+    },
+    "Close" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar"
+          }
+        }
+      }
+    },
+    "Close account" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar cuenta"
+          }
+        }
+      }
+    },
+    "Close my account" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar mi cuenta"
+          }
+        }
+      }
+    },
+    "Close this and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cierra esto e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Closed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrado"
+          }
+        }
+      }
+    },
+    "Closure request received. You're offline." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recibimos tu solicitud de cierre. Estás desconectado."
+          }
+        }
+      }
+    },
+    "Code sent to %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código enviado a %@"
+          }
+        }
+      }
+    },
+    "Complete job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminar trabajo"
+          }
+        }
+      }
+    },
+    "Complete the job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina el trabajo"
+          }
+        }
+      }
+    },
+    "Completed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminado"
+          }
+        }
+      }
+    },
+    "Completed jobs will appear here." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los trabajos terminados aparecerán aquí."
+          }
+        }
+      }
+    },
+    "Confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirmar"
+          }
+        }
+      }
+    },
+    "Contact" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contacto"
+          }
+        }
+      }
+    },
+    "Contact %@ to reactivate it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe a %@ para reactivarla."
+          }
+        }
+      }
+    },
+    "Contractor Agreement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrato de contratista"
+          }
+        }
+      }
+    },
+    "Contractor agreement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrato de contratista"
+          }
+        }
+      }
+    },
+    "Conversation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversación"
+          }
+        }
+      }
+    },
+    "Conversation with the customer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversación con el cliente"
+          }
+        }
+      }
+    },
+    "Copy link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar enlace"
+          }
+        }
+      }
+    },
+    "Could not access the home" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No pude entrar a la casa"
+          }
+        }
+      }
+    },
+    "Could not load" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar"
+          }
+        }
+      }
+    },
+    "Could not load the catalog" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar el catálogo"
+          }
+        }
+      }
+    },
+    "Crew of %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Equipo de %lld"
+          }
+        }
+      }
+    },
+    "Current" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actual"
+          }
+        }
+      }
+    },
+    "Currently unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No estoy disponible"
+          }
+        }
+      }
+    },
+    "Customer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cliente"
+          }
+        }
+      }
+    },
+    "Customer isn't here" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El cliente no está"
+          }
+        }
+      }
+    },
+    "Customer isn't here?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿El cliente no está?"
+          }
+        }
+      }
+    },
+    "Customers see this photo. Use a clear photo of your face." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los clientes ven esta foto. Usa una foto clara de tu cara."
+          }
+        }
+      }
+    },
+    "Damage report sent. AssembleAtEase will follow up." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reporte de daño enviado. AssembleAtEase te dará seguimiento."
+          }
+        }
+      }
+    },
+    "Date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fecha"
+          }
+        }
+      }
+    },
+    "Decline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechazar"
+          }
+        }
+      }
+    },
+    "Decline without a reason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechazar sin motivo"
+          }
+        }
+      }
+    },
+    "Declined" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechazado"
+          }
+        }
+      }
+    },
+    "Describe the damage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Describe el daño"
+          }
+        }
+      }
+    },
+    "Describe what happened" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Describe qué pasó"
+          }
+        }
+      }
+    },
+    "Did not qualify" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No calificó"
+          }
+        }
+      }
+    },
+    "Directions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómo llegar"
+          }
+        }
+      }
+    },
+    "Directions app" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App para indicaciones"
+          }
+        }
+      }
+    },
+    "Do assembly or TV mounting? Get paid per job with AssembleAtEase." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Haces armado de muebles o instalación de TV? Cobra por trabajo con AssembleAtEase."
+          }
+        }
+      }
+    },
+    "Done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listo"
+          }
+        }
+      }
+    },
+    "Done on the first visit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hecho en la primera visita"
+          }
+        }
+      }
+    },
+    "Earlier" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anteriores"
+          }
+        }
+      }
+    },
+    "Earn %@ when a pro you refer completes %lld paid jobs within %lld days." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gana %@ cuando un profesional que recomiendes complete %lld trabajos pagados en %lld días."
+          }
+        }
+      }
+    },
+    "Earned %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganado: %@"
+          }
+        }
+      }
+    },
+    "Earnings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganancias"
+          }
+        }
+      }
+    },
+    "Earnings from completed jobs will appear here." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las ganancias de trabajos terminados aparecerán aquí."
+          }
+        }
+      }
+    },
+    "Earnings history" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historial de ganancias"
+          }
+        }
+      }
+    },
+    "Easer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easer"
+          }
+        }
+      }
+    },
+    "Elite Pro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro élite"
+          }
+        }
+      }
+    },
+    "Email" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correo electrónico"
+          }
+        }
+      }
+    },
+    "Email support" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribir a soporte"
+          }
+        }
+      }
+    },
+    "Emergency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emergencia"
+          }
+        }
+      }
+    },
+    "Enter your email above, then tap Forgot password." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe tu correo arriba y luego toca ¿Olvidaste tu contraseña?"
+          }
+        }
+      }
+    },
+    "Enter your email and password." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe tu correo y tu contraseña."
+          }
+        }
+      }
+    },
+    "Estimated earnings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganancias estimadas"
+          }
+        }
+      }
+    },
+    "Estimated earnings %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganancias estimadas: %@"
+          }
+        }
+      }
+    },
+    "Every service" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos los servicios"
+          }
+        }
+      }
+    },
+    "Extra work" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trabajo adicional"
+          }
+        }
+      }
+    },
+    "Extra work can't be added here" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aquí no se puede agregar trabajo adicional"
+          }
+        }
+      }
+    },
+    "Fills in the address" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completa la dirección"
+          }
+        }
+      }
+    },
+    "Finish payout setup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminar configuración de pagos"
+          }
+        }
+      }
+    },
+    "Finish setting up to get jobs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina tu configuración para recibir trabajos"
+          }
+        }
+      }
+    },
+    "Finish your setup before going online." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina tu configuración antes de conectarte."
+          }
+        }
+      }
+    },
+    "Flag a concern" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reportar un problema"
+          }
+        }
+      }
+    },
+    "For name or location changes, contact AssembleAtEase." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para cambiar tu nombre o ubicación, contacta a AssembleAtEase."
+          }
+        }
+      }
+    },
+    "Forgot password?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Olvidaste tu contraseña?"
+          }
+        }
+      }
+    },
+    "Friday" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viernes"
+          }
+        }
+      }
+    },
+    "From" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desde"
+          }
+        }
+      }
+    },
+    "Full legal name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre legal completo"
+          }
+        }
+      }
+    },
+    "Full name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre completo"
+          }
+        }
+      }
+    },
+    "Get help" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pedir ayuda"
+          }
+        }
+      }
+    },
+    "Get help with this job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pedir ayuda con este trabajo"
+          }
+        }
+      }
+    },
+    "Get paid now" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cobrar ahora"
+          }
+        }
+      }
+    },
+    "Go online to get job offers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conéctate para recibir ofertas de trabajo."
+          }
+        }
+      }
+    },
+    "Go online to start receiving job offers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conéctate para empezar a recibir ofertas de trabajo."
+          }
+        }
+      }
+    },
+    "Help" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayuda"
+          }
+        }
+      }
+    },
+    "Hi, %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hola, %@"
+          }
+        }
+      }
+    },
+    "How was the customer?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Cómo te fue con el cliente?"
+          }
+        }
+      }
+    },
+    "How was working with this customer?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Cómo fue trabajar con este cliente?"
+          }
+        }
+      }
+    },
+    "How you get paid" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómo te pagamos"
+          }
+        }
+      }
+    },
+    "I can't make this job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No puedo hacer este trabajo"
+          }
+        }
+      }
+    },
+    "I understand" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entendido"
+          }
+        }
+      }
+    },
+    "I've arrived" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya llegué"
+          }
+        }
+      }
+    },
+    "Identity" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identidad"
+          }
+        }
+      }
+    },
+    "Identity verification could not be started. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo iniciar la verificación de identidad. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Identity verified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identidad verificada"
+          }
+        }
+      }
+    },
+    "If anyone is in danger, call 911. Move to a safe place first." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si alguien está en peligro, llama al 911. Primero ve a un lugar seguro."
+          }
+        }
+      }
+    },
+    "In progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En curso"
+          }
+        }
+      }
+    },
+    "Inbox" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bandeja"
+          }
+        }
+      }
+    },
+    "Includes %@ same-day bonus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incluye un bono de %@ por el mismo día"
+          }
+        }
+      }
+    },
+    "Includes a %@ bonus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incluye un bono de %@"
+          }
+        }
+      }
+    },
+    "Instant fee (%@%%)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarifa instantánea (%@%%)"
+          }
+        }
+      }
+    },
+    "Job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trabajo"
+          }
+        }
+      }
+    },
+    "Job accepted. It is in your schedule." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trabajo aceptado. Ya está en tu agenda."
+          }
+        }
+      }
+    },
+    "Job alerts stop on this phone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las alertas de trabajo se detienen en este teléfono."
+          }
+        }
+      }
+    },
+    "Job area" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zona de trabajo"
+          }
+        }
+      }
+    },
+    "Job changes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambios en el trabajo"
+          }
+        }
+      }
+    },
+    "Job complete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trabajo terminado"
+          }
+        }
+      }
+    },
+    "Job offers are on." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las ofertas de trabajo están activadas."
+          }
+        }
+      }
+    },
+    "Job offers arrive as notifications." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las ofertas de trabajo llegan como notificaciones."
+          }
+        }
+      }
+    },
+    "Job started." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trabajo iniciado."
+          }
+        }
+      }
+    },
+    "Job texts are off." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensajes de trabajo desactivados."
+          }
+        }
+      }
+    },
+    "Job texts are on." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensajes de trabajo activados."
+          }
+        }
+      }
+    },
+    "Job updates will appear here." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los avisos de trabajos aparecerán aquí."
+          }
+        }
+      }
+    },
+    "Jobs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trabajos"
+          }
+        }
+      }
+    },
+    "Jobs could not be loaded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron cargar los trabajos"
+          }
+        }
+      }
+    },
+    "Jobs done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trabajos hechos"
+          }
+        }
+      }
+    },
+    "Keep job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conservar trabajo"
+          }
+        }
+      }
+    },
+    "Keep offer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conservar oferta"
+          }
+        }
+      }
+    },
+    "Legal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legal"
+          }
+        }
+      }
+    },
+    "Link copied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enlace copiado"
+          }
+        }
+      }
+    },
+    "Loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando"
+          }
+        }
+      }
+    },
+    "Loading payout setup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando configuración de pagos"
+          }
+        }
+      }
+    },
+    "Location" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubicación"
+          }
+        }
+      }
+    },
+    "Location shared after you accept" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La ubicación se comparte cuando aceptas"
+          }
+        }
+      }
+    },
+    "Manage bank account" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Administrar cuenta bancaria"
+          }
+        }
+      }
+    },
+    "Map of the job address" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mapa de la dirección del trabajo"
+          }
+        }
+      }
+    },
+    "Map of the job area" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mapa de la zona del trabajo"
+          }
+        }
+      }
+    },
+    "Mark all read" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcar todo como leído"
+          }
+        }
+      }
+    },
+    "Member since" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miembro desde"
+          }
+        }
+      }
+    },
+    "Message %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribir a %@"
+          }
+        }
+      }
+    },
+    "Message AssembleAtEase" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribir a AssembleAtEase"
+          }
+        }
+      }
+    },
+    "Message and data rates may apply. Reply STOP to any text to turn texts off." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pueden aplicarse tarifas de mensajes y datos. Responde STOP a cualquier mensaje para desactivarlos."
+          }
+        }
+      }
+    },
+    "Message customer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribir al cliente"
+          }
+        }
+      }
+    },
+    "Messages" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensajes"
+          }
+        }
+      }
+    },
+    "Monday" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lunes"
+          }
+        }
+      }
+    },
+    "Money" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dinero"
+          }
+        }
+      }
+    },
+    "Moved from %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antes: %@"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre"
+          }
+        }
+      }
+    },
+    "Name on your account: %@. For changes, contact AssembleAtEase." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre en tu cuenta: %@. Para cambiarlo, contacta a AssembleAtEase."
+          }
+        }
+      }
+    },
+    "New" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuevo"
+          }
+        }
+      }
+    },
+    "New jobs are paused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los trabajos nuevos están en pausa"
+          }
+        }
+      }
+    },
+    "New mobile number" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuevo número de celular"
+          }
+        }
+      }
+    },
+    "New offer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nueva oferta"
+          }
+        }
+      }
+    },
+    "New offers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuevas ofertas"
+          }
+        }
+      }
+    },
+    "New offers are paused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las ofertas nuevas están en pausa"
+          }
+        }
+      }
+    },
+    "New offers will appear here, and as a notification." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las ofertas nuevas aparecerán aquí y como notificación."
+          }
+        }
+      }
+    },
+    "New time you proposed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuevo horario que propusiste"
+          }
+        }
+      }
+    },
+    "No connection. Check your signal and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin conexión. Revisa tu señal e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "No earnings yet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todavía no hay ganancias."
+          }
+        }
+      }
+    },
+    "No messages with %@ yet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todavía no hay mensajes con %@."
+          }
+        }
+      }
+    },
+    "No messages with AssembleAtEase yet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todavía no hay mensajes con AssembleAtEase."
+          }
+        }
+      }
+    },
+    "No offers right now." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay ofertas ahora."
+          }
+        }
+      }
+    },
+    "No payout" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin pago"
+          }
+        }
+      }
+    },
+    "No reviews yet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todavía no hay reseñas."
+          }
+        }
+      }
+    },
+    "No upcoming jobs." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay trabajos próximos."
+          }
+        }
+      }
+    },
+    "No-show reported. You can leave." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausencia reportada. Ya te puedes ir."
+          }
+        }
+      }
+    },
+    "Not in my service scope" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No es un servicio que hago"
+          }
+        }
+      }
+    },
+    "Not set" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin definir"
+          }
+        }
+      }
+    },
+    "Not verified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin verificar"
+          }
+        }
+      }
+    },
+    "Note for the customer (optional)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota para el cliente (opcional)"
+          }
+        }
+      }
+    },
+    "Notes from the customer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notas del cliente"
+          }
+        }
+      }
+    },
+    "Nothing here yet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todavía no hay nada aquí."
+          }
+        }
+      }
+    },
+    "Nothing scheduled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nada programado"
+          }
+        }
+      }
+    },
+    "Notifications are off" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las notificaciones están desactivadas"
+          }
+        }
+      }
+    },
+    "Offer declined." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oferta rechazada."
+          }
+        }
+      }
+    },
+    "Offer expired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oferta vencida"
+          }
+        }
+      }
+    },
+    "Offers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ofertas"
+          }
+        }
+      }
+    },
+    "Offers come only for these services and hours." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo recibes ofertas de estos servicios y horarios."
+          }
+        }
+      }
+    },
+    "On file" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrado"
+          }
+        }
+      }
+    },
+    "On hold" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retenido"
+          }
+        }
+      }
+    },
+    "On the way" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En camino"
+          }
+        }
+      }
+    },
+    "Only AssembleAtEase sees this." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo AssembleAtEase ve esto."
+          }
+        }
+      }
+    },
+    "Open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir"
+          }
+        }
+      }
+    },
+    "Open Settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Configuración"
+          }
+        }
+      }
+    },
+    "Open customer photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir foto del cliente"
+          }
+        }
+      }
+    },
+    "Open directions in" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir indicaciones en"
+          }
+        }
+      }
+    },
+    "Opens at %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se habilita a las %@"
+          }
+        }
+      }
+    },
+    "Other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otro"
+          }
+        }
+      }
+    },
+    "Paid" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagado"
+          }
+        }
+      }
+    },
+    "Paid %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagado: %@"
+          }
+        }
+      }
+    },
+    "Paid after each completed job." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se paga después de cada trabajo terminado."
+          }
+        }
+      }
+    },
+    "Paid to your Stripe account." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se paga a tu cuenta de Stripe."
+          }
+        }
+      }
+    },
+    "Password" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraseña"
+          }
+        }
+      }
+    },
+    "Past" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anteriores"
+          }
+        }
+      }
+    },
+    "Pay confirmed after quote" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El pago se confirma con la cotización"
+          }
+        }
+      }
+    },
+    "Pay to be confirmed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pago por confirmar"
+          }
+        }
+      }
+    },
+    "Payout method saved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Método de pago guardado."
+          }
+        }
+      }
+    },
+    "Payout setup could not be loaded. Pull down to try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar la configuración de pagos. Desliza hacia abajo para intentarlo de nuevo."
+          }
+        }
+      }
+    },
+    "Payout setup could not be opened. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo abrir la configuración de pagos. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Payouts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagos"
+          }
+        }
+      }
+    },
+    "Payouts are on" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagos activados"
+          }
+        }
+      }
+    },
+    "Payouts aren't set up on demo accounts." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los pagos no se configuran en cuentas de demostración."
+          }
+        }
+      }
+    },
+    "Personal information" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Información personal"
+          }
+        }
+      }
+    },
+    "Phone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teléfono"
+          }
+        }
+      }
+    },
+    "Phone number" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Número de teléfono"
+          }
+        }
+      }
+    },
+    "Phone number updated." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Número de teléfono actualizado."
+          }
+        }
+      }
+    },
+    "Photo %lld could not be prepared. Take a new one and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo preparar la foto %lld. Toma otra e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Photo sent to AssembleAtEase." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto enviada a AssembleAtEase."
+          }
+        }
+      }
+    },
+    "Photos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos"
+          }
+        }
+      }
+    },
+    "Photos from the customer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos del cliente"
+          }
+        }
+      }
+    },
+    "Photos requested" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos solicitadas"
+          }
+        }
+      }
+    },
+    "Photos sent to AssembleAtEase." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos enviadas a AssembleAtEase."
+          }
+        }
+      }
+    },
+    "Please sign in again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuelve a iniciar sesión."
+          }
+        }
+      }
+    },
+    "Preferred method" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Método preferido"
+          }
+        }
+      }
+    },
+    "Privacy Policy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Política de privacidad"
+          }
+        }
+      }
+    },
+    "Problem with the job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problema con el trabajo"
+          }
+        }
+      }
+    },
+    "Processing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En proceso"
+          }
+        }
+      }
+    },
+    "Professional" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profesional"
+          }
+        }
+      }
+    },
+    "Profile photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto de perfil"
+          }
+        }
+      }
+    },
+    "Profile photo saved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto de perfil guardada."
+          }
+        }
+      }
+    },
+    "Profile saved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perfil guardado."
+          }
+        }
+      }
+    },
+    "Progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avance"
+          }
+        }
+      }
+    },
+    "Propose a new time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proponer otro horario"
+          }
+        }
+      }
+    },
+    "Proposed time withdrawn." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horario propuesto retirado."
+          }
+        }
+      }
+    },
+    "Rate the customer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Califica al cliente"
+          }
+        }
+      }
+    },
+    "Rating" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calificación"
+          }
+        }
+      }
+    },
+    "Read both documents, then sign below." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lee los dos documentos y luego firma abajo."
+          }
+        }
+      }
+    },
+    "Read it" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leer"
+          }
+        }
+      }
+    },
+    "Read the Code of Conduct and Terms of Service" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leer el Código de Conducta y los Términos del Servicio"
+          }
+        }
+      }
+    },
+    "Read the Independent Contractor Agreement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leer el Contrato de Contratista Independiente"
+          }
+        }
+      }
+    },
+    "Reason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motivo"
+          }
+        }
+      }
+    },
+    "Reason (optional)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motivo (opcional)"
+          }
+        }
+      }
+    },
+    "Recent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recientes"
+          }
+        }
+      }
+    },
+    "Refer a pro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recomienda a un profesional"
+          }
+        }
+      }
+    },
+    "Refresh the job to load the required photo count." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualiza el trabajo para ver cuántas fotos se necesitan."
+          }
+        }
+      }
+    },
+    "Refunded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reembolsado"
+          }
+        }
+      }
+    },
+    "Reliability" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confiabilidad"
+          }
+        }
+      }
+    },
+    "Remove photo %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitar foto %lld"
+          }
+        }
+      }
+    },
+    "Report a no-show" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reportar ausencia"
+          }
+        }
+      }
+    },
+    "Report damage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reportar un daño"
+          }
+        }
+      }
+    },
+    "Request account closure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicitar cierre de cuenta"
+          }
+        }
+      }
+    },
+    "Reset password" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer contraseña"
+          }
+        }
+      }
+    },
+    "Reset your password?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Restablecer tu contraseña?"
+          }
+        }
+      }
+    },
+    "Respond within %lld hr %lld min" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Responde en %lld h %lld min"
+          }
+        }
+      }
+    },
+    "Respond within %lld min" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Responde en %lld min"
+          }
+        }
+      }
+    },
+    "Retake photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver a tomar"
+          }
+        }
+      }
+    },
+    "Return visit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otra visita"
+          }
+        }
+      }
+    },
+    "Return visit needed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita otra visita"
+          }
+        }
+      }
+    },
+    "Review and sign" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisar y firmar"
+          }
+        }
+      }
+    },
+    "Review and sign the agreement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisar y firmar el contrato"
+          }
+        }
+      }
+    },
+    "Review offer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisar oferta"
+          }
+        }
+      }
+    },
+    "Reviews" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reseñas"
+          }
+        }
+      }
+    },
+    "Right now" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ahora mismo"
+          }
+        }
+      }
+    },
+    "Rude or abusive" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grosero o abusivo"
+          }
+        }
+      }
+    },
+    "Running late" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voy tarde"
+          }
+        }
+      }
+    },
+    "Running too late" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voy muy tarde"
+          }
+        }
+      }
+    },
+    "Safety concern" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problema de seguridad"
+          }
+        }
+      }
+    },
+    "Saturday" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sábado"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar"
+          }
+        }
+      }
+    },
+    "Save photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar foto"
+          }
+        }
+      }
+    },
+    "Saved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardado."
+          }
+        }
+      }
+    },
+    "Schedule conflict" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conflicto de horario"
+          }
+        }
+      }
+    },
+    "Scheduled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Programado"
+          }
+        }
+      }
+    },
+    "Scheduling conflict" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conflicto de horario"
+          }
+        }
+      }
+    },
+    "Search items" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar artículos"
+          }
+        }
+      }
+    },
+    "Security" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seguridad"
+          }
+        }
+      }
+    },
+    "See all %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver los %lld"
+          }
+        }
+      }
+    },
+    "Send" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar"
+          }
+        }
+      }
+    },
+    "Send %@ now" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar %@ ahora"
+          }
+        }
+      }
+    },
+    "Send a new code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar un código nuevo"
+          }
+        }
+      }
+    },
+    "Send a new code in %llds" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar un código nuevo en %lld s"
+          }
+        }
+      }
+    },
+    "Send a password reset email?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Enviar un correo para restablecer la contraseña?"
+          }
+        }
+      }
+    },
+    "Send code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar código"
+          }
+        }
+      }
+    },
+    "Send email" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar correo"
+          }
+        }
+      }
+    },
+    "Send photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar foto"
+          }
+        }
+      }
+    },
+    "Send report" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar reporte"
+          }
+        }
+      }
+    },
+    "Send reset link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar enlace"
+          }
+        }
+      }
+    },
+    "Send this payout now?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Enviar este pago ahora?"
+          }
+        }
+      }
+    },
+    "Send to the customer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar al cliente"
+          }
+        }
+      }
+    },
+    "Send urgent report" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar reporte urgente"
+          }
+        }
+      }
+    },
+    "Sent to AssembleAtEase." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviado a AssembleAtEase."
+          }
+        }
+      }
+    },
+    "Sent to the customer to approve." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviado al cliente para que lo apruebe."
+          }
+        }
+      }
+    },
+    "Sent to the customer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviado al cliente."
+          }
+        }
+      }
+    },
+    "Service" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servicio"
+          }
+        }
+      }
+    },
+    "Service job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trabajo de servicio"
+          }
+        }
+      }
+    },
+    "Services you take" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servicios que aceptas"
+          }
+        }
+      }
+    },
+    "Set up payouts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurar pagos"
+          }
+        }
+      }
+    },
+    "Set up secure payouts so your earnings go straight to your bank." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura pagos seguros para que tus ganancias lleguen directo a tu banco."
+          }
+        }
+      }
+    },
+    "Share your link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartir tu enlace"
+          }
+        }
+      }
+    },
+    "Show" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar"
+          }
+        }
+      }
+    },
+    "Show older" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver anteriores"
+          }
+        }
+      }
+    },
+    "Sign and continue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Firmar y continuar"
+          }
+        }
+      }
+    },
+    "Sign in" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar sesión"
+          }
+        }
+      }
+    },
+    "Sign in did not go through. Please try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo iniciar sesión. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Sign out" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar sesión"
+          }
+        }
+      }
+    },
+    "Sign out of Easer?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Cerrar sesión en Easer?"
+          }
+        }
+      }
+    },
+    "Sign the contractor agreement and Code of Conduct" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Firma el contrato de contratista y el Código de Conducta"
+          }
+        }
+      }
+    },
+    "Sign with your full legal name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Firma con tu nombre legal completo"
+          }
+        }
+      }
+    },
+    "Something else" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otra cosa"
+          }
+        }
+      }
+    },
+    "Something wrong?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Algo salió mal?"
+          }
+        }
+      }
+    },
+    "Start job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar trabajo"
+          }
+        }
+      }
+    },
+    "Start the job" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia el trabajo"
+          }
+        }
+      }
+    },
+    "Start travel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar viaje"
+          }
+        }
+      }
+    },
+    "Start travel when you leave" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia el viaje cuando salgas"
+          }
+        }
+      }
+    },
+    "Started" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciado"
+          }
+        }
+      }
+    },
+    "Starter Pro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro inicial"
+          }
+        }
+      }
+    },
+    "State" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estado"
+          }
+        }
+      }
+    },
+    "Still needed before going online: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falta antes de conectarte: %@"
+          }
+        }
+      }
+    },
+    "Still to do" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Por hacer"
+          }
+        }
+      }
+    },
+    "Submit completion" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar trabajo terminado"
+          }
+        }
+      }
+    },
+    "Sunday" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domingo"
+          }
+        }
+      }
+    },
+    "Suspended" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suspendido"
+          }
+        }
+      }
+    },
+    "Take another photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomar otra foto"
+          }
+        }
+      }
+    },
+    "Take photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomar foto"
+          }
+        }
+      }
+    },
+    "Tell the customer you're here and wait 15 minutes." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avísale al cliente que llegaste y espera 15 minutos."
+          }
+        }
+      }
+    },
+    "Tell us anything else we should know" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuéntanos cualquier otra cosa que debamos saber"
+          }
+        }
+      }
+    },
+    "Tell us why" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuéntanos por qué"
+          }
+        }
+      }
+    },
+    "Terms of Service" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Términos del servicio"
+          }
+        }
+      }
+    },
+    "Thanks. Only AssembleAtEase sees this." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gracias. Solo AssembleAtEase ve esto."
+          }
+        }
+      }
+    },
+    "That changed a moment ago. Pull down to see the latest." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eso cambió hace un momento. Desliza hacia abajo para ver lo más reciente."
+          }
+        }
+      }
+    },
+    "That did not go through. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo completar. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "That email and password do not match an Easer account." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese correo y esa contraseña no coinciden con una cuenta de Easer."
+          }
+        }
+      }
+    },
+    "That email and password do not match an account." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese correo y esa contraseña no coinciden con una cuenta."
+          }
+        }
+      }
+    },
+    "That is no longer available. Pull down to refresh." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eso ya no está disponible. Desliza hacia abajo para actualizar."
+          }
+        }
+      }
+    },
+    "That job is no longer available." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese trabajo ya no está disponible."
+          }
+        }
+      }
+    },
+    "That photo could not be prepared. Take a new one and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo preparar esa foto. Toma otra e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "That photo could not be prepared. Try a different photo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo preparar esa foto. Prueba con otra."
+          }
+        }
+      }
+    },
+    "The code could not be checked. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo verificar el código. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "The code could not be sent. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo enviar el código. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "The customer accepts it or keeps the booked time." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El cliente lo acepta o mantiene el horario reservado."
+          }
+        }
+      }
+    },
+    "The customer gets a request to approve." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El cliente recibe una solicitud para aprobarlo."
+          }
+        }
+      }
+    },
+    "The customer has been told you are on the way." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le avisamos al cliente que vas en camino."
+          }
+        }
+      }
+    },
+    "The customer was told you're here." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le avisamos al cliente que ya llegaste."
+          }
+        }
+      }
+    },
+    "The customer was told." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le avisamos al cliente."
+          }
+        }
+      }
+    },
+    "The job is more than 24 hours away, so cancelling now has no reliability strike." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faltan más de 24 horas para el trabajo, así que cancelar ahora no cuenta como falta de confiabilidad."
+          }
+        }
+      }
+    },
+    "The job is today. Cancelling counts as %lld reliability strikes." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El trabajo es hoy. Cancelar cuenta como %lld faltas de confiabilidad."
+          }
+        }
+      }
+    },
+    "The job starts in less than 24 hours. Cancelling counts as %lld reliability strike%@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El trabajo empieza en menos de 24 horas. Cancelar cuenta como %lld falta%@ de confiabilidad."
+          }
+        }
+      }
+    },
+    "The lead Easer updates this job's progress." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El Easer principal actualiza el avance de este trabajo."
+          }
+        }
+      }
+    },
+    "The reliability cost could not be loaded. Cancelling within 24 hours of the job counts as a strike." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar el efecto en tu confiabilidad. Cancelar a menos de 24 horas del trabajo cuenta como una falta."
+          }
+        }
+      }
+    },
+    "The required photo count could not be loaded. Refresh the job and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar cuántas fotos se necesitan. Actualiza el trabajo e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "The required photo count is unavailable. Refresh the job and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se sabe cuántas fotos se necesitan. Actualiza el trabajo e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "The reset email could not be sent. Try again in a minute." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo enviar el correo para restablecer. Inténtalo en un minuto."
+          }
+        }
+      }
+    },
+    "The wait is over." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminó la espera."
+          }
+        }
+      }
+    },
+    "This app is for AssembleAtEase Easers. To book a service, visit assembleatease.com." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta app es para los Easers de AssembleAtEase. Para reservar un servicio, visita assembleatease.com."
+          }
+        }
+      }
+    },
+    "This job has %lld booked units. Add one clear photo of each. %lld photo%@ still needed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este trabajo tiene %lld unidades reservadas. Agrega una foto nítida de cada una. Por subir: %lld foto%@."
+          }
+        }
+      }
+    },
+    "This job is finished. Messages about it go to AssembleAtEase." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este trabajo terminó. Los mensajes sobre él van a AssembleAtEase."
+          }
+        }
+      }
+    },
+    "This job is no longer available" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este trabajo ya no está disponible"
+          }
+        }
+      }
+    },
+    "This job is no longer on your schedule." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este trabajo ya no está en tu agenda."
+          }
+        }
+      }
+    },
+    "This screen could not be loaded right now. Pull down to try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta pantalla no se pudo cargar. Desliza hacia abajo para intentarlo de nuevo."
+          }
+        }
+      }
+    },
+    "This update is no longer in your inbox." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este aviso ya no está en tu bandeja."
+          }
+        }
+      }
+    },
+    "Thursday" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jueves"
+          }
+        }
+      }
+    },
+    "Time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hora"
+          }
+        }
+      }
+    },
+    "Tip %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propina de %@"
+          }
+        }
+      }
+    },
+    "Tips" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propinas"
+          }
+        }
+      }
+    },
+    "Tips are paid to your Stripe account." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las propinas se pagan a tu cuenta de Stripe."
+          }
+        }
+      }
+    },
+    "Tips received" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propinas recibidas"
+          }
+        }
+      }
+    },
+    "To" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hasta"
+          }
+        }
+      }
+    },
+    "Today" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoy"
+          }
+        }
+      }
+    },
+    "Too far from my location" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muy lejos de mi ubicación"
+          }
+        }
+      }
+    },
+    "Too many tries. Wait a minute and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demasiados intentos. Espera un minuto e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Total earned" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total ganado"
+          }
+        }
+      }
+    },
+    "Travel up to" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viajar hasta"
+          }
+        }
+      }
+    },
+    "Tuesday" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Martes"
+          }
+        }
+      }
+    },
+    "Turn on" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activar"
+          }
+        }
+      }
+    },
+    "Turn on at least one day." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa al menos un día."
+          }
+        }
+      }
+    },
+    "Turn on both agreements to continue." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa los dos acuerdos para continuar."
+          }
+        }
+      }
+    },
+    "Turn on job texts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activar mensajes de trabajo"
+          }
+        }
+      }
+    },
+    "Turn on notifications" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa las notificaciones"
+          }
+        }
+      }
+    },
+    "Type your full name to sign." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe tu nombre completo para firmar."
+          }
+        }
+      }
+    },
+    "Up next" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo siguiente"
+          }
+        }
+      }
+    },
+    "Up to %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hasta %@"
+          }
+        }
+      }
+    },
+    "Upcoming" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próximos"
+          }
+        }
+      }
+    },
+    "Update" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aviso"
+          }
+        }
+      }
+    },
+    "Upload new photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subir foto nueva"
+          }
+        }
+      }
+    },
+    "Urgent report sent." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reporte urgente enviado."
+          }
+        }
+      }
+    },
+    "Use Forgot password on the sign-in screen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa ¿Olvidaste tu contraseña? en la pantalla de inicio de sesión."
+          }
+        }
+      }
+    },
+    "Use Get help on this job." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa Pedir ayuda en este trabajo."
+          }
+        }
+      }
+    },
+    "Use a different number" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar otro número"
+          }
+        }
+      }
+    },
+    "Vehicle issue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problema con el vehículo"
+          }
+        }
+      }
+    },
+    "Verify identity" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificar identidad"
+          }
+        }
+      }
+    },
+    "Verify your identity" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica tu identidad"
+          }
+        }
+      }
+    },
+    "View details" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver detalles"
+          }
+        }
+      }
+    },
+    "Wait %lld:%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espera %lld:%@"
+          }
+        }
+      }
+    },
+    "Waiting for the customer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esperando al cliente"
+          }
+        }
+      }
+    },
+    "Waiting for you to accept" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esperando que aceptes"
+          }
+        }
+      }
+    },
+    "Waiting on the customer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esperando al cliente."
+          }
+        }
+      }
+    },
+    "Want to work with AssembleAtEase?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Quieres trabajar con AssembleAtEase?"
+          }
+        }
+      }
+    },
+    "We review your account and email you when you're approved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisamos tu cuenta y te escribimos cuando quedes aprobado."
+          }
+        }
+      }
+    },
+    "We'll email %@ a link to set a new password." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviaremos a %@ un enlace para crear una contraseña nueva."
+          }
+        }
+      }
+    },
+    "Wednesday" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miércoles"
+          }
+        }
+      }
+    },
+    "What do you need help with?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Con qué necesitas ayuda?"
+          }
+        }
+      }
+    },
+    "What happened" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qué pasó"
+          }
+        }
+      }
+    },
+    "What is happening" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qué está pasando"
+          }
+        }
+      }
+    },
+    "What you're assembling" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qué vas a armar"
+          }
+        }
+      }
+    },
+    "When and where" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuándo y dónde"
+          }
+        }
+      }
+    },
+    "When you work" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuándo trabajas"
+          }
+        }
+      }
+    },
+    "Why are you declining?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Por qué la rechazas?"
+          }
+        }
+      }
+    },
+    "Withdraw" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retirar"
+          }
+        }
+      }
+    },
+    "Work preferences" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preferencias de trabajo"
+          }
+        }
+      }
+    },
+    "Work preferences saved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preferencias de trabajo guardadas."
+          }
+        }
+      }
+    },
+    "Yesterday" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayer"
+          }
+        }
+      }
+    },
+    "You accepted this job less than 15 minutes ago, so cancelling now has no reliability strike." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceptaste este trabajo hace menos de 15 minutos, así que cancelar ahora no cuenta como falta de confiabilidad."
+          }
+        }
+      }
+    },
+    "You flagged a concern" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reportaste un problema"
+          }
+        }
+      }
+    },
+    "You get job offers within %lld miles of %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recibes ofertas de trabajo a %lld millas o menos de %@"
+          }
+        }
+      }
+    },
+    "You keep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te quedas con"
+          }
+        }
+      }
+    },
+    "You keep %@ after Stripe's fee." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te quedas con %@ después de la tarifa de Stripe."
+          }
+        }
+      }
+    },
+    "You rated them %lld of 5" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le diste %lld de 5"
+          }
+        }
+      }
+    },
+    "You receive" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recibes"
+          }
+        }
+      }
+    },
+    "You will keep receiving job offers. Please review and sign when you can." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seguirás recibiendo ofertas de trabajo. Revísala y fírmala cuando puedas."
+          }
+        }
+      }
+    },
+    "You'll be removed from this job." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te quitaremos de este trabajo."
+          }
+        }
+      }
+    },
+    "You'll go offline right away. AssembleAtEase confirms by email. Completed jobs and payout records are kept as required by law." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te desconectarás de inmediato. AssembleAtEase lo confirma por correo. Los trabajos terminados y los registros de pagos se conservan como exige la ley."
+          }
+        }
+      }
+    },
+    "You're all caught up" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estás al día"
+          }
+        }
+      }
+    },
+    "You're off this job." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya no tienes este trabajo."
+          }
+        }
+      }
+    },
+    "You're offline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estás desconectado"
+          }
+        }
+      }
+    },
+    "You're online" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estás conectado"
+          }
+        }
+      }
+    },
+    "Your 1099 tax form is in the same Stripe account." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu formulario de impuestos 1099 está en la misma cuenta de Stripe."
+          }
+        }
+      }
+    },
+    "Your Easer profile could not be found." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No encontramos tu perfil de Easer."
+          }
+        }
+      }
+    },
+    "Your account can't do that." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu cuenta no puede hacer eso."
+          }
+        }
+      }
+    },
+    "Your account closure request is being reviewed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estamos revisando tu solicitud para cerrar la cuenta."
+          }
+        }
+      }
+    },
+    "Your account closure request is open." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu solicitud para cerrar la cuenta está abierta."
+          }
+        }
+      }
+    },
+    "Your account is paused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu cuenta está en pausa"
+          }
+        }
+      }
+    },
+    "Your account is paused. Contact %@ to reactivate it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu cuenta está en pausa. Escribe a %@ para reactivarla."
+          }
+        }
+      }
+    },
+    "Your account name could not be loaded." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar el nombre de tu cuenta."
+          }
+        }
+      }
+    },
+    "Your account name could not be loaded. Close this and pull down on Today to refresh." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar el nombre de tu cuenta. Cierra esto y desliza hacia abajo en Hoy para actualizar."
+          }
+        }
+      }
+    },
+    "Your earnings are sent to your bank automatically after each completed job." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus ganancias se envían a tu banco automáticamente después de cada trabajo terminado."
+          }
+        }
+      }
+    },
+    "Your identity is already verified." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu identidad ya está verificada."
+          }
+        }
+      }
+    },
+    "Your job offers, schedule and earnings." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus ofertas de trabajo, tu agenda y tus ganancias."
+          }
+        }
+      }
+    },
+    "Your name must match %@ exactly." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu nombre debe coincidir exactamente con %@."
+          }
+        }
+      }
+    },
+    "Your payout is on its way." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu pago va en camino."
+          }
+        }
+      }
+    },
+    "Your phone will ring now. Answer it to be connected." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu teléfono va a sonar. Contesta para conectarte."
+          }
+        }
+      }
+    },
+    "Your referral link opens once your account is approved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu enlace para recomendar se activa cuando aprobemos tu cuenta."
+          }
+        }
+      }
+    },
+    "Your referrals" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus recomendados"
+          }
+        }
+      }
+    },
+    "Your request is in review." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estamos revisando tu solicitud."
+          }
+        }
+      }
+    },
+    "Your scheduled jobs are still here. Contact %@ to find out what is needed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus trabajos programados siguen aquí. Escribe a %@ para saber qué se necesita."
+          }
+        }
+      }
+    },
+    "Your setup steps are on Today." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus pasos de configuración están en Hoy."
+          }
+        }
+      }
+    },
+    "ZIP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código postal"
+          }
+        }
+      }
+    },
+    "by AssembleAtEase" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "de AssembleAtEase"
+          }
+        }
+      }
+    },
+    "there" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easer"
+          }
+        }
+      }
+    },
+    "you" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tu correo"
+          }
+        }
+      }
+    },
+    "· Seen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· Visto"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

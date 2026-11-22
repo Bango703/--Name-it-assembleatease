@@ -142,7 +142,7 @@ final class CustomerStore: ObservableObject {
         do {
             try await api.deleteAccount()
             signOut()
-            banner = CustomerBanner(text: "Your account was deleted.", kind: .success)
+            banner = CustomerBanner(text: String(localized: "Your account was deleted."), kind: .success)
             return true
         } catch {
             banner = CustomerBanner(text: error.localizedDescription, kind: .problem)

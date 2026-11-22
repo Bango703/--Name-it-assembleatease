@@ -47,9 +47,9 @@ struct AccountHeader: View {
                 .foregroundStyle(Brand.skyDark)
 
             HStack {
-                Stat(value: "\(store.earnings?.summary?.completedJobs ?? 0)", label: "Jobs done")
+                Stat(value: "\(store.earnings?.summary?.completedJobs ?? 0)", label: String(localized: "Jobs done"))
                 Divider().frame(height: 32)
-                Stat(value: ratingText, label: "Rating")
+                Stat(value: ratingText, label: String(localized: "Rating"))
             }
             .padding(.top, 4)
         }
@@ -59,7 +59,7 @@ struct AccountHeader: View {
     }
 
     private var ratingText: String {
-        guard let rating = store.profile?.rating, (store.profile?.reviewCount ?? 0) > 0 else { return "New" }
+        guard let rating = store.profile?.rating, (store.profile?.reviewCount ?? 0) > 0 else { return String(localized: "New") }
         return String(format: "%.1f", rating)
     }
 }
@@ -89,7 +89,7 @@ struct PersonalInfoView: View {
                 } else {
                     NavigationLink { EditDetailView(field: .location) } label: { LabeledContent("Location", value: location) }
                 }
-                LabeledContent("Email", value: store.email ?? "On file")
+                LabeledContent("Email", value: store.email ?? String(localized: "On file"))
                 if let since = Format.day(store.profile?.createdAt) {
                     LabeledContent("Member since", value: since)
                 }
@@ -114,18 +114,18 @@ struct PersonalInfoView: View {
         .confirmationDialog("Send a password reset email?", isPresented: $confirmReset, titleVisibility: .visible) {
             Button("Send email") { Task { await store.sendPasswordReset() } }
         } message: {
-            Text("We'll email \(store.email ?? "you") a link to set a new password.")
+            Text("We'll email \(store.email ?? String(localized: "you")) a link to set a new password.")
         }
     }
 
     private var name: String {
         let value = store.profile?.fullName ?? ""
-        return value.isEmpty ? "Not set" : value
+        return value.isEmpty ? String(localized: "Not set") : value
     }
 
     private var phone: String {
         let value = Format.phone(store.profile?.phone)
-        return value.isEmpty ? "Add" : value
+        return value.isEmpty ? String(localized: "Add") : value
     }
 
     /// "Austin, TX 78745", leaving out what is not on file.
@@ -133,7 +133,7 @@ struct PersonalInfoView: View {
         let me = store.profile
         let cityState = [me?.city ?? "", me?.state ?? ""].map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: ", ")
         let full = [cityState, (me?.zip ?? "").trimmingCharacters(in: .whitespaces)].filter { !$0.isEmpty }.joined(separator: " ")
-        return full.isEmpty ? "Not set" : full
+        return full.isEmpty ? String(localized: "Not set") : full
     }
 }
 
@@ -157,8 +157,8 @@ private struct EditDetailView: View {
 
     private var title: String {
         switch field {
-        case .name: return "Name"
-        case .location: return "Location"
+        case .name: return String(localized: "Name")
+        case .location: return String(localized: "Location")
         }
     }
 
@@ -284,7 +284,7 @@ private struct PhoneChangeView: View {
                 Section {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
                         let wait = max(0, Int(resendAt.timeIntervalSince(context.date).rounded(.up)))
-                        Button(wait > 0 ? "Send a new code in \(wait)s" : "Send a new code") {
+                        Button(wait > 0 ? String(localized: "Send a new code in \(wait)s") : String(localized: "Send a new code")) {
                             Task { await send() }
                         }
                         .disabled(wait > 0 || working)
@@ -324,7 +324,7 @@ private struct PhoneChangeView: View {
                     if sentTo == nil { await send() } else { await confirm() }
                 }
             } label: {
-                if working { ProgressView().tint(Brand.ink) } else { Text(sentTo == nil ? "Send code" : "Confirm") }
+                if working { ProgressView().tint(Brand.ink) } else { Text(sentTo == nil ? String(localized: "Send code") : String(localized: "Confirm")) }
             }
             .buttonStyle(PrimaryButtonStyle(enabled: ready))
             .disabled(!ready)
@@ -379,8 +379,8 @@ struct WorkPreferencesView: View {
     }
 
     private static let dayNames: [String: String] = [
-        "sun": "Sunday", "mon": "Monday", "tue": "Tuesday", "wed": "Wednesday",
-        "thu": "Thursday", "fri": "Friday", "sat": "Saturday",
+        "sun": String(localized: "Sunday"), "mon": String(localized: "Monday"), "tue": String(localized: "Tuesday"), "wed": String(localized: "Wednesday"),
+        "thu": String(localized: "Thursday"), "fri": String(localized: "Friday"), "sat": String(localized: "Saturday"),
     ]
 
     private static let clock: DateFormatter = {
@@ -399,12 +399,30 @@ struct WorkPreferencesView: View {
     @State private var days: [DayHours] = []
     @State private var saving = false
     @State private var problem: String?
+    @State private var area: TravelArea?
+    @State private var radius = 50
 
     var body: some View {
         List {
             if !loaded {
                 Section { HStack { ProgressView(); Text("Loading").foregroundStyle(.secondary) } }
             } else {
+                if let area, !area.unavailable {
+                    Section {
+                        if area.located {
+                            Text("You get job offers within \(radius) miles of \(area.homeZip ?? "")")
+                            if let label = area.areaLabel { Text(label).font(.subheadline).foregroundStyle(.secondary) }
+                        } else {
+                            Text("Add your home ZIP code to get job offers.").foregroundStyle(Brand.attention)
+                        }
+                        Picker("Travel up to", selection: $radius) {
+                            ForEach(area.options, id: \.self) { miles in Text("\(miles) miles").tag(miles) }
+                        }
+                    } header: {
+                        Text("Job area")
+                    }
+                }
+
                 Section {
                     Toggle("Every service", isOn: $everyService)
                     if !everyService {
@@ -468,6 +486,8 @@ struct WorkPreferencesView: View {
 
     private func load() async {
         let prefs = await store.workPreferences()
+        area = prefs?.travelArea
+        radius = prefs?.travelArea?.radiusMiles ?? 50
         allServicesList = prefs?.allServices ?? []
         everyService = prefs?.services == nil
         chosen = Set(prefs?.services ?? allServicesList)
@@ -489,7 +509,7 @@ struct WorkPreferencesView: View {
         problem = nil
         let services: [String]? = everyService ? nil : allServicesList.filter { chosen.contains($0) }
         if let services, services.isEmpty {
-            problem = "Choose at least one service."
+            problem = String(localized: "Choose at least one service.")
             return
         }
         var availability: [String: [WorkWindow]]? = nil
@@ -500,7 +520,7 @@ struct WorkPreferencesView: View {
                 let end = Self.clock.string(from: day.end)
                 if day.on {
                     if end <= start {
-                        problem = "\(Self.dayNames[day.key] ?? day.key) must end after it starts."
+                        problem = String(localized: "\(Self.dayNames[day.key] ?? day.key) must end after it starts.")
                         return
                     }
                     map[day.key] = [WorkWindow(start: start, end: end)]
@@ -509,13 +529,14 @@ struct WorkPreferencesView: View {
                 }
             }
             if map.values.allSatisfy({ $0.isEmpty }) {
-                problem = "Turn on at least one day."
+                problem = String(localized: "Turn on at least one day.")
                 return
             }
             availability = map
         }
         saving = true
-        problem = await store.saveWorkPreferences(services: services, availability: availability)
+        let miles: Int? = (area?.unavailable == false) ? radius : nil
+        problem = await store.saveWorkPreferences(services: services, availability: availability, travelRadiusMiles: miles)
         saving = false
     }
 }
@@ -533,11 +554,15 @@ struct ReviewsView: View {
             ForEach(store.reviews) { review in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 2) {
-                        ForEach(0..<5, id: \.self) { index in
-                            Image(systemName: index < review.rating ? "star.fill" : "star")
-                                .font(.caption)
-                                .foregroundStyle(index < review.rating ? Brand.sky : Color.secondary)
+                        HStack(spacing: 2) {
+                            ForEach(0..<5, id: \.self) { index in
+                                Image(systemName: index < review.rating ? "star.fill" : "star")
+                                    .font(.caption)
+                                    .foregroundStyle(index < review.rating ? Brand.sky : Color.secondary)
+                            }
                         }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("\(review.rating) of 5")
                         Spacer()
                         if let day = Format.day(review.createdAt) {
                             Text(day).font(.caption).foregroundStyle(.secondary)
@@ -591,17 +616,17 @@ struct PayoutsView: View {
             }
 
             if let connect = store.connect, connect.demo {
-                Section { Text(connect.message ?? "Payouts aren't set up on demo accounts.").foregroundStyle(.secondary) }
+                Section { Text(connect.message ?? String(localized: "Payouts aren't set up on demo accounts.")).foregroundStyle(.secondary) }
             } else if let connect = store.connect {
                 if connect.enabled {
                     Section {
-                        Label(connect.payoutsEnabled ? "Payouts are on" : "Set up payouts",
+                        Label(connect.payoutsEnabled ? String(localized: "Payouts are on") : String(localized: "Set up payouts"),
                               systemImage: connect.payoutsEnabled ? "checkmark.seal.fill" : "building.columns")
                             .font(.headline)
                             .foregroundStyle(connect.payoutsEnabled ? Brand.skyDark : Color.primary)
                         Text(connect.payoutsEnabled
-                             ? "Your earnings are sent to your bank automatically after each completed job."
-                             : (connect.message ?? "Set up secure payouts so your earnings go straight to your bank."))
+                             ? String(localized: "Your earnings are sent to your bank automatically after each completed job.")
+                             : (connect.message ?? String(localized: "Set up secure payouts so your earnings go straight to your bank.")))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Button {
@@ -610,13 +635,17 @@ struct PayoutsView: View {
                             if opening {
                                 ProgressView()
                             } else {
-                                Text(connect.payoutsEnabled ? "Manage bank account" : (connect.hasAccount ? "Finish payout setup" : "Set up payouts"))
+                                Text(connect.payoutsEnabled ? String(localized: "Manage bank account") : (connect.hasAccount ? String(localized: "Finish payout setup") : String(localized: "Set up payouts")))
                                     .fontWeight(.semibold)
                             }
                         }
                         .disabled(opening)
                     } footer: {
-                        EmptyView()
+                        if connect.payoutsEnabled {
+                            Text("Your 1099 tax form is in the same Stripe account.")
+                        } else {
+                            EmptyView()
+                        }
                     }
 
                     if let quote = store.instantQuote, quote.available {
@@ -760,5 +789,67 @@ struct EarningsHistoryView: View {
         .navigationTitle("Earnings history")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await store.refresh() }
+    }
+}
+
+/// Refer a pro (api/assembler/referral.js): the link to share and the people
+/// referred. The reward rules live on the server (api/_easer-referrals.js).
+struct ReferralView: View {
+    @EnvironmentObject private var store: EaserStore
+    @State private var info: ReferralInfo?
+    @State private var loaded = false
+    @State private var copied = false
+
+    var body: some View {
+        List {
+            if !loaded {
+                Section { HStack { ProgressView(); Text("Loading").foregroundStyle(.secondary) } }
+            } else if let info, info.eligible, let link = info.link, let url = URL(string: link) {
+                Section {
+                    Text("Earn \(Format.money(cents: info.rewardCents)) when a pro you refer completes \(info.qualifyingJobs) paid jobs within \(info.windowDays) days.")
+                    Text(link).font(.footnote).foregroundStyle(.secondary).textSelection(.enabled)
+                    ShareLink(item: url, message: Text("Do assembly or TV mounting? Get paid per job with AssembleAtEase.")) {
+                        Label("Share your link", systemImage: "square.and.arrow.up")
+                    }
+                    Button {
+                        UIPasteboard.general.string = link
+                        copied = true
+                    } label: {
+                        Label(copied ? String(localized: "Link copied") : String(localized: "Copy link"), systemImage: copied ? "checkmark" : "doc.on.doc")
+                    }
+                }
+                if !info.referrals.isEmpty {
+                    Section("Your referrals") {
+                        ForEach(info.referrals) { entry in
+                            LabeledContent {
+                                statusText(entry)
+                            } label: {
+                                Text(verbatim: entry.name)
+                            }
+                        }
+                    }
+                }
+            } else {
+                Section {
+                    Text("Your referral link opens once your account is approved.").foregroundStyle(.secondary)
+                }
+            }
+        }
+        .navigationTitle("Refer a pro")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            guard !loaded else { return }
+            info = await store.referralInfo()
+            loaded = true
+        }
+    }
+
+    private func statusText(_ entry: ReferralEntry) -> Text {
+        switch entry.status {
+        case "earned": return Text("Earned \(Format.money(cents: entry.amountCents))")
+        case "paid": return Text("Paid \(Format.money(cents: entry.amountCents))")
+        case "void": return Text("Did not qualify")
+        default: return Text("In progress")
+        }
     }
 }

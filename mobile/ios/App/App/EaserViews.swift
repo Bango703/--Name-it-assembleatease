@@ -90,7 +90,7 @@ private struct BannerView: View {
     let banner: Banner
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: banner.kind == .success ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+            Image(systemName: banner.kind == .success ? "checkmark.circle.fill" : "exclamationmark.circle.fill").accessibilityHidden(true)
                 .foregroundStyle(banner.kind == .success ? Brand.skyDark : Brand.attention)
             Text(banner.text)
                 .font(.subheadline)
@@ -190,7 +190,7 @@ private struct SignInView: View {
     private func forgotPassword() {
         let clean = email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard clean.contains("@") else {
-            problem = "Enter your email above, then tap Forgot password."
+            problem = String(localized: "Enter your email above, then tap Forgot password.")
             return
         }
         problem = nil
@@ -201,7 +201,7 @@ private struct SignInView: View {
         let clean = email.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
             try await store.api.sendPasswordReset(to: clean)
-            store.banner = Banner(text: "Check \(clean) for a link to set a new password.", kind: .success)
+            store.banner = Banner(text: String(localized: "Check \(clean) for a link to set a new password."), kind: .success)
         } catch {
             problem = error.localizedDescription
         }
@@ -277,7 +277,7 @@ private struct MainTabsView: View {
             // Still not on this account after a fresh load: taken by another Easer or withdrawn.
             relay.openJobID = nil
             reloadedFor = nil
-            store.banner = Banner(text: "That job is no longer available.", kind: .problem)
+            store.banner = Banner(text: String(localized: "That job is no longer available."), kind: .problem)
             return
         }
         reloadedFor = id
@@ -304,22 +304,22 @@ private struct TodayView: View {
                     ReliabilityCard()
                     SetupCard()
                     if let problem = store.loadProblem, store.jobs.isEmpty, !store.jobsLocked {
-                        NoticeCard(icon: "wifi.exclamationmark", title: "Jobs could not be loaded", text: problem)
+                        NoticeCard(icon: "wifi.exclamationmark", title: String(localized: "Jobs could not be loaded"), text: problem)
                     }
                     if let active = store.activeJob {
-                        SectionTitle("Right now")
+                        SectionTitle(String(localized: "Right now"))
                         NavigationLink(value: JobRef(id: active.id)) { JobCard(job: active, emphasis: true) }
                             .buttonStyle(.plain)
                     }
                     if !store.offers.isEmpty {
-                        SectionTitle(store.offers.count == 1 ? "New offer" : "New offers")
+                        SectionTitle(store.offers.count == 1 ? String(localized: "New offer") : String(localized: "New offers"))
                         ForEach(store.offers) { job in
                             NavigationLink(value: JobRef(id: job.id)) { JobCard(job: job, emphasis: store.activeJob == nil) }
                                 .buttonStyle(.plain)
                         }
                     }
                     if let next = store.upcoming.first {
-                        SectionTitle("Up next")
+                        SectionTitle(String(localized: "Up next"))
                         NavigationLink(value: JobRef(id: next.id)) { JobCard(job: next, emphasis: false) }
                             .buttonStyle(.plain)
                     }
@@ -330,7 +330,7 @@ private struct TodayView: View {
                 .padding(16)
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("Hi, \(store.profile?.firstName ?? "there")")
+            .navigationTitle("Hi, \(store.profile?.firstName ?? String(localized: "there"))")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Avatar(photo: store.profile?.profilePhoto, name: store.profile?.fullName, size: 34)
@@ -361,9 +361,9 @@ private struct AvailabilityCard: View {
                 .fill(online ? Color.green : Color.gray.opacity(0.5))
                 .frame(width: 12, height: 12)
             VStack(alignment: .leading, spacing: 2) {
-                Text(online ? "You're online" : "You're offline")
+                Text(online ? String(localized: "You're online") : String(localized: "You're offline"))
                     .font(.headline)
-                Text(online ? "Job offers are on." : "Go online to get job offers.")
+                Text(online ? String(localized: "Job offers are on.") : String(localized: "Go online to get job offers."))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -448,24 +448,24 @@ private struct SetupCard: View {
 
     var body: some View {
         if store.profile?.closureHeld == true {
-            NoticeCard(icon: "person.crop.circle.badge.xmark", title: "Account closure requested",
-                       text: "Your request is in review.")
+            NoticeCard(icon: "person.crop.circle.badge.xmark", title: String(localized: "Account closure requested"),
+                       text: String(localized: "Your request is in review."))
         } else if store.readiness?.suspended == true {
-            NoticeCard(icon: "pause.circle", title: "Your account is paused",
-                       text: "Contact \(Site.supportEmail) to reactivate it.")
+            NoticeCard(icon: "pause.circle", title: String(localized: "Your account is paused"),
+                       text: String(localized: "Contact \(Site.supportEmail) to reactivate it."))
         } else if needsSetup, let setup = store.setup,
                   setup.requiresAgreement || !setup.identityVerified || !setup.approved {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Finish setting up to get jobs").font(.headline)
                 SetupStep(number: 1, done: !setup.requiresAgreement,
-                          title: "Sign the contractor agreement and Code of Conduct",
-                          detail: setup.priorAgreementOnFile && setup.requiresAgreement ? "An updated version needs your signature." : nil) {
+                          title: String(localized: "Sign the contractor agreement and Code of Conduct"),
+                          detail: setup.priorAgreementOnFile && setup.requiresAgreement ? String(localized: "An updated version needs your signature.") : nil) {
                     Button("Review and sign") { signing = true }
                         .buttonStyle(PrimaryButtonStyle())
                 }
                 SetupStep(number: 2, done: setup.identityVerified,
-                          title: "Verify your identity",
-                          detail: setup.requiresAgreement ? "Available after step 1." : "A quick ID and selfie check with Stripe.") {
+                          title: String(localized: "Verify your identity"),
+                          detail: setup.requiresAgreement ? String(localized: "Available after step 1.") : String(localized: "A quick ID and selfie check with Stripe.")) {
                     if !setup.requiresAgreement {
                         Button {
                             startingVerification = true
@@ -481,8 +481,8 @@ private struct SetupCard: View {
                     }
                 }
                 SetupStep(number: 3, done: setup.approved,
-                          title: "Approval by AssembleAtEase",
-                          detail: setup.approved ? nil : "We review your account and email you when you're approved.") {
+                          title: String(localized: "Approval by AssembleAtEase"),
+                          detail: setup.approved ? nil : String(localized: "We review your account and email you when you're approved.")) {
                     EmptyView()
                 }
                 if !otherItems.isEmpty {
@@ -504,16 +504,16 @@ private struct SetupCard: View {
             .background(Brand.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         } else if store.offersPausedCode == "agreement_update_available" {
             VStack(alignment: .leading, spacing: 10) {
-                NoticeCard(icon: "doc.text", title: "An updated version needs your signature",
-                           text: "You will keep receiving job offers. Please review and sign when you can.")
+                NoticeCard(icon: "doc.text", title: String(localized: "An updated version needs your signature"),
+                           text: String(localized: "You will keep receiving job offers. Please review and sign when you can."))
                 Button("Review and sign the agreement") { signing = true }
                     .buttonStyle(PrimaryButtonStyle())
             }
             .sheet(isPresented: $signing) { AgreementSheet(legalName: store.profile?.fullName ?? "").environmentObject(store) }
         } else if !store.newOffersAllowed {
             VStack(alignment: .leading, spacing: 10) {
-                NoticeCard(icon: "pause.circle", title: "New offers are paused",
-                           text: store.offersPausedReason ?? "Your scheduled jobs are still here. Contact \(Site.supportEmail) to find out what is needed.")
+                NoticeCard(icon: "pause.circle", title: String(localized: "New offers are paused"),
+                           text: store.offersPausedReason ?? String(localized: "Your scheduled jobs are still here. Contact \(Site.supportEmail) to find out what is needed."))
             }
         }
     }
@@ -531,7 +531,7 @@ private struct SetupStep<Action: View>: View {
             ZStack {
                 Circle().fill(done ? Brand.sky : Brand.surface).frame(width: 28, height: 28)
                 if done {
-                    Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(Brand.ink)
+                    Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(Brand.ink).accessibilityLabel("Completed")
                 } else {
                     Text("\(number)").font(.caption.bold()).foregroundStyle(.secondary)
                 }
@@ -560,9 +560,9 @@ private struct AgreementSheet: View {
 
     /// The first thing still missing, in the order the form asks for it.
     private var blockedReason: String? {
-        if typedName.trimmingCharacters(in: .whitespaces).isEmpty { return "Type your full name to sign." }
-        if !nameMatches { return legalName.isEmpty ? "Your account name could not be loaded." : "Your name must match \(legalName) exactly." }
-        if !agreeContract || !agreeConduct { return "Turn on both agreements to continue." }
+        if typedName.trimmingCharacters(in: .whitespaces).isEmpty { return String(localized: "Type your full name to sign.") }
+        if !nameMatches { return legalName.isEmpty ? String(localized: "Your account name could not be loaded.") : String(localized: "Your name must match \(legalName) exactly.") }
+        if !agreeContract || !agreeConduct { return String(localized: "Turn on both agreements to continue.") }
         return nil
     }
 
@@ -642,7 +642,7 @@ private struct NoticeCard: View {
     let text: String
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon).font(.title3).foregroundStyle(Brand.attention)
+            Image(systemName: icon).accessibilityHidden(true).font(.title3).foregroundStyle(Brand.attention)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).font(.headline)
                 Text(text).font(.subheadline).foregroundStyle(.secondary)
@@ -658,12 +658,12 @@ private struct EmptyTodayCard: View {
     let online: Bool
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: online ? "checkmark.circle" : "moon.zzz")
+            Image(systemName: online ? "checkmark.circle" : "moon.zzz").accessibilityHidden(true)
                 .font(.title)
                 .foregroundStyle(Brand.skyDark)
-            Text(online ? "You're all caught up" : "Nothing scheduled")
+            Text(online ? String(localized: "You're all caught up") : String(localized: "Nothing scheduled"))
                 .font(.headline)
-            Text(online ? "New offers will appear here, and as a notification." : "Go online to start receiving job offers.")
+            Text(online ? String(localized: "New offers will appear here, and as a notification.") : String(localized: "Go online to start receiving job offers."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -714,7 +714,7 @@ private struct JobCard: View {
             HStack {
                 Text(actionHint).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark)
                 Spacer()
-                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                Image(systemName: "chevron.right").accessibilityHidden(true).font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
             }
         }
         .padding(16)
@@ -727,12 +727,12 @@ private struct JobCard: View {
 
     private var actionHint: String {
         switch job.nextStep {
-        case .accept: return "Review offer"
-        case .startTravel: return "Start travel when you leave"
-        case .arrived: return "Check in when you arrive"
-        case .startJob: return "Start the job"
-        case .complete: return "Complete the job"
-        case .noAction: return "View details"
+        case .accept: return String(localized: "Review offer")
+        case .startTravel: return String(localized: "Start travel when you leave")
+        case .arrived: return String(localized: "Check in when you arrive")
+        case .startJob: return String(localized: "Start the job")
+        case .complete: return String(localized: "Complete the job")
+        case .noAction: return String(localized: "View details")
         }
     }
 }
@@ -772,7 +772,7 @@ private struct JobsView: View {
         NavigationStack {
             List {
                 Picker("Show", selection: $segment) {
-                    ForEach(Segment.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(Segment.allCases) { Text($0.rawValue.localizedDisplay).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .listRowBackground(Color.clear)
@@ -797,11 +797,11 @@ private struct JobsView: View {
     }
 
     private var emptyText: String {
-        if store.jobsLocked { return "Your setup steps are on Today." }
+        if store.jobsLocked { return String(localized: "Your setup steps are on Today.") }
         switch segment {
-        case .offers: return "No offers right now."
-        case .upcoming: return "No upcoming jobs."
-        case .past: return "Completed jobs will appear here."
+        case .offers: return String(localized: "No offers right now.")
+        case .upcoming: return String(localized: "No upcoming jobs.")
+        case .past: return String(localized: "Completed jobs will appear here.")
         }
     }
 }
@@ -855,7 +855,7 @@ struct JobDetailView: View {
         do {
             let data = try await store.api.call("POST", "/api/booking/private-call", body: ["bookingId": job.id])
             let reply = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-            privateCallNote = (reply?["message"] as? String) ?? "Your phone will ring now. Answer it to be connected."
+            privateCallNote = (reply?["message"] as? String) ?? String(localized: "Your phone will ring now. Answer it to be connected.")
         } catch {
             privateCallNote = error.localizedDescription
         }
@@ -890,11 +890,11 @@ struct JobDetailView: View {
                 }
 
                 if job.acceptedAt != nil && !job.isHelper {
-                    DetailBlock(title: "Progress") { JobProgress(job: job) }
+                    DetailBlock(title: String(localized: "Progress")) { JobProgress(job: job) }
                 }
 
                 if job.photosRequested {
-                    DetailBlock(title: "Photos requested") {
+                    DetailBlock(title: String(localized: "Photos requested")) {
                         if job.completionPhotoCountKnown, let remaining = job.remainingCompletionPhotoCount {
                             Text("AssembleAtEase needs \(remaining) more completion photo\(remaining == 1 ? "" : "s") of the booked work.")
                                 .foregroundStyle(.secondary)
@@ -912,7 +912,7 @@ struct JobDetailView: View {
                     }
                 }
 
-                DetailBlock(title: job.isFinished ? "Earnings" : "Estimated earnings") {
+                DetailBlock(title: job.isFinished ? String(localized: "Earnings") : String(localized: "Estimated earnings")) {
                     Text(store.payText(for: job)).font(.largeTitle.bold())
                     if job.isFinished, let earned = store.earning(for: job) {
                         Text(earned.statusLabel).font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark)
@@ -922,6 +922,10 @@ struct JobDetailView: View {
                     }
                     if let bonus = job.sameDayBonusCents, bonus > 0 {
                         Label("Includes \(Format.money(cents: bonus)) same-day bonus", systemImage: "bolt.fill")
+                            .font(.subheadline).foregroundStyle(Brand.skyDark)
+                    }
+                    if !job.isFinished, let bonus = job.bonusCents, bonus > 0 {
+                        Label("Includes a \(Format.money(cents: bonus)) bonus", systemImage: "gift.fill")
                             .font(.subheadline).foregroundStyle(Brand.skyDark)
                     }
                     if job.crewSize > 1 {
@@ -934,13 +938,13 @@ struct JobDetailView: View {
                     if let tips = job.tips, tips.count > 0 {
                         Label("Tip \(Format.money(cents: tips.amountCents))", systemImage: "heart.fill")
                             .font(.subheadline.weight(.semibold)).foregroundStyle(Brand.skyDark)
-                        Text(tips.feePending ? "Paid to your Stripe account." : "You keep \(Format.money(cents: tips.netCents)) after Stripe's fee.")
+                        Text(tips.feePending ? String(localized: "Paid to your Stripe account.") : String(localized: "You keep \(Format.money(cents: tips.netCents)) after Stripe's fee."))
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
 
                 if job.returnVisitOpen {
-                    DetailBlock(title: "Return visit") {
+                    DetailBlock(title: String(localized: "Return visit")) {
                         if !job.returnVisitWhen.isEmpty {
                             Label(job.returnVisitWhen, systemImage: "calendar").font(.headline)
                         } else {
@@ -961,7 +965,7 @@ struct JobDetailView: View {
                     }
                 }
 
-                DetailBlock(title: "When and where") {
+                DetailBlock(title: String(localized: "When and where")) {
                     if !job.isFinished {
                         JobMapCard(query: job.place, exact: job.acceptedAt != nil && job.address != nil)
                     }
@@ -996,7 +1000,7 @@ struct JobDetailView: View {
                 }
 
                 if !job.itemGroups.isEmpty {
-                    DetailBlock(title: "What you're assembling") {
+                    DetailBlock(title: String(localized: "What you're assembling")) {
                         ForEach(Array(job.itemGroups.enumerated()), id: \.offset) { index, group in
                             if index > 0 { Divider() }
                             if let label = group.label, job.itemGroups.count > 1 || label != job.title {
@@ -1010,11 +1014,11 @@ struct JobDetailView: View {
                 }
 
                 if let details = job.details, !details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    DetailBlock(title: "Notes from the customer") { Text(details) }
+                    DetailBlock(title: String(localized: "Notes from the customer")) { Text(details) }
                 }
 
                 if !customerPhotos.isEmpty {
-                    DetailBlock(title: "Photos from the customer") {
+                    DetailBlock(title: String(localized: "Photos from the customer")) {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 10) {
                                 ForEach(customerPhotos) { photo in
@@ -1039,7 +1043,7 @@ struct JobDetailView: View {
                 }
 
                 if job.acceptedAt != nil && !job.isFinished {
-                    DetailBlock(title: "Contact") {
+                    DetailBlock(title: String(localized: "Contact")) {
                         if let name = job.customerName { Label(name, systemImage: "person") }
                         if let phone = job.customerPhone, let url = URL(string: "tel:" + phone.filter { "+0123456789".contains($0) }) {
                             Button { openURL(url) } label: { Label("Call customer", systemImage: "phone") }
@@ -1048,7 +1052,7 @@ struct JobDetailView: View {
                             // neither sees the other's number.
                             Button {
                                 Task { await placePrivateCall(job) }
-                            } label: { Label(placingPrivateCall ? "Calling..." : "Call customer", systemImage: "phone") }
+                            } label: { Label(placingPrivateCall ? String(localized: "Calling...") : String(localized: "Call customer"), systemImage: "phone") }
                             .disabled(placingPrivateCall)
                             if let privateCallNote { Text(privateCallNote).font(.footnote).foregroundStyle(.secondary) }
                         }
@@ -1066,7 +1070,7 @@ struct JobDetailView: View {
                 }
 
                 if job.acceptedAt != nil && job.isFinished {
-                    DetailBlock(title: "Messages") {
+                    DetailBlock(title: String(localized: "Messages")) {
                         NavigationLink {
                             MessagesView(job: job, thread: .customer)
                         } label: {
@@ -1084,7 +1088,7 @@ struct JobDetailView: View {
                 // changes, help and the customer rating (owner audit, 2026-10-12).
                 Group {
                     if let proposal = job.timeProposal, proposal.isPending, !job.isFinished {
-                        DetailBlock(title: "New time you proposed") {
+                        DetailBlock(title: String(localized: "New time you proposed")) {
                             Label([Format.day(proposal.date), proposal.time].compactMap { $0 }.joined(separator: " · "), systemImage: "calendar.badge.clock")
                             Text("Waiting on the customer.").font(.subheadline).foregroundStyle(.secondary)
                             Button("Withdraw") { Task { await store.withdrawTimeProposal(job) } }
@@ -1097,7 +1101,7 @@ struct JobDetailView: View {
                     }
 
                     if !job.extraWork.isEmpty {
-                        DetailBlock(title: "Extra work") {
+                        DetailBlock(title: String(localized: "Extra work")) {
                             ForEach(job.extraWork) { request in
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(request.description).font(.subheadline)
@@ -1109,7 +1113,7 @@ struct JobDetailView: View {
                     }
 
                     if job.acceptedAt != nil && !job.isFinished && !job.isHelper {
-                        DetailBlock(title: "Job changes") {
+                        DetailBlock(title: String(localized: "Job changes")) {
                             if job.status == "confirmed" || job.status == "en_route" {
                                 Menu {
                                     ForEach([10, 20, 30], id: \.self) { minutes in
@@ -1127,7 +1131,7 @@ struct JobDetailView: View {
                     }
 
                     if job.acceptedAt != nil {
-                        DetailBlock(title: "Something wrong?") {
+                        DetailBlock(title: String(localized: "Something wrong?")) {
                             if !job.isFinished {
                                 Button { helping = true } label: { Label("Get help with this job", systemImage: "questionmark.circle") }
                             }
@@ -1147,7 +1151,7 @@ struct JobDetailView: View {
                     }
 
                     if job.status == "completed" {
-                        DetailBlock(title: "How was the customer?") {
+                        DetailBlock(title: String(localized: "How was the customer?")) {
                             if let feedback = job.customerFeedback {
                                 if feedback.flagged {
                                     Label("You flagged a concern", systemImage: "flag.fill").foregroundStyle(Brand.attention)
@@ -1303,7 +1307,7 @@ private struct HelpSheet: View {
                             }
                         } label: {
                             HStack {
-                                Text(item.title).foregroundStyle(.primary)
+                                Text(item.title.localizedDisplay).foregroundStyle(.primary)
                                 Spacer()
                                 if topic == item.type {
                                     Image(systemName: "checkmark").foregroundStyle(Brand.skyDark)
@@ -1320,7 +1324,7 @@ private struct HelpSheet: View {
                         }
                     }
                     Section {
-                        TextField(topic == "safety_concern" ? "What is happening" : "Add details", text: $note, axis: .vertical)
+                        TextField(topic == "safety_concern" ? String(localized: "What is happening") : String(localized: "Add details"), text: $note, axis: .vertical)
                             .lineLimit(3...6)
                     } footer: {
                         if let problem { Text(problem).foregroundStyle(Brand.attention) }
@@ -1337,7 +1341,7 @@ private struct HelpSheet: View {
                     Button {
                         Task { await send() }
                     } label: {
-                        if sending { ProgressView().tint(Brand.ink) } else { Text(topic == "safety_concern" ? "Send urgent report" : "Send") }
+                        if sending { ProgressView().tint(Brand.ink) } else { Text(topic == "safety_concern" ? String(localized: "Send urgent report") : String(localized: "Send")) }
                     }
                     .buttonStyle(PrimaryButtonStyle(enabled: canSend))
                     .disabled(!canSend)
@@ -1366,7 +1370,7 @@ private struct CustomerNotHereBlock: View {
     @State private var problem: String?
 
     var body: some View {
-        DetailBlock(title: "Customer isn't here?") {
+        DetailBlock(title: String(localized: "Customer isn't here?")) {
             if let state = job.customerUnavailable {
                 if state.noShowReportedAt != nil {
                     Label("No-show reported. You can leave.", systemImage: "checkmark.circle.fill")
@@ -1444,7 +1448,7 @@ private struct AddWorkSheet: View {
                     ProgressView()
                 } else if let options, !options.canAdd {
                     ContentUnavailableView("Extra work can't be added here", systemImage: "plus.circle",
-                                           description: Text(options.reason ?? "Use Get help on this job."))
+                                           description: Text(options.reason ?? String(localized: "Use Get help on this job.")))
                 } else if let options {
                     List {
                         if !picked.isEmpty {
@@ -1580,7 +1584,7 @@ private struct ProposeTimeSheet: View {
                     ProgressView()
                 } else if let options, !options.canPropose {
                     ContentUnavailableView("A new time can't be proposed", systemImage: "calendar.badge.clock",
-                                           description: Text(options.reason ?? "Use Get help on this job."))
+                                           description: Text(options.reason ?? String(localized: "Use Get help on this job.")))
                 } else if let options {
                     Form {
                         Section {
@@ -1761,7 +1765,7 @@ private struct JobCompleteView: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: "checkmark.circle.fill").accessibilityHidden(true)
                 .font(.system(size: 64))
                 .foregroundStyle(Brand.sky)
                 .symbolEffect(.bounce, value: appeared)
@@ -1786,11 +1790,11 @@ private struct JobProgress: View {
 
     var body: some View {
         let steps: [(String, String?)] = [
-            ("Accepted", job.acceptedAt),
-            ("On the way", job.enRouteAt),
-            ("Arrived", job.arrivedAt),
-            ("Started", job.startedAt),
-            ("Done", job.status == "completed" ? (job.completedAt ?? job.startedAt) : nil),
+            (String(localized: "Accepted"), job.acceptedAt),
+            (String(localized: "On the way"), job.enRouteAt),
+            (String(localized: "Arrived"), job.arrivedAt),
+            (String(localized: "Started"), job.startedAt),
+            (String(localized: "Done"), job.status == "completed" ? (job.completedAt ?? job.startedAt) : nil),
         ]
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
@@ -1840,7 +1844,7 @@ private struct JobMapCard: View {
                                                                 longitudinalMeters: exact ? 700 : 5000)),
                     interactionModes: []) {
                     if exact {
-                        Marker("Job", coordinate: coordinate)
+                        Marker(String(localized: "Job"), coordinate: coordinate)
                             .tint(Brand.skyDark)
                     } else {
                         MapCircle(center: coordinate, radius: 1200)
@@ -1849,7 +1853,7 @@ private struct JobMapCard: View {
                 }
                 .frame(height: 130)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .accessibilityLabel(exact ? "Map of the job address" : "Map of the job area")
+                .accessibilityLabel(exact ? String(localized: "Map of the job address") : String(localized: "Map of the job area"))
             }
         }
         .task(id: query) {
@@ -1906,10 +1910,10 @@ private struct RequiredActionsCard: View {
                 Label("Action needed", systemImage: "exclamationmark.circle").font(.headline)
                 if alertsNeeded {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(store.alertsAuthorized == false ? "Notifications are off" : "Turn on notifications")
+                        Text(store.alertsAuthorized == false ? String(localized: "Notifications are off") : String(localized: "Turn on notifications"))
                             .font(.subheadline.weight(.semibold))
                         Text("Job offers arrive as notifications.").font(.subheadline).foregroundStyle(.secondary)
-                        Button(store.alertsAuthorized == false ? "Open Settings" : "Turn on") {
+                        Button(store.alertsAuthorized == false ? String(localized: "Open Settings") : String(localized: "Turn on")) {
                             if store.alertsAuthorized == false {
                                 if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                             } else {
@@ -1943,7 +1947,7 @@ private struct RequiredActionsCard: View {
     @ViewBuilder
     private func button(for action: RequiredAction) -> some View {
         if action.rule == "payout_setup_incomplete" {
-            Button(action.actionLabel ?? "Set up payouts") { showingPayouts = true }
+            Button(action.actionLabel ?? String(localized: "Set up payouts")) { showingPayouts = true }
                 .buttonStyle(PrimaryButtonStyle())
         } else if action.ackRequired {
             if let url = link(action.actionURL) {
@@ -1956,12 +1960,12 @@ private struct RequiredActionsCard: View {
                     working = nil
                 }
             } label: {
-                if working == action.id { ProgressView().tint(Brand.ink) } else { Text(action.actionLabel ?? "I understand") }
+                if working == action.id { ProgressView().tint(Brand.ink) } else { Text(action.actionLabel ?? String(localized: "I understand")) }
             }
             .buttonStyle(PrimaryButtonStyle())
             .disabled(working != nil)
         } else if let url = link(action.actionURL) {
-            Button(action.actionLabel ?? "Open") { openURL(url) }.buttonStyle(PrimaryButtonStyle())
+            Button(action.actionLabel ?? String(localized: "Open")) { openURL(url) }.buttonStyle(PrimaryButtonStyle())
         }
     }
 
@@ -2018,9 +2022,9 @@ private struct PhotoSheet: View {
 
     private var title: String {
         switch mode {
-        case .completion: return "Complete job"
-        case .requested: return "Add photos"
-        case .damage: return "Report damage"
+        case .completion: return String(localized: "Complete job")
+        case .requested: return String(localized: "Add photos")
+        case .damage: return String(localized: "Report damage")
         }
     }
 
@@ -2028,17 +2032,17 @@ private struct PhotoSheet: View {
         switch mode {
         case .completion:
             guard let remainingPhotoCount else {
-                return "The required photo count is unavailable. Refresh the job and try again."
+                return String(localized: "The required photo count is unavailable. Refresh the job and try again.")
             }
             return itemCount > 1
-                ? "This job has \(itemCount) booked units. Add one clear photo of each. \(remainingPhotoCount) photo\(remainingPhotoCount == 1 ? "" : "s") still needed."
-                : "Add a clear photo of the finished work. \(remainingPhotoCount) photo\(remainingPhotoCount == 1 ? "" : "s") still needed."
+                ? String(localized: "This job has \(itemCount) booked units. Add one clear photo of each. \(remainingPhotoCount) photo\(remainingPhotoCount == 1 ? "" : "s") still needed.")
+                : String(localized: "Add a clear photo of the finished work. \(remainingPhotoCount) photo\(remainingPhotoCount == 1 ? "" : "s") still needed.")
         case .requested:
             guard let remainingPhotoCount else {
-                return "The required photo count is unavailable. Refresh the job and try again."
+                return String(localized: "The required photo count is unavailable. Refresh the job and try again.")
             }
-            return "Add \(remainingPhotoCount) clear photo\(remainingPhotoCount == 1 ? "" : "s") of the completed work."
-        case .damage: return "Add a photo of the damage and describe what happened."
+            return String(localized: "Add \(remainingPhotoCount) clear photo\(remainingPhotoCount == 1 ? "" : "s") of the completed work.")
+        case .damage: return String(localized: "Add a photo of the damage and describe what happened.")
         }
     }
 
@@ -2127,11 +2131,11 @@ private struct PhotoSheet: View {
                     if submitting {
                         ProgressView().tint(Brand.ink)
                     } else if !hasPhoto {
-                        Text(mode == .damage ? "Add a photo to continue" : "Add the required photos")
+                        Text(mode == .damage ? String(localized: "Add a photo to continue") : String(localized: "Add the required photos"))
                     } else if !ready {
-                        Text(mode == .damage ? "Describe what happened" : "Add the remaining photos")
+                        Text(mode == .damage ? String(localized: "Describe what happened") : String(localized: "Add the remaining photos"))
                     } else {
-                        Text(mode == .completion ? "Submit completion" : (mode == .damage ? "Send report" : "Send photo"))
+                        Text(mode == .completion ? String(localized: "Submit completion") : (mode == .damage ? String(localized: "Send report") : String(localized: "Send photo")))
                     }
                 }
                 .buttonStyle(PrimaryButtonStyle(enabled: ready))
@@ -2201,7 +2205,7 @@ private struct MultiPhotoChooser: View {
                     Button {
                         showCamera = true
                     } label: {
-                        Label(photos.isEmpty ? "Take photo" : "Take another photo", systemImage: "camera")
+                        Label(photos.isEmpty ? String(localized: "Take photo") : String(localized: "Take another photo"), systemImage: "camera")
                     }
                     .buttonStyle(SecondaryButtonStyle())
                 }
@@ -2256,7 +2260,7 @@ private struct PhotoChooser: View {
                 Button {
                     showCamera = true
                 } label: {
-                    Label(photo == nil ? "Take photo" : "Retake photo", systemImage: "camera")
+                    Label(photo == nil ? String(localized: "Take photo") : String(localized: "Retake photo"), systemImage: "camera")
                 }
                 .buttonStyle(SecondaryButtonStyle())
             }
@@ -2310,7 +2314,7 @@ private struct ReleaseSheet: View {
                 Section("Reason") {
                     Picker("Reason", selection: $reason) {
                         Text("Choose a reason").tag("")
-                        ForEach(EaserStore.releaseReasons, id: \.self) { Text($0).tag($0) }
+                        ForEach(EaserStore.releaseReasons, id: \.self) { Text($0.localizedDisplay).tag($0) }
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
@@ -2345,7 +2349,7 @@ private struct ReleaseSheet: View {
                     if let impact = try await store.releaseImpact(job) {
                         impactText = impact.text
                     } else {
-                        impactProblem = "The reliability cost could not be loaded. Cancelling within 24 hours of the job counts as a strike."
+                        impactProblem = String(localized: "The reliability cost could not be loaded. Cancelling within 24 hours of the job counts as a strike.")
                     }
                 } catch {
                     impactProblem = error.localizedDescription
@@ -2404,7 +2408,7 @@ private struct MessagesView: View {
     }
 
     private var customerFirstName: String {
-        job.customerName?.split(separator: " ").first.map(String.init) ?? "Customer"
+        job.customerName?.split(separator: " ").first.map(String.init) ?? String(localized: "Customer")
     }
 
     private var replies: [String] {
@@ -2440,7 +2444,7 @@ private struct MessagesView: View {
 
             ChatTranscript(
                 lines: lines,
-                emptyText: loaded ? (thread == .customer ? "No messages with \(customerFirstName) yet." : "No messages with AssembleAtEase yet.") : ""
+                emptyText: loaded ? (thread == .customer ? String(localized: "No messages with \(customerFirstName) yet.") : String(localized: "No messages with AssembleAtEase yet.")) : ""
             )
             .refreshable { await load() }
 
@@ -2463,7 +2467,7 @@ private struct MessagesView: View {
                         QuickReplies(replies: replies) { text in Task { await send(text) } }
                     }
                     ChatComposer(draft: $draft,
-                                 placeholder: thread == .customer ? "Message \(customerFirstName)" : "Message AssembleAtEase",
+                                 placeholder: thread == .customer ? String(localized: "Message \(customerFirstName)") : String(localized: "Message AssembleAtEase"),
                                  sending: sending) {
                         Task { await send(draft) }
                     }
@@ -2525,9 +2529,9 @@ private struct EarningsView: View {
                 if let summary = store.earnings?.summary {
                     Section {
                         HStack {
-                            MoneyTile(title: "Awaiting payout", cents: summary.awaitingPayoutCents)
+                            MoneyTile(title: String(localized: "Awaiting payout"), cents: summary.awaitingPayoutCents)
                             Divider()
-                            MoneyTile(title: "Paid", cents: summary.paidCents)
+                            MoneyTile(title: String(localized: "Paid"), cents: summary.paidCents)
                         }
                         if summary.onHoldCents > 0 {
                             LabeledContent("On hold") {
@@ -2543,7 +2547,7 @@ private struct EarningsView: View {
                 Section {
                     let rows = store.earnings?.earnings ?? []
                     if rows.isEmpty {
-                        Text(store.loadedOnce ? "Earnings from completed jobs will appear here." : "Loading")
+                        Text(store.loadedOnce ? String(localized: "Earnings from completed jobs will appear here.") : String(localized: "Loading"))
                             .foregroundStyle(.secondary)
                     }
                     ForEach(rows.prefix(recentCount)) { EarningRow(earning: $0) }
@@ -2567,7 +2571,7 @@ private struct EarningsView: View {
                         ForEach(tips.items.prefix(recentCount)) { tip in
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(tip.service ?? "Job").font(.subheadline)
+                                    Text(tip.service ?? String(localized: "Job")).font(.subheadline)
                                     Text([tip.ref, Format.day(tip.date)].compactMap { $0 }.joined(separator: " · "))
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
@@ -2603,7 +2607,7 @@ private struct ReliabilityCard: View {
     var body: some View {
         if let standing = store.reliability, standing.paused || standing.strikes > 0 {
             VStack(alignment: .leading, spacing: 8) {
-                Label(standing.paused ? "New jobs are paused" : "Reliability", systemImage: standing.paused ? "pause.circle.fill" : "exclamationmark.shield")
+                Label(standing.paused ? String(localized: "New jobs are paused") : String(localized: "Reliability"), systemImage: standing.paused ? "pause.circle.fill" : "exclamationmark.shield")
                     .font(.headline)
                     .foregroundStyle(standing.paused ? Brand.attention : .primary)
                 Text("\(standing.strikes) strike\(standing.strikes == 1 ? "" : "s") in the last \(standing.windowDays) days. New jobs pause at \(standing.pauseAtStrikes).")
@@ -2660,7 +2664,7 @@ private struct InboxView: View {
                 .listRowSeparator(.hidden)
 
                 if shown.isEmpty {
-                    Text(store.loadedOnce ? (filter == "all" ? "Job updates will appear here." : "Nothing here yet.") : "Loading")
+                    Text(store.loadedOnce ? (filter == "all" ? String(localized: "Job updates will appear here.") : String(localized: "Nothing here yet.")) : String(localized: "Loading"))
                         .foregroundStyle(.secondary)
                 }
 
@@ -2672,7 +2676,7 @@ private struct InboxView: View {
                     }
                 }
                 if !earlier.isEmpty {
-                    Section(unread.isEmpty ? "" : "Earlier") {
+                    Section(unread.isEmpty ? "" : String(localized: "Earlier")) {
                         ForEach(earlier) { NoticeRow(notice: $0) }
                     }
                 }
@@ -2845,6 +2849,9 @@ private struct AccountView: View {
                     }
                     NavigationLink { WorkPreferencesView() } label: {
                         Label("Work preferences", systemImage: "slider.horizontal.3")
+                    }
+                    NavigationLink { ReferralView() } label: {
+                        Label("Refer a pro", systemImage: "person.badge.plus")
                     }
                     Picker(selection: $navigationApp) {
                         Text("Ask each time").tag("")

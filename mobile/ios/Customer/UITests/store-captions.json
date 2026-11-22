@@ -1,12 +1,57 @@
 {
-  "_about": "App Store screenshot headlines for the customer app. StoreScreenshots.swift takes each screen by the name on the left; scripts/app-store-frames.py puts the headline above it. 'order' is the order shown on the App Store; the first three appear in search results. Owner approves the words.",
-  "order": ["01-home", "04-order", "02-search", "05-when", "06-bundles", "03-furniture-list"],
-  "captions": {
-    "01-home": { "headline": "Home setup, booked in minutes", "subline": "Furniture, TV mounting and smart home" },
-    "04-order": { "headline": "See the price before you book", "subline": "You pay when the job is done" },
-    "02-search": { "headline": "Type the job. Add it in one tap", "subline": "Mount a TV, build a dresser, hang a mirror" },
-    "05-when": { "headline": "Pick a day and an arrival window", "subline": "A local pro comes to you" },
-    "06-bundles": { "headline": "Whole rooms in one booking", "subline": "Bedroom, living room, home office, move-in" },
-    "03-furniture-list": { "headline": "Every piece, listed", "subline": "Beds, dressers, desks, sofas and more" }
+  "_about": "App Store screenshots for the customer app, in English and Spanish. StoreScreenshots.swift takes each screen by the name on the left; scripts/app-store-frames.py lays out each frame. 'order' is the order on the App Store; the first three appear in search results. Photos are real jobs already on the website (images/real-*), each used once. Owner approves the words.",
+  "order": ["01-home", "04-order", "02-search", "05-when", "06-bundles", "07-work", "03-furniture-list"],
+  "frames": {
+    "01-home": {
+      "layout": "billboard",
+      "photo": "images/real-tv-setup-console.jpg",
+      "focus": 0.3,
+      "en": { "headline": "Home setup, done right", "subline": "Furniture, TV mounting, smart home and more" },
+      "es": { "headline": "Armado e instalación, bien hecho", "subline": "Muebles, TV, casa inteligente y más" }
+    },
+    "04-order": {
+      "layout": "screen",
+      "photo": "images/real-furniture-dresser-wood.jpg",
+      "en": { "headline": "See the price before you book", "subline": "You pay when the job is done" },
+      "es": { "headline": "Ve el precio antes de reservar", "subline": "Pagas cuando el trabajo termina" }
+    },
+    "02-search": {
+      "layout": "screen",
+      "photo": "images/real-tv-dawg-days.jpg",
+      "focus": 0.35,
+      "en": { "headline": "Type the job. Add it in one tap", "subline": "Mount a TV, build a dresser, hang a mirror" },
+      "es": { "headline": "Escribe el trabajo y agrégalo", "subline": "Instala una TV, arma una cómoda, cuelga un espejo" }
+    },
+    "05-when": {
+      "layout": "screen",
+      "photo": "images/real-smarthome-doorbell-adt.jpg",
+      "en": { "headline": "Pick a day and an arrival window", "subline": "A local pro comes to you" },
+      "es": { "headline": "Elige el día y la hora de llegada", "subline": "Un profesional local va a tu casa" }
+    },
+    "06-bundles": {
+      "layout": "screen",
+      "photo": "images/real-office-home-ldesk.jpg",
+      "en": { "headline": "Whole rooms in one booking", "subline": "Bedroom, living room, home office, move-in" },
+      "es": { "headline": "Cuartos completos en una reserva", "subline": "Recámara, sala, oficina en casa, mudanza" }
+    },
+    "07-work": {
+      "layout": "work",
+      "photos": [
+        "images/real-fitness-home-gym.jpg",
+        "images/real-outdoor-patio-gray.jpg",
+        "images/real-office-workstations.jpg",
+        "images/real-smarthome-doorbell-vivint.png",
+        "images/real-outdoor-covered-patio.jpg",
+        "images/real-office-cabinets.jpg"
+      ],
+      "en": { "headline": "Real jobs, finished right", "subline": "Home gyms, patios, offices and smart homes" },
+      "es": { "headline": "Trabajos reales, bien terminados", "subline": "Gimnasios, patios, oficinas y casas inteligentes" }
+    },
+    "03-furniture-list": {
+      "layout": "screen",
+      "photo": "images/real-furniture-dresser-white.png",
+      "en": { "headline": "Every piece, listed", "subline": "Beds, dressers, desks, sofas and more" },
+      "es": { "headline": "Cada mueble, en la lista", "subline": "Camas, cómodas, escritorios, sofás y más" }
+    }
   }
 }

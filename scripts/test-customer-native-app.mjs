@@ -15,7 +15,10 @@ import { customerPaymentSummary } from '../api/booking/_customer-payment-summary
 
 // Line endings normalised: a Windows checkout (CRLF) must pass the same checks as CI (LF).
 const read = (f) => readFileSync(f, 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n');
-const dir = (d) => Object.fromEntries(readdirSync(d).filter(f => f.endsWith('.swift')).map(f => [f, read(`${d}/${f}`)]));
+// Spanish (scripts/test-ios-spanish.mjs) wraps on-screen phrases in String(localized:); the
+// wiring checks here read the phrase itself.
+const unwrapLocalized = (s) => s.replace(/String\(localized: ("(?:[^"\\\n]|\\.)*")\)/g, '$1');
+const dir = (d) => Object.fromEntries(readdirSync(d).filter(f => f.endsWith('.swift')).map(f => [f, unwrapLocalized(read(`${d}/${f}`))]));
 const customer = dir('mobile/ios/Customer/Customer');
 const easer = dir('mobile/ios/App/App');
 const shared = dir('mobile/ios/Shared');
@@ -191,6 +194,23 @@ const app = Object.values(customer).join('\n');
   assert.match(flow, /Optional: Text me appointment and service updates from AssembleAtEase at the number above\. Message frequency varies\. Message and data rates may apply\. Consent is not a condition of purchase\. Reply STOP to opt out or HELP for help\./,
     'the text-message consent words are the website\'s, word for word');
   assert.ok(read('book.html').includes('Optional: Text me appointment and service updates from AssembleAtEase at the number above.'), 'and the website still says them');
+  // Gift cards, as on the website: the field shows only while the server takes codes, the code
+  // rides the same order fields book.html sends, and the amount and any refusal are the server's.
+  const giftCardApi = read('api/gift-cards/checkout.js');
+  assert.match(giftCardApi, /acceptingCodes,/, 'the server says whether codes are taken');
+  assert.match(customer['CustomerAPI.swift'], /publicCall\("GET", "\/api\/gift-cards\/checkout"\)/);
+  assert.match(customer['CustomerAPI.swift'], /object\["acceptingCodes"\]/);
+  assert.match(read('book.html'), /giftCardCode:BOOK\.giftCardCode/, 'the website preview sends giftCardCode');
+  assert.match(preview, /const \{[^}]*giftCardCode[^}]*\} = req\.body/, 'the preview reads giftCardCode');
+  assert.match(bookingApi, /giftCardCode,/, 'the booking reads giftCardCode');
+  assert.match(flow, /"giftCardCode": giftCardsAccepting && !quote \?/, 'never sent on a quote or while codes are not taken');
+  assert.match(flow, /if flow\.giftCardsAccepting && !flow\.hasCustomQuote/);
+  for (const field of ['gift_card', 'applied_cents', 'remaining_cents', 'gift_card_error']) {
+    assert.ok(preview.includes(field) && models.includes(`"${field}"`), `preview field ${field}`);
+  }
+  assert.match(flow, /if let error = preview\.giftCardError, !error\.isEmpty \{ return \(error, false\) \}/, 'the server\'s reason, word for word');
+  assert.doesNotMatch(flow, /giftCard\w*Cents\s*[-+*]/, 'no gift card math in the app');
+
   // A retry reuses the booking it already made instead of minting another (book.html does the same).
   assert.match(flow, /held\.fingerprint == orderPrint/);
   // A card hold that went through is confirmed without asking the customer again (Rule 16).
@@ -213,18 +233,18 @@ const app = Object.values(customer).join('\n');
 // ── 4d. Home, not a booking list (owner, 2026-10-13: "customer lands on booking ... seems
 // basic"). The progress a booking shows is the server's, in the list and when opened. ─
 {
-  const appSource = read('mobile/ios/Customer/Customer/CustomerApp.swift');
+  const appSource = unwrapLocalized(read('mobile/ios/Customer/Customer/CustomerApp.swift'));
   assert.ok(appSource.indexOf('HomeView()') > 0 && appSource.indexOf('HomeView()') < appSource.indexOf('ActivityView()'), 'Home is the first tab');
   // Three tabs, one job each (owner, 2026-10-14: "home and services double talk"): Home finds
   // and books, Activity follows what was booked and the messages about it, Account is the person.
   assert.equal((appSource.match(/\.tabItem \{/g) || []).length, 3, 'three tabs');
   assert.doesNotMatch(appSource, /ServicesView\(\)|InboxView\(\)|BookingsView\(\)/, 'no second catalog tab, no separate inbox tab');
-  const homeSource = read('mobile/ios/Customer/Customer/CustomerHome.swift');
-  const viewsSource = read('mobile/ios/Customer/Customer/CustomerViews.swift');
+  const homeSource = unwrapLocalized(read('mobile/ios/Customer/Customer/CustomerHome.swift'));
+  const viewsSource = unwrapLocalized(read('mobile/ios/Customer/Customer/CustomerViews.swift'));
   assert.doesNotMatch(homeSource, /ForEach\(store\.(upcoming|past|bookings)/, 'Home does not list bookings; Activity does');
   assert.doesNotMatch(viewsSource, /SearchBox|ServicesGrid|BundleCard/, 'Activity and Account do not repeat the catalog');
   assert.equal((homeSource.match(/SearchBox \{/g) || []).length, 1, 'one search box in the app');
-  assert.match(read('mobile/ios/Customer/Customer/CustomerStore.swift'), /@Published var tab: CustomerTab = \.home/, 'the app opens on Home');
+  assert.match(unwrapLocalized(read('mobile/ios/Customer/Customer/CustomerStore.swift')), /@Published var tab: CustomerTab = \.home/, 'the app opens on Home');
   const { customerProgress, CUSTOMER_PROGRESS_STEPS } = await import('../api/booking/_customer-status.js');
   assert.equal(customerProgress({ status: 'confirmed' }).step, 0);
   assert.equal(customerProgress({ status: 'confirmed', assembler_accepted_at: 'x' }).step, 1);
@@ -246,7 +266,7 @@ const app = Object.values(customer).join('\n');
 // ── 4e. Notifications, lock-screen tracker, AssembleCash, Inbox (owner, 2026-10-13).
 {
   const { liveActivityState, customerPushCopy } = await import('../api/_customer-push.js');
-  const attributes = read('mobile/ios/Customer/LiveShared/BookingActivityAttributes.swift');
+  const attributes = unwrapLocalized(read('mobile/ios/Customer/LiveShared/BookingActivityAttributes.swift'));
   const state = liveActivityState({ status: 'en_route', assembler_accepted_at: 'x', assembler_name: 'Trapper Jones', time: '10:00 AM – 12:00 PM' });
   for (const key of Object.keys(state)) {
     assert.match(attributes, new RegExp(`var ${key}: `), `the tracker's ${key} is a field the lock screen reads`);
@@ -286,7 +306,7 @@ const app = Object.values(customer).join('\n');
   const home = customer['CustomerHome.swift'];
   assert.match(home, /SearchBox \{ searching = true \}/);
   assert.match(home, /private var pick: Pick\?/, 'one suggestion, chosen in one place');
-  assert.match(read('mobile/ios/Customer/Customer/CustomerApp.swift'), /HomeView\(\)[\s\S]*ActivityView\(\)[\s\S]*CustomerAccountView\(\)/);
+  assert.match(unwrapLocalized(read('mobile/ios/Customer/Customer/CustomerApp.swift')), /HomeView\(\)[\s\S]*ActivityView\(\)[\s\S]*CustomerAccountView\(\)/);
   const project = read('mobile/ios/Customer/project.yml');
   assert.match(project, /CustomerLiveActivity:[\s\S]*PRODUCT_BUNDLE_IDENTIFIER: com\.assembleatease\.customer\.live/, 'the tracker extension shares the app prefix (Codemagic signs com.assembleatease.customer.*)');
   assert.match(project, /product: FirebaseMessaging/);
@@ -333,7 +353,7 @@ const app = Object.values(customer).join('\n');
   for (const status of ['completed', 'cancelled', 'declined', 'refunded']) {
     assert.equal(customerMessageRecipient({ ...accepted, status }), 'owner', `after ${status} the customer writes to AssembleAtEase`);
   }
-  const easerViews = read('mobile/ios/App/App/EaserViews.swift');
+  const easerViews = unwrapLocalized(read('mobile/ios/App/App/EaserViews.swift'));
   assert.match(easerViews, /if job\.acceptedAt != nil && job\.isFinished \{\s*DetailBlock\(title: "Messages"\)/, 'a finished job still shows its conversations to the Easer');
   assert.match(easerViews, /if thread == \.customer && job\.isFinished \{/, 'and the customer thread of a finished job reads, it does not send');
 
@@ -569,17 +589,39 @@ const app = Object.values(customer).join('\n');
 // each with one headline on the brand colour, made from the real app by the
 // customer-screenshots workflow.
 {
-  const shots = read('mobile/ios/Customer/UITests/StoreScreenshots.swift');
+  const shots = unwrapLocalized(read('mobile/ios/Customer/UITests/StoreScreenshots.swift'));
   const spec = JSON.parse(read('mobile/ios/Customer/UITests/store-captions.json'));
   const saved = [...shots.matchAll(/save\("([^"]+)"\)/g)].map((m) => m[1]);
   assert.equal(saved.length, 6, `six screens are taken (${saved})`);
-  assert.deepEqual([...saved].sort(), Object.keys(spec.captions).sort(), 'every screen taken has a headline, and every headline has a screen');
-  assert.deepEqual([...spec.order].sort(), [...saved].sort(), 'the App Store order lists each screen once');
+  const screenFrames = Object.entries(spec.frames).filter(([, f]) => f.layout !== 'work').map(([name]) => name);
+  assert.deepEqual([...saved].sort(), [...screenFrames].sort(), 'every screen taken has a frame, and every screen frame has a screen');
+  assert.deepEqual([...spec.order].sort(), Object.keys(spec.frames).sort(), 'the App Store order lists each frame once');
+  assert.equal(spec.frames[spec.order[0]].layout, 'billboard', 'the first frame is the billboard');
+  assert.match(shots, /func testCaptureEnglish\(\)[\s\S]*func testCaptureSpanish\(\)/, 'every screen in both languages');
+  assert.ok(shots.includes('"-AppleLanguages", "(\\(language))"'), 'each run launches the app in its language');
   assert.ok(!/signIn|sign-in code|typeText\("[^"]*@/.test(shots.replace(/before sign-in/g, '')), 'the screenshots browse as a guest and never sign in');
-  for (const [name, caption] of Object.entries(spec.captions)) {
-    assert.ok(caption.headline && caption.headline.length <= 34, `${name}: a headline of at most 34 characters (two lines)`);
-    assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(caption.headline + (caption.subline || '')), `${name}: no emojis`);
-    assert.ok(!/\b(cheap|cheapest|discount|bargain|budget)\b/i.test(caption.headline + ' ' + (caption.subline || '')), `${name}: premium positioning`);
+  // What the test taps in Spanish is the app's own Spanish.
+  const es = JSON.parse(read('mobile/ios/Localization/es.json')).strings;
+  for (const [, en, spanish] of shots.matchAll(/^\s*"([^"]+)": "([^"]+)",$/gm)) {
+    assert.equal(spanish, es[en], `the screenshot test taps "${en}" as the app shows it in Spanish`);
+  }
+  // Photos: real jobs already on the website, each once, never a TV showing a league or a brand.
+  const photos = Object.values(spec.frames).flatMap((f) => [f.photo, ...(f.photos || [])]).filter(Boolean);
+  assert.equal(new Set(photos).size, photos.length, 'no photo twice in the set');
+  for (const photo of photos) {
+    assert.match(photo, /^images\/real-[a-z0-9-]+\.(jpg|png)$/, `${photo}: a real job photo`);
+    assert.ok(existsSync(photo), `${photo} exists`);
+  }
+  assert.ok(!photos.some((p) => /hero-real-tv-console|real-tv-mount-console/.test(p)), 'no screen showing a sports league or app logos');
+  for (const [name, frame] of Object.entries(spec.frames)) {
+    for (const lang of ['en', 'es']) {
+      const caption = frame[lang];
+      assert.ok(caption?.headline && caption.headline.length <= 34, `${name} ${lang}: a headline of at most 34 characters (two lines)`);
+      const words = caption.headline + ' ' + (caption.subline || '');
+      assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(words), `${name} ${lang}: no emojis`);
+      assert.ok(!/\b(cheap|cheapest|discount|bargain|budget|barato|descuento|ganga)\b/i.test(words), `${name} ${lang}: premium positioning`);
+      assert.ok(!/background[- ]check|antecedentes|insured|asegurad|licensed|licenciad/i.test(words), `${name} ${lang}: no claim the platform cannot back`);
+    }
   }
   const frames = read('scripts/app-store-frames.py');
   const css = read('assets/css/marketing.css');
@@ -592,7 +634,8 @@ const app = Object.values(customer).join('\n');
   const codemagicYaml = read('codemagic.yaml');
   const workflow = codemagicYaml.slice(codemagicYaml.indexOf('customer-screenshots:'));
   assert.match(workflow, /scripts\/app-store-frames\.py --raw "\$CM_BUILD_DIR\/screenshots" --out "\$CM_BUILD_DIR\/app-store"/, 'the workflow adds the headlines');
-  assert.match(workflow, /artifacts:\s*\n\s*- screenshots\/\*\.png\s*\n\s*- app-store\/\*\.png/, 'and keeps the finished set');
+  assert.match(workflow, /for lang in en es; do/, 'both languages are collected');
+  assert.match(workflow, /artifacts:\s*\n\s*- screenshots\/\*\/\*\.png\s*\n\s*- app-store\/\*\/\*\.png/, 'and keeps the finished set');
 }
 
 console.log('PASS customer native app: separate app with its own bundle ID and workflow, shared code compiled by both, every endpoint and field matches the server, prices and permissions from the server, in-app account deletion.');

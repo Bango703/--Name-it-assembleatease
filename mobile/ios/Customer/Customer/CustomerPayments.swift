@@ -71,7 +71,7 @@ enum CardSheet {
             sheet = PaymentSheet(setupIntentClientSecret: secret, configuration: configuration)
         }
 
-        guard let host = topController() else { return .failed("The card screen could not open. Try again.") }
+        guard let host = topController() else { return .failed(String(localized: "The card screen could not open. Try again.")) }
         return await withCheckedContinuation { continuation in
             sheet.present(from: host) { result in
                 switch result {

@@ -15,7 +15,10 @@ import { EASER_STAGE } from '../api/_source-of-truth.js';
 const read = (f) => readFileSync(f, 'utf8');
 const APP = 'mobile/ios/App/App';
 const swiftFiles = readdirSync(APP).filter(f => f.endsWith('.swift'));
-const swift = Object.fromEntries(swiftFiles.map(f => [f, read(`${APP}/${f}`)]));
+// Spanish (scripts/test-ios-spanish.mjs) wraps on-screen phrases in String(localized:); the
+// wiring checks here read the phrase itself.
+const unwrapLocalized = (s) => s.replace(/String\(localized: ("(?:[^"\\\n]|\\.)*")\)/g, '$1');
+const swift = Object.fromEntries(swiftFiles.map(f => [f, unwrapLocalized(read(`${APP}/${f}`))]));
 // Code both iPhone apps share (mobile/ios/Shared, 2026-10-13) is read as part of
 // the Easer file it came from, so every check below still covers it.
 swift['EaserSupport.swift'] += '\n' + read('mobile/ios/Shared/AppFoundation.swift');
@@ -437,5 +440,61 @@ assert.doesNotMatch(assignApi, /\(booking\.date \|\| ''\)/, 'no raw stored date 
 
 // ── 8. The website is untouched by the app build ─────────────────────────────
 assert.equal(JSON.parse(read('mobile/capacitor.config.json')).server.url, 'https://www.assembleatease.com/app', 'Android keeps its existing shell; iOS no longer reads this');
+
+// ── 9. App Store screenshots (owner, 2026-11-21) ─────────────────────────────
+// A simulator-only copy built from the same sources; App.xcodeproj stays the one that ships.
+{
+  const shotsSpec = read('mobile/ios/App/screenshots.yml');
+  assert.match(shotsSpec, /sources:\s*\n\s*- path: App\n[\s\S]*- path: \.\.\/Shared/, 'built from the release sources');
+  assert.match(shotsSpec, /PRODUCT_BUNDLE_IDENTIFIER: com\.assembleatease\.easer\n/);
+  assert.equal((shotsSpec.match(/CODE_SIGNING_ALLOWED: NO/g) || []).length, 2, 'never signed');
+  assert.match(shotsSpec, /EaserScreenshots:[\s\S]*EaserShotsUITests/);
+  const pbx = read('mobile/ios/App/App.xcodeproj/project.pbxproj');
+  assert.ok(!/UITests|EaserShots|EaserStoreScreenshots/.test(pbx), 'the shipping project has no screenshot code');
+  assert.match(read('.gitignore'), /mobile\/ios\/App\/EaserShots\.xcodeproj\//, 'the generated project is not committed');
+
+  const shots = read('mobile/ios/App/UITests/EaserStoreScreenshots.swift');
+  const spec = JSON.parse(read('mobile/ios/App/UITests/store-captions.json'));
+  const saved = [...shots.matchAll(/save\("([^"]+)"\)/g)].map((m) => m[1]);
+  assert.deepEqual([...saved].sort(), Object.keys(spec.frames).filter((n) => spec.frames[n].layout !== 'work').sort(), 'every screen taken has a frame');
+  assert.deepEqual([...spec.order].sort(), Object.keys(spec.frames).sort(), 'the App Store order lists each frame once');
+  assert.equal(spec.frames[spec.order[0]].layout, 'billboard');
+  assert.match(shots, /env\["EASER_DEMO_EMAIL"\][\s\S]*env\["EASER_DEMO_PASSWORD"\]/, 'credentials come from the workflow');
+  assert.ok(!/typeText\("/.test(shots), 'no credential is written in the test');
+  assert.match(shots, /throw XCTSkip/, 'without credentials it skips instead of failing');
+  const es = JSON.parse(read('mobile/ios/Localization/es.json')).strings;
+  for (const [, en, spanish] of shots.matchAll(/^\s*"([^"]+)": "([^"]+)",$/gm)) {
+    assert.equal(spanish, es[en], `the screenshot test taps "${en}" as the app shows it in Spanish`);
+  }
+  // Real jobs from bookings cleared for marketing, location data removed, each once.
+  const photos = Object.values(spec.frames).flatMap((f) => [f.photo, ...(f.photos || [])]).filter(Boolean);
+  assert.equal(new Set(photos).size, photos.length, 'no photo twice in the set');
+  for (const photo of photos) {
+    assert.match(photo, /^images\/real-[a-z0-9-]+\.jpg$/);
+    const bytes = readFileSync(photo);
+    assert.ok(!bytes.includes(Buffer.from('Exif\0\0')), `${photo}: no camera or location data`);
+  }
+  // Recruiting words match what the platform pays.
+  const { EASER_REFERRAL_POLICY } = await import('../api/_easer-referrals.js');
+  const refer = spec.frames['06-refer'];
+  const dollars = `$${EASER_REFERRAL_POLICY.rewardCents / 100}`;
+  for (const lang of ['en', 'es']) {
+    assert.ok(refer[lang].headline.includes(dollars), `${lang}: the referral amount is ${dollars}`);
+    assert.ok(refer[lang].subline.includes(String(EASER_REFERRAL_POLICY.qualifyingJobs)), `${lang}: after ${EASER_REFERRAL_POLICY.qualifyingJobs} paid jobs`);
+  }
+  for (const [name, frame] of Object.entries(spec.frames)) {
+    for (const lang of ['en', 'es']) {
+      const words = `${frame[lang].headline} ${frame[lang].subline || ''}`;
+      assert.ok(frame[lang].headline.length <= 34, `${name} ${lang}: two lines at most`);
+      assert.ok(!/employee|empleado|salary|salario|guaranteed|garantizad|hourly|por hora/i.test(words), `${name} ${lang}: independent-contractor wording, no promised pay`);
+    }
+  }
+  const codemagicYaml = read('codemagic.yaml');
+  const workflow = codemagicYaml.slice(codemagicYaml.indexOf('  easer-screenshots:'));
+  assert.match(workflow, /xcodegen generate --spec screenshots\.yml/);
+  assert.match(workflow, /export TEST_RUNNER_EASER_DEMO_EMAIL="\$EASER_DEMO_EMAIL" TEST_RUNNER_EASER_DEMO_PASSWORD="\$EASER_DEMO_PASSWORD"/);
+  assert.match(workflow, /app-store-frames\.py [^\n]*--captions mobile\/ios\/App\/UITests\/store-captions\.json/);
+  assert.ok(!/build-ipa|app_store_connect|publishing:/.test(workflow.slice(0, workflow.indexOf('artifacts:'))), 'nothing is signed or sent to Apple');
+}
 
 console.log('PASS easer native app: native Easer-only screens, every endpoint and field matches the server, server decides availability and pay, photo limits shared, Keychain session with refresh, push registered and removed, closure in-app.');
