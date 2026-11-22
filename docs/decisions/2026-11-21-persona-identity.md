@@ -55,4 +55,6 @@ Owner only (passwords and secrets are never entered by an agent):
 3. Vercel > Production: `PERSONA_API_KEY`, `PERSONA_WEBHOOK_SECRET`. `PERSONA_INQUIRY_TEMPLATE_ID` and `IDENTITY_PROVIDER=persona` are not secrets. Persona is used only once the key and the template are both present (`identityProvider()`), so setting the switch first is safe.
 4. Redeploy (env changes apply to new deployments), then one real verification end to end.
 
+Configured 2026-11-22 (after the steps above): webhook `wbh_AS9QkdzNBhsUgz48vZNp4CY71JdcNy` enabled in Production (Persona creates webhooks disabled; Enable needs the password); `PERSONA_API_KEY` and `PERSONA_WEBHOOK_SECRET` added by the owner, `PERSONA_INQUIRY_TEMPLATE_ID` and `IDENTITY_PROVIDER=persona` added as Config variables, all Production. Live once the next production deployment includes them.
+
 Contractor agreement: unchanged on purpose. A new agreement version makes every Easer re-sign the whole agreement (sign prompt; price requests and membership wait for it; it counts as an inactivity reason). Persona applicants see Persona's own biometric notice and consent before capture, and the Privacy Notice names both providers, which covers Texas's notice-before-capture rule. The section 6 wording above goes in with the next substantive agreement change (backlog AGREEMENT-ID-PROVIDER-WORDING).
