@@ -252,18 +252,21 @@ workflows:
             -destination "id=$SIM_UDID" -configuration Release \
             CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO ENABLE_TESTABILITY=YES \
             -resultBundlePath "$CM_BUILD_DIR/screenshots.xcresult" | tail -40
-          ls -la "$HOME/aae-screens"
-          mkdir -p "$CM_BUILD_DIR/screenshots" && cp "$HOME"/aae-screens/*.png "$CM_BUILD_DIR/screenshots/"
-          sips -g pixelWidth -g pixelHeight "$CM_BUILD_DIR"/screenshots/*.png
-      - name: Add the App Store headlines
-        # One headline per screen from store-captions.json, on the brand colour,
-        # in App Store order. app-store/*.png are the files to upload.
+          ls -laR "$HOME/aae-screens"
+          for lang in en es; do
+            mkdir -p "$CM_BUILD_DIR/screenshots/$lang" && cp "$HOME"/aae-screens/$lang/*.png "$CM_BUILD_DIR/screenshots/$lang/"
+          done
+          sips -g pixelWidth -g pixelHeight "$CM_BUILD_DIR"/screenshots/*/*.png
+      - name: Lay out the App Store frames
+        # store-captions.json: a billboard with a real job, each screen with a job
+        # photo, a work frame; English and Spanish, in App Store order.
+        # app-store/en/*.png and app-store/es/*.png are the files to upload.
         script: |
           set -euo pipefail
           python3 -m venv /tmp/frames
           /tmp/frames/bin/pip install --quiet pillow
           /tmp/frames/bin/python scripts/app-store-frames.py --raw "$CM_BUILD_DIR/screenshots" --out "$CM_BUILD_DIR/app-store"
-          sips -g pixelWidth -g pixelHeight "$CM_BUILD_DIR"/app-store/*.png
+          sips -g pixelWidth -g pixelHeight "$CM_BUILD_DIR"/app-store/*/*.png
     artifacts:
-      - screenshots/*.png
-      - app-store/*.png
+      - screenshots/*/*.png
+      - app-store/*/*.png

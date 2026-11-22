@@ -593,13 +593,35 @@ const app = Object.values(customer).join('\n');
   const spec = JSON.parse(read('mobile/ios/Customer/UITests/store-captions.json'));
   const saved = [...shots.matchAll(/save\("([^"]+)"\)/g)].map((m) => m[1]);
   assert.equal(saved.length, 6, `six screens are taken (${saved})`);
-  assert.deepEqual([...saved].sort(), Object.keys(spec.captions).sort(), 'every screen taken has a headline, and every headline has a screen');
-  assert.deepEqual([...spec.order].sort(), [...saved].sort(), 'the App Store order lists each screen once');
+  const screenFrames = Object.entries(spec.frames).filter(([, f]) => f.layout !== 'work').map(([name]) => name);
+  assert.deepEqual([...saved].sort(), [...screenFrames].sort(), 'every screen taken has a frame, and every screen frame has a screen');
+  assert.deepEqual([...spec.order].sort(), Object.keys(spec.frames).sort(), 'the App Store order lists each frame once');
+  assert.equal(spec.frames[spec.order[0]].layout, 'billboard', 'the first frame is the billboard');
+  assert.match(shots, /func testCaptureEnglish\(\)[\s\S]*func testCaptureSpanish\(\)/, 'every screen in both languages');
+  assert.ok(shots.includes('"-AppleLanguages", "(\\(language))"'), 'each run launches the app in its language');
   assert.ok(!/signIn|sign-in code|typeText\("[^"]*@/.test(shots.replace(/before sign-in/g, '')), 'the screenshots browse as a guest and never sign in');
-  for (const [name, caption] of Object.entries(spec.captions)) {
-    assert.ok(caption.headline && caption.headline.length <= 34, `${name}: a headline of at most 34 characters (two lines)`);
-    assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(caption.headline + (caption.subline || '')), `${name}: no emojis`);
-    assert.ok(!/\b(cheap|cheapest|discount|bargain|budget)\b/i.test(caption.headline + ' ' + (caption.subline || '')), `${name}: premium positioning`);
+  // What the test taps in Spanish is the app's own Spanish.
+  const es = JSON.parse(read('mobile/ios/Localization/es.json')).strings;
+  for (const [en, spanish] of shots.matchAll(/^\s*"([^"]+)": "([^"]+)",$/gm).map((m) => [m[1], m[2]])) {
+    assert.equal(spanish, es[en], `the screenshot test taps "${en}" as the app shows it in Spanish`);
+  }
+  // Photos: real jobs already on the website, each once, never a TV showing a league or a brand.
+  const photos = Object.values(spec.frames).flatMap((f) => [f.photo, ...(f.photos || [])]).filter(Boolean);
+  assert.equal(new Set(photos).size, photos.length, 'no photo twice in the set');
+  for (const photo of photos) {
+    assert.match(photo, /^images\/real-[a-z0-9-]+\.(jpg|png)$/, `${photo}: a real job photo`);
+    assert.ok(existsSync(photo), `${photo} exists`);
+  }
+  assert.ok(!photos.some((p) => /hero-real-tv-console|real-tv-mount-console/.test(p)), 'no screen showing a sports league or app logos');
+  for (const [name, frame] of Object.entries(spec.frames)) {
+    for (const lang of ['en', 'es']) {
+      const caption = frame[lang];
+      assert.ok(caption?.headline && caption.headline.length <= 34, `${name} ${lang}: a headline of at most 34 characters (two lines)`);
+      const words = caption.headline + ' ' + (caption.subline || '');
+      assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(words), `${name} ${lang}: no emojis`);
+      assert.ok(!/\b(cheap|cheapest|discount|bargain|budget|barato|descuento|ganga)\b/i.test(words), `${name} ${lang}: premium positioning`);
+      assert.ok(!/background[- ]check|antecedentes|insured|asegurad|licensed|licenciad/i.test(words), `${name} ${lang}: no claim the platform cannot back`);
+    }
   }
   const frames = read('scripts/app-store-frames.py');
   const css = read('assets/css/marketing.css');
@@ -612,7 +634,8 @@ const app = Object.values(customer).join('\n');
   const codemagicYaml = read('codemagic.yaml');
   const workflow = codemagicYaml.slice(codemagicYaml.indexOf('customer-screenshots:'));
   assert.match(workflow, /scripts\/app-store-frames\.py --raw "\$CM_BUILD_DIR\/screenshots" --out "\$CM_BUILD_DIR\/app-store"/, 'the workflow adds the headlines');
-  assert.match(workflow, /artifacts:\s*\n\s*- screenshots\/\*\.png\s*\n\s*- app-store\/\*\.png/, 'and keeps the finished set');
+  assert.match(workflow, /for lang in en es; do/, 'both languages are collected');
+  assert.match(workflow, /artifacts:\s*\n\s*- screenshots\/\*\/\*\.png\s*\n\s*- app-store\/\*\/\*\.png/, 'and keeps the finished set');
 }
 
 console.log('PASS customer native app: separate app with its own bundle ID and workflow, shared code compiled by both, every endpoint and field matches the server, prices and permissions from the server, in-app account deletion.');
