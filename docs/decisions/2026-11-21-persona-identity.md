@@ -1,6 +1,6 @@
 # Persona for Easer identity verification
 
-Date: 2026-11-21. Owner: "persona is open ... i need that setup". Status: integration built, switched OFF. Go-live needs the owner steps and legal approval below.
+Date: 2026-11-21. Owner: "persona is open ... i need that setup". Status (2026-11-22, owner: "i need it ready"): ready except the owner-only password and secret steps in "Go-live state" below.
 
 ## Why
 - Applicants stop at the ID step. The follow-up reminders (PR #475) fix the "nobody told them" half. Persona adds a second provider with more control over the flow.
@@ -40,3 +40,19 @@ The contractor agreement and Privacy Notice name Stripe Identity as the biometri
 ## Not done here, and why
 - The two legal documents are unchanged: wording and timing are the owner's decision.
 - Persona dashboard setup: the template editor loads inside frames the browser automation could not read or click (2026-11-21), and API keys and secrets are entered by the owner.
+
+## Go-live state (2026-11-22)
+Done:
+- Migration 133 applied in production (columns verified through the API; `platform_schema_state` row 133).
+- Persona inquiry template "Government ID (with autoclassification) and Selfie", `itmpl_AS9QkdzFwWLRQCpnK41r3kM25XZd7Y`, published and deployed to Production and Sandbox.
+- Production webhook form: URL `https://www.assembleatease.com/api/webhook/persona`; events inquiry.approved, completed, declined, expired, failed, marked-for-review; API version 2023-01-05 (the version `api/_persona.js` calls); key inflection kebab (`reference-id`, `name-first`). Saving it asks for the account password.
+- The name on the ID must be the account's name, and 18+, for Stripe and Persona alike (PR #485).
+- Privacy Notice names Persona, the ID name and age check, and provider-neutral retention and redaction (legal version 2026-11-22-identity-provider-v1). The owner's onboarding resend email says "identity verification" instead of "Stripe Identity".
+
+Owner only (passwords and secrets are never entered by an agent):
+1. Persona: type the password to save the webhook, then copy its secret.
+2. Persona > API (Production): create an API key.
+3. Vercel > Production: `PERSONA_API_KEY`, `PERSONA_WEBHOOK_SECRET`. `PERSONA_INQUIRY_TEMPLATE_ID` and `IDENTITY_PROVIDER=persona` are not secrets. Persona is used only once the key and the template are both present (`identityProvider()`), so setting the switch first is safe.
+4. Redeploy (env changes apply to new deployments), then one real verification end to end.
+
+Contractor agreement: unchanged on purpose. A new agreement version makes every Easer re-sign the whole agreement (sign prompt; price requests and membership wait for it; it counts as an inactivity reason). Persona applicants see Persona's own biometric notice and consent before capture, and the Privacy Notice names both providers, which covers Texas's notice-before-capture rule. The section 6 wording above goes in with the next substantive agreement change (backlog AGREEMENT-ID-PROVIDER-WORDING).
