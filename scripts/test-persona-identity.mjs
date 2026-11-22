@@ -157,17 +157,20 @@ function fakeSb(profile, { lookupError = null } = {}) {
     },
   };
 }
-function eventBody(name, { inquiryId = 'inq_1', ref = 'p1' } = {}) {
-  return JSON.stringify({ data: { type: 'event', id: `evt_${name}`, attributes: { name, payload: { data: { type: 'inquiry', id: inquiryId, attributes: { status: 'completed', 'reference-id': ref } } } } } });
+// What Persona read off the ID: by default the applicant's own name, an adult.
+const govId = (first = 'Pat', last = 'Doe', birthdate = '1990-04-02') => ({ type: 'verification/government-id', id: 'ver_1', attributes: { status: 'passed', 'name-first': first, 'name-last': last, birthdate, 'completed-at': '2026-11-22T10:00:00Z' } });
+function eventBody(name, { inquiryId = 'inq_1', ref = 'p1', included = [govId()] } = {}) {
+  return JSON.stringify({ data: { type: 'event', id: `evt_${name}`, attributes: { name, payload: { data: { type: 'inquiry', id: inquiryId, attributes: { status: 'completed', 'reference-id': ref } }, included } } } });
 }
 async function deliver(body, profile, opts = {}) {
-  const calls = { verified: [], retry: [], email: [] };
+  const calls = { verified: [], retry: [], email: [], held: [] };
   const sb = fakeSb(profile, opts);
   const res = fakeRes();
   await personaWebhook({ method: 'POST', headers: { 'persona-signature': opts.signature ?? sign(body) } }, res, {
     secret: SECRET, rawBody: Buffer.from(body), sb,
     recordVerified: async (_sb, args) => { calls.verified.push(args); if (opts.writeFails) throw new Error('db down'); },
     recordRetry: async (_sb, args) => { calls.retry.push(args); },
+    recordHeld: async (_sb, args) => { calls.held.push(args); },
     sendEmail: async (args) => { calls.email.push(args); return { ok: true }; },
   });
   return { res, calls, sb };
@@ -209,6 +212,22 @@ await check('a failed check asks for a retry; a review case emails the owner', a
   assert.match(r.calls.email[0].subject, /needs your review in Persona/);
   assert.equal(r.calls.email[0].meta.notificationKey, 'persona:evt_inquiry.marked-for-review:owner');
 });
+await check('a passed ID with a different name, no readable name, or under 18 is held, never verified (owner, 2026-11-22)', async () => {
+  let r = await deliver(eventBody('inquiry.approved', { included: [govId('Travis', 'Gibson')] }), applicant);
+  assert.equal(r.res.statusCode, 200);
+  assert.equal(r.calls.verified.length, 0);
+  assert.equal(r.calls.held.length, 1);
+  assert.equal(r.calls.held[0].reason, 'name_mismatch');
+  assert.equal(r.calls.held[0].documentName, 'Travis Gibson');
+  r = await deliver(eventBody('inquiry.approved', { included: [] }), applicant);
+  assert.equal(r.calls.verified.length, 0);
+  assert.equal(r.calls.held[0].reason, 'name_unreadable');
+  r = await deliver(eventBody('inquiry.approved', { included: [govId('Pat', 'Doe', '2012-01-01')] }), applicant);
+  assert.equal(r.calls.verified.length, 0);
+  assert.equal(r.calls.held[0].reason, 'under_minimum_age');
+  r = await deliver(eventBody('inquiry.approved', { included: [govId('PATRICIA', 'DOE-SMITH')] }), { ...applicant, full_name: 'Patricia Ann Smith' });
+  assert.equal(r.calls.verified.length, 1, 'middle names and a compound surname are the same person');
+});
 await check('our own write failure answers 503 so Persona retries', async () => {
   const { res } = await deliver(eventBody('inquiry.completed'), applicant, { writeFails: true });
   assert.equal(res.statusCode, 503);
@@ -217,7 +236,10 @@ await check('our own write failure answers 503 so Persona retries', async () => 
 // ── 6. One truth, honest copy ───────────────────────────────────────────────
 await check('Stripe and Persona share one outcome module; nothing else marks an Easer verified', () => {
   const stripeHook = read('api/assembler/stripe-webhook.js');
-  assert.match(stripeHook, /import \{ recordIdentityRetry, recordIdentityVerified \} from '\.\.\/_identity-outcome\.js';/);
+  assert.match(stripeHook, /import \{ identityDocumentCheck, recordIdentityHeldForReview, recordIdentityRetry, recordIdentityVerified \} from '\.\.\/_identity-outcome\.js';/);
+  // Both providers run the same name and age rule before marking anyone verified.
+  assert.match(stripeHook, /expand: \['verified_outputs'\][\s\S]{0,400}identityDocumentCheck\(profile\.full_name[\s\S]{0,900}recordIdentityVerified\(/, 'Stripe checks the ID name before verifying');
+  assert.match(read('api/webhook/persona.js'), /identityDocumentCheck\(profile\.full_name, personaDocumentOutputs\([\s\S]{0,500}await record\(/, 'Persona checks the ID name before verifying');
   assert.doesNotMatch(stripeHook, /function buildApplicantVerifiedEmail/, 'the email builders live in one place');
   const outcome = read('api/_identity-outcome.js');
   assert.match(outcome, /identity_verified: true,/);

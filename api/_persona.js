@@ -157,6 +157,24 @@ export function verifyPersonaSignature(rawBody, header, secret, { nowMs = Date.n
  *   review    inquiry.marked-for-review: a person must look in Persona
  *   ignore    anything else (created, started, expired: the follow-up cron reminds)
  */
+/**
+ * What Persona read off the government ID, from an inquiry event payload
+ * ({ data, included }): the latest passed government-id verification's name and
+ * date of birth, in the shape api/_identity-outcome.js checks. Empty when absent.
+ */
+export function personaDocumentOutputs(payload = {}) {
+  const verifications = (Array.isArray(payload?.included) ? payload.included : [])
+    .filter((item) => String(item?.type || '').startsWith('verification/government-id') && item?.attributes?.status === 'passed');
+  const latest = verifications.sort((a, b) => Date.parse(b.attributes?.['completed-at'] || b.attributes?.['created-at'] || 0) - Date.parse(a.attributes?.['completed-at'] || a.attributes?.['created-at'] || 0))[0];
+  const attrs = latest?.attributes || {};
+  const birth = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(attrs.birthdate || ''));
+  return {
+    firstName: attrs['name-first'] || '',
+    lastName: attrs['name-last'] || '',
+    dob: birth ? { year: Number(birth[1]), month: Number(birth[2]), day: Number(birth[3]) } : null,
+  };
+}
+
 export function personaOutcome(eventName) {
   switch (String(eventName || '').toLowerCase()) {
     case 'inquiry.completed':
