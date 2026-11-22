@@ -46,3 +46,18 @@ Date: 2026-11-21. Owner: "it's not like I can update quickly on Apple, so I have
 
 ## Changeable later without a new app version
 Promotional text (any time). Everything server or website driven: prices, catalog, offers, pay, bonus, referral rules, notifications, dispatch.
+
+## Built on branch feat/ios-release-1-1 (2026-11-21)
+- **Easer:** job area distance picker, Refer a pro, bonus label on jobs, 1099 note (Stripe Connect holds the form; owner: "1099 handle through stripe connect").
+- **Customer:** gift card at checkout, the website's server checks.
+- **Spanish, both apps:** 712 phrases in `mobile/ios/Localization/es.json`; 419 code sites wrapped in `String(localized:)`; kept English on purpose: quick-reply and running-late messages (sent to someone who may not read Spanish), help topics and drop reasons (the server and owner read them; shown translated through `localizedDisplay`), the two contractor-agreement signature lines (English contract, critical module). Dates follow the app language; money stays "$45.00".
+- **VoiceOver:** decorative icons silent; review stars one label; icon-only buttons already labelled.
+- **Screenshots:** customer v2 and a first Easer set, English and Spanish, from real job photos (website `images/real-*`, plus three booking photos cleared under Terms on or after 2026-10-20, metadata removed). `images/work-*` are AI-generated people and are never used.
+- **App Store Connect (saved):** Customer 1.0.1 and Easer 1.1 text in English and Spanish (Mexico), names and subtitles, review notes, Easer age rating.
+
+## Waiting on the owner
+1. Say push: branch, PR, merge, then Codemagic `easer-ios` and `customer-ios` (or the build-only workflows first to prove the Swift compiles; nothing here was compiled on Windows).
+2. Codemagic group `easer_screenshots` with `EASER_DEMO_EMAIL` and `EASER_DEMO_PASSWORD` (the App Review demo Easer), then run `customer-screenshots` and `easer-screenshots`, approve the frames, upload.
+3. A fresh test job on the demo Easer before submitting.
+4. Audio Data in App Privacy (recommend declaring for both apps while recording can be switched on).
+5. A native Spanish speaker reads es.json and the listings.
