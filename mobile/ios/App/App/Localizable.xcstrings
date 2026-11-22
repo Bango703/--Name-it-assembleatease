@@ -3312,6 +3312,17 @@
         }
       }
     },
+    "Referral links are not open yet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los enlaces para recomendar todavía no están abiertos."
+          }
+        }
+      }
+    },
     "Refresh the job to load the required photo count." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5464,6 +5475,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tu teléfono va a sonar. Contesta para conectarte."
+          }
+        }
+      }
+    },
+    "Your referral link could not be loaded. Pull down to try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar tu enlace para recomendar. Desliza hacia abajo para intentarlo de nuevo."
           }
         }
       }

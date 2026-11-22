@@ -1,6 +1,6 @@
 import { authenticateBearerUser, respondWithEaserAccessError } from '../_easer-access.js';
 import { getSupabase } from '../_supabase.js';
-import { EASER_REFERRAL_POLICY, ensureReferralCode, referralLink, refereeDisplayName } from '../_easer-referrals.js';
+import { EASER_REFERRAL_POLICY, canRefer, ensureReferralCode, referralLink, refereeDisplayName } from '../_easer-referrals.js';
 
 /**
  * GET /api/assembler/referral — the Easer's referral link, the reward terms,
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'Your referral link could not be loaded. Try again.' });
   }
   if (!profile || profile.role !== 'assembler') return res.status(403).json({ error: 'An Easer account is required.' });
-  if (profile.status !== 'active' || profile.account_closure_status) {
+  if (!canRefer(profile)) {
     return res.status(200).json({ ok: true, eligible: false, terms, message: 'Your referral link opens once your account is approved.' });
   }
 

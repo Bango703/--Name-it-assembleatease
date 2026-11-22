@@ -829,14 +829,23 @@ struct ReferralView: View {
                         }
                     }
                 }
+            } else if let info {
+                // The server's reason, never a guessed one (Article 16).
+                Section {
+                    Text((info.message ?? (info.unavailable
+                        ? String(localized: "Referral links are not open yet.")
+                        : String(localized: "Your referral link opens once your account is approved."))).localizedDisplay)
+                        .foregroundStyle(.secondary)
+                }
             } else {
                 Section {
-                    Text("Your referral link opens once your account is approved.").foregroundStyle(.secondary)
+                    Text("Your referral link could not be loaded. Pull down to try again.").foregroundStyle(.secondary)
                 }
             }
         }
         .navigationTitle("Refer a pro")
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable { info = await store.referralInfo() }
         .task {
             guard !loaded else { return }
             info = await store.referralInfo()

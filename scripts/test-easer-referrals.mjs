@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   EASER_REFERRAL_POLICY, normalizeReferralCode, referralCodeCandidate, referralLink, referralCodeFromAttribution,
-  recordReferralFromAttribution, referralRewardDecision, qualifyingJobCount, refereeDisplayName,
+  recordReferralFromAttribution, referralRewardDecision, qualifyingJobCount, refereeDisplayName, canRefer,
 } from '../api/_easer-referrals.js';
 import { cleanAcquisitionAttribution } from '../api/_attribution.js';
 import { loadContractorTaxYear, stripeAdjustmentCsv } from '../api/owner/_contractor-tax.js';
@@ -60,6 +60,24 @@ function fakeSb({ referrer, failInsert = false } = {}) {
 }
 const attribution = { utmSource: 'easer_referral', utmCampaign: 'referral_phil482' };
 const phil = { id: 'phil', role: 'assembler', status: 'active', account_closure_status: null, referral_code: 'PHIL482' };
+
+await check('a closure request the Easer cancelled does not stop referrals (owner, 2026-11-22)', () => {
+  // The owner's own approved account held account_closure_status = 'cancelled' and was told
+  // its link opens once approved. The rule is api/_easer-closure.js, never a truthy check.
+  const easer = { role: 'assembler', status: 'active' };
+  for (const closure of [null, '', 'cancelled', 'CANCELLED']) assert.equal(canRefer({ ...easer, account_closure_status: closure }), true, String(closure));
+  for (const closure of ['requested', 'reviewing', 'completed']) assert.equal(canRefer({ ...easer, account_closure_status: closure }), false, closure);
+  assert.equal(canRefer({ ...easer, status: 'pending' }), false);
+  assert.equal(canRefer({ role: 'customer', status: 'active' }), false);
+  assert.equal(canRefer(null), false);
+  const endpoint = read('api/assembler/referral.js');
+  assert.match(endpoint, /if \(!canRefer\(profile\)\)/, 'the referral card uses the shared rule');
+  assert.doesNotMatch(endpoint + read('api/_easer-referrals.js'), /\|\| (profile|referrer)\.account_closure_status\)/, 'no truthy closure check');
+  // A reward voids only when the new Easer's closure is complete, not when one was requested and cancelled.
+  const pending = { status: 'pending', qualifying_jobs: 2, referred_at: new Date().toISOString() };
+  assert.equal(referralRewardDecision(pending, { referee: { account_closure_status: 'cancelled' } }).action, 'wait');
+  assert.equal(referralRewardDecision(pending, { referee: { account_closure_status: 'completed' } }).action, 'void');
+});
 
 await check('an application through the link credits an active Easer once, as a pending reward', async () => {
   const sb = fakeSb({ referrer: phil });
