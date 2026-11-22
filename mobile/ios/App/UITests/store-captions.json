@@ -1,0 +1,42 @@
+{
+  "_about": "App Store screenshots for the Easer app, in English and Spanish. EaserStoreScreenshots.swift takes each screen by the name on the left; scripts/app-store-frames.py lays out each frame. The listing recruits pros: pay before accepting, jobs within their distance, paid after every job. Photos are real jobs from bookings cleared for marketing (Terms on or after 2026-10-20), metadata removed, each used once. The referral figures come from EASER_REFERRAL_POLICY (scripts/test-easer-native-app.mjs checks them). Owner approves the words.",
+  "order": ["01-today", "02-jobs", "03-job", "04-earnings", "05-job-area", "06-refer"],
+  "frames": {
+    "01-today": {
+      "layout": "billboard",
+      "photo": "images/real-outdoor-playset-slide.jpg",
+      "focus": 0.45,
+      "en": { "headline": "Get paid for jobs near you", "subline": "Assembly, TV mounting and smart home work" },
+      "es": { "headline": "Gana dinero con trabajos cerca", "subline": "Armado, instalación de TV y casa inteligente" }
+    },
+    "02-jobs": {
+      "layout": "screen",
+      "photo": "images/real-outdoor-dome-climber.jpg",
+      "focus": 0.55,
+      "en": { "headline": "See the pay before you accept", "subline": "Every offer shows what you earn" },
+      "es": { "headline": "Ve el pago antes de aceptar", "subline": "Cada oferta muestra lo que ganas" }
+    },
+    "03-job": {
+      "layout": "screen",
+      "photo": "images/real-outdoor-catio.jpg",
+      "focus": 0.4,
+      "en": { "headline": "Every detail in one place", "subline": "Address, items, notes and photos" },
+      "es": { "headline": "Todos los detalles en un lugar", "subline": "Dirección, artículos, notas y fotos" }
+    },
+    "04-earnings": {
+      "layout": "screen",
+      "en": { "headline": "Paid after every job", "subline": "Straight to your bank account" },
+      "es": { "headline": "Cobra después de cada trabajo", "subline": "Directo a tu cuenta bancaria" }
+    },
+    "05-job-area": {
+      "layout": "screen",
+      "en": { "headline": "Jobs within your distance", "subline": "Choose how far you travel and when you work" },
+      "es": { "headline": "Trabajos a la distancia que elijas", "subline": "Elige qué tan lejos viajas y cuándo trabajas" }
+    },
+    "06-refer": {
+      "layout": "screen",
+      "en": { "headline": "Refer a pro, earn $75", "subline": "Paid once they finish 2 paid jobs" },
+      "es": { "headline": "Recomienda y gana $75", "subline": "Se paga cuando complete 2 trabajos pagados" }
+    }
+  }
+}

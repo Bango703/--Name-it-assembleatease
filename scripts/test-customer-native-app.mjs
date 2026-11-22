@@ -602,7 +602,7 @@ const app = Object.values(customer).join('\n');
   assert.ok(!/signIn|sign-in code|typeText\("[^"]*@/.test(shots.replace(/before sign-in/g, '')), 'the screenshots browse as a guest and never sign in');
   // What the test taps in Spanish is the app's own Spanish.
   const es = JSON.parse(read('mobile/ios/Localization/es.json')).strings;
-  for (const [en, spanish] of shots.matchAll(/^\s*"([^"]+)": "([^"]+)",$/gm).map((m) => [m[1], m[2]])) {
+  for (const [, en, spanish] of shots.matchAll(/^\s*"([^"]+)": "([^"]+)",$/gm)) {
     assert.equal(spanish, es[en], `the screenshot test taps "${en}" as the app shows it in Spanish`);
   }
   // Photos: real jobs already on the website, each once, never a TV showing a league or a brand.

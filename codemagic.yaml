@@ -270,3 +270,69 @@ workflows:
     artifacts:
       - screenshots/*/*.png
       - app-store/*/*.png
+
+  # App Store screenshots of the real Easer app, on the 6.9-inch simulator, in
+  # English and Spanish. Builds a simulator-only copy from mobile/ios/App/screenshots.yml
+  # (App.xcodeproj is untouched), signs in to the App Review demo Easer, which
+  # works only test bookings. Signs nothing, uploads nothing to Apple.
+  # Needs the easer_screenshots group: EASER_DEMO_EMAIL and EASER_DEMO_PASSWORD.
+  easer-screenshots:
+    name: AssembleAtEase - Easer App Store screenshots
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      xcode: 26.5
+      groups:
+        - easer_screenshots
+    scripts:
+      - name: Check the demo account is set
+        script: |
+          set -euo pipefail
+          if [ -z "${EASER_DEMO_EMAIL:-}" ] || [ -z "${EASER_DEMO_PASSWORD:-}" ]; then
+            echo "Add EASER_DEMO_EMAIL and EASER_DEMO_PASSWORD (the App Review demo Easer) to the easer_screenshots group." && exit 1
+          fi
+      - name: Generate the screenshot project
+        script: |
+          set -euo pipefail
+          brew install xcodegen
+          cd mobile/ios/App && xcodegen generate --spec screenshots.yml
+      - name: Pick and boot a 6.9-inch simulator
+        script: |
+          set -euo pipefail
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)['devices']
+          c=[(r,x) for r,l in d.items() if 'iOS' in r for x in l if 'Pro Max' in x['name']]
+          c.sort(key=lambda t:(t[0],t[1]['name']))
+          print(c[-1][1]['udid'])")
+          xcrun simctl list devices available | grep "$UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --dataNetwork wifi --wifiBars 3 --cellularBars 4 --batteryState charged --batteryLevel 100
+          echo "SIM_UDID=$UDID" >> $CM_ENV
+      - name: Take the screenshots
+        script: |
+          set -euo pipefail
+          rm -rf "$HOME/aae-screens"
+          cd mobile/ios/App
+          # TEST_RUNNER_ variables reach the UI test without the prefix.
+          export TEST_RUNNER_EASER_DEMO_EMAIL="$EASER_DEMO_EMAIL" TEST_RUNNER_EASER_DEMO_PASSWORD="$EASER_DEMO_PASSWORD"
+          xcodebuild test -project EaserShots.xcodeproj -scheme EaserScreenshots \
+            -destination "id=$SIM_UDID" -configuration Release \
+            CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO ENABLE_TESTABILITY=YES \
+            -resultBundlePath "$CM_BUILD_DIR/screenshots.xcresult" | tail -40
+          ls -laR "$HOME/aae-screens"
+          for lang in en es; do
+            mkdir -p "$CM_BUILD_DIR/screenshots/$lang" && cp "$HOME"/aae-screens/$lang/*.png "$CM_BUILD_DIR/screenshots/$lang/"
+          done
+          sips -g pixelWidth -g pixelHeight "$CM_BUILD_DIR"/screenshots/*/*.png
+      - name: Lay out the App Store frames
+        script: |
+          set -euo pipefail
+          python3 -m venv /tmp/frames
+          /tmp/frames/bin/pip install --quiet pillow
+          /tmp/frames/bin/python scripts/app-store-frames.py --raw "$CM_BUILD_DIR/screenshots" --out "$CM_BUILD_DIR/app-store" --captions mobile/ios/App/UITests/store-captions.json
+          sips -g pixelWidth -g pixelHeight "$CM_BUILD_DIR"/app-store/*/*.png
+    artifacts:
+      - screenshots/*/*.png
+      - app-store/*/*.png

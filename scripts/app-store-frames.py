@@ -182,7 +182,7 @@ def billboard_frame(raw_path, words, spec, bold, regular):
     photo_h = 1500
     photo = cover(spec['photo'], (WIDTH, photo_h), spec.get('focus', 0.35))
     # Darken the top for white words, and fade the bottom into the brand colour.
-    shade = Image.linear_gradient('L').resize((WIDTH, photo_h)).point(lambda v: max(0, int(175 - v * 1.3)))
+    shade = Image.linear_gradient('L').resize((WIDTH, photo_h)).point(lambda v: max(0, int(205 - v * 1.15)))
     photo = Image.composite(Image.new('RGB', photo.size, INK), photo, shade)
     canvas.paste(photo, (0, 0))
     fade_h = 420
@@ -190,6 +190,11 @@ def billboard_frame(raw_path, words, spec, bold, regular):
     band = canvas.crop((0, photo_h - fade_h, WIDTH, photo_h))
     under = base.crop((0, photo_h - fade_h, WIDTH, photo_h))
     canvas.paste(Image.composite(under, band, fade), (0, photo_h - fade_h))
+    # A soft shadow behind the white words keeps them readable on any photo.
+    halo = Image.new('L', canvas.size, 0)
+    write_words(ImageDraw.Draw(halo), TOP_MARGIN - 40, words['headline'], words.get('subline', ''), bold, regular, 170)
+    halo = halo.filter(ImageFilter.GaussianBlur(14))
+    canvas = Image.composite(Image.new('RGB', canvas.size, INK), canvas, halo)
     draw = ImageDraw.Draw(canvas)
     write_words(draw, TOP_MARGIN - 40, words['headline'], words.get('subline', ''), bold, regular, WHITE)
     canvas, _ = place_phone(canvas, raw_path, 1180, phone_width=900)
