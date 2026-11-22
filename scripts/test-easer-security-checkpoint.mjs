@@ -182,21 +182,21 @@ function applicationFeeStatusMock(result) {
   };
   return { from(table) { assert.equal(table, 'profiles'); return chain; } };
 }
-// Owner, 2026-11-11: no fee in a hub until it has six active Easers; no fee outside the hubs.
+// Owner, 2026-11-11 / 2026-11-22: no fee in a hub until it has five active Easers (was six); no fee outside the hubs.
 const easersAt = (zip, n, extra = {}) => Array.from({ length: n }, () => ({ zip, is_demo_account: false, ...extra }));
 const feeFor = (rows, zip) => getEaserApplicationFeeStatus(applicationFeeStatusMock({ data: rows, error: null }), { zip });
-const availableFeeStatus = await feeFor(easersAt('78701', 5), '78745');
-assert.equal(availableFeeStatus.waiverAvailable, true, 'Austin with five active Easers: no fee');
+const availableFeeStatus = await feeFor(easersAt('78701', 4), '78745');
+assert.equal(availableFeeStatus.waiverAvailable, true, 'Austin with four active Easers: no fee');
 assert.equal(availableFeeStatus.amountCents, 0);
-const fullFeeStatus = await feeFor(easersAt('78701', 6), '78745');
-assert.equal(fullFeeStatus.waiverAvailable, false, 'Austin with six: the fee applies');
+const fullFeeStatus = await feeFor(easersAt('78701', 5), '78745');
+assert.equal(fullFeeStatus.waiverAvailable, false, 'Austin with five: the fee applies');
 assert.equal(fullFeeStatus.amountCents, EASER_APPLICATION_FEE_CENTS);
-assert.equal((await feeFor([...easersAt('78701', 5), ...easersAt('78701', 1, { is_demo_account: true })], '78745')).waiverAvailable, true, 'the demo account never counts');
-assert.equal((await feeFor(easersAt('78701', 6), '77002')).waiverAvailable, true, 'one full hub does not close another');
-assert.equal((await feeFor(easersAt('75227', 6), '76102')).waiverAvailable, false, 'Fort Worth counts with Dallas');
-assert.equal((await feeFor(easersAt('78701', 6), '75701')).waiverAvailable, true, 'outside the hubs: no fee');
-assert.equal((await feeFor(easersAt('78701', 6), '')).waiverAvailable, false, 'no ZIP yet: no promise of no fee unless every hub is free');
-assert.equal((await feeFor(easersAt('78701', 5), '')).waiverAvailable, true);
+assert.equal((await feeFor([...easersAt('78701', 4), ...easersAt('78701', 1, { is_demo_account: true })], '78745')).waiverAvailable, true, 'the demo account never counts');
+assert.equal((await feeFor(easersAt('78701', 5), '77002')).waiverAvailable, true, 'one full hub does not close another');
+assert.equal((await feeFor(easersAt('75227', 5), '76102')).waiverAvailable, false, 'Fort Worth counts with Dallas');
+assert.equal((await feeFor(easersAt('78701', 5), '75701')).waiverAvailable, true, 'outside the hubs: no fee');
+assert.equal((await feeFor(easersAt('78701', 5), '')).waiverAvailable, false, 'no ZIP yet: no promise of no fee unless every hub is free');
+assert.equal((await feeFor(easersAt('78701', 4), '')).waiverAvailable, true);
 await assert.rejects(
   getEaserApplicationFeeStatus(applicationFeeStatusMock({ data: null, error: { message: 'count failed' } }), { zip: '78745' }),
   /count failed/,

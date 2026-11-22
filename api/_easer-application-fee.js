@@ -188,13 +188,14 @@ export function verifyApplicationFeeContinuationToken(token, {
   };
 }
 
-// Owner, 2026-11-11: no application fee in a hub until it has six active
-// Easers; from then on the fee applies to new applicants in that hub. Outside
+// Owner, 2026-11-11: no application fee in a hub until it is staffed; from
+// 2026-11-22 that is five active Easers ("each hub needs at least 5 people to
+// start charging"; it was six). From then on the fee applies to new applicants in that hub. Outside
 // the four hubs there is no fee, because those are the areas where bookings
 // have gone unstaffed. Hub membership is marketForZip, the same ZIP map
 // dispatch uses.
 export const EASER_FEE_HUBS = Object.freeze(['central_texas', 'houston', 'san_antonio', 'dallas_fort_worth']);
-export const FREE_UNTIL_ACTIVE_EASERS_PER_HUB = 6;
+export const FREE_UNTIL_ACTIVE_EASERS_PER_HUB = 5;
 
 export function easerFeeHubForZip(zip) {
   const market = marketForZip(String(zip || '').trim().slice(0, 5));

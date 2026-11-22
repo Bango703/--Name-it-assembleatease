@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Owner, 2026-11-11: "I need real Easers in the Texas major hubs." Three parts:
-//   1. No Easer application fee in a hub until it has six active Easers.
+//   1. No Easer application fee in a hub until it has five active Easers
+//      (six until 2026-11-22, owner: "each hub needs at least 5 people").
 //   2. Before booking, the customer is told when no active Easer covers their ZIP.
 //   3. A booking nobody has accepted reaches the owner three hours after it was
 //      made, not six hours before the appointment.
@@ -27,18 +28,19 @@ const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8').re
 }
 console.log('PASS Dallas-Fort Worth is a service market');
 
-// 1. The fee: per hub, six active Easers, free outside the hubs.
+// 1. The fee: per hub, five active Easers, free outside the hubs.
 {
   assert.deepEqual([...EASER_FEE_HUBS], ['central_texas', 'houston', 'san_antonio', 'dallas_fort_worth']);
-  assert.equal(FREE_UNTIL_ACTIVE_EASERS_PER_HUB, 6);
+  assert.equal(FREE_UNTIL_ACTIVE_EASERS_PER_HUB, 5);
   assert.equal(easerFeeHubForZip('78660'), 'central_texas');
   assert.equal(easerFeeHubForZip('79413'), null, 'Lubbock is a market but not a fee hub');
   const today = { central_texas: 1, houston: 1, san_antonio: 2, dallas_fort_worth: 2 };
   for (const zip of ['78701', '77002', '78240', '75227', '75701', '79413']) {
     assert.equal(applicationFeeDecision({ zip, activeByHub: today }).waived, true, `no fee today at ${zip}`);
   }
-  const austinFull = { ...today, central_texas: 6 };
-  assert.equal(applicationFeeDecision({ zip: '78745', activeByHub: austinFull }).waived, false, 'Austin at six: the fee applies');
+  assert.equal(applicationFeeDecision({ zip: '78745', activeByHub: { ...today, central_texas: 4 } }).waived, true, 'Austin at four: still free');
+  const austinFull = { ...today, central_texas: 5 };
+  assert.equal(applicationFeeDecision({ zip: '78745', activeByHub: austinFull }).waived, false, 'Austin at five: the fee applies');
   assert.equal(applicationFeeDecision({ zip: '77002', activeByHub: austinFull }).waived, true, 'Houston still free');
   assert.equal(applicationFeeDecision({ zip: '', activeByHub: austinFull }).waived, false, 'no ZIP: no promise once any hub charges');
   const apply = read('api/assembler/apply.js');
@@ -50,7 +52,7 @@ console.log('PASS Dallas-Fort Worth is a service market');
   assert.doesNotMatch(page, /Founding Easer/);
   assert.doesNotMatch(read('api/_easer-application-fee.js'), /FOUNDING_EASER_FREE_APPLICATION_LIMIT/, 'the statewide first-20 rule is gone');
 }
-console.log('PASS fee: free in a hub until six active Easers, free outside the hubs, checked at the applicant\'s ZIP');
+console.log('PASS fee: free in a hub until five active Easers, free outside the hubs, checked at the applicant\'s ZIP');
 
 // 2. Coverage before booking.
 {
