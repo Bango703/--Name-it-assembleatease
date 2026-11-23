@@ -5,30 +5,24 @@ import { esc } from '../_email.js';
 // based on why it will give a different email response. like ... the quote with
 // jeff. he said he found someone else." Every decline used to send "We're sorry.
 // We can't take this one." to a customer who had told us they hired someone else).
+// Cut from ten reasons to six the same day ("it dont look simple right").
 //
-// One list for the owner's Decline button (owner/index.html #decline-reason
-// mirrors the keys and labels), the reason saved on the booking, and the email.
+// One list for the owner's Decline box (owner/index.html #decline-reason mirrors
+// the keys and labels), the reason saved on the booking, and the email.
 // scripts/test-owner-decline-reasons.mjs holds the two together.
 //
 // email: which customer email the reason sends; null sends nothing.
 //   closed       the customer ended it: thanks, no apology, a way back.
 //   price        the customer turned down the price: thanks, reply to re-price.
-//   timing       the time does not work for them: thanks, pick another time.
 //   no_response  we never heard back: closed, reply to pick it back up.
 //   unable       we cannot take it: one apology, thanks, Book again.
-//   not_offered  the work is outside what we do.
-// noteRequired: the owner must write the note; it is shown in the email.
 export const OWNER_DECLINE_REASONS = Object.freeze({
   hired_someone: Object.freeze({ label: 'Customer found someone else', email: 'closed' }),
   not_needed: Object.freeze({ label: 'Customer no longer needs it', email: 'closed' }),
-  price: Object.freeze({ label: 'Customer said the price is too high', email: 'price' }),
-  timing: Object.freeze({ label: 'Customer needs a different time', email: 'timing' }),
-  no_response: Object.freeze({ label: 'Customer did not respond', email: 'no_response' }),
-  no_pro: Object.freeze({ label: 'No pro available for that date or area', email: 'unable' }),
-  not_offered: Object.freeze({ label: 'Not a service we offer', email: 'not_offered' }),
-  duplicate: Object.freeze({ label: 'Duplicate request', email: null }),
-  test: Object.freeze({ label: 'Test or spam', email: null }),
-  other: Object.freeze({ label: 'Other', email: 'unable', noteRequired: true }),
+  price: Object.freeze({ label: 'Price too high', email: 'price' }),
+  no_response: Object.freeze({ label: "Customer didn't respond", email: 'no_response' }),
+  cant_do: Object.freeze({ label: "We can't do this job", email: 'unable' }),
+  duplicate: Object.freeze({ label: 'Duplicate or test', email: null }),
 });
 
 export function ownerDeclineReason(code) {
@@ -94,17 +88,6 @@ export function declineEmail({ code, note, firstName, service, ref, isQuote, has
         ${ourNote}
         <p style="${P_SMALL}">If the work changes, or you want a price for part of it, reply to this email and we'll send a new quote.</p>`,
       };
-    case 'timing':
-      return {
-        ...CLOSED_BADGE,
-        subject: closedSubject,
-        headline: `Thanks for letting us know, ${name}.`,
-        bodyHtml: `
-        <p style="${P}">We've closed your ${kind} for ${what}.${cardNote}</p>
-        ${ourNote}
-        <p style="${P_SMALL}">Choose a time that works for you and we'll take it from there.</p>
-        ${button(`${SITE}/book`, 'Choose a new time')}`,
-      };
     case 'no_response':
       return {
         ...CLOSED_BADGE,
@@ -114,17 +97,6 @@ export function declineEmail({ code, note, firstName, service, ref, isQuote, has
         <p style="${P}">Your ${kind} for ${what} is closed.${cardNote}</p>
         ${ourNote}
         <p style="${P_SMALL}">If you still need help, reply to this email and we'll pick it back up.</p>`,
-      };
-    case 'not_offered':
-      return {
-        ...UNABLE_BADGE,
-        subject: (isQuote ? 'Your Quote Request — ' : 'Your Booking Request — ') + ref,
-        headline: `We're sorry, ${name}. This is outside the services we offer.`,
-        bodyHtml: `
-        <p style="${P}">We've closed your ${kind} for ${what}.${cardNote}</p>
-        ${ourNote}
-        ${button(`${SITE}/pricing`, 'See our services')}
-        <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Thank you for thinking of us.</p>`,
       };
     case 'unable':
     default:

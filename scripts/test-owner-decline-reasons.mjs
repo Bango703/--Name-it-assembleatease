@@ -2,6 +2,8 @@
 // Owner decline reasons (owner, 2026-11-23): "when we decline a quote it doesnt
 // give us a option to why and based on why it will give a different email
 // response. like for example the quote with jeff. he said he found someone else."
+// Then, the same day: "it dont look simple right" — ten reasons in a dropdown
+// became six rows to tap.
 //
 // Every decline used to send "We're sorry. We can't take this one." Locks:
 //   1. the owner must choose a reason, and the dashboard list is the server list;
@@ -14,47 +16,44 @@ import { OWNER_DECLINE_REASONS, ownerDeclineReason, declineReasonText, declineEm
 import { findCustomerLanguageViolations, findJustifyingCopy } from '../api/_customer-language.js';
 
 const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const unescape = (t) => t.replace(/&#39;/g, "'").replace(/&amp;/g, '&');
 
 // ── 1. The dashboard list is the server list ───────────────────────────────
 {
+  assert.ok(Object.keys(OWNER_DECLINE_REASONS).length <= 6, 'six reasons at most: the owner asked for simple');
   const dash = read('owner/index.html');
-  const start = dash.indexOf('<select id="decline-reason"');
-  assert.ok(start > 0, 'the decline modal has a reason list');
-  const select = dash.slice(start, dash.indexOf('</select>', start));
-  const options = [...select.matchAll(/<option value="([a-z_]+)"([^>]*)>([^<]+)<\/option>/g)]
-    .map(([, value, attrs, label]) => ({
-      value,
-      label,
-      sends: (attrs.match(/data-sends="([a-z]+)"/) || [])[1],
-      noteRequired: /data-note-required="true"/.test(attrs),
-      hint: (attrs.match(/data-hint="([^"]+)"/) || [])[1] || '',
-    }));
-  assert.deepEqual(options.map(o => o.value).sort(), Object.keys(OWNER_DECLINE_REASONS).sort(), 'one option per server reason, no extras');
-  for (const o of options) {
+  const start = dash.indexOf('<div id="decline-reason"');
+  assert.ok(start > 0, 'the decline box has a reason list');
+  const list = dash.slice(start, dash.indexOf('</div>', start));
+  const rows = [...list.matchAll(/<label class="decline-option"><input type="radio" name="decline-reason" value="([a-z_]+)" data-sends="([a-z]+)"> ([^<]+?)(?: <span class="decline-no-email">No email<\/span>)?<\/label>/g)]
+    .map(([row, value, sends, label]) => ({ value, sends, label: unescape(label), tagged: row.includes('decline-no-email') }));
+  assert.deepEqual(rows.map(o => o.value), Object.keys(OWNER_DECLINE_REASONS), 'one row per server reason, in the same order, no extras');
+  for (const o of rows) {
     const r = OWNER_DECLINE_REASONS[o.value];
     assert.equal(o.label, r.label, `${o.value}: the dashboard label is the saved label`);
-    assert.equal(o.sends, r.email ? 'email' : 'none', `${o.value}: the dashboard says whether an email is sent`);
-    assert.equal(o.noteRequired, Boolean(r.noteRequired), `${o.value}: the note requirement matches`);
-    assert.ok(o.hint.length > 5, `${o.value}: the owner sees what the customer gets`);
-    if (!r.email) assert.match(o.hint, /No email is sent/);
+    assert.equal(o.sends, r.email ? 'email' : 'none', `${o.value}: the dashboard knows whether an email is sent`);
+    assert.equal(o.tagged, !r.email, `${o.value}: only a reason that sends nothing is marked "No email"`);
   }
-  assert.match(select, /<option value="">Choose a reason<\/option>/, 'no reason is preselected');
+  assert.doesNotMatch(list, /checked/, 'no reason is preselected');
+  assert.doesNotMatch(dash, /<select id="decline-reason"|decline-reason-hint/, 'the dropdown and hint line are gone');
 
-  // The modal resets the list, the confirm requires a choice and posts the code.
-  assert.match(dash, /declineReasonSel\.style\.display = 'none'; declineReasonSel\.value = '';/);
-  assert.match(dash, /if \(!\$declineReason\.value\) \{ toast\('Choose why this request is being declined', 'error'\); return; \}/);
-  assert.match(dash, /actionBody\.reasonCode = \$declineReason\.value;/);
-  assert.match(dash, /if \(reason\) actionBody\.note = reason;/);
+  // The box resets, a choice is required, the code is posted, and a reason
+  // that sends nothing takes no note.
+  assert.match(dash, /declineReasonList\.querySelectorAll\('input\[name="decline-reason"\]'\)\.forEach\(function\(input\)\{ input\.checked = false; \}\);/);
+  assert.match(dash, /if \(!declinePicked\) \{ toast\('Choose why this request is being declined', 'error'\); return; \}/);
+  assert.match(dash, /actionBody\.reasonCode = declinePicked\.value;/);
+  assert.match(dash, /if \(reason && !declineSendsNoEmail\) actionBody\.note = reason;/);
+  assert.match(dash, /\$reasonText\.style\.display = noEmail \? 'none' : '';/);
   assert.match(dash, /'Request declined\. No email was sent\.'/);
+  assert.match(dash, /textContent = 'Why are you declining\?';/);
 }
-console.log('PASS dashboard: a required reason, the same list as the server, what the customer gets');
+console.log('PASS dashboard: six rows, a required choice, the same list as the server');
 
 // ── 2. The server refuses a decline without a reason ───────────────────────
 {
   const src = read('api/booking/decline.js');
   const refuse = src.indexOf("code: 'DECLINE_REASON_REQUIRED'");
   assert.ok(refuse > 0 && refuse < src.indexOf('getSupabase()'), 'no reason: refused before anything is read or written');
-  assert.ok(src.indexOf("code: 'DECLINE_NOTE_REQUIRED'") < src.indexOf('getSupabase()'));
   assert.match(src, /decline_reason: reason \|\| null/);
   assert.match(src, /const reason = declineReasonText\(reasonCode, note\);/);
   assert.match(src, /const email = declineEmail\(\{/);
@@ -77,10 +76,8 @@ console.log('PASS dashboard: a required reason, the same list as the server, wha
   assert.equal(r.payload.code, 'DECLINE_REASON_REQUIRED');
   r = await call({ bookingId: 'b1', reasonCode: 'made_up' });
   assert.equal(r.payload.code, 'DECLINE_REASON_REQUIRED', 'an unknown reason is no reason');
-  r = await call({ bookingId: 'b1', reasonCode: 'other', note: ' ' });
-  assert.equal(r.payload.code, 'DECLINE_NOTE_REQUIRED', 'Other needs the note the email shows');
 }
-console.log('PASS server: no reason, an unknown reason, or Other without a note is refused');
+console.log('PASS server: no reason or an unknown reason is refused');
 
 // ── 3. Each reason sends its own email ──────────────────────────────────────
 const base = { firstName: 'Jeff', service: 'Outdoor & Playsets', ref: 'AAE-9BOAMQQDNS', isQuote: true, hasCard: false };
@@ -108,61 +105,49 @@ const all = (e) => `${e.subject}\n${e.headline}\n${e.bodyHtml}`;
   assert.doesNotMatch(all(e), /sorry/i);
 }
 {
-  const e = mail('timing');
-  assert.match(e.bodyHtml, /Choose a time that works for you/);
-  assert.match(e.bodyHtml, />Choose a new time<\/a>/);
-}
-{
   const e = mail('no_response');
   assert.equal(e.headline, "We've closed your quote request, Jeff.");
   assert.match(e.bodyHtml, /reply to this email and we'll pick it back up/);
-  assert.doesNotMatch(all(e), /didn't hear|did not respond|no response/i, 'states the outcome, not a complaint');
+  assert.doesNotMatch(all(e), /didn't hear|did not respond|didn't respond|no response/i, 'states the outcome, not a complaint');
 }
 {
   // We cannot take it: the owner-approved copy of 2026-10-23, unchanged.
-  const e = mail('no_pro');
+  const e = mail('cant_do');
   assert.equal(e.headline, "We're sorry, Jeff. We can't take this one.");
   assert.equal(e.subject, 'Your Quote Request — AAE-9BOAMQQDNS');
   assert.equal(e.status, 'UNABLE TO FULFIL');
   assert.match(e.bodyHtml, /Thank you for your understanding\./);
   assert.match(e.bodyHtml, />Book again<\/a>/);
   assert.doesNotMatch(e.bodyHtml, /Reason/, 'no reason box when the owner wrote nothing');
-  assert.doesNotMatch(e.bodyHtml, /No pro available/, 'the owner label is not customer copy');
+  const noted = mail('cant_do', { note: 'We are fully booked that week. <script>x</script>' });
+  assert.match(noted.bodyHtml, />Reason<\/p>/, "the owner's note is the reason");
+  assert.match(noted.bodyHtml, /We are fully booked that week\. &lt;script&gt;x&lt;\/script&gt;/, 'the note is escaped');
 }
 {
-  const e = mail('not_offered');
-  assert.equal(e.headline, "We're sorry, Jeff. This is outside the services we offer.");
-  assert.match(e.bodyHtml, /\/pricing" [^>]*>See our services<\/a>/);
-}
-{
-  const e = mail('other', { note: 'We are fully booked that week. <script>x</script>' });
-  assert.match(e.bodyHtml, />Reason<\/p>/);
-  assert.match(e.bodyHtml, /We are fully booked that week\. &lt;script&gt;x&lt;\/script&gt;/, 'the note is escaped');
   const noted = mail('hired_someone', { note: 'Good luck with the playset.' });
   assert.match(noted.bodyHtml, /A note from our team/);
   assert.match(noted.bodyHtml, /Good luck with the playset\./);
-}
-{
-  assert.equal(mail('duplicate'), null, 'a duplicate request sends nothing');
-  assert.equal(mail('test'), null, 'a test or spam request sends nothing');
+  assert.equal(mail('duplicate'), null, 'a duplicate or test request sends nothing');
   assert.equal(mail('nope'), null);
   assert.equal(declineReasonText('hired_someone', ''), 'Customer found someone else');
   assert.equal(declineReasonText('hired_someone', ' Told us by text. '), 'Customer found someone else — Told us by text.');
   assert.equal(declineReasonText('nope', 'x'), null);
   assert.equal(ownerDeclineReason('__proto__'), null, 'only own keys are reasons');
 }
-console.log('PASS emails: one per reason, Jeff is thanked, duplicate and test send nothing');
+console.log('PASS emails: one per reason, Jeff is thanked, duplicate or test sends nothing');
 
 // ── 4. No email carries internal language ─────────────────────────────────
 for (const code of Object.keys(OWNER_DECLINE_REASONS)) {
   for (const isQuote of [true, false]) {
     for (const hasCard of [true, false]) {
-      const e = mail(code, { isQuote, hasCard, note: code === 'other' ? 'We are fully booked that week.' : '' });
-      if (!e) continue;
-      const text = all(e);
-      assert.deepEqual(findCustomerLanguageViolations(text), [], `${code}: no internal terms`);
-      assert.deepEqual(findJustifyingCopy(text), [], `${code}: no justifying copy`);
-      assert.doesNotMatch(text, /\b(declined?|status|pending|stripe|authori[sz])/i, `${code}: no workflow words`);
+      for (const note of ['', 'We are fully booked that week.']) {
+        const e = mail(code, { isQuote, hasCard, note });
+        if (!e) continue;
+        const text = all(e);
+        assert.deepEqual(findCustomerLanguageViolations(text), [], `${code}: no internal terms`);
+        assert.deepEqual(findJustifyingCopy(text), [], `${code}: no justifying copy`);
+        assert.doesNotMatch(text, /\b(declined?|status|pending|stripe|authori[sz])/i, `${code}: no workflow words`);
+      }
     }
   }
 }
