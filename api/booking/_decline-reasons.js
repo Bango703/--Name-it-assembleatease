@@ -40,7 +40,6 @@ export function declineReasonText(code, note) {
 const SITE = 'https://www.assembleatease.com';
 const P = 'margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7';
 const P_SMALL = 'margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.7';
-const button = (href, label) => `<p style="margin:0 0 20px;text-align:center"><a href="${href}" style="display:inline-block;background:#00BFFF;color:#002b3a;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px">${label}</a></p>`;
 const noteBox = (title, note) => `<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px">
            <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a">${title}</p>
            <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.6">${esc(note)}</p>
@@ -53,7 +52,9 @@ const UNABLE_BADGE = { status: 'UNABLE TO FULFIL', statusColor: '#71717a', statu
  * The customer email for a declined request, or null when the reason sends none.
  *   isQuote:  the request was a custom quote (wording only).
  *   hasCard:  the customer saved a card, so the email can say nothing was charged.
- * Returns { subject, headline, bodyHtml, status, statusColor, statusBg }.
+ * Returns { subject, headline, bodyHtml, status, statusColor, statusBg, button }.
+ * button, when set, takes the place of the email frame's Contact Us button, so
+ * the email shows one button (owner, 2026-11-23: two stacked looked cluttered).
  */
 export function declineEmail({ code, note, firstName, service, ref, isQuote, hasCard }) {
   const reason = ownerDeclineReason(code);
@@ -75,8 +76,8 @@ export function declineEmail({ code, note, firstName, service, ref, isQuote, has
         bodyHtml: `
         <p style="${P}">We've closed your ${kind} for ${what}.${cardNote}</p>
         ${ourNote}
-        <p style="${P_SMALL}">When you have another project, we're here to help.</p>
-        ${button(`${SITE}/book`, 'Book a service')}`,
+        <p style="${P_SMALL}">When you have another project, we're here to help.</p>`,
+        button: { href: `${SITE}/book`, label: 'Book a service' },
       };
     case 'price':
       return {
@@ -110,8 +111,8 @@ export function declineEmail({ code, note, firstName, service, ref, isQuote, has
         <p style="${P}">We are not able to take on your ${isQuote ? 'quote request' : 'request'} for ${what} at this time.${cardNote}</p>
         ${cleanNote ? noteBox('Reason', cleanNote) : ''}
         <p style="${P_SMALL}">We'd love to help you on another date or with a different service. Feel free to submit a new booking and we'll do our best to make it work.</p>
-        ${button(`${SITE}/book`, 'Book again')}
         <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Thank you for your understanding.</p>`,
+        button: { href: `${SITE}/book`, label: 'Book again' },
       };
   }
 }

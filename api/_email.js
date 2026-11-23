@@ -540,9 +540,14 @@ ${emailFooter(recipientType, contactEmail, hasOwnUnsubscribe)}
 </div></body></html>`;
 }
 
-export function buildStatusEmail({ customerName, ref, status, statusColor, statusBg, headline, bodyHtml, preheader }) {
+// button: optional { href, label } that takes the place of Contact Us, so an
+// email with its own action shows one button, not two stacked (owner, 2026-11-23).
+export function buildStatusEmail({ customerName, ref, status, statusColor, statusBg, headline, bodyHtml, preheader, button }) {
   const sName = esc(customerName);
   const preview = preheader === undefined ? derivePreheader(bodyHtml) : preheader;
+  const action = button && button.href && button.label
+    ? { href: esc(button.href), label: esc(button.label) }
+    : { href: 'mailto:service@assembleatease.com', label: 'Contact Us' };
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">${preheaderBlock(preview)}
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
 ${EMAIL_HEADER}
@@ -556,7 +561,7 @@ ${EMAIL_HEADER}
     </td></tr></table>
     ${bodyHtml}
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td style="text-align:center;padding:8px 0">
-      <a href="mailto:service@assembleatease.com" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Contact Us</a>
+      <a href="${action.href}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">${action.label}</a>
     </td></tr></table>
   </td></tr></table>
 ${emailFooter('customer')}

@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { OWNER_DECLINE_REASONS, ownerDeclineReason, declineReasonText, declineEmail } from '../api/booking/_decline-reasons.js';
 import { findCustomerLanguageViolations, findJustifyingCopy } from '../api/_customer-language.js';
+import { buildStatusEmail } from '../api/_email.js';
 
 const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const unescape = (t) => t.replace(/&#39;/g, "'").replace(/&amp;/g, '&');
@@ -91,7 +92,7 @@ const all = (e) => `${e.subject}\n${e.headline}\n${e.bodyHtml}`;
   assert.equal(e.headline, 'Thanks for letting us know, Jeff.');
   assert.equal(e.status, 'CLOSED');
   assert.match(e.bodyHtml, /We've closed your quote request for <strong>Outdoor &amp; Playsets<\/strong>\./);
-  assert.match(e.bodyHtml, />Book a service<\/a>/);
+  assert.deepEqual(e.button, { href: 'https://www.assembleatease.com/book', label: 'Book a service' }, 'Book a service takes the place of Contact Us');
   assert.doesNotMatch(all(e), /sorry|can't take|unable/i, 'the customer chose someone else; we did not fail them');
   assert.doesNotMatch(e.bodyHtml, /card/i, 'a quote sent without a card says nothing about one');
   assert.match(mail('hired_someone', { hasCard: true }).bodyHtml, /Nothing was charged to your card\./);
@@ -117,7 +118,7 @@ const all = (e) => `${e.subject}\n${e.headline}\n${e.bodyHtml}`;
   assert.equal(e.subject, 'Your Quote Request — AAE-9BOAMQQDNS');
   assert.equal(e.status, 'UNABLE TO FULFIL');
   assert.match(e.bodyHtml, /Thank you for your understanding\./);
-  assert.match(e.bodyHtml, />Book again<\/a>/);
+  assert.deepEqual(e.button, { href: 'https://www.assembleatease.com/book', label: 'Book again' });
   assert.doesNotMatch(e.bodyHtml, /Reason/, 'no reason box when the owner wrote nothing');
   const noted = mail('cant_do', { note: 'We are fully booked that week. <script>x</script>' });
   assert.match(noted.bodyHtml, />Reason<\/p>/, "the owner's note is the reason");
@@ -135,6 +136,30 @@ const all = (e) => `${e.subject}\n${e.headline}\n${e.bodyHtml}`;
   assert.equal(ownerDeclineReason('__proto__'), null, 'only own keys are reasons');
 }
 console.log('PASS emails: one per reason, Jeff is thanked, duplicate or test sends nothing');
+
+// ── 3b. One button per email (owner, 2026-11-23: two stacked looked cluttered) ──
+{
+  const src = read('api/booking/decline.js');
+  assert.match(src, /bodyHtml: email\.bodyHtml,\n\s+button: email\.button,/, 'the email hands its button to the frame');
+  const BUTTON = /<a href="[^"]*" style="display:inline-block;background:#00BFFF/g;
+  for (const code of Object.keys(OWNER_DECLINE_REASONS)) {
+    const e = mail(code);
+    if (!e) continue;
+    assert.doesNotMatch(e.bodyHtml, /<a /, `${code}: the body draws no button of its own`);
+    const html = buildStatusEmail({ customerName: 'Jeff Inman', ref: 'AAE-9BOAMQQDNS', status: e.status, statusColor: e.statusColor, statusBg: e.statusBg, headline: e.headline, bodyHtml: e.bodyHtml, button: e.button });
+    assert.equal((html.match(BUTTON) || []).length, 1, `${code}: exactly one button`);
+    if (e.button) {
+      assert.ok(html.includes(`>${e.button.label}</a>`), `${code}: its own button is the one shown`);
+      assert.ok(!html.includes('>Contact Us</a>'), `${code}: Contact Us is not stacked under it`);
+    } else {
+      assert.ok(html.includes('>Contact Us</a>'), `${code}: a reply-to-us email keeps Contact Us`);
+    }
+  }
+  // Every other status email still gets Contact Us.
+  const plain = buildStatusEmail({ customerName: 'A', ref: 'R', status: 'S', statusColor: '#000', statusBg: '#fff', headline: 'H', bodyHtml: '<p>x</p>' });
+  assert.ok(plain.includes('href="mailto:service@assembleatease.com"') && plain.includes('>Contact Us</a>'));
+}
+console.log("PASS one button: the decline email's own button replaces Contact Us; other emails unchanged");
 
 // ── 4. No email carries internal language ─────────────────────────────────
 for (const code of Object.keys(OWNER_DECLINE_REASONS)) {
