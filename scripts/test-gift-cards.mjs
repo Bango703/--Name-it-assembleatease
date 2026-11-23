@@ -99,7 +99,11 @@ assert.equal(gc.expectedPaidCents('discount', 5000), null);
 }
 
 // ── A paid session becomes exactly one card ─────────────────────────────
-const NOW_S = Math.floor(Date.UTC(2026, 9, 24, 15) / 1000);
+// Bought one day ago. A fixed date (2026-10-24 15:00 UTC) let the 30-day bonus
+// expire on 2026-11-23 and turned the balance check red for every PR.
+const NOW_S = Math.floor(Date.now() / 1000) - 86400;
+const PRIORITY_UNTIL = new Date((NOW_S + 30 * 86400) * 1000)
+  .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' });
 function session(overrides = {}) {
   return {
     id: 'cs_test_pass000001', status: 'complete', payment_status: 'paid', currency: 'usd', amount_total: 4900, created: NOW_S,
@@ -236,7 +240,7 @@ function fakeSb() {
   assert.equal(pass.subject, 'Your Move-In Pass is ready');
   assert.match(pass.html, /\$60 credit/);
   assert.match(pass.html, /\$49 of the credit never expires\. The \$11 bonus expires/, 'the bonus expiry is disclosed with the code');
-  assert.match(pass.html, /Priority booking<\/strong> until November 23, 2026/);
+  assert.ok(pass.html.includes(`Priority booking</strong> until ${PRIORITY_UNTIL}`), 'priority booking runs 30 days from purchase');
   const giftCard = { ...card, kind: 'gift_card', paid_cents: 10000, bonus_cents: 0, bonus_expires_at: null, priority_until: null, recipient_email: 'friend@example.com', recipient_name: 'Sam Lee', message: 'Welcome <home>' };
   const gift = gc.buildRecipientEmail(giftCard, built.code);
   assert.equal(gift.subject, 'Jane Doe sent you an AssembleAtEase gift card');

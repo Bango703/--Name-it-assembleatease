@@ -1,20 +1,32 @@
 import { getSupabase } from '../_supabase.js';
-import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { bookingCancellationPaymentIntentIds } from './_cancellation-stripe-truth.js';
-import { isQuoteAwaitingPrice } from './_quote-state.js';
+import { isOpenCustomQuote } from './_quote-state.js';
 import { normalizePersonName } from '../_person-name.js';
 import { releaseBookingGiftCard } from '../_gift-cards.js';
+import { ownerDeclineReason, declineReasonText, declineEmail } from './_decline-reasons.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { bookingId, ref, reason } = req.body;
+  const { bookingId, ref } = req.body || {};
   if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref is required' });
+  // Why it is declined decides the customer email (api/booking/_decline-reasons.js).
+  const reasonCode = String(req.body.reasonCode || '');
+  const note = String(req.body.note || '').trim().slice(0, 1000);
+  const declineReason = ownerDeclineReason(reasonCode);
+  if (!declineReason) {
+    return res.status(400).json({ error: 'Choose why this request is being declined.', code: 'DECLINE_REASON_REQUIRED' });
+  }
+  if (declineReason.noteRequired && note.length < 3) {
+    return res.status(400).json({ error: 'Add a note for the customer. It goes in the email.', code: 'DECLINE_NOTE_REQUIRED' });
+  }
+  const reason = declineReasonText(reasonCode, note);
 
   const sb = getSupabase();
 
@@ -89,47 +101,43 @@ export default async function handler(req, res) {
 
   await releaseBookingGiftCard(sb, booking, 'returned: booking declined');
 
-  // Send decline email to customer
-  try {
-    const reasonHtml = reason
-      ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px">
-           <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a">Reason</p>
-           <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.6">${esc(reason)}</p>
-         </td></tr></table>`
-      : '';
-
-    // A quote sent without a card (2026-10-21) never had one; say nothing
-    // about a card unless the customer actually saved one.
-    const isQuote = isQuoteAwaitingPrice(booking);
-    const cardNote = booking.stripe_payment_method_id ? ' Nothing was charged to your card.' : '';
-    const firstName = normalizePersonName(String(booking.customer_name || '').trim().split(/\s+/)[0] || '') || 'there';
-
-    const html = buildStatusEmail({
-      customerName: booking.customer_name,
-      ref: booking.ref,
-      status: 'UNABLE TO FULFIL',
-      statusColor: '#71717a',
-      statusBg: '#f4f4f5',
-      // Owner, 2026-10-23: one apology, then thanks (thanking outperforms a second
-      // apology after a service failure), a way back to booking, and the first name.
-      headline: `We're sorry, ${esc(firstName)}. We can't take this one.`,
-      bodyHtml: `
-        <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">We are not able to take on your ${isQuote ? 'quote request' : 'request'} for <strong>${esc(booking.service)}</strong> at this time.${cardNote}</p>
-        ${reasonHtml}
-        <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.7">We'd love to help you on another date or with a different service. Feel free to submit a new booking and we'll do our best to make it work.</p>
-        <p style="margin:0 0 20px;text-align:center"><a href="https://www.assembleatease.com/book" style="display:inline-block;background:#00BFFF;color:#002b3a;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px">Book again</a></p>
-        <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Thank you for your understanding.</p>`,
-    });
-
-    await sendEmail({
-      to: booking.customer_email,
-      subject: (isQuote ? 'Your Quote Request — ' : 'Your Booking Request — ') + booking.ref,
-      html,
-      replyTo: ownerEmail(),
-      meta: { bookingId: booking.id, notificationType: 'booking_declined', recipientType: 'customer' },
-    });
-  } catch (emailErr) {
-    console.error('Decline email error:', emailErr);
+  // The customer email this reason sends; duplicate and test requests send none.
+  // A quote sent without a card (2026-10-21) never had one; say nothing about a
+  // card unless the customer actually saved one.
+  const email = declineEmail({
+    code: reasonCode,
+    note,
+    firstName: normalizePersonName(String(booking.customer_name || '').trim().split(/\s+/)[0] || '') || 'there',
+    service: booking.service,
+    ref: booking.ref,
+    isQuote: isOpenCustomQuote(booking),
+    hasCard: Boolean(booking.stripe_payment_method_id),
+  });
+  let notificationDelivered = null;
+  if (email) {
+    try {
+      const html = buildStatusEmail({
+        customerName: booking.customer_name,
+        ref: booking.ref,
+        status: email.status,
+        statusColor: email.statusColor,
+        statusBg: email.statusBg,
+        headline: email.headline,
+        bodyHtml: email.bodyHtml,
+      });
+      const sent = await sendEmail({
+        to: booking.customer_email,
+        subject: email.subject,
+        html,
+        replyTo: ownerEmail(),
+        meta: { bookingId: booking.id, notificationType: 'booking_declined', recipientType: 'customer' },
+      });
+      notificationDelivered = sent?.ok === true;
+      if (!notificationDelivered) console.error('Decline email not sent:', sent?.error || 'unknown');
+    } catch (emailErr) {
+      notificationDelivered = false;
+      console.error('Decline email error:', emailErr);
+    }
   }
 
   // Non-blocking HubSpot stage update
@@ -137,7 +145,18 @@ export default async function handler(req, res) {
     updateDealStage(booking.hubspot_deal_id, 'closedlost').catch(e => console.error('HubSpot decline stage error:', e));
   }
 
-  await logActivity(sb, { bookingId: booking.id, eventType: 'declined', actorType: 'owner', actorName: 'Owner', description: `Booking declined${reason ? ': ' + reason : ''}` })
-    .catch(error => console.error('Decline activity log error:', error));
-  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.DECLINED } });
+  await logActivity(sb, {
+    bookingId: booking.id,
+    eventType: 'declined',
+    actorType: 'owner',
+    actorName: 'Owner',
+    description: `Booking declined: ${reason}${email ? '' : ' (no customer email)'}`,
+    metadata: { reasonCode, note: note || null, customerEmailed: notificationDelivered === true },
+  }).catch(error => console.error('Decline activity log error:', error));
+  return res.status(200).json({
+    success: true,
+    booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.DECLINED },
+    emailSent: notificationDelivered === true,
+    notificationDelivered: email ? notificationDelivered : null,
+  });
 }
