@@ -1881,6 +1881,28 @@ window.intelQuick = intelQuick;
       <option value="false_credentials">False credentials or application information</option>
       <option value="other" selected>Other</option>
     </select>
+    <!-- Decline only: why, and so which email the customer gets (api/booking/_decline-reasons.js
+         OWNER_DECLINE_REASONS; scripts/test-owner-decline-reasons.mjs holds the two together). -->
+    <select id="decline-reason" class="modal-input" style="display:none;margin-bottom:0.4rem">
+      <option value="">Choose a reason</option>
+      <optgroup label="The customer ended it">
+        <option value="hired_someone" data-sends="email" data-hint="Customer gets: &quot;Thanks for letting us know&quot; and a link to book again.">Customer found someone else</option>
+        <option value="not_needed" data-sends="email" data-hint="Customer gets: &quot;Thanks for letting us know&quot; and a link to book again.">Customer no longer needs it</option>
+        <option value="price" data-sends="email" data-hint="Customer gets: &quot;Thanks for letting us know&quot; and an invitation to reply for a new quote.">Customer said the price is too high</option>
+        <option value="timing" data-sends="email" data-hint="Customer gets: &quot;Thanks for letting us know&quot; and a link to choose a new time.">Customer needs a different time</option>
+        <option value="no_response" data-sends="email" data-hint="Customer gets: &quot;We&#39;ve closed your request&quot; and an invitation to reply to pick it back up.">Customer did not respond</option>
+      </optgroup>
+      <optgroup label="We can&#39;t take it">
+        <option value="no_pro" data-sends="email" data-hint="Customer gets: &quot;We&#39;re sorry, we can&#39;t take this one&quot; and a link to book another date.">No pro available for that date or area</option>
+        <option value="not_offered" data-sends="email" data-hint="Customer gets: &quot;This is outside the services we offer&quot; and a link to our services.">Not a service we offer</option>
+        <option value="other" data-sends="email" data-note-required="true" data-hint="Customer gets: &quot;We&#39;re sorry, we can&#39;t take this one&quot; with your note as the reason.">Other</option>
+      </optgroup>
+      <optgroup label="No email">
+        <option value="duplicate" data-sends="none" data-hint="No email is sent.">Duplicate request</option>
+        <option value="test" data-sends="none" data-hint="No email is sent.">Test or spam</option>
+      </optgroup>
+    </select>
+    <p id="decline-reason-hint" style="display:none;margin:0 0 0.6rem;font-size:0.78rem;color:var(--muted);line-height:1.45"></p>
     <textarea id="reason-text" placeholder="Reason (optional)"></textarea>
     <div id="damage-review-row" style="display:none;margin-top:0.25rem;margin-bottom:0.75rem">
       <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem;font-size:0.8rem;color:var(--soft);line-height:1.5">
@@ -6089,6 +6111,10 @@ window.intelQuick = intelQuick;
     setDamageReviewFieldsVisible(false);
     var suspensionReason = document.getElementById('suspension-reason');
     if (suspensionReason) { suspensionReason.style.display = 'none'; suspensionReason.value = 'other'; }
+    var declineReasonSel = document.getElementById('decline-reason');
+    if (declineReasonSel) { declineReasonSel.style.display = 'none'; declineReasonSel.value = ''; }
+    var declineReasonHint = document.getElementById('decline-reason-hint');
+    if (declineReasonHint) { declineReasonHint.style.display = 'none'; declineReasonHint.textContent = ''; }
     var waiveRow = document.getElementById('waive-fee-row');
     var waiveBox = document.getElementById('waive-fee-cb');
     if (waiveRow) waiveRow.style.display = 'none';
@@ -6129,6 +6155,28 @@ window.intelQuick = intelQuick;
     prepareReasonModal();
     pendingAction = null;
   }
+
+  // The decline reason decides the customer email; show which one before the
+  // owner presses Decline, and what the note box is for.
+  function syncDeclineReason() {
+    var sel = document.getElementById('decline-reason');
+    var hint = document.getElementById('decline-reason-hint');
+    var opt = sel.options[sel.selectedIndex];
+    if (!sel.value) {
+      hint.style.display = 'none';
+      hint.textContent = '';
+      $reasonText.placeholder = 'Note (optional)';
+      return;
+    }
+    hint.textContent = opt.getAttribute('data-hint') || '';
+    hint.style.display = '';
+    $reasonText.placeholder = opt.getAttribute('data-sends') === 'none'
+      ? 'Internal note (optional, not sent)'
+      : opt.getAttribute('data-note-required') === 'true'
+        ? 'Note for the customer (required, shown in the email)'
+        : 'Note for the customer (optional, added to the email)';
+  }
+  document.getElementById('decline-reason').addEventListener('change', syncDeclineReason);
 
   function openDamageReviewModal(bookingId) {
     var booking = allBookings.find(function(item){ return item.id == bookingId; });
@@ -6701,11 +6749,13 @@ window.intelQuick = intelQuick;
     } else if (action === 'decline') {
       $reasonText.style.display = '';
       pendingAction = { path: '/decline', id: id };
-      document.getElementById('reason-modal-title').textContent = 'Decline Booking';
-      document.getElementById('reason-modal-desc').textContent = 'Optionally explain why this booking is being declined.';
+      document.getElementById('reason-modal-title').textContent = 'Decline Request';
+      document.getElementById('reason-modal-desc').textContent = 'The reason picks the email the customer gets.';
       document.getElementById('reason-confirm').textContent = 'Decline';
       document.getElementById('reason-confirm').className = 'btn btn-red';
       $reasonText.value = '';
+      document.getElementById('decline-reason').style.display = '';
+      syncDeclineReason();
       document.getElementById('waive-fee-row').style.display = 'none';
       $reasonModal.classList.add('open');
     } else if (action === 'cancel') {
@@ -7425,11 +7475,25 @@ window.intelQuick = intelQuick;
       if ($wfCb) $wfCb.checked = false;
     }
     var actionBody = { bookingId: pendingAction.id };
-    if (reason) actionBody.reason = reason;
+    var declineSendsNoEmail = false;
+    if (pendingAction.path === '/decline') {
+      var $declineReason = document.getElementById('decline-reason');
+      var declineOpt = $declineReason.options[$declineReason.selectedIndex];
+      if (!$declineReason.value) { toast('Choose why this request is being declined', 'error'); return; }
+      if (declineOpt.getAttribute('data-note-required') === 'true' && reason.length < 3) {
+        toast('Add a note for the customer. It goes in the email.', 'error');
+        return;
+      }
+      actionBody.reasonCode = $declineReason.value;
+      if (reason) actionBody.note = reason;
+      declineSendsNoEmail = declineOpt.getAttribute('data-sends') === 'none';
+    } else if (reason) {
+      actionBody.reason = reason;
+    }
     if (waiveFee) actionBody.waiveFee = true;
     if (pendingAction.ownerOverride) actionBody.ownerOverride = true;
     var msg = pendingAction.path === '/decline'
-      ? 'Booking declined'
+      ? (declineSendsNoEmail ? 'Request declined. No email was sent.' : 'Request declined')
       : (pendingAction.type === 'refund-recovery' ? 'Refund workflow reconciled' : 'Booking cancelled');
     var actionPath = pendingAction.path;
     $reasonModal.classList.remove('open');

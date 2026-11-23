@@ -130,11 +130,20 @@ console.log('PASS approval: price first, then the card; same hold, finalize save
 // Owner, 2026-10-21: declining AAE-O35L76FFJQ emailed "No charge has been made
 // to your card" to a customer who never added one.
 {
+  // Since 2026-11-23 each decline reason has its own email (api/booking/_decline-reasons.js).
   const decline = read('api/booking/decline.js');
+  const { OWNER_DECLINE_REASONS, declineEmail } = await import('../api/booking/_decline-reasons.js');
   assert.doesNotMatch(decline, /No charge has been made to your card/, 'the card line is no longer unconditional');
-  assert.match(decline, /const cardNote = booking\.stripe_payment_method_id \? ' Nothing was charged to your card\.' : '';/, 'the card is named only when one was saved');
-  assert.match(decline, /const isQuote = isQuoteAwaitingPrice\(booking\);/, 'a quote is recognized by the one rule');
-  assert.match(decline, /subject: \(isQuote \? 'Your Quote Request — ' : 'Your Booking Request — '\) \+ booking\.ref/);
+  assert.match(decline, /hasCard: Boolean\(booking\.stripe_payment_method_id\)/, 'the card is named only when one was saved');
+  assert.match(decline, /isQuote: isOpenCustomQuote\(booking\)/, 'a quote is recognized by the one rule');
+  for (const code of Object.keys(OWNER_DECLINE_REASONS)) {
+    const noCard = declineEmail({ code, note: 'Fully booked that week.', firstName: 'Ana', service: 'Smart Home', ref: 'AAE-Q1', isQuote: true, hasCard: false });
+    if (!noCard) continue;
+    assert.doesNotMatch(`${noCard.subject} ${noCard.bodyHtml}`, /card/i, `${code}: no card mentioned when none was added`);
+    const withCard = declineEmail({ code, note: 'Fully booked that week.', firstName: 'Ana', service: 'Smart Home', ref: 'AAE-Q1', isQuote: true, hasCard: true });
+    assert.match(withCard.bodyHtml, /Nothing was charged to your card\./, `${code}: a saved card is named`);
+    assert.match(noCard.subject, /quote request|Quote Request/, `${code}: a quote is called a quote`);
+  }
   assert.doesNotMatch(decline, /booking\.status\s*=[^=]/, 'the quote is recognized from the booking as fetched, before the decline');
 }
 console.log('PASS decline: a quote without a card is never told about a card');
