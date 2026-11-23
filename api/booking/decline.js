@@ -120,6 +120,7 @@ export default async function handler(req, res) {
         statusBg: email.statusBg,
         headline: email.headline,
         bodyHtml: email.bodyHtml,
+        button: email.button,
       });
       const sent = await sendEmail({
         to: booking.customer_email,

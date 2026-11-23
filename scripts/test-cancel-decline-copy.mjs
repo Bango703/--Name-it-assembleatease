@@ -30,6 +30,6 @@ console.log('PASS cancel email: first name, apology only without a fee, Book aga
   assert.doesNotMatch(decline, /We apologize for any inconvenience/, 'one apology, not two');
   assert.doesNotMatch(decline, /Unfortunately we are not able/);
   assert.match(decline, /Thank you for your understanding\./, 'thanks instead of a second apology');
-  assert.match(decline, />Book again<\/a>/);
+  assert.equal(email.button.label, 'Book again', 'a way back to booking, as the one button');
 }
 console.log('PASS decline email: one apology, thanks, Book again, first name');
