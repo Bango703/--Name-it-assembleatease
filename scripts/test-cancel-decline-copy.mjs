@@ -24,7 +24,7 @@ console.log('PASS cancel email: first name, apology only without a fee, Book aga
   // reason. This is the we-cannot-take-it email; scripts/test-owner-decline-reasons.mjs
   // covers the others.
   const { declineEmail } = await import('../api/booking/_decline-reasons.js');
-  const email = declineEmail({ code: 'no_pro', firstName: 'Dana', service: 'Smart Home', ref: 'AAE-T1', isQuote: false, hasCard: true });
+  const email = declineEmail({ code: 'cant_do', firstName: 'Dana', service: 'Smart Home', ref: 'AAE-T1', isQuote: false, hasCard: true });
   const decline = `${email.headline}\n${email.bodyHtml}`;
   assert.equal(email.headline, "We're sorry, Dana. We can't take this one.");
   assert.doesNotMatch(decline, /We apologize for any inconvenience/, 'one apology, not two');

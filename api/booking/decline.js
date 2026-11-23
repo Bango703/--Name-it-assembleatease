@@ -19,12 +19,8 @@ export default async function handler(req, res) {
   // Why it is declined decides the customer email (api/booking/_decline-reasons.js).
   const reasonCode = String(req.body.reasonCode || '');
   const note = String(req.body.note || '').trim().slice(0, 1000);
-  const declineReason = ownerDeclineReason(reasonCode);
-  if (!declineReason) {
+  if (!ownerDeclineReason(reasonCode)) {
     return res.status(400).json({ error: 'Choose why this request is being declined.', code: 'DECLINE_REASON_REQUIRED' });
-  }
-  if (declineReason.noteRequired && note.length < 3) {
-    return res.status(400).json({ error: 'Add a note for the customer. It goes in the email.', code: 'DECLINE_NOTE_REQUIRED' });
   }
   const reason = declineReasonText(reasonCode, note);
 
