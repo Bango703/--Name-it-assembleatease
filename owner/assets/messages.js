@@ -127,6 +127,20 @@
       ? 'Text consent is not recorded for this number yet'
       : 'Reply by text...';
     body.scrollTop = body.scrollHeight;
+    // The AI's suggested text (owner/assets/ai-assist.js). Using it fills the
+    // reply box; Send SMS (with its confirmation) still does the sending.
+    var conversationId = data.conversation.id;
+    if (window.OwnerAiAssist) {
+      window.OwnerAiAssist.mount(el('sms-ai'), {
+        scope: 'sms',
+        id: conversationId,
+        onUse: function(suggestion) {
+          if (state.selectedSmsId !== conversationId) return;
+          input.value = suggestion.draft;
+          input.focus();
+        },
+      });
+    }
   }
   async function openSms(id) {
     if (!id || state.smsLoading) return;

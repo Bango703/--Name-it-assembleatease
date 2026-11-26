@@ -84,6 +84,12 @@
     },
     "api/mcp.js": {
       "includeFiles": "{index.html,assets/js/booking-source-of-truth.js,assets/js/catalog-search.js}"
+    },
+    "api/cron/ai-assist.js": {
+      "includeFiles": "{index.html,assets/js/booking-source-of-truth.js}"
+    },
+    "api/owner/ai-assist.js": {
+      "includeFiles": "{index.html,assets/js/booking-source-of-truth.js}"
     }
   },
   "crons": [
@@ -206,6 +212,10 @@
     {
       "path": "/api/cron/private-call-recordings",
       "schedule": "40 9 * * *"
+    },
+    {
+      "path": "/api/cron/ai-assist",
+      "schedule": "*/5 * * * *"
     }
   ],
   "headers": [

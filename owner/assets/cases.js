@@ -295,6 +295,9 @@
     var recipientOptions = '';
     if (customer.email) recipientOptions += '<option value="customer">Customer - ' + esc(customer.email) + '</option>';
     if (easer.email) recipientOptions += '<option value="easer">Easer - ' + esc(easer.email) + '</option>';
+    // The AI's summary and suggested update (owner/assets/ai-assist.js), filled in
+    // after render. "Use this update" only fills the form below.
+    var aiHtml = '<div id="cases-ai" class="cases-detail-section" hidden></div>';
     var communicationHtml = recipientOptions
       ? '<div class="cases-detail-section">' +
           '<div class="cases-section-label">Send an update</div>' +
@@ -337,6 +340,7 @@
           '<div class="cases-head-sub">' + esc(item.typeLabel || TYPE_LABELS[item.type] || 'Operational Case') + ' &middot; Updated ' + esc(formatDate(item.updatedAt)) + '</div>' +
         '</div>' +
       '</div>' +
+      aiHtml +
       '<div class="cases-tabs" role="tablist">' +
         '<button type="button" class="cases-tab active" data-case-tab="overview">Overview</button>' +
         '<button type="button" class="cases-tab" data-case-tab="communication">Communication</button>' +
@@ -396,6 +400,22 @@
       '</div>';
 
     updateConfirmationVisibility();
+    if (window.OwnerAiAssist) {
+      var caseId = item.id;
+      window.OwnerAiAssist.mount(document.getElementById('cases-ai'), {
+        scope: 'case',
+        id: caseId,
+        onUse: function(suggestion) {
+          if (state.selectedId !== caseId) return;
+          var tab = detail.querySelector('[data-case-tab="communication"]');
+          if (tab) tab.click();
+          var recipient = document.getElementById('cases-contact-recipient');
+          var message = document.getElementById('cases-contact-message');
+          if (recipient && suggestion.audience && recipient.querySelector('option[value="' + suggestion.audience + '"]')) recipient.value = suggestion.audience;
+          if (message) { message.value = suggestion.draft; message.focus(); }
+        },
+      });
+    }
   }
 
   // Presentation only: never rewrite the stored description or infer verified

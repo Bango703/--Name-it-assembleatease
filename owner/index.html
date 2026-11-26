@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="/owner/assets/partners.css" />
   <link rel="stylesheet" href="/owner/assets/gift-cards.css" />
   <link rel="stylesheet" href="/owner/assets/messages.css" />
+  <link rel="stylesheet" href="/owner/assets/ai-assist.css" />
   <script src="/assets/js/mobile-nav.js" defer></script>
   <!-- Canonical service catalog. The Edit Booking service list was hardcoded here
        and had drifted: it offered only 4 of the 7 real services and wrote
@@ -34,6 +35,7 @@
   <script src="/owner/assets/acquisition.js" defer></script>
   <script src="/owner/assets/partners.js" defer></script>
   <script src="/owner/assets/gift-cards.js" defer></script>
+  <script src="/owner/assets/ai-assist.js" defer></script>
   <script src="/owner/assets/messages.js" defer></script>
   <script src="/owner/assets/website-photos.js" defer></script>
   <link rel="stylesheet" href="/owner/assets/owner.css" />
@@ -318,6 +320,8 @@
             </div>
           </div>
           <div id="sms-thread-body" class="msg-thread sms-thread-body"></div>
+          <!-- AI suggested text (owner/assets/ai-assist.js). "Use this reply" only fills the box below. -->
+          <div id="sms-ai" hidden></div>
           <div class="msg-compose">
             <textarea id="sms-reply-input" class="msg-input" rows="3" maxlength="2000" placeholder="Reply by text..."></textarea>
             <button id="sms-reply-send" type="button" class="btn btn-teal">Send SMS</button>
@@ -561,6 +565,8 @@
                   <button id="msg-target-assembler" onclick="setMsgTarget('assembler')" style="min-height:44px;padding:8px 12px;border-radius:99px;border:1.5px solid #7c3aed;background:none;color:#7c3aed;font-size:0.76rem;font-weight:600;cursor:pointer;touch-action:manipulation">Easer</button>
                 </div>
                 <p id="msg-route-help" style="margin:0 0 0.65rem;font-size:0.78rem;line-height:1.5;color:var(--muted)">Messages sent here are saved in this booking. Customers are notified by email; Easers can also receive push notifications. Tracking-page replies appear here. Direct email replies go to the owner mailbox. Customer read status is not shown.</p>
+                <!-- AI suggested reply (owner/assets/ai-assist.js). "Use this reply" only fills the box below. -->
+                <div id="msg-ai" hidden></div>
                 <div class="msg-compose">
                   <textarea class="msg-input" id="msg-input" placeholder="Message customer..." aria-describedby="msg-route-help" rows="4" style="border-color:var(--teal)"></textarea>
                   <button class="btn" id="msg-send" style="background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600;white-space:nowrap">Send to Customer</button>
@@ -7533,6 +7539,21 @@ window.intelQuick = intelQuick;
       }
       _currentMessages = msgs;
       renderMessageThread();
+      // The AI's suggested reply for whatever in this booking is waiting for the
+      // owner. Using it fills the reply box and picks the recipient; the owner's
+      // Send (with its confirmation) still does the sending.
+      if (window.OwnerAiAssist) {
+        window.OwnerAiAssist.mount(document.getElementById('msg-ai'), {
+          scope: 'booking',
+          id: bookingId,
+          onUse: function(suggestion) {
+            if (selectedId !== bookingId) return;
+            applyMsgTarget(suggestion.audience === 'assembler' ? 'assembler' : 'customer');
+            $msgInput.value = suggestion.draft;
+            $msgInput.focus();
+          },
+        });
+      }
     } catch (err) {
       _currentMessages = [];
       $msgThread.innerHTML = '<div class="msg-empty">Couldn\'t load messages — ' + esc(err && err.message ? err.message : 'please retry') + '</div>';
