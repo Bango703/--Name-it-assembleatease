@@ -1,0 +1,20 @@
+/* AI suggestions (owner, 2026-11-26). One card on the booking thread, the text
+   thread and the case. Dashboard tokens only. */
+.ai-assist { margin: 0 0 0.75rem; }
+.ai-assist[hidden] { display: none; }
+.ai-card { border: 1px solid var(--border); border-left: 3px solid var(--teal); border-radius: 10px; padding: 0.75rem 0.85rem; background: var(--surface, #fff); margin-bottom: 0.6rem; }
+.ai-card.ai-urgent { border-left-color: var(--red); }
+.ai-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; }
+.ai-card-title { font-weight: 700; font-size: 0.85rem; color: var(--text); margin-right: 0.2rem; }
+.ai-chip { font-size: 0.7rem; font-weight: 600; padding: 0.12rem 0.5rem; border-radius: 99px; border: 1px solid var(--border); color: var(--soft); white-space: nowrap; }
+.ai-chip-routine { border-color: var(--teal); color: var(--teal); }
+.ai-chip-owner { border-color: var(--amber); color: var(--amber); }
+.ai-chip-urgent { border-color: var(--red); color: var(--red); }
+.ai-summary { margin: 0 0 0.45rem; font-size: 0.8rem; color: var(--soft); line-height: 1.45; }
+.ai-next { margin: 0 0 0.45rem; font-size: 0.8rem; color: var(--text); line-height: 1.45; }
+.ai-draft { white-space: pre-wrap; font-size: 0.85rem; line-height: 1.5; color: var(--text); background: var(--bg, #f8fafc); border: 1px solid var(--border); border-radius: 8px; padding: 0.55rem 0.65rem; margin-bottom: 0.5rem; }
+.ai-note { margin: 0 0 0.5rem; font-size: 0.74rem; color: var(--muted); line-height: 1.45; }
+.ai-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.ai-actions .btn { min-height: 36px; padding: 0.35rem 0.75rem; font-size: 0.78rem; }
+.ai-foot { margin: 0.45rem 0 0; font-size: 0.7rem; color: var(--muted); }
+.ai-status { font-size: 0.78rem; color: var(--muted); padding: 0.4rem 0; }

@@ -505,6 +505,7 @@ Auto-dispatch flow (`api/booking/_dispatch-internal.js`):
 | `daily-summary` | Daily 13:00 UTC | Owner daily ops email |
 | `weekly-summary` | Monday 14:00 UTC | Owner weekly stats email |
 | `auto-blog` | Mondays 14:00 UTC | Blog engine (`api/_blog-engine.js`): writes the next calendar topic with catalog prices and opens a PR for the owner to merge; off unless `AUTO_BLOG_PUBLISH_ENABLED=true` |
+| `ai-assist` | Every 5 min | AI suggestions (`api/_ai-assist.js`): a draft reply for each booking message and text waiting for the owner, a summary for each open case; routine customer replies send on their own only when `AI_AUTO_REPLY_ENABLED=true` |
 
 All cron handlers verify `Authorization: Bearer {CRON_SECRET}` before executing.
 

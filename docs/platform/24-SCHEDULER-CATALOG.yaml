@@ -6,6 +6,7 @@ source: vercel.json
 
 schedules:
   frequent:
+    - '*/5 * * * *'
     - '*/10 * * * *'
     - '*/15 * * * *'
     - '*/30 * * * *'
