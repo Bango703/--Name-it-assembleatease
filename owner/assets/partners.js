@@ -298,7 +298,8 @@
   }
   async function load() {
     if (state.loading) return;
-    state.loading = true; el('partners-refresh').disabled = true;
+    var refreshBtn = el('partners-refresh');
+    state.loading = true; if (refreshBtn) refreshBtn.disabled = true;
     try {
       state.data = await request(); state.error = null;
       el('partners-notice').hidden = true;
@@ -308,7 +309,7 @@
       state.error = error.message;
       el('partners-notice').hidden = false; el('partners-notice').textContent = error.message + (state.data ? ' Showing the last list loaded.' : '');
       updateBadge();
-    } finally { state.loading = false; el('partners-refresh').disabled = false; }
+    } finally { state.loading = false; if (refreshBtn) refreshBtn.disabled = false; }
   }
   function replacePartner(updated) {
     var list = partners(); var i = list.findIndex(function(p) { return p.id === updated.id; });

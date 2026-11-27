@@ -174,7 +174,7 @@
       </div>
       <div class="topbar-right">
         <button class="btn" id="export-csv-btn" style="font-size:0.78rem">Financial Report</button>
-        <button class="btn btn-teal" id="new-booking-btn" type="button"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg> Create Booking</button>
+        <button class="btn btn-teal" id="new-booking-btn" type="button"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Create Booking</button>
         <button class="btn" id="refresh-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refresh</button>
       </div>
     </div>
@@ -291,7 +291,7 @@
         <div id="voice-calls-kpis"></div>
         <div class="v2-toolbar">
           <div id="voice-calls-tabs"></div>
-          <div class="v2-tools"><span id="voice-calls-updated" class="v2-meta" aria-live="polite"></span><button type="button" class="btn c-sm" id="voice-calls-refresh">Refresh</button></div>
+          <div class="v2-tools"><span id="voice-calls-updated" class="v2-meta" aria-live="polite"></span></div>
         </div>
         <div id="voice-calls-notice" class="v2-note voice-calls-note" role="status">Checking call capture and history...</div>
         <div class="v2-split v2-fill voice-calls-grid">
@@ -305,7 +305,7 @@
         <div id="inbox-kpis"></div>
         <div class="v2-toolbar">
           <div id="inbox-tabs"></div>
-          <div class="v2-tools"><span class="v2-meta">Booking chat stays inside the booking record.</span><button type="button" class="btn c-sm" id="inbox-refresh">Refresh</button></div>
+          <div class="v2-tools"><span class="v2-meta">Booking chat stays inside the booking record.</span></div>
         </div>
         <div id="inbox-notice" class="inbox-note" role="status" hidden></div>
         <div class="inbox-split v2-split v2-fill">
@@ -358,7 +358,7 @@
               <span id="partners-add-status" class="partners-muted" role="status"></span>
             </form>
           </details>
-            <button type="button" class="btn c-sm" id="partners-refresh">Refresh</button>
+            
           </div>
           </div>
           <div class="partners-grid v2-split v2-fill">
@@ -374,7 +374,7 @@
         <div id="giftcards-kpis"></div>
         <div class="v2-toolbar">
           <div id="giftcards-tabs"></div>
-          <div class="v2-tools"><span class="giftcards-status" id="giftcards-status">Loading</span><button type="button" class="btn c-sm" id="giftcards-refresh">Refresh</button></div>
+          <div class="v2-tools"><span class="giftcards-status" id="giftcards-status">Loading</span></div>
         </div>
         <p id="giftcards-notice" class="giftcards-note" role="status" hidden></p>
         <div id="giftcards-body" class="v2-card v2-fill"></div>
@@ -497,7 +497,7 @@
             <label class="bk-filter"><span class="sr-only">Area</span><select id="bk-filter-area" aria-label="Area"><option value="">All areas</option></select></label>
             <div class="search-bar bk-search">
               <span class="search-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-              <input type="text" class="search-input" id="booking-search" placeholder="Search ref, name, email, service or address" />
+              <input type="text" class="search-input" id="booking-search" placeholder="Search bookings" />
               <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Clear search">&#10005;</button>
             </div>
           </div>
@@ -842,7 +842,7 @@
           <div class="v2-card v2-wide">
             <div class="v2-card-head">
               <div><h3>Website Chat Inbox</h3><p id="site-chat-summary">Loading recent Sora conversations from the last 48 hours...</p></div>
-              <button id="site-chat-refresh-btn" onclick="loadSiteChatInbox(true)" class="btn c-sm">Refresh chats</button>
+              
             </div>
             <div class="v2-card-body">
             <div class="site-chat-grid">
@@ -919,7 +919,7 @@
           <div class="v2-card-head">
             <div><h3>Social automation</h3><p>Buffer queue coverage for Facebook, Google Business, and founder-led LinkedIn posting.</p></div>
             <div class="v2-actions">
-              <button id="mk-social-refresh" class="btn c-sm" type="button">Refresh</button>
+              
               <button id="mk-social-dry-run" class="btn btn-amber c-sm" type="button">Dry Run Queue</button>
               <button id="mk-social-run" class="btn btn-teal c-sm" type="button">Top Up Queue</button>
             </div>
@@ -3294,6 +3294,7 @@ window.intelQuick = intelQuick;
   document.getElementById('refresh-btn').addEventListener('click', async function() {
     var btn = this;
     if (btn.disabled) return;
+    var label = btn.innerHTML;
     btn.disabled = true;
     btn.textContent = 'Refreshing…';
     try {
@@ -3315,7 +3316,7 @@ window.intelQuick = intelQuick;
       else await loadBookings();
     } finally {
       btn.disabled = false;
-      btn.innerHTML = 'Refresh';
+      btn.innerHTML = label;
     }
   });
 
@@ -8943,8 +8944,10 @@ window.intelQuick = intelQuick;
     setTopbarSub(view);
     if (!$newBookingBtn) return;
     var show = view === 'bookings' || view === 'customers';
+    var report = document.getElementById('export-csv-btn');
+    if (report) report.style.display = view === 'analytics' ? '' : 'none';
     $newBookingBtn.style.display = show ? '' : 'none';
-    $newBookingBtn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg> ' + (view === 'customers' ? 'Add Customer + Booking' : 'Create Booking');
+    $newBookingBtn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Create Booking';
     $newBookingBtn.title = view === 'customers'
       ? 'Add customer details and create an owner booking record'
       : 'Create owner manual booking';
@@ -9991,6 +9994,8 @@ window.intelQuick = intelQuick;
     if (note) {
       if (!snapshot || snapshot.enabled === false) {
         note.textContent = 'Buffer automation is not live from code yet. Set the Buffer API key, connected channel IDs, and SOCIAL_AUTO_PUBLISH=true before relying on scheduled posting.';
+      } else if (!channels.length) {
+        note.textContent = 'No social channels are connected yet.';
       } else if (belowTarget > 0) {
         note.textContent = 'Queue coverage is below target on ' + belowTarget + ' channel' + (belowTarget === 1 ? '' : 's') + '. LinkedIn is positioned as founder voice, while Facebook and Google Business stay service- and local-intent focused.';
       } else {

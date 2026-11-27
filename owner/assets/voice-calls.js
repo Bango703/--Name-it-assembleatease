@@ -24,7 +24,10 @@
     delivery_unconfirmed: 'Email attempted; delivery not confirmed' };
   function el(id) { return document.getElementById(id); }
   function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function time(value) { return value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString() : 'Not available'; }
+  // One date style on this screen (list and detail), and phone numbers as the rest of the dashboard shows them.
+  function time(value) { return value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Not available'; }
+  function phone(value) { var d = String(value || '').replace(/\D/g, ''); if (d.length === 11 && d.charAt(0) === '1') d = d.slice(1); return d.length === 10 ? d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) : (value || ''); }
+  function cap(value) { var t = String(value || ''); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; }
   function shortTime(value) { return value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Not available'; }
   function label(call) { return labels[call.status] || 'Outcome not known'; }
   async function request(suffix, options) {
@@ -76,7 +79,7 @@
     el('voice-calls-list').innerHTML = rows.length ? rows.map(function(call) {
       var party = call.direction === 'outbound' ? call.to : call.from;
       return '<button type="button" class="v2-item voice-call-row" aria-pressed="' + (call.reference === state.selected) + '" data-voice-call="' + esc(call.reference) + '">' +
-        '<span><span class="v2-item-title">' + esc(party || 'Number unavailable') + '</span><span class="v2-item-sub">' + esc(label(call)) + ' &middot; ' + esc(call.direction) + '</span></span>' +
+        '<span><span class="v2-item-title">' + esc(party ? phone(party) : 'Number unavailable') + '</span><span class="v2-item-sub">' + esc(label(call)) + ' &middot; ' + esc(cap(call.direction)) + '</span></span>' +
         '<span class="v2-item-side">' + esc(shortTime(call.firstObservedAt)) + reviewPill(call) + '</span></button>';
     }).join('') : state.calls.length
       ? '<div class="voice-call-empty">No calls in this tab.</div>'
@@ -89,8 +92,8 @@
       : call.requestState === 'unavailable' ? 'Request lookup unavailable. Do not assume the caller has no Case.'
       : 'No confirmed request found at this check. A request can arrive later. This does not prove why the caller ended the call.';
     var html = '<h2>' + esc(label(call)) + '</h2><p class="voice-muted">Caller ID is unverified. A call record is not a booking or permission to contact someone.</p>';
-    html += '<dl class="voice-call-facts v2-facts">' + fact('From', call.from || 'Unavailable') + fact('To', call.to || 'Unavailable') +
-      fact('Direction', call.direction) + fact('First event observed', time(call.firstObservedAt)) +
+    html += '<dl class="voice-call-facts v2-facts">' + fact('From', call.from ? phone(call.from) : 'Unavailable') + fact('To', call.to ? phone(call.to) : 'Unavailable') +
+      fact('Direction', cap(call.direction)) + fact('First event observed', time(call.firstObservedAt)) +
       fact('Latest event observed', time(call.lastObservedAt)) + fact('Provider-reported call duration', call.durationSeconds == null ? 'Not supplied' : call.durationSeconds + ' seconds') + '</dl>';
     if (!call.terminalObserved) html += '<p class="voice-calls-note">No end event has been received. This is the last observed state, not proof that the call is still active.</p>';
     if (!call.complete) html += '<p class="voice-calls-error">This call exceeds the event display limit. Review the provider history; marking it reviewed is disabled.</p>';
@@ -124,7 +127,8 @@
   async function load(more) {
     if (state.loading) return;
     state.loading = true;
-    el('voice-calls-refresh').disabled = true;
+    var refreshBtn = el('voice-calls-refresh');
+    if (refreshBtn) refreshBtn.disabled = true;
     el('voice-calls-more').disabled = true;
     try {
       var data = await request(more && state.cursor ? '?cursor=' + encodeURIComponent(state.cursor) : '');
@@ -141,7 +145,7 @@
       el('voice-calls-notice').textContent = error.message + ' Previously displayed information may be stale.';
       updateBadge(null);
     } finally {
-      state.loading = false; el('voice-calls-refresh').disabled = false; el('voice-calls-more').disabled = false;
+      state.loading = false; if (refreshBtn) refreshBtn.disabled = false; el('voice-calls-more').disabled = false;
     }
   }
   document.addEventListener('click', async function(event) {
