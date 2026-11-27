@@ -19,7 +19,8 @@ export default async function handler(req, res) {
     const summary = await runAiAssist(getSupabase());
     await logCron('ai-assist', {
       status: summary.failed ? 'partial' : 'ok',
-      records: summary.drafted + summary.autoSent + summary.reconciled,
+      // Every piece of work the run did, so a run that only reviewed cases is not logged as 0.
+      records: summary.drafted + summary.autoSent + summary.reconciled + summary.casesReviewed + summary.casesClosed,
       errorText: summary.errors.length ? summary.errors.slice(0, 3).join(' | ') : null,
       duration: Date.now() - started,
     });
