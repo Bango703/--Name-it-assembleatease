@@ -46,3 +46,28 @@ assert.match(calls, /esc\(party \? phone\(party\) : 'Number unavailable'\)/, 'ph
 assert.match(read('owner/assets/console.css'), /\.modal h3 \{ font-family: inherit; font-weight: 700; \}/, 'pop-up titles use the console type');
 
 console.log('PASS owner dashboard polish: one Refresh, report on Financials, one create button, honest social note, call formats, console type in pop-ups');
+
+// ── Market Demand layout (owner, 2026-11-27: "marketdemand is just messy") ──
+{
+  const view = page.slice(page.indexOf('<div id="market-demand-view"'), page.indexOf('<!-- ─── WAITLIST VIEW ─── -->'));
+  const coverage = view.slice(view.indexOf('md-coverage-card'), view.indexOf('<div class="md-row2">'));
+  assert.ok(coverage.includes('id="md-coverage"') && coverage.includes('id="md-top-markets"'), 'one coverage card: the summary sits over the area cards');
+  assert.equal((view.match(/<h3>Market Coverage/g) || []).length, 1, 'coverage is not shown twice');
+  const acq = view.slice(view.indexOf('class="fin-card md-acq"'), view.indexOf('id="dispatch-health-card"'));
+  assert.doesNotMatch(acq, /acquisition-internal/, 'the browser setting is not inside the report');
+  assert.match(view, /<div class="md-browser-setting">[\s\S]*id="acquisition-internal"/, 'the browser setting sits at the foot of the page');
+  assert.ok(view.indexOf('md-coverage-card') < view.indexOf('md-row2') && view.indexOf('md-row2') < view.indexOf('dispatch-health-card')
+    && view.indexOf('dispatch-health-card') < view.indexOf('md-requests-table') && view.indexOf('md-requests-table') < view.indexOf('id="md-reconciliation"'),
+  'order: coverage, trend and acquisition, Houston, activity, records');
+  const css = read('owner/assets/console.css');
+  assert.doesNotMatch(css, /\.md-row3|\.md-acq \{ grid-column/, 'no rule pushes acquisition off the trend row');
+  assert.match(css, /\.md-kpi \.kpi-value \{ overflow: visible; text-overflow: clip; \}/, 'a money figure is never cut off');
+  assert.match(page, /if \(!rows\.length\) return '<span class="md-count-zero">'/, 'a zero count is plain text, not an empty drop-down');
+  const dh = page.slice(page.indexOf('function dhList('), page.indexOf('function renderMarketDemand('));
+  assert.match(dh, /<details class="dh-checks"><summary>All recruitment checks/, 'the rule list is folded');
+  assert.match(dh, /None in this window: /, 'empty lists fold into one line');
+  assert.match(dh, /formatDate\(r\.date\)/, 'readable dates');
+  assert.doesNotMatch(page.slice(page.indexOf('async function loadDispatchHealth()'), page.indexOf('function dhPct(')), /'Last ' \+ d\.windowDays \+ ' days, ZIPs '/, 'never prints "undefined"');
+  assert.doesNotMatch(read('api/owner/_dispatch-health.js'), /\(s\)/, 'plain plurals in the recruitment checks');
+}
+console.log('PASS Market Demand: one coverage card, trend beside acquisition, Houston card tidy, records and setting at the foot');

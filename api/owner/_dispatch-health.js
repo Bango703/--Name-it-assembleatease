@@ -84,6 +84,9 @@ function isCustomerCancellation(reason) {
   return /^cancelled by customer/i.test(String(reason || '').trim());
 }
 
+/** "1 booking", "2 bookings" in owner copy. */
+function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
+
 /**
  * @param {object} input
  * @param {Array} input.bookings  non-test bookings in the market (any age)
@@ -171,13 +174,13 @@ export function buildDispatchHealth({ bookings = [], offers = [], easers = [], m
     { key: 'assignment_time', label: 'Median time to assignment above 60 minutes', fired: minutes.length >= T.minAssignmentsForMedian && medianMinutes > T.maxMedianMinutesToAssign,
       detail: minutes.length ? `Median ${medianMinutes} min over ${minutes.length} assigned bookings` : 'No assigned bookings in the window' },
     { key: 'urgent_unassigned', label: 'A confirmed job is unassigned within 24 hours of its appointment', fired: urgentUnassigned.length > 0,
-      detail: `${urgentUnassigned.length} booking(s)` },
+      detail: plural(urgentUnassigned.length, 'booking', 'bookings') },
     { key: 'no_easer_cancellation', label: 'A booking was cancelled before any Easer accepted it', fired: noEaserCancellations.length > 0,
-      detail: `${noEaserCancellations.length} booking(s) in the window` },
+      detail: `${plural(noEaserCancellations.length, 'booking', 'bookings')} in the window` },
     { key: 'daily_cap', label: `An Easer reached the ${dailyCap}-jobs-per-day dispatch limit`, fired: capHits.length > 0,
-      detail: `${capHits.length} Easer-day(s)` },
+      detail: plural(capHits.length, 'Easer-day', 'Easer-days') },
     { key: 'load', label: 'More than 5 confirmed jobs a week per ready Easer', fired: perEaserWeek != null && perEaserWeek > T.maxWeeklyBookingsPerEaser,
-      detail: readyEasers.length ? `${confirmedLastWeek} confirmed in 7 days, ${readyEasers.length} ready Easer(s)` : `${confirmedLastWeek} confirmed in 7 days, no ready Easer on record` },
+      detail: readyEasers.length ? `${confirmedLastWeek} confirmed in 7 days, ${plural(readyEasers.length, 'ready Easer', 'ready Easers')}` : `${confirmedLastWeek} confirmed in 7 days, no ready Easer on record` },
   ];
   // With no ready Easer at all, any confirmed job means supply is the gap.
   if (!readyEasers.length && confirmedLastWeek > 0) triggers.find(t => t.key === 'load').fired = true;
