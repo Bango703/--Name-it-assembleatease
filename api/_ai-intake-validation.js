@@ -1,5 +1,16 @@
 import { createHash } from 'node:crypto';
 
+// Lines the phone intake writes into every case description. They are ours, not
+// the caller's: api/_ai-assist.js leaves them out when it checks what the caller
+// said (owner, 2026-11-26: the "payment taken" disclaimer had blocked every
+// phone case from the AI's review).
+export const INTAKE_ITEMS_NOTE = 'Items are caller descriptions, NOT priced or verified catalog selections:';
+export const INTAKE_SYSTEM_LINES = Object.freeze([
+  'Caller confirmed these details and permitted a callback. No SMS or marketing consent inferred.',
+  'REQUEST ONLY: no booking confirmed, payment taken, account accessed, dispatch sent, cancellation/refund processed, or payout changed.',
+  'Owner: verify identity/assignment before disclosing private information or changing an existing job. Emergency reports require human follow-up; this case is not emergency dispatch.',
+]);
+
 export function cleanIntakeText(value, max) {
   if (typeof value !== 'string') return '';
   const clean = value.trim().replace(/\s+/g, ' ');

@@ -4,7 +4,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { hasDurableRateLimit, rateLimitKey } from '../_ratelimit.js';
 import { createOperationCase, appendOperationCaseEvent, buildOperationCaseRef } from '../_operation-cases.js';
-import { cleanIntakeText, intakeCallReference, intakeCallbackPhone } from '../_ai-intake-validation.js';
+import { cleanIntakeText, intakeCallReference, intakeCallbackPhone, INTAKE_ITEMS_NOTE, INTAKE_SYSTEM_LINES } from '../_ai-intake-validation.js';
 
 // Intake only. This module has no booking, Stripe, dispatch, or profile mutation dependency.
 export const config = { api: { bodyParser: { sizeLimit: '16kb' } } };
@@ -167,13 +167,11 @@ export function supportDescription(input) {
       `Preferred service window (not confirmed): ${job.requestedWindow || 'Not specified'}`,
       `Readiness (caller report): ${job.readiness}`, `Product / project notes: ${job.productNotes || 'Not provided'}`,
       `Site notes (no access codes): ${job.siteNotes || 'Not provided'}`,
-      'Items are caller descriptions, NOT priced or verified catalog selections:',
+      INTAKE_ITEMS_NOTE,
       ...job.items.map(item => `- ${item.quantity} x ${item.description} [${item.service}]`));
   }
   lines.push(`Still to clarify: ${missingSupportDetails(input).join('; ') || 'No listed intake gaps; verify scope and availability before confirming.'}`,
-    'Caller confirmed these details and permitted a callback. No SMS or marketing consent inferred.',
-    'REQUEST ONLY: no booking confirmed, payment taken, account accessed, dispatch sent, cancellation/refund processed, or payout changed.',
-    'Owner: verify identity/assignment before disclosing private information or changing an existing job. Emergency reports require human follow-up; this case is not emergency dispatch.');
+    ...INTAKE_SYSTEM_LINES);
   return lines.join('\n');
 }
 

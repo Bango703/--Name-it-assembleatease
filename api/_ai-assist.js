@@ -5,6 +5,13 @@ import { customerStatusLabel } from './booking/_customer-status.js';
 import { formatAppointmentDate } from './booking/_appt-date.js';
 import { findCustomerLanguageViolations, findJustifyingCopy } from './_customer-language.js';
 import { operationCaseTypeLabel, operationCaseOwnerStatusLabel } from './_operation-cases.js';
+import { INTAKE_ITEMS_NOTE, INTAKE_SYSTEM_LINES } from './_ai-intake-validation.js';
+
+/** A case description without the lines our own intake writes into every case. */
+export function callerWords(description) {
+  const ours = new Set([...INTAKE_SYSTEM_LINES, INTAKE_ITEMS_NOTE].map((line) => line.trim()));
+  return String(description || '').split(/\r?\n/).filter((line) => !ours.has(line.trim())).join('\n');
+}
 
 // AI assist (owner, 2026-11-26): "can i implement ai to handle messaging and
 // cases ?" The AI reads a message, a text or a case, and writes what the owner
@@ -339,4 +346,154 @@ export async function assessCase({ client, operationCase, booking, events = [] }
     reviewNote: problems.length ? problems.join(' ') : null,
     model,
   };
+}
+
+// ── Closing easy cases without the owner (owner, 2026-11-26) ────────────────
+// "i want it to review and close cases without me. like just look into see
+// whats easy to close and close it without me."
+//
+// Two keys must both turn: CODE proves a reason from the records
+// (caseCloseCandidate), then the AI, shown that proof, must be certain the case
+// needs nothing more (reviewCaseForClosing). Either one alone closes nothing.
+// Damage, quality, payment, dispute, safety and no-show cases, and anything
+// marked high or critical, are never closed by the AI. A close writes an
+// internal note and sends no message; the owner can reopen it.
+
+export const AI_CASE_CLOSE_REASONS = Object.freeze({
+  test: 'Raised on a test booking',
+  duplicate: 'Duplicate of an earlier case',
+  booking_finished: 'The booking it was about is finished',
+  answered: 'Answered, with no reply for 2 days',
+  spam: 'Spam or not a real request',
+});
+
+export const AI_CASE_NEVER_CLOSE_TYPES = Object.freeze(['damage', 'quality', 'payment', 'dispute', 'safety', 'no_show']);
+export const AI_CASE_CLOSE_PREFIX = 'Closed by AI';
+export const AI_REVIEW_ACTOR = 'AI assistant';
+
+const CLOSE_MIN_AGE_MS = 2 * 3600 * 1000;
+const FINISHED_WAIT_MS = 24 * 3600 * 1000;
+const ANSWERED_WAIT_MS = 48 * 3600 * 1000;
+const DUPLICATE_WINDOW_MS = 24 * 3600 * 1000;
+const ACTIVE_CASE = new Set(['open', 'acknowledged', 'in_progress', 'waiting_customer', 'waiting_easer']);
+const FINISHED_BOOKING = new Set(['completed', 'cancelled', 'declined', 'refunded']);
+const BOOKING_FINISHED_TYPES = new Set(['support', 'late_arrival', 'missing_hardware']);
+const SPAM_SOURCES = new Set(['contact_form', 'system', 'customer_report']);
+
+export function isAiClosure(resolutionSummary) {
+  return String(resolutionSummary || '').startsWith(AI_CASE_CLOSE_PREFIX);
+}
+
+const ms = (iso) => { const t = Date.parse(iso || ''); return Number.isFinite(t) ? t : null; };
+const fromPerson = (e) => Boolean(e) && ['customer', 'easer'].includes(e.actor_type);
+const fromUs = (e) => Boolean(e) && (e.actor_type === 'owner' || (e.actor_type === 'system' && e.actor_name !== AI_REVIEW_ACTOR));
+
+/**
+ * What the records prove about closing this case. Returns { reasons, blockers,
+ * duplicateOf }: a case with any blocker, or no reason, is never shown to the
+ * AI for closing.
+ *   events:       its operations_case_events, oldest first
+ *   earlierCases: other cases (any status) to find the one this duplicates
+ */
+export function caseCloseCandidate({ operationCase, booking = null, events = [], earlierCases = [], now = Date.now() }) {
+  const blockers = [];
+  const c = operationCase || {};
+  if (!ACTIVE_CASE.has(c.status)) blockers.push('The case is not open.');
+  if (AI_CASE_NEVER_CLOSE_TYPES.includes(c.case_type)) blockers.push(`${operationCaseTypeLabel(c.case_type)} cases always wait for you.`);
+  if (['high', 'critical'].includes(c.severity)) blockers.push('High and critical cases always wait for you.');
+  const created = ms(c.created_at);
+  if (created === null || now - created < CLOSE_MIN_AGE_MS) blockers.push('The case is less than 2 hours old.');
+  const personText = [c.subject, callerWords(c.description), ...events.filter(fromPerson).map((e) => `${e.note || ''} ${e.public_message || ''}`)].join(' ');
+  const stop = hardStopIn(personText);
+  if (stop) blockers.push(`It mentions "${stop}".`);
+  // Someone added to the case after it opened and nobody answered.
+  const meaningful = events.filter((e) => e.event_type !== 'notification_attempted' && e.actor_name !== AI_REVIEW_ACTOR);
+  const last = meaningful[meaningful.length - 1];
+  if (last && fromPerson(last) && last.event_type !== 'created') blockers.push('The customer or Easer wrote last and is waiting for an answer.');
+  if (booking?.damage_review_status === 'review_required') blockers.push('The booking has a damage review open.');
+
+  const reasons = [];
+  if (booking?.is_test_booking === true) reasons.push('test');
+  const earlier = earlierCases.find((o) => {
+    if (!o || o.id === c.id || o.case_type !== c.case_type) return false;
+    const at = ms(o.created_at);
+    if (at === null || created === null || at >= created) return false;
+    if (c.booking_id) return o.booking_id === c.booking_id;
+    const samePerson = (c.customer_email && o.customer_email === c.customer_email) || (c.customer_phone && o.customer_phone === c.customer_phone);
+    return Boolean(samePerson) && created - at <= DUPLICATE_WINDOW_MS;
+  });
+  if (earlier) reasons.push('duplicate');
+  const finishedAt = ms(booking?.completed_at) ?? ms(booking?.cancelled_at) ?? ms(booking?.declined_at)
+    ?? (FINISHED_BOOKING.has(booking?.status) ? ms(booking?.updated_at) : null);
+  if (booking && FINISHED_BOOKING.has(booking.status) && BOOKING_FINISHED_TYPES.has(c.case_type)
+      && finishedAt !== null && created !== null && finishedAt > created && now - finishedAt >= FINISHED_WAIT_MS
+      && !events.some((e) => fromPerson(e) && e.event_type !== 'created' && ms(e.created_at) > finishedAt)) {
+    reasons.push('booking_finished');
+  }
+  const lastUpdate = [...events].reverse().find((e) => e.event_type === 'public_update' && fromUs(e));
+  if (lastUpdate && now - ms(lastUpdate.created_at) >= ANSWERED_WAIT_MS
+      && !events.some((e) => fromPerson(e) && ms(e.created_at) > ms(lastUpdate.created_at))) {
+    reasons.push('answered');
+  }
+  if (!c.booking_id && SPAM_SOURCES.has(c.source) && c.created_by_type !== 'owner' && ['support', 'account'].includes(c.case_type)) {
+    reasons.push('spam');
+  }
+  return { reasons, blockers, duplicateOf: earlier ? (earlier.case_ref || earlier.id) : null };
+}
+
+const CLOSE_INSTRUCTIONS = [
+  'Close only if the case clearly needs nothing more from the team: no promise is outstanding, nobody is waiting for an answer, no money, damage, safety or complaint is involved, and closing would not leave a real customer or Easer without help.',
+  'If in any doubt, keep it open. A case left open costs the owner a minute; a case closed wrongly costs a customer.',
+  'spam means an advertisement, phishing, a sales pitch to us, a test, gibberish, or a message that asks AssembleAtEase for nothing. A real question about our services, prices or availability is never spam, however old or unanswered: that is a lead, and it stays open.',
+  'reason: the proven reason that applies, or "none". certain: true only if you have no doubt.',
+  'note: one or two plain sentences for the owner’s case timeline saying what you checked and why it can close or must stay open. Facts only.',
+];
+
+/**
+ * The AI's half: shown the case and the reasons the records prove, is it sure
+ * the case needs nothing more? Returns { close, reason, note, model }. close is
+ * true only when the AI is certain AND names one of the proven reasons.
+ */
+export async function reviewCaseForClosing({ client, operationCase, booking, events = [], reasons = [], duplicateOf = null }) {
+  if (!reasons.length) return { close: false, reason: null, note: 'No reason to close was proven.', model: null };
+  const schema = {
+    type: 'object',
+    properties: {
+      decision: { type: 'string', enum: ['close', 'keep_open'] },
+      reason: { type: 'string', enum: [...reasons, 'none'] },
+      certain: { type: 'boolean' },
+      note: { type: 'string' },
+    },
+    required: ['decision', 'reason', 'certain', 'note'],
+    additionalProperties: false,
+  };
+  const proven = reasons.map((r) => `- ${r}: ${AI_CASE_CLOSE_REASONS[r]}${r === 'duplicate' && duplicateOf ? ` (earlier case ${duplicateOf})` : ''}`);
+  const userText = [
+    'Task: decide whether this support case can be closed without the owner.',
+    '',
+    '<case>',
+    `Type: ${operationCaseTypeLabel(operationCase.case_type)}`,
+    `Status: ${operationCaseOwnerStatusLabel(operationCase.status)}`,
+    `Subject: ${operationCase.subject}`,
+    `Description: ${String(operationCase.description || '').slice(0, 3000)}`,
+    `Opened by: ${operationCase.created_by_type}${operationCase.created_by_name ? ` (${operationCase.created_by_name})` : ''}`,
+    '</case>',
+    '',
+    '<case_history oldest_first="true">',
+    ...events.slice(-15).map((e) => `[${e.event_type} by ${e.actor_name || e.actor_type}] ${String(e.public_message || e.note || '').slice(0, 800)}`),
+    '</case_history>',
+    '',
+    '<booking_record>',
+    ...bookingLines(booking, 'owner'),
+    '</booking_record>',
+    '',
+    'What the records prove:',
+    ...proven,
+    '',
+    ...CLOSE_INSTRUCTIONS,
+  ].join('\n');
+  const { output, model } = await callModel(client, { userText, schema });
+  const reason = reasons.includes(output.reason) ? output.reason : null;
+  const note = String(output.note || '').trim().slice(0, 1200);
+  return { close: output.decision === 'close' && output.certain === true && Boolean(reason), reason, note, model };
 }

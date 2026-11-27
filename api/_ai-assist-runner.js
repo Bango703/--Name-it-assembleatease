@@ -1,12 +1,18 @@
 import { messageNeedsOwner } from './_owner-inbox.js';
 import { createOwnerSessionToken } from './_email.js';
 import { loadBookingItems } from './booking/_booking-items.js';
+import { appendOperationCaseEvent, canTransitionOperationCase, transitionOperationCase } from './_operation-cases.js';
 import {
+  AI_CASE_CLOSE_PREFIX,
+  AI_CASE_CLOSE_REASONS,
+  AI_REVIEW_ACTOR,
   AUTO_REPLY_NOTE,
   AiAssistError,
   aiAssistClient,
   assessCase,
   assessMessage,
+  caseCloseCandidate,
+  reviewCaseForClosing,
 } from './_ai-assist.js';
 
 // AI assist, the database side: which messages, texts and cases need a
@@ -18,6 +24,9 @@ import {
 //   AI_AUTO_REPLY_ENABLED  off unless set to "true". When on, a routine reply
 //                          to a customer on a booking thread sends without the
 //                          owner, through the owner's own send path.
+//   AI_CASE_AUTOCLOSE_ENABLED  on unless set to "false" (owner, 2026-11-26:
+//                          "close it without me"). Closes only cases the
+//                          records AND the AI both clear (api/_ai-assist.js).
 
 const ACTIVE = ['pending', 'drafted'];
 const LOOKBACK_HOURS = 48;
@@ -30,6 +39,10 @@ export function aiAssistEnabled(env = process.env) {
 
 export function autoReplyEnabled(env = process.env) {
   return aiAssistEnabled(env) && String(env.AI_AUTO_REPLY_ENABLED || '').toLowerCase() === 'true';
+}
+
+export function caseAutoCloseEnabled(env = process.env) {
+  return aiAssistEnabled(env) && String(env.AI_CASE_AUTOCLOSE_ENABLED || '').toLowerCase() !== 'false';
 }
 
 export function isMissingAiAssistTable(error) {
@@ -421,8 +434,17 @@ export async function maybeAutoSend(sb, draft, { env = process.env, send = sendA
 export async function runAiAssist(sb, { env = process.env, client = aiAssistClient(env), deadlineMs = 50_000, limits = { messages: 6, texts: 3, cases: 3 } } = {}) {
   const started = Date.now();
   const timeLeft = () => Date.now() - started < deadlineMs;
-  const summary = { enabled: aiAssistEnabled(env), autoReply: autoReplyEnabled(env), reconciled: 0, drafted: 0, failed: 0, autoSent: 0, errors: [] };
+  const summary = { enabled: aiAssistEnabled(env), autoReply: autoReplyEnabled(env), autoClose: caseAutoCloseEnabled(env), reconciled: 0, drafted: 0, failed: 0, autoSent: 0, casesReviewed: 0, casesClosed: 0, errors: [] };
   if (!summary.enabled) return summary;
+
+  // Close the easy cases first, so no suggestion is written for a case that is about to close.
+  if (summary.autoClose) {
+    const closing = await reviewCasesForClosing(sb, { client, limit: limits.closeReviews ?? 5, timeLeft });
+    summary.casesReviewed = closing.reviewed;
+    summary.casesClosed = closing.closed;
+    summary.failed += closing.failed;
+    summary.errors.push(...closing.errors);
+  }
 
   summary.reconciled = await reconcileDrafts(sb);
   const since = new Date(Date.now() - LOOKBACK_HOURS * 3600 * 1000).toISOString();
@@ -497,4 +519,109 @@ export async function runAiAssist(sb, { env = process.env, client = aiAssistClie
     else if (draft?.status === 'failed') { summary.failed += 1; summary.errors.push(draft.error_text); }
   }
   return summary;
+}
+
+// ── Closing easy cases ───────────────────────────────────────────────────────
+
+const REREVIEW_AFTER_MS = 72 * 3600 * 1000;
+const sameSet = (a = [], b = []) => a.length === b.length && a.every((x) => b.includes(x));
+
+/**
+ * Has the AI already looked at this case with the same proven reasons? It looks
+ * again when the proof changes, when someone adds to the case, or after 3 days.
+ */
+export function alreadyReviewed(events = [], reasons = [], now = Date.now()) {
+  const reviews = events.filter((e) => e.actor_name === AI_REVIEW_ACTOR && e.metadata?.aiReview === true);
+  const lastReview = reviews[reviews.length - 1];
+  if (!lastReview) return false;
+  const lastOther = [...events].reverse().find((e) => e.actor_name !== AI_REVIEW_ACTOR && e.event_type !== 'notification_attempted');
+  if (lastOther && Date.parse(lastOther.created_at) > Date.parse(lastReview.created_at)) return false;
+  if (now - Date.parse(lastReview.created_at) >= REREVIEW_AFTER_MS) return false;
+  return sameSet(lastReview.metadata?.reasons || [], reasons);
+}
+
+/** The internal note a close leaves; the case list reads its prefix as "Closed by AI". */
+export function aiCloseNote(reason, note) {
+  return `${AI_CASE_CLOSE_PREFIX} (${AI_CASE_CLOSE_REASONS[reason] || reason}). ${String(note || '').trim()}`.trim();
+}
+
+/**
+ * Look at open cases, close the ones the records and the AI both clear, and
+ * leave an internal note either way. Closing goes through the same domain
+ * function the owner's Close uses (transitionOperationCase), as the system
+ * actor "AI assistant", and sends nobody a message.
+ */
+export async function reviewCasesForClosing(sb, { client = aiAssistClient(), limit = 5, timeLeft = () => true, now = Date.now() } = {}) {
+  const result = { reviewed: 0, closed: 0, failed: 0, errors: [], closedRefs: [] };
+  const since = new Date(now - 30 * 24 * 3600 * 1000).toISOString();
+  const { data: cases, error } = await sb.from('operations_cases')
+    .select('*').gte('created_at', since).order('created_at', { ascending: true }).limit(300);
+  if (error) throw error;
+  const all = cases || [];
+  const open = all.filter((c) => ['open', 'acknowledged', 'in_progress', 'waiting_customer', 'waiting_easer'].includes(c.status));
+  for (const operationCase of open) {
+    if (result.reviewed >= limit || !timeLeft()) break;
+    // Cheap blockers first: no database reads for a case that can never close.
+    const quick = caseCloseCandidate({ operationCase, now });
+    if (quick.blockers.some((b) => /always wait|not open|less than 2 hours|mentions/.test(b))) continue;
+
+    const { data: events } = await sb.from('operations_case_events')
+      .select('event_type, actor_type, actor_name, note, public_message, metadata, created_at')
+      .eq('case_id', operationCase.id).order('created_at', { ascending: true }).limit(60);
+    const { data: booking } = operationCase.booking_id
+      ? await sb.from('bookings').select('*').eq('id', operationCase.booking_id).maybeSingle()
+      : { data: null };
+    const proof = caseCloseCandidate({ operationCase, booking, events: events || [], earlierCases: all, now });
+    if (proof.blockers.length || !proof.reasons.length) continue;
+    if (alreadyReviewed(events || [], proof.reasons, now)) continue;
+
+    result.reviewed += 1;
+    let review;
+    try {
+      review = await reviewCaseForClosing({ client, operationCase, booking, events: events || [], reasons: proof.reasons, duplicateOf: proof.duplicateOf });
+    } catch (reviewError) {
+      result.failed += 1;
+      result.errors.push(`${operationCase.case_ref}: ${reviewError?.message || reviewError}`);
+      continue;
+    }
+    const metadata = { aiReview: true, decision: review.close ? 'close' : 'keep_open', reasons: proof.reasons, reason: review.reason, model: review.model };
+    try {
+      if (review.close && canTransitionOperationCase(operationCase.status, 'closed')) {
+        await transitionOperationCase(sb, {
+          caseId: operationCase.id,
+          expectedStatus: operationCase.status,
+          targetStatus: 'closed',
+          actorType: 'system',
+          actorName: AI_REVIEW_ACTOR,
+          note: aiCloseNote(review.reason, review.note),
+          confirmed: true,
+        });
+        // The status change carries the note; this records the AI's review for
+        // the next pass (alreadyReviewed) and for the owner's audit.
+        await appendOperationCaseEvent(sb, {
+          caseId: operationCase.id,
+          eventType: 'internal_note',
+          actorType: 'system',
+          actorName: AI_REVIEW_ACTOR,
+          note: `AI review: closed. Proven: ${proof.reasons.map((r) => AI_CASE_CLOSE_REASONS[r]).join('; ')}.`,
+          metadata,
+        });
+        result.closed += 1;
+        result.closedRefs.push(operationCase.case_ref);
+      } else {
+        await appendOperationCaseEvent(sb, {
+          caseId: operationCase.id,
+          eventType: 'internal_note',
+          actorType: 'system',
+          actorName: AI_REVIEW_ACTOR,
+          note: `AI review: left open. ${review.note || 'The AI was not certain it needs nothing more.'}`,
+          metadata,
+        });
+      }
+    } catch (writeError) {
+      result.failed += 1;
+      result.errors.push(`${operationCase.case_ref}: ${writeError?.message || writeError}`);
+    }
+  }
+  return result;
 }

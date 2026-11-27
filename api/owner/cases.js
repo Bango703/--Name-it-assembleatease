@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { notificationNeedsAttention, notificationOwnerAction } from '../_notification-display.js';
+import { isAiClosure } from '../_ai-assist.js';
 import {
   availableOperationCaseActions,
   isMissingOperationCasesError,
@@ -313,6 +314,8 @@ export function formatOperationCase(row, context = {}) {
     resolvedAt: row.resolved_at || null,
     closedAt: row.closed_at || null,
     resolutionSummary: row.resolution_summary || null,
+    // The AI closed it (api/_ai-assist-runner.js reviewCasesForClosing); Reopen undoes it.
+    closedByAi: ['resolved', 'closed'].includes(row.status) && isAiClosure(row.resolution_summary),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     notifications: context.notifications || emptyNotificationSummary(),
