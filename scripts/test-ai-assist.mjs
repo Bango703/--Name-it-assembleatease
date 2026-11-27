@@ -17,12 +17,15 @@ import { readFileSync } from 'node:fs';
 import {
   AI_ASSIST_MODEL, AI_CATEGORIES, AI_ROUTINE_CATEGORIES, AUTO_REPLY_NOTE,
   assessCase, assessMessage, draftProblems, hardStopIn, routineDecision, systemPrompt,
+  caseCloseCandidate, reviewCaseForClosing, isAiClosure,
 } from '../api/_ai-assist.js';
 import {
   aiAssistEnabled, autoReplyEnabled, draftOutcome, maybeAutoSend, messagesNeedingReply, textsNeedingReply,
+  alreadyReviewed, aiCloseNote, caseAutoCloseEnabled, reviewCasesForClosing,
 } from '../api/_ai-assist-runner.js';
 import { publicDraft } from '../api/owner/ai-assist.js';
 import { findCustomerLanguageViolations } from '../api/_customer-language.js';
+import { INTAKE_SYSTEM_LINES } from '../api/_ai-intake-validation.js';
 
 const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
@@ -279,5 +282,138 @@ console.log('PASS dashboard: Use this reply fills the reply box on all three scr
   assert.match(privacy, /that reply is marked as automated/);
 }
 console.log('PASS setup: migration statuses match the code, cron every 5 minutes, facts shipped, Privacy Notice says it');
+
+// ── 9. Closing easy cases without the owner ─────────────────────────────────
+{
+  const H = 3600 * 1000;
+  const now = Date.parse('2026-11-26T18:00:00Z');
+  const at = (hoursAgo) => new Date(now - hoursAgo * H).toISOString();
+  const base = { id: 'c1', case_ref: 'AAE-CS-1', status: 'open', case_type: 'support', severity: 'normal', source: 'booking', subject: 'Scheduling help', description: 'When is my pro coming?', booking_id: 'b1', created_by_type: 'customer', created_at: at(72) };
+  const created = [{ event_type: 'created', actor_type: 'customer', created_at: at(72) }];
+
+  for (const [change, why] of [
+    [{ case_type: 'damage' }, /Damage Report cases always wait/],
+    [{ case_type: 'quality' }, /always wait/],
+    [{ case_type: 'payment' }, /always wait/],
+    [{ case_type: 'dispute' }, /always wait/],
+    [{ case_type: 'safety' }, /always wait/],
+    [{ case_type: 'no_show' }, /always wait/],
+    [{ severity: 'high' }, /High and critical/],
+    [{ severity: 'critical' }, /High and critical/],
+    [{ created_at: at(1) }, /less than 2 hours/],
+    [{ status: 'closed' }, /not open/],
+    [{ description: 'I want a refund' }, /mentions "refund"/],
+  ]) {
+    const r = caseCloseCandidate({ operationCase: { ...base, ...change }, events: created, now });
+    assert.ok(r.blockers.some((b) => why.test(b)), `${JSON.stringify(change)}: ${r.blockers.join(' ')}`);
+  }
+  const waitingOnUs = caseCloseCandidate({ operationCase: base, events: [...created, { event_type: 'public_update', actor_type: 'easer', public_message: 'Still waiting on parts', created_at: at(5) }], now });
+  assert.ok(waitingOnUs.blockers.some((b) => /waiting for an answer/.test(b)), 'someone wrote last: never closed');
+  assert.ok(caseCloseCandidate({ operationCase: base, booking: { damage_review_status: 'review_required' }, events: created, now }).blockers.length);
+
+  assert.deepEqual(caseCloseCandidate({ operationCase: base, booking: { is_test_booking: true, status: 'confirmed' }, events: created, now }).reasons, ['test']);
+  const dup = caseCloseCandidate({ operationCase: base, booking: { status: 'confirmed' }, events: created, earlierCases: [{ id: 'c0', case_ref: 'AAE-CS-0', case_type: 'support', booking_id: 'b1', created_at: at(80) }], now });
+  assert.deepEqual(dup.reasons, ['duplicate']);
+  assert.equal(dup.duplicateOf, 'AAE-CS-0');
+  assert.deepEqual(caseCloseCandidate({ operationCase: base, booking: { status: 'confirmed' }, events: created, earlierCases: [{ id: 'c2', case_type: 'support', booking_id: 'b1', created_at: at(10) }], now }).reasons, [], 'a later case is not what this one duplicates');
+  assert.deepEqual(caseCloseCandidate({ operationCase: base, booking: { status: 'completed', completed_at: at(30) }, events: created, now }).reasons, ['booking_finished']);
+  assert.deepEqual(caseCloseCandidate({ operationCase: base, booking: { status: 'completed', completed_at: at(10) }, events: created, now }).reasons, [], 'finished under a day ago: wait');
+  assert.deepEqual(caseCloseCandidate({ operationCase: { ...base, case_type: 'account' }, booking: { status: 'completed', completed_at: at(30) }, events: created, now }).reasons, [], 'only booking-shaped cases close on the booking');
+  const answered = [...created, { event_type: 'public_update', actor_type: 'owner', actor_name: 'Owner', public_message: 'Dana arrives at 10 AM.', created_at: at(50) }];
+  assert.deepEqual(caseCloseCandidate({ operationCase: base, booking: { status: 'confirmed' }, events: answered, now }).reasons, ['answered']);
+  assert.deepEqual(caseCloseCandidate({ operationCase: base, booking: { status: 'confirmed' }, events: [...created, { ...answered[1], created_at: at(20) }], now }).reasons, [], 'answered under 2 days ago: wait');
+  assert.deepEqual(caseCloseCandidate({ operationCase: { ...base, booking_id: null, source: 'contact_form' }, events: created, now }).reasons, ['spam']);
+  assert.deepEqual(caseCloseCandidate({ operationCase: base, booking: { status: 'confirmed' }, events: created, now }).reasons, [], 'nothing proven: nothing to ask the AI');
+
+  const ask = (output) => reviewCaseForClosing({ client: fakeClient(output), operationCase: base, booking: null, events: created, reasons: ['booking_finished'] });
+  assert.equal((await ask({ decision: 'close', reason: 'booking_finished', certain: true, note: 'Job done.' })).close, true);
+  assert.equal((await ask({ decision: 'close', reason: 'booking_finished', certain: false, note: 'x' })).close, false, 'not certain: stays open');
+  assert.equal((await ask({ decision: 'close', reason: 'spam', certain: true, note: 'x' })).close, false, 'a reason the records did not prove: stays open');
+  assert.equal((await ask({ decision: 'keep_open', reason: 'none', certain: true, note: 'x' })).close, false);
+  assert.equal((await reviewCaseForClosing({ client: null, operationCase: base, reasons: [] })).close, false, 'no proof: the AI is not asked');
+  const schemaCall = fakeClient({ decision: 'keep_open', reason: 'none', certain: false, note: 'x' });
+  await reviewCaseForClosing({ client: schemaCall, operationCase: base, booking: null, events: created, reasons: ['test', 'duplicate'] });
+  assert.deepEqual(schemaCall.calls[0].output_config.format.schema.properties.reason.enum, ['test', 'duplicate', 'none'], 'the AI can only name proven reasons');
+
+  const review = { event_type: 'internal_note', actor_type: 'system', actor_name: 'AI assistant', metadata: { aiReview: true, reasons: ['answered'] }, created_at: at(5) };
+  assert.equal(alreadyReviewed([...created, review], ['answered'], now), true);
+  assert.equal(alreadyReviewed([...created, review], ['answered', 'duplicate'], now), false, 'new proof: look again');
+  assert.equal(alreadyReviewed([...created, review, { event_type: 'internal_note', actor_type: 'owner', actor_name: 'Owner', created_at: at(1) }], ['answered'], now), false, 'someone added to the case: look again');
+  assert.equal(alreadyReviewed([...created, { ...review, created_at: at(80) }], ['answered'], now), false, 'three days later: look again');
+
+  assert.equal(aiCloseNote('test', 'Raised during testing.'), 'Closed by AI (Raised on a test booking). Raised during testing.');
+  assert.equal(isAiClosure(aiCloseNote('spam', 'x')), true);
+  assert.ok(aiCloseNote('test', '').length >= 10, 'long enough for the close rule (10 characters)');
+
+  assert.equal(caseAutoCloseEnabled({ ANTHROPIC_API_KEY: 'k' }), true, 'on, as the owner asked');
+  assert.equal(caseAutoCloseEnabled({ ANTHROPIC_API_KEY: 'k', AI_CASE_AUTOCLOSE_ENABLED: 'false' }), false);
+  assert.equal(caseAutoCloseEnabled({}), false);
+
+  // End to end with a fake database: the support case closes, the damage case is never looked at.
+  const cases = [
+    { id: 'k1', case_ref: 'AAE-CS-K1', status: 'open', case_type: 'support', severity: 'normal', source: 'booking', subject: 'Arrival', description: 'When does the pro come?', booking_id: 'b9', created_by_type: 'customer', created_at: at(72) },
+    { id: 'k2', case_ref: 'AAE-CS-K2', status: 'open', case_type: 'damage', severity: 'normal', source: 'booking', subject: 'Wall', description: 'A mark on the wall', booking_id: 'b9', created_by_type: 'customer', created_at: at(72) },
+  ];
+  const rpcs = [];
+  const db = {
+    rpc(name, args) { rpcs.push({ name, args }); return Promise.resolve({ data: [{ id: args.p_case_id, case_ref: 'x' }], error: null }); },
+    from(table) {
+      const b = {
+        select() { return b; }, gte() { return b; }, order() { return b; }, limit() { return b; }, eq() { return b; },
+        maybeSingle() { return Promise.resolve({ data: table === 'bookings' ? { id: 'b9', status: 'completed', completed_at: at(30) } : null, error: null }); },
+        then(resolve) {
+          resolve(table === 'operations_cases' ? { data: cases, error: null }
+            : table === 'operations_case_events' ? { data: [{ event_type: 'created', actor_type: 'customer', created_at: at(72) }], error: null }
+              : { data: [], error: null });
+        },
+      };
+      return b;
+    },
+  };
+  const client = fakeClient({ decision: 'close', reason: 'booking_finished', certain: true, note: 'The job was completed and nobody has written since.' });
+  const run = await reviewCasesForClosing(db, { client, now });
+  assert.equal(run.closed, 1);
+  assert.deepEqual(run.closedRefs, ['AAE-CS-K1'], 'the damage case was never closed');
+  assert.equal(client.calls.length, 1, 'one AI call: the damage case cost nothing');
+  const t = rpcs.find((x) => x.name === 'transition_operations_case_v1');
+  assert.equal(t.args.p_target_status, 'closed');
+  assert.equal(t.args.p_actor_type, 'system');
+  assert.equal(t.args.p_actor_name, 'AI assistant');
+  assert.equal(t.args.p_confirmed, true);
+  assert.equal(t.args.p_public_message, null, 'closing sends nobody a message');
+  assert.match(t.args.p_note, /^Closed by AI \(The booking it was about is finished\)\. The job was completed/);
+  const note = rpcs.find((x) => x.name === 'append_operations_case_event_v1');
+  assert.equal(note.args.p_event_type, 'internal_note');
+  assert.equal(note.args.p_metadata.aiReview, true);
+
+  const runner = read('api/_ai-assist-runner.js');
+  assert.doesNotMatch(runner, /from\('operations_cases'\)\s*\.update/, 'never writes the case table directly');
+  assert.doesNotMatch(runner.slice(runner.indexOf('export async function reviewCasesForClosing')), /publicMessage|sendEmail|sendSms/, 'closing sends nobody a message');
+  assert.match(read('api/owner/cases.js'), /closedByAi: \['resolved', 'closed'\]\.includes\(row\.status\) && isAiClosure\(row\.resolution_summary\)/);
+  assert.match(read('owner/assets/cases.js'), /item\.closedByAi \? '<span class="cases-badge cases-badge-ai">Closed by AI<\/span>'/);
+}
+console.log('PASS case closing: records prove a reason AND the AI is certain; never damage, money, safety, no-show or high priority; noted, reopenable, silent');
+
+// ── 10. Our own intake wording never blocks a case; the caller's words do ───
+{
+  const now = Date.parse('2026-11-26T18:00:00Z');
+  const intake = (summary) => [
+    'Sora Customer request. Caller identity and any job reference are NOT verified.',
+    `Summary: ${summary}`,
+    ...INTAKE_SYSTEM_LINES,
+  ].join('\n');
+  const phoneCase = { id: 'p1', status: 'open', case_type: 'support', severity: 'normal', source: 'system', subject: 'Sora Customer: Scheduling or arrival help', created_by_type: 'system', booking_id: null, created_at: new Date(now - 72 * 3600e3).toISOString() };
+  const clean = caseCloseCandidate({ operationCase: { ...phoneCase, description: intake('Wants to know if Saturday is open') }, events: [], now });
+  assert.deepEqual(clean.blockers, [], 'the "payment taken" disclaimer is ours, not the caller');
+  assert.deepEqual(clean.reasons, ['spam'], 'a phone case with no booking can be asked about');
+  const refund = caseCloseCandidate({ operationCase: { ...phoneCase, description: intake('Wants a refund for last week') }, events: [], now });
+  assert.ok(refund.blockers.some((b) => /mentions "refund"/.test(b)), 'what the caller said still counts');
+  assert.match(read('api/ai/support.js'), /\.\.\.INTAKE_SYSTEM_LINES\);/, 'the intake writes the same lines the check skips');
+  assert.match(read('api/ai/support.js'), /\n\s+INTAKE_ITEMS_NOTE,\n/);
+  const ask = fakeClient({ decision: 'keep_open', reason: 'none', certain: false, note: 'A pricing question is a lead.' });
+  await reviewCaseForClosing({ client: ask, operationCase: phoneCase, booking: null, events: [], reasons: ['spam'] });
+  assert.match(ask.calls[0].messages[0].content, /A real question about our services, prices or availability is never spam/, 'a lead is never closed as spam');
+}
+console.log('PASS intake wording: our disclaimer is skipped, the caller’s words are checked, a lead is never spam');
 
 console.log('\nAI assist tests passed.');

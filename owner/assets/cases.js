@@ -261,6 +261,7 @@
         '</div>' +
         '<div class="cases-row-side">' +
           '<span class="cases-badge status-' + attr(item.status) + '">' + esc(item.statusLabel) + '</span>' +
+          (item.closedByAi ? '<span class="cases-badge cases-badge-ai">Closed by AI</span>' : '') +
           '<span class="cases-badge severity-' + attr(item.severity) + '">' + esc(item.severity) + '</span>' +
           '<span class="cases-row-age">' + esc(relativeTime(item.updatedAt)) + '</span>' +
         '</div>' +

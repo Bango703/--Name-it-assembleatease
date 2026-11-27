@@ -598,6 +598,12 @@
   color: var(--soft);
   border: 1px solid var(--border-md);
 }
+/* The AI closed this case (owner, 2026-11-26); Reopen undoes it. */
+.cases-badge.cases-badge-ai {
+  background: var(--elevated);
+  color: var(--teal);
+  border: 1px solid var(--teal);
+}
 
 /* Finding cases left over from testing. Each suspect carries the reason it is
    suspected, because a regex liking a subject line is not proof, and closing a
