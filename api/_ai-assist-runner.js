@@ -553,9 +553,12 @@ export function aiCloseNote(reason, note) {
  */
 export async function reviewCasesForClosing(sb, { client = aiAssistClient(), limit = 5, timeLeft = () => true, now = Date.now() } = {}) {
   const result = { reviewed: 0, closed: 0, failed: 0, errors: [], closedRefs: [] };
-  const since = new Date(now - 30 * 24 * 3600 * 1000).toISOString();
+  // Every case, whatever its age: an open case from two months ago is exactly
+  // the kind that needed closing (owner, 2026-11-27: seven open cases from
+  // October sat outside a 30-day window and were never reviewed). Closed cases
+  // are loaded too, as the earlier cases a new one may duplicate.
   const { data: cases, error } = await sb.from('operations_cases')
-    .select('*').gte('created_at', since).order('created_at', { ascending: true }).limit(300);
+    .select('*').order('created_at', { ascending: true }).limit(1000);
   if (error) throw error;
   const all = cases || [];
   const open = all.filter((c) => ['open', 'acknowledged', 'in_progress', 'waiting_customer', 'waiting_easer'].includes(c.status));

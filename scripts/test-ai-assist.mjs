@@ -389,6 +389,8 @@ console.log('PASS setup: migration statuses match the code, cron every 5 minutes
 
   const runner = read('api/_ai-assist-runner.js');
   assert.doesNotMatch(runner, /from\('operations_cases'\)\s*\.update/, 'never writes the case table directly');
+  const closingFn = runner.slice(runner.indexOf('export async function reviewCasesForClosing'));
+  assert.doesNotMatch(closingFn.slice(0, closingFn.indexOf('for (const operationCase of open)')), /gte\('created_at'/, 'every open case is reviewed, whatever its age');
   assert.doesNotMatch(runner.slice(runner.indexOf('export async function reviewCasesForClosing')), /publicMessage|sendEmail|sendSms/, 'closing sends nobody a message');
   assert.match(read('api/owner/cases.js'), /closedByAi: \['resolved', 'closed'\]\.includes\(row\.status\) && isAiClosure\(row\.resolution_summary\)/);
   assert.match(read('owner/assets/cases.js'), /item\.closedByAi \? '<span class="cases-badge cases-badge-ai">Closed by AI<\/span>'/);
