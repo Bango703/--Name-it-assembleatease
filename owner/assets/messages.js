@@ -194,13 +194,14 @@
   }
   async function load() {
     if (state.loading) return;
-    state.loading = true; el('inbox-refresh').disabled = true;
+    var refreshBtn = el('inbox-refresh');
+    state.loading = true; if (refreshBtn) refreshBtn.disabled = true;
     try { state.data = await request(); render(); }
     catch (error) {
       el('inbox-notice').hidden = false;
       el('inbox-notice').textContent = error.message + (state.data ? ' Showing the last list loaded.' : '');
       if (!state.data) el('inbox-list').innerHTML = '<div class="inbox-empty">Messages could not be loaded.</div>';
-    } finally { state.loading = false; el('inbox-refresh').disabled = false; paintBadge(); }
+    } finally { state.loading = false; if (refreshBtn) refreshBtn.disabled = false; paintBadge(); }
   }
   async function loadBadge() {
     try { state.data = await request(); state.badgeError = false; } catch (e) { state.badgeError = true; /* keep the last known badge */ }
