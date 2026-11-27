@@ -637,57 +637,52 @@
           <div class="kpi md-kpi"><span class="kpi-icon kpi-ok"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="kpi-body"><span class="kpi-label">Priced Demand</span><span class="kpi-value stat-value" id="md-potential">&mdash;</span><span class="kpi-sub">Where a price exists</span></span></div>
         </div>
         <p id="md-snapshot-status" class="md-status" role="status">Market data has not been loaded.</p>
-        <div class="fin-card" id="dispatch-health-card" style="margin-bottom:1rem">
-          <div class="fin-card-head"><h3>Greater Houston dispatch</h3></div>
-          <p id="dh-status" class="md-status" role="status">Dispatch health has not been loaded.</p>
-          <div id="dh-body"></div>
+        <!-- Market Demand layout (owner, 2026-11-27: "marketdemand is just messy"). One coverage card
+             (the status summary sits over the area cards), then the trend beside acquisition, the Houston
+             dispatch card, demand activity, and the records behind the counts. Every count still opens its rows. -->
+        <div class="fin-card md-coverage-card">
+          <div class="fin-card-head"><h3>Market Coverage</h3><span class="fin-card-note">Ready: three or more eligible Easers. Coverage needed: none in the area. Unverified: the recorded location cannot prove coverage.</span></div>
+          <div id="md-coverage" class="md-coverage"><div class="fin-empty">Loading coverage...</div></div>
+          <div id="md-top-markets" class="md-areas"></div>
+          <p class="fin-card-note md-coverage-note">Central Texas dispatches automatically; other Texas bookings need you to assign an Easer. Areas use configured ZIP regions, not driving distance.</p>
         </div>
-        <div class="md-row3">
+        <div class="md-row2">
           <div class="fin-card">
             <div class="fin-card-head"><h3>Demand Trend</h3></div>
             <div id="md-trend" class="fin-chart"><div class="fin-empty">Loading demand...</div></div>
           </div>
           <div class="fin-card md-acq">
-          <h3 id="acquisition-heading" class="md-card-title">Acquisition and completed jobs</h3>
-          <div style="display:flex;flex-wrap:wrap;gap:0.7rem;align-items:center;margin:0.6rem 0">
-            <label for="acquisition-period">Bookings created</label>
-            <select id="acquisition-period" style="font:inherit;max-width:100%;padding:0.4rem"><option value="28">Last 28 complete days</option><option value="90">Last 90 complete days</option><option value="all" selected>All time</option></select>
-            <button type="button" class="btn" id="acquisition-refresh">Refresh acquisition report</button>
-          </div>
-          <p id="acquisition-status" role="status" style="font-size:0.78rem;color:var(--muted)">Report has not loaded.</p>
-          <div id="acquisition-report"></div>
-          <label style="display:block;margin:0.8rem 0 0.2rem;font-size:0.8rem"><input type="checkbox" id="acquisition-internal"> Exclude this browser from website analytics</label>
-          <p id="acquisition-internal-status" role="status" style="font-size:0.75rem;color:var(--muted);margin:0">Applies to subsequent public-page loads in this browser. Booking and payment records remain unchanged.</p>
-          </div>
-          <div class="fin-card">
-            <div class="fin-card-head"><h3>Market Coverage</h3></div>
-            <div id="md-coverage" class="md-coverage"><div class="fin-empty">Loading coverage...</div></div>
-            <p class="fin-card-note">Central Texas dispatches automatically; other Texas bookings need you to assign an Easer. Areas use configured ZIP regions, not driving distance.</p>
+            <div class="fin-card-head"><h3 id="acquisition-heading">Acquisition and completed jobs</h3></div>
+            <div class="md-acq-controls">
+              <label for="acquisition-period">Bookings created</label>
+              <select id="acquisition-period"><option value="28">Last 28 complete days</option><option value="90">Last 90 complete days</option><option value="all" selected>All time</option></select>
+              <button type="button" class="btn c-sm" id="acquisition-refresh">Refresh report</button>
+            </div>
+            <p id="acquisition-status" role="status" class="md-muted">Report has not loaded.</p>
+            <div id="acquisition-report"></div>
           </div>
         </div>
-        <div id="md-reconciliation" class="md-recon"></div>
-        <div class="fin-card">
-          <div class="fin-card-head"><h3>Market Coverage by Area</h3><span class="fin-card-note">Ready: three or more eligible Easers. Coverage Needed: none in the area. Unverified: the recorded location cannot prove coverage.</span></div>
-          <div id="md-top-markets" class="md-areas"></div>
+        <div class="fin-card" id="dispatch-health-card">
+          <div class="fin-card-head"><h3>Greater Houston dispatch</h3></div>
+          <p id="dh-status" class="md-status" role="status">Dispatch health has not been loaded.</p>
+          <div id="dh-body"></div>
         </div>
         <div class="fin-card">
           <div class="fin-card-head"><h3>Demand Activity</h3><span class="fin-card-note">Eligible Easers are included in Approved. Availability on does not confirm a free slot.</span></div>
           <div class="md-table-wrap">
-              <table id="md-requests-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.82rem">
-                <thead>
-                  <tr style="text-align:left">
-                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Ref</th>
-                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Customer</th>
-                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Market</th>
-                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Service</th>
-                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Date</th>
-                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);text-align:right">Value</th>
-                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Status</th>
-                  </tr>
-                </thead>
-                <tbody id="md-requests-tbody"></tbody>
-              </table>
+            <table id="md-requests-table" class="fin-table md-requests-table">
+              <thead><tr><th>Ref</th><th>Customer</th><th>Market</th><th>Service</th><th>Date</th><th class="fin-num">Value</th><th>Status</th></tr></thead>
+              <tbody id="md-requests-tbody"></tbody>
+            </table>
           </div>
+        </div>
+        <div class="fin-card md-records">
+          <div class="fin-card-head"><h3>Records behind the counts</h3><span class="fin-card-note">Every Easer, application and waitlist entry, including any that need a location checked.</span></div>
+          <div id="md-reconciliation" class="md-recon"></div>
+        </div>
+        <div class="md-browser-setting">
+          <label><input type="checkbox" id="acquisition-internal"> Exclude this browser from website analytics</label>
+          <span id="acquisition-internal-status" role="status">Applies to subsequent public-page loads in this browser. Booking and payment records remain unchanged.</span>
         </div>
       </div>
 
@@ -11458,7 +11453,11 @@ window.intelQuick = intelQuick;
       if (request !== _dispatchHealthRequest) return;
       if (!r.ok || d.error) throw new Error(d.error || 'Dispatch health could not be loaded.');
       body.innerHTML = renderDispatchHealth(d);
-      status.textContent = 'Last ' + d.windowDays + ' days, ZIPs ' + (d.zipPrefixes || []).join(', ') + '. Unassigned and flagged lists are live.';
+      // Never print "undefined": each part shows only when the report carries it.
+      status.textContent = [
+        Number.isFinite(Number(d.windowDays)) && d.windowDays != null ? 'Last ' + d.windowDays + ' days' : null,
+        (d.zipPrefixes || []).length ? 'ZIPs ' + d.zipPrefixes.join(', ') : null,
+      ].filter(Boolean).concat(['Unassigned and flagged lists are live.']).join('. ').replace('days. ZIPs', 'days, ZIPs');
     } catch (e) {
       if (request !== _dispatchHealthRequest) return;
       status.textContent = (e && e.message ? e.message : 'Dispatch health could not be loaded.') + ' These numbers are unknown, not zero.';
@@ -11468,9 +11467,9 @@ window.intelQuick = intelQuick;
   function dhPct(v) { return v == null ? 'not enough data' : Math.round(v * 100) + '%'; }
   function dhMin(v) { return v == null ? 'not enough data' : (v >= 120 ? (Math.round(v / 6) / 10) + ' h' : v + ' min'); }
   function dhList(title, rows, cols) {
-    var head = '<h4 style="margin:0.9rem 0 0.35rem;font-size:0.85rem">' + esc(title) + ' (' + rows.length + ')</h4>';
-    if (!rows.length) return head + '<div style="color:var(--muted);font-size:0.8rem">None.</div>';
-    return head + '<div style="overflow-x:auto"><table class="data-table" style="width:100%;font-size:0.78rem"><thead><tr>'
+    if (!rows.length) return '';
+    var head = '<h4 class="dh-list-title">' + esc(title) + ' (' + rows.length + ')</h4>';
+    return head + '<div class="fin-table-wrap"><table class="fin-table"><thead><tr>'
       + cols.map(function(c) { return '<th style="text-align:left">' + esc(c[0]) + '</th>'; }).join('')
       + '</tr></thead><tbody>' + rows.map(function(row) {
         return '<tr>' + cols.map(function(c) { var v = c[1](row); return '<td>' + esc(v == null ? '' : v) + '</td>'; }).join('') + '</tr>';
@@ -11479,10 +11478,14 @@ window.intelQuick = intelQuick;
   function renderDispatchHealth(d) {
     var s = d.summary || {};
     var fired = (d.triggers || []).filter(function(t) { return t.fired; });
-    var triggerHtml = '<div style="margin:0.5rem 0;padding:0.6rem 0.75rem;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">'
-      + (fired.length ? '<strong style="color:var(--red)">Recruitment needed:</strong> ' + fired.map(function(t) { return esc(t.label) + ' (' + esc(t.detail) + ')'; }).join('; ')
+    var checks = d.triggers || [];
+    var triggerHtml = '<div class="dh-banner' + (fired.length ? ' dh-banner-warn' : '') + '">'
+      + (fired.length ? '<strong>Recruitment needed:</strong> ' + fired.map(function(t) { return esc(t.label) + ' (' + esc(t.detail) + ')'; }).join('; ')
         : '<strong>No recruitment trigger fired.</strong>')
-      + '<div style="color:var(--muted);margin-top:0.3rem">' + (d.triggers || []).map(function(t) { return (t.fired ? 'Fired: ' : 'Clear: ') + esc(t.label) + ' - ' + esc(t.detail); }).join('<br>') + '</div></div>';
+      + '</div>'
+      + (checks.length ? '<details class="dh-checks"><summary>All recruitment checks (' + checks.length + ')</summary><ul>'
+        + checks.map(function(t) { return '<li><span class="dh-check ' + (t.fired ? 'dh-check-fired' : 'dh-check-clear') + '">' + (t.fired ? 'Fired' : 'Clear') + '</span>' + esc(t.label) + ' <span class="dh-check-detail">' + esc(t.detail) + '</span></li>'; }).join('')
+        + '</ul></details>' : '');
     var stats = [
       ['Median time to assignment', dhMin(s.medianMinutesToAssign) + ' (' + (s.assigned || 0) + ' assigned)'],
       ['Slowest 10%', dhMin(s.slowestTenthMinutesToAssign)],
@@ -11493,13 +11496,16 @@ window.intelQuick = intelQuick;
       ['Cancelled or declined', String(s.cancelled || 0)],
       ['Ready Easers in this market', (s.readyEasers || 0) + ' of ' + (s.easersOnRecord || 0) + ' on record'],
     ];
-    var statHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0.5rem;margin:0.5rem 0">'
-      + stats.map(function(x) { return '<div style="padding:0.5rem 0.6rem;border:1px solid var(--border);border-radius:8px"><div style="font-size:0.72rem;color:var(--muted)">' + esc(x[0]) + '</div><div style="font-weight:700;font-size:0.9rem">' + esc(x[1]) + '</div></div>'; }).join('')
+    var statHtml = '<div class="dh-stats">'
+      + stats.map(function(x) { return '<div class="dh-stat"><div class="dh-stat-label">' + esc(x[0]) + '</div><div class="dh-stat-value">' + esc(x[1]) + '</div></div>'; }).join('')
       + '</div>';
+    var lists = [['Unassigned now', d.unassigned], ['Cancelled or declined', d.cancellations], ['Completed', d.completedJobs], ['Slowest assignments', d.assignments]];
+    var emptyLists = lists.filter(function(l) { return !(l[1] || []).length; }).map(function(l) { return l[0]; });
     return triggerHtml + statHtml
-      + dhList('Unassigned now', d.unassigned || [], [['Ref', function(r){return r.ref;}], ['Service', function(r){return r.service;}], ['City', function(r){return r.city;}], ['Appointment', function(r){return (r.date || '') + ' ' + (r.time || '');}], ['Hours to go', function(r){return r.hoursToAppointment;}], ['Manual', function(r){return r.needsManualDispatch ? 'yes' : '';}]])
+      + (emptyLists.length ? '<p class="md-muted dh-none">None in this window: ' + esc(emptyLists.join(', ')) + '.</p>' : '')
+      + dhList('Unassigned now', d.unassigned || [], [['Ref', function(r){return r.ref;}], ['Service', function(r){return r.service;}], ['City', function(r){return r.city;}], ['Appointment', function(r){return (r.date ? formatDate(r.date) : '') + ' ' + (r.time || '');}], ['Hours to go', function(r){return r.hoursToAppointment;}], ['Manual', function(r){return r.needsManualDispatch ? 'yes' : '';}]])
       + dhList('Cancelled or declined', d.cancellations || [], [['Ref', function(r){return r.ref;}], ['Service', function(r){return r.service;}], ['City', function(r){return r.city;}], ['Reason', function(r){return r.reason || 'No reason recorded';}], ['Before any Easer accepted', function(r){return r.neverAssigned ? 'yes' : '';}]])
-      + dhList('Completed', d.completedJobs || [], [['Ref', function(r){return r.ref;}], ['Service', function(r){return r.service;}], ['City', function(r){return r.city;}], ['Date', function(r){return r.date;}]])
+      + dhList('Completed', d.completedJobs || [], [['Ref', function(r){return r.ref;}], ['Service', function(r){return r.service;}], ['City', function(r){return r.city;}], ['Date', function(r){return r.date ? formatDate(r.date) : '';}]])
       + dhList('Slowest assignments', (d.assignments || []).slice(0, 10), [['Ref', function(r){return r.ref;}], ['Service', function(r){return r.service;}], ['City', function(r){return r.city;}], ['Time to assignment', function(r){return dhMin(r.minutesToAssign);}]]);
   }
 
@@ -11548,6 +11554,7 @@ window.intelQuick = intelQuick;
   }
 
   function mdCountRows(label, rows, kind) {
+    if (!rows.length) return '<span class="md-count-zero">' + esc(label) + ': 0</span>';
     var items = rows.map(function(row) {
       if (kind === 'supply' || kind === 'waitlist') {
         var title = kind === 'supply' && row.recordType !== 'waitlist'
@@ -11589,7 +11596,11 @@ window.intelQuick = intelQuick;
       var list = document.createElement('div');
       list.className = 'md-summary-rows';
       list.style.cssText = 'font-size:0.72rem;margin-top:0.5rem';
-      list.innerHTML = ['demand','unbooked','priced'].includes(item[1]) && (data.sourceStatus || {}).requests === 'unavailable'
+      var kpiRows = rows[item[1]] || [];
+      var kpiUnknown = (['demand','unbooked','priced'].includes(item[1]) && (data.sourceStatus || {}).requests === 'unavailable')
+        || (['ready','approved'].includes(item[1]) && data.supplyAvailable === false);
+      list.innerHTML = !kpiUnknown && !kpiRows.length ? ''
+        : ['demand','unbooked','priced'].includes(item[1]) && (data.sourceStatus || {}).requests === 'unavailable'
         ? 'Complete count unavailable: request source could not be read.'
         : ['ready','approved'].includes(item[1])
         ? mdSupplyCount('View records', rows[item[1]] || [], false, data.supplyAvailable !== false)

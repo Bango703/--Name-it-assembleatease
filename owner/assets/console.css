@@ -524,16 +524,45 @@ body { background: var(--c-bg); color: var(--c-text); }
 /* Market Demand (owner console v2). */
 #market-demand-view { display: flex; flex-direction: column; gap: 14px; }
 #market-demand-view[style*="display: none"], #market-demand-view[style*="display:none"] { display: none; }
-.md-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 0; }
-@media (min-width: 1850px) { .md-kpis { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+.md-kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 0; }
 .md-kpi { cursor: default; position: relative; }
 .md-kpi .kpi-label { font-size: 12.5px; color: var(--c-muted); font-weight: 600; }
+/* Seven cards on one row: no icon, and nothing cut off (a money figure must never end in "..."). */
+.md-kpi .kpi-icon { display: none; }
+.md-kpi .kpi-label, .md-kpi .kpi-sub { white-space: normal; }
+.md-kpi .kpi-value { overflow: visible; text-overflow: clip; }
 .md-kpi .md-summary-rows { font-size: 11.5px !important; margin-top: 2px !important; position: relative; }
 .md-kpi .md-summary-rows details > summary { color: var(--c-brand-ink); font-weight: 600; list-style: none; }
 .md-kpi .md-summary-rows details > summary::-webkit-details-marker { display: none; }
 .md-kpi .md-summary-rows details[open] > ul { position: absolute; z-index: 30; top: 100%; left: -60px; width: 300px; max-height: 260px !important; overflow-y: auto; margin-top: 6px; padding: 10px 12px 10px 26px !important; background: var(--c-surface); border: 1px solid var(--c-line-strong); border-radius: 10px; box-shadow: 0 8px 24px rgba(15, 23, 32, .12); font-size: 12px; }
 .md-status { font-size: 12px; color: var(--c-muted); margin: -6px 0 0; }
-.md-row3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, .9fr); gap: 14px; }
+.md-row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.md-muted { font-size: 12px; color: var(--c-muted); margin: 0; }
+.md-acq-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 12.5px; }
+.md-coverage-card .md-coverage { flex-direction: row; flex-wrap: wrap; gap: 8px 22px; margin-bottom: 12px; }
+.md-coverage-note { margin-top: 10px; }
+.md-count-zero { color: var(--c-muted); }
+.md-records .md-recon { font-size: 12.5px; }
+.md-browser-setting { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 12px; color: var(--c-muted); padding: 0 2px; }
+.md-browser-setting label { color: var(--c-soft); }
+.md-requests-table td { vertical-align: top; }
+/* Greater Houston dispatch card. */
+.dh-banner { padding: 9px 12px; border: 1px solid var(--c-line); border-radius: 8px; font-size: 13px; margin: 6px 0 8px; }
+.dh-banner-warn { border-color: var(--c-warn); background: var(--c-warn-wash); }
+.dh-banner-warn strong { color: var(--c-warn); }
+.dh-checks { font-size: 12.5px; margin: 0 0 10px; }
+.dh-checks summary { cursor: pointer; color: var(--c-brand-ink); font-weight: 600; }
+.dh-checks ul { list-style: none; padding: 6px 0 0; margin: 0; display: grid; gap: 4px; }
+.dh-check { display: inline-block; min-width: 44px; font-size: 11px; font-weight: 700; margin-right: 8px; }
+.dh-check-fired { color: var(--c-warn); }
+.dh-check-clear { color: var(--c-muted); }
+.dh-check-detail { color: var(--c-muted); }
+.dh-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin: 8px 0 10px; }
+.dh-stat { border: 1px solid var(--c-line); border-radius: 8px; padding: 8px 10px; }
+.dh-stat-label { font-size: 11.5px; color: var(--c-muted); }
+.dh-stat-value { font-weight: 700; font-size: 14px; margin-top: 2px; }
+.dh-none { margin: 4px 0 6px; }
+.dh-list-title { font-size: 13px; font-weight: 700; margin: 12px 0 4px; }
 .md-card-title { font-size: 14.5px; font-weight: 700; margin: 0 0 8px; }
 .md-acq select { height: 30px; border: 1px solid var(--c-line-strong); border-radius: 6px; }
 .md-acq #acquisition-report { max-height: 220px; overflow: auto; }
@@ -549,12 +578,10 @@ body { background: var(--c-bg); color: var(--c-text); }
 .md-market-card .md-metrics-grid { gap: 6px !important; }
 .md-table-wrap { overflow: auto; max-height: 48vh; }
 #md-requests-table th { position: sticky; top: 0; background: var(--c-surface); }
-@media (max-width: 1500px) {
-  .md-row3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .md-row3 > .md-acq { grid-column: 1 / -1; order: 3; }
+@media (max-width: 1100px) {
+  .md-row2 { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 900px) {
-  .md-row3 { grid-template-columns: minmax(0, 1fr); }
   .md-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -575,9 +602,7 @@ body { background: var(--c-bg); color: var(--c-text); }
 .inbox-toolbar .inbox-muted { margin: 0; }
 @media (max-width: 1099px) { .inbox-split { grid-template-columns: minmax(0, 1fr); } .inbox-side { position: static; } }
 
-/* Market Demand: acquisition reads in full; area figures stay on one line. */
-.md-row3 { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
-.md-acq { grid-column: 1 / -1; order: 3; }
+/* Market Demand: acquisition reads in full (no inner scroll) beside the trend; area figures stay on one line. */
 .md-acq #acquisition-report { max-height: none; overflow: visible; }
 .md-market-card .md-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 .md-market-card .md-metrics-grid > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
