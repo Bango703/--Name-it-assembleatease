@@ -62,4 +62,15 @@ const overview = page.slice(page.indexOf('function renderFinanceOverview(d)'), p
 assert.ok(overview.length > 200, 'one overview renderer');
 assert.doesNotMatch(overview, /\.reduce\(/, 'the overview never adds money up itself');
 
+// One place for per-service jobs and revenue (owner, 2026-11-27: "are these all just
+// duplicates?"). Service Profitability has Jobs and Revenue from the server; the
+// More tab used to recount both in the browser as two bar charts.
+assert.ok(page.includes('id="an-service-profit-body"'), 'Service Profitability stays');
+assert.doesNotMatch(page, /id="an-services"|id="an-rev-service"|Top Services by Volume|Revenue by Service/, 'no second copy of jobs or revenue per service');
+const breakdowns = page.slice(page.indexOf('function renderFinancialBreakdowns(d)'), page.indexOf('async function loadPayoutLedger()'));
+assert.ok(breakdowns.length > 100);
+assert.doesNotMatch(breakdowns, /customerRevenue/, 'the page does not total revenue per service itself');
+// The payout ledger is all time while the period buttons sit above it; it says so.
+assert.match(page, /Easer Payout Ledger <span class="fin-card-note">All time, apart from the period above<\/span>/);
+
 console.log('PASS finance overview: months, breakdown and Easer table add up to the totals; built on the server, drawn by the page.');

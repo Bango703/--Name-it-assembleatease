@@ -1319,11 +1319,6 @@
               </table>
             </div>
           </div>
-          <!-- Top Services -->
-          <div class="detail-panel open">
-            <div class="detail-section-title" style="margin-bottom:1rem">Top Services by Volume</div>
-            <div id="an-services"></div>
-          </div>
           <!-- Time on job -->
           <div class="detail-panel open">
             <div class="detail-section-title" style="margin-bottom:0.35rem">Time on Job by Service</div>
@@ -1340,17 +1335,12 @@
             <div class="detail-section-title" style="margin-bottom:1rem">Booking Status Breakdown</div>
             <div id="an-status"></div>
           </div>
-          <!-- Revenue by service -->
-          <div class="detail-panel open">
-            <div class="detail-section-title" style="margin-bottom:1rem">Revenue by Service</div>
-            <div id="an-rev-service"></div>
-          </div>
         </div>
 
         <!-- Payout Ledger — full width below charts -->
         <div class="detail-panel open" style="margin-top:1.5rem">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-            <div class="detail-section-title" style="margin:0">Easer Payout Ledger</div>
+            <div class="detail-section-title" style="margin:0">Easer Payout Ledger <span class="fin-card-note">All time, apart from the period above</span></div>
             <div id="an-payout-totals" style="font-size:0.78rem;color:var(--muted)"></div>
           </div>
           <div class="finance-scroll">
@@ -10231,7 +10221,7 @@ window.intelQuick = intelQuick;
     if (has('#owner-expenses-panel')) return 'expenses';
     if (has('#an-expansion-summary, #fin-details, #fin-formula')) return 'more';
     if (has('#ct-year, #clawback-panel, [id^="tax-"]')) return 'tax';
-    if (has('#an-services, #an-monthly, #an-status, #an-rev-service, #an-job-duration')) return 'more';
+    if (has('#an-monthly, #an-status, #an-job-duration')) return 'more';
     if (has('#an-ledger, #an-payout-table')) return 'ledger';
     return 'overview';
   }
@@ -10242,7 +10232,7 @@ window.intelQuick = intelQuick;
     // are bare (a header + a stats grid), and several sit inside ONE shared wrapper
     // grid. Build a flat list of section "units": each direct child, except a wrapper
     // grid that holds multiple different-group panels, which we descend into.
-    var MIXED = '#an-expansion-summary, #an-services, #an-monthly, #an-status, #an-rev-service, #an-job-duration';
+    var MIXED = '#an-expansion-summary, #an-monthly, #an-status, #an-job-duration';
     var units = [];
     Array.prototype.forEach.call(view.children, function(child) {
       if (child.id === 'fin-subtabs') return;
@@ -11102,18 +11092,6 @@ window.intelQuick = intelQuick;
 
   function renderFinancialBreakdowns(d) {
     var rows = (d.ledger || []).filter(function(row){ return row.status === 'completed'; });
-    var svcMap = {};
-    rows.forEach(function(row){ var s = row.service || 'Other'; svcMap[s] = (svcMap[s] || 0) + 1; });
-    var svcs = Object.entries(svcMap).sort(function(a,b){return b[1]-a[1];});
-    var maxSvc = svcs.length ? svcs[0][1] : 1;
-    document.getElementById('an-services').innerHTML = svcs.map(function(s){
-      var pct = Math.round(s[1]/maxSvc*100);
-      return '<div style="margin-bottom:0.75rem">'
-        +'<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:3px"><span style="color:var(--text);font-weight:500">'+esc(s[0])+'</span><span style="color:var(--muted)">'+s[1]+' completed</span></div>'
-        +'<div style="height:6px;background:var(--border);border-radius:999px"><div style="height:6px;background:var(--teal);border-radius:999px;width:'+pct+'%"></div></div>'
-      +'</div>';
-    }).join('') || '<div style="color:var(--muted);font-size:0.85rem">No completed jobs in this period.</div>';
-
     // Time on job. Median leads because it is the number you would schedule
     // against; the average sits underneath it for anyone comparing the two.
     var DUR = window.AAE_JOB_DURATION;
@@ -11172,18 +11150,6 @@ window.intelQuick = intelQuick;
       return '<div style="display:flex;justify-content:space-between;padding:0.55rem 0;border-bottom:1px solid var(--border);font-size:0.82rem"><span style="color:var(--soft)">'+s[0]+'</span><strong>'+s[1]+'</strong></div>';
     }).join('');
     document.getElementById('an-status').innerHTML = statusHtml;
-
-    var revMap = {};
-    rows.forEach(function(row){ var s = row.service || 'Other'; revMap[s] = (revMap[s] || 0) + Number(row.customerRevenue || 0); });
-    var revSvcs = Object.entries(revMap).sort(function(a,b){return b[1]-a[1];});
-    var maxRev = revSvcs.length ? revSvcs[0][1] : 1;
-    document.getElementById('an-rev-service').innerHTML = revSvcs.map(function(s){
-      var pct3 = Math.round(s[1]/maxRev*100);
-      return '<div style="margin-bottom:0.75rem">'
-        +'<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:3px"><span style="color:var(--text);font-weight:500">'+esc(s[0])+'</span><span style="color:var(--muted)">'+fmt$(s[1])+'</span></div>'
-        +'<div style="height:6px;background:var(--border);border-radius:999px"><div style="height:6px;background:#f59e0b;border-radius:999px;width:'+pct3+'%"></div></div>'
-      +'</div>';
-    }).join('') || '<div style="color:var(--muted);font-size:0.85rem">No completed jobs in this period.</div>';
   }
 
   async function loadPayoutLedger() {
