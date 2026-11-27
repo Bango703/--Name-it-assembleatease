@@ -125,7 +125,7 @@ assert.ok(owner.includes('id="an-job-duration"'), 'the Insights panel must exist
 
 // A panel that is not classified renders under Money, where an operational
 // metric does not belong, and disappears from Insights entirely.
-const insightsRule = owner.match(/if \(has\('#an-services, #an-monthly, #an-status, #an-rev-service, #an-job-duration'\)\) return 'more';/);
+const insightsRule = owner.match(/if \(has\('#an-monthly, #an-status, #an-job-duration'\)\) return 'more';/);
 assert.ok(insightsRule,
   'the panel must be registered under the More sub-tab');
 const mixedRule = owner.match(/var MIXED = '([^']*)';/);
