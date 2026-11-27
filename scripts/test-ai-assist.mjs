@@ -275,6 +275,7 @@ console.log('PASS dashboard: Use this reply fills the reply box on all three scr
     assert.match(vercel.functions[fn]?.includeFiles || '', /booking-source-of-truth\.js/);
   }
   assert.match(read('api/cron/ai-assist.js'), /process\.env\.CRON_SECRET/);
+  assert.match(read('api/cron/ai-assist.js'), /records: summary\.drafted \+ summary\.autoSent \+ summary\.reconciled \+ summary\.casesReviewed \+ summary\.casesClosed,/, 'a run that only reviewed cases is not logged as 0');
   assert.match(read('docs/platform/24-SCHEDULER-CATALOG.yaml'), /'\*\/5 \* \* \* \*'/);
 
   const privacy = read('privacy.html');
